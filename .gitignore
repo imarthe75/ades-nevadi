@@ -1,0 +1,22 @@
+# Secretos — NUNCA commitear
+.env
+
+# Datos persistentes de Docker (Postgres, Valkey)
+data/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Node / Angular
+node_modules/
+dist/
+.angular/
+
+# IDEs
+.idea/
+.vscode/
+*.swp

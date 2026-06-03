@@ -1,0 +1,16 @@
+{
+  "name": "resident-agent-harness",
+  "version": "1.0.0",
+  "description": "Configuración del arnés de desarrollo y skill hooks adaptado de ECC para Agentes Residentes",
+  "skills": {
+    "init-project": "python3 -c 'import shutil, os; shutil.copytree(\"/home/ia/ecosistema-casmarts/resident-agent-framework/.agent\", \"./.agent\", dirs_exist_ok=True); shutil.copy(\"/home/ia/ecosistema-casmarts/resident-agent-framework/resident_agent_genesis.md\", \"./\")'",
+    "session-start": "python3 -c 'print(\"[ECC] Rito de inicio ejecutado. Sincronizando memoria corta y leyendo .agent/STATE.md y .agent/HEURISTICS.md\")'",
+    "session-close": "python3 -c 'print(\"[ECC] Rito de cierre ejecutado. Guardando sumario e higiene en memoria semántica\")'"
+  },
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/home/ia/ecosistema-casmarts"]
+    }
+  }
+}
