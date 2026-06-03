@@ -157,14 +157,16 @@ services:
       AUTHENTIK_POSTGRESQL__USER:     ${AUTHENTIK_DB_USER:-authentik}
       AUTHENTIK_POSTGRESQL__NAME:     ${AUTHENTIK_DB:-authentik}
       AUTHENTIK_POSTGRESQL__PASSWORD: ${AUTHENTIK_DB_PASS}
-      AUTHENTIK_SECRET_KEY:           ${AUTHENTIK_SECRET_KEY:?AUTHENTIK_SECRET_KEY requerido}
+      AUTHENTIK_SECRET_KEY:            ${AUTHENTIK_SECRET_KEY:?AUTHENTIK_SECRET_KEY requerido}
+      AUTHENTIK_BOOTSTRAP_PASSWORD:   ${AUTHENTIK_BOOTSTRAP_PASSWORD:?AUTHENTIK_BOOTSTRAP_PASSWORD requerido}
+      AUTHENTIK_BOOTSTRAP_TOKEN:      ${AUTHENTIK_BOOTSTRAP_TOKEN:?AUTHENTIK_BOOTSTRAP_TOKEN requerido}
       AUTHENTIK_ERROR_REPORTING__ENABLED: "false"
       AUTHENTIK_LOG_LEVEL:            warning
     volumes:
       - authentik-media:/media
     ports:
       - "127.0.0.1:9443:9443"   # HTTPS interno
-      - "127.0.0.1:9000:9000"   # HTTP interno (detrás de nginx)
+      - "127.0.0.1:9010:9000"   # HTTP interno (detrás de nginx)
     networks:
       - ades-internal
     depends_on:
@@ -190,7 +192,9 @@ services:
       AUTHENTIK_POSTGRESQL__USER:     ${AUTHENTIK_DB_USER:-authentik}
       AUTHENTIK_POSTGRESQL__NAME:     ${AUTHENTIK_DB:-authentik}
       AUTHENTIK_POSTGRESQL__PASSWORD: ${AUTHENTIK_DB_PASS}
-      AUTHENTIK_SECRET_KEY:           ${AUTHENTIK_SECRET_KEY}
+      AUTHENTIK_SECRET_KEY:            ${AUTHENTIK_SECRET_KEY}
+      AUTHENTIK_BOOTSTRAP_PASSWORD:   ${AUTHENTIK_BOOTSTRAP_PASSWORD}
+      AUTHENTIK_BOOTSTRAP_TOKEN:      ${AUTHENTIK_BOOTSTRAP_TOKEN}
     volumes:
       - authentik-media:/media
       - /var/run/docker.sock:/var/run/docker.sock  # para blueprints
@@ -393,7 +397,7 @@ services:
     volumes:
       - ./infrastructure/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./infrastructure/nginx/conf.d:/etc/nginx/conf.d:ro
-      - certbot-certs:/etc/letsencrypt:ro       # certs Let's Encrypt
+      - /etc/letsencrypt:/etc/letsencrypt:ro    # bind mount — certs en el host
       - certbot-www:/var/www/certbot:ro          # webroot ACME challenge
     ports:
       - "80:80"
@@ -401,10 +405,7 @@ services:
     networks:
       - ades-internal
     depends_on:
-      - ades-api
-      - ades-frontend
       - authentik-server
-      - superset
     deploy:
       resources:
         limits:
@@ -426,8 +427,8 @@ services:
     container_name: ades-certbot
     restart: unless-stopped
     volumes:
-      - certbot-certs:/etc/letsencrypt    # certs persistentes
-      - certbot-www:/var/www/certbot      # webroot compartido con nginx
+      - /etc/letsencrypt:/etc/letsencrypt  # bind mount — misma ruta que nginx
+      - certbot-www:/var/www/certbot       # webroot compartido con nginx
     entrypoint: >
       /bin/sh -c
       'trap exit TERM;

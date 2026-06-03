@@ -164,9 +164,9 @@ ON CONFLICT DO NOTHING;
 
 -- =============================================================================
 -- 9. RELACIÓN PLANTEL ↔ NIVELES
--- Metepec:      Primaria, Secundaria, Preparatoria
--- Tenancingo:   Primaria, Secundaria
--- Ixtapan:      Primaria, Secundaria (solo grados 1 y 2)
+-- Metepec:    Primaria, Secundaria, Preparatoria
+-- Tenancingo: Primaria, Secundaria, Preparatoria (incorporada)
+-- Ixtapan:    Primaria, Secundaria
 -- =============================================================================
 INSERT INTO ades_plantel_niveles (plantel_id, nivel_educativo_id, estatus_id)
 SELECT p.id, ne.id, est.id
@@ -175,8 +175,7 @@ CROSS JOIN ades_niveles_educativos ne
 CROSS JOIN ades_estatus est
 WHERE est.entidad = 'GLOBAL' AND est.nombre_estatus = 'ACTIVO'
   AND (
-    (p.nombre_plantel = 'Metepec')  -- los 3 niveles
-    OR (p.nombre_plantel = 'Tenancingo'    AND ne.nombre_nivel IN ('PRIMARIA','SECUNDARIA'))
+    (p.nombre_plantel IN ('Metepec', 'Tenancingo'))   -- Primaria + Secundaria + Preparatoria
     OR (p.nombre_plantel = 'Ixtapan de la Sal' AND ne.nombre_nivel IN ('PRIMARIA','SECUNDARIA'))
   )
 ON CONFLICT (plantel_id, nivel_educativo_id) DO NOTHING;
@@ -435,15 +434,17 @@ FROM ciclo c,
 ON CONFLICT (numero_periodo, tipo_periodo, ciclo_escolar_id) DO NOTHING;
 
 -- =============================================================================
--- 14. GRADOS POR PLANTEL Y NIVEL
--- Metepec:      Primaria 1-6, Secundaria 1-3, Preparatoria 1er semestre
--- Tenancingo:   Primaria 1-6, Secundaria 1-3
--- Ixtapan:      Primaria 1-6, Secundaria 1-2
+-- 14. GRADOS POR PLANTEL Y NIVEL (estructura completa)
+-- Metepec:    Primaria 1-6, Secundaria 1-3, Preparatoria sem 1-6
+-- Tenancingo: Primaria 1-6, Secundaria 1-3, Preparatoria sem 1-6
+-- Ixtapan:    Primaria 1-6, Secundaria 1-3 (completa)
+--
+-- Grupos activos próximo ciclo:
+--   Metepec prep:    sem 1-4 activos / sem 5-6 is_active=FALSE (futuros)
+--   Tenancingo prep: sem 1-2 activos / sem 3-6 is_active=FALSE (futuros)
+--   Todo lo demás:   activo
 -- =============================================================================
 WITH
-plantel_metepec  AS (SELECT id FROM ades_planteles WHERE nombre_plantel = 'Metepec'),
-plantel_tena     AS (SELECT id FROM ades_planteles WHERE nombre_plantel = 'Tenancingo'),
-plantel_ixt      AS (SELECT id FROM ades_planteles WHERE nombre_plantel = 'Ixtapan de la Sal'),
 niv_pri   AS (SELECT id FROM ades_niveles_educativos WHERE nombre_nivel = 'PRIMARIA'),
 niv_sec   AS (SELECT id FROM ades_niveles_educativos WHERE nombre_nivel = 'SECUNDARIA'),
 niv_prep  AS (SELECT id FROM ades_niveles_educativos WHERE nombre_nivel = 'PREPARATORIA'),
@@ -458,22 +459,20 @@ FROM (VALUES
 (SELECT id FROM ades_planteles) AS p,
 niv_pri, est_act
 UNION ALL
--- SECUNDARIA — Metepec y Tenancingo: grados 1-3 / Ixtapan: grados 1-2
+-- SECUNDARIA — los 3 planteles, grados 1-3 (Ixtapan ahora completa con 3er grado)
 SELECT g.num, g.nombre, niv_sec.id, p.id, est_act.id
 FROM (VALUES (1,'Primer grado'),(2,'Segundo grado'),(3,'Tercer grado')) AS g(num, nombre),
-(
-  SELECT id FROM ades_planteles WHERE nombre_plantel IN ('Metepec','Tenancingo')
-  UNION ALL
-  SELECT id FROM ades_planteles WHERE nombre_plantel = 'Ixtapan de la Sal'
-    -- Solo grados 1 y 2 para Ixtapan
-) AS p,
+(SELECT id FROM ades_planteles) AS p,
 niv_sec, est_act
-WHERE NOT (p.id = (SELECT id FROM ades_planteles WHERE nombre_plantel = 'Ixtapan de la Sal')
-           AND g.num = 3)
 UNION ALL
--- PREPARATORIA — solo Metepec, 1er semestre
-SELECT 1, 'Primer semestre', niv_prep.id, plantel_metepec.id, est_act.id
-FROM plantel_metepec, niv_prep, est_act
+-- PREPARATORIA — Metepec y Tenancingo, semestres 1-6 completos
+SELECT g.num, g.nombre, niv_prep.id, p.id, est_act.id
+FROM (VALUES
+  (1,'Primer semestre'), (2,'Segundo semestre'), (3,'Tercer semestre'),
+  (4,'Cuarto semestre'), (5,'Quinto semestre'),  (6,'Sexto semestre')
+) AS g(num, nombre),
+(SELECT id FROM ades_planteles WHERE nombre_plantel IN ('Metepec','Tenancingo')) AS p,
+niv_prep, est_act
 ON CONFLICT (numero_grado, nivel_educativo_id, plantel_id) DO NOTHING;
 
 -- =============================================================================
@@ -523,19 +522,66 @@ UPDATE ades_materias SET es_inglés = TRUE
 WHERE nombre_materia = 'Inglés'
   AND nivel_educativo_id = (SELECT id FROM ades_niveles_educativos WHERE nombre_nivel = 'SECUNDARIA');
 
--- PREPARATORIA UAEMEX — Primer semestre (materias del tronco común)
+-- PREPARATORIA UAEMEX — Plan de estudios NMS completo (semestres 1-6)
 INSERT INTO ades_materias (nombre_materia, clave_materia, nivel_educativo_id, horas_semana, es_inglés)
-SELECT m.nombre, m.clave, ne.id, m.horas, FALSE
+SELECT m.nombre, m.clave, ne.id, m.horas,
+       (m.clave LIKE 'PREP-ING%') AS es_ing
 FROM ades_niveles_educativos ne,
 (VALUES
-  ('Taller de Lectura y Redacción I',       'PREP-TLR1', 4.0),
-  ('Matemáticas I',                         'PREP-MAT1', 5.0),
-  ('Química I',                             'PREP-QUI1', 4.0),
-  ('Historia Universal I',                  'PREP-HIS1', 4.0),
-  ('Inglés I',                              'PREP-ING1', 3.0),
-  ('Metodología de la Investigación I',     'PREP-MET1', 3.0),
-  ('Informática I',                         'PREP-INF1', 3.0),
-  ('Educación Física I',                    'PREP-EDF1', 2.0)
+  -- Semestre 1
+  ('Taller de Lectura y Redacción I',        'PREP-TLR1', 4.0),
+  ('Matemáticas I',                          'PREP-MAT1', 5.0),
+  ('Química I',                              'PREP-QUI1', 4.0),
+  ('Historia Universal I',                   'PREP-HIS1', 4.0),
+  ('Inglés I',                               'PREP-ING1', 3.0),
+  ('Metodología de la Investigación I',      'PREP-MET1', 3.0),
+  ('Informática I',                          'PREP-INF1', 3.0),
+  ('Educación Física I',                     'PREP-EDF1', 2.0),
+  -- Semestre 2
+  ('Taller de Lectura y Redacción II',       'PREP-TLR2', 4.0),
+  ('Matemáticas II',                         'PREP-MAT2', 5.0),
+  ('Química II',                             'PREP-QUI2', 4.0),
+  ('Historia de México I',                   'PREP-HMX1', 4.0),
+  ('Inglés II',                              'PREP-ING2', 3.0),
+  ('Economía',                               'PREP-ECO1', 3.0),
+  ('Biología I',                             'PREP-BIO1', 4.0),
+  ('Educación Física II',                    'PREP-EDF2', 2.0),
+  -- Semestre 3
+  ('Literatura I',                           'PREP-LIT1', 4.0),
+  ('Matemáticas III',                        'PREP-MAT3', 5.0),
+  ('Física I',                               'PREP-FIS1', 4.0),
+  ('Historia de México II',                  'PREP-HMX2', 4.0),
+  ('Inglés III',                             'PREP-ING3', 3.0),
+  ('Psicología I',                           'PREP-PSI1', 3.0),
+  ('Química Orgánica',                       'PREP-QORG', 4.0),
+  ('Educación Física III',                   'PREP-EDF3', 2.0),
+  -- Semestre 4
+  ('Literatura II',                          'PREP-LIT2', 4.0),
+  ('Cálculo Diferencial',                    'PREP-CALD', 5.0),
+  ('Física II',                              'PREP-FIS2', 4.0),
+  ('Geografía',                              'PREP-GEO1', 3.0),
+  ('Inglés IV',                              'PREP-ING4', 3.0),
+  ('Psicología II',                          'PREP-PSI2', 3.0),
+  ('Ecología',                               'PREP-ECOL', 3.0),
+  ('Educación Física IV',                    'PREP-EDF4', 2.0),
+  -- Semestre 5
+  ('Probabilidad y Estadística I',           'PREP-EST1', 4.0),
+  ('Cálculo Integral',                       'PREP-CALI', 5.0),
+  ('Biología II',                            'PREP-BIO2', 4.0),
+  ('Sociología',                             'PREP-SOC1', 3.0),
+  ('Inglés V',                               'PREP-ING5', 3.0),
+  ('Filosofía I',                            'PREP-FIL1', 3.0),
+  ('Orientación Vocacional I',               'PREP-OVO1', 2.0),
+  ('Educación Física V',                     'PREP-EDF5', 2.0),
+  -- Semestre 6
+  ('Probabilidad y Estadística II',          'PREP-EST2', 4.0),
+  ('Álgebra Lineal',                         'PREP-ALG1', 5.0),
+  ('Bioquímica',                             'PREP-BCQ1', 4.0),
+  ('Historia Contemporánea',                 'PREP-HCO1', 3.0),
+  ('Inglés VI',                              'PREP-ING6', 3.0),
+  ('Filosofía II',                           'PREP-FIL2', 3.0),
+  ('Orientación Vocacional II',              'PREP-OVO2', 2.0),
+  ('Educación Física VI',                    'PREP-EDF6', 2.0)
 ) AS m(nombre, clave, horas)
 WHERE ne.nombre_nivel = 'PREPARATORIA'
 ON CONFLICT (nombre_materia, nivel_educativo_id) DO NOTHING;
@@ -584,8 +630,8 @@ BEGIN
   RAISE NOTICE 'Niveles:     % (esperado: 3)',  v_niveles;
   RAISE NOTICE 'Ciclos:      % (esperado: 4)',  v_ciclos;
   RAISE NOTICE 'Periodos:    % (esperado: 11)', v_periodos;
-  RAISE NOTICE 'Grados:      % (esperado: 46)', v_grados;
-  RAISE NOTICE 'Materias:    % (esperado: 26)', v_materias;
+  RAISE NOTICE 'Grados:      % (esperado: 39)', v_grados;
+  RAISE NOTICE 'Materias:    % (esperado: 66)', v_materias;
   RAISE NOTICE 'Aulas:       % (esperado: 24)', v_aulas;
   RAISE NOTICE '=============================';
 END $$;

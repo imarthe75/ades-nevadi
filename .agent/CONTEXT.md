@@ -16,13 +16,14 @@ comunicación interna y generación de horarios. No incluye módulo de pagos/col
 
 ### Planteles y niveles activos
 
-| Plantel      | Primaria (SEP) | Secundaria (SEP) | Preparatoria (UAEMEX) |
-|--------------|:--------------:|:----------------:|:---------------------:|
-| Metepec      | 6 grados       | 3 grados         | 1er semestre (25B)    |
-| Tenancingo   | 6 grados       | 3 grados         | —                     |
-| Ixtapan      | 6 grados       | 1° y 2° grado    | —                     |
+| Plantel      | Primaria (SEP) | Secundaria (SEP) | Preparatoria (UAEMEX)                |
+|--------------|:--------------:|:----------------:|:------------------------------------:|
+| Metepec      | 6 grados       | 3 grados         | Sem 1-6 (activos 1-4 ciclo 26B/27A) |
+| Tenancingo   | 6 grados       | 3 grados         | Sem 1-6 (activos 1-2 ciclo 26B)     |
+| Ixtapan      | 6 grados       | 3 grados         | —                                    |
 
 **Grupos por grado:** 2 grupos (A y B) en todos los niveles y planteles.
+**Grupos inactivos (futuros):** Metepec prep sem 5-6 y Tenancingo prep sem 3-6 tienen `is_active = FALSE` — se activan ciclo a ciclo sin necesidad de nueva migración.
 
 ### Contactos por plantel
 - **Metepec:** Prolongación Heriberto Enríquez 1001 · Tel: 7222971441 / 7223253683 · nevadimetepec@institutonevadi.edu.mx
@@ -95,6 +96,19 @@ con cuentas @institutonevadi.edu.mx. Alumnos y padres usan cuentas locales en Au
 20. **Asistente IA** — LangChain/LangGraph, sugerencias académicas, generación de rúbricas
 21. **Riesgo Académico** — detección predictiva de alumnos con tendencia a reprobar
 22. **Dashboard BI** — Apache Superset, KPIs de asistencia/calificaciones/cobertura curricular
+23. **Learning Paths** — rutas de refuerzo adaptativas para alumnos en riesgo (inspirado en Moodle)
+24. **Grade Analytics** — tendencias, alertas <70, análisis de cohorte (inspirado en Moodle)
+25. **Learning Analytics** — acceso a contenidos, tiempo dedicado, patrones de aprendizaje
+
+### Módulos inspirados en Moodle (análisis 2026-06)
+
+De análisis comparativo con github.com/moodle/moodle se incorporan:
+- **FASE 2:** Quiz Engine, Activity Completion, Content Bank, Notifications, Foros
+- **FASE 3:** Badges/Gamificación, Competency Framework, Encuestas, Certificados Digitales
+- **FASE 4:** Grade Analytics, Learning Analytics, Learning Plans
+
+No se adopta Moodle completo: ADES es SIS (School Information System), no LMS.
+Moodle es single-tenant PHP/MySQL; ADES es multi-plantel FastAPI/PG18/Angular con regulaciones SEP/UAEMEX.
 
 ### Integración externa (no construir desde cero)
 - **aSc TimeTables** — motor de generación de horarios via XML; ADES exporta datos base,
@@ -135,7 +149,7 @@ y pueden subir archivos (MinIO/S3) como entrega.
 
 | Capa               | Tecnología                                      |
 |--------------------|-------------------------------------------------|
-| Base de datos       | PostgreSQL 18 + pgvector (pgvector/pgvector:pg18)|
+| Base de datos       | PostgreSQL 18 + pgvector · PK: UUID v7 (`uuidv7()`)|
 | Caché / sesiones   | Valkey (reemplaza Redis)                         |
 | Backend API        | FastAPI (Python 3.12)                            |
 | Frontend           | Angular + PrimeNG                                |
@@ -154,13 +168,13 @@ y pueden subir archivos (MinIO/S3) como entrega.
 ## Convenciones de Base de Datos
 
 - **Prefijo de tablas:** `ades_`
-- **PK:** `id BIGINT GENERATED ALWAYS AS IDENTITY`
-- **UUID estable:** `ref UUID NOT NULL DEFAULT gen_random_uuid()` (UUIDv7 si disponible)
+- **PK:** `id UUID NOT NULL DEFAULT uuidv7()` — time-ordered, nativo en PG18, sin fragmentación de índice
+- **Ref:** `ref UUID NOT NULL UNIQUE DEFAULT uuidv7()` — business key para sistemas externos (SCD2)
 - **Auditoría:** todas las tablas usan el trigger `auditoria.trg_auditoria_biu` del framework
 - **Soft delete:** `is_active BOOLEAN NOT NULL DEFAULT TRUE`
-- **Estatus por entidad:** tabla `ades_estatus` + FK `estatus_id`; valores típicos: ACTIVO, INACTIVO, BAJA, EGRESADO, SUSPENDIDO
+- **Estatus por entidad:** tabla `ades_estatus` + FK `estatus_id UUID`; valores típicos: ACTIVO, INACTIVO, BAJA, EGRESADO, SUSPENDIDO
 - **Nombres:** snake_case, en español, descriptivos
-- **FKs:** sufijo `_id` (ej. `plantel_id`, `ciclo_escolar_id`)
+- **FKs:** sufijo `_id` de tipo `UUID` (ej. `plantel_id UUID`, `ciclo_escolar_id UUID`)
 - **Comentarios:** obligatorios en tablas y columnas no obvias
 - **row_version:** control de concurrencia optimista en todas las tablas
 
