@@ -1,0 +1,181 @@
+// ============================================================================
+// ADES — Estilos globales | Paleta Instituto Nevadi
+// Base primaria: #D02030
+// ============================================================================
+
+// ── Variables de diseño ───────────────────────────────────────────────────────
+:root {
+  // Brand
+  --nevadi-red:         #D02030;
+  --nevadi-red-dark:    #B01C28;
+  --nevadi-red-darker:  #8C1620;
+  --nevadi-red-light:   #FBA7AC;
+  --nevadi-red-lighter: #FEF2F3;
+
+  // Sidebar (carbón con matiz cálido)
+  --sidebar-bg:         #1A1215;
+  --sidebar-hover:      #2E1A1F;
+  --sidebar-active:     #D02030;
+  --sidebar-active-text:#FFFFFF;
+  --sidebar-text:       #C4A8AC;
+  --sidebar-text-muted: #7A5C62;
+
+  // Topbar
+  --topbar-bg:          #D02030;
+  --topbar-border:      #B01C28;
+  --topbar-text:        #FFFFFF;
+  --topbar-text-muted:  rgba(255,255,255,.65);
+
+  // Superficies
+  --surface-ground:     #F8F9FA;
+  --surface-section:    #FFFFFF;
+  --surface-card:       #FFFFFF;
+  --surface-overlay:    #FFFFFF;
+  --surface-border:     #E9ECEF;
+  --surface-hover:      #F3F4F6;
+
+  // Texto
+  --text-primary:       #1E293B;
+  --text-secondary:     #64748B;
+  --text-muted:         #94A3B8;
+
+  // Semánticos
+  --color-success:      #16A34A;
+  --color-warning:      #D97706;
+  --color-danger:       #DC2626;
+  --color-info:         #2563EB;
+}
+
+// ── Tipografía ────────────────────────────────────────────────────────────────
+:root {
+  --font-display: 'Jost', sans-serif;   // headings, KPIs, brand
+  --font-body:    'Inter', sans-serif;  // body, tablas, labels
+}
+
+// ── Reset / Base ──────────────────────────────────────────────────────────────
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--text-primary);
+  background: var(--surface-ground);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+// Jost en headings, títulos de página y valores KPI
+h1, h2, h3, h4,
+.kpi-value, .brand-title, .brand-subtitle,
+.stat-card-value,
+.p-card .p-card-title {
+  font-family: var(--font-display);
+}
+
+// Inter en tablas y formularios (ya es el default de body)
+.p-datatable, .p-inputtext, .p-select, .p-button {
+  font-family: var(--font-body);
+}
+
+// ── Scrollbar sutil ───────────────────────────────────────────────────────────
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--nevadi-red-light); }
+
+// ── PrimeNG overrides — topbar ────────────────────────────────────────────────
+.ades-topbar.p-toolbar {
+  background: var(--topbar-bg) !important;
+  border: none !important;
+  border-bottom: 2px solid var(--topbar-border) !important;
+  border-radius: 0 !important;
+  padding: 0.4rem 1.25rem !important;
+
+  .p-toolbar-start { gap: 0.75rem; }
+}
+
+// ── PrimeNG overrides — p-select dentro del topbar ───────────────────────────
+.ades-topbar .p-select {
+  background: rgba(255,255,255,.12) !important;
+  border-color: rgba(255,255,255,.25) !important;
+  color: #fff !important;
+  min-width: 180px;
+
+  .p-select-label { color: #fff !important; font-size: 0.85rem; }
+  .p-select-dropdown { color: rgba(255,255,255,.8) !important; }
+
+  &:hover, &:focus-within {
+    border-color: rgba(255,255,255,.5) !important;
+  }
+}
+
+// ── PrimeNG overrides — cards ─────────────────────────────────────────────────
+.p-card {
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06);
+}
+
+// ── PrimeNG overrides — botones primarios ─────────────────────────────────────
+// El preset ya maneja el color primario; estos son ajustes de forma
+.p-button.p-button-primary {
+  font-weight: 600;
+}
+
+// ── PrimeNG overrides — datatable ─────────────────────────────────────────────
+.p-datatable {
+  .p-datatable-header { background: var(--surface-card); border-radius: 8px 8px 0 0; }
+  .p-datatable-thead > tr > th {
+    background: #F1F5F9;
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+  }
+  .p-datatable-tbody > tr:hover {
+    background: var(--nevadi-red-lighter) !important;
+  }
+  .p-datatable-tbody > tr.p-highlight {
+    background: #FEE2E4 !important;
+    color: var(--nevadi-red-dark) !important;
+  }
+}
+
+// ── PrimeNG overrides — p-tag ─────────────────────────────────────────────────
+.p-tag.p-tag-success   { background: #DCFCE7; color: #15803D; }
+.p-tag.p-tag-danger    { background: #FEE2E2; color: #B91C1C; }
+.p-tag.p-tag-warning   { background: #FEF3C7; color: #B45309; }
+.p-tag.p-tag-info      { background: #DBEAFE; color: #1D4ED8; }
+
+// ── Clases de utilidad ────────────────────────────────────────────────────────
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.25rem;
+
+  h2 {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: 1.2rem;
+    font-weight: 700;
+  }
+  .subtitle {
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+    margin: 0.2rem 0 0;
+  }
+}
+
+.stat-card-value {
+  font-size: 2.2rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+// ── Celda editada en libreta ──────────────────────────────────────────────────
+td.edited {
+  background-color: #FFFBEB !important;
+  outline: 1px solid var(--color-warning);
+}

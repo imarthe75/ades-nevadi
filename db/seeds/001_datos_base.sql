@@ -47,14 +47,26 @@ ON CONFLICT (entidad, nombre_estatus) DO NOTHING;
 -- 3. ROLES DEL SISTEMA
 -- =============================================================================
 INSERT INTO ades_roles (nombre_rol, descripcion, nivel_acceso) VALUES
-  ('ADMIN_GLOBAL',          'Administrador de toda la institución',          0),
-  ('ADMIN_PLANTEL',         'Administrador de un plantel específico',        1),
-  ('DIRECTOR',              'Director de plantel',                           2),
-  ('COORDINADOR_ACADEMICO', 'Coordinador académico por nivel',               3),
-  ('DOCENTE',               'Profesor — acceso a sus grupos y materias',     4),
-  ('MEDICO_ESCOLAR',        'Personal de salud del plantel',                 4),
-  ('ALUMNO',                'Estudiante — acceso a su propio expediente',    5),
-  ('PADRE_FAMILIA',         'Padre/tutor — acceso al expediente de su hijo', 5)
+  -- Nivel 0 — Control total
+  ('ADMIN_GLOBAL',              'Administrador de toda la institución',                  0),
+  -- Nivel 1 — Administración por plantel
+  ('ADMIN_PLANTEL',             'Administrador de un plantel específico',                1),
+  -- Nivel 2 — Dirección y coordinación estratégica
+  ('DIRECTOR',                  'Director de plantel',                                   2),
+  ('SUBDIRECTOR',               'Subdirector de plantel — suplente del director',        2),
+  ('COORDINADOR_ADMINISTRATIVO','Coordinador administrativo — procesos, logística, padres', 2),
+  ('COORDINADOR_RH',            'Coordinador de Recursos Humanos — personal docente/admin', 2),
+  -- Nivel 3 — Coordinación académica y de servicios
+  ('COORDINADOR_ACADEMICO',     'Coordinador académico por nivel educativo',             3),
+  ('ORIENTADOR',                'Orientador educativo y vocacional — secundaria/prep',   3),
+  ('SECRETARIA_ACADEMICA',      'Secretaría académica — expedientes, certificados, actas', 3),
+  -- Nivel 4 — Operación directa con alumnos
+  ('DOCENTE',                   'Profesor — acceso a sus grupos y materias',             4),
+  ('MEDICO_ESCOLAR',            'Personal de salud del plantel',                         4),
+  ('PREFECTO',                  'Prefecto — disciplina, supervisión de pasillos y accesos', 4),
+  -- Nivel 5 — Acceso de lectura (comunidad escolar)
+  ('ALUMNO',                    'Estudiante — acceso a su propio expediente y materias', 5),
+  ('PADRE_FAMILIA',             'Padre/tutor — acceso al expediente de sus hijos',       5)
 ON CONFLICT (nombre_rol) DO NOTHING;
 
 -- =============================================================================

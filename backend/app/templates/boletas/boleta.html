@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    /* ── Tipografía y base ─────────────────────────────────────────── */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', Arial, sans-serif;
+      font-size: 9pt;
+      color: #1e293b;
+      background: #fff;
+    }
+
+    /* ── Layout de página ─────────────────────────────────────────── */
+    .page {
+      width: 216mm;
+      min-height: 279mm;
+      padding: 12mm 14mm;
+    }
+
+    /* ── Encabezado ───────────────────────────────────────────────── */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 3px solid #D02030;
+      padding-bottom: 8pt;
+      margin-bottom: 10pt;
+    }
+    .header-brand {
+      display: flex;
+      align-items: center;
+      gap: 10pt;
+    }
+    .logo-circle {
+      width: 42pt;
+      height: 42pt;
+      border-radius: 50%;
+      background: #D02030;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-weight: 800;
+      font-size: 14pt;
+    }
+    .brand-text h1 {
+      font-size: 14pt;
+      font-weight: 800;
+      color: #D02030;
+      line-height: 1.1;
+    }
+    .brand-text p {
+      font-size: 7.5pt;
+      color: #64748b;
+      margin-top: 1pt;
+    }
+    .header-doc {
+      text-align: right;
+    }
+    .header-doc .doc-title {
+      font-size: 13pt;
+      font-weight: 700;
+      color: #1e293b;
+    }
+    .header-doc .doc-ciclo {
+      font-size: 8.5pt;
+      color: #64748b;
+      margin-top: 2pt;
+    }
+
+    /* ── Datos del alumno ─────────────────────────────────────────── */
+    .alumno-section {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6pt;
+      background: #f8f9fa;
+      border: 1px solid #e2e8f0;
+      border-radius: 4pt;
+      padding: 8pt 10pt;
+      margin-bottom: 10pt;
+    }
+    .dato { display: flex; flex-direction: column; gap: 1pt; }
+    .dato-label { font-size: 7pt; font-weight: 700; text-transform: uppercase; color: #94a3b8; letter-spacing: .05em; }
+    .dato-valor { font-size: 9.5pt; font-weight: 600; color: #1e293b; }
+
+    /* ── Tabla de calificaciones ──────────────────────────────────── */
+    .section-title {
+      font-size: 8.5pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: #64748b;
+      margin-bottom: 5pt;
+      margin-top: 10pt;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 8.5pt;
+    }
+    thead tr {
+      background: #D02030;
+      color: #fff;
+    }
+    thead th {
+      padding: 4pt 6pt;
+      text-align: center;
+      font-weight: 700;
+      font-size: 7.5pt;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+    thead th:first-child { text-align: left; }
+    tbody tr:nth-child(even) { background: #f8f9fa; }
+    tbody tr:hover { background: #fef2f3; }
+    tbody td {
+      padding: 4pt 6pt;
+      border-bottom: 1px solid #e9ecef;
+      text-align: center;
+    }
+    tbody td:first-child { text-align: left; font-weight: 500; }
+    .cal-acreditado { color: #15803d; font-weight: 700; }
+    .cal-reprobado  { color: #dc2626; font-weight: 700; }
+    .cal-vacio      { color: #94a3b8; }
+
+    /* ── Fila de promedio ─────────────────────────────────────────── */
+    .tfoot-row td {
+      border-top: 2px solid #D02030;
+      font-weight: 700;
+      font-size: 9pt;
+      padding: 5pt 6pt;
+    }
+    .promedio-general {
+      font-size: 11pt;
+      font-weight: 800;
+      color: #D02030;
+    }
+
+    /* ── Leyenda de acreditación ──────────────────────────────────── */
+    .leyenda {
+      display: flex;
+      gap: 14pt;
+      font-size: 7.5pt;
+      color: #64748b;
+      margin-top: 6pt;
+    }
+    .leyenda span { display: flex; align-items: center; gap: 4pt; }
+    .dot { width: 7pt; height: 7pt; border-radius: 50%; display: inline-block; }
+    .dot-acr { background: #15803d; }
+    .dot-rep { background: #dc2626; }
+
+    /* ── Sección de firmas ────────────────────────────────────────── */
+    .firmas {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12pt;
+      margin-top: 20pt;
+    }
+    .firma-box {
+      text-align: center;
+    }
+    .firma-linea {
+      border-top: 1px solid #1e293b;
+      margin-bottom: 4pt;
+    }
+    .firma-nombre { font-size: 7.5pt; font-weight: 600; color: #1e293b; }
+    .firma-cargo  { font-size: 7pt; color: #64748b; }
+
+    /* ── Pie de página ────────────────────────────────────────────── */
+    .footer {
+      position: fixed;
+      bottom: 8mm;
+      left: 14mm;
+      right: 14mm;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 5pt;
+      display: flex;
+      justify-content: space-between;
+      font-size: 7pt;
+      color: #94a3b8;
+    }
+    .sello-nevadi {
+      font-weight: 700;
+      color: #D02030;
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Encabezado -->
+  <div class="header">
+    <div class="header-brand">
+      <div class="logo-circle">N</div>
+      <div class="brand-text">
+        <h1>Instituto Nevadi</h1>
+        <p>EL ÚNICO CAMINO PARA SALIR ADELANTE ES LA EDUCACIÓN</p>
+        <p>{{ plantel_nombre }} &bull; CCT: {{ cct }}</p>
+      </div>
+    </div>
+    <div class="header-doc">
+      <div class="doc-title">BOLETA DE CALIFICACIONES</div>
+      <div class="doc-ciclo">Ciclo escolar {{ ciclo_nombre }}</div>
+      <div class="doc-ciclo">Generada: {{ fecha_generacion }}</div>
+    </div>
+  </div>
+
+  <!-- Datos del alumno -->
+  <div class="alumno-section">
+    <div class="dato">
+      <span class="dato-label">Nombre del alumno</span>
+      <span class="dato-valor">{{ nombre_completo }}</span>
+    </div>
+    <div class="dato">
+      <span class="dato-label">Matrícula</span>
+      <span class="dato-valor">{{ matricula }}</span>
+    </div>
+    <div class="dato">
+      <span class="dato-label">Grado y grupo</span>
+      <span class="dato-valor">{{ grado_grupo }}</span>
+    </div>
+    <div class="dato">
+      <span class="dato-label">Nivel educativo</span>
+      <span class="dato-valor">{{ nivel_educativo }}</span>
+    </div>
+  </div>
+
+  <!-- Tabla de calificaciones -->
+  <div class="section-title">Calificaciones por materia y periodo</div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:38%">Materia</th>
+        {% for periodo in periodos %}
+        <th>{{ periodo }}</th>
+        {% endfor %}
+        <th>Promedio</th>
+        <th>¿Acredita?</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for mat in materias %}
+      <tr>
+        <td>{{ mat.materia_nombre }}</td>
+        {% for periodo in periodos %}
+          <td>
+            {% set cal = mat.calificaciones.get(periodo) %}
+            {% if cal is not none %}
+              <span class="{{ 'cal-acreditado' if cal >= 6 else 'cal-reprobado' }}">
+                {{ "%.1f"|format(cal) }}
+              </span>
+            {% else %}
+              <span class="cal-vacio">—</span>
+            {% endif %}
+          </td>
+        {% endfor %}
+        <td>
+          {% if mat.promedio is not none %}
+            <span class="{{ 'cal-acreditado' if mat.promedio >= 6 else 'cal-reprobado' }} promedio-general">
+              {{ "%.2f"|format(mat.promedio) }}
+            </span>
+          {% else %}
+            <span class="cal-vacio">—</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if mat.acreditado %}
+            <span class="cal-acreditado">✓ Sí</span>
+          {% else %}
+            <span class="cal-reprobado">✗ No</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr class="tfoot-row">
+        <td colspan="{{ periodos|length + 1 }}" style="text-align:right">Promedio General:</td>
+        <td colspan="2">
+          {% if promedio_general is not none %}
+            <span class="{{ 'cal-acreditado' if promedio_general >= 6 else 'cal-reprobado' }} promedio-general">
+              {{ "%.2f"|format(promedio_general) }}
+            </span>
+          {% else %}
+            <span class="cal-vacio">—</span>
+          {% endif %}
+        </td>
+      </tr>
+    </tfoot>
+  </table>
+
+  <div class="leyenda">
+    <span><span class="dot dot-acr"></span> Calificación acreditada (≥ 6.0)</span>
+    <span><span class="dot dot-rep"></span> Reprobado (< 6.0)</span>
+    <span>Escala: 0 – 10</span>
+  </div>
+
+  <!-- Firmas -->
+  <div class="firmas">
+    <div class="firma-box">
+      <div class="firma-linea"></div>
+      <div class="firma-nombre">Director(a) de Plantel</div>
+      <div class="firma-cargo">Vo. Bo.</div>
+    </div>
+    <div class="firma-box">
+      <div class="firma-linea"></div>
+      <div class="firma-nombre">Secretaría Académica</div>
+      <div class="firma-cargo">Expedición</div>
+    </div>
+    <div class="firma-box">
+      <div class="firma-linea"></div>
+      <div class="firma-nombre">Padre / Tutor</div>
+      <div class="firma-cargo">Enterado</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Pie de página fijo -->
+<div class="footer">
+  <span><span class="sello-nevadi">Instituto Nevadi</span> — Documento oficial. Favor de conservar.</span>
+  <span>{{ plantel_direccion }}</span>
+  <span>Tel: {{ plantel_telefono }}</span>
+</div>
+
+</body>
+</html>

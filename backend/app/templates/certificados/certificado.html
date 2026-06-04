@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Jost:wght@400;600;700;800&family=Inter:wght@400;500&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  @page {
+    size: A4 landscape;
+    margin: 0;
+  }
+
+  body {
+    font-family: 'Inter', Arial, sans-serif;
+    background: #fff;
+    width: 297mm;
+    height: 210mm;
+    overflow: hidden;
+  }
+
+  .cert-page {
+    width: 297mm;
+    height: 210mm;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 12mm 18mm;
+  }
+
+  /* Marco exterior */
+  .cert-page::before {
+    content: '';
+    position: absolute;
+    inset: 6mm;
+    border: 3px solid #D02030;
+  }
+  .cert-page::after {
+    content: '';
+    position: absolute;
+    inset: 8mm;
+    border: 1px solid #D02030;
+  }
+
+  /* Header */
+  .cert-header {
+    text-align: center;
+    margin-bottom: 8mm;
+  }
+  .cert-logo-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10mm;
+    margin-bottom: 3mm;
+  }
+  .cert-escudo {
+    width: 18mm;
+    height: 18mm;
+    border-radius: 50%;
+    background: #D02030;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-family: 'Jost', sans-serif;
+    font-weight: 800;
+    font-size: 16pt;
+  }
+  .cert-inst-name {
+    font-family: 'Jost', sans-serif;
+    font-size: 22pt;
+    font-weight: 800;
+    color: #D02030;
+    letter-spacing: 1px;
+  }
+  .cert-inst-subtitle {
+    font-size: 9pt;
+    color: #555;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .cert-titulo {
+    font-family: 'Jost', sans-serif;
+    font-size: 32pt;
+    font-weight: 800;
+    color: #1a1a1a;
+    text-align: center;
+    margin-bottom: 4mm;
+    letter-spacing: 2px;
+  }
+
+  .cert-subtitulo {
+    font-size: 11pt;
+    color: #555;
+    text-align: center;
+    margin-bottom: 6mm;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  /* Cuerpo */
+  .cert-body {
+    text-align: center;
+    max-width: 220mm;
+    margin: 0 auto;
+  }
+  .cert-nombre {
+    font-family: 'Jost', sans-serif;
+    font-size: 26pt;
+    font-weight: 700;
+    color: #D02030;
+    margin-bottom: 3mm;
+    border-bottom: 2px solid #D02030;
+    padding-bottom: 2mm;
+    display: inline-block;
+    min-width: 180mm;
+  }
+  .cert-motivo {
+    font-size: 11pt;
+    color: #333;
+    margin: 4mm 0 2mm;
+    line-height: 1.5;
+  }
+  .cert-datos {
+    font-size: 10pt;
+    color: #555;
+    margin-bottom: 5mm;
+  }
+  .cert-datos strong { color: #333; }
+
+  /* Promedio destacado */
+  .cert-promedio-box {
+    display: inline-block;
+    border: 2px solid #D02030;
+    border-radius: 8px;
+    padding: 2mm 8mm;
+    margin: 3mm 0;
+  }
+  .cert-promedio-label { font-size: 8pt; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+  .cert-promedio-valor { font-family: 'Jost', sans-serif; font-size: 22pt; font-weight: 800; color: #D02030; }
+
+  /* Footer */
+  .cert-footer {
+    position: absolute;
+    bottom: 14mm;
+    left: 14mm;
+    right: 14mm;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+  }
+  .cert-firma {
+    text-align: center;
+    min-width: 50mm;
+  }
+  .cert-firma-linea {
+    border-top: 1px solid #333;
+    margin-bottom: 1mm;
+    width: 48mm;
+  }
+  .cert-firma-nombre { font-size: 8pt; font-weight: 600; }
+  .cert-firma-cargo  { font-size: 7pt; color: #777; }
+
+  .cert-folio-box {
+    text-align: center;
+  }
+  .cert-folio-label { font-size: 7pt; color: #999; text-transform: uppercase; letter-spacing: 1px; }
+  .cert-folio-valor { font-family: monospace; font-size: 9pt; font-weight: 700; color: #555; letter-spacing: 1px; }
+  .cert-fecha       { font-size: 8pt; color: #777; margin-top: 1mm; }
+
+  .cert-slogan {
+    font-size: 8pt;
+    color: #aaa;
+    font-style: italic;
+    text-align: center;
+    margin-top: 3mm;
+    letter-spacing: 0.5px;
+  }
+</style>
+</head>
+<body>
+<div class="cert-page">
+
+  <!-- Header institucional -->
+  <div class="cert-header">
+    <div class="cert-logo-row">
+      <div class="cert-escudo">N</div>
+      <div>
+        <div class="cert-inst-name">Instituto Nevadi</div>
+        <div class="cert-inst-subtitle">Metepec &bull; Tenancingo &bull; Ixtapan de la Sal &mdash; Estado de México</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Título del certificado -->
+  <div class="cert-titulo">CERTIFICADO</div>
+  <div class="cert-subtitulo">{{ tipo_label }}</div>
+
+  <!-- Cuerpo -->
+  <div class="cert-body">
+    <p style="font-size:10pt; color:#555; margin-bottom:2mm;">Se otorga el presente certificado a:</p>
+    <div class="cert-nombre">{{ nombre_alumno }}</div>
+
+    <p class="cert-motivo">{{ motivo }}</p>
+
+    <p class="cert-datos">
+      <strong>Plantel:</strong> {{ plantel }} &nbsp;&bull;&nbsp;
+      <strong>Nivel:</strong> {{ nivel_educativo }} &nbsp;&bull;&nbsp;
+      <strong>Ciclo escolar:</strong> {{ ciclo }}
+      {% if grado_completado %}&nbsp;&bull;&nbsp;<strong>Grado:</strong> {{ grado_completado }}{% endif %}
+    </p>
+
+    {% if promedio_final %}
+    <div class="cert-promedio-box">
+      <div class="cert-promedio-label">Promedio final</div>
+      <div class="cert-promedio-valor">{{ "%.1f"|format(promedio_final) }}</div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Footer -->
+  <div class="cert-footer">
+    <div class="cert-firma">
+      <div class="cert-firma-linea"></div>
+      <div class="cert-firma-nombre">Dirección Académica</div>
+      <div class="cert-firma-cargo">Instituto Nevadi</div>
+    </div>
+
+    <div class="cert-folio-box">
+      <div class="cert-folio-label">Folio de verificación</div>
+      <div class="cert-folio-valor">{{ folio }}</div>
+      <div class="cert-fecha">Emitido el {{ fecha_emision }}</div>
+      <div class="cert-slogan">EL ÚNICO CAMINO PARA SALIR ADELANTE ES LA EDUCACIÓN.</div>
+    </div>
+
+    <div class="cert-firma">
+      <div class="cert-firma-linea"></div>
+      <div class="cert-firma-nombre">Coordinación Escolar</div>
+      <div class="cert-firma-cargo">{{ plantel }}</div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

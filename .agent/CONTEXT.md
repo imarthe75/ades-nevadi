@@ -49,16 +49,25 @@ comunicación interna y generación de horarios. No incluye módulo de pagos/col
 
 ## Roles del Sistema
 
-| Rol                    | Alcance                              | Fuente de identidad        |
-|------------------------|--------------------------------------|----------------------------|
-| ADMIN_GLOBAL           | Todos los planteles y niveles        | Gmail institucional (OIDC) |
-| ADMIN_PLANTEL          | Un plantel completo                  | Gmail institucional (OIDC) |
-| COORDINADOR_ACADEMICO  | Un nivel dentro de un plantel        | Gmail institucional (OIDC) |
-| DIRECTOR               | Un plantel                           | Gmail institucional (OIDC) |
-| DOCENTE                | Sus grupos y materias asignadas      | Gmail institucional (OIDC) |
-| MEDICO_ESCOLAR         | Expedientes médicos de su plantel    | Gmail institucional (OIDC) |
-| ALUMNO                 | Su propio expediente y materias      | Cuenta local (OIDC)        |
-| PADRE_FAMILIA          | Expedientes de sus hijos             | Cuenta local (OIDC)        |
+| Rol                       | Nivel | Alcance                                              |
+|---------------------------|:-----:|------------------------------------------------------|
+| ADMIN_GLOBAL              |   0   | Todos los planteles y niveles                        |
+| ADMIN_PLANTEL             |   1   | Un plantel completo                                  |
+| DIRECTOR                  |   2   | Un plantel — máxima autoridad local                  |
+| SUBDIRECTOR               |   2   | Un plantel — suplente del director                   |
+| COORDINADOR_ADMINISTRATIVO|   2   | Procesos administrativos, logística, relación padres |
+| COORDINADOR_RH            |   2   | Personal docente y administrativo, contratos         |
+| COORDINADOR_ACADEMICO     |   3   | Un nivel educativo dentro de un plantel              |
+| ORIENTADOR                |   3   | Orientación educativa y vocacional (sec/prep)        |
+| SECRETARIA_ACADEMICA      |   3   | Expedientes, certificados, actas, inscripciones      |
+| DOCENTE                   |   4   | Sus grupos y materias asignadas                      |
+| MEDICO_ESCOLAR            |   4   | Expedientes médicos de su plantel                    |
+| PREFECTO                  |   4   | Disciplina, supervisión de pasillos y accesos        |
+| ALUMNO                    |   5   | Su propio expediente y materias                      |
+| PADRE_FAMILIA             |   5   | Expedientes de sus hijos                             |
+
+**Auth personal (niveles 0-4):** Authentik local → Google Workspace SSO cuando esté disponible.
+**Auth comunidad (nivel 5):** Cuentas locales Authentik permanentes.
 
 **Autenticación:** Authentik como IdP. Personal docente/administrativo usa Google Workspace SSO
 con cuentas @institutonevadi.edu.mx. Alumnos y padres usan cuentas locales en Authentik.
@@ -100,6 +109,24 @@ con cuentas @institutonevadi.edu.mx. Alumnos y padres usan cuentas locales en Au
 24. **Grade Analytics** — tendencias, alertas <70, análisis de cohorte (inspirado en Moodle)
 25. **Learning Analytics** — acceso a contenidos, tiempo dedicado, patrones de aprendizaje
 
+### Módulos FASE 10 — Gradebook Curricular Integrado
+
+26. **Gradebook** — Panel tipo spreadsheet para profesores: actividades × alumnos,
+    calificación masiva, drawer de calificación con rúbrica.
+27. **Mi Progreso** — Vista del alumno: cards por materia con % progreso, tareas pendientes
+    con countdown, historial de entregas calificadas, subida de archivos.
+28. **Ponderación Config** — Admin de esquemas de ponderación: Examen/Tarea/Proyecto/
+    Asistencia/Comportamiento por nivel o materia, validación suma=100%, historial de versiones.
+
+**Cálculo automático de calificación final:**
+- Función PostgreSQL `calcular_calificacion_periodo()` — idempotente, disparada por 3 triggers
+- Hereda esquema del nivel si no hay específico para la materia
+- Escala dinámica: SEP 0–10 (1 decimal) | UAEMEX 0–100 (entero)
+- `score_por_item` en JSONB para desglose auditable por ítem
+- Calificación cerrada = inmodificable sin rol ADMIN
+- Ajuste manual requiere justificación ≥ 20 caracteres (auditoría)
+- Reporte de cobertura curricular: temas vs. actividades registradas
+
 ### Módulos inspirados en Moodle (análisis 2026-06)
 
 De análisis comparativo con github.com/moodle/moodle se incorporan:
@@ -126,15 +153,57 @@ y pueden subir archivos (MinIO/S3) como entrega.
 
 ---
 
+## Diseño Frontend — Referencia Oracle APEX
+
+El frontend Angular se diseña siguiendo los patrones de UX de **Oracle APEX** (estilo empresarial,
+denso en información, orientado a productividad) usando **PrimeNG** como librería de componentes.
+
+### Patrones APEX → PrimeNG
+
+| Patrón APEX | Componente PrimeNG | Uso en ADES |
+|---|---|---|
+| **Interactive Report** | `p-table` + `filterDisplay="row"` + `sortField` + `exportCSV()` | Todas las listas: alumnos, grupos, calificaciones |
+| **Editable Interactive Report** | `p-table` + `p-cellEditor` | Libreta de calificaciones — edición inline por celda |
+| **Faceted Search** | `p-multiSelect` + sidebar | Filtros de búsqueda de alumnos/profesores |
+| **Master-Detail** | Split panel o router con panel derecho | Grupo → Alumnos → Detalle alumno |
+| **Classic Report** | `p-table` modo lectura + Print CSS | Boletas imprimibles |
+| **Page Items globales (Application Items)** | `ContextService` + `p-dropdown` en toolbar | Selector de plantel + ciclo que persiste en toda la app |
+| **LOV (List of Values)** | `p-autoComplete` / `p-dropdown` con lazy API | Selector de grupos, profesores, materias |
+| **Calendar Region** | `FullCalendar` / `p-fullCalendar` | Vista de asistencias y calendario escolar |
+| **Pase de lista rápido** | Toggle 1-click PRESENTE/AUSENTE/TARDE | Basado en APEX List + checkbox inline |
+| **Breadcrumb** | `p-breadcrumb` en header de página | Inicio > Plantel > Grupo > Materia |
+| **Row Actions** | `p-splitButton` en columna de acciones | Editar, dar de baja, ver detalle |
+| **Chart Region** | `p-chart` (Chart.js) | KPIs: promedio del grupo, % asistencia |
+| **KPI Cards** | `p-card` con ícono + valor grande | Dashboard principal por rol |
+| **Notifications** | `p-toast` + `p-messages` | Guardar, errores de validación, alertas |
+
+### Reglas de UX globales
+
+1. **Selector de contexto** (plantel + ciclo) siempre visible en la barra superior — todo el contenido
+   de la app filtra automáticamente por ese contexto. Equivale a los Application Items de APEX.
+2. **Fechas:** siempre DD-MM-YYYY en pantalla; ISO 8601 en la API.
+3. **Idioma:** español, incluyendo mensajes de validación de PrimeNG.
+4. **Densidad de información:** tablas compactas (sin padding excesivo), similar a APEX.
+5. **Acciones en tabla:** columna fija a la derecha con íconos (editar/ver/baja) — nunca floating.
+6. **Guardado bulk:** en libreta de calificaciones y pase de lista, acumular cambios localmente
+   y enviar con un solo botón "Guardar" — no auto-save por célula (evita sobrecarga de la API).
+7. **Responsive:** diseño tablet-first (los docentes usan tablets en el salón).
+
+---
+
 ## Reglas de Negocio Críticas
+
+0. **Gradebook — escalas:** Primaria/Secundaria SEP: 0–10 (mínimo aprobatorio 6.0). Preparatoria UAEMEX: 0–100 (mínimo 60). Almacenado en `ades_niveles_educativos.escala_maxima` y `minimo_aprobatorio`.
+   **Gradebook — ponderación:** suma siempre = 100%. Esquema específico de materia tiene prioridad sobre genérico del nivel.
+   **Gradebook — ajuste:** calificación cerrada es inmutable sin ADMIN. Ajuste manual exige justificación ≥ 20 chars.
 
 1. **Profesor en primaria:** un titular por grupo para todas las materias EXCEPTO inglés.
    Un profesor de inglés por plantel cubre los 12 grupos de primaria (6 grados × 2 grupos).
 2. **Profesor en secundaria/preparatoria:** un profesor por materia por grupo.
 3. **Grupos:** siempre A y B. Nunca más de 2 por grado salvo instrucción explícita.
-4. **Ciclo preparatoria Metepec:** 25B = agosto 2025. Solo existe 1er semestre activo.
-5. **Ixtapan secundaria:** solo 1° y 2° grado (no hay 3°).
-6. **Tenancingo:** no tiene preparatoria.
+4. **Ciclo preparatoria:** ciclo vigente 26B (agosto 2026). Metepec sem 1-4 activos; Tenancingo sem 1-2 activos.
+5. **Ixtapan secundaria:** 3 grados completos (1°, 2°, 3°). Sin preparatoria.
+6. **Tenancingo preparatoria:** incorporada. Semestres 1-2 activos; sem 3-6 `is_active=FALSE` (futuros).
 7. **Calendario:** SEP aplica a primaria y secundaria de todos los planteles (es único).
    UAEMEX aplica solo a preparatoria Metepec.
 8. **Formato de fechas en UI:** DD-MM-YYYY. Idioma: español.
@@ -225,9 +294,33 @@ Al ejecutar los seeds deben existir:
 - 30 alumnos ficticios por grupo con un padre de familia cada uno
 - Materias por nivel según plan SEP/UAEMEX
 
+## Estado de Fases (2026-06-04)
+
+| Fase | Estado | Notas |
+|------|--------|-------|
+| FASE 1 — Core | ✅ Completa | 30 operaciones REST, modelos SQLAlchemy, seeds |
+| FASE 2 — Operación académica | ✅ Completa | +24 ops: calificaciones, asistencias, tareas, clases |
+| FASE 3 — Especializados | ✅ Completa | Horarios+aSc, Expediente Médico, Conducta, Evaluación Docente 360°, Boletas PDF (WeasyPrint) |
+| FASE 4 — IA + Analytics | 🔄 En progreso | Asistente IA (Claude), alertas de riesgo académico activos. Pendiente: ClickHouse, Superset BI, Learning Paths |
+
+## Exportación de tablas (patrón APEX)
+
+Todas las tablas del sistema deben ofrecer exportación al estilo Oracle APEX:
+- **CSV**: `ExportService.toCSV()` — sin dependencias
+- **XLSX**: `ExportService.toXLSX()` — SheetJS con encabezado rojo Nevadi
+- **PDF**: Descarga desde backend (`/boletas`, `/ai/alertas`, etc.) para documentos oficiales
+
+El `ExportService` ya está disponible como `providedIn: 'root'`. Inyectar y añadir botones CSV + Excel en el `page-header` de cada componente con tabla.
+
+## Tipografía Institucional
+
+- **Jost** — headings, KPIs, títulos de página, marca en topbar, valores numéricos grandes
+- **Inter** — body text, tablas, labels, formularios, todo el contenido denso de datos
+- Fuentes cargadas desde Google Fonts en `index.html` con `display=swap`
+
 ## Prioridad de Desarrollo
 
-FASE 1 → FASE 2 → integración aSc → FASE 3 → FASE 4
+FASE 1 ✅ → FASE 2 ✅ → integración aSc ✅ → FASE 3 🔄 → FASE 4 ⏳
 
 El agente NUNCA debe saltarse fases ni generar código de fases superiores
 antes de tener la fase anterior funcionando y probada.

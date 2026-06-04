@@ -197,7 +197,8 @@ services:
       AUTHENTIK_BOOTSTRAP_TOKEN:      ${AUTHENTIK_BOOTSTRAP_TOKEN}
     volumes:
       - authentik-media:/media
-      - /var/run/docker.sock:/var/run/docker.sock  # para blueprints
+      - /var/run/docker.sock:/var/run/docker.sock          # para blueprints
+      - ./infrastructure/authentik:/blueprints/custom:ro  # OIDC apps ADES
     networks:
       - ades-internal
     depends_on:
@@ -230,9 +231,9 @@ services:
       MINIO_SECRET_KEY:    ${MINIO_ROOT_PASSWORD}
       MINIO_SECURE:        "false"
       # Authentik OIDC
-      OIDC_ISSUER:         ${OIDC_ISSUER:-https://auth.institutonevadi.edu.mx/application/o/ades/}
-      OIDC_CLIENT_ID:      ${OIDC_CLIENT_ID:?OIDC_CLIENT_ID requerido}
-      OIDC_CLIENT_SECRET:  ${OIDC_CLIENT_SECRET:?OIDC_CLIENT_SECRET requerido}
+      OIDC_ISSUER:         ${OIDC_ISSUER:-https://auth.ades.setag.mx/application/o/ades-frontend/}
+      OIDC_CLIENT_ID:      ${OIDC_CLIENT_ID:-ades-frontend}
+      OIDC_CLIENT_SECRET:  ${OIDC_CLIENT_SECRET}
       # API
       SECRET_KEY:          ${API_SECRET_KEY:?API_SECRET_KEY requerido}
       ENVIRONMENT:         ${ENVIRONMENT:-development}
@@ -252,7 +253,7 @@ services:
       minio:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -306,7 +307,7 @@ services:
       dockerfile: Dockerfile
     container_name: ades-celery-beat
     restart: unless-stopped
-    command: celery -A app.worker.celery_app beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    command: celery -A app.worker.celery_app beat --loglevel=info --scheduler redbeat.RedBeatScheduler
     environment:
       DATABASE_URL_SYNC:   postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@ades-postgres:5432/${POSTGRES_DB}
       CELERY_BROKER_URL:   redis://:${VALKEY_PASSWORD}@ades-valkey:6379/0

@@ -28,9 +28,9 @@ Este documento es el diario de vida y bitácora del agente. Debe ser leído en e
 | Authentik server   | ✅ healthy | 2026.5.2 · accesible en https://auth.ades.setag.mx/ |
 | Authentik worker   | ✅ healthy | |
 | nginx              | ✅ running | TLS activo (Let's Encrypt) · bind mount /etc/letsencrypt |
-| ades-api           | ⏳ pendiente | backend no construido aún |
-| ades-frontend      | ⏳ pendiente | frontend no construido aún |
-| superset           | ⏳ pendiente | imagen no construida aún |
+| ades-api           | ✅ healthy | 175 operaciones REST (FASE 1–10 completas) |
+| ades-frontend      | ✅ ready   | Angular 22 + PrimeNG 21, 27 componentes, build sin errores (540 kB) |
+| superset           | ✅ healthy | 6.1.0 con psycopg2 + redis |
 
 ### 🛠️ Tareas Completadas hoy:
 - [x] Creación de la estructura del framework base.
@@ -58,5 +58,116 @@ Este documento es el diario de vida y bitácora del agente. Debe ser leído en e
 - [x] Seed 002 v4 + 003 v4 con is_active en grupos futuros y auth local para docentes.
 - [x] Análisis Moodle: 15 módulos identificados e incorporados al CONTEXT.md y README.
 - [x] README v2.0 expansivo (~450 líneas): stack, DDD, fases, BD, instalación, troubleshooting, roadmap.
-- [ ] Construir imagen ades-api (FastAPI backend — FASE 1).
-- [ ] Construir imagen ades-frontend (Angular — FASE 1).
+- [x] FASE 1 backend: 30 operaciones REST activas (planteles, grupos, materias, alumnos, profesores, usuarios).
+- [x] FASE 2 operación: 24 operaciones adicionales (clases, asistencias, calificaciones, tareas).
+  - Calificaciones: libreta interactiva + boleta por alumno
+  - Asistencias: registro por clase + reportes grupo/alumno
+  - Tareas: CRUD + entregas con MinIO + calificación
+- [x] Roles ampliados a 14 (SUBDIRECTOR, COORD_ADMIN, COORD_RH, ORIENTADOR, SECRETARIA_ACADEMICA, PREFECTO).
+- [x] Frontend Angular 22 scaffold: ContextService, AuthService, ApiService.
+  - ShellComponent (topbar + sidebar APEX-style)
+  - CalificacionesComponent (Editable Interactive Report con p-cellEditor)
+  - Stubs: dashboard, alumnos, profesores, grupos, asistencias, tareas
+  - Dockerfile + nginx para producción
+  - Autenticación OIDC con Authentik
+- [x] Documentación: CONTEXT.md con 14 roles, patrones APEX, UX rules
+- [x] Total: 54 operaciones REST + 9 componentes Angular
+- [x] Completar features frontend (AlumnosComponent, AsistenciasComponent, etc.)
+- [x] DashboardComponent con datos reales vía GET /stats/resumen
+- [x] CalificacionesComponent: guardarCambios() real con periodo_evaluacion_id correcto
+- [x] Paleta institucional Instituto Nevadi (#D02030) — NevadiPreset en Aura
+- [x] styles.scss global: variables CSS, sidebar/topbar rojo institucional
+- [x] Migración PrimeNG: p-dropdown → p-select (DropdownModule → SelectModule)
+- [x] Build producción exitoso: 0 errores, 517 kB (warning budget leve)
+- [x] Backend: GET /stats/resumen (alumnos, profesores, grupos, clases hoy)
+- [x] Backend: LibretaGrupo incluye periodos_detalle (id + nombre) para guardar calificaciones reales
+- [x] FASE 3 backend: modelos (Aula, Horario, DisponibilidadDocente, PersonalSalud, ExpedienteMedico, IncidenteMedico, ReporteConducta, ReporteAcademico)
+- [x] FASE 3 backend: schemas fase3.py + endpoints horarios.py, medico.py, conducta.py
+- [x] FASE 3 backend: exportar XML para aSc TimeTables (GET /horarios/exportar-asc/{ciclo_id})
+- [x] FASE 3 frontend: HorariosComponent (grid semanal 5×N, vista grupo/docente)
+- [x] FASE 3 frontend: ConductaComponent (lista + filtros + dialog nuevo reporte)
+- [x] FASE 3 frontend: MedicoComponent (buscar alumno → expediente + incidentes)
+- [x] Tipografía: Jost (headings/KPIs) + Inter (tablas/body) — Google Fonts en index.html
+- [x] Sidebar con grupos de navegación (Principal / Académico / Operaciones)
+- [x] Total API: ~70 operaciones REST (FASE 1 + 2 + 3)
+- [x] Total frontend: 12 componentes Angular
+- [x] FASE 3 completa: Evaluación Docente 360° (criterios ponderados, tipos evaluador, promedio global)
+- [x] FASE 3 boletas PDF: WeasyPrint + Jinja2, template HTML institucional (rojo Nevadi, logo, firmas)
+  - GET /boletas/{estudiante_id} → StreamingResponse PDF
+  - Template: header, datos alumno, tabla de calificaciones por materia/periodo, firmas
+- [x] FASE 4 backend: Asistente pedagógico IA (Claude Sonnet 4.6 vía Anthropic SDK)
+  - POST /ai/chat — historial de conversación, contexto de plantel/ciclo
+  - GET  /ai/alertas — alertas activas del grupo
+  - POST /ai/alertas/scan/{grupo_id} — detección automática de riesgo (reprobación < 6.0, ausentismo < 80%)
+- [x] FASE 4 frontend: IaComponent — chat conversacional + panel de alertas académicas
+  - Chips de sugerencias rápidas
+  - Renderizado markdown básico (negritas, listas, párrafos)
+  - Indicador de "escribiendo..." (3 puntos animados)
+- [x] Migración 002: tablas ades_criterios_eval_docente, ades_evaluacion_docente, ades_eval_docente_criterios, ades_ai_conversaciones, ades_alertas_academicas
+- [x] ExportService Angular: CSV, XLSX (SheetJS), URL-download — patrón Oracle APEX
+  - AlumnosComponent: botones CSV + Excel en página header
+- [x] SheetJS (xlsx@0.18.5) instalado
+- [x] requirements.txt: weasyprint==63.1, jinja2==3.1.5, anthropic==0.49.0, langchain==0.3.25, langchain-anthropic==0.3.15
+- [x] Total API: ~85 operaciones REST (FASE 1+2+3+4)
+- [x] Total frontend: 15 componentes Angular (+ EvalDocente)
+- [x] Exportación CSV/XLSX aplicada a todas las tablas: profesores, grupos, conducta (+ alumnos de sesión anterior)
+- [x] EvalDocenteComponent creado: resumen KPI por tipo evaluador, form criterios ponderados 1-5, exportación CSV/Excel
+- [x] Ruta /eval-docente + sidebar link "Eval. Docente 360°" en grupo Inteligencia
+- [x] Backend Dockerfile: dependencias WeasyPrint (libpango, libcairo, libgdk-pixbuf, libffi)
+- [x] Migración 002 ejecutada: ades_criterios_eval_docente (7 seeds), ades_evaluacion_docente, ades_eval_docente_criterios, ades_ai_conversaciones, ades_alertas_academicas
+- [x] Build Angular: 0 errores, budget ajustado a 600kB/1.5MB (15 componentes)
+- [x] Celery workers: celery_app.py + task boletas batch (grupo→ZIP→MinIO) + task notificaciones internas + beat schedule (scan alertas nocturno + refresh vistas BI/hora)
+- [x] Superset BI: superset_config.py (Redis caché, idioma español, feature flags) + 5 vistas materializadas en esquema ades_bi (asistencia_diaria, calificaciones_grupo, riesgo_academico, resumen_plantel, cobertura_curricular) + rol superset_ro
+- [x] Migración 003 ejecutada: índice notificaciones, columna notificada en alertas, schema ades_bi, 5 MVs, 4 tablas LP, 4 seeds LP
+- [x] Learning Paths: 4 tablas (ades_learning_paths, ades_lp_recursos, ades_lp_asignaciones, ades_lp_progreso) + 8 endpoints REST + LearningPathsComponent (grid de rutas, tabla asignaciones, dialogs nueva ruta / asignar, exportación CSV+Excel, barra de progreso)
+- [x] Ruta /learning-paths + sidebar link "Learning Paths" en grupo Inteligencia
+- [x] Build Angular 0 errores: 16 componentes, 537 kB inicial, chunk learning-paths 28 kB
+- [x] FASE A nginx: proxies activos — ades.setag.mx → ades-frontend:4200, bi.ades.setag.mx → ades-superset:8088
+- [x] FASE A redbeat: celery-beat migrado de django_celery_beat a redbeat (Redis-backed, sin Django) — requirements.txt + celery_app.py + docker-compose.yml
+- [x] FASE A Authentik: blueprint_oidc.yaml con providers OIDC para ades-frontend y superset; montado en /blueprints/custom del worker
+- [x] FASE B backend: comunicados.py (GET/POST/acusar/DELETE, tabla ades_comunicados + ades_acuses_comunicado) + notificaciones.py (no-leidas-count, mis-notificaciones, marcar leída/todas)
+- [x] FASE B frontend: ComunicadosComponent (tabla expandible, filtro por tipo, dialog nuevo, acuse de recibo, exportación CSV+Excel)
+- [x] FASE B frontend: campanita en ShellComponent topbar — badge con conteo, p-popover con últimas 10 notificaciones, marcar leída al click, "leer todas"
+- [x] FASE C backend: grade_analytics.py — tendencias/{grupo_id}, distribucion/{grupo_id}, riesgo, resumen-plantel, cobertura, alertas-umbral (consume vistas materializadas ades_bi)
+- [x] FASE C frontend: GradeAnalyticsComponent — 4 tabs (riesgo, tendencias, distribución CSS bar, resumen ejecutivo), KPI cards computados, filtros, exportación
+- [x] Sidebar: grupo "Comunicación" (Comunicados), grupo "Inteligencia" ahora incluye Grade Analytics
+- [x] Build Angular 0 errores: 18 componentes, 537 kB inicial, grade-analytics 18 kB, comunicados lazy
+- [x] FASE 6 backend: evaluaciones.py (programar exámenes ORDINARIO/FINAL/EXTRAORDINARIO, libreta bulk save, estadísticas por evaluación)
+- [x] FASE 6 backend: planeacion.py (temas con estado IMPARTIDO/PLANEADO/PENDIENTE, cobertura por materia, crear planeación, marcar impartido)
+- [x] FASE 6 backend: rubricas.py (CRUD rúbricas + criterios con niveles_logro JSONB)
+- [x] FASE 6 backend: certificados.py (emitir PDF con folio único verificable, GET verificar/{folio} público)
+- [x] FASE 6 migración 004: ades_certificados (folio UNIQUE, vigente, tipos), índice rubricas, columna niveles_logro en criterios
+- [x] FASE 6 frontend: EvaluacionesComponent — agenda de exámenes, libreta editable bulk save, exportación CSV+Excel
+- [x] FASE 6 frontend: PlaneacionComponent — grid kanban de temas por materia con estados, KPIs cobertura, dialog planear, marcar impartido
+- [x] FASE 6 frontend: RubricasComponent — panel split lista/builder, criterios con 4 niveles de logro, ponderación
+- [x] Sidebar: Académico ampliado (Evaluaciones + Planeación), nuevo grupo Recursos (Rúbricas)
+- [x] Build Angular 0 errores: 21 componentes, 537 kB inicial
+- [x] FASE 7 migración 005: ades_encuestas + ades_encuesta_preguntas + ades_encuesta_respuestas (seed: encuesta clima escolar con 4 preguntas)
+- [x] FASE 7 backend: encuestas.py — CRUD encuestas, preguntas, bulk responder (idempotente por sesion_id), resultados estadísticos por tipo (ESCALA_5/OPCION_MULTIPLE/BOOLEANO/TEXTO_LIBRE), toggle activa
+- [x] FASE 7 frontend: EncuestasComponent — dos paneles (lista + detalle), tab Preguntas (diseñador), tab Resultados (estrellas ESCALA_5, barras OPCION_MULTIPLE, SÍ/NO BOOLEANO, citas TEXTO_LIBRE), tab Responder (formulario interactivo)
+- [x] Build Angular 0 errores: 22 componentes, 537 kB inicial, encuestas-component 35 kB
+- [x] Sidebar: Comunicación → Encuestas (pi-chart-pie)
+- [x] FASE 8 migración 006: ades_badges + ades_badge_otorgados (8 seeds: Asistencia Perfecta, Excelencia Académica, etc.)
+- [x] FASE 8 backend: badges.py — CRUD catálogo, GET alumno/{id} (earned/unearned), POST otorgar manual, DELETE revocar, POST auto-evaluar/{ciclo_id} (pct_asistencia/promedio_general/sin_reportes_conducta)
+- [x] FASE 8 frontend: BadgesComponent — catálogo grid (icon+color+tipo), tab Alumnos (autoComplete→galería earned/unearned), tab Auto-Evaluación (selector ciclo + ejecutar)
+- [x] FASE 9 backend: portal.py — GET /buscar, GET /{id}/resumen (360°: KPIs+alertas+badges+LP), GET /{id}/calificaciones (agrupado por materia+periodos), GET /{id}/asistencias, GET /{id}/tareas
+- [x] FASE 9 frontend: PortalComponent — buscador autoComplete, tarjeta alumno (avatar+KPI strip), alertas banner, 4 tabs (calificaciones tabla pivot, asistencias resumen+detalle, tareas+pendientes toggle, perfil con badges+LP+datos)
+- [x] Build Angular 0 errores: 24 componentes, 535 kB inicial, portal-component 23.8 kB, badges lazy
+- [x] FASE 10 migración 007: ades_esquemas_ponderacion + ades_items_ponderacion (3 esquemas base: Primaria SEP, Secundaria SEP, UAEMEX Prep.)
+- [x] FASE 10: ALTER TABLE ades_niveles_educativos (escala_maxima, minimo_aprobatorio)
+- [x] FASE 10: ALTER TABLE ades_tareas (tipo_item, plan_trabajo_id, rubrica_id, fecha_examen, instrucciones_url)
+- [x] FASE 10: ALTER TABLE ades_tareas_entregas (archivo_url, calificacion_obtenida, comentario_profesor, calificado_por)
+- [x] FASE 10: ALTER TABLE ades_calificaciones_periodo (score_por_item JSONB, calificacion_calculada, ajuste_manual, justificacion_ajuste, fecha_calculo, fecha_cierre, cerrada)
+- [x] FASE 10: Función calcular_calificacion_periodo() — idempotente, PL/pgSQL, soporta examen/tarea/proyecto/asistencia/comportamiento
+- [x] FASE 10: 3 triggers automáticos (tareas_entregas, calificaciones_evaluaciones, asistencias)
+- [x] FASE 10 backend: esquemas_ponderacion.py (CRUD + efectivo por materia)
+- [x] FASE 10 backend: actividades.py (CRUD + calificar masivo + generar slots por alumno)
+- [x] FASE 10 backend: entregas.py (subir archivo MinIO + calificar + excusa + pendientes grupo)
+- [x] FASE 10 backend: gradebook.py (tabla grupo/período, boleta alumno, ajuste manual, recalcular todo, concentrado, cobertura curricular)
+- [x] FASE 10 frontend: GradebookComponent — spreadsheet actividades, concentrado, cobertura curricular, drawer calificar, ajuste manual
+- [x] FASE 10 frontend: MiProgresoComponent — cards materias con % progreso, pendientes countdown, historial, subir archivo
+- [x] FASE 10 frontend: PonderacionConfigComponent — CRUD esquemas con validación suma=100%, expansion de ítems
+- [x] Sidebar: nuevo grupo "Gradebook" (Gradebook, Mi Progreso, Ponderaciones)
+- [x] Build Angular: 0 errores, 27 componentes, 540 kB inicial
+- [ ] Google Workspace SSO: pendiente credenciales Google Cloud Console de Nevadi
+- [ ] Superset: primer arranque manual (superset db upgrade + init + crear datasource ADES apuntando a ades_bi)

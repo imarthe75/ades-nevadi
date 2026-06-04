@@ -1,6 +1,6 @@
 # ADES — Administración Escolar Instituto Nevadi
 
-[![Estado](https://img.shields.io/badge/Estado-Fase%201%20Activa-blue)](https://github.com/imarthe75/ades-nevadi)
+[![Estado](https://img.shields.io/badge/Estado-FASES%201--10%20Completas-brightgreen)](https://github.com/imarthe75/ades-nevadi)
 [![Python](https://img.shields.io/badge/Python-3.12-brightgreen)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.136+-blue)](https://fastapi.tiangolo.com/)
 [![Angular](https://img.shields.io/badge/Angular-22-red)](https://angular.io/)
@@ -36,6 +36,10 @@ Gestiona la operación completa: estructura académica, inscripciones, asignaci�
 | **Alumnos** | 1,980 |
 | **Materias en plan** | 66 (7 primaria · 11 secundaria · 48 preparatoria) |
 | **Temas curriculares** | 600+ |
+| **Operaciones REST** | 175 (FASES 1–10) |
+| **Componentes Angular** | 27 (lazy-loaded) |
+| **Tablas PostgreSQL** | 69 |
+| **Migraciones DDL** | 7 (001–007) |
 
 ---
 
@@ -119,65 +123,90 @@ Gestiona la operación completa: estructura académica, inscripciones, asignaci�
 
 ---
 
-## Módulos por Fase de Desarrollo
+## Módulos Implementados por Fase
 
-### FASE 1 — Core (MVP) · EN DESARROLLO
+### FASE 1 — Core ✅
 
 | # | Módulo | Estado |
 |---|--------|--------|
-| 1 | **Identidad Institucional** — datos, logo, colores, catálogo SEPOMEX | ✅ Seeds listos |
-| 2 | **Estructura Académica** — niveles, grados, grupos, ciclos, calendario | ✅ Seeds listos |
-| 3 | **Planes de Estudio** — materias, temas, carga horaria SEP/UAEMEX | ✅ Seeds listos |
-| 4 | **Inscripciones y Alumnos** — alta, filiación, inscripción, histórico | 🔨 API en construcción |
-| 5 | **Profesores** — registro, asignación materia↔grupo (reglas SEP) | 🔨 API en construcción |
-| 6 | **Usuarios y RBAC** — 8 roles, OIDC Authentik, SSO, cuentas locales | 🔨 API en construcción |
-| 7 | **Backup & Recovery** — diario a MinIO, recuperación point-in-time | 📋 Planificado |
+| 1 | **Identidad Institucional** — datos, logo, colores, catálogo SEPOMEX | ✅ |
+| 2 | **Estructura Académica** — niveles, grados, grupos, ciclos, calendario | ✅ |
+| 3 | **Planes de Estudio** — materias, temas, carga horaria SEP/UAEMEX | ✅ |
+| 4 | **Inscripciones y Alumnos** — alta, filiación, inscripción, histórico | ✅ |
+| 5 | **Profesores** — registro, asignación materia↔grupo (reglas SEP) | ✅ |
+| 6 | **Usuarios y RBAC** — 14 roles, OIDC Authentik, SSO, cuentas locales | ✅ |
 
----
+### FASE 2 — Operación Académica ✅
 
-### FASE 2 — Operación Académica · PLANIFICADA (Q4 2026)
+| # | Módulo |
+|---|--------|
+| 1 | **Calificaciones** — libreta bimestral/parcial, boleta PDF, edición inline |
+| 2 | **Asistencias** — por clase, ausentismo, alertas académicas |
+| 3 | **Tareas y Entregas** — subida MinIO, calificación, rúbricas |
+| 4 | **Clases** — registro de clases por grupo/materia |
 
-| # | Módulo | Inspiración |
-|---|--------|-------------|
-| 1 | **Calificaciones** — libreta bimestral/parcial, promedios, boleta PDF | — |
-| 2 | **Quiz Engine** — banco de preguntas, exámenes por tipo (OM, ensayo, completar) | Moodle Quiz |
-| 3 | **Asistencias** — por clase, ausentismo, alertas a padres | — |
-| 4 | **Tareas y Entregas** — generación automática del plan, subida MinIO, rúbricas | — |
-| 5 | **Activity Completion** — % avance por alumno, dashboard docente en tiempo real | Moodle Completion |
-| 6 | **Content Bank** — repositorio de recursos por materia/tema, búsqueda semántica | Moodle Content |
-| 7 | **Notificaciones Omnicanal** — email, SMS, push · templates configurables | Moodle Notifications |
-| 8 | **Comunicados y Circulares** — rich text, acuse digital, historial | — |
-| 9 | **Planeación de Clases** — avance docente vs. plan de estudios | — |
-| 10 | **Foros por Materia** — preguntas académicas moderadas por docente | Moodle Forum |
+### FASE 3 — Módulos Especializados ✅
 
----
+| # | Módulo |
+|---|--------|
+| 1 | **Horarios vía aSc TimeTables** — export/import XML, grid semanal |
+| 2 | **Expediente Médico** — alergias, medicamentos, incidentes |
+| 3 | **Reportes de Conducta** — incidentes, seguimiento, compromisos |
+| 4 | **Boletas PDF** — WeasyPrint + Jinja2, template institucional |
+| 5 | **Evaluación Docente 360°** — criterios ponderados, promedio global |
 
-### FASE 3 — Módulos Especializados · PLANIFICADA (Q1 2027)
+### FASE 4 — IA + Analytics ✅
 
-| # | Módulo | Inspiración |
-|---|--------|-------------|
-| 1 | **Horarios vía aSc TimeTables** — export XML → genera → import horario | — |
-| 2 | **Expediente Médico** — alergias, medicamentos, incidentes, restricciones físicas | Moodle Custom Fields |
-| 3 | **Reportes de Conducta** — incidentes categorizados, seguimiento, planes mejora | — |
-| 4 | **Reportes Académicos** — boletas PDF firmadas, histórico completo, comparativas | — |
-| 5 | **Evaluación Docente** — encuestas 360° anónimas (alumnos + pares + directores) | Moodle Questionnaire |
-| 6 | **Badges y Gamificación** — insignias por asistencia perfecta, desempeño, puntualidad | Moodle Badges |
-| 7 | **Competency Framework** — matriz de competencias SEP/UAEMEX por grado | Moodle Competencies |
-| 8 | **Encuestas y Clima Escolar** — bimestral para alumnos y padres | Moodle Surveys |
-| 9 | **Certificados Digitales** — PDF con firma digital + QR validable en blockchain | Moodle Certificates |
+| # | Módulo |
+|---|--------|
+| 1 | **Asistente Pedagógico IA** — chat con Claude Sonnet 4.6, sugerencias contextuales |
+| 2 | **Alertas de Riesgo Académico** — detección automática (<6.0, ausentismo <80%) |
+| 3 | **Learning Paths** — rutas de refuerzo adaptativas, progreso por alumno |
+| 4 | **Grade Analytics** — tendencias, distribución, riesgo, resumen ejecutivo |
+| 5 | **Dashboard BI** — Apache Superset + 5 vistas materializadas en schema `ades_bi` |
 
----
+### FASE 5 — Comunicación ✅
 
-### FASE 4 — IA y Analítica Avanzada · PLANIFICADA (Q2-Q3 2027)
+| # | Módulo |
+|---|--------|
+| 1 | **Comunicados y Circulares** — rich text, acuse digital, tipos OFICIAL/INFO/URGENTE |
+| 2 | **Notificaciones in-app** — campanita en topbar, badge conteo, marcar leída |
 
-| # | Módulo | Inspiración |
-|---|--------|-------------|
-| 1 | **Asistente Pedagógico IA** — chat in-app, rúbricas, sugerencias de actividades | Moodle AI (adaptado) |
-| 2 | **Detección Predictiva de Riesgo** — alertas tempranas, intervenciones sugeridas | Moodle Analytics |
-| 3 | **Learning Paths Personalizadas** — rutas adaptativas para alumnos en riesgo | Moodle Learning Plans |
-| 4 | **Dashboard BI Avanzado** — Superset + Cube.js · KPIs en tiempo real | Moodle Grade Analytics |
-| 5 | **Pipeline CDC** — PostgreSQL → Debezium → Redpanda → ClickHouse → dbt | — |
-| 6 | **Análisis de Patrones** — acceso a recursos, tiempo dedicado, errores frecuentes | Moodle Learning Analytics |
+### FASE 6 — Evaluaciones + Planeación + Certificados ✅
+
+| # | Módulo |
+|---|--------|
+| 1 | **Evaluaciones** — agenda de exámenes ORDINARIO/FINAL/EXTRAORDINARIO |
+| 2 | **Planeación de Clases** — temas PLANEADO/IMPARTIDO/PENDIENTE, cobertura |
+| 3 | **Rúbricas** — CRUD criterios con niveles_logro JSONB, ponderación |
+| 4 | **Certificados Digitales** — folio único verificable, PDF firmado |
+
+### FASE 7 — Encuestas ✅
+
+| # | Módulo |
+|---|--------|
+| 1 | **Encuestas y Clima Escolar** — ESCALA_5, OPCION_MULTIPLE, BOOLEANO, TEXTO_LIBRE |
+
+### FASE 8 — Badges y Gamificación ✅
+
+| # | Módulo |
+|---|--------|
+| 1 | **Insignias** — catálogo con 8 seeds, auto-evaluación por métricas (asistencia/promedio/conducta), otorgamiento manual |
+
+### FASE 9 — Portal del Alumno ✅
+
+| # | Módulo |
+|---|--------|
+| 1 | **Portal 360°** — búsqueda, KPIs, alertas, pivot de calificaciones, asistencias, tareas, badges, LP |
+
+### FASE 10 — Gradebook Curricular Integrado ✅
+
+| # | Módulo | Detalle |
+|---|--------|---------|
+| 1 | **Gradebook** (profesor) | Panel spreadsheet: actividades × alumnos, drawer de calificación, ajuste manual con justificación, cobertura curricular |
+| 2 | **Mi Progreso** (alumno) | Cards por materia con % + desglose por ítem, tareas pendientes con countdown, subida de archivos a MinIO |
+| 3 | **Ponderaciones** (admin) | Esquemas por nivel/materia, validación suma=100%, historial de versiones |
+| 4 | **Cálculo automático** (PG) | Función `calcular_calificacion_periodo()` con 3 triggers — idempotente, escala dinámica SEP/UAEMEX |
 
 ---
 

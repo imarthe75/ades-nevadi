@@ -1,0 +1,97 @@
+# =============================================================================
+# Authentik Blueprint — OIDC Applications ADES
+# Crea automáticamente los proveedores OIDC y aplicaciones al iniciar Authentik.
+#
+# IMPORTANTE: Este blueprint requiere que los flujos por defecto de Authentik
+# estén disponibles (se instalan automáticamente en una instancia nueva).
+#
+# Montaje en docker-compose:
+#   authentik-worker:
+#     volumes:
+#       - ./infrastructure/authentik:/blueprints/custom:ro
+# =============================================================================
+version: 1
+metadata:
+  name: ADES OIDC Applications
+  labels:
+    blueprints.goauthentik.io/description: "Proveedores OIDC para ADES Frontend y Superset"
+
+entries:
+
+  # ── Provider: ADES Frontend ────────────────────────────────────────────────
+  - model: authentik_providers_oauth2.oauth2provider
+    state: present
+    identifiers:
+      name: provider-ades-frontend
+    attrs:
+      name: provider-ades-frontend
+      authorization_flow: !Find
+        - authentik_flows.flow
+        - [slug, default-provider-authorization-implicit-consent]
+      client_type: confidential
+      client_id: ades-frontend
+      redirect_uris: |-
+        https://ades.setag.mx/callback
+        http://localhost:4200/callback
+      sub_mode: user_username
+      include_claims_in_id_token: true
+      access_code_validity: minutes=1
+      access_token_validity: hours=1
+      refresh_token_validity: days=30
+      signing_key: !Find
+        - authentik_crypto.certificatekeypair
+        - [name, "authentik Self-signed Certificate"]
+
+  # ── Aplicación: ADES Frontend ─────────────────────────────────────────────
+  - model: authentik_core.application
+    state: present
+    identifiers:
+      slug: ades-frontend
+    attrs:
+      name: "ADES — Sistema Escolar"
+      slug: ades-frontend
+      provider: !Find
+        - authentik_providers_oauth2.oauth2provider
+        - [name, provider-ades-frontend]
+      meta_launch_url: https://ades.setag.mx
+      meta_description: "Sistema Administrativo Escolar Instituto Nevadi"
+      policy_engine_mode: any
+
+  # ── Provider: Superset ────────────────────────────────────────────────────
+  - model: authentik_providers_oauth2.oauth2provider
+    state: present
+    identifiers:
+      name: provider-superset
+    attrs:
+      name: provider-superset
+      authorization_flow: !Find
+        - authentik_flows.flow
+        - [slug, default-provider-authorization-implicit-consent]
+      client_type: confidential
+      client_id: superset
+      redirect_uris: |-
+        https://bi.ades.setag.mx/oauth-authorized/oidc
+        http://localhost:8088/oauth-authorized/oidc
+      sub_mode: user_username
+      include_claims_in_id_token: true
+      access_code_validity: minutes=1
+      access_token_validity: hours=1
+      refresh_token_validity: days=30
+      signing_key: !Find
+        - authentik_crypto.certificatekeypair
+        - [name, "authentik Self-signed Certificate"]
+
+  # ── Aplicación: Superset BI ───────────────────────────────────────────────
+  - model: authentik_core.application
+    state: present
+    identifiers:
+      slug: superset
+    attrs:
+      name: "ADES BI — Superset"
+      slug: superset
+      provider: !Find
+        - authentik_providers_oauth2.oauth2provider
+        - [name, provider-superset]
+      meta_launch_url: https://bi.ades.setag.mx
+      meta_description: "Dashboards BI del Instituto Nevadi"
+      policy_engine_mode: any
