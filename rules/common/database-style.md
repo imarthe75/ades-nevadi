@@ -2,7 +2,7 @@
 
 Estándares obligatorios para el modelado, escritura de consultas y migraciones de base de datos en el ecosistema, garantizando consistencia, trazabilidad e idempotencia estructural.
 
-*Nota de Atribución: Estas pautas y convenciones se adaptan de la [Guía de Estilo SQL](file:///home/ia/ecosistema-casmarts/resident-agent-framework/gu%C3%ADa%20de%20estilo%20sql.md) (Licencia MIT).*
+*Nota: Estas pautas y convenciones son propias del proyecto **ADES Instituto Nevadi** (licencia del framework residente MIT).*
 
 ---
 
@@ -32,7 +32,7 @@ El modelo de base de datos se organiza estrictamente en esquemas para separar re
 
 Toda tabla de aplicación (`app.*`) debe incluir los siguientes campos de auditoría para asegurar la trazabilidad y la concurrencia optimista:
 
-1.  `id` → Clave primaria (PK). IDENTITY (autoincremental) o UUIDv7 (en PostgreSQL 18+).
+1.  `id` → Clave primaria (PK). **UUID NOT NULL DEFAULT gen_random_uuid()** (uuidv7 en PG18).
 2.  `ref` → Clave estable a lo largo del tiempo (UUIDv7/gen_random_uuid) para persistencia SCD Tipo 2.
 3.  `row_version` → Control de concurrencia optimista (inicia en 1, incrementa en cada `UPDATE`).
 4.  `fecha_creacion` / `fecha_modificacion` → Marca de tiempo con zona horaria (`timestamptz`).

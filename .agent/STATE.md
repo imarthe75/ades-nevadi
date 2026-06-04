@@ -28,9 +28,9 @@ Este documento es el diario de vida y bitácora del agente. Debe ser leído en e
 | Authentik server   | ✅ healthy | 2026.5.2 · accesible en https://ades.setag.mx/auth/ |
 | Authentik worker   | ✅ healthy | |
 | nginx              | ✅ running | TLS activo (Let's Encrypt) · bind mount /etc/letsencrypt |
-| ades-api           | ⏳ pendiente | backend no construido aún |
-| ades-frontend      | ⏳ pendiente | frontend no construido aún |
-| superset           | ⏳ pendiente | imagen no construida aún |
+| ades-api           | ✅ healthy   | 175 operaciones REST (FASE 1–10) |
+| ades-frontend      | ✅ running   | Angular 22 · ng serve :4200 · ades.setag.mx OK (HTTP 200) |
+| superset           | ✅ running   | 6.1.0 · pendiente primer arranque manual |
 
 ### 🛠️ Tareas Completadas hoy (2026-06-04):
 - [x] Estandarización de PKs: todas las tablas migradas de `BIGINT GENERATED ALWAYS AS IDENTITY` a `UUID NOT NULL DEFAULT gen_random_uuid()` en `001_initial_schema.sql` (DDL de referencia del framework).
@@ -39,7 +39,7 @@ Este documento es el diario de vida y bitácora del agente. Debe ser leído en e
 - [x] `SKILL.md` database-liquibase-postgresql actualizado: regla mandatoria UUID, skeleton canónico con UUID, checklist de PR actualizado.
 - [x] `.agent/CONTEXT.md` actualizado: convención de PK a UUID, FKs a UUID.
 - [x] ADR `DECISIONS/0003-uuid-primary-keys.md` creado y registrado.
-- [x] Script idempotente `db/migrations/20260604_0001_rpp_dos_punto_cero.sql` creado: asegura existencia de todas las PKs y FKs usando DO blocks con verificación en pg_constraint.
+- [x] Script idempotente `db/migrations/20260604_0001_ades_nevadi.sql` creado: asegura existencia de todas las PKs y FKs usando DO blocks con verificación en pg_constraint.
 - [x] `CONTEXT.md` actualizado: Ixtapan tendrá preparatoria (6 semestres UAEMEX) con `is_active=FALSE` proyectada.
 - [x] Reglas de negocio y tabla de planteles actualizadas (Tenancingo prep incorporada, Ixtapan prep proyectada).
 
@@ -174,5 +174,12 @@ Este documento es el diario de vida y bitácora del agente. Debe ser leído en e
 - [x] FASE 10 frontend: PonderacionConfigComponent — CRUD esquemas con validación suma=100%, expansion de ítems
 - [x] Sidebar: nuevo grupo "Gradebook" (Gradebook, Mi Progreso, Ponderaciones)
 - [x] Build Angular: 0 errores, 27 componentes, 540 kB inicial
+- [x] Migración 008: 4 roles nuevos (TUTOR, APOYO_ACADEMICO, APOYO_ADMINISTRATIVO, COORDINADOR_AREA), tabla ades_areas_academicas (8 áreas), tabla ades_coordinaciones_area
+- [x] DIRECTOR actualizado: puede ser por nivel educativo dentro del plantel — hasta 3 por plantel
+- [x] Restricción "1 docente de inglés por plantel" eliminada — sin límite por materia
+- [x] Frontend container (ades-frontend) iniciado — ng serve en puerto 4200
+- [x] nginx.conf actualizado: resolver 127.0.0.11 + upstreams por variable (DNS diferido, resiliente a restart order)
+- [x] ades.setag.mx sirve Angular SPA correctamente (HTTP 200)
+- [x] ades-superset iniciado
 - [ ] Google Workspace SSO: pendiente credenciales Google Cloud Console de Nevadi
 - [ ] Superset: primer arranque manual (superset db upgrade + init + crear datasource ADES apuntando a ades_bi)

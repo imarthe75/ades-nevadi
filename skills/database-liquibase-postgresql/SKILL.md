@@ -41,7 +41,7 @@ When asked to generate a script, always provide:
 
 Use this naming format:
 
-YYYYMMDD_NNNN_rpp_dos_punto_cero.sql
+YYYYMMDD_NNNN_ades_nevadi.sql
 
 Rules:
 
@@ -57,7 +57,7 @@ Use this header at the top of every script:
 /*
  * by Im@rthe
  * Fecha: YYYY-MM-DD
- * Archivo: YYYYMMDD_NNNN_rpp_dos_punto_cero.sql
+ * Archivo: YYYYMMDD_NNNN_ades_nevadi.sql
  *
  * Descripcion:
  * [Descripcion multilinea del objetivo del script]
@@ -66,18 +66,14 @@ Use this header at the top of every script:
  * Solicitado y aprobado por [Nombre Completo]
  *
  * Motor de Base de Datos: PostgreSQL
- * Version minima requerida: 16
+ * Version minima requerida: 18
  * Ambiente: desarrollo
  */
 ```
 
 Authorized names for the header requester line:
 
-- Gustavo Santiago Ruiz
-- Jose Angel Lemus
-- Rafael Aviles
-- Yamil Martinez Mengual
-- Daniel Antonio Miranda Cruz
+- Israel Martínez Hernández
 
 ## Mandatory Section Order
 

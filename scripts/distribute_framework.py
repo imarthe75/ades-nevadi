@@ -1,100 +1,52 @@
 #!/usr/bin/env python3
+"""
+Script utilitario — ADES Instituto Nevadi
+Sincroniza los artefactos del framework residente (skills, rules, agents)
+dentro del mismo repositorio ades-nevadi.
+
+Originalmente este script distribuía el framework a múltiples proyectos
+(ecosistema multi-repo). En ADES es un proyecto único, por lo que este script
+solo verifica la integridad de los artefactos del agente residente.
+"""
 import os
-import shutil
-import subprocess
 
-# Directorios de origen
-FRAMEWORK_DIR = "/home/ia/ecosistema-casmarts/resident-agent-framework"
-PARENT_DIR = "/home/ia/ecosistema-casmarts"
+ADES_ROOT = "/opt/ades"
 
-# Archivos y carpetas comunes a copiar
-ITEMS_TO_COPY = [
-    ".agent",
-    "agents",
-    "rules",
-    "skills",
-    "contexts",
-    "hooks",
-    "resident_agent_genesis.md",
-    "HEURISTICAS_MASTER_GUIDE.md",
-    "auditoria.sql"
+FRAMEWORK_ARTIFACTS = [
+    ".agent/AGENT.md",
+    ".agent/CONTEXT.md",
+    ".agent/RULES.md",
+    ".agent/HEURISTICS.md",
+    ".agent/STATE.md",
+    "agents/architect.md",
+    "agents/code-reviewer.md",
+    "rules/common/database-style.md",
+    "skills/postgres-audit/SKILL.md",
+    "skills/database-liquibase-postgresql/SKILL.md",
+    "auditoria.sql",
+    "DECISIONS/",
 ]
 
-# Excepciones que no deben recibir copias
-EXCLUDED_DIR_NAMES = {
-    "resident-agent-framework",
-    ".git",
-    ".vscode",
-    ".antigravitycli",
-    ".agent",
-    ".claude",
-    "CASmartS",
-    "data"
-}
+def verificar_artefactos():
+    print("ADES Instituto Nevadi — Verificación de artefactos del agente residente")
+    print(f"Root: {ADES_ROOT}\n")
 
-def distribute():
-    print("🚀 Iniciando distribución del Resident Agent Framework...")
-    
-    # Listar subdirectorios que sean repositorios Git válidos
-    subdirs = [
-        d for d in os.listdir(PARENT_DIR)
-        if os.path.isdir(os.path.join(PARENT_DIR, d)) 
-        and os.path.exists(os.path.join(PARENT_DIR, d, ".git"))
-        and d not in EXCLUDED_DIR_NAMES
-    ]
-    
-    print(f"Detectados {len(subdirs)} repositorios Git objetivos.")
-    
-    for subdir in subdirs:
-        target_path = os.path.join(PARENT_DIR, subdir)
-        print(f"\n──────────────────────────────────────────────────")
-        print(f"📦 Procesando: {subdir} ({target_path})")
-        is_git = True
-            
-        for item in ITEMS_TO_COPY:
-            source_item_path = os.path.join(FRAMEWORK_DIR, item)
-            target_item_path = os.path.join(target_path, item)
-            
-            if not os.path.exists(source_item_path):
-                continue
-                
-            # Tratamiento especial para CONTEXT.md y MAP.md para no borrar información de proyectos específicos
-            if item == ".agent":
-                os.makedirs(target_item_path, exist_ok=True)
-                for file_name in os.listdir(source_item_path):
-                    src_file = os.path.join(source_item_path, file_name)
-                    tgt_file = os.path.join(target_item_path, file_name)
-                    
-                    if os.path.exists(tgt_file):
-                        print(f"   ℹ️  Conservando {file_name} existente en {subdir}")
-                    else:
-                        shutil.copy2(src_file, tgt_file)
-            else:
-                # Copia de carpetas y archivos genéricos
-                if os.path.isdir(source_item_path):
-                    if os.path.exists(target_item_path):
-                        shutil.rmtree(target_item_path)
-                    shutil.copytree(source_item_path, target_item_path)
-                else:
-                    shutil.copy2(source_item_path, target_item_path)
-                    
-        print(f"   ✅ Archivos copiados exitosamente.")
-        
-        # Ejecutar git add en el destino
-        if is_git:
-            try:
-                subprocess.run(
-                    ["git", "add", "."],
-                    cwd=target_path,
-                    check=True,
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL
-                )
-                print(f"   ✅ Archivos agregados al stage de Git.")
-            except Exception as e:
-                print(f"   ❌ Error al ejecutar git add en {subdir}: {e}")
+    faltantes = []
+    for artifact in FRAMEWORK_ARTIFACTS:
+        ruta = os.path.join(ADES_ROOT, artifact)
+        existe = os.path.exists(ruta)
+        estado = "OK" if existe else "FALTA"
+        print(f"  [{estado}] {artifact}")
+        if not existe:
+            faltantes.append(artifact)
 
-    print("\n🎉 Distribución completada de forma exitosa.")
+    print()
+    if faltantes:
+        print(f"ADVERTENCIA: {len(faltantes)} artefacto(s) faltante(s).")
+        for f in faltantes:
+            print(f"  - {f}")
+    else:
+        print("Todos los artefactos del framework residente están presentes.")
 
 if __name__ == "__main__":
-    distribute()
+    verificar_artefactos()

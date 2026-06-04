@@ -1,11 +1,11 @@
 /*
  * by Im@rthe
  * Fecha: 2026-06-04
- * Archivo: 20260604_0001_rpp_dos_punto_cero.sql
+ * Archivo: 20260604_0001_ades_nevadi.sql
  *
  * Descripcion:
  * Aseguramiento idempotente de llaves primarias (UUID) y llaves foraneas
- * en todas las tablas del esquema ADES.
+ * en todas las tablas del esquema ADES Instituto Nevadi.
  *
  * Este script es seguro para ejecutarse multiples veces (idempotente).
  * Verifica existencia de cada restriccion en pg_constraint antes de crearla.
@@ -16,14 +16,14 @@
  *   si las tablas existen pero sus constraints no.
  *
  * Nota sobre migracion BIGINT -> UUID:
- * La transformacion completa del tipo de PK requiere un script 003_ separado
- * con estrategia de reconstruccion de tablas. Este script (002_) solo garantiza
+ * La transformacion completa del tipo de PK requiere un script dedicado
+ * con estrategia de reconstruccion de tablas. Este script solo garantiza
  * que los constraints EXISTEN, cualquiera sea el tipo actual del campo id.
  *
- * Solicitado y aprobado por Gustavo Santiago Ruiz
+ * Solicitado y aprobado por Israel Martinez Hernandez
  *
  * Motor de Base de Datos: PostgreSQL
- * Version minima requerida: 16
+ * Version minima requerida: 18
  * Ambiente: desarrollo
  */
 
