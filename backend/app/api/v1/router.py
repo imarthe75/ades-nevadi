@@ -1,4 +1,5 @@
 from fastapi import APIRouter
+from .auth_callback import router as auth_callback_router
 from .health import router as health_router
 from .catalogs import router as catalogs_router
 from .planteles import router as planteles_router
@@ -44,6 +45,9 @@ from .entregas import router as entregas_router
 from .gradebook import router as gradebook_router
 
 api_router = APIRouter()
+
+# ── Auth callback proxy (OIDC token exchange sin CORS) ────────────────────────
+api_router.include_router(auth_callback_router)
 
 # ── FASE 1 ────────────────────────────────────────────────────────────────────
 api_router.include_router(health_router)

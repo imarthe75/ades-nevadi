@@ -1,18 +1,34 @@
 // ============================================================================
-// ADES — Estilos globales | Paleta Instituto Nevadi
-// Base primaria: #D02030
+// ADES — Estilos globales | Sistema de color Instituto Nevadi
+//
+// Esquema triádico a partir de #D02030 (H=355°):
+//   Triada A — Rojo       H=355°: #D02030 / #B01C28         (primario)
+//   Triada B — Verde      H=115°: #26A018  desaturado →     (success / aprobado)
+//   Triada C — Azul-pizarra H=235°: #2028B0 muy desaturado → (info / neutro frío)
 // ============================================================================
 
 // ── Variables de diseño ───────────────────────────────────────────────────────
 :root {
-  // Brand
-  --nevadi-red:         #D02030;
-  --nevadi-red-dark:    #B01C28;
-  --nevadi-red-darker:  #8C1620;
-  --nevadi-red-light:   #FBA7AC;
-  --nevadi-red-lighter: #FEF2F3;
+  // ── Triada A — Rojo Nevadi ──────────────────────────────────
+  --nevadi-red:         #D02030;   // H=355 S=78 L=47 — primario
+  --nevadi-red-dark:    #B01C28;   // 600
+  --nevadi-red-darker:  #8C1620;   // 700
+  --nevadi-red-light:   #FBA7AC;   // 200
+  --nevadi-red-lighter: #FEF2F3;   // 50
 
-  // Sidebar (carbón con matiz cálido)
+  // ── Triada B — Verde Sage (H=115° desaturado) ───────────────
+  --nevadi-sage:        #256020;   // S=50 L=25 — éxito/aprobado
+  --nevadi-sage-mid:    #2A8030;   // S=50 L=34
+  --nevadi-sage-light:  #DCFCE7;   // fondo tag success
+
+  // ── Triada C — Pizarra (H=235° muy desaturado) ──────────────
+  // "Gris" con identidad cromática — reemplaza todos los azules #1D4ED8 / #2563EB
+  --nevadi-slate:       #1E2D48;   // H=220 S=40 L=20 — oscuro, casi negro-azul
+  --nevadi-slate-mid:   #2A3B5E;   // H=220 S=35 L=27 — medio
+  --nevadi-slate-light: #E4E8F0;   // H=220 S=20 L=92 — fondo tag info
+  --nevadi-slate-text:  #2A3B5E;   // texto sobre fondo claro
+
+  // ── Sidebar (carbón con matiz cálido Triada A) ──────────────
   --sidebar-bg:         #1A1215;
   --sidebar-hover:      #2E1A1F;
   --sidebar-active:     #D02030;
@@ -20,13 +36,13 @@
   --sidebar-text:       #C4A8AC;
   --sidebar-text-muted: #7A5C62;
 
-  // Topbar
+  // ── Topbar ──────────────────────────────────────────────────
   --topbar-bg:          #D02030;
   --topbar-border:      #B01C28;
   --topbar-text:        #FFFFFF;
   --topbar-text-muted:  rgba(255,255,255,.65);
 
-  // Superficies
+  // ── Superficies ─────────────────────────────────────────────
   --surface-ground:     #F8F9FA;
   --surface-section:    #FFFFFF;
   --surface-card:       #FFFFFF;
@@ -34,16 +50,16 @@
   --surface-border:     #E9ECEF;
   --surface-hover:      #F3F4F6;
 
-  // Texto
-  --text-primary:       #1E293B;
+  // ── Texto ───────────────────────────────────────────────────
+  --text-primary:       #1A1F2E;   // carbón frío (H=228° S=24% L=14%) — reemplaza #1E293B
   --text-secondary:     #64748B;
   --text-muted:         #94A3B8;
 
-  // Semánticos
-  --color-success:      #16A34A;
+  // ── Semánticos ──────────────────────────────────────────────
+  --color-success:      #16A34A;   // triada B (verde)
   --color-warning:      #D97706;
   --color-danger:       #DC2626;
-  --color-info:         #2563EB;
+  --color-info:         #2A3B5E;   // triada C slate — reemplaza #2563EB
 }
 
 // ── Tipografía ────────────────────────────────────────────────────────────────
@@ -146,7 +162,7 @@ h1, h2, h3, h4,
 .p-tag.p-tag-success   { background: #DCFCE7; color: #15803D; }
 .p-tag.p-tag-danger    { background: #FEE2E2; color: #B91C1C; }
 .p-tag.p-tag-warning   { background: #FEF3C7; color: #B45309; }
-.p-tag.p-tag-info      { background: #DBEAFE; color: #1D4ED8; }
+.p-tag.p-tag-info      { background: var(--nevadi-slate-light); color: var(--nevadi-slate-text); }
 
 // ── Clases de utilidad ────────────────────────────────────────────────────────
 .page-header {

@@ -38,8 +38,9 @@ Gestiona la operación completa: estructura académica, inscripciones, asignaci�
 | **Temas curriculares** | 600+ |
 | **Operaciones REST** | 175 (FASES 1–10) |
 | **Componentes Angular** | 27 (lazy-loaded) |
-| **Tablas PostgreSQL** | 69 |
-| **Migraciones DDL** | 7 (001–007) |
+| **Tablas PostgreSQL** | 71 (+ 2 en migración 008) |
+| **Migraciones DDL** | 8 (001–008) |
+| **Roles del sistema** | 18 |
 
 ---
 
@@ -134,7 +135,7 @@ Gestiona la operación completa: estructura académica, inscripciones, asignaci�
 | 3 | **Planes de Estudio** — materias, temas, carga horaria SEP/UAEMEX | ✅ |
 | 4 | **Inscripciones y Alumnos** — alta, filiación, inscripción, histórico | ✅ |
 | 5 | **Profesores** — registro, asignación materia↔grupo (reglas SEP) | ✅ |
-| 6 | **Usuarios y RBAC** — 14 roles, OIDC Authentik, SSO, cuentas locales | ✅ |
+| 6 | **Usuarios y RBAC** — 18 roles, OIDC Authentik, SSO, cuentas locales | ✅ |
 
 ### FASE 2 — Operación Académica ✅
 
@@ -201,12 +202,23 @@ Gestiona la operación completa: estructura académica, inscripciones, asignaci�
 
 ### FASE 10 — Gradebook Curricular Integrado ✅
 
+
 | # | Módulo | Detalle |
 |---|--------|---------|
 | 1 | **Gradebook** (profesor) | Panel spreadsheet: actividades × alumnos, drawer de calificación, ajuste manual con justificación, cobertura curricular |
 | 2 | **Mi Progreso** (alumno) | Cards por materia con % + desglose por ítem, tareas pendientes con countdown, subida de archivos a MinIO |
 | 3 | **Ponderaciones** (admin) | Esquemas por nivel/materia, validación suma=100%, historial de versiones |
 | 4 | **Cálculo automático** (PG) | Función `calcular_calificacion_periodo()` con 3 triggers — idempotente, escala dinámica SEP/UAEMEX |
+
+### Migración 008 — Ampliación de personal ✅
+
+| # | Cambio | Detalle |
+|---|--------|---------|
+| 1 | **4 roles nuevos** | TUTOR, APOYO_ACADEMICO, APOYO_ADMINISTRATIVO, COORDINADOR_AREA |
+| 2 | **DIRECTOR ampliado** | Puede ser por nivel educativo dentro del plantel — hasta 3 directores por plantel |
+| 3 | **Tabla `ades_areas_academicas`** | 8 áreas globales: Matemáticas, Español, Inglés, Ciencias, Historia, Cívica, Ed. Física, Tecnología |
+| 4 | **Tabla `ades_coordinaciones_area`** | Asigna COORDINADOR_AREA a un área global (transversal a planteles) |
+| 5 | **Restricción eliminada** | ~~1 profesor de inglés por plantel~~ — sin límite de docentes por materia |
 
 ---
 
@@ -376,8 +388,8 @@ SUPERSET_SECRET_KEY=$(openssl rand -hex 32)
 
 ## Reglas de Negocio Críticas
 
-1. **Primaria:** 1 titular por grupo para TODAS las materias EXCEPTO inglés. 1 profesor de inglés por plantel (cubre 12 grupos por plantel).
-2. **Secundaria / Preparatoria:** 1 profesor por materia por grupo.
+1. **Primaria:** 1 titular por grupo para todas las materias. **Un plantel puede tener múltiples docentes de la misma materia (incluyendo inglés).** No hay restricción de unicidad por asignatura.
+2. **Secundaria / Preparatoria:** uno o más profesores por materia por plantel, asignados individualmente a cada grupo.
 3. **Grupos:** siempre A y B. Máximo 2 por grado salvo instrucción explícita.
 4. **Ixtapan:** Secundaria completa con 3 grados (antes solo 1° y 2°). Sin preparatoria.
 5. **Tenancingo prep:** Semestres 1-2 activos ciclo 26B; sem 3-6 `is_active=FALSE` (futuros).
@@ -389,20 +401,30 @@ SUPERSET_SECRET_KEY=$(openssl rand -hex 32)
 
 ---
 
-## Roles del Sistema
+## Roles del Sistema (18 roles)
 
-| Rol | Alcance | Auth actual |
-|-----|---------|-------------|
-| `ADMIN_GLOBAL` | Todos los planteles y niveles | Authentik local → Google SSO cuando disponible |
-| `ADMIN_PLANTEL` | Un plantel completo | Idem |
-| `DIRECTOR` | Un plantel | Idem |
-| `COORDINADOR_ACADEMICO` | Un nivel dentro de un plantel | Idem |
-| `DOCENTE` | Sus grupos y materias asignadas | Authentik local |
-| `MEDICO_ESCOLAR` | Expedientes médicos de su plantel | Authentik local |
-| `ALUMNO` | Su propio expediente y materias | Cuenta local Authentik |
-| `PADRE_FAMILIA` | Expedientes de sus hijos | Cuenta local Authentik |
+| Nivel | Rol | Alcance |
+|:-----:|-----|---------|
+| 0 | `ADMIN_GLOBAL` | Todos los planteles y niveles |
+| 1 | `ADMIN_PLANTEL` | Un plantel completo |
+| 2 | `DIRECTOR` | Por nivel educativo dentro del plantel (hasta 3 por plantel) |
+| 2 | `SUBDIRECTOR` | Suplente del director |
+| 2 | `COORDINADOR_ADMINISTRATIVO` | Procesos administrativos por plantel/nivel |
+| 2 | `COORDINADOR_RH` | Personal docente y administrativo |
+| 2 | `COORDINADOR_AREA` | **Global** — coordina un área académica (Matemáticas, Inglés…) en todos los planteles |
+| 3 | `COORDINADOR_ACADEMICO` | Coordinación académica por nivel dentro del plantel |
+| 3 | `TUTOR` | Seguimiento académico personalizado de un grupo de estudiantes |
+| 3 | `ORIENTADOR` | Orientación educativa y vocacional (sec/prep) |
+| 3 | `SECRETARIA_ACADEMICA` | Expedientes, certificados, actas |
+| 4 | `DOCENTE` | Sus grupos y materias asignadas |
+| 4 | `MEDICO_ESCOLAR` | Expedientes médicos de su plantel |
+| 4 | `PREFECTO` | Disciplina, supervisión |
+| 4 | `APOYO_ACADEMICO` | Recursos, biblioteca, laboratorio |
+| 4 | `APOYO_ADMINISTRATIVO` | Trámites, archivo, atención |
+| 5 | `ALUMNO` | Su propio expediente y materias |
+| 5 | `PADRE_FAMILIA` | Expedientes de sus hijos |
 
-> Google Workspace SSO para `@institutonevadi.edu.mx` está configurado en Authentik pero pendiente de credenciales de Google Cloud Console. Todos usan cuentas locales Authentik hasta entonces.
+> **Google Workspace SSO** para `@institutonevadi.edu.mx` configurado en Authentik — pendiente de credenciales Google Cloud Console. Personal usa cuentas locales Authentik hasta entonces.
 
 ---
 
@@ -507,15 +529,33 @@ docker compose exec postgres psql -U ades_admin -d ades -c "
 
 ---
 
-## Roadmap
+## Progreso y Roadmap
 
-| Período | Fase | Objetivos principales |
-|---------|------|----------------------|
-| **Q3 2026** | FASE 1 | MVP: inscripciones, profesores, RBAC, API REST base |
-| **Q4 2026** | FASE 2 | Calificaciones, Quiz Engine, Asistencias, Tareas, Notificaciones |
-| **Q1 2027** | FASE 3 | Horarios aSc, Expediente Médico, Boletas PDF, Evaluación Docente, Badges |
-| **Q2 2027** | FASE 4 | Asistente IA, Riesgo Académico, Learning Paths |
-| **Q3 2027** | FASE 4+ | Dashboard BI ClickHouse, pipeline CDC, Análisis de Patrones |
+> **Estado actual (Junio 2026):** FASES 1–10 completadas. El sistema está operacional y desplegado en producción. El desarrollo avanzó aproximadamente **18 meses antes del plan original.**
+
+### Completado ✅
+
+| Período real | Fase | Logros |
+|-------------|------|--------|
+| **Jun 2026** | FASES 1–10 | Sistema completo: 175 endpoints REST, 27 componentes Angular, 8 migraciones DDL, 18 roles, 71 tablas, Gradebook automático con triggers PG, IA integrada, Badges, Portal alumno, Superset BI |
+
+### Pendiente de configuración (no requiere código)
+
+| Estimado | Tarea | Bloqueante |
+|----------|-------|------------|
+| **Jul 2026** | Google Workspace SSO | Credenciales Google Cloud Console del Instituto Nevadi (`@institutonevadi.edu.mx`) |
+| **Jul 2026** | Superset primer arranque | Ejecutar `superset db upgrade && superset init`, crear datasource `ades_bi` en `bi.ades.setag.mx` |
+| **Jul 2026** | Aplicaciones OIDC Authentik | Configurar `ades-frontend` y `superset` en panel Authentik |
+| **Q3 2026** | **Lanzamiento operacional completo** | — una vez resueltos los 3 ítems anteriores |
+
+### Posibles extensiones futuras (no planificadas)
+
+| Módulo | Descripción |
+|--------|-------------|
+| Pipeline CDC | Redpanda + Debezium → ClickHouse para analytics en tiempo real (ya comentado en compose) |
+| App móvil | React Native / PWA para pase de lista y notificaciones push |
+| Foros por materia | Discusión académica interna (inspirado en Moodle Forums) |
+| Quiz Engine | Exámenes en línea con banco de preguntas y calificación automática |
 
 ---
 

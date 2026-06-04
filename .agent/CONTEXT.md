@@ -245,6 +245,41 @@ denso en información, orientado a productividad) usando **PrimeNG** como librer
    Campo adicional `oidc_sub` almacena el `sub` del JWT de Authentik.
 10. **Horarios aSc:** `ades_aulas` tiene capacidad y tipo (aula, laboratorio, sala cómputo).
     `ades_disponibilidad_docente` almacena restricciones horarias por profesor para aSc.
+11. **Familia — un padre puede tener múltiples hijos.** `ades_contactos_familiares` vincula `persona_id → estudiante_id`; la misma persona puede ser contacto de varios alumnos. Un alumno puede tener múltiples contactos (padre, madre, tutor, abuelo, etc.) con banderas `es_tutor_legal`, `puede_recoger`, `es_contacto_emergencia`.
+12. **Ciclo escolar — cierre y promoción automática:** función PG `cerrar_ciclo_y_promover(ciclo_origen_id, ciclo_destino_id)` inscribe automáticamente a alumnos activos en el siguiente ciclo. Casos especiales: `BAJA` no se reinscribe, `REPROBADO` queda en el mismo grado, `EGRESADO` (último grado del nivel) no se reinscribe. Alumnos sin grupo destino quedan en `ades_promociones_pendientes` para asignación manual.
+
+---
+
+## Administración del Sistema
+
+El rol `ADMIN_GLOBAL` (nivel 0) es el administrador del sistema. Accede a todas las funcionalidades.
+
+### Parámetros configurables — `ades_parametros_sistema`
+
+Tabla key-value con 18 parámetros iniciales organizados en 5 grupos:
+
+| Grupo | Claves |
+|-------|--------|
+| `GENERAL` | `NOMBRE_SISTEMA`, `NOMBRE_INSTITUCION`, `SLOGAN` |
+| `CONTACTO` | `TEL_PRINCIPAL`, `EMAIL_CONTACTO`, `SITIO_WEB` |
+| `APARIENCIA` | `LOGO_URL`, `COLOR_PRIMARIO` (#C41724), `COLOR_SECUNDARIO`, `FAVICON_URL` |
+| `SEP` | `CLAVE_CCT_PRIMARIA/SECUNDARIA/PREPARATORIA`, `ESCALA_CALIFICACION` |
+| `FUNCIONALIDAD` | `PORTAL_PADRES_ACTIVO`, `ENCUESTAS_ACTIVO`, `IA_ACTIVO`, `OPENAI_API_KEY` |
+
+- `es_publico = TRUE` → API expone el valor sin autenticación (nombre institución, colores)
+- `es_publico = FALSE` → solo ADMIN_GLOBAL puede leer/escribir (CCTs, API keys)
+- `tipo_valor`: TEXTO, NUMERO, BOOLEAN, URL, COLOR, JSON
+- El logo se sube a MinIO → `LOGO_URL` recibe la URL pública
+
+### Módulo admin — funcionalidades esperadas (pendiente de implementar)
+
+- Gestión de usuarios y cuentas de login (delegada a Authentik — OIDC)
+- Gestión de roles y permisos
+- Gestión de materias y plan de estudios
+- Parámetros del sistema (UI sobre `ades_parametros_sistema`)
+- Identidad visual (logo, colores — sobre `ades_identidad_institucional`)
+- Ciclos escolares: crear nuevo ciclo + ejecutar `cerrar_ciclo_y_promover()`
+- Revisión de `ades_promociones_pendientes` y asignación manual
 
 ---
 
@@ -336,6 +371,9 @@ Al ejecutar los seeds deben existir:
 | FASE 2 — Operación académica | ✅ Completa | +24 ops: calificaciones, asistencias, tareas, clases |
 | FASE 3 — Especializados | ✅ Completa | Horarios+aSc, Expediente Médico, Conducta, Evaluación Docente 360°, Boletas PDF (WeasyPrint) |
 | FASE 4 — IA + Analytics | 🔄 En progreso | Asistente IA (Claude), alertas de riesgo académico activos. Pendiente: ClickHouse, Superset BI, Learning Paths |
+| Migración 008 | ✅ Completa | 4 nuevos roles, tablas `ades_areas_academicas` + `ades_coordinaciones_area`, 8 áreas |
+| Migración 009 | ✅ Completa | `ades_parametros_sistema` (18 params), `ades_promociones_pendientes`, función `cerrar_ciclo_y_promover()` |
+| Frontend Auth | ✅ Corregido | `app.html` limpio, `authGuard` creado, `oidcRedirectUri` → ades.setag.mx/callback |
 
 ## Exportación de tablas (patrón APEX)
 

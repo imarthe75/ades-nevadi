@@ -13,10 +13,13 @@ import { authInterceptor } from './core/interceptors/auth.interceptor';
 
 registerLocaleData(localeEs);
 
-// ── Paleta Instituto Nevadi ────────────────────────────────────────────────────
-// Base: #D02030 (rojo institucional)
+// ── Sistema triádico Instituto Nevadi ─────────────────────────────────────────
+// Triada A (H=355°): Rojo primario  #D02030
+// Triada B (H=115°): Verde sage     — éxito / aprobado
+// Triada C (H=235°): Pizarra fría   — info / UI neutral (reemplaza azul genérico)
 const NevadiPreset = definePreset(Aura, {
   semantic: {
+    // Triada A — Rojo Nevadi
     primary: {
       50:  '#fef2f3',
       100: '#fde0e2',
@@ -29,6 +32,31 @@ const NevadiPreset = definePreset(Aura, {
       800: '#681019',
       900: '#440b11',
       950: '#220508',
+    },
+    // Triada C — Pizarra fría (H=235° muy desaturado): reemplaza cualquier azul genérico
+    colorScheme: {
+      light: {
+        surface: {
+          0:   '#ffffff',
+          50:  '#F8F9FA',
+          100: '#F1F3F5',
+          200: '#E9ECEF',
+          300: '#DEE2E6',
+          400: '#CED4DA',
+          500: '#ADB5BD',
+          600: '#868E96',
+          700: '#495057',
+          800: '#343A40',
+          900: '#212529',
+          950: '#141929',   // ← fondo login — triada C oscuro
+        },
+        primary: {
+          color:          '#D02030',
+          contrastColor:  '#ffffff',
+          hoverColor:     '#B01C28',
+          activeColor:    '#8C1620',
+        },
+      },
     },
   },
 });

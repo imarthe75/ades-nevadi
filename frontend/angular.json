@@ -29,7 +29,9 @@
                 "input": "public"
               }
             ],
-            "styles": ["src/styles.scss"]
+            "styles": [
+              "src/styles.scss"
+            ]
           },
           "configurations": {
             "production": {
@@ -65,7 +67,16 @@
               "buildTarget": "ades-frontend:build:development"
             }
           },
-          "defaultConfiguration": "development"
+          "defaultConfiguration": "development",
+          "options": {
+            "allowedHosts": [
+              "ades.setag.mx",
+              "localhost",
+              "127.0.0.1"
+            ],
+            "port": 4200,
+            "host": "0.0.0.0"
+          }
         },
         "test": {
           "builder": "@angular/build:unit-test"

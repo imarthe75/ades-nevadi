@@ -1,5 +1,5 @@
-import { Component, OnInit, inject } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { Component, OnInit, inject, signal } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
 
@@ -8,18 +8,58 @@ import { ProgressSpinnerModule } from 'primeng/progressspinner';
   standalone: true,
   imports: [ProgressSpinnerModule],
   template: `
-    <div style="display:flex;align-items:center;justify-content:center;height:100vh;gap:1rem">
-      <p-progressSpinner strokeWidth="4" style="width:50px;height:50px" />
-      <span>Iniciando sesión...</span>
+    <div class="cb-wrapper">
+      @if (!error()) {
+        <p-progressSpinner strokeWidth="3" styleClass="cb-spinner" />
+        <span class="cb-label">Iniciando sesión…</span>
+      } @else {
+        <div class="cb-error">
+          <i class="pi pi-times-circle" style="font-size:2rem;color:#D02030"></i>
+          <p>{{ error() }}</p>
+          <a href="/login">Volver al inicio de sesión</a>
+        </div>
+      }
     </div>
   `,
+  styles: [`
+    .cb-wrapper {
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      height: 100vh; gap: 1rem;
+      background: linear-gradient(160deg, #141929 0%, #1E2940 100%);
+      color: #fff;
+    }
+    .cb-label { font-size: 0.95rem; color: #94A3B8; }
+    .cb-error { text-align: center; color: #fff; }
+    .cb-error a { color: #D02030; text-decoration: none; margin-top: .5rem; display: block; }
+  `],
 })
 export class CallbackComponent implements OnInit {
-  private readonly route = inject(ActivatedRoute);
-  private readonly auth  = inject(AuthService);
+  private readonly route  = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly auth   = inject(AuthService);
+
+  readonly error = signal<string | null>(null);
 
   ngOnInit(): void {
-    const code = this.route.snapshot.queryParamMap.get('code');
-    if (code) this.auth.handleCallback(code);
+    const params = this.route.snapshot.queryParamMap;
+    const oidcError = params.get('error');
+    const code      = params.get('code');
+
+    if (oidcError) {
+      const desc = params.get('error_description') ?? oidcError;
+      this.error.set(desc.replace(/_/g, ' '));
+      return;
+    }
+
+    if (!code) {
+      this.error.set('No se recibió código de autorización.');
+      return;
+    }
+
+    this.auth.handleCallback(code).catch(err => {
+      console.error('[ADES] callback error:', err);
+      this.error.set('Error al completar el inicio de sesión. Inténtalo de nuevo.');
+    });
   }
 }

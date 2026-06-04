@@ -162,6 +162,17 @@ services:
       AUTHENTIK_BOOTSTRAP_TOKEN:      ${AUTHENTIK_BOOTSTRAP_TOKEN:?AUTHENTIK_BOOTSTRAP_TOKEN requerido}
       AUTHENTIK_ERROR_REPORTING__ENABLED: "false"
       AUTHENTIK_LOG_LEVEL:            warning
+      # ── Email / SMTP (Zoho Mail) ───────────────────────────────
+      # Puerto 465 = SSL directo | Puerto 587 = STARTTLS
+      # USE_SSL y USE_TLS son mutuamente excluyentes en Django
+      AUTHENTIK_EMAIL__HOST:         ${SMTP_HOST:-smtp.zoho.com}
+      AUTHENTIK_EMAIL__PORT:         ${SMTP_PORT:-465}
+      AUTHENTIK_EMAIL__USERNAME:     ${SMTP_USERNAME:-}
+      AUTHENTIK_EMAIL__PASSWORD:     ${SMTP_PASSWORD:-}
+      AUTHENTIK_EMAIL__USE_SSL:      ${SMTP_USE_SSL:-true}
+      AUTHENTIK_EMAIL__USE_TLS:      ${SMTP_USE_TLS:-false}
+      AUTHENTIK_EMAIL__TIMEOUT:      "10"
+      AUTHENTIK_EMAIL__FROM:         ${SMTP_FROM:-admin@setag.mx}
     volumes:
       - authentik-media:/media
     ports:
@@ -195,6 +206,13 @@ services:
       AUTHENTIK_SECRET_KEY:            ${AUTHENTIK_SECRET_KEY}
       AUTHENTIK_BOOTSTRAP_PASSWORD:   ${AUTHENTIK_BOOTSTRAP_PASSWORD}
       AUTHENTIK_BOOTSTRAP_TOKEN:      ${AUTHENTIK_BOOTSTRAP_TOKEN}
+      AUTHENTIK_EMAIL__HOST:         ${SMTP_HOST:-smtp.gmail.com}
+      AUTHENTIK_EMAIL__PORT:         ${SMTP_PORT:-587}
+      AUTHENTIK_EMAIL__USERNAME:     ${SMTP_USERNAME:-}
+      AUTHENTIK_EMAIL__PASSWORD:     ${SMTP_PASSWORD:-}
+      AUTHENTIK_EMAIL__USE_TLS:      ${SMTP_USE_TLS:-true}
+      AUTHENTIK_EMAIL__TIMEOUT:      "10"
+      AUTHENTIK_EMAIL__FROM:         ${SMTP_FROM:-noreply@institutonevadi.edu.mx}
     volumes:
       - authentik-media:/media
       - /var/run/docker.sock:/var/run/docker.sock          # para blueprints
@@ -400,6 +418,7 @@ services:
       - ./infrastructure/nginx/conf.d:/etc/nginx/conf.d:ro
       - /etc/letsencrypt:/etc/letsencrypt:ro    # bind mount — certs en el host
       - certbot-www:/var/www/certbot:ro          # webroot ACME challenge
+      - authentik-media:/authentik-media:ro      # archivos media de Authentik (logos, etc.)
     ports:
       - "80:80"
       - "443:443"
