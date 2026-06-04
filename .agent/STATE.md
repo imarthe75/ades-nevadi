@@ -11,53 +11,58 @@ Este documento es el diario de vida y bitácora del agente. Debe ser leído en e
 
 ---
 
-## 📅 Bitácora de Sesión Actual
+## 📅 Bitácora
 
 ### 🔑 Estado del Agente:
-- **Última Conexión:** 2026-06-03
+- **Última Conexión:** 2026-06-04
 - **Estado Cognitivo:** Operacional ✅
-- **ADRs Registrados:** 0001 (ADR Inicial de Génesis)
+- **ADRs Registrados:** 0001 (ADR Inicial de Génesis) · 0002 (Heurísticas) · 0003 (UUID PKs)
 
-### 🏗️ Estado de Infraestructura (2026-06-03):
+### 🏗️ Estado de Infraestructura (2026-06-04):
 
 | Servicio           | Estado    | Notas |
 |--------------------|-----------|-------|
 | PostgreSQL 18      | ✅ healthy | 57 tablas, seeds cargados (54 grupos, 80 profesores, 1620 alumnos, ciclo 2026-2027) |
 | Valkey 9.1.0       | ✅ healthy | |
 | MinIO              | ✅ healthy | |
-| Authentik server   | ✅ healthy | 2026.5.2 · accesible en https://auth.ades.setag.mx/ |
+| Authentik server   | ✅ healthy | 2026.5.2 · accesible en https://ades.setag.mx/auth/ |
 | Authentik worker   | ✅ healthy | |
 | nginx              | ✅ running | TLS activo (Let's Encrypt) · bind mount /etc/letsencrypt |
-| ades-api           | ✅ healthy | 175 operaciones REST (FASE 1–10 completas) |
-| ades-frontend      | ✅ ready   | Angular 22 + PrimeNG 21, 27 componentes, build sin errores (540 kB) |
-| superset           | ✅ healthy | 6.1.0 con psycopg2 + redis |
+| ades-api           | ⏳ pendiente | backend no construido aún |
+| ades-frontend      | ⏳ pendiente | frontend no construido aún |
+| superset           | ⏳ pendiente | imagen no construida aún |
 
-### 🛠️ Tareas Completadas hoy:
-- [x] Creación de la estructura del framework base.
-- [x] Configuración de docker-compose (versiones fijas: pg18, valkey 9.1.0, authentik 2026.5.2, superset 6.1.0).
-- [x] Redacción de leyes operacionales (AGENT.md) y contexto (CONTEXT.md).
-- [x] Schema completo + seeds cargados en PostgreSQL 18.
-- [x] Corrección nginx: bind mount /etc/letsencrypt, eliminado depends_on de servicios inexistentes.
-- [x] Corrección authentik: typo AUTHENTIK_SECRET__KEY → AUTHENTIK_SECRET_KEY.
-- [x] Authentik movido a subdominio propio https://auth.ades.setag.mx/ (cert emitido 2026-06-03, expira 2026-09-01).
-- [x] nginx.conf limpio: ades.setag.mx = frontend/API, auth.ades.setag.mx = Authentik en raíz.
+### 🛠️ Tareas Completadas hoy (2026-06-04):
+- [x] Estandarización de PKs: todas las tablas migradas de `BIGINT GENERATED ALWAYS AS IDENTITY` a `UUID NOT NULL DEFAULT gen_random_uuid()` en `001_initial_schema.sql` (DDL de referencia del framework).
+- [x] Columnas FK migradas de `BIGINT` a `UUID` en el schema de referencia.
+- [x] Referencias polimórficas `entidad_id` migradas de `BIGINT` a `UUID`.
+- [x] `SKILL.md` database-liquibase-postgresql actualizado: regla mandatoria UUID, skeleton canónico con UUID, checklist de PR actualizado.
+- [x] `.agent/CONTEXT.md` actualizado: convención de PK a UUID, FKs a UUID.
+- [x] ADR `DECISIONS/0003-uuid-primary-keys.md` creado y registrado.
+- [x] Script idempotente `db/migrations/20260604_0001_rpp_dos_punto_cero.sql` creado: asegura existencia de todas las PKs y FKs usando DO blocks con verificación en pg_constraint.
+- [x] `CONTEXT.md` actualizado: Ixtapan tendrá preparatoria (6 semestres UAEMEX) con `is_active=FALSE` proyectada.
+- [x] Reglas de negocio y tabla de planteles actualizadas (Tenancingo prep incorporada, Ixtapan prep proyectada).
 
 ### 🚨 Lecciones Aprendidas:
-- Los certs Let's Encrypt deben montarse como bind mount al host (`/etc/letsencrypt:/etc/letsencrypt:ro`), no como volumen Docker nombrado — el volumen queda vacío si el cert fue emitido fuera del ciclo de vida del compose.
-- La variable de Authentik es `AUTHENTIK_SECRET_KEY` (guion simple), no `AUTHENTIK_SECRET__KEY`.
+- Los certs Let’s Encrypt deben montarse como bind mount al host (`/etc/letsencrypt:/etc/letsencrypt:ro`), no como volumen Docker nombrado — el volumen queda vacío si el cert fue emitido fuera del ciclo de vida del compose.
+- La variable de Authentik es `AUTHENTIK_SECRET_KEY` (guión simple), no `AUTHENTIK_SECRET__KEY`.
 - `depends_on` en nginx debe incluir solo servicios que realmente existen y arrancan; agregar services no construidos bloquea el arranque de nginx.
+- **PKs UUID:** `BIGINT GENERATED ALWAYS AS IDENTITY` no debe usarse como PK en tablas ADES nuevas. Usar `UUID NOT NULL DEFAULT gen_random_uuid()` (o `uuidv7()` en PG18). Las columnas FK correspondientes también deben ser `UUID`.
+- **Grupos inactivos proyectados:** los grados/semestres futuros (Tenancingo prep sem 3-6, Ixtapan prep sem 1-6) se crean con `is_active=FALSE` en los seeds; se activan ciclo a ciclo sin nueva migración DDL.
 
 ### 🚀 Próximos Pasos:
-- [ ] Setup inicial Authentik: cambiar contraseña akadmin, configurar dominio https://auth.ades.setag.mx/.
+- [ ] Setup inicial Authentik: cambiar contraseña akadmin, configurar dominio https://ades.setag.mx/auth/.
 - [ ] Configurar Google Workspace SSO en Authentik para personal @institutonevadi.edu.mx.
 - [ ] Crear aplicación OIDC `ades-frontend` en Authentik.
+- [ ] Crear aplicación OIDC `superset` en Authentik.
+- [ ] Construir imagen ades-api (FastAPI backend — FASE 1).
+- [ ] Construir imagen ades-frontend (Angular — FASE 1).
+- [ ] Script `003_uuid_migration.sql`: migración real de BIGINT → UUID en BD existente (requiere aprobación DBA y ventana de mantenimiento).
 - [ ] Crear aplicación OIDC `superset` en Authentik.
 - [x] Schema migrado a UUID v7 (`uuidv7()` nativo PG18) — todos los PKs y FKs.
 - [x] Estructura académica completa: Ixtapan sec 3°, Metepec prep sem 1-6, Tenancingo prep sem 1-6.
 - [x] 39 grados, 78 grupos (66 activos), 168 profesores, 1980 alumnos, 2054 usuarios.
 - [x] Seed 002 v4 + 003 v4 con is_active en grupos futuros y auth local para docentes.
-- [x] Análisis Moodle: 15 módulos identificados e incorporados al CONTEXT.md y README.
-- [x] README v2.0 expansivo (~450 líneas): stack, DDD, fases, BD, instalación, troubleshooting, roadmap.
 - [x] FASE 1 backend: 30 operaciones REST activas (planteles, grupos, materias, alumnos, profesores, usuarios).
 - [x] FASE 2 operación: 24 operaciones adicionales (clases, asistencias, calificaciones, tareas).
   - Calificaciones: libreta interactiva + boleta por alumno

@@ -16,14 +16,14 @@ comunicación interna y generación de horarios. No incluye módulo de pagos/col
 
 ### Planteles y niveles activos
 
-| Plantel      | Primaria (SEP) | Secundaria (SEP) | Preparatoria (UAEMEX)                |
-|--------------|:--------------:|:----------------:|:------------------------------------:|
-| Metepec      | 6 grados       | 3 grados         | Sem 1-6 (activos 1-4 ciclo 26B/27A) |
-| Tenancingo   | 6 grados       | 3 grados         | Sem 1-6 (activos 1-2 ciclo 26B)     |
-| Ixtapan      | 6 grados       | 3 grados         | —                                    |
+| Plantel      | Primaria (SEP) | Secundaria (SEP) | Preparatoria (UAEMEX)                          |
+|--------------|:--------------:|:----------------:|:----------------------------------------------:|
+| Metepec      | 6 grados       | 3 grados         | Sem 1-6 (activos 1-4 ciclo 26B/27A)            |
+| Tenancingo   | 6 grados       | 3 grados         | Sem 1-6 (activos 1-2 ciclo 26B)                |
+| Ixtapan      | 6 grados       | 3 grados         | Sem 1-6 (todos `is_active=FALSE` — proyectados) |
 
 **Grupos por grado:** 2 grupos (A y B) en todos los niveles y planteles.
-**Grupos inactivos (futuros):** Metepec prep sem 5-6 y Tenancingo prep sem 3-6 tienen `is_active = FALSE` — se activan ciclo a ciclo sin necesidad de nueva migración.
+**Grupos inactivos (futuros):** Metepec prep sem 5-6, Tenancingo prep sem 3-6 e Ixtapan prep sem 1-6 tienen `is_active = FALSE` — se activan ciclo a ciclo sin necesidad de nueva migración.
 
 ### Contactos por plantel
 - **Metepec:** Prolongación Heriberto Enríquez 1001 · Tel: 7222971441 / 7223253683 · nevadimetepec@institutonevadi.edu.mx
@@ -47,30 +47,65 @@ comunicación interna y generación de horarios. No incluye módulo de pagos/col
 
 ---
 
-## Roles del Sistema
+## Roles del Sistema (18 roles — migración 008)
 
-| Rol                       | Nivel | Alcance                                              |
-|---------------------------|:-----:|------------------------------------------------------|
-| ADMIN_GLOBAL              |   0   | Todos los planteles y niveles                        |
-| ADMIN_PLANTEL             |   1   | Un plantel completo                                  |
-| DIRECTOR                  |   2   | Un plantel — máxima autoridad local                  |
-| SUBDIRECTOR               |   2   | Un plantel — suplente del director                   |
-| COORDINADOR_ADMINISTRATIVO|   2   | Procesos administrativos, logística, relación padres |
-| COORDINADOR_RH            |   2   | Personal docente y administrativo, contratos         |
-| COORDINADOR_ACADEMICO     |   3   | Un nivel educativo dentro de un plantel              |
-| ORIENTADOR                |   3   | Orientación educativa y vocacional (sec/prep)        |
-| SECRETARIA_ACADEMICA      |   3   | Expedientes, certificados, actas, inscripciones      |
-| DOCENTE                   |   4   | Sus grupos y materias asignadas                      |
-| MEDICO_ESCOLAR            |   4   | Expedientes médicos de su plantel                    |
-| PREFECTO                  |   4   | Disciplina, supervisión de pasillos y accesos        |
-| ALUMNO                    |   5   | Su propio expediente y materias                      |
-| PADRE_FAMILIA             |   5   | Expedientes de sus hijos                             |
+### Gestión central
+| Rol           | Nivel | Alcance                       |
+|---------------|:-----:|-------------------------------|
+| ADMIN_GLOBAL  |   0   | Todos los planteles y niveles |
+| ADMIN_PLANTEL |   1   | Un plantel completo           |
+
+### Dirección y coordinación
+| Rol                       | Nivel | Alcance                                                              |
+|---------------------------|:-----:|----------------------------------------------------------------------|
+| DIRECTOR                  |   2   | **Por nivel educativo dentro del plantel** — hasta 3 directores por plantel (Primaria / Secundaria / Preparatoria) |
+| SUBDIRECTOR               |   2   | Suplente del director, mismo alcance                                 |
+| COORDINADOR_ADMINISTRATIVO|   2   | Procesos administrativos, logística, relación padres — por plantel/nivel |
+| COORDINADOR_RH            |   2   | Personal docente y administrativo, contratos                         |
+| COORDINADOR_AREA          |   2   | **Global** — coordina un área académica (Matemáticas, Español, Inglés, Ciencias…) a través de todos los planteles |
+
+### Coordinación académica y orientación
+| Rol                   | Nivel | Alcance                                                            |
+|-----------------------|:-----:|--------------------------------------------------------------------|
+| COORDINADOR_ACADEMICO |   3   | Coordinación académica por nivel dentro del plantel                |
+| TUTOR                 |   3   | Seguimiento académico personalizado de un grupo de estudiantes     |
+| ORIENTADOR            |   3   | Orientación educativa y vocacional (secundaria / preparatoria)     |
+| SECRETARIA_ACADEMICA  |   3   | Expedientes, certificados, actas, inscripciones                    |
+
+### Personal operativo
+| Rol                  | Nivel | Alcance                                                |
+|----------------------|:-----:|--------------------------------------------------------|
+| DOCENTE              |   4   | Sus grupos y materias asignadas                        |
+| MEDICO_ESCOLAR       |   4   | Expedientes médicos de su plantel                      |
+| PREFECTO             |   4   | Disciplina, supervisión de pasillos y accesos          |
+| APOYO_ACADEMICO      |   4   | Recursos, biblioteca, laboratorio                      |
+| APOYO_ADMINISTRATIVO |   4   | Trámites, archivo, atención                            |
+
+### Comunidad educativa
+| Rol           | Nivel | Alcance                         |
+|---------------|:-----:|---------------------------------|
+| ALUMNO        |   5   | Su propio expediente y materias |
+| PADRE_FAMILIA |   5   | Expedientes de sus hijos        |
 
 **Auth personal (niveles 0-4):** Authentik local → Google Workspace SSO cuando esté disponible.
 **Auth comunidad (nivel 5):** Cuentas locales Authentik permanentes.
 
 **Autenticación:** Authentik como IdP. Personal docente/administrativo usa Google Workspace SSO
 con cuentas @institutonevadi.edu.mx. Alumnos y padres usan cuentas locales en Authentik.
+
+### Estructura de personal real por plantel
+- **Hasta 3 directores** por plantel — uno por nivel educativo activo
+- **Un COORDINADOR_ACADEMICO y un COORDINADOR_ADMINISTRATIVO por nivel educativo** activo
+- **Tutores**: uno o más por plantel, asignados a grupos específicos
+- **ORIENTADORES**: en secundaria y preparatoria
+- **APOYO_ADMINISTRATIVO / APOYO_ACADEMICO**: según tamaño del plantel
+
+### Coordinación académica global
+Coordinadores de área (COORDINADOR_AREA) gestionados en `ades_coordinaciones_area` → `ades_areas_academicas` (8 áreas: Matemáticas, Español, Inglés, Ciencias, Historia y Geografía, Formación Cívica, Educación Física, Tecnología).
+
+### Regla eliminada — inglés
+~~Un profesor de inglés por plantel cubre todos los grupos de primaria~~
+Un plantel puede tener **múltiples docentes de la misma materia**. No hay restricción de unicidad por asignatura.
 
 ---
 
@@ -197,12 +232,11 @@ denso en información, orientado a productividad) usando **PrimeNG** como librer
    **Gradebook — ponderación:** suma siempre = 100%. Esquema específico de materia tiene prioridad sobre genérico del nivel.
    **Gradebook — ajuste:** calificación cerrada es inmutable sin ADMIN. Ajuste manual exige justificación ≥ 20 chars.
 
-1. **Profesor en primaria:** un titular por grupo para todas las materias EXCEPTO inglés.
-   Un profesor de inglés por plantel cubre los 12 grupos de primaria (6 grados × 2 grupos).
-2. **Profesor en secundaria/preparatoria:** un profesor por materia por grupo.
+1. **Profesor en primaria:** un titular por grupo para todas las materias. **Puede haber más de un docente de la misma materia (incluyendo inglés) por plantel.** No existe restricción de unicidad por asignatura.
+2. **Profesor en secundaria/preparatoria:** uno o más profesores por materia por plantel, asignados individualmente a cada grupo.
 3. **Grupos:** siempre A y B. Nunca más de 2 por grado salvo instrucción explícita.
 4. **Ciclo preparatoria:** ciclo vigente 26B (agosto 2026). Metepec sem 1-4 activos; Tenancingo sem 1-2 activos.
-5. **Ixtapan secundaria:** 3 grados completos (1°, 2°, 3°). Sin preparatoria.
+5. **Ixtapan secundaria:** 3 grados completos (1°, 2°, 3°). **Preparatoria proyectada:** los 6 semestres UAEMEX existen en la base de datos con `is_active=FALSE`. Sin fecha confirmada de activación; se activarán semestre a semestre sin nueva migración.
 6. **Tenancingo preparatoria:** incorporada. Semestres 1-2 activos; sem 3-6 `is_active=FALSE` (futuros).
 7. **Calendario:** SEP aplica a primaria y secundaria de todos los planteles (es único).
    UAEMEX aplica solo a preparatoria Metepec.
