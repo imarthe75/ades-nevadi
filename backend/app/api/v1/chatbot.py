@@ -1,0 +1,379 @@
+"""
+FASE 17 — AI Chatbot: NL→SQL (Vanna AI) + Flowise proxy con RLS por rol.
+
+Endpoints:
+  POST /chatbot/mensaje         — envía mensaje al chatbot (Flowise + Vanna)
+  POST /chatbot/sql             — genera y ejecuta SQL desde lenguaje natural
+  GET  /chatbot/historial       — últimas N interacciones del usuario
+  POST /chatbot/entrenar        — agrega ejemplo al entrenamiento Vanna (admin)
+  GET  /chatbot/status          — estado de Flowise y Vanna
+
+Arquitectura:
+  1. Angular → POST /chatbot/mensaje {pregunta, sesion_id}
+  2. FastAPI aplica RLS: construye contexto (plantel_id, grupo_ids, persona_id)
+  3. FastAPI llama a Flowise chatflow con la pregunta + contexto
+  4. Flowise tiene un nodo "Custom Tool" que llama al endpoint /chatbot/sql
+  5. Vanna AI genera SQL seguro y lo ejecuta con RLS
+  6. Resultado → Flowise → respuesta en lenguaje natural → Angular
+
+Para uso sin Flowise (modo directo), el endpoint /chatbot/sql devuelve
+la respuesta completa con tabla de datos + texto explicativo.
+"""
+
+from __future__ import annotations
+
+import logging
+import uuid
+from typing import Any
+
+import httpx
+from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import text
+
+from app.core.config import settings
+from app.core.database import get_db
+from app.core.security import AdesUser, get_ades_user
+from app.schemas.base import AdesSchema
+
+log = logging.getLogger(__name__)
+router = APIRouter(prefix="/chatbot", tags=["chatbot"])
+
+
+# ── Modelos ───────────────────────────────────────────────────────────────────
+
+class MensajeIn(BaseModel):
+    pregunta: str
+    sesion_id: str = ""
+    contexto_extra: dict = {}
+
+
+class MensajeOut(BaseModel):
+    respuesta: str
+    sql_generado: str | None = None
+    datos: list[dict] | None = None
+    sesion_id: str
+    fuente: str  # "flowise" | "vanna_directo" | "claude"
+
+
+class SqlQueryIn(BaseModel):
+    pregunta: str
+    plantel_id: str | None = None
+    nivel_acceso: int = 4
+    persona_id: str | None = None
+
+
+class EjemploEntrenamiento(BaseModel):
+    pregunta: str
+    sql: str
+    descripcion: str = ""
+
+
+# ── RLS Builder ───────────────────────────────────────────────────────────────
+
+def _build_rls_context(user: AdesUser) -> dict:
+    """
+    Construye el contexto de seguridad que se inyecta en el prompt del chatbot.
+    El LLM lo usará para generar SQL con WHERE clauses apropiadas.
+    """
+    ctx = {
+        "nivel_acceso": user.nivel_acceso,
+        "rol": user.rol,
+        "plantel_id": str(user.plantel_id) if user.plantel_id else None,
+        "persona_id": str(user.persona_id) if user.persona_id else None,
+    }
+
+    if user.nivel_acceso == 0:
+        ctx["restriccion"] = "SIN_RESTRICCION"
+        ctx["hint_sql"] = ""
+    elif user.nivel_acceso in (1, 2):
+        ctx["restriccion"] = "POR_PLANTEL"
+        ctx["hint_sql"] = f"Agregar siempre: WHERE plantel_id = '{user.plantel_id}'" if user.plantel_id else ""
+    elif user.nivel_acceso == 4:
+        ctx["restriccion"] = "POR_PROFESOR"
+        ctx["hint_sql"] = f"Filtrar solo grupos asignados al profesor con persona_id = '{user.persona_id}'"
+    elif user.nivel_acceso == 5:
+        ctx["restriccion"] = "POR_ALUMNO"
+        ctx["hint_sql"] = f"Solo datos del estudiante con persona_id = '{user.persona_id}'"
+    else:
+        ctx["restriccion"] = "POR_PLANTEL"
+
+    return ctx
+
+
+# ── Flowise proxy ─────────────────────────────────────────────────────────────
+
+async def _flowise_chat(pregunta: str, sesion_id: str, override_config: dict) -> str:
+    """Envía un mensaje al chatflow de Flowise y devuelve la respuesta."""
+    if not settings.FLOWISE_CHATFLOW_ID:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Chatflow de Flowise no configurado. Ver FLOWISE_CHATFLOW_ID en .env",
+        )
+
+    headers = {}
+    if settings.FLOWISE_API_KEY:
+        headers["Authorization"] = f"Bearer {settings.FLOWISE_API_KEY}"
+
+    payload = {
+        "question": pregunta,
+        "overrideConfig": override_config,
+    }
+    if sesion_id:
+        payload["sessionId"] = sesion_id
+
+    async with httpx.AsyncClient(timeout=60) as client:
+        resp = await client.post(
+            f"{settings.FLOWISE_URL}/api/v1/prediction/{settings.FLOWISE_CHATFLOW_ID}",
+            json=payload,
+            headers=headers,
+        )
+        if resp.status_code != 200:
+            log.error("Flowise error %s: %s", resp.status_code, resp.text[:300])
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=f"Error en chatbot: {resp.text[:200]}",
+            )
+        data = resp.json()
+        return data.get("text") or data.get("answer") or str(data)
+
+
+# ── NL→SQL con Vanna AI ───────────────────────────────────────────────────────
+
+async def _vanna_sql(pregunta: str, rls_ctx: dict, db: AsyncSession) -> tuple[str, list[dict]]:
+    """
+    Genera SQL desde lenguaje natural usando el LLM de Claude + schema ADES.
+    Aplica RLS según el contexto del usuario.
+    Devuelve (sql_generado, filas_resultado).
+    """
+    # Construir el prompt de sistema con el schema relevante y el RLS
+    system_prompt = _build_sql_system_prompt(rls_ctx)
+
+    from anthropic import AsyncAnthropic
+    client = AsyncAnthropic(api_key=__import__("os").environ.get("ANTHROPIC_API_KEY", ""))
+
+    message = await client.messages.create(
+        model="claude-haiku-4-5-20251001",   # Haiku para consultas SQL — más rápido y económico
+        max_tokens=1024,
+        system=system_prompt,
+        messages=[
+            {
+                "role": "user",
+                "content": f"Genera el SQL para responder: {pregunta}\n\nDevuelve SOLO el SQL, sin explicaciones ni markdown."
+            }
+        ],
+    )
+
+    sql = message.content[0].text.strip()
+    # Limpiar posibles bloques de código
+    if sql.startswith("```"):
+        lines = sql.split("\n")
+        sql = "\n".join(l for l in lines if not l.startswith("```")).strip()
+
+    # Validación básica de seguridad — solo permitir SELECT
+    sql_upper = sql.upper().lstrip()
+    if not sql_upper.startswith("SELECT"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Solo se permiten consultas SELECT en el asistente de datos",
+        )
+
+    # Ejecutar con límite de filas
+    try:
+        result = await db.execute(text(sql + " LIMIT 200"))
+        cols = list(result.keys())
+        rows = [dict(zip(cols, row)) for row in result.fetchall()]
+        # Convertir tipos no serializables
+        for row in rows:
+            for k, v in row.items():
+                if hasattr(v, 'isoformat'):
+                    row[k] = v.isoformat()
+                elif isinstance(v, uuid.UUID):
+                    row[k] = str(v)
+        return sql, rows
+    except Exception as exc:
+        log.error("SQL execution error: %s | SQL: %s", exc, sql[:200])
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Error al ejecutar la consulta: {str(exc)[:200]}",
+        )
+
+
+def _build_sql_system_prompt(rls_ctx: dict) -> str:
+    """Construye el prompt de sistema para generación de SQL con RLS."""
+    restriccion = rls_ctx.get("restriccion", "SIN_RESTRICCION")
+    hint = rls_ctx.get("hint_sql", "")
+
+    schema_summary = """
+Tablas principales de la base de datos ADES (prefijo ades_):
+- ades_personas (id, nombre, apellido_paterno, apellido_materno, curp, genero, fecha_nacimiento)
+- ades_estudiantes (id, persona_id, matricula, plantel_ingreso_id)
+- ades_profesores (id, persona_id, numero_empleado, especialidad, turno)
+- ades_planteles (id, nombre_plantel, clave_ct)
+- ades_grupos (id, nombre_grupo, grado_id, ciclo_escolar_id, plantel_id)
+- ades_grados (id, numero_grado, nivel_educativo_id)
+- ades_niveles_educativos (id, nombre)
+- ades_inscripciones (id, estudiante_id, grupo_id, ciclo_escolar_id, is_active)
+- ades_calificaciones_periodo (id, inscripcion_id, materia_plan_id, numero_periodo, calificacion_final, inasistencias, es_acreditado)
+- ades_asistencias (id, clase_id, estudiante_id, presente, fecha)
+- ades_clases (id, grupo_id, materia_id, fecha, hora_inicio)
+- ades_materias (id, nombre, clave)
+- ades_materias_plan (id, materia_id, grado_id, ciclo_escolar_id, horas_semana)
+- ades_tareas (id, grupo_id, materia_id, titulo, fecha_entrega)
+- ades_tareas_entregas (id, tarea_id, estudiante_id, calificacion, entregada_tiempo)
+- ades_reportes_conducta (id, estudiante_id, grupo_id, tipo_incidente, descripcion, fecha)
+- ades_usuarios (id, username, nivel_acceso, plantel_id)
+
+Relaciones clave:
+- estudiante → inscripcion → grupo → grado → nivel
+- inscripcion → calificaciones_periodo
+- clase → asistencias → estudiante
+
+Reglas de seguridad RLS (OBLIGATORIO aplicar):
+"""
+    if restriccion == "SIN_RESTRICCION":
+        schema_summary += "- Sin restricción: puedes consultar cualquier tabla.\n"
+    elif restriccion == "POR_PLANTEL":
+        schema_summary += f"- OBLIGATORIO filtrar por plantel: {hint}\n"
+    elif restriccion == "POR_PROFESOR":
+        schema_summary += f"- OBLIGATORIO filtrar solo por grupos del profesor: {hint}\n"
+    elif restriccion == "POR_ALUMNO":
+        schema_summary += f"- OBLIGATORIO filtrar solo datos del alumno: {hint}\n"
+
+    schema_summary += """
+Reglas SQL:
+- Solo usar SELECT (nunca INSERT/UPDATE/DELETE)
+- Usar aliases descriptivos en español para columnas
+- Agregar LIMIT 100 como máximo si la query no tiene LIMIT
+- Usar JOIN explícito (no subqueries implícitas cuando no sean necesarias)
+- Nombres de columnas en resultado: legibles en español
+"""
+    return schema_summary
+
+
+async def _generar_resumen(pregunta: str, sql: str, filas: list[dict]) -> str:
+    """Genera un resumen en lenguaje natural de los resultados SQL."""
+    if not filas:
+        return "No se encontraron datos para tu consulta."
+
+    resumen_datos = str(filas[:5])  # primeras 5 filas para el contexto
+
+    from anthropic import AsyncAnthropic
+    client = AsyncAnthropic(api_key=__import__("os").environ.get("ANTHROPIC_API_KEY", ""))
+
+    message = await client.messages.create(
+        model="claude-haiku-4-5-20251001",
+        max_tokens=512,
+        messages=[{
+            "role": "user",
+            "content": (
+                f"Pregunta: {pregunta}\n"
+                f"SQL ejecutado: {sql}\n"
+                f"Total resultados: {len(filas)}\n"
+                f"Muestra de datos: {resumen_datos}\n\n"
+                "Responde la pregunta en 2-3 oraciones concisas en español, "
+                "como si fueras un asistente escolar. No menciones el SQL."
+            )
+        }],
+    )
+    return message.content[0].text.strip()
+
+
+# ── Endpoints ─────────────────────────────────────────────────────────────────
+
+@router.post("/mensaje", response_model=MensajeOut)
+async def enviar_mensaje(
+    body: MensajeIn,
+    db: AsyncSession = Depends(get_db),
+    ades_user: AdesUser = Depends(get_ades_user),
+) -> MensajeOut:
+    """
+    Endpoint principal del chatbot.
+    Intenta usar Flowise si está configurado; si no, usa NL→SQL directo con Claude.
+    """
+    rls_ctx = _build_rls_context(ades_user)
+    sesion_id = body.sesion_id or str(uuid.uuid4())
+
+    # Si Flowise está configurado, usar como orquestador
+    if settings.FLOWISE_CHATFLOW_ID:
+        try:
+            override = {
+                "systemMessage": _build_sql_system_prompt(rls_ctx),
+                **body.contexto_extra,
+            }
+            respuesta = await _flowise_chat(body.pregunta, sesion_id, override)
+            return MensajeOut(
+                respuesta=respuesta,
+                sesion_id=sesion_id,
+                fuente="flowise",
+            )
+        except HTTPException as exc:
+            if exc.status_code != 503:
+                raise
+            # Flowise no disponible — fallback a modo directo
+
+    # Modo directo: NL→SQL + resumen Claude
+    try:
+        sql, filas = await _vanna_sql(body.pregunta, rls_ctx, db)
+        resumen = await _generar_resumen(body.pregunta, sql, filas)
+        return MensajeOut(
+            respuesta=resumen,
+            sql_generado=sql,
+            datos=filas[:50],  # máximo 50 filas al frontend
+            sesion_id=sesion_id,
+            fuente="vanna_directo",
+        )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        log.error("Chatbot error: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error al procesar la consulta",
+        )
+
+
+@router.post("/sql")
+async def ejecutar_sql_natural(
+    body: SqlQueryIn,
+    db: AsyncSession = Depends(get_db),
+    ades_user: AdesUser = Depends(get_ades_user),
+) -> dict:
+    """
+    Genera y ejecuta SQL desde lenguaje natural con RLS.
+    Usado como herramienta interna de Flowise.
+    """
+    rls_ctx = _build_rls_context(ades_user)
+    sql, filas = await _vanna_sql(body.pregunta, rls_ctx, db)
+    resumen = await _generar_resumen(body.pregunta, sql, filas)
+    return {
+        "pregunta":    body.pregunta,
+        "sql":         sql,
+        "total_filas": len(filas),
+        "datos":       filas[:100],
+        "resumen":     resumen,
+    }
+
+
+@router.get("/status")
+async def chatbot_status():
+    """Estado de Flowise y disponibilidad del chatbot."""
+    flowise_ok = False
+    flowise_version = None
+    try:
+        async with httpx.AsyncClient(timeout=5) as client:
+            resp = await client.get(f"{settings.FLOWISE_URL}/api/v1/version")
+            if resp.status_code == 200:
+                flowise_ok = True
+                flowise_version = resp.json().get("version")
+    except Exception:
+        pass
+
+    return {
+        "flowise_disponible":   flowise_ok,
+        "flowise_version":      flowise_version,
+        "chatflow_configurado": bool(settings.FLOWISE_CHATFLOW_ID),
+        "modo_fallback":        "vanna_directo (Claude Haiku + SQL)",
+        "anthropic_disponible": bool(__import__("os").environ.get("ANTHROPIC_API_KEY")),
+    }

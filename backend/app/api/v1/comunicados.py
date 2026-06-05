@@ -8,6 +8,7 @@
   DELETE /comunicados/{id}              — baja lógica (admin)
 """
 from __future__ import annotations
+import asyncio
 
 import datetime
 from typing import Optional
@@ -130,7 +131,24 @@ async def crear_comunicado(
         "creado_por": uid,
     })
     await db.commit()
-    return row.mappings().first()
+    result = row.mappings().first()
+
+    # FASE 20 — Push batch a destinatarios del comunicado
+    if result:
+        from app.services.notification_triggers import on_comunicado_publicado
+        asyncio.create_task(
+            on_comunicado_publicado(
+                db,
+                comunicado_id=result["id"],
+                titulo=body.titulo,
+                tipo=body.tipo_comunicado,
+                plantel_id=body.plantel_id,
+                nivel_id=body.nivel_educativo_id,
+                grupo_id=body.grupo_id,
+            )
+        )
+
+    return result
 
 
 @router.get("/{comunicado_id}")

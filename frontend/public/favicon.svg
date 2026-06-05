@@ -1,23 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
-  <!-- Fondo rojo institucional Nevadi -->
-  <rect width="64" height="64" rx="12" ry="12" fill="#C41724"/>
-
-  <!--
-    Letra "n" bold blanca — geometría centrada en 32,32
-    Stems: izquierdo x14→24, derecho x40→50  (10px ancho c/u)
-    Altura: y16 a y52
-    Arco exterior: pico y=3  (13px sobre base del arco)
-    Arco interior: pico y=13 (9px sobre base interior)
-  -->
-  <path d="
-    M 14 52
-    L 14 16
-    Q 32 3 50 16
-    L 50 52
-    L 40 52
-    L 40 22
-    Q 32 13 24 22
-    L 24 52
-    Z
-  " fill="white"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="10" fill="#D02030"/>
+  <text x="32" y="46" font-family="Arial,sans-serif" font-size="40" font-weight="800" 
+        text-anchor="middle" fill="white">N</text>
 </svg>

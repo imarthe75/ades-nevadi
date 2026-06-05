@@ -83,6 +83,9 @@ export class AuthService {
     sessionStorage.removeItem('ades_token');
     sessionStorage.removeItem('ades_pkce_verifier');
     sessionStorage.removeItem('ades_pkce_state');
+    sessionStorage.removeItem('ades_plantel');
+    sessionStorage.removeItem('ades_ciclo');
+    sessionStorage.removeItem('ades_nivel');
     this.context.setUsuario(null);
     const postLogout = encodeURIComponent(environment.oidcRedirectUri);
     window.location.href = `${environment.oidcEndSessionUrl}?post_logout_redirect_uri=${postLogout}`;

@@ -19,6 +19,10 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-E
     SELECT 'CREATE DATABASE superset OWNER ${POSTGRES_USER}'
     WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'superset')\gexec
 
+    -- Base de datos para n8n (workflows y executions)
+    SELECT 'CREATE DATABASE n8n OWNER ${POSTGRES_USER}'
+    WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'n8n')\gexec
+
     -- Extensiones en la base principal ADES
     \c ${POSTGRES_DB:-ades}
     CREATE EXTENSION IF NOT EXISTS "pgcrypto";
@@ -27,4 +31,4 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-E
     CREATE EXTENSION IF NOT EXISTS "unaccent";
 EOSQL
 
-echo "✅ Bases de datos inicializadas: ades, authentik, superset"
+echo "✅ Bases de datos inicializadas: ades, authentik, superset, n8n"

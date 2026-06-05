@@ -16,7 +16,7 @@ INSERT INTO ades_grupos
   (nombre_grupo, grado_id, ciclo_escolar_id,
    capacidad_maxima, turno, estatus_id)
 SELECT
-  g.letra, gr.id, ce.id, 35, 'MATUTINO', est.id
+  g.letra, gr.id, ce.id, 30, 'MATUTINO', est.id
 FROM ades_grados gr
 JOIN ades_niveles_educativos ne ON ne.id = gr.nivel_educativo_id
 JOIN ades_ciclos_escolares ce   ON ce.nivel_educativo_id = ne.id AND ce.es_vigente = TRUE

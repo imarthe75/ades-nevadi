@@ -1,5 +1,9 @@
 from fastapi import APIRouter
 from .auth_callback import router as auth_callback_router
+from .imports import router as imports_router
+from .admin import router as admin_router
+from .contactos import router as contactos_router
+from .expediente import router as expediente_router
 from .health import router as health_router
 from .catalogs import router as catalogs_router
 from .planteles import router as planteles_router
@@ -48,6 +52,22 @@ api_router = APIRouter()
 
 # ── Auth callback proxy (OIDC token exchange sin CORS) ────────────────────────
 api_router.include_router(auth_callback_router)
+
+# ── Importación masiva CSV/Excel ───────────────────────────────────────────────
+api_router.include_router(imports_router)
+
+# ── FASE 12 — Módulo de Administración ────────────────────────────────────────
+api_router.include_router(admin_router)
+
+# ── Portal de Padres de Familia ───────────────────────────────────────────────
+from .padres import router as padres_router
+api_router.include_router(padres_router)
+
+# ── Contactos familiares + expediente médico ───────────────────────────────────
+api_router.include_router(contactos_router)
+
+# ── Expediente académico (bajas, extraordinarios, constancias) ─────────────────
+api_router.include_router(expediente_router)
 
 # ── FASE 1 ────────────────────────────────────────────────────────────────────
 api_router.include_router(health_router)
@@ -102,3 +122,31 @@ api_router.include_router(esquemas_ponderacion_router)
 api_router.include_router(actividades_router)
 api_router.include_router(entregas_router)
 api_router.include_router(gradebook_router)
+
+# ── FASE 15 — Auditoría ───────────────────────────────────────────────────────
+from .auditoria import router as auditoria_router  # noqa: E402
+api_router.include_router(auditoria_router)
+
+# ── FASE 16 — Superset embedded dashboards ────────────────────────────────────
+from .superset import router as superset_router  # noqa: E402
+api_router.include_router(superset_router)
+
+# ── FASE 17 — AI Chatbot (Flowise + Vanna NL→SQL) ────────────────────────────
+from .chatbot import router as chatbot_router  # noqa: E402
+api_router.include_router(chatbot_router)
+
+# ── FASE 18 — Carbone generador de reportes ───────────────────────────────────
+from .carbone import router as carbone_router  # noqa: E402
+api_router.include_router(carbone_router)
+
+# ── FASE 20 — ntfy Push Notifications ────────────────────────────────────────
+from .push import router as push_router  # noqa: E402
+api_router.include_router(push_router)
+
+# ── FASE 21 — Stirling-PDF herramientas PDF ───────────────────────────────────
+from .pdf_tools import router as pdf_tools_router  # noqa: E402
+api_router.include_router(pdf_tools_router)
+
+# ── FASE 23 — n8n automatización de flujos ───────────────────────────────────
+from .automations import router as automations_router  # noqa: E402
+api_router.include_router(automations_router)

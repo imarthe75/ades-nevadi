@@ -36,6 +36,12 @@ volumes:
   minio-data:
   authentik-media:
   superset-data:
+  carbone-templates:  # plantillas DOCX/XLSX para Carbone
+  flowise-data:       # flujos, API keys y logs de Flowise
+  ntfy-data:          # base de datos SQLite de ntfy y cache
+  prometheus-data:    # métricas históricas de Prometheus
+  grafana-data:       # dashboards y configuración de Grafana
+  n8n-data:           # workflows y credenciales de n8n
   certbot-certs:   # /etc/letsencrypt — compartido entre certbot y nginx
   certbot-www:     # /var/www/certbot — webroot para ACME challenge
 
@@ -386,10 +392,11 @@ services:
       # OIDC con Authentik (mismo IdP que el resto del sistema)
       OIDC_CLIENT_ID:              ${SUPERSET_OIDC_CLIENT_ID:-superset}
       OIDC_CLIENT_SECRET:          ${SUPERSET_OIDC_CLIENT_SECRET:-}
-      OIDC_OPENID_REALM:           ades
+      OIDC_ISSUER:                 ${SUPERSET_OIDC_ISSUER:-https://auth.ades.setag.mx/application/o/superset}
+      # Contraseña del usuario superset_ro (solo lectura a ades_bi)
+      SUPERSET_RO_PASSWORD:        ${SUPERSET_RO_PASSWORD:-superset_ro_changeme}
     volumes:
       - superset-data:/app/superset_home
-      - ./integrations/superset/superset_config.py:/app/pythonpath/superset_config.py:ro
     ports:
       - "127.0.0.1:8088:8088"
     networks:
@@ -404,6 +411,256 @@ services:
       resources:
         limits:
           memory: 1.5G
+
+  # ---------------------------------------------------------------------------
+  # Carbone — generador de reportes PDF/DOCX a partir de plantillas Word/Excel
+  # FASE 18: Boletas, constancias, kardex, reportes de conducta
+  # API interna: POST /render/:templateId  POST /templates
+  # ---------------------------------------------------------------------------
+  carbone:
+    build:
+      context: ./integrations/carbone
+      dockerfile: Dockerfile
+    container_name: ades-carbone
+    restart: unless-stopped
+    environment:
+      PORT:          3000
+      TEMPLATES_DIR: /app/templates
+    volumes:
+      - carbone-templates:/app/templates
+    ports:
+      - "127.0.0.1:3001:3000"   # solo localhost — no exponer directamente
+    networks:
+      - ades-internal
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          memory: 1G            # LibreOffice necesita RAM para conversión PDF
+
+  # ---------------------------------------------------------------------------
+  # Flowise — constructor visual de flujos de IA (chatbots, agentes, RAG)
+  # FASE 17: Chatbot pedagógico + NL→SQL sobre ades_*
+  # UI admin: http://localhost:3002 (acceso local solo para configurar flujos)
+  # ---------------------------------------------------------------------------
+  flowise:
+    image: flowiseai/flowise:latest
+    container_name: ades-flowise
+    restart: unless-stopped
+    environment:
+      PORT:                  3000
+      FLOWISE_USERNAME:      ${FLOWISE_USERNAME:-admin}
+      FLOWISE_PASSWORD:      ${FLOWISE_PASSWORD:-cambia_esto_en_produccion}
+      FLOWISE_SECRETKEY_OVERWRITE: ${FLOWISE_SECRET_KEY:-}
+      DATABASE_PATH:         /root/.flowise
+      APIKEY_PATH:           /root/.flowise
+      LOG_PATH:              /root/.flowise/logs
+      # Integración con base de datos PostgreSQL ADES (para Vanna AI / herramientas SQL)
+      OVERRIDE_DATABASE:     true
+    volumes:
+      - flowise-data:/root/.flowise
+    ports:
+      - "127.0.0.1:3002:3000"  # UI de configuración — solo localhost
+    networks:
+      - ades-internal
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/v1/version"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+  # ---------------------------------------------------------------------------
+  # ntfy — push notifications sin Firebase
+  # FASE 20: alertas académicas en tiempo real a padres, docentes y alumnos
+  # Topics: ades_{usuario_id}  Canal de suscripción por usuario
+  # ---------------------------------------------------------------------------
+  ntfy:
+    image: binwiederhier/ntfy:latest
+    container_name: ades-ntfy
+    restart: unless-stopped
+    command: serve --base-url http://ades-ntfy:80 --behind-proxy
+    environment:
+      TZ: America/Mexico_City
+      NTFY_BASE_URL:          ${NTFY_BASE_URL:-http://notify.ades.setag.mx}
+      NTFY_CACHE_FILE:        /var/cache/ntfy/cache.db
+      NTFY_AUTH_FILE:         /var/lib/ntfy/auth.db
+      NTFY_AUTH_DEFAULT_ACCESS: deny-all
+      NTFY_BEHIND_PROXY:      "true"
+    volumes:
+      - ntfy-data:/var/lib/ntfy
+      - ntfy-data:/var/cache/ntfy
+    ports:
+      - "127.0.0.1:2586:80"
+    networks:
+      - ades-internal
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:80/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
+  # ---------------------------------------------------------------------------
+  # Stirling-PDF — procesamiento de PDF (merge, OCR, watermark, compress)
+  # FASE 21: complemento de Carbone para boletas grupales y expedientes
+  # ---------------------------------------------------------------------------
+  stirling-pdf:
+    image: frooodle/s-pdf:latest
+    container_name: ades-stirling-pdf
+    restart: unless-stopped
+    environment:
+      DOCKER_ENABLE_SECURITY:      "false"
+      LANGS:                       "es_MX"
+      SYSTEM_DEFAULTLOCALE:        es-MX
+      SYSTEM_GOOGLEVISIBILITY:     "false"
+      UI_APPNAME:                  "ADES PDF"
+      UI_HOMEDESCRIPTION:          "Procesamiento PDF — Instituto Nevadi"
+    ports:
+      - "127.0.0.1:8081:8080"
+    networks:
+      - ades-internal
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/v1/info/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+  # ---------------------------------------------------------------------------
+  # Prometheus — recolección de métricas
+  # FASE 22: scrape FastAPI /metrics, node-exporter, postgres-exporter
+  # ---------------------------------------------------------------------------
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: ades-prometheus
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.enable-lifecycle'
+    volumes:
+      - ./infrastructure/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "127.0.0.1:9090:9090"
+    networks:
+      - ades-internal
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  # ---------------------------------------------------------------------------
+  # Grafana — dashboards de monitoreo y BI operativo
+  # FASE 22: latencia API, uptime servicios, alertas operacionales
+  # ---------------------------------------------------------------------------
+  grafana:
+    image: grafana/grafana-oss:latest
+    container_name: ades-grafana
+    restart: unless-stopped
+    environment:
+      GF_SERVER_ROOT_URL:                ${GRAFANA_URL:-http://monitor.ades.setag.mx}
+      GF_SECURITY_ADMIN_USER:           ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD:       ${GRAFANA_ADMIN_PASSWORD:-cambia_esto_en_produccion}
+      GF_USERS_ALLOW_SIGN_UP:           "false"
+      GF_AUTH_ANONYMOUS_ENABLED:        "false"
+      GF_INSTALL_PLUGINS:               "grafana-piechart-panel"
+      GF_PATHS_PROVISIONING:            /etc/grafana/provisioning
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./infrastructure/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./infrastructure/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "127.0.0.1:3003:3000"
+    networks:
+      - ades-internal
+    depends_on:
+      - prometheus
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+
+  # ---------------------------------------------------------------------------
+  # n8n — automatización de flujos de trabajo
+  # FASE 23: alertas académicas, batch boletas, recordatorios documentos
+  # UI admin: http://localhost:5678 (solo localhost para configurar flujos)
+  # ---------------------------------------------------------------------------
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: ades-n8n
+    restart: unless-stopped
+    environment:
+      N8N_HOST:                  ${N8N_HOST:-0.0.0.0}
+      N8N_PORT:                  5678
+      N8N_PROTOCOL:              http
+      N8N_EDITOR_BASE_URL:       ${N8N_URL:-http://localhost:5678}
+      WEBHOOK_URL:               ${N8N_WEBHOOK_URL:-http://ades-n8n:5678}
+      DB_TYPE:                   postgresdb
+      DB_POSTGRESDB_HOST:        ades-postgres
+      DB_POSTGRESDB_DATABASE:    ${N8N_DB:-n8n}
+      DB_POSTGRESDB_USER:        ${POSTGRES_USER:-ades_admin}
+      DB_POSTGRESDB_PASSWORD:    ${POSTGRES_PASSWORD}
+      N8N_BASIC_AUTH_ACTIVE:     "true"
+      N8N_BASIC_AUTH_USER:       ${N8N_USER:-admin}
+      N8N_BASIC_AUTH_PASSWORD:   ${N8N_PASSWORD:-cambia_esto_en_produccion}
+      N8N_ENCRYPTION_KEY:        ${N8N_ENCRYPTION_KEY:-cambia_esto_en_produccion}
+      EXECUTIONS_PROCESS:        main
+      # Acceso al backend ADES para webhooks
+      ADES_API_URL:              http://ades-api:8000
+      ADES_API_KEY:              ${ADES_INTERNAL_API_KEY:-}
+      # Acceso a ntfy para notificaciones
+      NTFY_URL:                  http://ades-ntfy:80
+    volumes:
+      - n8n-data:/home/node/.n8n
+    ports:
+      - "127.0.0.1:5678:5678"
+    networks:
+      - ades-internal
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ntfy:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:5678/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
 
   # ---------------------------------------------------------------------------
   # Nginx — reverse proxy y gateway principal

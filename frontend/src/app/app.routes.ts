@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
-import { authGuard } from './core/guards/auth.guard';
+import { authGuard }  from './core/guards/auth.guard';
+import { roleGuard }  from './core/guards/role.guard';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
@@ -16,12 +17,16 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadComponent: () => import('./layout/shell.component').then(m => m.ShellComponent),
     children: [
+      // ── FASE 12 — Administración ─────────────────────────────────────────
+      { path: 'admin', canActivate: [roleGuard(1)], loadComponent: () => import('./features/admin/admin.component').then(m => m.AdminComponent) },
+      // ── FASE 13 — Manual de usuario ──────────────────────────────────────
+      { path: 'ayuda', loadComponent: () => import('./features/ayuda/ayuda.component').then(m => m.AyudaComponent) },
       // ── FASE 1 ──────────────────────────────────────────────────────────
-      { path: 'dashboard',      loadComponent: () => import('./features/dashboard/dashboard.component').then(m => m.DashboardComponent) },
-      { path: 'planteles',      loadComponent: () => import('./features/planteles/planteles.component').then(m => m.PlantelesComponent) },
-      { path: 'grupos',         loadComponent: () => import('./features/grupos/grupos.component').then(m => m.GruposComponent) },
-      { path: 'alumnos',        loadComponent: () => import('./features/alumnos/alumnos.component').then(m => m.AlumnosComponent) },
-      { path: 'profesores',     loadComponent: () => import('./features/profesores/profesores.component').then(m => m.ProfesoresComponent) },
+      { path: 'dashboard',  loadComponent: () => import('./features/dashboard/dashboard.component').then(m => m.DashboardComponent) },
+      { path: 'planteles',  canActivate: [roleGuard(1)], loadComponent: () => import('./features/planteles/planteles.component').then(m => m.PlantelesComponent) },
+      { path: 'grupos',     loadComponent: () => import('./features/grupos/grupos.component').then(m => m.GruposComponent) },
+      { path: 'alumnos',    loadComponent: () => import('./features/alumnos/alumnos.component').then(m => m.AlumnosComponent) },
+      { path: 'profesores', loadComponent: () => import('./features/profesores/profesores.component').then(m => m.ProfesoresComponent) },
       // ── FASE 2 ──────────────────────────────────────────────────────────
       { path: 'calificaciones', loadComponent: () => import('./features/calificaciones/calificaciones.component').then(m => m.CalificacionesComponent) },
       { path: 'asistencias',    loadComponent: () => import('./features/asistencias/asistencias.component').then(m => m.AsistenciasComponent) },
@@ -47,10 +52,20 @@ export const routes: Routes = [
       { path: 'badges',          loadComponent: () => import('./features/badges/badges.component').then(m => m.BadgesComponent) },
       // ── FASE 9 ──────────────────────────────────────────────────────────
       { path: 'portal',          loadComponent: () => import('./features/portal/portal.component').then(m => m.PortalComponent) },
+      { path: 'padres',          loadComponent: () => import('./features/padres/padres.component').then(m => m.PadresComponent) },
+      { path: 'planes-estudio', loadComponent: () => import('./features/planes-estudio/planes-estudio.component').then(m => m.PlanesEstudioComponent) },
       // ── FASE 10 — Gradebook Curricular ──────────────────────────────────
       { path: 'gradebook',        loadComponent: () => import('./features/gradebook/gradebook.component').then(m => m.GradebookComponent) },
       { path: 'mi-progreso',      loadComponent: () => import('./features/mi-progreso/mi-progreso.component').then(m => m.MiProgresoComponent) },
-      { path: 'ponderacion-config', loadComponent: () => import('./features/ponderacion-config/ponderacion-config.component').then(m => m.PonderacionConfigComponent) },
+      { path: 'ponderacion-config', canActivate: [roleGuard(3)], loadComponent: () => import('./features/ponderacion-config/ponderacion-config.component').then(m => m.PonderacionConfigComponent) },
+      // ── FASE 16 — BI Dashboards Superset ────────────────────────────────
+      { path: 'bi', loadComponent: () => import('./features/bi/bi.component').then(m => m.BiComponent) },
+      // ── FASE 18 — Generador de Reportes (Carbone) ───────────────────────
+      { path: 'reportes', loadComponent: () => import('./features/reportes/reportes.component').then(m => m.ReportesComponent) },
+      // ── FASE 22 — Monitor del sistema (Grafana + Prometheus) ─────────────
+      { path: 'monitor', canActivate: [roleGuard(1)], loadComponent: () => import('./features/monitor/monitor.component').then(m => m.MonitorComponent) },
+      // ── FASE 24 — Gestión de Padres de Familia ──────────────────────────
+      { path: 'padres-admin', canActivate: [roleGuard(1)], loadComponent: () => import('./features/padres-admin/padres-admin.component').then(m => m.PadresAdminComponent) },
     ],
   },
   { path: '**', redirectTo: 'dashboard' },

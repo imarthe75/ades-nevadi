@@ -40,6 +40,36 @@ class Settings(BaseSettings):
     # CORS
     ALLOWED_ORIGINS: str = "http://localhost:4200,https://ades.setag.mx"
 
+    # Carbone — generador de reportes PDF (FASE 18)
+    CARBONE_URL: str = "http://ades-carbone:3000"
+
+    # ntfy — push notifications (FASE 20)
+    NTFY_URL: str = "http://ades-ntfy:80"
+    NTFY_ADMIN_TOKEN: str = ""
+
+    # Stirling-PDF — procesamiento PDF (FASE 21)
+    STIRLING_PDF_URL: str = "http://ades-stirling-pdf:8080"
+
+    # n8n — automatización de flujos (FASE 23)
+    N8N_URL: str = "http://ades-n8n:5678"
+    N8N_WEBHOOK_URL: str = "http://ades-n8n:5678"
+    ADES_INTERNAL_API_KEY: str = ""
+
+    # Flowise — AI chatbot flows (FASE 17)
+    FLOWISE_URL: str = "http://ades-flowise:3000"
+    FLOWISE_API_KEY: str = ""
+    FLOWISE_CHATFLOW_ID: str = ""
+
+    # Apache Superset — integración embebida (FASE 16)
+    SUPERSET_URL: str = "http://ades-superset:8088"
+    SUPERSET_ADMIN_USER: str = "admin"
+    SUPERSET_ADMIN_PASSWORD: str = ""
+    # UUIDs de dashboards (se llenan tras crearlos en la UI de Superset)
+    SUPERSET_DASHBOARD_INSTITUTO: str = ""
+    SUPERSET_DASHBOARD_PLANTEL: str = ""
+    SUPERSET_DASHBOARD_DOCENTE: str = ""
+    SUPERSET_DASHBOARD_ALUMNO: str = ""
+
     @field_validator("DATABASE_URL_SYNC", mode="before")
     @classmethod
     def set_sync_url(cls, v: str, info) -> str:

@@ -605,12 +605,12 @@ INSERT INTO ades_aulas (nombre_aula, plantel_id, tipo_aula, capacidad)
 SELECT a.nombre, p.id, a.tipo, a.capacidad
 FROM ades_planteles p,
 (VALUES
-  ('Aula 01',         'AULA',        35),
-  ('Aula 02',         'AULA',        35),
-  ('Aula 03',         'AULA',        35),
-  ('Aula 04',         'AULA',        35),
-  ('Aula 05',         'AULA',        35),
-  ('Aula 06',         'AULA',        35),
+  ('Aula 01',         'AULA',        30),
+  ('Aula 02',         'AULA',        30),
+  ('Aula 03',         'AULA',        30),
+  ('Aula 04',         'AULA',        30),
+  ('Aula 05',         'AULA',        30),
+  ('Aula 06',         'AULA',        30),
   ('Laboratorio Cómputo', 'COMPUTO', 30),
   ('Cancha',          'CANCHA',      60)
 ) AS a(nombre, tipo, capacidad)

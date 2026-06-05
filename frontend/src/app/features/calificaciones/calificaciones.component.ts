@@ -26,6 +26,10 @@ import { Table } from 'primeng/table';
 import { ContextService } from '../../core/services/context.service';
 import { ApiService } from '../../core/services/api.service';
 import type { Materia, LibretaGrupo, RegistroLibreta, Grupo, PeriodoSimple } from '../../core/models';
+import { grupoLabel } from '../../core/models';
+
+type GrupoConLabel = Grupo & { _label: string };
+import { HelpButtonComponent } from '../../shared/components/help-button/help-button.component';
 
 @Component({
   selector: 'app-calificaciones',
@@ -34,14 +38,18 @@ import type { Materia, LibretaGrupo, RegistroLibreta, Grupo, PeriodoSimple } fro
     CommonModule, FormsModule,
     TableModule, ButtonModule, SelectModule, InputNumberModule,
     TagModule, TooltipModule, ToastModule, ToolbarModule,
+    HelpButtonComponent,
   ],
   providers: [MessageService],
   template: `
     <p-toast />
 
     <div class="page-header">
-      <h2>Calificaciones</h2>
-      <p class="subtitle">Libreta de calificaciones — edición inline</p>
+      <div>
+        <h2>Calificaciones</h2>
+        <p class="subtitle">Libreta de calificaciones — edición inline</p>
+      </div>
+      <app-help-button modulo="calificaciones" />
     </div>
 
     <!-- ── Filtros APEX-style ── -->
@@ -49,7 +57,7 @@ import type { Materia, LibretaGrupo, RegistroLibreta, Grupo, PeriodoSimple } fro
       <p-select
         [options]="grupos()"
         [(ngModel)]="selectedGrupo"
-        optionLabel="nombre_grupo"
+        optionLabel="_label"
         placeholder="Seleccionar grupo"
         (onChange)="onGrupoChange()"
         [showClear]="true"
@@ -214,12 +222,12 @@ export class CalificacionesComponent implements OnInit {
   private readonly ctx = inject(ContextService);
   private readonly msg = inject(MessageService);
 
-  grupos    = signal<Grupo[]>([]);
+  grupos    = signal<GrupoConLabel[]>([]);
   materias  = signal<Materia[]>([]);
   libreta   = signal<LibretaGrupo | null>(null);
   saving    = signal(false);
 
-  selectedGrupo: Grupo | null = null;
+  selectedGrupo: GrupoConLabel | null = null;
   selectedMateria: Materia | null = null;
 
   // Registro de celdas editadas: { `${estudiante_id}|${periodo}` }
@@ -228,11 +236,16 @@ export class CalificacionesComponent implements OnInit {
   columnas = computed(() => this.libreta()?.periodos ?? []);
   pendingChanges = computed(() => this.editadas.size);
 
+
   ngOnInit(): void {
     const plantelId = this.ctx.plantel()?.id;
+    const nivelNombre = this.ctx.nivel()?.nombre_nivel;
     if (plantelId) {
-      this.api.get<Grupo[]>('/grupos', { plantel_id: plantelId, solo_activos: true, ciclo_vigente: true })
-        .subscribe(g => this.grupos.set(g));
+      const params: Record<string, string | boolean> = { plantel_id: plantelId, solo_activos: true, ciclo_vigente: true };
+      if (nivelNombre) params['nivel'] = nivelNombre;
+      this.api.get<Grupo[]>('/grupos', params).subscribe(g =>
+        this.grupos.set(g.map(x => ({ ...x, _label: grupoLabel(x) })))
+      );
     }
   }
 

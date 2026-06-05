@@ -12,8 +12,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from app.core.database import get_db
-from app.core.security import get_current_user
+from app.core.security import get_current_user, get_ades_user, AdesUser
 from app.models.personas import Usuario, Persona, Rol
+from app.models.academica import Plantel, NivelEducativo
 from app.schemas.personas import UsuarioOut
 from app.schemas.base import AdesSchema
 
@@ -31,30 +32,36 @@ class MeOut(AdesSchema):
     rol: str
     nivel_acceso: int
     oidc_sub: str | None = None
+    plantel_id: uuid.UUID | None = None
+    nivel_educativo_id: uuid.UUID | None = None
+    nombre_plantel: str | None = None
+    nombre_nivel: str | None = None
 
 
 @router.get("/auth/me", response_model=MeOut)
 async def me(
-    token_payload: dict = Depends(get_current_user),
+    ades_user: AdesUser = Depends(get_ades_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Devuelve el perfil del usuario basándose en el sub del JWT de Authentik."""
-    sub = token_payload.get("sub")
-    email = token_payload.get("email", "")
-
     q = (
         select(Usuario)
-        .options(selectinload(Usuario.persona), selectinload(Usuario.rol))
-        .where(
-            (Usuario.oidc_sub == sub) | (Usuario.email_institucional == email)
-        )
+        .options(selectinload(Usuario.persona))
+        .where(Usuario.id == ades_user.id)
     )
     usuario = (await db.execute(q)).scalar_one_or_none()
     if not usuario:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Usuario no registrado en ADES. Contacta al administrador.",
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado")
+
+    # Resolver nombres de plantel/nivel para el badge en el frontend
+    nombre_plantel: str | None = None
+    nombre_nivel: str | None = None
+    if ades_user.plantel_id:
+        plantel = await db.get(Plantel, ades_user.plantel_id)
+        nombre_plantel = plantel.nombre_plantel if plantel else None
+    if ades_user.nivel_educativo_id:
+        nivel = await db.get(NivelEducativo, ades_user.nivel_educativo_id)
+        nombre_nivel = nivel.nombre_nivel if nivel else None
 
     return MeOut(
         id=usuario.id,
@@ -62,9 +69,13 @@ async def me(
         email_institucional=usuario.email_institucional,
         persona_id=usuario.persona_id,
         nombre_completo=usuario.persona.nombre_completo if usuario.persona else "",
-        rol=usuario.rol.nombre_rol if usuario.rol else "",
-        nivel_acceso=usuario.rol.nivel_acceso if usuario.rol else 99,
+        rol=ades_user.rol,
+        nivel_acceso=ades_user.nivel_acceso,
         oidc_sub=usuario.oidc_sub,
+        plantel_id=ades_user.plantel_id,
+        nivel_educativo_id=ades_user.nivel_educativo_id,
+        nombre_plantel=nombre_plantel,
+        nombre_nivel=nombre_nivel,
     )
 
 

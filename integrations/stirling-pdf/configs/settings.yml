@@ -1,0 +1,12 @@
+# Stirling-PDF — Configuración ADES Instituto Nevadi
+# Solo override de propiedades necesarias; el resto usa defaults del contenedor
+
+system:
+  defaultLocale: es-MX
+  googlevisibility: false
+  enableAnalytics: false
+
+ui:
+  appName: "ADES — Procesamiento PDF"
+  homeDescription: "Herramientas PDF para Instituto Nevadi"
+  appNameNavbar: "ADES PDF"

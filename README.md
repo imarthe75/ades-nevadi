@@ -1,6 +1,6 @@
 # ADES — Administración Escolar Instituto Nevadi
 
-[![Estado](https://img.shields.io/badge/Estado-FASES%201--10%20Completas-brightgreen)](https://github.com/imarthe75/ades-nevadi)
+[![Estado](https://img.shields.io/badge/Estado-FASES%201--26%20Roadmap-brightgreen)](https://github.com/imarthe75/ades-nevadi)
 [![Python](https://img.shields.io/badge/Python-3.12-brightgreen)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.136+-blue)](https://fastapi.tiangolo.com/)
 [![Angular](https://img.shields.io/badge/Angular-22-red)](https://angular.io/)
@@ -31,16 +31,18 @@ Gestiona la operación completa: estructura académica, inscripciones, asignaci�
 |---------|-------|
 | **Planteles** | 3 |
 | **Grados** | 39 |
-| **Grupos** | 78 (66 activos + 12 futuros) |
+| **Grupos activos** | 66 |
 | **Profesores** | 168 |
 | **Alumnos** | 1,980 |
-| **Materias en plan** | 66 (7 primaria · 11 secundaria · 48 preparatoria) |
-| **Temas curriculares** | 600+ |
-| **Operaciones REST** | 175 (FASES 1–10) |
-| **Componentes Angular** | 27 (lazy-loaded) |
-| **Tablas PostgreSQL** | 71 (+ 2 en migración 008) |
-| **Migraciones DDL** | 8 (001–008) |
+| **Usuarios totales** | 3,483 (alumnos + padres + personal) |
+| **Materias en plan** | 63 (7 primaria NEM · 5 secundaria NEM · 51 preparatoria CBU 2024) |
+| **Calificaciones** | 76,320 |
+| **Asistencias** | 180,000+ |
+| **Tareas** | 9,600 |
+| **Tablas PostgreSQL** | 89 |
+| **Migraciones DDL** | 15 (001–015) |
 | **Roles del sistema** | 18 |
+| **Módulos Angular** | 35+ (lazy-loaded) |
 
 ---
 
@@ -51,6 +53,10 @@ Gestiona la operación completa: estructura académica, inscripciones, asignaci�
 | Capa | Tecnología | Versión | Propósito |
 |------|-----------|---------|-----------|
 | **Base de Datos** | PostgreSQL + pgvector | 18 | Persistencia ACID, embeddings semánticos, auditoría |
+| **Push Notifications** | ntfy | latest | Notificaciones push nativas sin Firebase, SSE al browser/móvil |
+| **PDF Avanzado** | Stirling-PDF | latest | Merge, marca de agua, OCR, compresión — complemento de Carbone |
+| **Monitoreo** | Grafana + Prometheus | latest | Dashboards de latencia/uptime, métricas de todos los servicios |
+| **Automatización** | n8n | latest | Workflows: alertas académicas, batch boletas, notificaciones automáticas |
 | **PKs** | UUID v7 (`uuidv7()`) | nativo PG18 | Time-ordered, sin fragmentación de índice B-tree |
 | **Caché / Sesiones** | Valkey | 9.1.0 | Sessions, cola Celery, memoria corta del agente |
 | **Almacenamiento** | MinIO | latest | Compatible S3 — archivos de tareas y entregas |
@@ -59,9 +65,11 @@ Gestiona la operación completa: estructura académica, inscripciones, asignaci�
 | **Runtime** | Python | 3.12 | LTS |
 | **Frontend SPA** | Angular + PrimeNG | 22 | Framework reactivo, UI empresarial |
 | **Tareas Async** | Celery + Valkey | 5.6+ | Background jobs, reportes, notificaciones |
-| **BI / Reportes** | Apache Superset | 6.1.0 | Dashboards interactivos, KPIs en tiempo real |
+| **BI / Dashboards** | Apache Superset | 6.1.0 | Dashboards interactivos, KPIs en tiempo real, iframe embebido |
+| **Generador Reportes** | Carbone | latest | Plantillas DOCX/XLSX → PDF, boletas, constancias, kardex |
+| **AI Chatbot** | Flowise + Claude Haiku | latest | NL→SQL, chatbot pedagógico con RLS por rol |
 | **Horarios** | aSc TimeTables | latest | Motor K-12 especializado, import/export XML |
-| **Agente IA** | LangChain + LangGraph + Claude | latest | Asistente pedagógico, riesgo académico |
+| **Agente IA** | LangChain + LangGraph + Claude | latest | Asistente pedagógico, riesgo académico, NL→SQL |
 | **Reverse Proxy** | Nginx | alpine | TLS/SSL, enrutamiento |
 | **Contenedores** | Docker + Compose | 29+ / 5+ | Reproducibilidad, orquestación local |
 | **OS** | Ubuntu Server | 24 LTS | ARM64 (OCI Always Free) o x86_64 |
@@ -314,12 +322,14 @@ auditoria.bitacora         (+ vistas de resumen)
 
 ## Configuración de Subdominios y TLS
 
-| Dominio | Servicio | Cert (expira) |
-|---------|---------|---------------|
-| `ades.setag.mx` | Frontend Angular + API ADES | 2026-09-01 |
-| `auth.ades.setag.mx` | Authentik IdP | 2026-09-01 |
-| `bi.ades.setag.mx` | Apache Superset | 2026-09-01 |
-| `minio.ades.setag.mx` | MinIO consola admin | 2026-09-01 |
+| Dominio | Servicio | Cert (expira) | Acceso |
+|---------|---------|---------------|--------|
+| `ades.setag.mx` | Frontend Angular + API ADES | 2026-09-01 | Público (con auth) |
+| `auth.ades.setag.mx` | Authentik IdP | 2026-09-01 | Público |
+| `bi.ades.setag.mx` | Apache Superset | 2026-09-01 | Admin / Docentes |
+| `minio.ades.setag.mx` | MinIO consola admin | 2026-09-01 | Admin |
+| `notify.ades.setag.mx` | ntfy push notifications | 2026-09-03 | Público — app móvil y browser SSE (FASE 20) |
+| `monitor.ades.setag.mx` | Grafana dashboards | 2026-09-03 | Admin — restringir por IP en producción (FASE 22) |
 
 Certificados Let's Encrypt renovados automáticamente vía `certbot` del sistema (no via Docker).
 
@@ -535,27 +545,67 @@ docker compose exec postgres psql -U ades_admin -d ades -c "
 
 ### Completado ✅
 
-| Período real | Fase | Logros |
-|-------------|------|--------|
-| **Jun 2026** | FASES 1–10 | Sistema completo: 175 endpoints REST, 27 componentes Angular, 8 migraciones DDL, 18 roles, 71 tablas, Gradebook automático con triggers PG, IA integrada, Badges, Portal alumno, Superset BI |
+| Período | Fase | Logros |
+|---------|------|--------|
+| **Jun 2026** | FASES 1–10 | Sistema base: 175 endpoints REST, Gradebook PG, IA, Badges, Portal alumno, Superset BI |
+| **Jun 2026** | FASES 11–13 | RBAC, módulo Admin, Manual de usuario, HelpButton |
+| **Jun 2026** | Mig 011–015 | Expediente médico, contactos familiares, CBU 2024 UAEMEX, NEM 2022 |
+| **Jun 2026** | Seeds completos | 3,483 usuarios, 76,320 calificaciones, 180k asistencias, 9,600 tareas |
+| **Jun 2026** | Portal Padres | Módulo /padres con KPIs, calificaciones y asistencia por alumno |
+| **Jun 2026** | Optimización | Paginación server-side, índices PostgreSQL, debounce en búsquedas |
+| **Jun 2026** | Planes de Estudio | Mapa curricular visual CBU 2024 + NEM, CRUD de materias |
+| **Jun 2026** | FASE 15 — Auditoría | Middleware FastAPI → `ades_audit_log`, tab Auditoría en Admin |
+| **Jun 2026** | FASE 16 — Superset BI | OIDC con Authentik, `custom_sso_security_manager`, guest tokens, componente Angular `/bi` |
+| **Jun 2026** | FASE 17 — AI Chatbot | Flowise (port 3002) + NL→SQL con Claude Haiku, tab "Consulta de datos" en módulo IA |
+| **Jun 2026** | FASE 18 — Carbone Reportes | Microservicio Node.js (port 3001), endpoints FastAPI, módulo Angular `/reportes` con gestor de plantillas |
+| **Jun 2026** | FASE 19 — Planes y Programas | CRUD materias + plan-estudio completo, mapa inline-edit, temario por materia, drawer con estadísticas |
+| **Jun 2026** | FASE 20 — ntfy Push | `ades-ntfy` (port 2586), `PushNotificationService` Angular SSE, notificaciones nativas del browser |
+| **Jun 2026** | FASE 21 — Stirling-PDF | `ades-stirling-pdf` (port 8081), endpoints fusión/marca-agua/compresión/boletas-grupo |
+| **Jun 2026** | FASE 22 — Grafana+Prometheus | `ades-prometheus` (9090) + `ades-grafana` (3003), métricas FastAPI, dashboard ADES API, /monitor Angular |
+| **Jun 2026** | FASE 23 — n8n Automatización | `ades-n8n` (5678) + BD PostgreSQL, webhooks FastAPI asistencia/calificación/comunicado/cierre-periodo |
 
-### Pendiente de configuración (no requiere código)
+### Pendiente de configuración
 
 | Estimado | Tarea | Bloqueante |
 |----------|-------|------------|
-| **Jul 2026** | Google Workspace SSO | Credenciales Google Cloud Console del Instituto Nevadi (`@institutonevadi.edu.mx`) |
-| **Jul 2026** | Superset primer arranque | Ejecutar `superset db upgrade && superset init`, crear datasource `ades_bi` en `bi.ades.setag.mx` |
-| **Jul 2026** | Aplicaciones OIDC Authentik | Configurar `ades-frontend` y `superset` en panel Authentik |
-| **Q3 2026** | **Lanzamiento operacional completo** | — una vez resueltos los 3 ítems anteriores |
+| **Jul 2026** | Google Workspace SSO (FASE 14) | Credenciales Google Cloud Console del Instituto |
+| **Jul 2026** | Superset primer arranque | Ejecutar `infrastructure/superset/init.sh`, crear datasource `ades_bi` en UI |
+| **Jul 2026** | Flowise — configurar chatflow | UI en `localhost:3002`, conectar herramienta SQL al backend ADES, copiar UUID al `.env` |
+| **Jul 2026** | Chatbot NL→SQL — habilitar Claude | Agregar `ANTHROPIC_API_KEY` al `.env` y reconstruir imagen |
+| **Q3 2026** | FASE 27 — HashiCorp Vault | Gestión centralizada de secretos, credenciales DB dinámicas, rotación automática, audit trail |
+| **Q3 2026** | FASE 28 — Firma Digital (pyhanko) | Firma PAdES de boletas/certificados con llave institucional + integración futura FIEL/SAT |
+| **Q3 2026** | AI Chatbot (FASE 17) | Flowise + Vanna AI sobre PostgreSQL |
+| **Q3 2026** | Generador de Boletas (FASE 18) | Carbone (microservicio Docker) + plantillas Word |
+| **Q3 2026** | Push notifications (FASE 20) | ntfy · sin Firebase · app móvil gratuita |
+| **Q3 2026** | Procesamiento PDF (FASE 21) | Stirling-PDF + Carbone |
+| **Q3 2026** | Monitoreo (FASE 22) | Grafana + Prometheus |
+| **Q4 2026** | Automatización flujos (FASE 23) | n8n · alertas académicas · batch boletas |
+| **Q4 2026** | Expediente digital (FASE 24) | Paperless-ngx · OCR · MinIO |
+| **Q4 2026** | Lanzamiento operacional completo | — |
 
-### Posibles extensiones futuras (no planificadas)
+### Extensiones aprobadas (planificadas)
 
-| Módulo | Descripción |
-|--------|-------------|
-| Pipeline CDC | Redpanda + Debezium → ClickHouse para analytics en tiempo real (ya comentado en compose) |
-| App móvil | React Native / PWA para pase de lista y notificaciones push |
-| Foros por materia | Discusión académica interna (inspirado en Moodle Forums) |
-| Quiz Engine | Exámenes en línea con banco de preguntas y calificación automática |
+#### Fases de integración institucional
+
+| Fase | Módulo | Stack | Prioridad |
+|------|--------|-------|-----------|
+| 15 | Auditoría de acciones | Middleware FastAPI → `ades_audit_log` | Alta |
+| 16 | Dashboards por rol | Apache Superset + iframe guest token | Alta |
+| 17 | AI Chatbot (NL→SQL sobre `ades_*`) | Flowise + Vanna AI (open-source) | Media |
+| 18 | Generador de boletas y reportes PDF | Carbone (microservicio Docker) | Alta |
+| 19 | Módulo de planes de estudio completo | CRUD web + mapa curricular interactivo | Media |
+
+#### Fases de automatización y productividad (aprobadas Jun 2026)
+
+| Fase | Módulo | Stack | Impacto |
+|------|--------|-------|---------|
+| 20 | **Push Notifications** — alertas en tiempo real para padres y alumnos | [ntfy](https://ntfy.sh) · Docker · sin Firebase | 🔴 Alto |
+| 21 | **Procesamiento PDF** — fusión boletas, marca de agua, OCR documentos | [Stirling-PDF](https://stirlingtools.com) · Docker · REST API | 🔴 Alto |
+| 22 | **Monitoreo del sistema** — latencia, uptime, alertas técnicas | [Grafana](https://grafana.com) + [Prometheus](https://prometheus.io) · Docker | 🔴 Alto |
+| 23 | **Automatización de flujos** — notificaciones académicas, batch boletas, recordatorios documentos | [n8n](https://n8n.io) · Docker · webhooks FastAPI | 🟡 Medio |
+| 24 | **Gestión documental del expediente** — OCR de actas/CURP, búsqueda en texto, etiquetado automático | [Paperless-ngx](https://docs.paperless-ngx.com) · Docker · integra MinIO | 🟡 Medio |
+| 25 | **Contenido educativo interactivo** — quizzes autocalificables, videos interactivos, juegos pedagógicos | [H5P](https://h5p.org) · Docker · xAPI → `ades_tareas` | 🟢 Bajo |
+| 26 | **Videoconferencias institucionales** — reuniones padres-maestros, asesorías, clases virtuales | [BigBlueButton](https://bigbluebutton.org) · Docker · grabaciones en MinIO | 🟢 Bajo |
 
 ---
 

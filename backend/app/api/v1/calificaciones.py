@@ -9,6 +9,7 @@ Endpoints:
   GET    /calificaciones/periodos                 — periodos del ciclo
 """
 from __future__ import annotations
+import asyncio
 import uuid
 from decimal import Decimal
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -66,17 +67,33 @@ async def registrar_calificacion(
     )).scalar_one_or_none()
 
     if existing:
-        # Actualizar si ya existe
         existing.calificacion_final = data.calificacion_final
         existing.observaciones = data.observaciones
         await db.commit()
         await db.refresh(existing)
-        return existing
+        cal = existing
+    else:
+        cal = CalificacionPeriodo(**data.model_dump())
+        db.add(cal)
+        await db.commit()
+        await db.refresh(cal)
 
-    cal = CalificacionPeriodo(**data.model_dump())
-    db.add(cal)
-    await db.commit()
-    await db.refresh(cal)
+    # FASE 20 — Push al padre si calificación reprobatoria (<6)
+    # Usamos nueva sesión en el background task para evitar usar db ya cerrada
+    if data.calificacion_final is not None and data.calificacion_final < 6.0:
+        from app.models.materias import Materia
+        mat = await db.get(Materia, data.materia_id)
+        _mat_nombre = mat.nombre_materia if mat else "materia"
+        _est_id = data.estudiante_id
+        _cal_val = float(data.calificacion_final)
+        _periodo = getattr(data, "numero_periodo", 0) or 0
+        async def _push_cal():
+            from app.services.notification_triggers import on_calificacion_reprobatoria
+            from app.core.database import AsyncSessionLocal
+            async with AsyncSessionLocal() as _db:
+                await on_calificacion_reprobatoria(_db, _est_id, _mat_nombre, _periodo, _cal_val)
+        asyncio.create_task(_push_cal())
+
     return cal
 
 
@@ -95,6 +112,18 @@ async def actualizar_calificacion(
         cal.observaciones = data.observaciones
     await db.commit()
     await db.refresh(cal)
+
+    # FASE 20 — Push si nueva calificación es reprobatoria
+    if data.calificacion_final is not None and data.calificacion_final < 6.0:
+        _est_id2 = cal.estudiante_id
+        _cal_val2 = float(data.calificacion_final)
+        async def _push_cal2():
+            from app.services.notification_triggers import on_calificacion_reprobatoria
+            from app.core.database import AsyncSessionLocal
+            async with AsyncSessionLocal() as _db2:
+                await on_calificacion_reprobatoria(_db2, _est_id2, "materia", 0, _cal_val2)
+        asyncio.create_task(_push_cal2())
+
     return cal
 
 

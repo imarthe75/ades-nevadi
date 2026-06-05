@@ -3,52 +3,104 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
+from sqlalchemy.orm import selectinload
 from app.core.database import get_db
-from app.core.security import get_current_user
+from app.core.security import get_current_user, get_ades_user, AdesUser
 from app.models.personas import Estudiante, Persona, Inscripcion
 from app.models.academica import Grupo, Grado, Plantel, CicloEscolar, NivelEducativo
-from app.schemas.personas import EstudianteOut, EstudianteCreate, InscripcionOut, InscripcionCreate
-from app.schemas.base import Paginacion
+from app.schemas.personas import EstudianteOut, EstudianteCreate, EstudianteUpdate, InscripcionOut, InscripcionCreate
+from app.schemas.base import Paginacion, PagedResponse
 
 router = APIRouter(prefix="/alumnos", tags=["alumnos"])
 
 
-@router.get("", response_model=list[EstudianteOut])
+@router.get("", response_model=PagedResponse[EstudianteOut])
 async def listar_alumnos(
     plantel_id: uuid.UUID | None = None,
     buscar: str | None = Query(None, description="Busca por nombre o CURP"),
     pagina: int = Query(1, ge=1),
-    por_pagina: int = Query(30, ge=1, le=100),
+    por_pagina: int = Query(30, ge=1, le=1000),
     db: AsyncSession = Depends(get_db),
-    _user: dict = Depends(get_current_user),
+    ades_user: AdesUser = Depends(get_ades_user),
 ):
-    q = select(Estudiante).join(Persona, Persona.id == Estudiante.persona_id)
-    if plantel_id:
-        q = q.where(Estudiante.plantel_id == plantel_id)
+    base_q = select(Estudiante).options(selectinload(Estudiante.persona)).join(Persona, Persona.id == Estudiante.persona_id)
+
+    if ades_user.tiene_scope_nivel:
+        nivel_subq = (
+            select(Inscripcion.estudiante_id)
+            .join(Grupo, Grupo.id == Inscripcion.grupo_id)
+            .join(Grado, Grado.id == Grupo.grado_id)
+            .where(
+                Grado.nivel_educativo_id == ades_user.nivel_educativo_id,
+                Grado.plantel_id == ades_user.plantel_id,
+            )
+        )
+        base_q = base_q.where(Estudiante.id.in_(nivel_subq))
+    elif ades_user.plantel_id:
+        base_q = base_q.where(Estudiante.plantel_id == ades_user.plantel_id)
+    elif plantel_id:
+        base_q = base_q.where(Estudiante.plantel_id == plantel_id)
+
     if buscar:
         term = f"%{buscar}%"
-        q = q.where(
+        base_q = base_q.where(
             Persona.nombre.ilike(term)
             | Persona.apellido_paterno.ilike(term)
             | Persona.curp.ilike(term)
         )
-    q = q.where(Estudiante.is_active == True)
-    q = q.order_by(Persona.apellido_paterno, Persona.nombre)
-    q = q.offset((pagina - 1) * por_pagina).limit(por_pagina)
-    rows = await db.execute(q)
-    return rows.scalars().all()
+    base_q = base_q.where(Estudiante.is_active == True)
+
+    # Contar total
+    count_q = select(func.count()).select_from(base_q.subquery())
+    total = (await db.execute(count_q)).scalar_one()
+
+    # Datos paginados
+    data_q = base_q.order_by(Persona.apellido_paterno, Persona.nombre)
+    data_q = data_q.offset((pagina - 1) * por_pagina).limit(por_pagina)
+    rows = (await db.execute(data_q)).scalars().all()
+
+    return PagedResponse.build(data=rows, total=total, pagina=pagina, por_pagina=por_pagina)
 
 
 @router.get("/{estudiante_id}", response_model=EstudianteOut)
 async def obtener_alumno(
     estudiante_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    _user: dict = Depends(get_current_user),
+    _user: AdesUser = Depends(get_ades_user),
 ):
-    row = await db.get(Estudiante, estudiante_id)
+    q = select(Estudiante).options(selectinload(Estudiante.persona)).where(Estudiante.id == estudiante_id)
+    row = (await db.execute(q)).scalar_one_or_none()
     if not row:
         raise HTTPException(status_code=404, detail="Alumno no encontrado")
     return row
+
+
+@router.patch("/{estudiante_id}", response_model=EstudianteOut)
+async def actualizar_alumno(
+    estudiante_id: uuid.UUID,
+    data: EstudianteUpdate,
+    db: AsyncSession = Depends(get_db),
+    _user: AdesUser = Depends(get_ades_user),
+):
+    q = select(Estudiante).options(selectinload(Estudiante.persona)).where(Estudiante.id == estudiante_id)
+    est = (await db.execute(q)).scalar_one_or_none()
+    if not est:
+        raise HTTPException(status_code=404, detail="Alumno no encontrado")
+
+    if data.fecha_ingreso is not None:
+        est.fecha_ingreso = data.fecha_ingreso
+
+    if data.complementarios:
+        for field, value in data.complementarios.model_dump(exclude_unset=True).items():
+            setattr(est, field, value)
+
+    if data.persona and est.persona:
+        for field, value in data.persona.model_dump(exclude_unset=True).items():
+            setattr(est.persona, field, value)
+
+    await db.commit()
+    await db.refresh(est)
+    return est
 
 
 @router.post("", response_model=EstudianteOut, status_code=status.HTTP_201_CREATED)

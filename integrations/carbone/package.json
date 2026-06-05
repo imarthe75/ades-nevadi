@@ -1,0 +1,12 @@
+{
+  "name": "carbone-server-ades",
+  "version": "1.0.0",
+  "description": "Microservicio Carbone para generación de reportes ADES Instituto Nevadi",
+  "main": "server.js",
+  "dependencies": {
+    "carbone": "latest",
+    "express": "^4.21.2",
+    "multer": "^1.4.5-lts.1",
+    "uuid": "^11.1.0"
+  }
+}

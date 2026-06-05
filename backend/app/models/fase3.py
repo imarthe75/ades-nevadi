@@ -86,6 +86,14 @@ class ExpedienteMedico(AuditMixin, Base):
     condiciones_cronicas: Mapped[str | None] = mapped_column(Text)
     observaciones_generales: Mapped[str | None] = mapped_column(Text)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    # Campos migración 012
+    nss: Mapped[str | None] = mapped_column(String(11))
+    discapacidad: Mapped[str | None] = mapped_column(Text)
+    seguro_medico_tipo: Mapped[str | None] = mapped_column(String(30))
+    seguro_medico_numero: Mapped[str | None] = mapped_column(String(50))
+    vacunas_al_dia: Mapped[bool] = mapped_column(Boolean, default=True)
+    padecimiento_cronico: Mapped[bool] = mapped_column(Boolean, default=False)
+    requiere_medicacion: Mapped[bool] = mapped_column(Boolean, default=False)
 
 
 class IncidenteMedico(AuditMixin, Base):

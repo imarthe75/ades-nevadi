@@ -5,6 +5,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import ORJSONResponse
 
 from app.core.config import settings
+from app.core.audit import AuditMiddleware
+from app.core.metrics import setup_metrics
 import app.models  # noqa: F401 — registra todos los modelos en SQLAlchemy metadata
 from app.api.v1.router import api_router
 
@@ -37,7 +39,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# FASE 15 — Auditoría: registra POST/PUT/PATCH/DELETE en ades_audit_log
+app.add_middleware(AuditMiddleware)
+
 app.include_router(api_router, prefix=settings.API_V1_PREFIX)
+
+# FASE 22 — Prometheus metrics en /metrics
+setup_metrics(app)
 
 
 @app.middleware("http")

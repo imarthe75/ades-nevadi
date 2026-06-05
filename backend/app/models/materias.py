@@ -35,11 +35,18 @@ class MateriaPlan(AuditMixin, Base):
     grado_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("ades_grados.id"), nullable=False)
     ciclo_escolar_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("ades_ciclos_escolares.id"), nullable=False)
     horas_semana: Mapped[float | None] = mapped_column(Numeric(4, 1))
+    es_obligatoria: Mapped[bool] = mapped_column(Boolean, default=True)
     orden: Mapped[int | None] = mapped_column(Integer)
 
     materia: Mapped[Materia] = relationship(back_populates="planes")
     temas: Mapped[list[Tema]] = relationship(back_populates="materia_plan")
-    asignaciones: Mapped[list[AsignacionDocente]] = relationship(back_populates="materia_plan")
+    asignaciones: Mapped[list[AsignacionDocente]] = relationship(
+        back_populates="materia_plan",
+        primaryjoin="and_(MateriaPlan.materia_id == AsignacionDocente.materia_id, "
+                    "MateriaPlan.ciclo_escolar_id == AsignacionDocente.ciclo_escolar_id)",
+        foreign_keys="[AsignacionDocente.materia_id, AsignacionDocente.ciclo_escolar_id]",
+        viewonly=True,
+    )
 
 
 class Tema(AuditMixin, Base):
@@ -51,6 +58,7 @@ class Tema(AuditMixin, Base):
     nombre_tema: Mapped[str] = mapped_column(String(255), nullable=False)
     descripcion: Mapped[str | None] = mapped_column(Text)
     horas_estimadas: Mapped[float | None] = mapped_column(Numeric(5, 1))
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
     materia_plan: Mapped[MateriaPlan] = relationship(back_populates="temas")
 

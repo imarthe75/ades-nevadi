@@ -198,6 +198,72 @@ const RIESGO_SEVERITY: Record<string, AlertaSeverity> = {
         </p-table>
       </p-tabpanel>
 
+      <!-- ── Pestaña Chatbot de Datos (NL→SQL) ── -->
+      <p-tabpanel value="2" header="Consulta de datos">
+        <div class="datos-layout">
+          <p style="font-size:.83rem;color:var(--text-color-secondary);margin:0 0 1rem">
+            Pregunta en lenguaje natural sobre alumnos, calificaciones, asistencias y más.
+            El sistema genera y ejecuta el SQL automáticamente, respetando tu nivel de acceso.
+          </p>
+
+          <div class="quick-chips">
+            @for (s of sugerenciasDatos; track s) {
+              <button class="chip" (click)="usarSugerenciaDatos(s)">{{ s }}</button>
+            }
+          </div>
+
+          <div class="datos-input-bar">
+            <input pInputText [(ngModel)]="inputDatos"
+              placeholder="¿Cuántos alumnos reprobaron matemáticas este bimestre?"
+              (keyup.enter)="consultarDatos()"
+              [disabled]="cargandoDatos()"
+              style="flex:1" />
+            <p-button icon="pi pi-search" label="Consultar"
+              [loading]="cargandoDatos()" (onClick)="consultarDatos()"
+              [disabled]="!inputDatos.trim()" />
+          </div>
+
+          @if (respuestaDatos()) {
+            <div class="datos-respuesta">
+              <p class="datos-texto">{{ respuestaDatos()!.respuesta }}</p>
+              @if (respuestaDatos()!.sql_generado) {
+                <details class="sql-details">
+                  <summary>SQL generado</summary>
+                  <pre class="sql-code">{{ respuestaDatos()!.sql_generado }}</pre>
+                </details>
+              }
+              @if (respuestaDatos()!.datos && respuestaDatos()!.datos!.length > 0) {
+                <div style="margin-top:1rem;overflow-x:auto">
+                  <table class="datos-tabla">
+                    <thead>
+                      <tr>
+                        @for (col of columnasTabla(); track col) {
+                          <th>{{ col }}</th>
+                        }
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (row of respuestaDatos()!.datos!.slice(0,50); track $index) {
+                        <tr>
+                          @for (col of columnasTabla(); track col) {
+                            <td>{{ row[col] ?? '—' }}</td>
+                          }
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                  @if ((respuestaDatos()!.datos?.length ?? 0) > 50) {
+                    <p style="font-size:.75rem;color:#94a3b8;margin:.5rem 0 0">
+                      Mostrando 50 de {{ respuestaDatos()!.datos!.length }} resultados
+                    </p>
+                  }
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </p-tabpanel>
+
     </p-tabs>
   `,
   styles: [`
@@ -276,6 +342,19 @@ const RIESGO_SEVERITY: Record<string, AlertaSeverity> = {
     /* ── Alertas ───────────────────────────────────────────────────────────── */
     .alertas-toolbar { display: flex; gap: 0.75rem; margin-bottom: 1rem; align-items: center; flex-wrap: wrap; }
     tr.atendida { opacity: 0.5; }
+
+    /* ── Consulta de Datos (NL→SQL) ────────────────────────────────────────── */
+    .datos-layout { display: flex; flex-direction: column; gap: 1rem; }
+    .datos-input-bar { display: flex; gap: .5rem; align-items: center; }
+    .datos-respuesta { background: #F8F9FA; border: 1px solid var(--surface-border); border-radius: 8px; padding: 1rem; }
+    .datos-texto { font-size: .9rem; line-height: 1.6; margin: 0 0 .75rem; }
+    .sql-details { margin-top: .5rem; }
+    .sql-details summary { font-size: .78rem; color: var(--text-color-secondary); cursor: pointer; }
+    .sql-code { font-size: .75rem; background: #1e293b; color: #e2e8f0; padding: .75rem 1rem; border-radius: 6px; overflow-x: auto; white-space: pre-wrap; margin: .5rem 0 0; }
+    .datos-tabla { width: 100%; border-collapse: collapse; font-size: .8rem; }
+    .datos-tabla th { background: var(--surface-100); padding: .4rem .6rem; text-align: left; font-weight: 600; border-bottom: 2px solid var(--surface-300); }
+    .datos-tabla td { padding: .35rem .6rem; border-bottom: 1px solid var(--surface-200); }
+    .datos-tabla tr:hover td { background: var(--surface-50); }
   `],
 })
 export class IaComponent implements OnInit {
@@ -302,6 +381,21 @@ export class IaComponent implements OnInit {
     'Explica los criterios de acreditación UAEMEX',
     'Genera una rúbrica para evaluación de exposición oral',
     'Redacta un comunicado de bajo rendimiento para padres',
+  ];
+
+  // ── NL→SQL (FASE 17) ─────────────────────────────────────────────────────
+  inputDatos       = '';
+  cargandoDatos    = signal(false);
+  respuestaDatos   = signal<{ respuesta: string; sql_generado?: string; datos?: any[] } | null>(null);
+  columnasTabla    = signal<string[]>([]);
+  sesiónDatos      = crypto.randomUUID();
+
+  readonly sugerenciasDatos = [
+    '¿Cuántos alumnos tienen calificación menor a 6?',
+    '¿Cuál es el promedio por materia en preparatoria?',
+    '¿Qué alumnos tienen más del 20% de inasistencias?',
+    'Listar los 10 alumnos con mejor promedio general',
+    '¿Cuántos alumnos reprobaron al menos una materia?',
   ];
 
   ngOnInit(): void {
@@ -395,5 +489,34 @@ export class IaComponent implements OnInit {
         this.messagesContainer.nativeElement.scrollTop = this.messagesContainer.nativeElement.scrollHeight;
       }
     }, 50);
+  }
+
+  // ── Consulta de datos NL→SQL ──────────────────────────────────────────────
+
+  usarSugerenciaDatos(s: string): void { this.inputDatos = s; this.consultarDatos(); }
+
+  consultarDatos(): void {
+    const q = this.inputDatos.trim();
+    if (!q) return;
+    this.cargandoDatos.set(true);
+    this.respuestaDatos.set(null);
+
+    this.api.post<{ respuesta: string; sql_generado?: string; datos?: any[] }>(
+      '/chatbot/mensaje',
+      { pregunta: q, sesion_id: this.sesiónDatos }
+    ).subscribe({
+      next: resp => {
+        this.respuestaDatos.set(resp);
+        if (resp.datos?.length) {
+          this.columnasTabla.set(Object.keys(resp.datos[0]));
+        }
+        this.cargandoDatos.set(false);
+      },
+      error: (err) => {
+        const msg = err?.error?.detail ?? 'Error al procesar la consulta';
+        this.respuestaDatos.set({ respuesta: `⚠ ${msg}` });
+        this.cargandoDatos.set(false);
+      },
+    });
   }
 }

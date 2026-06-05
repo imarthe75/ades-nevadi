@@ -1,6 +1,7 @@
 from __future__ import annotations
 import uuid
 from datetime import date
+from decimal import Decimal
 from pydantic import Field, field_validator
 from .base import AdesSchema, AdesResponse
 
@@ -14,6 +15,13 @@ class PersonaBase(AdesSchema):
     curp: str = Field(min_length=18, max_length=18)
     genero: str | None = Field(None, pattern="^[MF]$")
     fecha_nacimiento: date | None = None
+    # Contacto y datos civiles (migración 011)
+    telefono: str | None = Field(None, max_length=15)
+    email_personal: str | None = Field(None, max_length=255)
+    estado_civil: str | None = None
+    municipio_nacimiento: str | None = None
+    estado_nacimiento: str | None = None
+    nacionalidad: str | None = "MEXICANA"
 
     @field_validator("curp")
     @classmethod
@@ -25,7 +33,23 @@ class PersonaCreate(PersonaBase):
     pass
 
 
+class PersonaUpdate(AdesSchema):
+    nombre: str | None = Field(None, min_length=1, max_length=100)
+    apellido_paterno: str | None = Field(None, min_length=1, max_length=100)
+    apellido_materno: str | None = None
+    genero: str | None = Field(None, pattern="^[MF]$")
+    fecha_nacimiento: date | None = None
+    telefono: str | None = None
+    email_personal: str | None = None
+    estado_civil: str | None = None
+    municipio_nacimiento: str | None = None
+    estado_nacimiento: str | None = None
+    nacionalidad: str | None = None
+
+
 class PersonaOut(AdesResponse, PersonaBase):
+    # En salida relajamos curp para no romper registros con datos legacy o seeds
+    curp: str | None = Field(None, max_length=18)
     nombre_completo: str = ""
 
     @classmethod
@@ -37,10 +61,61 @@ class PersonaOut(AdesResponse, PersonaBase):
 
 # ── Estudiante ────────────────────────────────────────────────────────────────
 
+class EstudianteDatosComplementarios(AdesSchema):
+    """Campos académicos/socioeconómicos del alumno (sin salud — ver ExpedienteMedico)."""
+    nss: str | None = Field(None, max_length=11)
+    discapacidad: str | None = None
+    escuela_procedencia: str | None = None
+    clave_ct_procedencia: str | None = None
+    promedio_procedencia: Decimal | None = None
+    beca_tipo: str | None = None
+    beca_monto: Decimal | None = None
+    nivel_socioeconomico: str | None = None
+    etnia: str | None = None
+    lengua_indigena: str | None = None
+
+
+class ExpedienteMedicoOut(AdesSchema):
+    estudiante_id: uuid.UUID
+    tipo_sangre: str | None = None
+    alergias: str | None = None
+    medicamentos_autorizados: str | None = None
+    condiciones_cronicas: str | None = None
+    observaciones_generales: str | None = None
+    nss: str | None = None
+    discapacidad: str | None = None
+    seguro_medico_tipo: str | None = None
+    seguro_medico_numero: str | None = None
+    vacunas_al_dia: bool = True
+    padecimiento_cronico: bool = False
+    requiere_medicacion: bool = False
+
+
+class ExpedienteMedicoUpdate(AdesSchema):
+    tipo_sangre: str | None = None
+    alergias: str | None = None
+    medicamentos_autorizados: str | None = None
+    condiciones_cronicas: str | None = None
+    observaciones_generales: str | None = None
+    nss: str | None = Field(None, max_length=11)
+    discapacidad: str | None = None
+    seguro_medico_tipo: str | None = None
+    seguro_medico_numero: str | None = None
+    vacunas_al_dia: bool | None = None
+    padecimiento_cronico: bool | None = None
+    requiere_medicacion: bool | None = None
+
+
 class EstudianteCreate(AdesSchema):
     persona: PersonaCreate
     plantel_id: uuid.UUID
     fecha_ingreso: date | None = None
+
+
+class EstudianteUpdate(AdesSchema):
+    persona: PersonaUpdate | None = None
+    fecha_ingreso: date | None = None
+    complementarios: EstudianteDatosComplementarios | None = None
 
 
 class EstudianteOut(AdesResponse):
@@ -48,6 +123,17 @@ class EstudianteOut(AdesResponse):
     plantel_id: uuid.UUID
     fecha_ingreso: date | None
     persona: PersonaOut | None = None
+    # Complementarios académicos (tipo_sangre/alergias → ExpedienteMedico)
+    nss: str | None = None
+    discapacidad: str | None = None
+    escuela_procedencia: str | None = None
+    clave_ct_procedencia: str | None = None
+    promedio_procedencia: Decimal | None = None
+    beca_tipo: str | None = None
+    beca_monto: Decimal | None = None
+    nivel_socioeconomico: str | None = None
+    etnia: str | None = None
+    lengua_indigena: str | None = None
 
 
 # ── Inscripción ───────────────────────────────────────────────────────────────
@@ -68,6 +154,20 @@ class InscripcionOut(AdesResponse):
 
 # ── Profesor ──────────────────────────────────────────────────────────────────
 
+class ProfesorDatosLaborales(AdesSchema):
+    """Campos laborales y de nómina del profesor."""
+    rfc: str | None = Field(None, max_length=13)
+    nss: str | None = Field(None, max_length=11)
+    cedula_profesional: str | None = None
+    especialidad: str | None = None
+    nivel_estudios: str | None = None
+    fecha_ingreso_inst: date | None = None
+    clabe: str | None = Field(None, max_length=18)
+    banco: str | None = None
+    turno: str | None = None
+    tipo_contrato: str | None = None
+
+
 class ProfesorCreate(AdesSchema):
     persona: PersonaCreate
     plantel_id: uuid.UUID
@@ -75,11 +175,69 @@ class ProfesorCreate(AdesSchema):
     tipo_contrato: str = "BASE"
 
 
+class ProfesorUpdate(AdesSchema):
+    persona: PersonaUpdate | None = None
+    laborales: ProfesorDatosLaborales | None = None
+
+
 class ProfesorOut(AdesResponse):
     numero_empleado: str
     plantel_id: uuid.UUID
     tipo_contrato: str | None
     persona: PersonaOut | None = None
+    # Laborales
+    rfc: str | None = None
+    nss: str | None = None
+    cedula_profesional: str | None = None
+    especialidad: str | None = None
+    nivel_estudios: str | None = None
+    fecha_ingreso_inst: date | None = None
+    clabe: str | None = None
+    banco: str | None = None
+    turno: str | None = None
+
+
+# ── Contacto de Emergencia ─────────────────────────────────────────────────────
+
+class ContactoCreate(AdesSchema):
+    persona_id: uuid.UUID
+    nombre_completo: str = Field(min_length=2, max_length=200)
+    parentesco: str | None = None
+    telefono: str | None = Field(None, max_length=15)
+    telefono_alt: str | None = Field(None, max_length=15)
+    email: str | None = None
+    es_tutor_legal: bool = False
+    es_contacto_prim: bool = False
+    ocupacion: str | None = None
+    nivel_estudios: str | None = None
+    rfc: str | None = Field(None, max_length=13)
+
+
+class ContactoUpdate(AdesSchema):
+    nombre_completo: str | None = Field(None, min_length=2, max_length=200)
+    parentesco: str | None = None
+    telefono: str | None = None
+    telefono_alt: str | None = None
+    email: str | None = None
+    es_tutor_legal: bool | None = None
+    es_contacto_prim: bool | None = None
+    ocupacion: str | None = None
+    nivel_estudios: str | None = None
+    rfc: str | None = None
+
+
+class ContactoOut(AdesResponse):
+    persona_id: uuid.UUID
+    nombre_completo: str
+    parentesco: str | None
+    telefono: str | None
+    telefono_alt: str | None
+    email: str | None
+    es_tutor_legal: bool
+    es_contacto_prim: bool
+    ocupacion: str | None
+    nivel_estudios: str | None
+    rfc: str | None
 
 
 # ── Usuario ───────────────────────────────────────────────────────────────────

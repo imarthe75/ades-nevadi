@@ -1,5 +1,6 @@
 from __future__ import annotations
 import uuid
+from datetime import date
 from pydantic import Field
 from .base import AdesSchema, AdesResponse
 
@@ -48,8 +49,8 @@ class GradoOut(AdesResponse):
 class CicloOut(AdesResponse):
     nombre_ciclo: str
     nivel_educativo_id: uuid.UUID
-    fecha_inicio: str
-    fecha_fin: str
+    fecha_inicio: date
+    fecha_fin: date
     tipo_ciclo: str
     es_vigente: bool
 
@@ -74,5 +75,9 @@ class GrupoOut(AdesResponse, GrupoBase):
 
 
 class GrupoDetalle(GrupoOut):
-    """Grupo con info de grado y plantel expandida."""
+    """Grupo con info de grado y nivel expandida — para selectores en UI."""
     grado: GradoOut | None = None
+    nombre_grado: str | None = None   # populated from grado.nombre_grado
+    nombre_nivel: str | None = None   # populated from grado.nivel.nombre_nivel
+    numero_grado: int | None = None   # for sorting
+    inscritos: int = 0                # alumnos activos inscritos

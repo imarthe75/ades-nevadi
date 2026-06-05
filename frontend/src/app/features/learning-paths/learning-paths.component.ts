@@ -101,110 +101,115 @@ const TIPO_ICON: Record<string, string> = {
 
     <p-tabs [(value)]="tabActivo">
 
-      <!-- ── Tab 1: Rutas disponibles ──────────────────────────────────── -->
-      <p-tab value="0">
-        <ng-template pTemplate="header"><i class="pi pi-list"></i>&nbsp;Rutas disponibles</ng-template>
+      <p-tablist>
+        <p-tab value="0"><i class="pi pi-list"></i>&nbsp;Rutas disponibles</p-tab>
+        <p-tab value="1"><i class="pi pi-users"></i>&nbsp;Asignaciones</p-tab>
+      </p-tablist>
 
-        <div class="paths-grid">
-          @for (path of paths(); track path.id) {
-            <div class="path-card" [class.inactivo]="!path.is_active">
-              <div class="path-card-header">
-                <span class="path-nombre">{{ path.nombre }}</span>
-                <p-tag
-                  [value]="criterioLabel(path.criterio_activacion)"
-                  [severity]="criteriaSev(path.criterio_activacion)"
-                  styleClass="text-xs"
-                />
-              </div>
-              <p class="path-desc">{{ path.descripcion || 'Sin descripción' }}</p>
-              <div class="path-stats">
-                <span><i class="pi pi-book"></i> {{ path.total_recursos }} recursos</span>
-                @if (path.umbral_activacion) {
-                  <span><i class="pi pi-exclamation-triangle"></i> Umbral: {{ path.umbral_activacion }}</span>
-                }
-              </div>
-              <div class="path-actions">
-                <p-button
-                  icon="pi pi-eye" label="Ver detalle" [text]="true" size="small"
-                  (onClick)="verPath(path)"
-                />
-                <p-button
-                  icon="pi pi-user-plus" label="Asignar" [text]="true" size="small"
-                  (onClick)="abrirAsignar(path)"
-                />
-              </div>
-            </div>
-          }
-          @empty {
-            <div class="empty-state"><i class="pi pi-inbox"></i><p>No hay rutas definidas</p></div>
-          }
-        </div>
-      </p-tab>
+      <p-tabpanels>
 
-      <!-- ── Tab 2: Asignaciones activas ───────────────────────────────── -->
-      <p-tab value="1">
-        <ng-template pTemplate="header"><i class="pi pi-users"></i>&nbsp;Asignaciones</ng-template>
-
-        <div class="filter-row">
-          <p-select
-            [options]="estatusOpts"
-            [(ngModel)]="filtroEstatus"
-            optionLabel="label" optionValue="value"
-            placeholder="Filtrar por estatus..."
-            (onChange)="cargarAsignaciones()"
-            styleClass="w-auto"
-          />
-          <p-button icon="pi pi-refresh" [text]="true" size="small"
-            pTooltip="Actualizar" (onClick)="cargarAsignaciones()" />
-          <p-button icon="pi pi-file" label="Exportar CSV" [text]="true" size="small"
-            (onClick)="exportCSV()" />
-          <p-button icon="pi pi-file-excel" label="Excel" [text]="true" size="small"
-            (onClick)="exportXLSX()" />
-        </div>
-
-        <p-table
-          [value]="asignaciones()"
-          [loading]="cargandoAsig()"
-          [paginator]="true" [rows]="15"
-          styleClass="p-datatable-sm p-datatable-gridlines"
-        >
-          <ng-template pTemplate="header">
-            <tr>
-              <th pSortableColumn="path_nombre">Ruta <p-sortIcon field="path_nombre" /></th>
-              <th>Alumno</th>
-              <th pSortableColumn="motivo">Motivo <p-sortIcon field="motivo" /></th>
-              <th pSortableColumn="estatus">Estatus <p-sortIcon field="estatus" /></th>
-              <th style="width:180px">Progreso</th>
-              <th pSortableColumn="fccreacion" style="width:130px">Asignado <p-sortIcon field="fccreacion" /></th>
-              <th style="width:80px"></th>
-            </tr>
-          </ng-template>
-          <ng-template pTemplate="body" let-asig>
-            <tr>
-              <td>{{ asig.path_nombre }}</td>
-              <td>{{ asig.alumno_nombre || asig.estudiante_id }}</td>
-              <td>{{ asig.motivo.replace('_', ' ') }}</td>
-              <td>
-                <p-tag [value]="asig.estatus" [severity]="estatusSev(asig.estatus)" />
-              </td>
-              <td>
-                <div class="progress-cell">
-                  <p-progressBar [value]="asig.pct_completado" styleClass="h-1rem" />
-                  <span class="pct-label">{{ asig.pct_completado }}%</span>
+        <!-- ── Tab 1: Rutas disponibles ──────────────────────────────────── -->
+        <p-tabpanel value="0">
+          <div class="paths-grid">
+            @for (path of paths(); track path.id) {
+              <div class="path-card" [class.inactivo]="!path.is_active">
+                <div class="path-card-header">
+                  <span class="path-nombre">{{ path.nombre }}</span>
+                  <p-tag
+                    [value]="criterioLabel(path.criterio_activacion)"
+                    [severity]="criteriaSev(path.criterio_activacion)"
+                    styleClass="text-xs"
+                  />
                 </div>
-              </td>
-              <td>{{ asig.fccreacion | date:'dd/MM/yy' }}</td>
-              <td>
-                <p-button icon="pi pi-eye" [text]="true" size="small"
-                  pTooltip="Ver detalle" (onClick)="verAsignacion(asig)" />
-              </td>
-            </tr>
-          </ng-template>
-          <ng-template pTemplate="emptymessage">
-            <tr><td colspan="7" class="text-center p-4">Sin asignaciones</td></tr>
-          </ng-template>
-        </p-table>
-      </p-tab>
+                <p class="path-desc">{{ path.descripcion || 'Sin descripción' }}</p>
+                <div class="path-stats">
+                  <span><i class="pi pi-book"></i> {{ path.total_recursos }} recursos</span>
+                  @if (path.umbral_activacion) {
+                    <span><i class="pi pi-exclamation-triangle"></i> Umbral: {{ path.umbral_activacion }}</span>
+                  }
+                </div>
+                <div class="path-actions">
+                  <p-button
+                    icon="pi pi-eye" label="Ver detalle" [text]="true" size="small"
+                    (onClick)="verPath(path)"
+                  />
+                  <p-button
+                    icon="pi pi-user-plus" label="Asignar" [text]="true" size="small"
+                    (onClick)="abrirAsignar(path)"
+                  />
+                </div>
+              </div>
+            }
+            @empty {
+              <div class="empty-state"><i class="pi pi-inbox"></i><p>No hay rutas definidas</p></div>
+            }
+          </div>
+        </p-tabpanel>
+
+        <!-- ── Tab 2: Asignaciones activas ───────────────────────────────── -->
+        <p-tabpanel value="1">
+          <div class="filter-row">
+            <p-select
+              [options]="estatusOpts"
+              [(ngModel)]="filtroEstatus"
+              optionLabel="label" optionValue="value"
+              placeholder="Filtrar por estatus..."
+              (onChange)="cargarAsignaciones()"
+              styleClass="w-auto"
+            />
+            <p-button icon="pi pi-refresh" [text]="true" size="small"
+              pTooltip="Actualizar" (onClick)="cargarAsignaciones()" />
+            <p-button icon="pi pi-file" label="Exportar CSV" [text]="true" size="small"
+              (onClick)="exportCSV()" />
+            <p-button icon="pi pi-file-excel" label="Excel" [text]="true" size="small"
+              (onClick)="exportXLSX()" />
+          </div>
+
+          <p-table
+            [value]="asignaciones()"
+            [loading]="cargandoAsig()"
+            [paginator]="true" [rows]="15"
+            styleClass="p-datatable-sm p-datatable-gridlines"
+          >
+            <ng-template pTemplate="header">
+              <tr>
+                <th pSortableColumn="path_nombre">Ruta <p-sortIcon field="path_nombre" /></th>
+                <th>Alumno</th>
+                <th pSortableColumn="motivo">Motivo <p-sortIcon field="motivo" /></th>
+                <th pSortableColumn="estatus">Estatus <p-sortIcon field="estatus" /></th>
+                <th style="width:180px">Progreso</th>
+                <th pSortableColumn="fccreacion" style="width:130px">Asignado <p-sortIcon field="fccreacion" /></th>
+                <th style="width:80px"></th>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="body" let-asig>
+              <tr>
+                <td>{{ asig.path_nombre }}</td>
+                <td>{{ asig.alumno_nombre || asig.estudiante_id }}</td>
+                <td>{{ asig.motivo.replace('_', ' ') }}</td>
+                <td>
+                  <p-tag [value]="asig.estatus" [severity]="estatusSev(asig.estatus)" />
+                </td>
+                <td>
+                  <div class="progress-cell">
+                    <p-progressBar [value]="asig.pct_completado" styleClass="h-1rem" />
+                    <span class="pct-label">{{ asig.pct_completado }}%</span>
+                  </div>
+                </td>
+                <td>{{ asig.fccreacion | date:'dd/MM/yy' }}</td>
+                <td>
+                  <p-button icon="pi pi-eye" [text]="true" size="small"
+                    pTooltip="Ver detalle" (onClick)="verAsignacion(asig)" />
+                </td>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="emptymessage">
+              <tr><td colspan="7" class="text-center p-4">Sin asignaciones</td></tr>
+            </ng-template>
+          </p-table>
+        </p-tabpanel>
+
+      </p-tabpanels>
 
     </p-tabs>
 

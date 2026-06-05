@@ -18,7 +18,7 @@ from app.models.personas import Rol, Estatus
 from app.schemas.academica import NivelOut, GradoOut, CicloOut
 from app.schemas.base import AdesResponse, AdesSchema
 
-router = APIRouter(tags=["catálogos"])
+router = APIRouter(prefix="/catalogs", tags=["catálogos"])
 
 
 # ── Niveles ────────────────────────────────────────────────────────────────────
@@ -60,6 +60,7 @@ async def listar_ciclos(
 async def listar_grados(
     plantel_id: uuid.UUID | None = None,
     nivel: str | None = None,
+    nivel_id: uuid.UUID | None = None,
     db: AsyncSession = Depends(get_db),
     _user: dict = Depends(get_current_user),
 ):
@@ -72,6 +73,8 @@ async def listar_grados(
         q = q.where(Grado.plantel_id == plantel_id)
     if nivel:
         q = q.where(NivelEducativo.nombre_nivel == nivel.upper())
+    if nivel_id:
+        q = q.where(Grado.nivel_educativo_id == nivel_id)
     q = q.order_by(NivelEducativo.nombre_nivel, Grado.numero_grado)
     rows = await db.execute(q)
     return rows.scalars().all()

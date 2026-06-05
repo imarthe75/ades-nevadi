@@ -8,6 +8,7 @@ Flujo estándar:
   4. GET  /asistencias/alumno/{alumno_id}/reporte → reporte individual
 """
 from __future__ import annotations
+import asyncio
 import uuid
 from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -71,7 +72,54 @@ async def registrar_asistencia_clase(
     await db.commit()
     for r in resultados:
         await db.refresh(r)
+
+    # FASE 20 — Verificar asistencia de alumnos ausentes y alertar si baja del umbral
+    ausentes = [
+        item.estudiante_id for item in data.asistencias
+        if item.estatus_asistencia in ("AUSENTE",)
+    ]
+    if ausentes and clase:
+        asyncio.create_task(_check_asistencia_y_alertar(db, ausentes, clase))
+
     return resultados
+
+
+async def _check_asistencia_y_alertar(db: AsyncSession, estudiante_ids, clase) -> None:
+    """
+    Para cada alumno ausente, calcula su % de asistencia acumulado.
+    Si cae por debajo del 85%, dispara push al padre + webhook n8n.
+    Corre en background para no retrasar la respuesta.
+    """
+    from sqlalchemy import text
+    from app.services.notification_triggers import on_asistencia_baja
+
+    for est_id in estudiante_ids:
+        try:
+            row = await db.execute(
+                text("""
+                    SELECT
+                        COUNT(*) FILTER (WHERE a.estatus_asistencia = 'PRESENTE') AS presentes,
+                        COUNT(*) AS total
+                    FROM ades_asistencias a
+                    JOIN ades_clases cl ON cl.id = a.clase_id
+                    WHERE a.estudiante_id = :eid
+                      AND cl.grupo_id = :gid
+                """),
+                {"eid": str(est_id), "gid": str(clase.grupo_id) if clase.grupo_id else ""},
+            )
+            r = row.fetchone()
+            if not r or r[1] == 0:
+                continue
+            pct = round(r[0] / r[1] * 100, 1)
+            inasistencias = r[1] - r[0]
+            if pct < 85.0:
+                await on_asistencia_baja(
+                    db, est_id, pct, inasistencias,
+                    plantel_id=getattr(clase, "plantel_id", None),
+                    grupo_id=getattr(clase, "grupo_id", None),
+                )
+        except Exception:
+            pass
 
 
 @router.patch("/clase/{clase_id}/alumno/{estudiante_id}", response_model=AsistenciaOut)

@@ -3,7 +3,7 @@
  * Contiene: logo, selector de plantel/ciclo (Application Items), nav lateral, router-outlet.
  * Colores institucionales Instituto Nevadi — primario #D02030.
  */
-import { Component, inject, OnInit, signal, ViewChild } from '@angular/core';
+import { Component, inject, OnInit, signal, computed, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, RouterOutlet } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -14,12 +14,21 @@ import { MenuModule } from 'primeng/menu';
 import { ToastModule } from 'primeng/toast';
 import { PopoverModule, Popover } from 'primeng/popover';
 import { BadgeModule } from 'primeng/badge';
+import { TagModule } from 'primeng/tag';
 import { MessageService } from 'primeng/api';
 
 import { ContextService } from '../core/services/context.service';
 import { AuthService } from '../core/services/auth.service';
 import { ApiService } from '../core/services/api.service';
-import type { Plantel, CicloEscolar } from '../core/models';
+import { PushNotificationService } from '../core/services/push-notification.service';
+import type { Plantel, CicloEscolar, NivelEducativo } from '../core/models';
+
+// Sentinelas para "Todo el Instituto" / "Todos los niveles"
+const TODO_INSTITUTO: Plantel = { id: '', nombre_plantel: '— Todo el Instituto —', escuela_id: '', is_active: true };
+const TODOS_NIVELES: NivelEducativo = { id: '', nombre_nivel: 'TODOS' as any, autoridad_educativa: '', tipo_ciclo: '', num_periodos_eval: 0 };
+
+interface NavItem  { route: string; icon: string; label: string; maxNivel?: number; minNivel?: number; }
+interface NavGroup { section: string; maxNivel?: number; minNivel?: number; items: NavItem[]; }
 
 interface Notif { id: string; titulo: string; cuerpo: string; tipo: string; leido: boolean; }
 
@@ -29,7 +38,7 @@ interface Notif { id: string; titulo: string; cuerpo: string; tipo: string; leid
   imports: [
     CommonModule, RouterModule, RouterOutlet, FormsModule,
     ToolbarModule, ButtonModule, SelectModule, MenuModule, ToastModule,
-    PopoverModule, BadgeModule,
+    PopoverModule, BadgeModule, TagModule,
   ],
   providers: [MessageService],
   template: `
@@ -48,29 +57,54 @@ interface Notif { id: string; titulo: string; cuerpo: string; tipo: string; leid
 
         <div class="topbar-divider"></div>
 
-        <!-- Selector de Plantel (Application Item APEX-style) -->
-        <p-select
-          [options]="planteles()"
-          [(ngModel)]="selectedPlantel"
-          optionLabel="nombre_plantel"
-          placeholder="Plantel..."
-          styleClass="ctx-selector"
-          (onChange)="onPlantelChange($event.value)"
-        />
+        <!-- ── Plantel ── -->
+        @if (ctx.esAdminGlobal()) {
+          <p-select
+            [options]="planteles()"
+            [(ngModel)]="selectedPlantel"
+            optionLabel="nombre_plantel"
+            placeholder="Plantel..."
+            styleClass="ctx-selector"
+            (onChange)="onPlantelChange($event.value)"
+          />
+        } @else {
+          <div class="ctx-label"><i class="pi pi-map-marker"></i> {{ ctx.usuario()?.nombre_plantel ?? selectedPlantel?.nombre_plantel }}</div>
+        }
 
-        <!-- Selector de Ciclo -->
+        <span class="ctx-sep">/</span>
+
+        <!-- ── Nivel educativo / Escuela ── -->
+        @if (ctx.tieneScopeNivel()) {
+          <div class="ctx-label ctx-nivel">{{ ctx.usuario()?.nombre_nivel }}</div>
+        } @else {
+          <p-select
+            [options]="niveles()"
+            [(ngModel)]="selectedNivel"
+            optionLabel="nombre_nivel"
+            placeholder="Nivel..."
+            styleClass="ctx-selector ctx-selector-sm"
+            (onChange)="onNivelChange($event.value)"
+          />
+        }
+
+        <span class="ctx-sep">/</span>
+
+        <!-- ── Ciclo Escolar ── -->
         <p-select
           [options]="ciclos()"
           [(ngModel)]="selectedCiclo"
           optionLabel="nombre_ciclo"
-          placeholder="Ciclo escolar..."
-          styleClass="ctx-selector"
+          placeholder="Ciclo..."
+          styleClass="ctx-selector ctx-selector-sm"
           (onChange)="onCicloChange($event.value)"
         />
       </ng-template>
 
       <ng-template pTemplate="end">
-        <span class="user-name">{{ ctx.usuario()?.nombre_completo }}</span>
+        <div class="user-info">
+          <span class="user-name">{{ ctx.usuario()?.nombre_completo }}</span>
+          <span class="user-rol">{{ ctx.rolLabel() }}</span>
+        </div>
 
         <!-- Campanita de notificaciones -->
         <div class="notif-bell" (click)="toggleNotifPanel($event)">
@@ -118,9 +152,9 @@ interface Notif { id: string; titulo: string; cuerpo: string; tipo: string; leid
 
     <!-- ── Layout principal ── -->
     <div class="app-layout">
-      <!-- Nav lateral -->
+      <!-- Nav lateral — dinámico por rol -->
       <nav class="sidenav">
-        @for (group of navGroups; track group.section) {
+        @for (group of navGroupsVisible(); track group.section) {
           <div class="sidenav-section">{{ group.section }}</div>
           <ul>
             @for (item of group.items; track item.route) {
@@ -170,7 +204,20 @@ interface Notif { id: string; titulo: string; cuerpo: string; tipo: string; leid
 
     .topbar-divider { width: 1px; height: 28px; background: rgba(255,255,255,.2); margin: 0 0.75rem; }
 
-    .user-name { color: var(--topbar-text-muted); font-size: 0.82rem; margin-right: 0.5rem; }
+    .user-info { display: flex; flex-direction: column; align-items: flex-end; margin-right: 0.5rem; }
+    .user-name { color: rgba(255,255,255,.9); font-size: 0.82rem; line-height: 1.2; }
+    .user-rol  { color: var(--topbar-text-muted); font-size: 0.7rem; }
+
+    /* Badge de escuela para usuarios con scope fijo */
+    .scope-badge {
+      display: flex; align-items: center; gap: 0.4rem;
+      background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.2);
+      border-radius: 6px; padding: 0.3rem 0.7rem;
+      color: #fff; font-size: 0.82rem; font-weight: 500;
+    }
+    .scope-badge i { font-size: 0.75rem; opacity: 0.8; }
+    .scope-sep  { opacity: 0.5; }
+    .scope-nivel { opacity: 0.85; font-weight: 600; }
 
     /* Campanita */
     .notif-bell {
@@ -220,8 +267,20 @@ interface Notif { id: string; titulo: string; cuerpo: string; tipo: string; leid
     .notif-panel-footer a { font-size: .8rem; color: var(--primary-color); text-decoration: none; }
     .notif-panel-footer a:hover { text-decoration: underline; }
 
+    /* Separador / entre contextos */
+    .ctx-sep { color: rgba(255,255,255,.4); font-size: 1rem; margin: 0 0.1rem; user-select: none; }
+
+    /* Badge fijo de plantel/nivel (usuarios con scope) */
+    .ctx-label {
+      color: rgba(255,255,255,.9); font-size: 0.82rem; font-weight: 500;
+      padding: 0.3rem 0.5rem; white-space: nowrap;
+    }
+    .ctx-label i { font-size: 0.75rem; opacity: 0.7; margin-right: 0.2rem; }
+    .ctx-nivel { font-weight: 700; letter-spacing: .02em; text-transform: uppercase; font-size: 0.78rem; }
+
     /* p-select en topbar */
     :host ::ng-deep .ctx-selector { min-width: 160px; }
+    :host ::ng-deep .ctx-selector-sm { min-width: 130px; }
 
     /* botón de topbar */
     :host ::ng-deep .topbar-btn { color: rgba(255,255,255,.8) !important; }
@@ -270,63 +329,88 @@ interface Notif { id: string; titulo: string; cuerpo: string; tipo: string; leid
 export class ShellComponent implements OnInit {
   readonly ctx  = inject(ContextService);
   readonly auth = inject(AuthService);
-  private readonly api = inject(ApiService);
+  private readonly api  = inject(ApiService);
+  private readonly push = inject(PushNotificationService);
 
   planteles = signal<Plantel[]>([]);
+  niveles   = signal<NivelEducativo[]>([]);
   ciclos    = signal<CicloEscolar[]>([]);
   selectedPlantel: Plantel | null = this.ctx.plantel();
+  selectedNivel: NivelEducativo | null = this.ctx.nivel();
   selectedCiclo: CicloEscolar | null = this.ctx.ciclo();
+
+  /** Label del plantel actual para mostrar en topbar */
+  readonly plantelLabel = () => {
+    const p = this.selectedPlantel;
+    if (!p || p.id === '') return 'Todo el Instituto';
+    return p.nombre_plantel;
+  };
+  readonly nivelLabel = () => {
+    const n = this.selectedNivel;
+    if (!n || n.id === '') return 'Todos los niveles';
+    return n.nombre_nivel;
+  };
 
   notifCount    = signal(0);
   notificaciones = signal<Notif[]>([]);
   @ViewChild('notifPanel') notifPanelRef!: Popover;
 
-  readonly navGroups: { section: string; items: { route: string; icon: string; label: string }[] }[] = [
+  // maxNivel: usuarios con nivel_acceso <= maxNivel ven el ítem
+  // 0=ADMIN_GLOBAL, 1=ADMIN_PLANTEL, 2-3=DIRECTOR/COORD, 4=DOCENTE, 5=ALUMNO
+  private readonly _allNavGroups: NavGroup[] = [
     {
       section: 'Principal',
       items: [
-        { route: '/dashboard',  icon: 'pi-home',  label: 'Dashboard' },
-        { route: '/planteles',  icon: 'pi-map-marker', label: 'Planteles' },
+        { route: '/dashboard',  icon: 'pi-home',       label: 'Dashboard' },
+        { route: '/planteles',  icon: 'pi-map-marker', label: 'Planteles', maxNivel: 1 },
+        { route: '/admin',      icon: 'pi-cog',        label: 'Administración', maxNivel: 1 },
       ],
     },
     {
       section: 'Académico',
+      maxNivel: 4,
       items: [
         { route: '/alumnos',        icon: 'pi-users',        label: 'Alumnos' },
+        { route: '/padres-admin',   icon: 'pi-users',        label: 'Gestión de Padres', maxNivel: 1 },
         { route: '/profesores',     icon: 'pi-id-card',      label: 'Profesores' },
         { route: '/grupos',         icon: 'pi-building',     label: 'Grupos' },
+        { route: '/planes-estudio', icon: 'pi-list',          label: 'Planes de Estudio', maxNivel: 3 },
         { route: '/calificaciones', icon: 'pi-star',         label: 'Calificaciones' },
         { route: '/evaluaciones',   icon: 'pi-file-check',   label: 'Evaluaciones' },
         { route: '/asistencias',    icon: 'pi-check-square', label: 'Asistencias' },
         { route: '/tareas',         icon: 'pi-file-edit',    label: 'Tareas' },
-        { route: '/planeacion',     icon: 'pi-list-check',   label: 'Planeación' },
+        { route: '/planeacion',     icon: 'pi-list-check',   label: 'Planeación', maxNivel: 3 },
       ],
     },
     {
       section: 'Operaciones',
+      maxNivel: 3,
       items: [
-        { route: '/horarios', icon: 'pi-calendar',            label: 'Horarios' },
-        { route: '/conducta', icon: 'pi-exclamation-circle',  label: 'Conducta' },
-        { route: '/medico',   icon: 'pi-heart',               label: 'Expediente Médico' },
+        { route: '/horarios', icon: 'pi-calendar',           label: 'Horarios' },
+        { route: '/conducta', icon: 'pi-exclamation-circle', label: 'Conducta' },
+        { route: '/medico',   icon: 'pi-heart',              label: 'Expediente Médico' },
       ],
     },
     {
       section: 'Comunicación',
+      maxNivel: 4,
       items: [
         { route: '/comunicados', icon: 'pi-envelope',  label: 'Comunicados' },
-        { route: '/encuestas',   icon: 'pi-chart-pie', label: 'Encuestas' },
+        { route: '/encuestas',   icon: 'pi-chart-pie', label: 'Encuestas', maxNivel: 3 },
       ],
     },
     {
       section: 'Gradebook',
+      maxNivel: 4,
       items: [
-        { route: '/gradebook',          icon: 'pi-book',       label: 'Gradebook' },
+        { route: '/gradebook',          icon: 'pi-book',      label: 'Gradebook' },
         { route: '/mi-progreso',        icon: 'pi-chart-line', label: 'Mi Progreso' },
-        { route: '/ponderacion-config', icon: 'pi-sliders-h',  label: 'Ponderaciones' },
+        { route: '/ponderacion-config', icon: 'pi-sliders-h', label: 'Ponderaciones', maxNivel: 3 },
       ],
     },
     {
       section: 'Recursos',
+      maxNivel: 4,
       items: [
         { route: '/rubricas', icon: 'pi-table',     label: 'Rúbricas' },
         { route: '/badges',   icon: 'pi-star-fill', label: 'Insignias' },
@@ -334,28 +418,105 @@ export class ShellComponent implements OnInit {
       ],
     },
     {
-      section: 'Inteligencia',
+      section: 'Mi Familia',
+      minNivel: 5,   // solo ALUMNO (5) y PADRE_FAMILIA (5)
       items: [
+        { route: '/padres',      icon: 'pi-users',       label: 'Portal de Padres',    minNivel: 5 },
+        { route: '/portal',      icon: 'pi-chart-line',  label: 'Progreso del Alumno', minNivel: 5 },
+        { route: '/comunicados', icon: 'pi-envelope',    label: 'Comunicados',         minNivel: 5 },
+      ],
+    },
+    {
+      section: 'Inteligencia',
+      maxNivel: 3,
+      items: [
+        { route: '/bi',              icon: 'pi-chart-pie',      label: 'Dashboards BI' },
         { route: '/grade-analytics', icon: 'pi-chart-bar',      label: 'Grade Analytics' },
+        { route: '/ia',              icon: 'pi-sparkles',       label: 'Asistente IA + Datos' },
         { route: '/eval-docente',    icon: 'pi-star',           label: 'Eval. Docente 360°' },
         { route: '/learning-paths',  icon: 'pi-graduation-cap', label: 'Learning Paths' },
-        { route: '/ia',              icon: 'pi-sparkles',       label: 'Asistente IA' },
+      ],
+    },
+    {
+      section: 'Reportes',
+      maxNivel: 3,
+      items: [
+        { route: '/reportes', icon: 'pi-file-pdf', label: 'Generador de Reportes' },
+        { route: '/boletas',  icon: 'pi-print',    label: 'Boletas (WeasyPrint)' },
+      ],
+    },
+    {
+      section: 'Sistema',
+      maxNivel: 1,
+      items: [
+        { route: '/monitor', icon: 'pi-heart-fill', label: 'Monitor del Sistema' },
+        { route: '/admin',   icon: 'pi-cog',        label: 'Administración' },
+      ],
+    },
+    {
+      section: 'Ayuda',
+      items: [
+        { route: '/ayuda', icon: 'pi-question-circle', label: 'Manual de Usuario' },
       ],
     },
   ];
 
+  /** Grupos/ítems visibles para el rol del usuario actual */
+  readonly navGroupsVisible = computed(() => {
+    const nivel = this.ctx.nivelAcceso();
+    if (nivel === 0) {
+      // Admin global ve todas las opciones
+      return this._allNavGroups;
+    }
+    const itemVisible = (item: NavItem, groupMax?: number, groupMin?: number) => {
+      const max = item.maxNivel ?? groupMax ?? 99;
+      const min = item.minNivel ?? groupMin ?? 0;
+      return nivel <= max && nivel >= min;
+    };
+    return this._allNavGroups
+      .filter(g => {
+        const max = g.maxNivel ?? 99;
+        const min = g.minNivel ?? 0;
+        return nivel <= max && nivel >= min;
+      })
+      .map(g => ({
+        ...g,
+        items: g.items.filter(item => itemVisible(item, g.maxNivel, g.minNivel)),
+      }))
+      .filter(g => g.items.length > 0);
+  });
+
   ngOnInit(): void {
+    // FASE 20 — Inicializar push notifications (ntfy SSE) al cargar el shell
+    this.push.init().catch(() => { /* ntfy opcional — modo degradado */ });
+
+    const usuario = this.ctx.usuario();
+
     this.api.get<Plantel[]>('/planteles').subscribe(p => {
-      this.planteles.set(p);
-      if (!this.selectedPlantel && p.length) {
-        this.selectedPlantel = p[0];
-        this.ctx.setPlantel(p[0]);
-        this.loadCiclos();
+      // ADMIN_GLOBAL: primera opción es "Todo el Instituto" (null plantel)
+      const opciones = this.ctx.esAdminGlobal() ? [TODO_INSTITUTO, ...p] : p;
+      this.planteles.set(opciones);
+
+      if (!this.selectedPlantel) {
+        if (usuario?.plantel_id) {
+          // Usuario con plantel fijo: seleccionar su plantel
+          const match = p.find(x => x.id === usuario.plantel_id) ?? p[0];
+          this.selectedPlantel = match ?? null;
+        } else if (this.ctx.esAdminGlobal()) {
+          // Admin global: iniciar en "Todo el Instituto"
+          this.selectedPlantel = TODO_INSTITUTO;
+        } else {
+          this.selectedPlantel = p[0] ?? null;
+        }
+        this.ctx.setPlantel(this.selectedPlantel?.id ? this.selectedPlantel : null);
       }
+
+      if (this.selectedPlantel?.id) this.loadNiveles();
+      else this.loadNivelesTodos();
     });
-    if (this.selectedPlantel) this.loadCiclos();
+
     this.loadNotifCount();
-    setInterval(() => this.loadNotifCount(), 60_000);   // refresca cada minuto
+    setInterval(() => this.loadNotifCount(), 60_000);
   }
 
   loadNotifCount(): void {
@@ -401,7 +562,22 @@ export class ShellComponent implements OnInit {
   }
 
   onPlantelChange(p: Plantel): void {
-    this.ctx.setPlantel(p);
+    const esGlobal = !p?.id;
+    this.ctx.setPlantel(esGlobal ? null : p);
+    this.selectedNivel = null;
+    this.ctx.setNivel(null);
+    this.selectedCiclo = null;
+    this.ctx.setCiclo(null);
+    this.ciclos.set([]);
+    if (esGlobal) this.loadNivelesTodos();
+    else this.loadNiveles();
+  }
+
+  onNivelChange(n: NivelEducativo): void {
+    const esGlobal = !n?.id;
+    this.ctx.setNivel(esGlobal ? null : n);
+    this.selectedCiclo = null;
+    this.ctx.setCiclo(null);
     this.loadCiclos();
   }
 
@@ -409,12 +585,58 @@ export class ShellComponent implements OnInit {
     this.ctx.setCiclo(c);
   }
 
+  private loadNivelesTodos(): void {
+    // Sin plantel específico: cargar todos los niveles únicos
+    this.api.get<NivelEducativo[]>('/catalogs/niveles').subscribe(ns => {
+      this.niveles.set([TODOS_NIVELES, ...ns]);
+      this.selectedNivel = TODOS_NIVELES;
+      this.ctx.setNivel(null);
+      this.loadCiclos();
+    });
+  }
+
+  private loadNiveles(): void {
+    const plantelId = this.selectedPlantel?.id;
+    if (!plantelId) return;
+
+    this.api.get<NivelEducativo[]>(`/planteles/${plantelId}/niveles`).subscribe(ns => {
+      // Admin global puede ver "todos los niveles" también por plantel
+      const opciones = this.ctx.esAdminGlobal() ? [TODOS_NIVELES, ...ns] : ns;
+      this.niveles.set(opciones);
+
+      // Resolver nivel inicial
+      const usuario = this.ctx.usuario();
+      let inicial: NivelEducativo | null = null;
+
+      if (usuario?.nivel_educativo_id) {
+        inicial = ns.find(x => x.id === usuario.nivel_educativo_id) ?? null;
+      }
+      if (!inicial && this.selectedNivel?.id) {
+        inicial = ns.find(x => x.id === this.selectedNivel!.id) ?? ns[0] ?? null;
+      }
+      if (!inicial && ns.length) inicial = ns[0];
+
+      if (inicial) {
+        this.selectedNivel = inicial;
+        this.ctx.setNivel(inicial);
+        this.loadCiclos();
+      }
+    });
+  }
+
   private loadCiclos(): void {
-    this.api.get<CicloEscolar[]>('/ciclos', { solo_vigentes: true }).subscribe(c => {
+    const nivel = this.selectedNivel?.id ? this.selectedNivel.nombre_nivel : undefined;
+    const params: Record<string, any> = { solo_vigentes: true };
+    if (nivel) params['nivel'] = nivel;
+
+    this.api.get<CicloEscolar[]>('/catalogs/ciclos', params).subscribe(c => {
       this.ciclos.set(c);
-      if (!this.selectedCiclo && c.length) {
-        this.selectedCiclo = c[0];
-        this.ctx.setCiclo(c[0]);
+      if (c.length) {
+        // Mantener el ciclo seleccionado si sigue siendo válido
+        const existente = this.selectedCiclo ? c.find(x => x.id === this.selectedCiclo!.id) : null;
+        const elegido = existente ?? c[0];
+        this.selectedCiclo = elegido;
+        this.ctx.setCiclo(elegido);
       }
     });
   }

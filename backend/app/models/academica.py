@@ -117,3 +117,18 @@ class Grupo(AuditMixin, Base):
     grado: Mapped[Grado] = relationship(back_populates="grupos")
     ciclo: Mapped[CicloEscolar] = relationship(back_populates="grupos")
     inscripciones: Mapped[list] = relationship("Inscripcion", back_populates="grupo")
+
+
+class IdentidadInstitucional(AuditMixin, Base):
+    """Branding e identidad visual del sistema por institución/plantel."""
+    __tablename__ = 'ades_identidad_institucional'
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, server_default=func.uuidv7())
+    tipo_elemento: Mapped[str] = mapped_column(String(50), nullable=False)
+    texto_elemento: Mapped[str | None] = mapped_column(Text)
+    url_archivo: Mapped[str | None] = mapped_column(String(255))
+    color_hex: Mapped[str | None] = mapped_column(String(7))
+    escuela_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
+    plantel_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey('ades_planteles.id'))
+    nivel_educativo_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey('ades_niveles_educativos.id'))
+

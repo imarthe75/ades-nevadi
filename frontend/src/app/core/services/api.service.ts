@@ -41,4 +41,18 @@ export class ApiService {
   upload<T>(path: string, formData: FormData): Observable<T> {
     return this.http.post<T>(`${this.base}${path}`, formData);
   }
+
+  postFormData<T>(path: string, formData: FormData): Observable<T> {
+    return this.http.post<T>(`${this.base}${path}`, formData);
+  }
+
+  getBlob(path: string, params?: Record<string, string | number | undefined>): Observable<Blob> {
+    let httpParams = new HttpParams();
+    if (params) {
+      Object.entries(params).forEach(([k, v]) => {
+        if (v !== undefined && v !== null) httpParams = httpParams.set(k, String(v));
+      });
+    }
+    return this.http.get(`${this.base}${path}`, { params: httpParams, responseType: 'blob' });
+  }
 }

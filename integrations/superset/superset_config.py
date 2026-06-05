@@ -5,9 +5,14 @@ Este archivo se monta en /app/pythonpath/superset_config.py dentro del contenedo
 Superset lo carga automáticamente al arrancar.
 
 Datasource principal: PostgreSQL ADES (esquema ades_bi con vistas materializadas)
-Auth: local (Authentik OIDC se configura manualmente en la UI tras el primer arranque)
+Auth: OIDC con Authentik (mismo IdP que el resto del sistema)
 """
 import os
+import logging
+
+from flask_appbuilder.security.manager import AUTH_OAUTH
+
+log = logging.getLogger(__name__)
 
 # ── Secreto ───────────────────────────────────────────────────────────────────
 SECRET_KEY = os.environ.get("SUPERSET_SECRET_KEY", "CHANGE_ME_IN_PRODUCTION")
@@ -30,8 +35,22 @@ CACHE_CONFIG = {
 
 DATA_CACHE_CONFIG = {
     "CACHE_TYPE": "RedisCache",
-    "CACHE_DEFAULT_TIMEOUT": 600,   # 10 min — los dashboards de BI no requieren tiempo real
+    "CACHE_DEFAULT_TIMEOUT": 600,
     "CACHE_KEY_PREFIX": "superset_data_",
+    "CACHE_REDIS_URL": REDIS_URL,
+}
+
+FILTER_STATE_CACHE_CONFIG = {
+    "CACHE_TYPE": "RedisCache",
+    "CACHE_DEFAULT_TIMEOUT": 600,
+    "CACHE_KEY_PREFIX": "superset_filter_",
+    "CACHE_REDIS_URL": REDIS_URL,
+}
+
+EXPLORE_FORM_DATA_CACHE_CONFIG = {
+    "CACHE_TYPE": "RedisCache",
+    "CACHE_DEFAULT_TIMEOUT": 300,
+    "CACHE_KEY_PREFIX": "superset_explore_",
     "CACHE_REDIS_URL": REDIS_URL,
 }
 
@@ -42,7 +61,6 @@ CELERY_CONFIG = {
     "task_acks_late": False,
     "task_annotations": {
         "sql_lab.get_sql_results": {"rate_limit": "100/s"},
-        "email_reports.send": {"rate_limit": "1/5s", "time_limit": 120, "soft_time_limit": 150},
     },
 }
 
@@ -50,56 +68,103 @@ CELERY_CONFIG = {
 BABEL_DEFAULT_LOCALE = "es"
 BABEL_DEFAULT_TIMEZONE = "America/Mexico_City"
 
+# ── Autenticación OIDC con Authentik ─────────────────────────────────────────
+_OIDC_ISSUER = os.environ.get(
+    "OIDC_ISSUER",
+    "https://auth.ades.setag.mx/application/o/superset",
+)
+
+AUTH_TYPE = AUTH_OAUTH
+AUTH_USER_REGISTRATION = True
+AUTH_USER_REGISTRATION_ROLE = "Gamma"
+
+OAUTH_PROVIDERS = [
+    {
+        "name": "oidc",
+        "icon": "fa-openid",
+        "token_key": "access_token",
+        "remote_app": {
+            "client_id": os.environ.get("OIDC_CLIENT_ID", "superset"),
+            "client_secret": os.environ.get("OIDC_CLIENT_SECRET", ""),
+            "server_metadata_url": f"{_OIDC_ISSUER}/.well-known/openid-configuration",
+            "client_kwargs": {
+                "scope": "openid profile email",
+                "token_endpoint_auth_method": "client_secret_post",
+            },
+            "api_base_url": f"{_OIDC_ISSUER}/",
+            "access_token_url": f"{_OIDC_ISSUER}/token/",
+            "authorize_url": f"{_OIDC_ISSUER}/authorize/",
+            "jwks_uri": f"{_OIDC_ISSUER}/jwks/",
+        },
+    }
+]
+
+# Custom Security Manager con mapeo de roles ADES → Superset
+from custom_sso_security_manager import AdesSecurityManager  # noqa: E402
+CUSTOM_SECURITY_MANAGER = AdesSecurityManager
+
 # ── Feature flags ─────────────────────────────────────────────────────────────
 FEATURE_FLAGS = {
-    "ENABLE_TEMPLATE_PROCESSING": True,     # Permite usar Jinja2 en SQL
+    "ENABLE_TEMPLATE_PROCESSING": True,
     "DASHBOARD_NATIVE_FILTERS": True,
     "DASHBOARD_CROSS_FILTERS": True,
     "DRILL_TO_DETAIL": True,
     "DRILL_BY": True,
     "HORIZONTAL_FILTER_BAR": True,
+    "EMBEDDED_SUPERSET": True,            # habilita el SDK embebido (guest tokens)
     "CHART_PLUGINS_EXPERIMENTAL": False,
 }
 
-# ── Seguridad ─────────────────────────────────────────────────────────────────
-# Permitir iframe embebido (para el componente Angular de BI)
-HTTP_HEADERS = {"X-Frame-Options": "SAMEORIGIN"}
+# ── Embedded Superset — dominios permitidos ───────────────────────────────────
+# El frontend Angular embebe dashboards vía guest token. Listar los dominios.
+GUEST_ROLE_NAME = "Public"
+GUEST_TOKEN_JWT_SECRET = os.environ.get("SUPERSET_SECRET_KEY", "CHANGE_ME_IN_PRODUCTION")
+GUEST_TOKEN_JWT_ALGO = "HS256"
+GUEST_TOKEN_HEADER_NAME = "X-GuestToken"
+GUEST_TOKEN_JWT_EXP_SECONDS = 300  # 5 minutos
 
-WTF_CSRF_ENABLED = True
-WTF_CSRF_EXEMPT_LIST = []
-WTF_CSRF_TIME_LIMIT = 60 * 60 * 24 * 365
+TALISMAN_ENABLED = False  # Desactivado para poder embeber en iframes desde ades.setag.mx
 
-# Dominios de confianza (ajustar con el dominio real)
+# Permitir iframe desde el dominio del frontend
+HTTP_HEADERS = {"X-Frame-Options": "ALLOWALL"}  # se restringe por CORS_OPTIONS
+
+# ── Seguridad / CORS ──────────────────────────────────────────────────────────
 CORS_OPTIONS = {
     "supports_credentials": True,
     "allow_headers": ["*"],
-    "resources": ["/api/*"],
-    "origins": ["https://ades.setag.mx", "http://localhost:4200"],
+    "resources": ["/api/*", "/superset/embedded/*"],
+    "origins": [
+        "https://ades.setag.mx",
+        "http://localhost:4200",
+    ],
 }
 
-# ── Datasources adicionales ───────────────────────────────────────────────────
-# La conexión a PostgreSQL ADES se agrega desde la UI:
-#   Database → + → PostgreSQL
-#   Host: ades-postgres  Port: 5432  DB: ades  User: superset_ro
-#   Exponer los schemas: ades_bi, public
-#
-# Esquema recomendado para exploración: ades_bi
-# Vistas disponibles:
-#   mv_asistencia_diaria       — asistencia por grupo y día
-#   mv_calificaciones_grupo    — promedios por materia, grupo y periodo
-#   mv_riesgo_academico        — riesgo alto/medio/bajo por alumno
-#   mv_resumen_plantel         — KPIs ejecutivos por plantel y nivel
-#   mv_cobertura_curricular    — % cobertura del plan de estudios
+WTF_CSRF_ENABLED = True
+WTF_CSRF_EXEMPT_LIST = ["superset.views.core.log"]
+WTF_CSRF_TIME_LIMIT = 60 * 60 * 24 * 365
 
 # ── Límites de consulta ───────────────────────────────────────────────────────
 ROW_LIMIT = 50_000
 SQL_MAX_ROW = 100_000
 VIZ_ROW_LIMIT = 10_000
 
-# ── Inicio limpio ─────────────────────────────────────────────────────────────
-# Crear usuario admin en primer arranque:
+# ── Datasource — conexión de solo lectura al schema ades_bi ──────────────────
+# La conexión se agrega desde la UI (o vía script init):
+#   Database → + → PostgreSQL
+#   Host: ades-postgres  Port: 5432  DB: ades  User: superset_ro
+#   Schemas expuestos: ades_bi, public
+#
+# Vistas disponibles en ades_bi:
+#   mv_asistencia_diaria       — asistencia por grupo y día
+#   mv_calificaciones_grupo    — promedios por materia, grupo y periodo
+#   mv_riesgo_academico        — riesgo alto/medio/bajo por alumno
+#   mv_resumen_plantel         — KPIs ejecutivos por plantel y nivel
+#   mv_cobertura_curricular    — % cobertura del plan de estudios
+
+# ── Inicio — comandos de primer arranque: ─────────────────────────────────────
+#   docker compose exec superset superset db upgrade
+#   docker compose exec superset superset init
 #   docker compose exec superset superset fab create-admin \
 #       --username admin --firstname Admin --lastname ADES \
 #       --email admin@institutonevadi.edu.mx --password <PASSWORD>
-#   docker compose exec superset superset db upgrade
-#   docker compose exec superset superset init
+#   Ver: infrastructure/superset/init.sh
