@@ -1,19 +1,24 @@
+/**
+ * FASE 2 & FASE 24 — Evaluaciones (Tests/Exams) + Interactive Grid APEX-style
+ * Agenda tab: read-only grid of evaluations
+ * Libreta tab: inline editing of grades (preserved, complex pattern)
+ */
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
-import { TableModule } from 'primeng/table';
-import { TagModule } from 'primeng/tag';
 import { DialogModule } from 'primeng/dialog';
 import { SelectModule } from 'primeng/select';
 import { InputTextModule } from 'primeng/inputtext';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { TooltipModule } from 'primeng/tooltip';
 import { MessageModule } from 'primeng/message';
+import { ToastModule } from 'primeng/toast';
 
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
 import { ExportService, ExportColumn } from '../../core/services/export.service';
+import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
 
 type TagSeverity = 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' | undefined;
 
@@ -55,9 +60,9 @@ const TIPO_SEV: Record<string, TagSeverity> = {
   standalone: true,
   imports: [
     CommonModule, FormsModule,
-    ButtonModule, TableModule, TagModule, DialogModule,
-    SelectModule, InputTextModule, InputNumberModule,
-    TooltipModule, MessageModule,
+    ButtonModule, DialogModule, SelectModule, InputTextModule, InputNumberModule,
+    TooltipModule, MessageModule, ToastModule,
+    InteractiveGridComponent,
   ],
   template: `
     <div class="page-header">
@@ -80,62 +85,22 @@ const TIPO_SEV: Record<string, TagSeverity> = {
       </button>
     </div>
 
-    <!-- TAB: Agenda de evaluaciones -->
+    <!-- TAB: Agenda de evaluaciones (Interactive Grid APEX-style) -->
     @if (activeTab === 'agenda') {
-      <p-table [value]="evaluaciones()" [loading]="loading()" dataKey="id"
-               styleClass="p-datatable-sm p-datatable-striped"
-               [paginator]="true" [rows]="15">
-        <ng-template pTemplate="header">
-          <tr>
-            <th pSortableColumn="fecha_evaluacion">Fecha <p-sortIcon field="fecha_evaluacion" /></th>
-            <th pSortableColumn="tipo_evaluacion">Tipo <p-sortIcon field="tipo_evaluacion" /></th>
-            <th>Nombre</th>
-            <th>Grupo</th>
-            <th pSortableColumn="nombre_materia">Materia <p-sortIcon field="nombre_materia" /></th>
-            <th>Periodo</th>
-            <th>Promedio</th>
-            <th>Calificados</th>
-            <th>Acciones</th>
-          </tr>
-        </ng-template>
-        <ng-template pTemplate="body" let-e>
-          <tr>
-            <td>{{ e.fecha_evaluacion | date:'dd/MM/yy' }}</td>
-            <td><p-tag [value]="e.tipo_evaluacion" [severity]="tipoSev(e.tipo_evaluacion)" /></td>
-            <td><strong>{{ e.nombre_evaluacion }}</strong></td>
-            <td>{{ e.nombre_grupo }}</td>
-            <td>{{ e.nombre_materia }}</td>
-            <td>{{ e.nombre_periodo }}</td>
-            <td>
-              @if (e.promedio != null) {
-                <span [class]="promClass(e.promedio)">{{ e.promedio | number:'1.1-1' }}</span>
-              } @else { <span class="text-muted">—</span> }
-            </td>
-            <td>
-              <span class="acuse-badge">{{ e.total_calificados }}</span>
-              @if (e.reprobados > 0) {
-                <span class="rep-badge" style="margin-left:.3rem">{{ e.reprobados }} rep.</span>
-              }
-            </td>
-            <td>
-              <p-button icon="pi pi-book" size="small" [text]="true"
-                        pTooltip="Abrir libreta" (onClick)="abrirLibreta(e)" />
-            </td>
-          </tr>
-        </ng-template>
-        <ng-template pTemplate="emptymessage">
-          <tr><td colspan="9" class="empty-msg">No hay evaluaciones registradas para el grupo/ciclo seleccionado.</td></tr>
-        </ng-template>
-      </p-table>
+      <app-interactive-grid
+        [data]="evaluacionesDatos()"
+        [columns]="columnasAgenda"
+        [loading]="loading()"
+        (rowSelected)="abrirLibreta($event)"
+      />
     }
 
-    <!-- TAB: Libreta de calificaciones -->
+    <!-- TAB: Libreta de calificaciones (Preserved inline-edit pattern) -->
     @if (activeTab === 'libreta') {
       @if (!selEval) {
         <div class="empty-msg" style="padding:2rem; text-align:center">
           <i class="pi pi-info-circle" style="font-size:2rem; color:var(--primary-color); display:block; margin-bottom:.5rem"></i>
-          Selecciona una evaluación desde la Agenda usando el ícono
-          <i class="pi pi-book"></i> para ver su libreta.
+          Selecciona una evaluación desde la Agenda usando el ícono para ver su libreta.
         </div>
       } @else {
         <div class="libreta-header">
@@ -143,8 +108,7 @@ const TIPO_SEV: Record<string, TagSeverity> = {
             <h3>{{ selEval.nombre_evaluacion }}</h3>
             <span class="libreta-meta">
               {{ selEval.nombre_grupo }} &bull; {{ selEval.nombre_materia }} &bull;
-              {{ selEval.nombre_periodo }} &bull;
-              <p-tag [value]="selEval.tipo_evaluacion" [severity]="tipoSev(selEval.tipo_evaluacion)" />
+              {{ selEval.nombre_periodo }}
             </span>
           </div>
           <div class="page-actions">
@@ -157,52 +121,51 @@ const TIPO_SEV: Record<string, TagSeverity> = {
           </div>
         </div>
 
-        <p-table [value]="alumnos()" [loading]="loadingAlumnos()" dataKey="estudiante_id"
-                 styleClass="p-datatable-sm p-datatable-striped" [paginator]="true" [rows]="30">
-          <ng-template pTemplate="header">
-            <tr>
-              <th>#</th>
-              <th pSortableColumn="nombre_alumno">Alumno <p-sortIcon field="nombre_alumno" /></th>
-              <th style="width:160px">Calificación (/ {{ selEval.puntaje_maximo }})</th>
-              <th>Estado</th>
-              <th style="width:220px">Comentarios</th>
-            </tr>
-          </ng-template>
-          <ng-template pTemplate="body" let-a let-i="rowIndex">
-            <tr [class.row-editada]="a._editada">
-              <td style="color:var(--text-color-secondary); font-size:.8rem">{{ i + 1 }}</td>
-              <td><strong>{{ a.nombre_alumno }}</strong></td>
-              <td>
-                <p-inputNumber
-                  [(ngModel)]="a.calificacion"
-                  [min]="0" [max]="selEval.puntaje_maximo"
-                  [minFractionDigits]="1" [maxFractionDigits]="2"
-                  inputStyleClass="cal-input"
-                  (ngModelChange)="onCalifChange(a)"
-                />
-              </td>
-              <td>
-                @if (a.calificacion != null) {
-                  <p-tag
-                    [value]="a.calificacion >= 6 ? 'Acreditado' : 'No acreditado'"
-                    [severity]="a.calificacion >= 6 ? 'success' : 'danger'" />
-                }
-              </td>
-              <td>
-                <input pInputText [(ngModel)]="a.comentarios"
-                       placeholder="Opcional..."
-                       style="width:100%; font-size:.82rem; padding:.25rem .5rem"
-                       (input)="a._editada = true" />
-              </td>
-            </tr>
-          </ng-template>
-        </p-table>
+        <div style="overflow-x:auto">
+          <table class="libreta-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Alumno</th>
+                <th>Calificación (/ {{ selEval.puntaje_maximo }})</th>
+                <th>Estado</th>
+                <th style="width:220px">Comentarios</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (a of alumnos(); track a.estudiante_id) {
+                <tr [class.row-editada]="a._editada">
+                  <td style="color:var(--text-color-secondary); font-size:.8rem">{{ $index + 1 }}</td>
+                  <td><strong>{{ a.nombre_alumno }}</strong></td>
+                  <td>
+                    <input type="number" [(ngModel)]="a.calificacion"
+                      [min]="0" [max]="selEval.puntaje_maximo" step="0.1"
+                      (ngModelChange)="onCalifChange(a)"
+                      class="cal-input" />
+                  </td>
+                  <td>
+                    @if (a.calificacion != null) {
+                      <span [class]="a.calificacion >= 6 ? 'estado-acreditado' : 'estado-reprobado'">
+                        {{ a.calificacion >= 6 ? 'Acreditado' : 'No acreditado' }}
+                      </span>
+                    }
+                  </td>
+                  <td>
+                    <input type="text" [(ngModel)]="a.comentarios"
+                      placeholder="Opcional..."
+                      (input)="a._editada = true"
+                      class="comentarios-input" />
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
       }
     }
 
     <!-- Dialog nueva evaluación -->
-    <p-dialog header="Nueva evaluación" [(visible)]="showDialog" [modal]="true"
-              [style]="{width:'520px'}" [closable]="true">
+    <p-dialog header="Nueva evaluación" [(visible)]="showDialog" [modal]="true" [style]="{width:'520px'}">
       <div class="form-grid">
         <div class="form-field full">
           <label>Nombre *</label>
@@ -267,18 +230,18 @@ const TIPO_SEV: Record<string, TagSeverity> = {
       padding:.75rem 1rem; background:var(--surface-50); border-radius:8px; }
     .libreta-meta   { font-size:.8rem; color:var(--text-color-secondary); display:flex; gap:.5rem; align-items:center; }
 
-    .acuse-badge { background:var(--surface-200); border-radius:12px; font-size:.75rem;
-      padding:0 .5rem; height:1.4rem; display:inline-flex; align-items:center; }
-    .rep-badge   { background:var(--red-400); color:#fff; border-radius:12px; font-size:.72rem;
-      font-weight:700; padding:0 .45rem; height:18px; display:inline-flex; align-items:center; }
+    .libreta-table { width:100%; border-collapse:collapse; font-size:.85rem; }
+    .libreta-table thead { background:var(--surface-100); }
+    .libreta-table th { padding:.6rem; text-align:left; font-weight:600; border-bottom:1px solid var(--surface-border); }
+    .libreta-table td { padding:.4rem .6rem; border-bottom:1px solid var(--surface-border); }
+    .libreta-table tbody tr:hover { background:var(--surface-50); }
+    .libreta-table tbody tr.row-editada { background:var(--yellow-50) !important; }
 
-    .prom-ok   { color:var(--green-600); font-weight:600; }
-    .prom-warn { color:var(--yellow-700); font-weight:600; }
-    .prom-bad  { color:var(--red-600); font-weight:600; }
-    .text-muted { color:var(--text-color-secondary); }
+    .cal-input { width:80px; padding:.3rem; border:1px solid var(--surface-border); border-radius:3px; text-align:center; font-weight:600; }
+    .comentarios-input { width:100%; padding:.3rem; border:1px solid var(--surface-border); border-radius:3px; font-size:.8rem; }
 
-    :host ::ng-deep .cal-input { width: 80px; text-align:center; font-weight:600; }
-    .row-editada td { background: var(--yellow-50) !important; }
+    .estado-acreditado { color:var(--green-600); font-weight:600; }
+    .estado-reprobado { color:var(--red-600); font-weight:600; }
 
     .form-grid  { display:grid; grid-template-columns:1fr 1fr; gap:.85rem; }
     .form-field { display:flex; flex-direction:column; gap:.3rem; font-size:.875rem; }
@@ -293,23 +256,35 @@ export class EvaluacionesComponent implements OnInit {
   private readonly exporter = inject(ExportService);
 
   evaluaciones   = signal<Evaluacion[]>([]);
+  evaluacionesDatos = signal<any[]>([]);
   alumnos        = signal<AlumnoCalif[]>([]);
   grupos         = signal<{ label: string; value: string }[]>([]);
   materias       = signal<{ label: string; value: string }[]>([]);
   periodos       = signal<{ label: string; value: string }[]>([]);
 
   loading        = signal(false);
-  loadingAlumnos = signal(false);
   saving         = signal(false);
   showDialog     = false;
   activeTab      = 'agenda';
   selEval: Evaluacion | null = null;
 
-  tipos = [
+  types = [
     { label: 'Ordinario',      value: 'ORDINARIO' },
     { label: 'Final',          value: 'FINAL' },
     { label: 'Extraordinario', value: 'EXTRAORDINARIO' },
     { label: 'Diagnóstico',    value: 'DIAGNOSTICO' },
+  ];
+
+  // Spec: spec/modules/fase-24-interactive-grid/specification.md § Pre-configured Schemas
+  columnasAgenda: ColumnConfig[] = [
+    { field: 'fecha_evaluacion', header: 'Fecha', sortable: true, filterable: false, width: '110px' },
+    { field: 'tipo_evaluacion', header: 'Tipo', sortable: true, filterable: true, width: '120px' },
+    { field: 'nombre_evaluacion', header: 'Evaluación', sortable: true, filterable: true, width: '220px' },
+    { field: 'nombre_grupo', header: 'Grupo', sortable: true, filterable: true, width: '100px' },
+    { field: 'nombre_materia', header: 'Materia', sortable: true, filterable: true, width: '150px' },
+    { field: 'nombre_periodo', header: 'Período', sortable: true, filterable: true, width: '110px' },
+    { field: 'promedio', header: 'Promedio', sortable: true, filterable: false, width: '90px' },
+    { field: 'total_calificados', header: 'Calificados', sortable: false, filterable: false, width: '110px' },
   ];
 
   form = this.emptyForm();
@@ -332,7 +307,22 @@ export class EvaluacionesComponent implements OnInit {
     const params: Record<string, string> = {};
     if (ciclo) params['ciclo_id'] = ciclo.id;
     this.api.get<Evaluacion[]>('/evaluaciones', params).subscribe({
-      next: (r) => { this.evaluaciones.set(r); this.loading.set(false); },
+      next: (r) => {
+        this.evaluaciones.set(r);
+        this.evaluacionesDatos.set(r.map(e => ({
+          id: e.id,
+          fecha_evaluacion: e.fecha_evaluacion,
+          tipo_evaluacion: e.tipo_evaluacion,
+          nombre_evaluacion: e.nombre_evaluacion,
+          nombre_grupo: e.nombre_grupo,
+          nombre_materia: e.nombre_materia,
+          nombre_periodo: e.nombre_periodo,
+          promedio: e.promedio != null ? Number(e.promedio).toFixed(1) : '—',
+          total_calificados: `${e.total_calificados}${e.reprobados > 0 ? ` (${e.reprobados} rep.)` : ''}`,
+          _original: e,
+        })));
+        this.loading.set(false);
+      },
       error: () => this.loading.set(false),
     });
   }
@@ -361,13 +351,15 @@ export class EvaluacionesComponent implements OnInit {
     }
   }
 
-  abrirLibreta(e: Evaluacion): void {
-    this.selEval = e;
+  abrirLibreta(row: any): void {
+    const eval_data = row._original || this.evaluaciones().find(e => e.id === row.id);
+    if (!eval_data) return;
+    this.selEval = eval_data;
     this.activeTab = 'libreta';
-    this.loadingAlumnos.set(true);
-    this.api.get<AlumnoCalif[]>(`/evaluaciones/${e.id}/calificaciones`).subscribe({
-      next: (r) => { this.alumnos.set(r.map(a => ({ ...a, _editada: false }))); this.loadingAlumnos.set(false); },
-      error: () => this.loadingAlumnos.set(false),
+    this.api.get<AlumnoCalif[]>(`/evaluaciones/${eval_data.id}/calificaciones`).subscribe({
+      next: (r) => {
+        this.alumnos.set(r.map(a => ({ ...a, _editada: false })));
+      },
     });
   }
 
@@ -386,9 +378,7 @@ export class EvaluacionesComponent implements OnInit {
       comentarios:   a.comentarios,
     })) };
 
-    this.api.post<{ ok: boolean; guardadas: number }>(
-      `/evaluaciones/${this.selEval!.id}/calificaciones/bulk`, payload
-    ).subscribe({
+    this.api.post(`/evaluaciones/${this.selEval!.id}/calificaciones/bulk`, payload).subscribe({
       next: () => {
         this.saving.set(false);
         this.alumnos.update(list => list.map(a => ({ ...a, _editada: false })));
@@ -397,26 +387,59 @@ export class EvaluacionesComponent implements OnInit {
     });
   }
 
-  abrirNueva(): void { this.form = this.emptyForm(); this.showDialog = true; }
+  exportLibretaCSV(): void {
+    if (!this.selEval) return;
+    const header = ['#', 'Alumno', `Calificación / ${this.selEval.puntaje_maximo}`, 'Estado', 'Comentarios'].join(',');
+    const rows = this.alumnos().map((a, i) => [
+      i + 1,
+      a.nombre_alumno,
+      a.calificacion ?? '',
+      a.calificacion != null ? (a.calificacion >= 6 ? 'Acreditado' : 'No acreditado') : '',
+      a.comentarios ?? '',
+    ].join(','));
+    const csv = [header, ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `libreta_${this.selEval.nombre_evaluacion}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  exportLibretaXLSX(): void {
+    this.exporter.toXLSX(this.alumnos(), this.libretaCols, 'Libreta', 'libreta');
+  }
+
+  abrirNueva(): void {
+    this.showDialog = true;
+    this.form = this.emptyForm();
+  }
 
   crearEvaluacion(): void {
-    if (!this.form.nombre_evaluacion || !this.form.grupo_id || !this.form.materia_id
-        || !this.form.periodo_evaluacion_id || !this.form.fecha_evaluacion) return;
+    if (!this.form.nombre_evaluacion || !this.form.grupo_id || !this.form.materia_id || !this.form.periodo_evaluacion_id || !this.form.fecha_evaluacion) {
+      return;
+    }
     this.saving.set(true);
     this.api.post('/evaluaciones', this.form).subscribe({
-      next: () => { this.showDialog = false; this.saving.set(false); this.cargar(); },
+      next: () => {
+        this.saving.set(false);
+        this.showDialog = false;
+        this.cargar();
+      },
       error: () => this.saving.set(false),
     });
   }
 
-  tipoSev(tipo: string): TagSeverity { return TIPO_SEV[tipo] ?? 'secondary'; }
-  promClass(v: number): string { return v >= 8 ? 'prom-ok' : v >= 6 ? 'prom-warn' : 'prom-bad'; }
-
-  exportLibretaCSV():  void { this.exporter.toCSV(this.alumnos(), this.libretaCols, 'calificaciones-evaluacion'); }
-  exportLibretaXLSX(): void { this.exporter.toXLSX(this.alumnos(), this.libretaCols, 'Calificaciones', 'calificaciones-evaluacion'); }
-
   private emptyForm() {
-    return { nombre_evaluacion: '', grupo_id: '', materia_id: '', periodo_evaluacion_id: '',
-             tipo_evaluacion: 'ORDINARIO', fecha_evaluacion: '', puntaje_maximo: 10.0 };
+    return {
+      nombre_evaluacion: '',
+      grupo_id: '',
+      materia_id: '',
+      periodo_evaluacion_id: '',
+      tipo_evaluacion: 'ORDINARIO',
+      fecha_evaluacion: '',
+      puntaje_maximo: 10,
+    };
   }
 }
