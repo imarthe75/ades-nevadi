@@ -1,12 +1,14 @@
 """
-/calificaciones — Libreta de calificaciones y boletas.
+/calificaciones — Libreta de calificaciones y boletas con optimistic locking.
 
 Endpoints:
-  POST   /calificaciones                         — registrar calificación
-  PUT    /calificaciones/{id}                    — actualizar
+  POST   /calificaciones                         — registrar calificación (row_version en payload)
+  PUT    /calificaciones/{id}                    — actualizar (row_version en payload)
   GET    /calificaciones/grupo/{grupo_id}/libreta — libreta completa del grupo
   GET    /calificaciones/alumno/{id}/boleta       — boleta del alumno (ciclo)
   GET    /calificaciones/periodos                 — periodos del ciclo
+
+Spec: spec/standards/api-design.md § Optimistic Locking
 """
 from __future__ import annotations
 import asyncio
@@ -18,6 +20,7 @@ from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 from app.core.database import get_db
 from app.core.security import get_current_user
+from app.core.optimistic_locking import check_row_version
 from app.models.operacion import CalificacionPeriodo, PeriodoEvaluacion
 from app.models.academica import Grupo, CicloEscolar, NivelEducativo
 from app.models.personas import Estudiante, Persona, Inscripcion
@@ -104,9 +107,20 @@ async def actualizar_calificacion(
     db: AsyncSession = Depends(get_db),
     _user: dict = Depends(get_current_user),
 ):
+    """
+    Actualizar calificación con optimistic locking.
+
+    Spec: spec/standards/api-design.md § Optimistic Locking
+    Returns 409 Conflict si row_version no coincide con la BD.
+    """
     cal = await db.get(CalificacionPeriodo, cal_id)
     if not cal:
         raise HTTPException(status_code=404, detail="Calificación no encontrada")
+
+    # Verificar row_version para optimistic locking (Spec: API Design § Optimistic Locking)
+    if hasattr(data, 'row_version') and data.row_version is not None:
+        check_row_version(cal, data.row_version)
+
     cal.calificacion_final = data.calificacion_final
     if data.observaciones is not None:
         cal.observaciones = data.observaciones

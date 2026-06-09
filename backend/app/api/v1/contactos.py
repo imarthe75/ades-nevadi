@@ -3,6 +3,8 @@ Contactos familiares / tutores + expediente médico del alumno.
 
   GET/POST/PATCH/DELETE  /contactos?estudiante_id=<uuid>
   GET/PUT                /expediente-medico/{estudiante_id}
+
+Spec: spec/standards/api-design.md § Optimistic Locking
 """
 from __future__ import annotations
 import uuid
@@ -12,6 +14,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from app.core.database import get_db
 from app.core.security import get_ades_user, AdesUser
+from app.core.optimistic_locking import check_row_version
 from app.models.personas import ContactoFamiliar, Persona, ExpedienteDoc, DocumentoTipo
 from app.models.fase3 import ExpedienteMedico
 from pydantic import BaseModel, Field
@@ -21,7 +24,7 @@ from app.schemas.personas import (
 
 
 class ContactoPayload(BaseModel):
-    """Payload del frontend para crear/actualizar contactos."""
+    """Payload del frontend para crear/actualizar contactos. Incluye row_version para optimistic locking."""
     estudiante_id: uuid.UUID | None = None
     nombre_completo: str = Field(min_length=2, max_length=200)
     parentesco: str | None = None
@@ -35,6 +38,7 @@ class ContactoPayload(BaseModel):
     rfc: str | None = None
     toma_decision_conjunta: bool = False
     grado_responsabilidad: str = "PRINCIPAL"
+    row_version: int | None = None  # Para optimistic locking (PATCH)
 
 router = APIRouter(tags=["contactos & expediente"])
 
@@ -159,12 +163,22 @@ async def actualizar_contacto(
     db: AsyncSession = Depends(get_db),
     _user: AdesUser = Depends(get_ades_user),
 ):
+    """
+    Actualizar contacto familiar con optimistic locking.
+
+    Spec: spec/standards/api-design.md § Optimistic Locking
+    Returns 409 Conflict si row_version no coincide con la BD.
+    """
     contacto = await db.get(ContactoFamiliar, contacto_id)
     if not contacto or not contacto.is_active:
         raise HTTPException(status_code=404, detail="Contacto no encontrado")
 
+    # Verificar row_version para optimistic locking (Spec: API Design § Optimistic Locking)
+    if data.row_version is not None:
+        check_row_version(contacto, data.row_version)
+
     for field in data.model_fields_set:
-        if field == "estudiante_id":
+        if field in ("estudiante_id", "row_version"):
             continue
         db_field = field
         if hasattr(contacto, db_field):

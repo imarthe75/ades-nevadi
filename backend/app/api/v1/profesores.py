@@ -1,3 +1,7 @@
+"""Profesores API — CRUD con optimistic locking.
+
+Spec: spec/standards/api-design.md § Optimistic Locking
+"""
 from __future__ import annotations
 import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -6,6 +10,7 @@ from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 from app.core.database import get_db
 from app.core.security import get_current_user, get_ades_user, AdesUser
+from app.core.optimistic_locking import check_row_version
 from app.models.personas import Persona as PersonaModel
 from app.models.personas import Profesor, Persona, Estatus
 from app.models.materias import AsignacionDocente
@@ -77,10 +82,20 @@ async def actualizar_profesor(
     db: AsyncSession = Depends(get_db),
     _user: AdesUser = Depends(get_ades_user),
 ):
+    """
+    Actualizar profesor con optimistic locking.
+
+    Spec: spec/standards/api-design.md § Optimistic Locking
+    Returns 409 Conflict si row_version no coincide con la BD.
+    """
     q = select(Profesor).options(selectinload(Profesor.persona)).where(Profesor.id == profesor_id)
     prof = (await db.execute(q)).scalar_one_or_none()
     if not prof:
         raise HTTPException(status_code=404, detail="Profesor no encontrado")
+
+    # Verificar row_version para optimistic locking (Spec: API Design § Optimistic Locking)
+    if hasattr(data, 'row_version') and data.row_version is not None:
+        check_row_version(prof, data.row_version)
 
     if data.laborales:
         for field, value in data.laborales.model_dump(exclude_unset=True).items():
