@@ -147,7 +147,7 @@ export class AlumnosComponent implements OnInit {
           this.alumnos.set(resp.data);
           this.totalAlumnos.set(resp.total);
           // Transform for grid display
-          this.alumnosDatos.set(resp.data.map(a => ({
+          this.alumnosDatos.set(resp.data.map((a: any) => ({
             id: a.id,
             matricula: a.matricula,
             nombre_completo: `${a.persona?.nombre} ${a.persona?.apellido_paterno} ${a.persona?.apellido_materno || ''}`.trim(),

@@ -292,7 +292,7 @@ export class AdminComponent implements OnInit {
     this.cargarGrupos();
   }
 
-  onTabChange(tab: string): void { this.tabActivo.set(tab); }
+  onTabChange(tab: any): void { if (tab) this.tabActivo.set(tab); }
 
   cargarUsuarios(): void {
     this.loadingUsuarios.set(true);

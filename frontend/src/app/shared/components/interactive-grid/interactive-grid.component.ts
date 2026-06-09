@@ -16,7 +16,7 @@
  *     (rowEdited)="onRowEdit($event)"
  *   />
  */
-import { Component, Input, Output, EventEmitter, signal } from '@angular/core';
+import { Component, Input, Output, EventEmitter, signal, Signal, isSignal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TableModule } from 'primeng/table';
@@ -66,7 +66,7 @@ export interface ColumnConfig {
       <p-table
         #dt
         [value]="datosActuales"
-        [loading]="loading()"
+        [loading]="loadingSignal()"
         [columns]="columnasVisibles()"
         [paginator]="true"
         [rows]="20"
@@ -139,7 +139,7 @@ export interface ColumnConfig {
         <ng-template pTemplate="emptymessage" let-columns>
           <tr><td [colSpan]="columns.length + 1"
             style="text-align:center;padding:2rem;color:var(--text-muted)">
-            {{ loading() ? 'Cargando datos...' : 'Sin registros' }}
+            {{ loadingSignal() ? 'Cargando datos...' : 'Sin registros' }}
           </td></tr>
         </ng-template>
       </p-table>
@@ -182,7 +182,7 @@ export interface ColumnConfig {
 export class InteractiveGridComponent {
   @Input() data: any[] = [];
   @Input() columns: ColumnConfig[] = [];
-  @Input() loading = signal(false);
+  @Input() loading: Signal<boolean> | boolean = false;
   @Output() rowSelected = new EventEmitter<any>();
   @Output() rowEdited = new EventEmitter<any>();
 
@@ -193,10 +193,22 @@ export class InteractiveGridComponent {
   datosActuales: any[] = [];
   totalFilas = signal(0);
   ordenActual: { field: string; direction: 'asc' | 'desc' } | null = null;
+  loadingSignal = signal(false);
 
-  constructor() {}
+  constructor() {
+    this.updateLoadingSignal();
+  }
+
+  private updateLoadingSignal(): void {
+    if (typeof this.loading === 'boolean') {
+      this.loadingSignal.set(this.loading as boolean);
+    } else if (isSignal(this.loading)) {
+      this.loadingSignal.set((this.loading as Signal<boolean>)());
+    }
+  }
 
   ngOnInit(): void {
+    this.updateLoadingSignal();
     this.datosOriginales = [...this.data];
     this.datosActuales = [...this.data];
     this.columnasVisibles.set(this.columns);
@@ -204,6 +216,7 @@ export class InteractiveGridComponent {
   }
 
   ngOnChanges(): void {
+    this.updateLoadingSignal();
     this.datosOriginales = [...this.data];
     this.datosActuales = [...this.data];
     this.aplicarFiltros();

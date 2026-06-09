@@ -193,7 +193,7 @@ const TIPO_SEV: Record<string, TagSeverity> = {
         </div>
         <div class="form-field">
           <label>Tipo</label>
-          <p-select [options]="tipos" [(ngModel)]="form.tipo_evaluacion"
+          <p-select [options]="types" [(ngModel)]="form.tipo_evaluacion"
                     optionLabel="label" optionValue="value" styleClass="w-full" />
         </div>
         <div class="form-field">
