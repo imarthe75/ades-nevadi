@@ -65,7 +65,7 @@ export interface ColumnConfig {
       <!-- TABLA INTERACTIVA -->
       <p-table
         #dt
-        [value]="data"
+        [value]="datosActuales"
         [loading]="loading()"
         [columns]="columnasVisibles()"
         [paginator]="true"
@@ -80,9 +80,15 @@ export interface ColumnConfig {
               <th [pSortableColumn]="col.field" [style.width]="col.width || 'auto'">
                 <div class="p-column-header">
                   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.25rem">
-                    <strong>{{ col.header }}</strong>
+                    <strong style="cursor:pointer" (click)="toggleSort(col.field)">{{ col.header }}</strong>
                     @if (col.sortable !== false) {
-                      <i class="pi pi-arrow-up-down" style="font-size:.7rem;color:var(--text-muted);cursor:pointer"></i>
+                      @if (ordenActual?.field === col.field && ordenActual?.direction === 'asc') {
+                        <i class="pi pi-arrow-up" style="font-size:.7rem;color:var(--primary-color);cursor:pointer"></i>
+                      } @else if (ordenActual?.field === col.field && ordenActual?.direction === 'desc') {
+                        <i class="pi pi-arrow-down" style="font-size:.7rem;color:var(--primary-color);cursor:pointer"></i>
+                      } @else {
+                        <i class="pi pi-arrow-up-down" style="font-size:.7rem;color:var(--text-muted);cursor:pointer"></i>
+                      }
                     }
                   </div>
                   @if (col.filterable !== false) {
@@ -184,18 +190,23 @@ export class InteractiveGridComponent {
   mostrarColumnChooser = signal(false);
   filtrosActivos = new Map<string, string>();
   datosOriginales: any[] = [];
+  datosActuales: any[] = [];
   totalFilas = signal(0);
+  ordenActual: { field: string; direction: 'asc' | 'desc' } | null = null;
 
   constructor() {}
 
   ngOnInit(): void {
     this.datosOriginales = [...this.data];
+    this.datosActuales = [...this.data];
     this.columnasVisibles.set(this.columns);
     this.updateTotalFilas();
   }
 
   ngOnChanges(): void {
     this.datosOriginales = [...this.data];
+    this.datosActuales = [...this.data];
+    this.aplicarFiltros();
     this.updateTotalFilas();
   }
 
@@ -226,22 +237,57 @@ export class InteractiveGridComponent {
     this.aplicarFiltros();
   }
 
+  toggleSort(field: string): void {
+    const columna = this.columns.find(c => c.field === field);
+    if (!columna || columna.sortable === false) return;
+
+    // Cambiar dirección de sort o resetear
+    if (this.ordenActual?.field === field) {
+      if (this.ordenActual.direction === 'asc') {
+        this.ordenActual = { field, direction: 'desc' };
+      } else {
+        this.ordenActual = null; // Reset
+      }
+    } else {
+      this.ordenActual = { field, direction: 'asc' };
+    }
+    this.aplicarFiltros();
+  }
+
   private aplicarFiltros(): void {
-    if (this.filtrosActivos.size === 0) {
-      this.data = [...this.datosOriginales];
-      this.updateTotalFilas();
-      return;
+    // 1. Aplicar filtros
+    let resultado = [...this.datosOriginales];
+
+    if (this.filtrosActivos.size > 0) {
+      resultado = resultado.filter(row => {
+        for (const [field, filtro] of this.filtrosActivos.entries()) {
+          const valor = String(row[field] || '').toLowerCase();
+          if (!valor.includes(filtro)) {
+            return false;
+          }
+        }
+        return true;
+      });
     }
 
-    this.data = this.datosOriginales.filter(row => {
-      for (const [field, filtro] of this.filtrosActivos.entries()) {
-        const valor = String(row[field] || '').toLowerCase();
-        if (!valor.includes(filtro)) {
-          return false;
+    // 2. Aplicar sort
+    if (this.ordenActual) {
+      resultado.sort((a, b) => {
+        const valA = a[this.ordenActual!.field];
+        const valB = b[this.ordenActual!.field];
+
+        let cmp = 0;
+        if (typeof valA === 'number' && typeof valB === 'number') {
+          cmp = valA - valB;
+        } else {
+          cmp = String(valA || '').localeCompare(String(valB || ''));
         }
-      }
-      return true;
-    });
+
+        return this.ordenActual!.direction === 'asc' ? cmp : -cmp;
+      });
+    }
+
+    this.datosActuales = resultado;
     this.updateTotalFilas();
   }
 
