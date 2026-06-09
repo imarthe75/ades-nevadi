@@ -74,7 +74,7 @@ del sistema ADES — Instituto Nevadi.
 │       │       ├── callback.component.ts  # OIDC callback
 │       │       └── login.component.ts
 │       ├── layout/
-│       │   └── shell.component.ts         # Sidebar + topbar + grupos de navegación
+│       │   └── shell.component.ts         # Sidebar + topbar + grupos de navegación (estilo Oracle APEX)
 │       └── features/                      # 27 componentes lazy-loaded
 │           ├── dashboard/                 # KPIs generales
 │           ├── planteles, grupos, alumnos, profesores  (FASE 1)

@@ -253,7 +253,7 @@ const RIESGO_SEVERITY: Record<string, AlertaSeverity> = {
                     </tbody>
                   </table>
                   @if ((respuestaDatos()!.datos?.length ?? 0) > 50) {
-                    <p style="font-size:.75rem;color:#94a3b8;margin:.5rem 0 0">
+                    <p style="font-size:.75rem;color:var(--text-muted);margin:.5rem 0 0">
                       Mostrando 50 de {{ respuestaDatos()!.datos!.length }} resultados
                     </p>
                   }

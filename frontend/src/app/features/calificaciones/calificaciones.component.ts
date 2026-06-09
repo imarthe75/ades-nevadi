@@ -8,7 +8,7 @@
  *   - Un solo botón "Guardar cambios" envía el PATCH bulk
  *   - Exportar a CSV con un click
  */
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 // PrimeNG
@@ -111,8 +111,6 @@ import { HelpButtonComponent } from '../../shared/components/help-button/help-bu
         [showCurrentPageReport]="true"
         currentPageReportTemplate="{first}-{last} de {totalRecords} alumnos"
         styleClass="p-datatable-sm p-datatable-gridlines libreta-table"
-        [globalFilterFields]="['nombre_completo', 'matricula']"
-        sortField="nombre_completo"
         [editMode]="'cell'"
       >
         <!-- Caption con búsqueda global -->
@@ -197,23 +195,21 @@ import { HelpButtonComponent } from '../../shared/components/help-button/help-bu
       </p-table>
     } @else {
       <div class="empty-state">
-        <i class="pi pi-info-circle" style="font-size:2rem; color:#94a3b8"></i>
+        <i class="pi pi-info-circle" style="font-size:2rem; color:var(--text-muted)"></i>
         <p>Selecciona un grupo y una materia para ver la libreta.</p>
       </div>
     }
   `,
   styles: [`
     .page-header { margin-bottom: 1rem; }
-    .page-header h2 { margin: 0; color: #1e293b; }
-    .subtitle { color: #64748b; font-size: 0.85rem; margin: 0.25rem 0 0; }
     .filter-bar { display: flex; gap: 1rem; margin-bottom: 1rem; }
     .libreta-toolbar { margin-bottom: 0.5rem; }
-    .changes-badge { font-size: 0.85rem; color: #64748b; }
-    .changes-badge.has-changes { color: #d97706; font-weight: 600; }
+    .changes-badge { font-size: 0.85rem; color: var(--text-secondary); }
+    .changes-badge.has-changes { color: var(--color-warning); font-weight: 600; }
     .table-caption { display: flex; justify-content: flex-end; }
-    .search-input { padding: 0.4rem 0.6rem; border: 1px solid #cbd5e1; border-radius: 4px; }
+    .search-input { padding: 0.4rem 0.6rem; border: 1px solid var(--surface-border); border-radius: 4px; }
     td.edited { background-color: #fef9c3 !important; }
-    .empty-state { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 4rem; color: #94a3b8; }
+    .empty-state { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 4rem; color: var(--text-muted); }
     :host ::ng-deep .libreta-table .p-datatable-tbody > tr > td { padding: 0.3rem 0.5rem; }
   `],
 })
@@ -236,17 +232,34 @@ export class CalificacionesComponent implements OnInit {
   columnas = computed(() => this.libreta()?.periodos ?? []);
   pendingChanges = computed(() => this.editadas.size);
 
+  constructor() {
+    effect(() => {
+      const plantelId = this.ctx.plantel()?.id;
+      const nivelNombre = this.ctx.nivel()?.nombre_nivel;
+      this.loadGrupos(plantelId, nivelNombre);
+    });
+  }
+
+  loadGrupos(plantelId?: string, nivelNombre?: string): void {
+    const params: Record<string, any> = { solo_activos: true, ciclo_vigente: true };
+    if (plantelId) params['plantel_id'] = plantelId;
+    if (nivelNombre && nivelNombre !== 'TODOS') params['nivel'] = nivelNombre;
+
+    this.api.get<Grupo[]>('/grupos', params).subscribe({
+      next: g => {
+        this.grupos.set(g.map(x => ({ ...x, _label: grupoLabel(x) })));
+        if (this.selectedGrupo && !g.some(x => x.id === this.selectedGrupo!.id)) {
+          this.selectedGrupo = null;
+          this.selectedMateria = null;
+          this.libreta.set(null);
+          this.editadas.clear();
+        }
+      },
+      error: () => this.grupos.set([])
+    });
+  }
 
   ngOnInit(): void {
-    const plantelId = this.ctx.plantel()?.id;
-    const nivelNombre = this.ctx.nivel()?.nombre_nivel;
-    if (plantelId) {
-      const params: Record<string, string | boolean> = { plantel_id: plantelId, solo_activos: true, ciclo_vigente: true };
-      if (nivelNombre) params['nivel'] = nivelNombre;
-      this.api.get<Grupo[]>('/grupos', params).subscribe(g =>
-        this.grupos.set(g.map(x => ({ ...x, _label: grupoLabel(x) })))
-      );
-    }
   }
 
   onGrupoChange(): void {

@@ -3,19 +3,20 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 
-import { ButtonModule }      from 'primeng/button';
-import { CardModule }        from 'primeng/card';
-import { TableModule }       from 'primeng/table';
-import { TagModule }         from 'primeng/tag';
-import { TabsModule }        from 'primeng/tabs';
-import { DialogModule }      from 'primeng/dialog';
-import { SelectModule }      from 'primeng/select';
-import { TextareaModule }    from 'primeng/textarea';
-import { InputTextModule }   from 'primeng/inputtext';
-import { TooltipModule }     from 'primeng/tooltip';
-import { ProgressBarModule } from 'primeng/progressbar';
-import { PanelModule }       from 'primeng/panel';
-import { DividerModule }     from 'primeng/divider';
+import { ButtonModule }        from 'primeng/button';
+import { CardModule }          from 'primeng/card';
+import { TableModule }         from 'primeng/table';
+import { TagModule }           from 'primeng/tag';
+import { TabsModule }          from 'primeng/tabs';
+import { DialogModule }        from 'primeng/dialog';
+import { SelectModule }        from 'primeng/select';
+import { AutoCompleteModule }  from 'primeng/autocomplete';
+import { TextareaModule }      from 'primeng/textarea';
+import { InputTextModule }     from 'primeng/inputtext';
+import { TooltipModule }       from 'primeng/tooltip';
+import { ProgressBarModule }   from 'primeng/progressbar';
+import { PanelModule }         from 'primeng/panel';
+import { DividerModule }       from 'primeng/divider';
 
 import { ApiService }     from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
@@ -85,7 +86,7 @@ const TIPO_ICON: Record<string, string> = {
   imports: [
     CommonModule, FormsModule, RouterModule,
     ButtonModule, CardModule, TableModule, TagModule, TabsModule,
-    DialogModule, SelectModule, TextareaModule, InputTextModule,
+    DialogModule, SelectModule, AutoCompleteModule, TextareaModule, InputTextModule,
     TooltipModule, ProgressBarModule, PanelModule, DividerModule,
   ],
   template: `
@@ -288,8 +289,16 @@ const TIPO_ICON: Record<string, string> = {
       [modal]="true" [style]="{width: '440px'}"
     >
       <div class="form-grid">
-        <label>ID Alumno *</label>
-        <input pInputText [(ngModel)]="formAsig.estudiante_id" placeholder="UUID del alumno" />
+        <label>Alumno *</label>
+        <p-autoComplete
+          [(ngModel)]="formAsig._alumnoObj"
+          [suggestions]="alumnosSuggAsig()"
+          (completeMethod)="buscarAlumnosAsig($event)"
+          optionLabel="nombre_completo"
+          [forceSelection]="true"
+          placeholder="Buscar alumno..."
+          (onSelect)="onAlumnoAsigSelect($event.value)"
+        />
         <label>Motivo</label>
         <p-select
           [options]="motivoOpts"
@@ -382,9 +391,10 @@ export class LearningPathsComponent implements OnInit {
   form: { nombre: string; descripcion: string; criterio_activacion: string; umbral_activacion: number | null } = {
     nombre: '', descripcion: '', criterio_activacion: 'MANUAL', umbral_activacion: null,
   };
-  formAsig: { estudiante_id: string; motivo: string } = {
-    estudiante_id: '', motivo: 'MANUAL',
+  formAsig: { estudiante_id: string; motivo: string; _alumnoObj: any } = {
+    estudiante_id: '', motivo: 'MANUAL', _alumnoObj: null,
   };
+  alumnosSuggAsig = signal<any[]>([]);
 
   readonly criterioOpts = [
     { label: 'Manual',       value: 'MANUAL' },
@@ -445,14 +455,35 @@ export class LearningPathsComponent implements OnInit {
 
   abrirAsignar(path: LearningPath): void {
     this.pathAsignar.set(path);
-    this.formAsig = { estudiante_id: '', motivo: 'MANUAL' };
+    this.formAsig = { estudiante_id: '', motivo: 'MANUAL', _alumnoObj: null };
     this.showAsignar = true;
+  }
+
+  buscarAlumnosAsig(event: { query: string }): void {
+    const plantelId = this.ctx.plantel()?.id;
+    const params: Record<string, any> = { buscar: event.query, por_pagina: 10 };
+    if (plantelId) params['plantel_id'] = plantelId;
+    this.api.get<any>('/alumnos', params).subscribe({
+      next: (r: any) => {
+        const lista = r?.data ?? r;
+        this.alumnosSuggAsig.set(lista.map((a: any) => ({
+          ...a,
+          nombre_completo: a.persona?.nombre_completo ?? a.matricula,
+        })));
+      },
+      error: () => this.alumnosSuggAsig.set([]),
+    });
+  }
+
+  onAlumnoAsigSelect(alumno: any): void {
+    this.formAsig.estudiante_id = alumno?.id ?? '';
   }
 
   confirmarAsignar(): void {
     const path = this.pathAsignar();
-    if (!path) return;
-    this.api.post(`/learning-paths/${path.id}/asignar`, this.formAsig).subscribe(() => {
+    if (!path || !this.formAsig.estudiante_id) return;
+    const { _alumnoObj, ...payload } = this.formAsig;
+    this.api.post(`/learning-paths/${path.id}/asignar`, payload).subscribe(() => {
       this.showAsignar = false;
       this.cargarAsignaciones();
     });

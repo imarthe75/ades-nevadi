@@ -73,12 +73,14 @@ interface ItemRow    { tipo_item: string; nombre_personalizado: string | null; p
     <tr>
       <td colspan="7" style="background:#f9fafb;padding:12px 40px;">
         <div class="items-grid">
-          <div *ngFor="let it of esc.items; let i = index" class="item-pill">
-            <span class="item-tipo">{{ it.nombre_personalizado ?? it.tipo_item }}</span>
-            <span class="item-peso" [style.background]="pesoColor(it.peso_porcentaje)">
-              {{ it.peso_porcentaje }}%
-            </span>
-          </div>
+          @for (it of esc.items; track it.tipo_item; let i = $index) {
+            <div class="item-pill">
+              <span class="item-tipo">{{ it.nombre_personalizado ?? it.tipo_item }}</span>
+              <span class="item-peso" [style.background]="pesoColor(it.peso_porcentaje)">
+                {{ it.peso_porcentaje }}%
+              </span>
+            </div>
+          }
           <div class="item-pill item-total"
                [class.suma-ok]="sumaItems(esc) === 100"
                [class.suma-error]="sumaItems(esc) !== 100">
@@ -117,16 +119,18 @@ interface ItemRow    { tipo_item: string; nombre_personalizado: string | null; p
         Suma: {{ sumaForm() }}% {{ sumaForm() === 100 ? '✓' : '≠ 100%' }}
       </div>
     </div>
-    <div *ngFor="let item of form.items; let i = index" class="item-row flex gap-2 mb-2 items-center">
-      <p-select [options]="tiposItem" optionLabel="label" optionValue="value"
-                [(ngModel)]="item.tipo_item" styleClass="flex-1" />
-      <input pInputText [(ngModel)]="item.nombre_personalizado" placeholder="Nombre personalizado"
-             style="flex:1;max-width:160px" />
-      <p-inputNumber [(ngModel)]="item.peso_porcentaje" suffix="%" [min]="1" [max]="100"
-                     [useGrouping]="false" inputStyleClass="w-16" />
-      <button pButton icon="pi pi-trash" text severity="danger" size="small"
-              (click)="quitarItem(i)" [disabled]="form.items.length <= 1"></button>
-    </div>
+    @for (item of form.items; track $index; let i = $index) {
+      <div class="item-row flex gap-2 mb-2 items-center">
+        <p-select [options]="tiposItem" optionLabel="label" optionValue="value"
+                  [(ngModel)]="item.tipo_item" styleClass="flex-1" />
+        <input pInputText [(ngModel)]="item.nombre_personalizado" placeholder="Nombre personalizado"
+               style="flex:1;max-width:160px" />
+        <p-inputNumber [(ngModel)]="item.peso_porcentaje" suffix="%" [min]="1" [max]="100"
+                       [useGrouping]="false" inputStyleClass="w-16" />
+        <button pButton icon="pi pi-trash" text severity="danger" size="small"
+                (click)="quitarItem(i)" [disabled]="form.items.length <= 1"></button>
+      </div>
+    }
     <button pButton icon="pi pi-plus" label="Agregar ítem" text size="small"
             (click)="agregarItem()"></button>
   </div>

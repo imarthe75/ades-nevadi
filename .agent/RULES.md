@@ -11,6 +11,7 @@ Este archivo define las reglas de desarrollo y hooks de sistema inspirados en **
 2. **Higiene de Contexto y Token Saving:**
    - Al ejecutar comandos o búsquedas, limita el output y la cantidad de líneas devueltas (ej. `head -n 20`).
    - Evita lecturas completas de archivos binarios o bases de datos sin filtros.
+   - El diseño de frontend debe alinearse con el estilo Oracle APEX: interactive grids, master-detail, LOV y edición directa sobre tablas.
 
 3. **Caché de Respuestas y Memoria:**
    - Integración nativa con Valkey. La lógica de control debe verificar la caché semántica local en Valkey (`6379`) antes de enviar consultas redundantes al modelo.

@@ -81,7 +81,7 @@ interface CalificacionResumen {
       </div>
     } @else if (alumnos().length === 0 && !simulatedAlumno) {
       <div class="empty-state">
-        <i class="pi pi-users" style="font-size:3rem;color:#94a3b8"></i>
+        <i class="pi pi-users" style="font-size:3rem;color:var(--text-muted)"></i>
         <h3>Sin alumnos vinculados</h3>
         <p>Su cuenta no tiene alumnos asociados. Contacte a la administración del plantel.</p>
       </div>
@@ -196,7 +196,7 @@ interface CalificacionResumen {
                     </tr>
                   </ng-template>
                   <ng-template pTemplate="emptymessage">
-                    <tr><td colspan="4" style="text-align:center;padding:2rem;color:#94a3b8">
+                    <tr><td colspan="4" style="text-align:center;padding:2rem;color:var(--text-muted)">
                       Sin calificaciones registradas aún
                     </td></tr>
                   </ng-template>
@@ -220,20 +220,66 @@ interface CalificacionResumen {
                 </div>
               </p-tabpanel>
 
-              <!-- Tareas (placeholder) -->
+              <!-- Tareas -->
               <p-tabpanel value="tareas">
-                <div style="padding:1rem;color:#64748b;text-align:center">
-                  <i class="pi pi-file-edit" style="font-size:2rem;margin-bottom:.5rem;display:block"></i>
-                  <p>Las tareas pendientes se mostrarán aquí una vez que el docente las asigne.</p>
-                </div>
+                @if (tareasAlumno().length === 0) {
+                  <div style="padding:2rem;text-align:center;color:var(--text-color-secondary)">
+                    <i class="pi pi-check-circle" style="font-size:2rem;display:block;margin-bottom:.5rem;color:var(--color-success)"></i>
+                    <p>Sin tareas pendientes. ¡Excelente!</p>
+                  </div>
+                } @else {
+                  <p-table [value]="tareasAlumno()" styleClass="p-datatable-sm p-datatable-striped">
+                    <ng-template pTemplate="header">
+                      <tr>
+                        <th>Tarea</th>
+                        <th style="width:110px">Fecha límite</th>
+                        <th style="width:100px;text-align:center">Estado</th>
+                      </tr>
+                    </ng-template>
+                    <ng-template pTemplate="body" let-t>
+                      <tr>
+                        <td>{{ t.titulo }}</td>
+                        <td>{{ t.fecha_limite | date:'dd/MM/yyyy' }}</td>
+                        <td style="text-align:center">
+                          <p-tag
+                            [value]="t.estatus_entrega === 'PENDIENTE' ? 'Pendiente' : 'Entregada'"
+                            [severity]="t.estatus_entrega === 'PENDIENTE' ? (t.vencida ? 'danger' : 'warn') : 'success'"
+                          />
+                        </td>
+                      </tr>
+                    </ng-template>
+                  </p-table>
+                }
               </p-tabpanel>
 
-              <!-- Conducta (placeholder) -->
+              <!-- Conducta -->
               <p-tabpanel value="conducta">
-                <div style="padding:1rem;color:#64748b;text-align:center">
-                  <i class="pi pi-shield" style="font-size:2rem;margin-bottom:.5rem;display:block"></i>
-                  <p>Sin reportes de conducta registrados en el ciclo actual.</p>
-                </div>
+                @if (conductaAlumno().length === 0) {
+                  <div style="padding:2rem;text-align:center;color:var(--text-color-secondary)">
+                    <i class="pi pi-shield" style="font-size:2rem;display:block;margin-bottom:.5rem;color:var(--color-success)"></i>
+                    <p>Sin reportes de conducta en el ciclo actual.</p>
+                  </div>
+                } @else {
+                  <p-table [value]="conductaAlumno()" styleClass="p-datatable-sm p-datatable-striped">
+                    <ng-template pTemplate="header">
+                      <tr>
+                        <th style="width:100px">Fecha</th>
+                        <th style="width:100px">Tipo</th>
+                        <th>Descripción</th>
+                      </tr>
+                    </ng-template>
+                    <ng-template pTemplate="body" let-r>
+                      <tr>
+                        <td>{{ r.fecha_reporte | date:'dd/MM/yyyy' }}</td>
+                        <td>
+                          <p-tag [value]="r.tipo_falta"
+                            [severity]="r.tipo_falta === 'LEVE' ? 'info' : r.tipo_falta === 'GRAVE' ? 'warn' : 'danger'" />
+                        </td>
+                        <td>{{ r.descripcion }}</td>
+                      </tr>
+                    </ng-template>
+                  </p-table>
+                }
               </p-tabpanel>
             </p-tabpanels>
           </p-tabs>
@@ -272,14 +318,14 @@ interface CalificacionResumen {
     .alumno-avatar.femenino { background: #ec4899; }
     .alumno-info { display: flex; flex-direction: column; gap: .1rem; }
     .alumno-info strong { font-size: .9rem; }
-    .mat { font-size: .72rem; font-family: monospace; color: #64748b; }
-    .nivel-badge { font-size: .72rem; color: #64748b; }
+    .mat { font-size: .72rem; font-family: monospace; color: var(--text-secondary); }
+    .nivel-badge { font-size: .72rem; color: var(--text-secondary); }
 
     .detalle-header { display: flex; align-items: center; gap: .75rem; margin-bottom: 1rem; flex-wrap: wrap; }
     .detalle-header h3 { margin: 0; font-size: 1.1rem; }
     .plantel-chip, .grupo-chip {
       font-size: .78rem; background: var(--surface-100); padding: .2rem .6rem;
-      border-radius: 20px; color: #475569;
+      border-radius: 20px; color: var(--text-secondary);
     }
 
     .kpi-bar {
@@ -288,10 +334,10 @@ interface CalificacionResumen {
       padding: 1rem; margin-bottom: 1rem; flex-wrap: wrap; gap: .5rem;
     }
     .kpi-item { display: flex; flex-direction: column; align-items: center; min-width: 100px; }
-    .kval { font-size: 1.6rem; font-weight: 700; color: #1e293b; }
-    .kval.alto { color: #16a34a; }
-    .kval.bajo { color: #dc2626; }
-    .klbl { font-size: .72rem; color: #64748b; }
+    .kval { font-size: 1.6rem; font-weight: 700; color: var(--text-primary); }
+    .kval.alto { color: var(--color-success, #16a34a); }
+    .kval.bajo { color: var(--color-danger, #dc2626); }
+    .klbl { font-size: .72rem; color: var(--text-secondary); }
     .kpi-sep { width: 1px; height: 40px; background: var(--surface-200); }
 
     .alertas-bar { display: flex; flex-direction: column; gap: .4rem; margin-bottom: 1rem; }
@@ -308,10 +354,10 @@ interface CalificacionResumen {
     .asist-pct { font-weight: 700; min-width: 45px; }
     :host ::ng-deep .asist-ok .p-progressbar-value { background: #22c55e; }
     :host ::ng-deep .asist-low .p-progressbar-value { background: #f97316; }
-    .asist-nota { font-size: .8rem; color: #64748b; margin: 0; }
+    .asist-nota { font-size: .8rem; color: var(--text-secondary); margin: 0; }
 
-    .empty-state { display: flex; flex-direction: column; align-items: center; gap: .5rem; padding: 4rem; color: #94a3b8; text-align: center; }
-    .empty-state h3 { color: #475569; margin: 0; }
+    .empty-state { display: flex; flex-direction: column; align-items: center; gap: .5rem; padding: 4rem; color: var(--text-muted); text-align: center; }
+    .empty-state h3 { color: var(--text-secondary); margin: 0; }
   `],
 })
 export class PadresComponent implements OnInit {
@@ -323,6 +369,8 @@ export class PadresComponent implements OnInit {
   alumnoActivo   = signal<AlumnoVinculado | null>(null);
   resumen        = signal<ResumenAlumno | null>(null);
   calificaciones = signal<CalificacionResumen[]>([]);
+  tareasAlumno   = signal<any[]>([]);
+  conductaAlumno = signal<any[]>([]);
   loading        = signal(true);
   loadingDetalle = signal(false);
 
@@ -375,6 +423,8 @@ export class PadresComponent implements OnInit {
     this.loadingDetalle.set(true);
     this.resumen.set(null);
     this.calificaciones.set([]);
+    this.tareasAlumno.set([]);
+    this.conductaAlumno.set([]);
 
     // Cargar resumen del portal (reutiliza el endpoint existente)
     this.api.get<any>(`/portal/alumno/${alumno.estudiante_id}`).subscribe({
@@ -394,6 +444,18 @@ export class PadresComponent implements OnInit {
     // Calificaciones
     this.api.get<CalificacionResumen[]>(`/padres/calificaciones/${alumno.estudiante_id}`).subscribe({
       next: c => this.calificaciones.set(c),
+      error: () => {},
+    });
+
+    // Tareas pendientes del alumno
+    this.api.get<any[]>(`/entregas/alumno/${alumno.estudiante_id}`, { solo_pendientes: false }).subscribe({
+      next: e => this.tareasAlumno.set(e),
+      error: () => {},
+    });
+
+    // Reportes de conducta del alumno
+    this.api.get<any[]>('/conducta', { estudiante_id: alumno.estudiante_id }).subscribe({
+      next: r => this.conductaAlumno.set(r),
       error: () => {},
     });
   }

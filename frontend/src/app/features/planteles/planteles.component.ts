@@ -1,10 +1,15 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { TagModule } from 'primeng/tag';
 import { SkeletonModule } from 'primeng/skeleton';
 import { TooltipModule } from 'primeng/tooltip';
+import { DialogModule } from 'primeng/dialog';
+import { InputTextModule } from 'primeng/inputtext';
+import { ToastModule } from 'primeng/toast';
+import { MessageService } from 'primeng/api';
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
 import type { Plantel } from '../../core/models';
@@ -35,8 +40,11 @@ const NIVEL_ICON: Record<string, string> = {
 @Component({
   selector: 'app-planteles',
   standalone: true,
-  imports: [CommonModule, RouterModule, ButtonModule, TagModule, SkeletonModule, TooltipModule],
+  imports: [CommonModule, RouterModule, FormsModule, ButtonModule, TagModule, SkeletonModule, TooltipModule, DialogModule, InputTextModule, ToastModule],
+  providers: [MessageService],
   template: `
+    <p-toast />
+
     <div class="page-header">
       <div>
         <h2>Planteles</h2>
@@ -103,12 +111,33 @@ const NIVEL_ICON: Record<string, string> = {
                 [text]="true" routerLink="/profesores" (onClick)="seleccionar(p)" />
               <p-button label="Grupos" icon="pi pi-building" severity="secondary" size="small"
                 [text]="true" routerLink="/grupos" (onClick)="seleccionar(p)" />
+              @if (isAdmin()) {
+                <p-button icon="pi pi-pencil" severity="warn" size="small"
+                  [text]="true" pTooltip="Editar plantel" (onClick)="abrirEditar(p)" />
+              }
             </div>
 
           </div>
         }
       </div>
     }
+
+    <!-- Diálogo editar plantel -->
+    <p-dialog [(visible)]="dlgPlantel" header="Editar plantel"
+      [modal]="true" [draggable]="false" [style]="{width:'380px'}">
+      @if (plantelEdit) {
+        <div class="form-grid">
+          <label>Nombre *</label>
+          <input pInputText [(ngModel)]="plantelEdit.nombre_plantel" />
+          <label>Clave CT</label>
+          <input pInputText [(ngModel)]="plantelEdit.clave_ct" placeholder="CCT12345" />
+        </div>
+        <ng-template pTemplate="footer">
+          <p-button label="Cancelar" severity="secondary" [text]="true" (onClick)="dlgPlantel=false" />
+          <p-button label="Guardar" icon="pi pi-save" [loading]="saving()" (onClick)="guardarPlantel()" />
+        </ng-template>
+      }
+    </p-dialog>
   `,
   styles: [`
     .page-header { margin-bottom: 1.5rem; }
@@ -150,19 +179,57 @@ const NIVEL_ICON: Record<string, string> = {
     .nivel-row i { font-size: .82rem; }
 
     .card-btns { display: flex; gap: .4rem; padding-top: .25rem; border-top: 1px solid var(--surface-100); flex-wrap: wrap; }
+    .form-grid { display: grid; grid-template-columns: 100px 1fr; gap: .75rem 1rem; align-items: center; padding: .5rem 0; }
+    .form-grid label { font-size: .85rem; color: var(--text-color-secondary); font-weight: 600; }
   `],
 })
 export class PlantelesComponent implements OnInit {
   private readonly api = inject(ApiService);
+  private readonly msg = inject(MessageService);
   readonly ctx = inject(ContextService);
 
   stats   = signal<PlantelStats[]>([]);
   loading = signal(true);
 
+  dlgPlantel = false;
+  plantelEdit: { id: string; nombre_plantel: string; clave_ct: string | null } | null = null;
+  saving = signal(false);
+
   ngOnInit(): void {
     this.api.get<PlantelStats[]>('/planteles/stats').subscribe({
       next: s => { this.stats.set(s); this.loading.set(false); },
       error: () => this.loading.set(false),
+    });
+  }
+
+  isAdmin(): boolean { return this.ctx.nivelAcceso() <= 1; }
+
+  abrirEditar(p: PlantelStats): void {
+    this.plantelEdit = { id: p.id, nombre_plantel: p.nombre_plantel, clave_ct: p.clave_ct };
+    this.dlgPlantel = true;
+  }
+
+  guardarPlantel(): void {
+    if (!this.plantelEdit || !this.plantelEdit.nombre_plantel.trim()) return;
+    this.saving.set(true);
+    this.api.patch(`/admin/planteles/${this.plantelEdit.id}`, {
+      nombre_plantel: this.plantelEdit.nombre_plantel,
+      clave_ct: this.plantelEdit.clave_ct,
+    }).subscribe({
+      next: () => {
+        this.stats.update(list => list.map(s =>
+          s.id === this.plantelEdit!.id
+            ? { ...s, nombre_plantel: this.plantelEdit!.nombre_plantel, clave_ct: this.plantelEdit!.clave_ct }
+            : s
+        ));
+        this.msg.add({ severity: 'success', summary: 'Guardado', detail: 'Plantel actualizado' });
+        this.dlgPlantel = false;
+        this.saving.set(false);
+      },
+      error: e => {
+        this.msg.add({ severity: 'error', summary: 'Error', detail: e.error?.detail ?? 'Error al guardar' });
+        this.saving.set(false);
+      },
     });
   }
 

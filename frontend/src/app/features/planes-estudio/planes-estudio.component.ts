@@ -120,7 +120,7 @@ interface Estadisticas {
           </div>
 
           @if (loading()) {
-            <div style="padding:3rem;text-align:center;color:#94a3b8">Cargando mapa curricular…</div>
+            <div style="padding:3rem;text-align:center;color:var(--text-muted)">Cargando mapa curricular…</div>
           } @else if (gradosActuales().length === 0) {
             <p-message severity="info" text="No hay grados configurados para este nivel." />
           } @else {
@@ -203,7 +203,7 @@ interface Estadisticas {
               <span class="horas-badge" style="font-size:.72rem">5h</span> Obligatoria &nbsp;
               <span class="horas-badge optativa" style="font-size:.72rem">3h</span> Optativa
               @if (esAdmin()) {
-                &nbsp; · &nbsp; <span style="color:#64748b;font-size:.78rem">Clic en horas para editar · + para asignar · × para quitar</span>
+                &nbsp; · &nbsp; <span style="color:var(--text-secondary);font-size:.78rem">Clic en horas para editar · + para asignar · × para quitar</span>
               }
             </div>
           }
@@ -331,7 +331,7 @@ interface Estadisticas {
                 </tr>
               </ng-template>
               <ng-template pTemplate="emptymessage">
-                <tr><td [colSpan]="5" style="text-align:center;padding:2rem;color:#94a3b8">
+                <tr><td [colSpan]="5" style="text-align:center;padding:2rem;color:var(--text-muted)">
                   Sin temas registrados para este plan. Usa "Agregar tema" para comenzar.
                 </td></tr>
               </ng-template>
@@ -435,7 +435,7 @@ interface Estadisticas {
             </div>
           }
         } @else {
-          <p style="color:#94a3b8;font-size:.83rem">Sin asignaciones en el ciclo vigente.</p>
+          <p style="color:var(--text-muted);font-size:.83rem">Sin asignaciones en el ciclo vigente.</p>
         }
 
         <h4 class="det-section">Tipos de actividades típicas</h4>
@@ -471,7 +471,7 @@ interface Estadisticas {
     .mapa-row-data.inactiva { opacity:.4; }
     .mapa-mat-label { padding:.45rem .75rem; font-size:.83rem; display:flex; flex-direction:column; gap:.1rem; }
     .mat-nombre { font-weight:500; }
-    .mat-clave { font-size:.68rem; color:#64748b; background:var(--surface-100); padding:.05rem .3rem; border-radius:3px; width:fit-content; }
+    .mat-clave { font-size:.68rem; color:var(--text-secondary); background:var(--surface-100); padding:.05rem .3rem; border-radius:3px; width:fit-content; }
     .mapa-cell { text-align:center; padding:.3rem .1rem; position:relative; display:flex; align-items:center; justify-content:center; gap:.2rem; min-height:34px; }
     .horas-badge { display:inline-block; background:var(--primary-100); color:var(--primary-700);
       font-size:.75rem; font-weight:700; padding:.15rem .45rem; border-radius:10px; }
@@ -488,7 +488,7 @@ interface Estadisticas {
     .mapa-cell:hover .cell-del { opacity:1; }
     .horas-input { width:48px; border:1px solid var(--primary-color); border-radius:4px;
       text-align:center; font-size:.82rem; padding:.15rem .2rem; background:white; }
-    .mapa-leyenda { font-size:.78rem; color:#94a3b8; padding:.5rem; display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; }
+    .mapa-leyenda { font-size:.78rem; color:var(--text-muted); padding:.5rem; display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; }
 
     /* ── Catálogo ── */
     .cat-toolbar { display:flex; gap:.5rem; align-items:center; margin-bottom:1rem; flex-wrap:wrap; }

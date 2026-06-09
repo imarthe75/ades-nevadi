@@ -4,12 +4,13 @@
  * Lista de reportes con filtros por tipo de falta y estado de seguimiento.
  * Permite crear nuevo reporte con dialog.
  */
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
+import { AutoCompleteModule } from 'primeng/autocomplete';
 import { TagModule } from 'primeng/tag';
 import { ToastModule } from 'primeng/toast';
 import { DialogModule } from 'primeng/dialog';
@@ -21,6 +22,8 @@ import { MessageService } from 'primeng/api';
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
 import { ExportService, ExportColumn } from '../../core/services/export.service';
+import type { Grupo } from '../../core/models';
+import { grupoLabel } from '../../core/models';
 
 interface ReporteConducta {
   id: string;
@@ -35,6 +38,7 @@ interface ReporteConducta {
 }
 
 type TagSeverity = 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast';
+type GrupoConLabel = Grupo & { _label: string };
 const FALTA_SEVERITY: Record<string, TagSeverity> = {
   LEVE: 'info',
   GRAVE: 'warn',
@@ -46,7 +50,7 @@ const FALTA_SEVERITY: Record<string, TagSeverity> = {
   standalone: true,
   imports: [
     CommonModule, FormsModule,
-    TableModule, ButtonModule, SelectModule, TagModule, ToastModule,
+    TableModule, ButtonModule, SelectModule, AutoCompleteModule, TagModule, ToastModule,
     DialogModule, TextareaModule, InputTextModule, ToggleSwitchModule,
   ],
   providers: [MessageService],
@@ -151,16 +155,33 @@ const FALTA_SEVERITY: Record<string, TagSeverity> = {
     >
       <div class="form-fields">
         <div class="field">
-          <label>ID Alumno (UUID)</label>
-          <input pInputText [(ngModel)]="form.estudiante_id" placeholder="UUID del alumno" style="width:100%" />
+          <label>Alumno *</label>
+          <p-autoComplete
+            [(ngModel)]="form._alumnoObj"
+            [suggestions]="alumnosSugg()"
+            (completeMethod)="buscarAlumnos($event)"
+            optionLabel="nombre_completo"
+            [forceSelection]="true"
+            placeholder="Buscar alumno por nombre o matrícula..."
+            styleClass="w-full"
+            (onSelect)="onAlumnoSelect($event.value)"
+          />
         </div>
         <div class="field">
-          <label>ID Grupo (UUID)</label>
-          <input pInputText [(ngModel)]="form.grupo_id" placeholder="UUID del grupo" style="width:100%" />
+          <label>Grupo *</label>
+          <p-select
+            [options]="gruposOpts()"
+            [(ngModel)]="form._grupoObj"
+            optionLabel="_label"
+            placeholder="Seleccionar grupo"
+            [showClear]="true"
+            styleClass="w-full"
+            (onChange)="onGrupoSelect($event.value)"
+          />
         </div>
         <div class="field">
-          <label>ID Docente que reporta (UUID)</label>
-          <input pInputText [(ngModel)]="form.reportado_por_id" placeholder="UUID del profesor" style="width:100%" />
+          <label>Docente que reporta</label>
+          <input pInputText [value]="form._docenteNombre" [disabled]="true" style="width:100%;opacity:.75" />
         </div>
         <div class="field">
           <label>Tipo de falta</label>
@@ -216,10 +237,12 @@ export class ConductaComponent implements OnInit {
   private readonly msg    = inject(MessageService);
   private readonly export = inject(ExportService);
 
-  reportes = signal<ReporteConducta[]>([]);
-  loading  = signal(false);
-  saving   = signal(false);
-  showDialog = false;
+  reportes     = signal<ReporteConducta[]>([]);
+  loading      = signal(false);
+  saving       = signal(false);
+  showDialog   = false;
+  gruposOpts   = signal<GrupoConLabel[]>([]);
+  alumnosSugg  = signal<any[]>([]);
 
   filtroTipo: string | null = null;
   filtroSeguimiento: boolean | null = null;
@@ -234,16 +257,42 @@ export class ConductaComponent implements OnInit {
     { label: 'Cerrado', value: false },
   ];
 
-  form = {
-    estudiante_id: '',
-    grupo_id: '',
-    reportado_por_id: '',
-    tipo_falta: 'LEVE' as 'LEVE' | 'GRAVE' | 'MUY_GRAVE',
-    descripcion: '',
-    medida_aplicada: '',
-    compromiso_mejora: '',
-    requiere_seguimiento: false,
-  };
+  form: {
+    estudiante_id: string;
+    grupo_id: string;
+    reportado_por_id: string;
+    tipo_falta: 'LEVE' | 'GRAVE' | 'MUY_GRAVE';
+    descripcion: string;
+    medida_aplicada: string;
+    compromiso_mejora: string;
+    requiere_seguimiento: boolean;
+    _alumnoObj: any;
+    _grupoObj: GrupoConLabel | null;
+    _docenteNombre: string;
+  } = this.formVacio();
+
+  private formVacio() {
+    const u = this.ctx.usuario();
+    return {
+      estudiante_id: '', grupo_id: '', reportado_por_id: u?.id ?? '',
+      tipo_falta: 'LEVE' as const, descripcion: '',
+      medida_aplicada: '', compromiso_mejora: '', requiere_seguimiento: false,
+      _alumnoObj: null, _grupoObj: null,
+      _docenteNombre: u?.nombre_completo ?? 'Usuario actual',
+    };
+  }
+
+  constructor() {
+    effect(() => {
+      const plantelId = this.ctx.plantel()?.id;
+      const params: Record<string, any> = { solo_activos: true, ciclo_vigente: true };
+      if (plantelId) params['plantel_id'] = plantelId;
+      this.api.get<Grupo[]>('/grupos', params).subscribe({
+        next: gs => this.gruposOpts.set(gs.map(g => ({ ...g, _label: grupoLabel(g) }))),
+        error: () => {},
+      });
+    });
+  }
 
   ngOnInit(): void { this.cargar(); }
 
@@ -256,8 +305,32 @@ export class ConductaComponent implements OnInit {
       .subscribe({ next: r => { this.reportes.set(r); this.loading.set(false); }, error: () => this.loading.set(false) });
   }
 
+  buscarAlumnos(event: { query: string }): void {
+    const plantelId = this.ctx.plantel()?.id;
+    const params: Record<string, any> = { buscar: event.query, por_pagina: 10 };
+    if (plantelId) params['plantel_id'] = plantelId;
+    this.api.get<any>('/alumnos', params).subscribe({
+      next: (r: any) => {
+        const lista = r?.data ?? r;
+        this.alumnosSugg.set(lista.map((a: any) => ({
+          ...a,
+          nombre_completo: a.persona?.nombre_completo ?? a.matricula,
+        })));
+      },
+      error: () => this.alumnosSugg.set([]),
+    });
+  }
+
+  onAlumnoSelect(alumno: any): void {
+    this.form.estudiante_id = alumno?.id ?? '';
+  }
+
+  onGrupoSelect(grupo: GrupoConLabel | null): void {
+    this.form.grupo_id = grupo?.id ?? '';
+  }
+
   abrirDialog(): void {
-    this.form = { estudiante_id: '', grupo_id: '', reportado_por_id: '', tipo_falta: 'LEVE', descripcion: '', medida_aplicada: '', compromiso_mejora: '', requiere_seguimiento: false };
+    this.form = this.formVacio();
     this.showDialog = true;
   }
 
@@ -267,8 +340,9 @@ export class ConductaComponent implements OnInit {
       return;
     }
     this.saving.set(true);
-    const payload = { ...this.form, medida_aplicada: this.form.medida_aplicada || null, compromiso_mejora: this.form.compromiso_mejora || null };
-    this.api.post<ReporteConducta>('/conducta', payload).subscribe({
+    const { _alumnoObj, _grupoObj, _docenteNombre, ...payload } = this.form;
+    const body = { ...payload, medida_aplicada: payload.medida_aplicada || null, compromiso_mejora: payload.compromiso_mejora || null };
+    this.api.post<ReporteConducta>('/conducta', body).subscribe({
       next: (r) => {
         this.reportes.update(list => [r, ...list]);
         this.showDialog = false;

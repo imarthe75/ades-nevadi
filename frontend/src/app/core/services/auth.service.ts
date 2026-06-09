@@ -8,30 +8,32 @@ import type { UsuarioMe } from '../models';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private readonly router  = inject(Router);
-  private readonly http    = inject(HttpClient);
+  private readonly router = inject(Router);
+  private readonly http = inject(HttpClient);
   private readonly context = inject(ContextService);
 
   private readonly _token = signal<string | null>(sessionStorage.getItem('ades_token'));
+  private readonly _idToken = signal<string | null>(sessionStorage.getItem('ades_id_token'));
   readonly accessToken = this._token.asReadonly();
-  readonly isLoggedIn  = () => !!this._token();
+  readonly idToken = this._idToken.asReadonly();
+  readonly isLoggedIn = () => !!this._token();
 
   /** Inicia el flujo OIDC Authorization Code + PKCE */
   async login(): Promise<void> {
-    const verifier  = this.generateVerifier();
+    const verifier = this.generateVerifier();
     const challenge = await this.generateChallenge(verifier);
-    const state     = crypto.randomUUID();
+    const state = crypto.randomUUID();
 
     sessionStorage.setItem('ades_pkce_verifier', verifier);
     sessionStorage.setItem('ades_pkce_state', state);
 
     const params = new URLSearchParams({
-      response_type:         'code',
-      client_id:             environment.oidcClientId,
-      redirect_uri:          environment.oidcRedirectUri,
-      scope:                 'openid email profile',
+      response_type: 'code',
+      client_id: environment.oidcClientId,
+      redirect_uri: environment.oidcRedirectUri,
+      scope: 'openid email profile',
       state,
-      code_challenge:        challenge,
+      code_challenge: challenge,
       code_challenge_method: 'S256',
     });
 
@@ -62,7 +64,7 @@ export class AuthService {
       throw new Error('No se recibió access_token de Authentik');
     }
 
-    this.setToken(tokens.access_token);
+    this.setToken(tokens.access_token, tokens.id_token ?? null);
 
     // 2. Cargar perfil — si falla no bloquea el login
     try {
@@ -80,20 +82,36 @@ export class AuthService {
 
   logout(): void {
     this._token.set(null);
+    this._idToken.set(null);
     sessionStorage.removeItem('ades_token');
+    sessionStorage.removeItem('ades_id_token');
     sessionStorage.removeItem('ades_pkce_verifier');
     sessionStorage.removeItem('ades_pkce_state');
     sessionStorage.removeItem('ades_plantel');
     sessionStorage.removeItem('ades_ciclo');
     sessionStorage.removeItem('ades_nivel');
     this.context.setUsuario(null);
-    const postLogout = encodeURIComponent(environment.oidcRedirectUri);
-    window.location.href = `${environment.oidcEndSessionUrl}?post_logout_redirect_uri=${postLogout}`;
+    // Redirige a la página de inicio después del logout
+    const homeUrl = environment.apiUrl.endsWith('/') ? environment.apiUrl : environment.apiUrl + '/';
+    const params = new URLSearchParams({ post_logout_redirect_uri: homeUrl });
+    const idToken = this._idToken();
+    if (idToken) {
+      params.set('id_token_hint', idToken);
+    }
+    const endSessionUrl = environment.oidcEndSessionUrl;
+    window.location.href = `${endSessionUrl}?${params.toString()}`;
   }
 
-  private setToken(token: string): void {
+  private setToken(token: string, idToken: string | null = null): void {
     this._token.set(token);
     sessionStorage.setItem('ades_token', token);
+    if (idToken) {
+      this._idToken.set(idToken);
+      sessionStorage.setItem('ades_id_token', idToken);
+    } else {
+      this._idToken.set(null);
+      sessionStorage.removeItem('ades_id_token');
+    }
   }
 
   private generateVerifier(): string {
@@ -105,7 +123,7 @@ export class AuthService {
 
   private async generateChallenge(verifier: string): Promise<string> {
     const encoded = new TextEncoder().encode(verifier);
-    const hash    = await crypto.subtle.digest('SHA-256', encoded);
+    const hash = await crypto.subtle.digest('SHA-256', encoded);
     return btoa(String.fromCharCode(...new Uint8Array(hash)))
       .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
   }

@@ -115,6 +115,11 @@ class AdesUser:
     def tiene_scope_nivel(self) -> bool:
         return self.plantel_id is not None and self.nivel_educativo_id is not None
 
+    @property
+    def usuario_id(self) -> uuid.UUID:
+        """Alias de 'id' para compatibilidad retroactiva."""
+        return self.id
+
     def apply_plantel_filter(self, query, plantel_col):
         """Aplica filtro de plantel si el usuario no es ADMIN_GLOBAL."""
         if self.plantel_id is not None:

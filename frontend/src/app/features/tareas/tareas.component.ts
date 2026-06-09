@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TableModule } from 'primeng/table';
@@ -67,23 +67,23 @@ type GrupoConLabel = Grupo & { _label: string };
 
     @if (!selectedGrupo || !selectedMateria) {
       <div class="empty-state">
-        <i class="pi pi-info-circle" style="font-size:2rem; color:#94a3b8"></i>
+        <i class="pi pi-info-circle" style="font-size:2rem; color:var(--text-muted)"></i>
         <p>Selecciona un grupo y una materia para ver y gestionar las tareas.</p>
       </div>
     } @else {
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:2rem">
         <p-card styleClass="stat-card">
           <ng-template pTemplate="header">
-            <div style="color:#64748b;font-size:0.85rem;font-weight:600">Tareas Activas</div>
+            <div style="color:var(--text-secondary);font-size:0.85rem;font-weight:600">Tareas Activas</div>
           </ng-template>
           <div style="font-size:2.5rem;color:#1d4ed8;font-weight:700">{{ tareas().length }}</div>
         </p-card>
 
         <p-card styleClass="stat-card">
           <ng-template pTemplate="header">
-            <div style="color:#64748b;font-size:0.85rem;font-weight:600">Entregas Pendientes</div>
+            <div style="color:var(--text-secondary);font-size:0.85rem;font-weight:600">Entregas Pendientes</div>
           </ng-template>
-          <div style="font-size:2.5rem;color:#d97706;font-weight:700">{{ pendientes() }}</div>
+          <div style="font-size:2.5rem;color:var(--color-warning);font-weight:700">{{ pendientes() }}</div>
         </p-card>
       </div>
 
@@ -148,20 +148,27 @@ type GrupoConLabel = Grupo & { _label: string };
           <ng-template pTemplate="body" let-entrega>
             <tr>
               <td>{{ entrega.titulo }}</td>
-              <td>{{ entrega.fecha }}</td>
+              <td>{{ entrega.fecha_limite | date:'dd/MM/yyyy' }}</td>
               <td>
                 <p-tag
-                  [value]="entrega.estado"
-                  [severity]="entrega.estado === 'PENDIENTE' ? 'warn' : 'info'"
+                  [value]="entrega.estatus_entrega === 'PENDIENTE' ? 'Pendiente' : 'Entregado'"
+                  [severity]="entrega.estatus_entrega === 'PENDIENTE' ? 'warn' : 'success'"
                 />
+                @if (entrega.vencida) {
+                  <p-tag value="Vencida" severity="danger" styleClass="ml-1" />
+                }
               </td>
               <td>
-                <p-button
-                  label="Subir archivo"
-                  icon="pi pi-upload"
-                  [size]="'small'"
-                  (onClick)="showUploadDialog(entrega)"
-                />
+                @if (entrega.estatus_entrega === 'PENDIENTE') {
+                  <p-button
+                    label="Subir archivo"
+                    icon="pi pi-upload"
+                    size="small"
+                    (onClick)="showUploadDialog(entrega)"
+                  />
+                } @else {
+                  <span style="font-size:.8rem;color:var(--color-success)"><i class="pi pi-check-circle"></i> Entregado</span>
+                }
               </td>
             </tr>
           </ng-template>
@@ -200,12 +207,12 @@ type GrupoConLabel = Grupo & { _label: string };
   `,
   styles: [`
     .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
-    .subtitle { color: #64748b; font-size: 0.85rem; margin: 0.25rem 0 0; }
+    .subtitle { color: var(--text-secondary); font-size: 0.85rem; margin: 0.25rem 0 0; }
     .filter-bar { display: flex; gap: 1rem; margin-bottom: 1.5rem; }
     .filter-select { min-width: 220px; }
-    h3 { color: #1e293b; margin-bottom: 1rem; margin-top: 2rem; }
-    .empty-state { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 4rem; color: #94a3b8; }
-    .dlg-lbl { display: block; font-size: 0.85rem; margin-bottom: 0.25rem; color: #64748b; }
+    h3 { color: var(--text-primary); margin-bottom: 1rem; margin-top: 2rem; }
+    .empty-state { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 4rem; color: var(--text-muted); }
+    .dlg-lbl { display: block; font-size: 0.85rem; margin-bottom: 0.25rem; color: var(--text-secondary); }
     :host ::ng-deep .stat-card { text-align: center; }
   `],
 })
@@ -238,16 +245,34 @@ export class TareasComponent implements OnInit {
     return this.ctx.nivelAcceso() <= 4; // Docentes y administradores
   }
 
+  constructor() {
+    effect(() => {
+      const plantelId = this.ctx.plantel()?.id;
+      const nivelNombre = this.ctx.nivel()?.nombre_nivel;
+      this.loadGrupos(plantelId, nivelNombre);
+    });
+  }
+
+  loadGrupos(plantelId?: string, nivelNombre?: string): void {
+    const params: Record<string, any> = { solo_activos: true, ciclo_vigente: true };
+    if (plantelId) params['plantel_id'] = plantelId;
+    if (nivelNombre && nivelNombre !== 'TODOS') params['nivel'] = nivelNombre;
+
+    this.api.get<Grupo[]>('/grupos', params).subscribe({
+      next: g => {
+        this.grupos.set(g.map(x => ({ ...x, _label: grupoLabel(x) })));
+        if (this.selectedGrupo && !g.some(x => x.id === this.selectedGrupo!.id)) {
+          this.selectedGrupo = null;
+          this.selectedMateria = null;
+          this.tareas.set([]);
+          this.entregas.set([]);
+        }
+      },
+      error: () => this.grupos.set([])
+    });
+  }
+
   ngOnInit(): void {
-    const plantelId = this.ctx.plantel()?.id;
-    const nivelNombre = this.ctx.nivel()?.nombre_nivel;
-    if (plantelId) {
-      const params: Record<string, string | boolean> = { plantel_id: plantelId, solo_activos: true, ciclo_vigente: true };
-      if (nivelNombre) params['nivel'] = nivelNombre;
-      this.api.get<Grupo[]>('/grupos', params).subscribe(g =>
-        this.grupos.set(g.map(x => ({ ...x, _label: grupoLabel(x) })))
-      );
-    }
   }
 
   onGrupoChange(): void {
@@ -268,11 +293,17 @@ export class TareasComponent implements OnInit {
     this.api.get<Tarea[]>('/tareas', { grupo_id: this.selectedGrupo.id, materia_id: this.selectedMateria.id })
       .subscribe(t => {
         this.tareas.set(t);
-        this.entregas.set(t.map(task => ({
-          titulo: task.titulo,
-          fecha: task.fecha_entrega,
-          estado: Math.random() > 0.5 ? 'PENDIENTE' : 'ENTREGADO',
-        })).slice(0, 5));
+        // Solo cargar entregas pendientes si el usuario es alumno
+        const usuarioId = this.ctx.usuario()?.id;
+        if (usuarioId && this.ctx.nivelAcceso() >= 5) {
+          this.api.get<any[]>(`/entregas/alumno/${usuarioId}`, { solo_pendientes: true })
+            .subscribe({
+              next: e => this.entregas.set(e),
+              error: () => this.entregas.set([]),
+            });
+        } else {
+          this.entregas.set([]);
+        }
       });
   }
 

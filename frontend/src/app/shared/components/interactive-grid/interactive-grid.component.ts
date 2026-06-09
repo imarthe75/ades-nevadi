@@ -58,7 +58,7 @@ export interface ColumnConfig {
             (onClick)="exportToCSV()" />
         </div>
         <div class="toolbar-right">
-          <span style="font-size:.85rem;color:#64748b">{{ totalFilas() }} registro(s)</span>
+          <span style="font-size:.85rem;color:var(--text-secondary)">{{ totalFilas() }} registro(s)</span>
         </div>
       </div>
 
@@ -76,40 +76,51 @@ export interface ColumnConfig {
 
         <ng-template pTemplate="header" let-columns>
           <tr>
-            <th *ngFor="let col of columns" [pSortableColumn]="col.field" [style.width]="col.width || 'auto'">
-              <div class="p-column-header">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.25rem">
-                  <strong>{{ col.header }}</strong>
-                  <i *ngIf="col.sortable !== false" class="pi pi-arrow-up-down"
-                    style="font-size:.7rem;color:#94a3b8;cursor:pointer"></i>
+            @for (col of columns; track col.field) {
+              <th [pSortableColumn]="col.field" [style.width]="col.width || 'auto'">
+                <div class="p-column-header">
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.25rem">
+                    <strong>{{ col.header }}</strong>
+                    @if (col.sortable !== false) {
+                      <i class="pi pi-arrow-up-down" style="font-size:.7rem;color:var(--text-muted);cursor:pointer"></i>
+                    }
+                  </div>
+                  @if (col.filterable !== false) {
+                    <input pInputText type="text"
+                      placeholder="Filtrar..."
+                      (input)="filterByColumn(col.field, $any($event.target).value)"
+                      style="width:100%;font-size:.8rem;padding:.3rem;border:1px solid var(--surface-border);border-radius:3px" />
+                  }
                 </div>
-                <input *ngIf="col.filterable !== false" pInputText type="text"
-                  placeholder="Filtrar..."
-                  (input)="filterByColumn(col.field, $any($event.target).value)"
-                  style="width:100%;font-size:.8rem;padding:.3rem;border:1px solid var(--surface-border);border-radius:3px" />
-              </div>
-            </th>
+              </th>
+            }
             <th style="width:80px;text-align:center"><strong>Acciones</strong></th>
           </tr>
         </ng-template>
 
         <ng-template pTemplate="body" let-rowData let-columns="columns">
           <tr>
-            <td *ngFor="let col of columns">
-              <span *ngIf="!col.editable">{{ rowData[col.field] }}</span>
-              <input *ngIf="col.editable && col.type !== 'select'" pInputText
-                type="{{ col.type === 'number' ? 'number' : 'text' }}"
-                [value]="rowData[col.field]"
-                (blur)="onCellEdit(rowData, col.field, $event)"
-                style="width:100%;font-size:.85rem" />
-              <p-select *ngIf="col.editable && col.type === 'select'"
-                [options]="col.selectOptions || []"
-                [(ngModel)]="rowData[col.field]"
-                optionLabel="label"
-                optionValue="value"
-                (onChange)="onCellEdit(rowData, col.field, $event.value)"
-                style="width:100%;font-size:.85rem" />
-            </td>
+            @for (col of columns; track col.field) {
+              <td>
+                @if (!col.editable) { <span>{{ rowData[col.field] }}</span> }
+                @if (col.editable && col.type !== 'select') {
+                  <input pInputText
+                    [type]="col.type === 'number' ? 'number' : 'text'"
+                    [value]="rowData[col.field]"
+                    (blur)="onCellEdit(rowData, col.field, $event)"
+                    style="width:100%;font-size:.85rem" />
+                }
+                @if (col.editable && col.type === 'select') {
+                  <p-select
+                    [options]="col.selectOptions || []"
+                    [(ngModel)]="rowData[col.field]"
+                    optionLabel="label"
+                    optionValue="value"
+                    (onChange)="onCellEdit(rowData, col.field, $event.value)"
+                    style="width:100%;font-size:.85rem" />
+                }
+              </td>
+            }
             <td style="text-align:center">
               <p-button icon="pi pi-pencil" severity="warn" [text]="true"
                 (onClick)="rowSelected.emit(rowData)"
@@ -121,7 +132,7 @@ export interface ColumnConfig {
         <!-- EMPTY MESSAGE -->
         <ng-template pTemplate="emptymessage" let-columns>
           <tr><td [colSpan]="columns.length + 1"
-            style="text-align:center;padding:2rem;color:#94a3b8">
+            style="text-align:center;padding:2rem;color:var(--text-muted)">
             {{ loading() ? 'Cargando datos...' : 'Sin registros' }}
           </td></tr>
         </ng-template>
@@ -131,15 +142,17 @@ export interface ColumnConfig {
     <!-- COLUMN CHOOSER DIALOG -->
     <p-dialog [visible]="mostrarColumnChooser()" (visibleChange)="mostrarColumnChooser.set($event)" header="Mostrar/Ocultar Columnas"
       [modal]="true" [style]="{width:'400px'}">
-      <div style="display:flex;flex-direction:column;gap:1rem">
-        <div *ngFor="let col of columns" style="display:flex;align-items:center;gap:.5rem">
-          <input type="checkbox"
-            [checked]="columnasVisibles().some(c => c.field === col.field)"
-            (change)="toggleColumnVisibility(col.field)"
-            [id]="'col-' + col.field" />
-          <label [for]="'col-' + col.field" style="cursor:pointer;flex:1">{{ col.header }}</label>
-        </div>
-      </div>
+      <ul class="col-chooser-list">
+        @for (col of columns; track col.field) {
+          <li class="col-chooser-item">
+            <input type="checkbox"
+              [checked]="columnasVisibles().some(c => c.field === col.field)"
+              (change)="toggleColumnVisibility(col.field)"
+              [id]="'col-' + col.field" />
+            <label [for]="'col-' + col.field">{{ col.header }}</label>
+          </li>
+        }
+      </ul>
       <ng-template pTemplate="footer">
         <p-button label="Cerrar" icon="pi pi-check" (onClick)="mostrarColumnChooser.set(false)" />
       </ng-template>
@@ -150,6 +163,9 @@ export interface ColumnConfig {
     .grid-toolbar { display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;gap:.5rem }
     .toolbar-left, .toolbar-right { display:flex;gap:.5rem;align-items:center }
     .p-column-header { display:flex;flex-direction:column;gap:.25rem }
+    .col-chooser-list { list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.75rem }
+    .col-chooser-item { display:flex;align-items:center;gap:.5rem }
+    .col-chooser-item label { cursor:pointer;flex:1;font-size:.9rem }
     :deep(.p-datatable-sm .p-datatable-thead > tr > th) { padding:.5rem }
     :deep(.p-datatable-sm .p-datatable-tbody > tr > td) { padding:.5rem }
     :deep(.p-datatable-sm .p-datatable-thead > tr > th input[pInputText]) {

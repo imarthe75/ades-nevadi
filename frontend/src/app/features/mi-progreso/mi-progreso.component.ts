@@ -60,26 +60,31 @@ interface EntregaHistorial extends EntregaPendiente {
   <!-- ── TAB 1: Resumen por materia ── -->
   <p-tabpanel header="Calificaciones" value="0">
     <div class="materias-grid">
-      <div *ngFor="let m of materias()" class="materia-card"
-           [class.reprobada]="m.calificacion_final !== null && m.calificacion_final < m.minimo_aprobatorio">
-        <div class="materia-nombre">{{ m.nombre_materia }}</div>
-        <div [class]="calClass(m.calificacion_final, m.escala_maxima)" class="materia-cal">
-          {{ m.calificacion_final ?? '—' }}
+      @for (m of materias(); track m.nombre_materia) {
+        <div class="materia-card"
+             [class.reprobada]="m.calificacion_final !== null && m.calificacion_final < m.minimo_aprobatorio">
+          <div class="materia-nombre">{{ m.nombre_materia }}</div>
+          <div [class]="calClass(m.calificacion_final, m.escala_maxima)" class="materia-cal">
+            {{ m.calificacion_final ?? '—' }}
+          </div>
+          <p-progressBar [value]="pctCal(m)" [style]="{'height':'6px','margin':'8px 0'}"
+                         [color]="progressColor(m)" [showValue]="false" />
+          @if (m.score_por_item) {
+            <div class="score-desglose">
+              @for (item of itemsScore(m); track item.label) {
+                <span class="score-item">{{ item.label }}: <strong>{{ item.val }}</strong></span>
+              }
+            </div>
+          }
+          @if (m.calificacion_final !== null && m.calificacion_final < m.minimo_aprobatorio) {
+            <small class="text-danger">⚠ En riesgo</small>
+          }
         </div>
-        <p-progressBar [value]="pctCal(m)" [style]="{'height':'6px','margin':'8px 0'}"
-                       [color]="progressColor(m)" [showValue]="false" />
-        <div class="score-desglose" *ngIf="m.score_por_item">
-          <span *ngFor="let item of itemsScore(m)" class="score-item">
-            {{ item.label }}: <strong>{{ item.val }}</strong>
-          </span>
-        </div>
-        <small *ngIf="m.calificacion_final !== null && m.calificacion_final < m.minimo_aprobatorio"
-               class="text-danger">⚠ En riesgo</small>
-      </div>
+      }
     </div>
-    <p *ngIf="!materias().length && !cargando()" class="text-center text-muted p-4">
-      No hay calificaciones para el período seleccionado.
-    </p>
+    @if (!materias().length && !cargando()) {
+      <p class="text-center text-muted p-4">No hay calificaciones para el período seleccionado.</p>
+    }
   </p-tabpanel>
 
   <!-- ── TAB 2: Tareas pendientes ── -->
@@ -149,20 +154,22 @@ interface EntregaHistorial extends EntregaPendiente {
 <!-- ── Dialog: subir entrega ── -->
 <p-dialog [(visible)]="dialogSubirVisible" header="Subir entrega"
           [modal]="true" [style]="{width:'420px'}">
-  <div *ngIf="entregaActiva">
-    <p><strong>{{ entregaActiva.titulo }}</strong></p>
-    <p><small>{{ entregaActiva.nombre_materia }}</small></p>
-    <div class="field mt-3">
-      <label>Archivo</label>
-      <input type="file" (change)="onFileChange($event)"
-             class="w-full" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:4px" />
+  @if (entregaActiva) {
+    <div>
+      <p><strong>{{ entregaActiva.titulo }}</strong></p>
+      <p><small>{{ entregaActiva.nombre_materia }}</small></p>
+      <div class="field mt-3">
+        <label>Archivo</label>
+        <input type="file" (change)="onFileChange($event)"
+               class="w-full" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:4px" />
+      </div>
+      <div class="field mt-2">
+        <label>Comentario (opcional)</label>
+        <textarea [(ngModel)]="comentarioEntrega" rows="3"
+                  class="w-full" style="width:100%;padding:6px;border:1px solid #ccc;border-radius:4px"></textarea>
+      </div>
     </div>
-    <div class="field mt-2">
-      <label>Comentario (opcional)</label>
-      <textarea [(ngModel)]="comentarioEntrega" rows="3"
-                class="w-full" style="width:100%;padding:6px;border:1px solid #ccc;border-radius:4px"></textarea>
-    </div>
-  </div>
+  }
   <ng-template pTemplate="footer">
     <button pButton label="Cancelar" severity="secondary" (click)="dialogSubirVisible = false"></button>
     <button pButton label="Subir" icon="pi pi-upload" (click)="subirEntrega()" [loading]="subiendoArchivo()"></button>

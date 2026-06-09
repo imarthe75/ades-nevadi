@@ -287,7 +287,7 @@ const GUIAS_ROL = [
       <div class="search-results">
         <h4>Resultados para "{{ busqueda }}"  <button class="clear-btn" (click)="limpiarBusqueda()">✕ Limpiar</button></h4>
         @if (resultadosBusqueda().length === 0) {
-          <p style="color:#94a3b8;font-size:.85rem">Sin resultados. Prueba con términos más generales.</p>
+          <p style="color:var(--text-muted);font-size:.85rem">Sin resultados. Prueba con términos más generales.</p>
         }
         @for (r of resultadosBusqueda(); track r.titulo) {
           <div class="search-item" (click)="limpiarBusqueda()">
@@ -386,7 +386,7 @@ const GUIAS_ROL = [
                   <td><strong>{{ s.nombre }}</strong></td>
                   <td style="font-size:.75rem;font-family:monospace;color:#0f766e">{{ s.puerto }}</td>
                   <td style="font-size:.82rem">{{ s.descripcion }}</td>
-                  <td style="font-size:.78rem;color:#64748b">{{ s.config }}</td>
+                  <td style="font-size:.78rem;color:var(--text-secondary)">{{ s.config }}</td>
                 </tr>
               </ng-template>
             </p-table>
@@ -490,7 +490,7 @@ const GUIAS_ROL = [
     /* ── Búsqueda ── */
     .search-results { padding:1rem 0; }
     .search-results h4 { margin:0 0 1rem; font-size:.9rem; display:flex;align-items:center;gap:.75rem }
-    .clear-btn { background:none;border:1px solid var(--surface-300);border-radius:4px;padding:.15rem .5rem;cursor:pointer;font-size:.75rem;color:#64748b }
+    .clear-btn { background:none;border:1px solid var(--surface-300);border-radius:4px;padding:.15rem .5rem;cursor:pointer;font-size:.75rem;color:var(--text-secondary) }
     .search-item { padding:.75rem 1rem; border:1px solid var(--surface-200); border-radius:8px; margin-bottom:.5rem; cursor:pointer; transition:background .15s; }
     .search-item:hover { background:var(--surface-50); }
     .search-item strong { font-size:.85rem; color:var(--primary-color); }
@@ -501,7 +501,7 @@ const GUIAS_ROL = [
     .rol-col h5 { font-size:.78rem; text-transform:uppercase; letter-spacing:.05em; color:var(--primary-color); margin:0 0 .6rem; }
     .rol-col ul { margin:0; padding-left:1.2rem; }
     .rol-col li { font-size:.84rem; margin-bottom:.25rem; line-height:1.5; }
-    .limitaciones li { color:#64748b; }
+    .limitaciones li { color:var(--text-secondary); }
 
     /* ── Módulos ── */
     .mod-link { font-size:.8rem;color:var(--primary-color);text-decoration:none;display:inline-block;margin-bottom:.5rem }

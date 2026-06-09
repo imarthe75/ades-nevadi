@@ -85,7 +85,7 @@ interface GrupoAdmin {
               (input)="dtUsuarios.filterGlobal($any($event.target).value,'contains')"
               style="width:260px" />
             <div style="margin-left:auto;display:flex;gap:.5rem;align-items:center">
-              <span style="font-size:.8rem;color:#64748b">Importar:</span>
+              <span style="font-size:.8rem;color:var(--text-secondary)">Importar:</span>
               <app-import-button entidad="alumnos" [onSuccess]="recargarUsuarios" />
               <app-import-button entidad="profesores" [onSuccess]="recargarUsuarios" />
               <p-button label="Nuevo usuario" icon="pi pi-plus" size="small"
@@ -114,7 +114,7 @@ interface GrupoAdmin {
                 <td>
                   <p-tag [value]="u.rol" [severity]="rolSeverity(u.nivel_acceso)" />
                 </td>
-                <td style="font-size:0.8rem;color:#64748b">
+                <td style="font-size:0.8rem;color:var(--text-secondary)">
                   @if (u.nombre_plantel) {
                     {{ u.nombre_plantel }}@if (u.nombre_nivel) { · {{ u.nombre_nivel }} }
                   } @else { <em>Global</em> }
@@ -130,7 +130,7 @@ interface GrupoAdmin {
               </tr>
             </ng-template>
             <ng-template pTemplate="emptymessage">
-              <tr><td colspan="6" style="text-align:center;padding:2rem;color:#94a3b8">Sin usuarios</td></tr>
+              <tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--text-muted)">Sin usuarios</td></tr>
             </ng-template>
           </p-table>
         </p-tabpanel>
@@ -378,7 +378,7 @@ interface GrupoAdmin {
               </tr>
             </ng-template>
             <ng-template pTemplate="emptymessage">
-              <tr><td [colSpan]="8" style="text-align:center;padding:2rem;color:#94a3b8">
+              <tr><td [colSpan]="8" style="text-align:center;padding:2rem;color:var(--text-muted)">
                 Sin registros de auditoría aún — las mutaciones se registrarán automáticamente
               </td></tr>
             </ng-template>
@@ -716,7 +716,10 @@ export class AdminComponent implements OnInit {
     this.loadingUsuarios.set(true);
     this.api.get<UsuarioAdmin[]>('/admin/usuarios').subscribe({
       next: u => { this.usuarios.set(u); this.loadingUsuarios.set(false); },
-      error: () => this.loadingUsuarios.set(false),
+      error: e => {
+        this.msg.add({ severity: 'error', summary: 'Error', detail: e.error?.detail ?? 'No se pudieron cargar los usuarios' });
+        this.loadingUsuarios.set(false);
+      },
     });
   }
 

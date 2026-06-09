@@ -14,10 +14,27 @@ from app.core.database import get_db
 from app.core.security import get_ades_user, AdesUser
 from app.models.personas import ContactoFamiliar, Persona, ExpedienteDoc, DocumentoTipo
 from app.models.fase3 import ExpedienteMedico
+from pydantic import BaseModel, Field
 from app.schemas.personas import (
-    ContactoOut, ContactoCreate, ContactoUpdate,
     ExpedienteMedicoOut, ExpedienteMedicoUpdate,
 )
+
+
+class ContactoPayload(BaseModel):
+    """Payload del frontend para crear/actualizar contactos."""
+    estudiante_id: uuid.UUID | None = None
+    nombre_completo: str = Field(min_length=2, max_length=200)
+    parentesco: str | None = None
+    telefono_principal: str | None = None
+    email: str | None = None
+    es_tutor_legal: bool = False
+    es_contacto_emergencia: bool = False
+    puede_recoger: bool = True
+    ocupacion: str | None = None
+    nivel_estudios: str | None = None
+    rfc: str | None = None
+    toma_decision_conjunta: bool = False
+    grado_responsabilidad: str = "PRINCIPAL"
 
 router = APIRouter(tags=["contactos & expediente"])
 
@@ -26,12 +43,27 @@ router = APIRouter(tags=["contactos & expediente"])
 # CONTACTOS FAMILIARES / TUTORES
 # ══════════════════════════════════════════════════════════════════════════════
 
-class ContactoFamiliarOut(ContactoOut):
-    """Schema extendido con campos de ades_contactos_familiares."""
+class ContactoFamiliarOut(BaseModel):
+    """Schema de respuesta para contactos familiares — sin herencia de AdesResponse."""
+    id: uuid.UUID
+    persona_id: uuid.UUID
     estudiante_id: uuid.UUID
+    nombre_completo: str
+    parentesco: str | None = None
+    telefono_principal: str | None = None
+    email: str | None = None
+    es_tutor_legal: bool = False
     es_contacto_emergencia: bool = False
     puede_recoger: bool = False
-    nombre_completo_persona: str | None = None  # de la persona vinculada
+    ocupacion: str | None = None
+    nivel_estudios: str | None = None
+    rfc: str | None = None
+    toma_decision_conjunta: bool = False
+    grado_responsabilidad: str = "PRINCIPAL"
+    is_active: bool = True
+    nombre_completo_persona: str | None = None
+
+    model_config = {"from_attributes": True}
 
 
 @router.get("/contactos", response_model=list[ContactoFamiliarOut])
@@ -54,19 +86,21 @@ async def listar_contactos(
             nombre = c.persona.nombre_completo
         result.append(ContactoFamiliarOut(
             id=c.id,
-            persona_id=c.persona_id or c.estudiante_id,  # fallback
+            persona_id=c.persona_id or c.estudiante_id,
             estudiante_id=c.estudiante_id,
             nombre_completo=nombre or "",
             parentesco=c.parentesco,
-            telefono=c.telefono_principal,
-            telefono_alt=c.telefono_trabajo,
+            telefono_principal=c.telefono_principal,
             email=c.email,
             es_tutor_legal=c.es_tutor_legal,
-            es_contacto_prim=c.es_contacto_emergencia,
+            es_contacto_emergencia=c.es_contacto_emergencia,
             puede_recoger=c.puede_recoger,
             ocupacion=c.ocupacion,
             nivel_estudios=c.nivel_estudios,
             rfc=c.rfc,
+            toma_decision_conjunta=getattr(c, "toma_decision_conjunta", False),
+            grado_responsabilidad=getattr(c, "grado_responsabilidad", "PRINCIPAL") or "PRINCIPAL",
+            is_active=c.is_active,
             nombre_completo_persona=(c.persona.nombre_completo if c.persona else None),
         ))
     return result
@@ -74,21 +108,23 @@ async def listar_contactos(
 
 @router.post("/contactos", response_model=ContactoFamiliarOut, status_code=201)
 async def crear_contacto(
-    data: ContactoCreate,
-    estudiante_id: uuid.UUID = Query(...),
+    data: ContactoPayload,
+    estudiante_id: uuid.UUID | None = Query(None),
     db: AsyncSession = Depends(get_db),
     _user: AdesUser = Depends(get_ades_user),
 ):
+    est_id = estudiante_id or data.estudiante_id
+    if not est_id:
+        raise HTTPException(status_code=422, detail="estudiante_id es requerido")
     contacto = ContactoFamiliar(
-        estudiante_id=estudiante_id,
-        persona_id=data.persona_id if data.persona_id != uuid.UUID(int=0) else None,
+        estudiante_id=est_id,
         nombre_completo=data.nombre_completo,
         parentesco=data.parentesco,
-        telefono_principal=data.telefono,
-        telefono_trabajo=data.telefono_alt,
+        telefono_principal=data.telefono_principal,
         email=data.email,
         es_tutor_legal=data.es_tutor_legal,
-        es_contacto_emergencia=data.es_contacto_prim,
+        es_contacto_emergencia=data.es_contacto_emergencia,
+        puede_recoger=data.puede_recoger,
         ocupacion=data.ocupacion,
         nivel_estudios=data.nivel_estudios,
         rfc=data.rfc,
@@ -98,26 +134,28 @@ async def crear_contacto(
     await db.refresh(contacto)
     return ContactoFamiliarOut(
         id=contacto.id,
-        persona_id=contacto.persona_id or estudiante_id,
+        persona_id=contacto.persona_id or est_id,
         estudiante_id=contacto.estudiante_id,
         nombre_completo=contacto.nombre_completo or "",
         parentesco=contacto.parentesco,
-        telefono=contacto.telefono_principal,
-        telefono_alt=contacto.telefono_trabajo,
+        telefono_principal=contacto.telefono_principal,
         email=contacto.email,
         es_tutor_legal=contacto.es_tutor_legal,
-        es_contacto_prim=contacto.es_contacto_emergencia,
+        es_contacto_emergencia=contacto.es_contacto_emergencia,
         puede_recoger=contacto.puede_recoger,
         ocupacion=contacto.ocupacion,
         nivel_estudios=contacto.nivel_estudios,
         rfc=contacto.rfc,
+        toma_decision_conjunta=getattr(contacto, "toma_decision_conjunta", False),
+        grado_responsabilidad=getattr(contacto, "grado_responsabilidad", "PRINCIPAL") or "PRINCIPAL",
+        is_active=contacto.is_active,
     )
 
 
 @router.patch("/contactos/{contacto_id}", response_model=ContactoFamiliarOut)
 async def actualizar_contacto(
     contacto_id: uuid.UUID,
-    data: ContactoUpdate,
+    data: ContactoPayload,
     db: AsyncSession = Depends(get_db),
     _user: AdesUser = Depends(get_ades_user),
 ):
@@ -125,21 +163,12 @@ async def actualizar_contacto(
     if not contacto or not contacto.is_active:
         raise HTTPException(status_code=404, detail="Contacto no encontrado")
 
-    mapping = {
-        "nombre_completo": "nombre_completo",
-        "parentesco": "parentesco",
-        "telefono": "telefono_principal",
-        "telefono_alt": "telefono_trabajo",
-        "email": "email",
-        "es_tutor_legal": "es_tutor_legal",
-        "es_contacto_prim": "es_contacto_emergencia",
-        "ocupacion": "ocupacion",
-        "nivel_estudios": "nivel_estudios",
-        "rfc": "rfc",
-    }
-    for src, dst in mapping.items():
-        if src in data.model_fields_set:
-            setattr(contacto, dst, getattr(data, src))
+    for field in data.model_fields_set:
+        if field == "estudiante_id":
+            continue
+        db_field = field
+        if hasattr(contacto, db_field):
+            setattr(contacto, db_field, getattr(data, field))
 
     await db.commit()
     await db.refresh(contacto)
@@ -149,15 +178,17 @@ async def actualizar_contacto(
         estudiante_id=contacto.estudiante_id,
         nombre_completo=contacto.nombre_completo or "",
         parentesco=contacto.parentesco,
-        telefono=contacto.telefono_principal,
-        telefono_alt=contacto.telefono_trabajo,
+        telefono_principal=contacto.telefono_principal,
         email=contacto.email,
         es_tutor_legal=contacto.es_tutor_legal,
-        es_contacto_prim=contacto.es_contacto_emergencia,
+        es_contacto_emergencia=contacto.es_contacto_emergencia,
         puede_recoger=contacto.puede_recoger,
         ocupacion=contacto.ocupacion,
         nivel_estudios=contacto.nivel_estudios,
         rfc=contacto.rfc,
+        toma_decision_conjunta=getattr(contacto, "toma_decision_conjunta", False),
+        grado_responsabilidad=getattr(contacto, "grado_responsabilidad", "PRINCIPAL") or "PRINCIPAL",
+        is_active=contacto.is_active,
     )
 
 

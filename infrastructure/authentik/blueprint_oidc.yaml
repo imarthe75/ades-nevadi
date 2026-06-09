@@ -32,7 +32,11 @@ entries:
       client_id: ades-frontend
       redirect_uris: |-
         https://ades.setag.mx/callback
+        https://ades.setag.mx
         http://localhost:4200/callback
+        http://localhost:4200
+      logout_uri: https://ades.setag.mx/
+      logout_method: frontchannel
       sub_mode: user_username
       include_claims_in_id_token: true
       access_code_validity: minutes=1

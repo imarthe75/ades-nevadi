@@ -55,7 +55,7 @@ interface Workflow {
           <div class="serv-icon"><i class="pi {{ s.icono }}"></i></div>
           <div class="serv-info">
             <div class="serv-nombre">{{ s.nombre }}</div>
-            <div class="serv-fase" style="font-size:.72rem;color:#94a3b8">FASE {{ s.fase }}</div>
+            <div class="serv-fase" style="font-size:.72rem;color:var(--text-muted)">FASE {{ s.fase }}</div>
           </div>
           <div class="serv-status">
             <p-tag [value]="s.disponible ? 'Online' : 'Offline'"
@@ -85,7 +85,7 @@ interface Workflow {
         </div>
       </div>
     } @else {
-      <div style="padding:1.5rem;text-align:center;color:#94a3b8;background:var(--surface-50);border-radius:8px;margin-top:1rem">
+      <div style="padding:1.5rem;text-align:center;color:var(--text-muted);background:var(--surface-50);border-radius:8px;margin-top:1rem">
         <i class="pi pi-chart-line" style="font-size:2rem;display:block;margin-bottom:.5rem"></i>
         Dashboard Grafana no configurado.<br>
         <small>Configurar <code>GRAFANA_URL</code> en .env para habilitar el iframe.</small>
@@ -116,11 +116,11 @@ interface Workflow {
             <p-tag [value]="w.active ? 'Activo' : 'Inactivo'"
               [severity]="w.active ? 'success' : 'secondary'" />
           </td>
-          <td style="font-size:.78rem;color:#94a3b8">{{ w.updatedAt | date:'dd/MM/yy HH:mm' }}</td>
+          <td style="font-size:.78rem;color:var(--text-muted)">{{ w.updatedAt | date:'dd/MM/yy HH:mm' }}</td>
         </tr>
       </ng-template>
       <ng-template pTemplate="emptymessage">
-        <tr><td [colSpan]="3" style="text-align:center;padding:1.5rem;color:#94a3b8">
+        <tr><td [colSpan]="3" style="text-align:center;padding:1.5rem;color:var(--text-muted)">
           Sin workflows — configura flujos en n8n UI (localhost:5678)
         </td></tr>
       </ng-template>
@@ -137,7 +137,7 @@ interface Workflow {
     .serv-info { flex:1;min-width:0 }
     .serv-nombre { font-weight:600;font-size:.85rem }
     .serv-status { flex-shrink:0 }
-    .serv-link { margin-left:.4rem;color:#94a3b8;text-decoration:none;font-size:.9rem }
+    .serv-link { margin-left:.4rem;color:var(--text-muted);text-decoration:none;font-size:.9rem }
     .serv-link:hover { color:var(--primary-color) }
     .section-header { display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem }
     .section-header h4 { margin:0;font-size:.9rem;font-weight:700 }

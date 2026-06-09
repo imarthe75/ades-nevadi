@@ -101,11 +101,6 @@ interface Notif { id: string; titulo: string; cuerpo: string; tipo: string; leid
       </ng-template>
 
       <ng-template pTemplate="end">
-        <div class="user-info">
-          <span class="user-name">{{ ctx.usuario()?.nombre_completo }}</span>
-          <span class="user-rol">{{ ctx.rolLabel() }}</span>
-        </div>
-
         <!-- Campanita de notificaciones -->
         <div class="notif-bell" (click)="toggleNotifPanel($event)">
           <i class="pi pi-bell topbar-icon"></i>
@@ -114,14 +109,15 @@ interface Notif { id: string; titulo: string; cuerpo: string; tipo: string; leid
           }
         </div>
 
-        <p-button
-          icon="pi pi-sign-out"
-          [text]="true"
-          [plain]="true"
-          pTooltip="Cerrar sesión"
-          (onClick)="auth.logout()"
-          styleClass="topbar-btn"
-        />
+        <!-- Avatar usuario -->
+        <div class="user-avatar-btn" (click)="toggleUserMenu($event)" pTooltip="Cuenta" tooltipPosition="bottom">
+          <div class="user-avatar-circle">{{ userInitial() }}</div>
+          <div class="user-info">
+            <span class="user-name">{{ ctx.usuario()?.nombre_completo }}</span>
+            <span class="user-rol">{{ ctx.rolLabel() }}</span>
+          </div>
+          <i class="pi pi-chevron-down" style="font-size:.6rem;color:rgba(255,255,255,.55);margin-left:.2rem"></i>
+        </div>
       </ng-template>
     </p-toolbar>
 
@@ -148,6 +144,22 @@ interface Notif { id: string; titulo: string; cuerpo: string; tipo: string; leid
       <div class="notif-panel-footer">
         <a routerLink="/comunicados" (click)="notifPanel.hide()">Ver comunicados →</a>
       </div>
+    </p-popover>
+
+    <!-- ── Menú de usuario ── -->
+    <p-popover #userMenu styleClass="user-menu-panel">
+      <div class="umenu-header">
+        <div class="umenu-avatar">{{ userInitial() }}</div>
+        <div>
+          <div class="umenu-name">{{ ctx.usuario()?.nombre_completo }}</div>
+          <div class="umenu-user">{{ ctx.usuario()?.nombre_usuario }}</div>
+          <div class="umenu-rol">{{ ctx.rolLabel() }}</div>
+        </div>
+      </div>
+      <div class="umenu-divider"></div>
+      <button class="umenu-item" (click)="auth.logout(); userMenu.hide()">
+        <i class="pi pi-sign-out"></i> Cerrar sesión
+      </button>
     </p-popover>
 
     <!-- ── Layout principal ── -->
@@ -204,9 +216,44 @@ interface Notif { id: string; titulo: string; cuerpo: string; tipo: string; leid
 
     .topbar-divider { width: 1px; height: 28px; background: rgba(255,255,255,.2); margin: 0 0.75rem; }
 
-    .user-info { display: flex; flex-direction: column; align-items: flex-end; margin-right: 0.5rem; }
+    /* User avatar menu */
+    .user-avatar-btn {
+      display: flex; align-items: center; gap: .5rem; cursor: pointer;
+      padding: .25rem .5rem; border-radius: 8px;
+      transition: background .15s;
+    }
+    .user-avatar-btn:hover { background: rgba(255,255,255,.12); }
+    .user-avatar-circle {
+      width: 30px; height: 30px; border-radius: 50%;
+      background: rgba(255,255,255,.22); border: 1.5px solid rgba(255,255,255,.4);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: .85rem; color: #fff; flex-shrink: 0;
+    }
+    .user-info { display: flex; flex-direction: column; align-items: flex-end; }
     .user-name { color: rgba(255,255,255,.9); font-size: 0.82rem; line-height: 1.2; }
     .user-rol  { color: var(--topbar-text-muted); font-size: 0.7rem; }
+
+    /* User menu popover */
+    :host ::ng-deep p-popover.user-menu-panel .p-popover { min-width: 220px; padding: 0; }
+    .umenu-header { display: flex; align-items: center; gap: .75rem; padding: 1rem; }
+    .umenu-avatar {
+      width: 40px; height: 40px; border-radius: 50%;
+      background: var(--primary-color); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 1rem; flex-shrink: 0;
+    }
+    .umenu-name { font-weight: 600; font-size: .88rem; }
+    .umenu-user { font-size: .75rem; color: var(--text-color-secondary); }
+    .umenu-rol  { font-size: .72rem; color: var(--text-color-secondary); margin-top: .1rem; }
+    .umenu-divider { height: 1px; background: var(--surface-200); margin: 0; }
+    .umenu-item {
+      display: flex; align-items: center; gap: .6rem;
+      width: 100%; background: none; border: none; cursor: pointer;
+      padding: .75rem 1rem; font-size: .87rem; color: var(--text-color);
+      transition: background .12s; text-align: left;
+    }
+    .umenu-item:hover { background: var(--surface-50); }
+    .umenu-item i { color: var(--primary-color); }
 
     /* Badge de escuela para usuarios con scope fijo */
     .scope-badge {
@@ -354,6 +401,11 @@ export class ShellComponent implements OnInit {
   notifCount    = signal(0);
   notificaciones = signal<Notif[]>([]);
   @ViewChild('notifPanel') notifPanelRef!: Popover;
+  @ViewChild('userMenu')   userMenuRef!: Popover;
+
+  readonly userInitial = computed(() =>
+    this.ctx.usuario()?.nombre_completo?.[0]?.toUpperCase() ?? 'U'
+  );
 
   // maxNivel: usuarios con nivel_acceso <= maxNivel ven el ítem
   // 0=ADMIN_GLOBAL, 1=ADMIN_PLANTEL, 2-3=DIRECTOR/COORD, 4=DOCENTE, 5=ALUMNO
@@ -464,17 +516,16 @@ export class ShellComponent implements OnInit {
   /** Grupos/ítems visibles para el rol del usuario actual */
   readonly navGroupsVisible = computed(() => {
     const nivel = this.ctx.nivelAcceso();
-    if (nivel === 0) {
-      // Admin global ve todas las opciones
-      return this._allNavGroups;
-    }
+    const isGlobal = nivel === 0;
     const itemVisible = (item: NavItem, groupMax?: number, groupMin?: number) => {
+      if (isGlobal) return true;
       const max = item.maxNivel ?? groupMax ?? 99;
       const min = item.minNivel ?? groupMin ?? 0;
       return nivel <= max && nivel >= min;
     };
     return this._allNavGroups
       .filter(g => {
+        if (isGlobal) return true;
         const max = g.maxNivel ?? 99;
         const min = g.minNivel ?? 0;
         return nivel <= max && nivel >= min;
@@ -524,6 +575,14 @@ export class ShellComponent implements OnInit {
       next: (r) => this.notifCount.set(r.total),
       error: () => {},
     });
+  }
+
+  toggleUserMenu(event: Event): void {
+    if (this.userMenuRef.overlayVisible) {
+      this.userMenuRef.hide();
+    } else {
+      this.userMenuRef.show(event);
+    }
   }
 
   toggleNotifPanel(event: Event): void {

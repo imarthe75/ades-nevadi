@@ -66,7 +66,7 @@ interface ParentescoOpt { label: string; value: string; }
     <!-- FILTRO Y BÚSQUEDA -->
     <div class="toolbar">
       <div style="display:flex;gap:.5rem;align-items:center;flex:1">
-        <label style="font-size:.85rem;color:#64748b">Estudiante:</label>
+        <label style="font-size:.85rem;color:var(--text-secondary)">Estudiante:</label>
         <p-select
           [(ngModel)]="estudianteSeleccionado"
           [options]="estudiantes()"
@@ -80,7 +80,7 @@ interface ParentescoOpt { label: string; value: string; }
       </div>
       <p-button label="Agregar contacto" icon="pi pi-plus" size="small"
         (onClick)="abrirFormulario()"
-        [disabled]="!estudianteSeleccionado()" />
+        [disabled]="!estudianteSeleccionado" />
     </div>
 
     <!-- TABLA DE CONTACTOS FAMILIARES -->
@@ -107,22 +107,16 @@ interface ParentescoOpt { label: string; value: string; }
           <td><small>{{ row.telefono_principal }}</small></td>
           <td><small>{{ row.email }}</small></td>
           <td style="text-align:center">
-            <p-tag *ngIf="row.es_tutor_legal"
-              value="✓ Sí" severity="success" />
-            <p-tag *ngIf="!row.es_tutor_legal"
-              value="✗ No" severity="secondary" />
+            @if (row.es_tutor_legal) { <p-tag value="✓ Sí" severity="success" /> }
+            @else { <p-tag value="✗ No" severity="secondary" /> }
           </td>
           <td style="text-align:center">
-            <p-tag *ngIf="row.es_contacto_emergencia"
-              value="✓ Sí" severity="info" />
-            <p-tag *ngIf="!row.es_contacto_emergencia"
-              value="✗ No" severity="secondary" />
+            @if (row.es_contacto_emergencia) { <p-tag value="✓ Sí" severity="info" /> }
+            @else { <p-tag value="✗ No" severity="secondary" /> }
           </td>
           <td style="text-align:center">
-            <p-tag *ngIf="row.puede_recoger"
-              value="✓ Sí" severity="success" />
-            <p-tag *ngIf="!row.puede_recoger"
-              value="✗ No" severity="secondary" />
+            @if (row.puede_recoger) { <p-tag value="✓ Sí" severity="success" /> }
+            @else { <p-tag value="✗ No" severity="secondary" /> }
           </td>
           <td style="text-align:center">
             <p-button icon="pi pi-pencil" severity="warn" [text]="true"
@@ -133,8 +127,8 @@ interface ParentescoOpt { label: string; value: string; }
         </tr>
       </ng-template>
       <ng-template pTemplate="emptymessage">
-        <tr><td [colSpan]="8" style="text-align:center;padding:1.5rem;color:#94a3b8">
-          {{ estudianteSeleccionado() ? 'No hay contactos familiares registrados' : 'Selecciona un estudiante para ver sus contactos' }}
+        <tr><td [colSpan]="8" style="text-align:center;padding:1.5rem;color:var(--text-muted)">
+          {{ estudianteSeleccionado ? 'No hay contactos familiares registrados' : 'Selecciona un estudiante para ver sus contactos' }}
         </td></tr>
       </ng-template>
     </p-table>
@@ -239,15 +233,17 @@ interface ParentescoOpt { label: string; value: string; }
         </div>
 
         <!-- VALIDACIÓN -->
-        <div *ngIf="mostrarErrores()" style="background:#fef2f2;padding:1rem;border-radius:6px;margin:.5rem 0;color:#dc2626;font-size:.85rem">
-          <strong>Errores de validación:</strong>
-          <ul style="margin:.5rem 0;padding-left:1.5rem">
-            <li *ngIf="form.get('nombre_completo')?.hasError('required')">Nombre completo es requerido</li>
-            <li *ngIf="form.get('telefono_principal')?.hasError('required')">Teléfono principal es requerido</li>
-            <li *ngIf="form.get('parentesco')?.hasError('required')">Parentesco es requerido</li>
-            <li *ngIf="form.get('email')?.hasError('email')">Email debe ser válido</li>
-          </ul>
-        </div>
+        @if (mostrarErrores()) {
+          <div style="background:#fef2f2;padding:1rem;border-radius:6px;margin:.5rem 0;color:#dc2626;font-size:.85rem">
+            <strong>Errores de validación:</strong>
+            <ul style="margin:.5rem 0;padding-left:1.5rem">
+              @if (form.get('nombre_completo')?.hasError('required')) { <li>Nombre completo es requerido</li> }
+              @if (form.get('telefono_principal')?.hasError('required')) { <li>Teléfono principal es requerido</li> }
+              @if (form.get('parentesco')?.hasError('required')) { <li>Parentesco es requerido</li> }
+              @if (form.get('email')?.hasError('email')) { <li>Email debe ser válido</li> }
+            </ul>
+          </div>
+        }
       </form>
 
       <ng-template pTemplate="footer">
@@ -271,7 +267,7 @@ interface ParentescoOpt { label: string; value: string; }
     .field input, .field p-select { width:100%;max-width:100% }
     .field-toggle { display:flex;align-items:center;gap:.75rem;margin-bottom:1rem;padding:0.75rem;background:var(--surface-0);border-radius:6px }
     .field-toggle label { margin:0;flex-shrink:0 }
-    .field-toggle small { font-size:.75rem;color:#94a3b8;margin-left:auto }
+    .field-toggle small { font-size:.75rem;color:var(--text-muted);margin-left:auto }
     :deep(.p-select-option) { padding:.5rem 1rem }
   `],
 })
@@ -282,7 +278,7 @@ export class PadresAdminComponent implements OnInit {
   private fb = inject(FormBuilder);
 
   estudiantes = signal<EstudianteOpt[]>([]);
-  estudianteSeleccionado = signal<string | null>(null);
+  estudianteSeleccionado: string | null = null;
   contactos = signal<ContactoFamiliar[]>([]);
   loading = signal(false);
   mostrarFormulario = signal(false);
@@ -325,12 +321,16 @@ export class PadresAdminComponent implements OnInit {
 
   private cargarEstudiantes(): void {
     this.loading.set(true);
-    this.api.get<{ data: EstudianteOpt[] }>('/alumnos?por_pagina=1000').subscribe({
+    this.api.get<{ data: any[] }>('/alumnos?por_pagina=1000').subscribe({
       next: (res) => {
-        this.estudiantes.set(res.data || []);
+        this.estudiantes.set((res.data || []).map((a: any) => ({
+          id: a.id,
+          matricula: a.matricula,
+          nombre_completo: a.persona?.nombre_completo ?? a.nombre_completo ?? a.matricula ?? 'Sin nombre',
+        })));
         this.loading.set(false);
       },
-      error: (err) => {
+      error: () => {
         this.toast.add({ severity: 'error', summary: 'Error', detail: 'No se pudieron cargar los estudiantes' });
         this.loading.set(false);
       },
@@ -338,7 +338,7 @@ export class PadresAdminComponent implements OnInit {
   }
 
   cargarContactos(): void {
-    const estId = this.estudianteSeleccionado();
+    const estId = this.estudianteSeleccionado;
     if (!estId) return;
 
     this.loading.set(true);
@@ -390,7 +390,7 @@ export class PadresAdminComponent implements OnInit {
     }
 
     this.guardando.set(true);
-    const estId = this.estudianteSeleccionado()!;
+    const estId = this.estudianteSeleccionado!;
     const payload = {
       estudiante_id: estId,
       ...this.form.value

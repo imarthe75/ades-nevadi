@@ -1,11 +1,12 @@
+/**
+ * FASE 1 & FASE 24 — Profesores (Teachers) + Interactive Grid APEX-style
+ * Manages teacher records with filtering, sorting, and profile management.
+ */
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { TableModule } from 'primeng/table';
-import { InputTextModule } from 'primeng/inputtext';
 import { ButtonModule } from 'primeng/button';
-import { TagModule } from 'primeng/tag';
-import { TooltipModule } from 'primeng/tooltip';
+import { InputTextModule } from 'primeng/inputtext';
 import { DialogModule } from 'primeng/dialog';
 import { ToastModule } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
@@ -13,6 +14,7 @@ import { MessageService } from 'primeng/api';
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
 import { ExportService, ExportColumn } from '../../core/services/export.service';
+import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
 import { ProfesorPerfilComponent } from '../../shared/components/profesor-perfil/profesor-perfil.component';
 import { HelpButtonComponent } from '../../shared/components/help-button/help-button.component';
 import type { Profesor } from '../../core/models';
@@ -21,14 +23,14 @@ import type { Profesor } from '../../core/models';
   selector: 'app-profesores',
   standalone: true,
   imports: [
-    CommonModule, FormsModule, TableModule, InputTextModule, ButtonModule, TagModule, TooltipModule,
-    DialogModule, ToastModule, ProfesorPerfilComponent, HelpButtonComponent,
+    CommonModule, FormsModule,
+    ButtonModule, InputTextModule, DialogModule, ToastModule,
+    InteractiveGridComponent, ProfesorPerfilComponent, HelpButtonComponent,
   ],
   providers: [MessageService],
   template: `
     <p-toast />
 
-    <!-- Drawer de perfil completo -->
     <app-profesor-perfil
       [(visible)]="perfilVisible"
       [profesor]="profesorSeleccionado()"
@@ -48,71 +50,14 @@ import type { Profesor } from '../../core/models';
       </div>
     </div>
 
-    <p-table
-      #dt
-      [value]="profesores()"
-      [rows]="porPagina()"
-      [totalRecords]="totalProfesores()"
-      [paginator]="true"
-      [lazy]="true"
+    <!-- Interactive Grid APEX-style (Spec: spec/modules/fase-24-interactive-grid/) -->
+    <app-interactive-grid
+      [data]="profesoresDatos()"
+      [columns]="columnas"
       [loading]="loadingTabla()"
-      [rowsPerPageOptions]="[15,30,50]"
-      (onLazyLoad)="onPage($event)"
-      [showCurrentPageReport]="true"
-      currentPageReportTemplate="{first}-{last} de {totalRecords} profesores"
-      styleClass="p-datatable-sm p-datatable-striped"
-    >
-      <ng-template pTemplate="caption">
-        <input pInputText type="text" placeholder="Buscar por nombre, empleado, RFC o cédula..."
-          [value]="busqueda"
-          (input)="onBusquedaChange($any($event.target).value)"
-          style="width:320px" />
-      </ng-template>
+      (rowSelected)="abrirPerfil($event)"
+    />
 
-      <ng-template pTemplate="header">
-        <tr>
-          <th style="width:120px">Empleado</th>
-          <th>Apellidos, Nombre</th>
-          <th style="width:140px">RFC / Cédula</th>
-          <th style="width:110px">Contrato / Turno</th>
-          <th style="width:90px;text-align:center">Especialidad</th>
-          <th style="width:70px"></th>
-        </tr>
-      </ng-template>
-
-      <ng-template pTemplate="body" let-prof>
-        <tr>
-          <td><code>{{ prof.numero_empleado }}</code></td>
-          <td>
-            <strong>{{ prof.persona?.apellido_paterno }} {{ prof.persona?.apellido_materno }}</strong>,
-            {{ prof.persona?.nombre }}
-          </td>
-          <td style="font-size:.78rem">
-            @if (prof.rfc) { <div><i class="pi pi-id-card" style="opacity:.5;margin-right:.2rem"></i>{{ prof.rfc }}</div> }
-            @if (prof.cedula_profesional) { <div style="color:#64748b">Céd: {{ prof.cedula_profesional }}</div> }
-          </td>
-          <td style="font-size:.8rem">
-            @if (prof.tipo_contrato) { <p-tag [value]="prof.tipo_contrato" severity="secondary" /> }
-            @if (prof.turno) { <div style="margin-top:.2rem;color:#64748b">{{ prof.turno }}</div> }
-          </td>
-          <td style="text-align:center;font-size:.8rem;color:#64748b">
-            {{ prof.especialidad ?? '—' }}
-          </td>
-          <td>
-            <p-button icon="pi pi-id-card" [rounded]="true" [text]="true"
-              pTooltip="Ver expediente completo" (onClick)="abrirPerfil(prof)" />
-          </td>
-        </tr>
-      </ng-template>
-
-      <ng-template pTemplate="emptymessage">
-        <tr><td [colSpan]="6" style="text-align:center;padding:2rem;color:#94a3b8">
-          Sin profesores en el contexto seleccionado
-        </td></tr>
-      </ng-template>
-    </p-table>
-
-    <!-- Diálogo de alta rápida -->
     <p-dialog [(visible)]="showDialog" header="Nuevo Profesor" [modal]="true" [style]="{width:'400px'}">
       <div style="display:flex;flex-direction:column;gap:1rem">
         <div>
@@ -137,7 +82,7 @@ import type { Profesor } from '../../core/models';
         </div>
         <div>
           <label class="dlg-lbl">Tipo de contrato</label>
-          <input pInputText [(ngModel)]="form.tipo_contrato" placeholder="Ej: TIEMPO_COMPLETO, ASIGNATURA" style="width:100%" />
+          <input pInputText [(ngModel)]="form.tipo_contrato" placeholder="Ej: TIEMPO_COMPLETO" style="width:100%" />
         </div>
         <p-button label="Crear profesor" (onClick)="crearProfesor()" [loading]="loading()" />
       </div>
@@ -146,83 +91,85 @@ import type { Profesor } from '../../core/models';
   styles: [`
     .page-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem; }
     .subtitle { font-size: 0.82rem; color: var(--text-color-secondary); margin: 0; }
-    code { font-size: 0.8rem; background: var(--surface-100); padding: .1rem .35rem; border-radius: 3px; }
     .dlg-lbl { display: block; font-size: .85rem; margin-bottom: .25rem; color: var(--text-color-secondary); }
   `],
 })
 export class ProfesoresComponent implements OnInit {
-  private readonly api    = inject(ApiService);
-  private readonly ctx    = inject(ContextService);
-  private readonly exp    = inject(ExportService);
-  private readonly msg    = inject(MessageService);
+  private readonly api = inject(ApiService);
+  private readonly ctx = inject(ContextService);
+  private readonly exp = inject(ExportService);
+  private readonly msg = inject(MessageService);
 
-  profesores             = signal<Profesor[]>([]);
-  totalProfesores        = signal(0);
-  pagina                 = signal(1);
-  porPagina              = signal(30);
-  loadingTabla           = signal(false);
-  busqueda               = '';
-  private busquedaTimer: any;
-  profesorSeleccionado   = signal<Profesor | null>(null);
-  perfilVisible          = false;
-  showDialog             = false;
-  loading                = signal(false);
+  profesores = signal<Profesor[]>([]);
+  profesoresDatos = signal<any[]>([]);
+  totalProfesores = signal(0);
+  profesorSeleccionado = signal<Profesor | null>(null);
+  perfilVisible = false;
+  showDialog = false;
+  loading = signal(false);
+  loadingTabla = signal(false);
   form = { nombre: '', apellido_paterno: '', apellido_materno: '', numero_empleado: '', curp: '', tipo_contrato: '' };
 
+  columnas: ColumnConfig[] = [
+    { field: 'numero_empleado', header: 'Empleado', sortable: true, filterable: true, width: '120px' },
+    { field: 'nombre_completo', header: 'Nombre Completo', sortable: true, filterable: true, width: '220px' },
+    { field: 'rfc', header: 'RFC', sortable: true, filterable: true, width: '140px' },
+    { field: 'tipo_contrato', header: 'Contrato', sortable: true, filterable: true, width: '130px' },
+    { field: 'especialidad', header: 'Especialidad', sortable: true, filterable: true, width: '120px' },
+    { field: 'turno', header: 'Turno', sortable: true, filterable: true, width: '90px' },
+  ];
+
   private readonly exportCols: ExportColumn[] = [
-    { field: 'numero_empleado',           header: 'No. Empleado' },
-    { field: 'persona.apellido_paterno',  header: 'Apellido Paterno' },
-    { field: 'persona.apellido_materno',  header: 'Apellido Materno' },
-    { field: 'persona.nombre',            header: 'Nombre' },
-    { field: 'persona.curp',              header: 'CURP' },
-    { field: 'rfc',                       header: 'RFC' },
-    { field: 'nss',                       header: 'NSS' },
-    { field: 'cedula_profesional',        header: 'Cédula Prof.' },
-    { field: 'especialidad',              header: 'Especialidad' },
-    { field: 'tipo_contrato',             header: 'Contrato' },
-    { field: 'turno',                     header: 'Turno' },
-    { field: 'nivel_estudios',            header: 'Nivel Estudios' },
-    { field: 'is_active',                 header: 'Activo', format: (v: boolean) => v ? 'Sí' : 'No' },
+    { field: 'numero_empleado', header: 'No. Empleado' },
+    { field: 'nombre_completo', header: 'Nombre' },
+    { field: 'rfc', header: 'RFC' },
+    { field: 'tipo_contrato', header: 'Contrato' },
+    { field: 'especialidad', header: 'Especialidad' },
   ];
 
   ngOnInit(): void { this.cargarProfesores(); }
 
-  onBusquedaChange(valor: string): void {
-    this.busqueda = valor;
-    clearTimeout(this.busquedaTimer);
-    this.busquedaTimer = setTimeout(() => { this.pagina.set(1); this.cargarProfesores(); }, 350);
-  }
-
-  onPage(event: any): void {
-    this.pagina.set(Math.floor(event.first / event.rows) + 1);
-    this.porPagina.set(event.rows);
-    this.cargarProfesores();
-  }
-
   cargarProfesores(): void {
-    const params: Record<string, any> = {
-      pagina: this.pagina(),
-      por_pagina: this.porPagina(),
-    };
+    const params: Record<string, any> = { pagina: 1, por_pagina: 500 };
     const plantelId = this.ctx.plantel()?.id;
     if (plantelId) params['plantel_id'] = plantelId;
-    if (this.busqueda.trim()) params['buscar'] = this.busqueda.trim();
 
     this.loadingTabla.set(true);
     this.api.get<{ data: Profesor[]; total: number }>('/profesores', params).subscribe({
       next: resp => {
         this.profesores.set(resp.data);
         this.totalProfesores.set(resp.total);
+        this.profesoresDatos.set(resp.data.map(p => ({
+          id: p.id,
+          numero_empleado: p.numero_empleado,
+          nombre_completo: `${p.persona?.nombre} ${p.persona?.apellido_paterno} ${p.persona?.apellido_materno || ''}`.trim(),
+          rfc: p.rfc || '—',
+          tipo_contrato: p.tipo_contrato || '—',
+          especialidad: p.especialidad || '—',
+          turno: p.turno || '—',
+          cedula_profesional: p.cedula_profesional || '',
+          _original: p,
+        })));
         this.loadingTabla.set(false);
       },
-      error: () => this.loadingTabla.set(false),
+      error: () => {
+        this.loadingTabla.set(false);
+        this.msg.add({ severity: 'error', summary: 'Error', detail: 'No se pudieron cargar los profesores' });
+      },
     });
   }
 
-  abrirPerfil(prof: Profesor): void {
-    this.api.get<Profesor>(`/profesores/${prof.id}`).subscribe(full => {
-      this.profesorSeleccionado.set(full);
-      this.perfilVisible = true;
+  abrirPerfil(row: any): void {
+    const prof = row._original || this.profesores().find(p => p.id === row.id);
+    if (!prof) return;
+    this.api.get<Profesor>(`/profesores/${prof.id}`).subscribe({
+      next: full => {
+        this.profesorSeleccionado.set(full);
+        this.perfilVisible = true;
+      },
+      error: () => {
+        this.msg.add({ severity: 'error', summary: 'Error', detail: 'No se pudo cargar el expediente' });
+      },
     });
   }
 
@@ -251,7 +198,6 @@ export class ProfesoresComponent implements OnInit {
     };
     this.api.post<Profesor>('/profesores', payload).subscribe({
       next: (newProf) => {
-        this.profesores.update(p => [...p, newProf]);
         this.showDialog = false;
         this.loading.set(false);
         this.msg.add({ severity: 'success', summary: 'Creado', detail: `Profesor: ${newProf.numero_empleado}` });

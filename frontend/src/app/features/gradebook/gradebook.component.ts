@@ -187,20 +187,22 @@ interface PeriodoOpt { id: string; nombre_periodo: string; }
 
   <!-- ── TAB 3: Cobertura curricular ── -->
   <p-tabpanel header="Cobertura curricular" value="2">
-    <div class="kpi-row" *ngIf="cobertura()">
-      <div class="kpi-card">
-        <div class="kpi-value">{{ cobertura()?.pct_cobertura }}%</div>
-        <div class="kpi-label">Cobertura</div>
+    @if (cobertura()) {
+      <div class="kpi-row">
+        <div class="kpi-card">
+          <div class="kpi-value">{{ cobertura()?.pct_cobertura }}%</div>
+          <div class="kpi-label">Cobertura</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-value text-success">{{ cobertura()?.con_evidencia }}</div>
+          <div class="kpi-label">Con evidencia</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-value text-danger">{{ cobertura()?.sin_evidencia }}</div>
+          <div class="kpi-label">Sin evidencia</div>
+        </div>
       </div>
-      <div class="kpi-card">
-        <div class="kpi-value text-success">{{ cobertura()?.con_evidencia }}</div>
-        <div class="kpi-label">Con evidencia</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-value text-danger">{{ cobertura()?.sin_evidencia }}</div>
-        <div class="kpi-label">Sin evidencia</div>
-      </div>
-    </div>
+    }
     <p-table [value]="cobertura()?.temas || []" styleClass="p-datatable-sm" [rows]="100">
       <ng-template pTemplate="header">
         <tr>
@@ -230,55 +232,59 @@ interface PeriodoOpt { id: string; nombre_periodo: string; }
 <!-- ── Drawer: calificar actividad ── -->
 <p-drawer [(visible)]="drawerCalifVisible" header="Calificar actividad"
            position="right" [style]="{width:'540px'}">
-  <div *ngIf="actividadSeleccionada()">
-    <div class="mb-3">
-      <strong>{{ actividadSeleccionada()?.titulo }}</strong><br>
-      <small>{{ actividadSeleccionada()?.nombre_materia }} — {{ actividadSeleccionada()?.nombre_periodo }}</small>
+  @if (actividadSeleccionada()) {
+    <div>
+      <div class="mb-3">
+        <strong>{{ actividadSeleccionada()?.titulo }}</strong><br>
+        <small>{{ actividadSeleccionada()?.nombre_materia }} — {{ actividadSeleccionada()?.nombre_periodo }}</small>
+      </div>
+      <p-table [value]="entregasActiva()" [loading]="cargandoEntregas()"
+               styleClass="p-datatable-sm">
+        <ng-template pTemplate="header">
+          <tr>
+            <th>Alumno</th>
+            <th>Estado</th>
+            <th style="width:120px">Calificación</th>
+          </tr>
+        </ng-template>
+        <ng-template pTemplate="body" let-e>
+          <tr>
+            <td>{{ e.alumno_nombre }}</td>
+            <td><p-tag [value]="e.estatus_entrega" [severity]="estatusSeverity(e.estatus_entrega)" /></td>
+            <td>
+              <p-inputNumber [(ngModel)]="e._cal" [min]="0" [max]="actividadSeleccionada()?.puntaje_maximo"
+                             [step]="0.1" [useGrouping]="false" styleClass="w-full" inputStyleClass="p-inputtext-sm" />
+            </td>
+          </tr>
+        </ng-template>
+      </p-table>
+      <div class="mt-3 flex gap-2 justify-end">
+        <button pButton label="Guardar calificaciones" icon="pi pi-save"
+                (click)="guardarCalificacionMasiva()"></button>
+      </div>
     </div>
-    <p-table [value]="entregasActiva()" [loading]="cargandoEntregas()"
-             styleClass="p-datatable-sm">
-      <ng-template pTemplate="header">
-        <tr>
-          <th>Alumno</th>
-          <th>Estado</th>
-          <th style="width:120px">Calificación</th>
-        </tr>
-      </ng-template>
-      <ng-template pTemplate="body" let-e>
-        <tr>
-          <td>{{ e.alumno_nombre }}</td>
-          <td><p-tag [value]="e.estatus_entrega" [severity]="estatusSeverity(e.estatus_entrega)" /></td>
-          <td>
-            <p-inputNumber [(ngModel)]="e._cal" [min]="0" [max]="actividadSeleccionada()?.puntaje_maximo"
-                           [step]="0.1" [useGrouping]="false" styleClass="w-full" inputStyleClass="p-inputtext-sm" />
-          </td>
-        </tr>
-      </ng-template>
-    </p-table>
-    <div class="mt-3 flex gap-2 justify-end">
-      <button pButton label="Guardar calificaciones" icon="pi pi-save"
-              (click)="guardarCalificacionMasiva()"></button>
-    </div>
-  </div>
+  }
 </p-drawer>
 
 <!-- ── Dialog: ajuste manual ── -->
 <p-dialog [(visible)]="dialogAjusteVisible" header="Ajuste manual" [modal]="true" [style]="{width:'420px'}">
-  <div *ngIf="rowAjuste()">
-    <p><strong>{{ rowAjuste()?.alumno }}</strong> — {{ rowAjuste()?.nombre_materia }}</p>
-    <p>Calificación calculada: <strong>{{ rowAjuste()?.calificacion_calculada }}</strong></p>
-    <div class="field mt-3">
-      <label>Nueva calificación</label>
-      <p-inputNumber [(ngModel)]="ajusteValor" [min]="0" [max]="rowAjuste()?.escala_maxima"
-                     [step]="0.1" [useGrouping]="false" styleClass="w-full" />
+  @if (rowAjuste()) {
+    <div>
+      <p><strong>{{ rowAjuste()?.alumno }}</strong> — {{ rowAjuste()?.nombre_materia }}</p>
+      <p>Calificación calculada: <strong>{{ rowAjuste()?.calificacion_calculada }}</strong></p>
+      <div class="field mt-3">
+        <label>Nueva calificación</label>
+        <p-inputNumber [(ngModel)]="ajusteValor" [min]="0" [max]="rowAjuste()?.escala_maxima"
+                       [step]="0.1" [useGrouping]="false" styleClass="w-full" />
+      </div>
+      <div class="field mt-2">
+        <label>Justificación (mín. 20 caracteres)</label>
+        <textarea pInputText [(ngModel)]="ajusteJustificacion" rows="3"
+                  class="w-full" style="width:100%;resize:vertical;padding:6px;border:1px solid #ccc;border-radius:4px"></textarea>
+        <small class="text-muted">{{ ajusteJustificacion.length }} caracteres</small>
+      </div>
     </div>
-    <div class="field mt-2">
-      <label>Justificación (mín. 20 caracteres)</label>
-      <textarea pInputText [(ngModel)]="ajusteJustificacion" rows="3"
-                class="w-full" style="width:100%;resize:vertical;padding:6px;border:1px solid #ccc;border-radius:4px"></textarea>
-      <small class="text-muted">{{ ajusteJustificacion.length }} caracteres</small>
-    </div>
-  </div>
+  }
   <ng-template pTemplate="footer">
     <button pButton label="Cancelar" severity="secondary" (click)="dialogAjusteVisible = false"></button>
     <button pButton label="Aplicar ajuste" (click)="aplicarAjuste()"></button>

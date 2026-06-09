@@ -12,7 +12,7 @@
 
 **ADES** es un sistema integral de administración escolar diseñado específicamente para el **Instituto Nevadi** (México), institución educativa privada con 3 planteles y 3 niveles: Primaria (SEP), Secundaria (SEP) y Preparatoria (UAEMEX).
 
-Gestiona la operación completa: estructura académica, inscripciones, asignación docente, calificaciones, asistencias, comunicación con padres, expediente médico, conducta estudiantil, horarios, y análisis predictivo de riesgo académico mediante IA.
+Gestiona la operación completa: estructura académica, inscripciones, asignación docente, calificaciones, asistencias, comunicación con padres, expediente médico, conducta estudiantil, horarios, y análisis predictivo de riesgo académico mediante IA. La interfaz se basa en un estilo empresarial inspirado en Oracle APEX: interactive grids, master-detail, LOV y edición directa sobre tablas.
 
 **Contexto Institucional:**
 
@@ -63,7 +63,7 @@ Gestiona la operación completa: estructura académica, inscripciones, asignaci�
 | **Autenticación IdP** | Authentik | 2026.5.2 | OIDC/OAuth2, Google Workspace SSO, cuentas locales |
 | **Backend API** | FastAPI | 0.136+ | Asincrónico, Pydantic, OpenAPI docs |
 | **Runtime** | Python | 3.12 | LTS |
-| **Frontend SPA** | Angular + PrimeNG | 22 | Framework reactivo, UI empresarial |
+| **Frontend SPA** | Angular + PrimeNG | 22 | Framework reactivo, UI empresarial. UI Oracle APEX-style: interactive grids, master-detail, LOV, edición directa sobre tablas |
 | **Tareas Async** | Celery + Valkey | 5.6+ | Background jobs, reportes, notificaciones |
 | **BI / Dashboards** | Apache Superset | 6.1.0 | Dashboards interactivos, KPIs en tiempo real, iframe embebido |
 | **Generador Reportes** | Carbone | latest | Plantillas DOCX/XLSX → PDF, boletas, constancias, kardex |

@@ -65,8 +65,8 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
       @if (alumno) {
         <div class="perfil-meta">
           <span class="matricula-chip">{{ alumno.matricula }}</span>
-          @if (alumno.tipo_sangre) {
-            <p-tag [value]="alumno.tipo_sangre" severity="danger" />
+          @if (expedienteMedico()?.tipo_sangre) {
+            <p-tag [value]="expedienteMedico()!.tipo_sangre!" severity="danger" />
           }
         </div>
 

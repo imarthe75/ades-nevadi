@@ -1,0 +1,172 @@
+# OpenSpec Configuration for ADES — Administración Escolar Instituto Nevadi
+# Version: 1.0
+# Updated: 2026-06-09
+# Framework: https://github.com/Fission-AI/OpenSpec
+
+name: ADES
+title: Sistema Integral de Administración Escolar Instituto Nevadi
+description: |
+  Especificación de requisitos, APIs, y componentes del sistema ADES.
+  3 planteles, 3 niveles educativos, > 3500 usuarios, arquitectura cloud-native.
+
+version: 1.0.0
+status: active
+
+# Project metadata
+metadata:
+  organization: Instituto Nevadi
+  team: Desarrollo ADES
+  repository: https://github.com/imarthe75/ades-nevadi
+  environment: development
+
+# Versioning strategy
+versioning:
+  semantic: true
+  breaking_changes_policy: document_in_migration_guide
+  deprecation_notice_period_days: 30
+
+# Specification directories and organization
+spec_directories:
+  - path: spec/
+    description: Root specifications directory
+
+# API Specifications
+apis:
+  - name: FastAPI Backend v1
+    path: spec/api/
+    status: active
+    version: 1.0.0
+    description: RESTful API endpoints for ADES system
+
+  - name: GraphQL Layer (Future)
+    path: spec/api/
+    status: planned
+    version: 2.0.0
+    description: GraphQL API for advanced querying
+
+# Module Specifications
+modules:
+  - name: FASE 1 - Datos Maestros
+    path: spec/modules/fase-01-maestros/
+    status: active
+    phases: [Planteles, Grupos, Alumnos, Profesores]
+
+  - name: FASE 2 - Academico
+    path: spec/modules/fase-02-academico/
+    status: active
+    phases: [Calificaciones, Asistencias, Tareas]
+
+  - name: FASE 3 - Operacion
+    path: spec/modules/fase-03-operacion/
+    status: active
+    phases: [Horarios, Conducta, Expediente Médico]
+
+  - name: FASE 4 - IA
+    path: spec/modules/fase-04-ia/
+    status: in_progress
+
+  - name: FASE 24 - Interactive Grid & Gestión Padres
+    path: spec/modules/fase-24-interactive-grid/
+    status: in_progress
+
+# Architecture & Standards
+standards:
+  - name: Database Schema
+    description: PostgreSQL 18 + pgvector schema definitions
+    path: spec/standards/database.md
+
+  - name: API Design
+    description: RESTful API conventions and patterns
+    path: spec/standards/api-design.md
+
+  - name: Frontend Components
+    description: Angular standalone components patterns
+    path: spec/standards/frontend-components.md
+
+  - name: Security & RBAC
+    description: JWT, Authentik OIDC, role-based access control
+    path: spec/standards/security.md
+
+# Compliance & Requirements
+compliance:
+  - name: SEP Requirements
+    description: Secretary of Public Education (México) curriculum and grading standards
+    path: spec/compliance/sep-requirements.md
+    status: in_review
+
+  - name: UAEMEX Requirements
+    description: Universidad Autónoma del Estado de México preparatory level standards
+    path: spec/compliance/uaemex-requirements.md
+    status: in_review
+
+# Cloud & Infrastructure
+infrastructure:
+  - name: Docker Compose Stack
+    path: spec/infrastructure/docker-compose.md
+    components: [PostgreSQL, Valkey, Authentik, MinIO, nginx, Superset, n8n, Grafana]
+
+  - name: CI/CD Pipeline
+    path: spec/infrastructure/ci-cd.md
+    status: planned
+
+# Development Workflow
+workflow:
+  - phase: Planning
+    tools: [OpenSpec, CLAUDE.md, ADRs]
+
+  - phase: Implementation
+    tools: [Claude Code, Tests, Type Checking]
+
+  - phase: Review & Merge
+    tools: [GitHub PRs, Code Review, /code-review ultra]
+
+  - phase: Documentation
+    tools: [OpenSpec, CHANGELOG, Migration Guides]
+
+# Team roles and permissions
+team:
+  - role: Project Lead
+    responsibilities: [Architecture, Roadmap, Stakeholder Management]
+
+  - role: Backend Developer
+    responsibilities: [FastAPI, Database, Security, API Design]
+
+  - role: Frontend Developer
+    responsibilities: [Angular, UI Components, State Management]
+
+  - role: DevOps Engineer
+    responsibilities: [Docker, Infrastructure, CI/CD, Monitoring]
+
+# Collaboration & Review Process
+collaboration:
+  code_review_template: true
+  spec_review_required: true
+  breaking_change_approval_required: true
+
+# Export & Integration
+export:
+  formats: [openapi, markdown, html, json]
+  auto_documentation: true
+
+# Cloud Integration (Claude Code Agents)
+agents:
+  enabled: true
+  capabilities:
+    - spec_validation
+    - implementation_planning
+    - code_generation
+    - documentation_generation
+
+# Related Documentation
+documentation:
+  - path: CLAUDE.md
+    type: Project Guidelines
+
+  - path: README.md
+    type: Project Overview
+
+  - path: CHANGELOG_FASE24.md
+    type: Release Notes
+
+  - path: .agent/CONTEXT.md
+    type: Full System Context

@@ -8,6 +8,7 @@ Este documento es el diario de vida y bitácora del agente. Debe ser leído en e
 2. Lee tu propósito en `.agent/CONTEXT.md`.
 3. Revisa la lista de pendientes de la última sesión en la sección **"Próximos Pasos"** de este archivo.
 4. Verifica que los servicios de Valkey y Postgres estén saludables.
+5. Confirma que el diseño frontend está alineado con el mandato Oracle APEX descrito en `.agent/CONTEXT.md`.
 
 ---
 
@@ -183,3 +184,44 @@ Este documento es el diario de vida y bitácora del agente. Debe ser leído en e
 - [x] ades-superset iniciado
 - [ ] Google Workspace SSO: pendiente credenciales Google Cloud Console de Nevadi
 - [ ] Superset: primer arranque manual (superset db upgrade + init + crear datasource ADES apuntando a ades_bi)
+
+---
+
+### 🛠️ Sesión 2026-06-09 — Auditoría APEX / UI-UX Empresarial
+
+**Objetivo:** 100% funcional + Oracle APEX + UI/UX Empresarial Complementaria. Sin avanzar fases nuevas.
+
+#### Correcciones de Infraestructura
+- [x] Stirling-PDF: crash por `OutOfMemoryError: Metaspace` → `MaxMetaspaceSize` 128m → 256m, memoria Docker 1G → 1.5G
+- [x] Stirling-PDF: healthcheck URL `/` (401) → `/login` (200); start_period 60s → 90s
+
+#### Frontend — APEX / UI/UX Empresarial
+- [x] **Dashboard** — rediseño completo:
+  - Welcome bar con plantel, ciclo chip y saludo de usuario
+  - KPI cards clickeables con routerLink (Oracle APEX pattern)
+  - **Gráfico CSS** distribución por nivel educativo (barras horizontales por nivel — nuevo endpoint `/stats/distribucion`)
+  - Quick links (8 accesos rápidos)
+  - Reactivo a cambio de plantel via `effect()`
+- [x] **Alumnos** — filas de tabla clickeables (master-detail APEX)
+- [x] **Profesores** — filas de tabla clickeables (master-detail APEX)
+- [x] **Tareas** — eliminado fake data `Math.random()`, conectado a API real
+- [x] **Conducta** — inputs UUID reemplazados por `p-autoComplete` (LOV alumnos) + `p-select` (grupos)
+- [x] **Learning Paths** — inputs UUID en "Asignar alumno" reemplazados por `p-autoComplete` LOV
+- [x] **Padres** — tabs Tareas/Conducta conectados a API real
+- [x] **Colores hardcodeados** — eliminados en TODOS los componentes (0 instancias):
+  - `#94a3b8` → `var(--text-muted)`, `#64748b` → `var(--text-secondary)`, `#1e293b` → `var(--text-primary)`, `#d97706` → `var(--color-warning)`
+- [x] **`*ngIf`/`*ngFor` legacy** — migrados a `@if/@for` en 5 archivos:
+  - `padres-admin.component.ts`, `comunicados.component.ts`, `ponderacion-config.component.ts`
+  - `mi-progreso.component.ts`, `gradebook.component.ts`
+
+#### Backend
+- [x] `stats.py` extendido: nuevo endpoint `GET /stats/distribucion` → `list[DistribucionNivel]`
+
+#### Estado de builds
+- Production build Angular: ✅ 0 errores / 0 warnings
+
+### 🚀 Próximos Pasos (post-auditoría):
+- [ ] Fases 11-16 según roadmap (RBAC UI, admin, manual usuario, Google SSO, auditoría Superset)
+- [ ] Verificar Stirling-PDF llega a `healthy` tras restart con nuevo config
+- [ ] Superset: primer arranque manual (datasource → dashboards BI)
+- [ ] Google Workspace SSO: pendiente credenciales Google Cloud Console de Nevadi

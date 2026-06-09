@@ -72,14 +72,15 @@ const TIPOS = [
 
     <!-- Filtro rápido tipo -->
     <div class="filter-bar" style="margin-bottom:1rem; display:flex; gap:.5rem; flex-wrap:wrap;">
-      <p-button
-        *ngFor="let t of tiposConTodos"
-        [label]="t.label"
-        [outlined]="filtroTipo !== t.value"
-        size="small"
-        severity="secondary"
-        (onClick)="filtroTipo = t.value; cargar()"
-      />
+      @for (t of tiposConTodos; track t.value) {
+        <p-button
+          [label]="t.label"
+          [outlined]="filtroTipo !== t.value"
+          size="small"
+          severity="secondary"
+          (onClick)="filtroTipo = t.value; cargar()"
+        />
+      }
     </div>
 
     <p-table

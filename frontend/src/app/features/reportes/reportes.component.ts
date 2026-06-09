@@ -191,7 +191,7 @@ const TIPOS_DOC = [
               <div class="form-row">
                 <label>Marca de agua</label>
                 <p-toggleswitch [(ngModel)]="marcaAgua" />
-                <span style="font-size:.78rem;color:#94a3b8;margin-left:.5rem">Añadir "INSTITUTO NEVADI" como marca de agua</span>
+                <span style="font-size:.78rem;color:var(--text-muted);margin-left:.5rem">Añadir "INSTITUTO NEVADI" como marca de agua</span>
               </div>
 
               <div class="form-row">
@@ -242,7 +242,7 @@ const TIPOS_DOC = [
               </tr>
             </ng-template>
             <ng-template pTemplate="emptymessage">
-              <tr><td [colSpan]="6" style="text-align:center;padding:2rem;color:#94a3b8">
+              <tr><td [colSpan]="6" style="text-align:center;padding:2rem;color:var(--text-muted)">
                 Sin plantillas — sube una plantilla DOCX o XLSX en la pestaña "Subir Plantilla"
               </td></tr>
             </ng-template>
@@ -275,7 +275,7 @@ const TIPOS_DOC = [
                   uploadLabel="Subir plantilla"
                   cancelLabel="Cancelar">
                   <ng-template pTemplate="empty">
-                    <div style="text-align:center;padding:2rem;color:#94a3b8">
+                    <div style="text-align:center;padding:2rem;color:var(--text-muted)">
                       <i class="pi pi-cloud-upload" style="font-size:2rem"></i>
                       <p>Arrastra un archivo DOCX o XLSX aquí</p>
                       <p style="font-size:.75rem">
