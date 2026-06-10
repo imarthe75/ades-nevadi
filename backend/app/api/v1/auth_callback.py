@@ -2,6 +2,7 @@ from __future__ import annotations
 import structlog
 import httpx
 from fastapi import APIRouter, Form, HTTPException
+from app.core.config import settings
 
 logger = structlog.get_logger()
 
@@ -29,6 +30,7 @@ async def auth_callback(
                     "code":          code,
                     "redirect_uri":  _REDIRECT_URI,
                     "client_id":     _CLIENT_ID,
+                    "client_secret": settings.OIDC_CLIENT_SECRET,
                     "code_verifier": code_verifier,
                 },
                 headers={"Content-Type": "application/x-www-form-urlencoded"},
