@@ -361,18 +361,11 @@ services:
       API_URL:      http://ades-api:8000
       OIDC_ISSUER:  ${OIDC_ISSUER}
     ports:
-      - "127.0.0.1:4200:4200"   # ng serve en dev / nginx en prod
-    volumes:
-      - ./frontend:/app:cached  # hot-reload en desarrollo
-      - /app/node_modules        # evitar sobreescribir node_modules del contenedor
+      - "127.0.0.1:4200:80"     # producción: nginx estático en 80 / dev: ng serve en 4200
     networks:
       - ades-internal
     depends_on:
       - ades-api
-    deploy:
-      resources:
-        limits:
-          memory: 1G             # Angular dev server consume bastante
 
   # ---------------------------------------------------------------------------
   # Apache Superset 6.1.0 — BI y dashboards

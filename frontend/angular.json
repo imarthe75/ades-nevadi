@@ -2,7 +2,13 @@
   "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
   "version": 1,
   "cli": {
-    "packageManager": "npm"
+    "packageManager": "npm",
+    "analytics": false,
+    "cache": {
+      "enabled": true,
+      "path": "/tmp/ng-cache",
+      "environment": "all"
+    }
   },
   "newProjectRoot": "projects",
   "projects": {
@@ -80,6 +86,29 @@
         },
         "test": {
           "builder": "@angular/build:unit-test"
+        }
+      }
+    },
+    "apex-component-library": {
+      "projectType": "library",
+      "root": "projects/apex-component-library",
+      "sourceRoot": "projects/apex-component-library/src",
+      "prefix": "apex",
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-angular:ng-packagr",
+          "options": {
+            "project": "projects/apex-component-library/ng-package.json"
+          },
+          "configurations": {
+            "production": {
+              "tsConfig": "projects/apex-component-library/tsconfig.json"
+            },
+            "development": {
+              "tsConfig": "projects/apex-component-library/tsconfig.json"
+            }
+          },
+          "defaultConfiguration": "production"
         }
       }
     }
