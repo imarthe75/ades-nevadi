@@ -16,8 +16,8 @@ class AdesResponse(AdesSchema):
     id: uuid.UUID
     ref: uuid.UUID
     is_active: bool
-    fccreacion: datetime
-    fcmodificacion: datetime
+    fecha_creacion: datetime
+    fecha_modificacion: datetime
 
 
 class Paginacion(AdesSchema):

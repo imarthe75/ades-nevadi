@@ -1,0 +1,11 @@
+<form 
+  class="apex-form" 
+  [ngClass]="['apex-form-' + layout, styleClass || '']"
+  (submit)="handleSubmit($event)">
+  
+  <h3 class="apex-form-title" *ngIf="title">{{ title }}</h3>
+  
+  <div class="apex-form-content">
+    <ng-content></ng-content>
+  </div>
+</form>

@@ -193,7 +193,8 @@ interface AlumnoSugerencia {
       </div>
       <div class="auto-eval-form">
         <p-select [options]="ciclos()" optionLabel="nombre" optionValue="id"
-                  [(ngModel)]="cicloAutoEval" placeholder="Seleccionar ciclo escolar" />
+                  [(ngModel)]="cicloAutoEval" placeholder="Seleccionar ciclo escolar" 
+ [filter]="true" filterPlaceholder="Buscar..."/>
         <p-button label="Ejecutar Auto-Evaluación" icon="pi pi-play"
                   [loading]="autoEvaluando()" [disabled]="!cicloAutoEval"
                   (onClick)="autoEvaluar()" />
@@ -227,12 +228,14 @@ interface AlumnoSugerencia {
     <div class="field">
       <label>Tipo *</label>
       <p-select [options]="tiposOpt" [(ngModel)]="form.tipo"
-                optionLabel="label" optionValue="value" placeholder="Tipo" />
+                optionLabel="label" optionValue="value" placeholder="Tipo" 
+ [filter]="true" filterPlaceholder="Buscar..."/>
     </div>
     <div class="field">
       <label>Criterio</label>
       <p-select [options]="criterioOpt" [(ngModel)]="form.criterio_tipo"
-                optionLabel="label" optionValue="value" />
+                optionLabel="label" optionValue="value" 
+ [filter]="true" filterPlaceholder="Buscar..."/>
     </div>
     <div class="field">
       <label>Ícono (pi-...)</label>
@@ -246,7 +249,8 @@ interface AlumnoSugerencia {
       <div class="field">
         <label>Métrica</label>
         <p-select [options]="metricasOpt" [(ngModel)]="form.criterio_metrica"
-                  optionLabel="label" optionValue="value" placeholder="Métrica" />
+                  optionLabel="label" optionValue="value" placeholder="Métrica" 
+ [filter]="true" filterPlaceholder="Buscar..."/>
       </div>
       <div class="field">
         <label>Valor umbral</label>
@@ -296,7 +300,8 @@ interface AlumnoSugerencia {
     <div class="field">
       <label>Ciclo escolar</label>
       <p-select [options]="ciclos()" optionLabel="nombre" optionValue="id"
-                [(ngModel)]="cicloOtorgar" placeholder="Ciclo" />
+                [(ngModel)]="cicloOtorgar" placeholder="Ciclo" 
+ [filter]="true" filterPlaceholder="Buscar..."/>
     </div>
   </div>
   <ng-template pTemplate="footer">

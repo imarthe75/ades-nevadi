@@ -1,0 +1,23 @@
+<div class="apex-tabs" [ngClass]="styleClass || ''">
+  <ul class="apex-tab-list" role="tablist">
+    <li *ngFor="let tab of tabs; let i = index" 
+        class="apex-tab-item"
+        role="presentation">
+      <button 
+        class="apex-tab-button"
+        [class.active]="tab.active"
+        [class.disabled]="tab.disabled"
+        [attr.aria-selected]="tab.active"
+        [disabled]="tab.disabled"
+        role="tab"
+        (click)="selectTab(i, $event)">
+        <span *ngIf="tab.icon" [class]="tab.icon" class="apex-tab-icon"></span>
+        <span class="apex-tab-title">{{ tab.title }}</span>
+      </button>
+    </li>
+  </ul>
+  
+  <div class="apex-tab-panels">
+    <ng-content></ng-content>
+  </div>
+</div>

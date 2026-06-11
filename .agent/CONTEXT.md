@@ -64,18 +64,22 @@ Historia y Geografía, Formación Cívica, Educación Física, Tecnología.
 
 ---
 
-## Estado de Fases (2026-06-09)
+## Estado de Fases (2026-06-10)
 
 | Fase | Estado | Notas |
 |---|---|---|
 | FASE 1 — Core | Completa | 30 operaciones REST, modelos SQLAlchemy, seeds |
 | FASE 2 — Operación académica | Completa | +24 ops: calificaciones, asistencias, tareas, clases |
 | FASE 3 — Especializados | Completa | Horarios+aSc, Expediente Médico, Conducta, Evaluación Docente 360, Boletas PDF WeasyPrint |
-| FASE 4 — IA + Analytics | En progreso | Asistente IA Claude, alertas riesgo activos. Pendiente: ClickHouse, Superset BI, Learning Paths |
-| FASE 5 — Blockchain | Pendiente | Firmas Ed25519 luego anclaje Polygon |
+| FASE 4 — IA + Analytics | En progreso | Asistente IA Claude, alertas riesgo activos. Learning Paths + IA completado (Mig 028). Pendiente: ClickHouse, Superset dashboards |
+| FASE 5 Etapa A — Blockchain | Completa | Ed25519 firma+QR+verificación pública. Migración 026 aplicada. |
+| FASE 5 Etapa B — Blockchain | Pendiente | Anclaje Polygon PoS (web3.py) |
+| FASE 27 — Certificación Digital | Completa | firma_digital.py, certificados.py, CertificadosComponent, VerificarComponent |
 | Migración 008 | Completa | 4 roles nuevos, ades_areas_academicas, ades_coordinaciones_area |
 | Migración 009 | Completa | ades_parametros_sistema 18 params, ades_promociones_pendientes, cerrar_ciclo_y_promover() |
+| Migración 026 | Completa | Firma Ed25519 en ades_certificados, tabla ades_llaves_firma, vista ades_v_certificados_verificacion |
 | Frontend Auth | Corregido | app.html limpio, authGuard, oidcRedirectUri a ades.setag.mx/callback |
+| APEX Component Library | Completa | ApexNotificationService, static nav menu, apex-toast-container, 20 componentes migrados |
 
 ---
 
@@ -117,21 +121,23 @@ Historia y Geografía, Formación Cívica, Educación Física, Tecnología.
 27. Mi Progreso — vista alumno con countdown de tareas
 28. Ponderación Config — esquemas por nivel/materia, suma=100%
 
-### FASE 5 — Certificación blockchain (Pendiente)
+### FASE 27 — Certificación Digital Ed25519 (Completa — 2026-06-10)
 
-Etapa A — Firmas Ed25519 (costo $0):
-- Worker Celery firma SHA-256 del PDF con llave Ed25519 del instituto
-- Firma + hash en ades_certificados_digitales
-- PDF incluye QR a https://ades.setag.mx/verificar/{ref_uuid}
-- Stack: Python cryptography + qrcode + WeasyPrint
+Etapa A — Firmas Ed25519 (costo $0) — IMPLEMENTADA:
+- `backend/app/services/firma_digital.py` — firmar/verificar Ed25519, QR PNG, hash SHA-256
+- Llave privada en `.env` como `FIRMA_CLAVE_PRIVADA_HEX` (nunca en BD)
+- Tabla `ades_llaves_firma` — inventario de llaves públicas
+- `ades_certificados` extendida: hash_sha256, firma_ed25519, estado_firma, fecha_firma, verificable_url
+- Vista `ades_v_certificados_verificacion` — acceso rápido para verificación
+- `GET /api/v1/certificados/verificar/{folio}` — endpoint público sin auth
+- PDF con QR embebido (base64 PNG) + badge estado firma
+- Frontend: `CertificadosComponent` + `VerificarComponent` (pública `/verificar/:folio`)
+- ADR: `DECISIONS/0004-firma-digital-ed25519.md`
 
-Etapa B — Anclaje Polygon PoS (costo ~$5-20 USD/año):
+Etapa B — Anclaje Polygon PoS (costo ~$5-20 USD/año) — PENDIENTE (FASE 28):
 - Hash en smart contract Solidity en Polygon PoS
-- blockchain_tx guardado en ades_certificados_digitales
+- blockchain_tx guardado en ades_certificados
 - Stack: web3.py + Remix IDE + Blockcerts MIT
-
-Tabla ades_certificados_digitales incluye: reporte_id, hash_documento, firma_ed25519,
-clave_publica_ref, blockchain_red, blockchain_tx, blockchain_bloque, verificable_url.
 
 ### Módulos inspirados en Moodle
 FASE 2: Quiz Engine, Activity Completion, Content Bank, Notificaciones, Foros

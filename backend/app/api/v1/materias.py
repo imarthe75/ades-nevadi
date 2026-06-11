@@ -49,17 +49,17 @@ router = APIRouter(tags=["materias"])
 # ── Modelos inline ─────────────────────────────────────────────────────────────
 
 class TemaCreate(AdesSchema):
-    numero_tema: int = Field(ge=1)
     nombre_tema: str = Field(min_length=2, max_length=255)
     descripcion: str | None = None
-    horas_estimadas: float | None = None
+    orden: int = Field(1, ge=1)
+    periodo_sugerido: int | None = Field(None, ge=1, le=6)
 
 
 class TemaUpdate(AdesSchema):
     nombre_tema: str | None = Field(None, min_length=2, max_length=255)
     descripcion: str | None = None
-    horas_estimadas: float | None = None
-    numero_tema: int | None = Field(None, ge=1)
+    orden: int | None = Field(None, ge=1)
+    periodo_sugerido: int | None = Field(None, ge=1, le=6)
 
 
 class MateriaEstadisticas(BaseModel):
@@ -286,10 +286,17 @@ async def temas_del_plan(
     db: AsyncSession = Depends(get_db),
     _user: dict = Depends(get_current_user),
 ):
+    plan = await db.get(MateriaPlan, plan_id)
+    if not plan:
+        raise HTTPException(404, "Plan no encontrado")
     q = (
         select(Tema)
-        .where(Tema.materia_plan_id == plan_id, Tema.is_active == True)
-        .order_by(Tema.numero_tema)
+        .where(
+            Tema.materia_id == plan.materia_id,
+            Tema.grado_id == plan.grado_id,
+            Tema.is_active == True,
+        )
+        .order_by(Tema.orden, Tema.nombre_tema)
     )
     return (await db.execute(q)).scalars().all()
 
@@ -308,7 +315,12 @@ async def crear_tema(
     if not plan:
         raise HTTPException(404, "Plan no encontrado")
 
-    obj = Tema(materia_plan_id=plan_id, **body.model_dump())
+    obj = Tema(
+        materia_id=plan.materia_id,
+        grado_id=plan.grado_id,
+        ciclo_escolar_id=plan.ciclo_escolar_id,
+        **body.model_dump(),
+    )
     db.add(obj)
     await db.commit()
     await db.refresh(obj)
@@ -326,8 +338,12 @@ async def actualizar_tema(
     if ades_user.nivel_acceso > 3:
         raise HTTPException(403)
 
+    plan = await db.get(MateriaPlan, plan_id)
+    if not plan:
+        raise HTTPException(404, "Plan no encontrado")
+
     obj = await db.get(Tema, tema_id)
-    if not obj or obj.materia_plan_id != plan_id:
+    if not obj or obj.materia_id != plan.materia_id:
         raise HTTPException(404, "Tema no encontrado")
 
     for k, v in body.model_dump(exclude_unset=True).items():
@@ -347,8 +363,12 @@ async def eliminar_tema(
     if ades_user.nivel_acceso > 3:
         raise HTTPException(403)
 
+    plan = await db.get(MateriaPlan, plan_id)
+    if not plan:
+        raise HTTPException(404, "Plan no encontrado")
+
     obj = await db.get(Tema, tema_id)
-    if not obj or obj.materia_plan_id != plan_id:
+    if not obj or obj.materia_id != plan.materia_id:
         raise HTTPException(404)
 
     obj.is_active = False
@@ -392,8 +412,7 @@ async def estadisticas_materia(
                 func.count(CalificacionPeriodo.id),
                 func.avg(CalificacionPeriodo.calificacion_final),
             )
-            .join(MateriaPlan, MateriaPlan.id == CalificacionPeriodo.materia_plan_id)
-            .where(MateriaPlan.materia_id == materia_id)
+            .where(CalificacionPeriodo.materia_id == materia_id)
         )
         total_cals, promedio = cals_q.one()
     except Exception:

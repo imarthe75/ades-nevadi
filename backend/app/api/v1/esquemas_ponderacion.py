@@ -195,7 +195,7 @@ async def actualizar_esquema(
             UPDATE ades_esquemas_ponderacion
                SET nombre = :nombre, nivel_educativo_id = :nid, materia_id = :mid,
                    vigente_desde = :vd, vigente_hasta = :vh,
-                   fcmodificacion = now(), row_version = row_version + 1
+                   fecha_modificacion = now(), row_version = row_version + 1
              WHERE id = :id
         """),
         {
@@ -244,7 +244,7 @@ async def desactivar_esquema(
     await db.execute(
         text("""
             UPDATE ades_esquemas_ponderacion
-               SET activo = FALSE, is_active = FALSE, fcmodificacion = now()
+               SET activo = FALSE, is_active = FALSE, fecha_modificacion = now()
              WHERE id = :id
         """),
         {"id": esquema_id},

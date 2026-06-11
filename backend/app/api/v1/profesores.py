@@ -28,7 +28,7 @@ async def listar_profesores(
     plantel_id: uuid.UUID | None = None,
     buscar: str | None = Query(None, description="Nombre, apellido o número de empleado"),
     pagina: int = Query(1, ge=1),
-    por_pagina: int = Query(30, ge=1, le=200),
+    por_pagina: int = Query(30, ge=1, le=1000),
     db: AsyncSession = Depends(get_db),
     ades_user: AdesUser = Depends(get_ades_user),
 ):

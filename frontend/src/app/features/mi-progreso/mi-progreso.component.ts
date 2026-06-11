@@ -10,10 +10,9 @@ import { ProgressBarModule } from 'primeng/progressbar';
 import { TooltipModule } from 'primeng/tooltip';
 import { DialogModule } from 'primeng/dialog';
 import { TabsModule } from 'primeng/tabs';
-import { ToastModule } from 'primeng/toast';
-import { MessageService } from 'primeng/api';
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
+import { ApexNotificationService } from 'apex-component-library';
 
 interface MateriaSummary {
   materia_id: string;
@@ -47,11 +46,9 @@ interface EntregaHistorial extends EntregaPendiente {
   imports: [
     CommonModule, FormsModule, TableModule, ButtonModule, SelectModule,
     CardModule, TagModule, ProgressBarModule, TooltipModule,
-    DialogModule, TabsModule, ToastModule,
+    DialogModule, TabsModule,
   ],
-  providers: [MessageService],
   template: `
-<p-toast />
 <div class="page-header">
   <div class="page-title"><i class="pi pi-chart-line"></i> Mi Progreso</div>
 </div>
@@ -193,7 +190,7 @@ interface EntregaHistorial extends EntregaPendiente {
 export class MiProgresoComponent implements OnInit {
   private api = inject(ApiService);
   private ctx = inject(ContextService);
-  private msg = inject(MessageService);
+  private readonly notify = inject(ApexNotificationService);
 
   materias = signal<MateriaSummary[]>([]);
   pendientes = signal<EntregaPendiente[]>([]);
@@ -258,7 +255,7 @@ export class MiProgresoComponent implements OnInit {
     this.subiendoArchivo.set(true);
     this.api.post('/entregas', fd).subscribe({
       next: () => {
-        this.msg.add({ severity: 'success', summary: 'Entrega registrada' });
+        this.notify.success('Entrega registrada');
         this.dialogSubirVisible = false;
         this.subiendoArchivo.set(false);
         this.cargarDatos();

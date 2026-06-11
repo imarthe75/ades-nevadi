@@ -33,8 +33,8 @@ CREATE TABLE IF NOT EXISTS ades_parametros_sistema (
     es_editable          BOOLEAN     NOT NULL DEFAULT TRUE,  -- si FALSE, solo lectura (constantes del sistema)
     ref                  UUID        NOT NULL DEFAULT uuidv7() UNIQUE,
     is_active            BOOLEAN     NOT NULL DEFAULT TRUE,
-    fccreacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    fcmodificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_creacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_modificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     usuario_creacion     VARCHAR(150) NOT NULL DEFAULT current_user,
     usuario_modificacion VARCHAR(150) NOT NULL DEFAULT current_user,
     row_version          INTEGER     NOT NULL DEFAULT 1,
@@ -125,8 +125,8 @@ CREATE TABLE IF NOT EXISTS ades_promociones_pendientes (
     grupo_asignado_id    UUID         REFERENCES ades_grupos(id),
     ref                  UUID        NOT NULL DEFAULT uuidv7() UNIQUE,
     is_active            BOOLEAN     NOT NULL DEFAULT TRUE,
-    fccreacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    fcmodificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_creacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_modificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     usuario_creacion     VARCHAR(150) NOT NULL DEFAULT current_user,
     usuario_modificacion VARCHAR(150) NOT NULL DEFAULT current_user,
     row_version          INTEGER     NOT NULL DEFAULT 1

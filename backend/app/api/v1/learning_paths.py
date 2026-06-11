@@ -101,7 +101,7 @@ class AsignacionOut(BaseModel):
     motivo: str
     estatus: str
     pct_completado: float
-    fccreacion: datetime
+    fecha_creacion: datetime
 
     class Config:
         from_attributes = True
@@ -250,19 +250,19 @@ async def listar_asignaciones(
     from sqlalchemy import text
     sql = """
         SELECT a.id, a.path_id, lp.nombre AS path_nombre,
-               a.estudiante_id, a.motivo, a.estatus, a.pct_completado, a.fccreacion
+               a.estudiante_id, a.motivo, a.estatus, a.pct_completado, a.fecha_creacion
           FROM ades_lp_asignaciones a
           JOIN ades_learning_paths lp ON lp.id = a.path_id
          WHERE (:est_id IS NULL OR a.estudiante_id = :est_id)
            AND (:estatus IS NULL OR a.estatus = :estatus)
-         ORDER BY a.fccreacion DESC
+         ORDER BY a.fecha_creacion DESC
     """
     rows = (await db.execute(text(sql), {"est_id": estudiante_id, "estatus": estatus})).fetchall()
     return [AsignacionOut(
         id=r.id, path_id=r.path_id, path_nombre=r.path_nombre,
         estudiante_id=r.estudiante_id, motivo=r.motivo,
         estatus=r.estatus, pct_completado=float(r.pct_completado),
-        fccreacion=r.fccreacion,
+        fecha_creacion=r.fecha_creacion,
     ) for r in rows]
 
 
@@ -282,8 +282,8 @@ async def asignar_path(
                 (path_id, estudiante_id, asignado_por, motivo, estatus, pct_completado, fcinicio)
             VALUES (:pid, :est, :asig::uuid, :motivo, 'PENDIENTE', 0, NOW())
             ON CONFLICT (path_id, estudiante_id) DO UPDATE
-                SET estatus = EXCLUDED.estatus, fcmodificacion = NOW()
-            RETURNING id, path_id, estudiante_id, motivo, estatus, pct_completado, fccreacion
+                SET estatus = EXCLUDED.estatus, fecha_modificacion = NOW()
+            RETURNING id, path_id, estudiante_id, motivo, estatus, pct_completado, fecha_creacion
         """),
         {"pid": path_id, "est": data.estudiante_id, "asig": asignado_por, "motivo": data.motivo},
     )).fetchone()
@@ -294,7 +294,7 @@ async def asignar_path(
         id=row.id, path_id=row.path_id, path_nombre=path.nombre,
         estudiante_id=row.estudiante_id, motivo=row.motivo,
         estatus=row.estatus, pct_completado=float(row.pct_completado),
-        fccreacion=row.fccreacion,
+        fecha_creacion=row.fecha_creacion,
     )
 
 
@@ -308,7 +308,7 @@ async def detalle_asignacion(
     row = (await db.execute(
         text("""
             SELECT a.id, a.path_id, lp.nombre AS path_nombre,
-                   a.estudiante_id, a.motivo, a.estatus, a.pct_completado, a.fccreacion
+                   a.estudiante_id, a.motivo, a.estatus, a.pct_completado, a.fecha_creacion
               FROM ades_lp_asignaciones a
               JOIN ades_learning_paths lp ON lp.id = a.path_id
              WHERE a.id = :id
@@ -340,7 +340,7 @@ async def detalle_asignacion(
         id=row.id, path_id=row.path_id, path_nombre=row.path_nombre,
         estudiante_id=row.estudiante_id, motivo=row.motivo,
         estatus=row.estatus, pct_completado=float(row.pct_completado),
-        fccreacion=row.fccreacion,
+        fecha_creacion=row.fecha_creacion,
         recursos_completados=completados,
         total_recursos=total_rows or 0,
         progreso=[{
@@ -403,7 +403,7 @@ async def registrar_progreso(
                    END,
                    fccompletado = CASE
                        WHEN estatus = 'COMPLETADO' THEN NOW() ELSE fccompletado END,
-                   fcmodificacion = NOW()
+                   fecha_modificacion = NOW()
              WHERE id = :asig
         """),
         {"asig": asig_id},
@@ -474,3 +474,165 @@ async def asignar_automatico(
 
     await db.commit()
     return {"asignadas": asignadas, "grupo_id": str(grupo_id)}
+
+
+# ── Recomendación IA ──────────────────────────────────────────────────────────
+
+@router.post("/asignaciones/{asig_id}/recomendar-ia", status_code=200)
+async def recomendar_ia(
+    asig_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    _user: dict = Depends(get_current_user),
+):
+    """
+    Genera análisis personalizado con Claude para una asignación de learning path.
+    Analiza el historial académico del alumno y devuelve recomendaciones específicas.
+    Guarda el resultado en ades_lp_asignaciones.ia_recomendacion.
+    """
+    import os, json
+    from sqlalchemy import text
+
+    row = (await db.execute(text("""
+        SELECT
+            asig.id, asig.estudiante_id, asig.path_id, asig.motivo,
+            lp.nombre AS path_nombre, lp.criterio_activacion,
+            CONCAT(p.nombre, ' ', p.apellido_paterno,
+                   COALESCE(' ' || p.apellido_materno, '')) AS nombre_alumno,
+            p.curp,
+            (SELECT pl.nombre_plantel FROM ades_planteles pl
+              WHERE pl.id = e.plantel_id) AS plantel
+        FROM ades_lp_asignaciones asig
+        JOIN ades_learning_paths lp ON lp.id = asig.path_id
+        JOIN ades_estudiantes e ON e.id = asig.estudiante_id
+        JOIN ades_personas p ON p.id = e.persona_id
+        WHERE asig.id = CAST(:id AS uuid)
+    """), {"id": str(asig_id)})).mappings().first()
+
+    if not row:
+        raise HTTPException(status_code=404, detail="Asignación no encontrada")
+
+    est_id = str(row["estudiante_id"])
+
+    # Historial de calificaciones
+    cals = (await db.execute(text("""
+        SELECT m.nombre_materia, cp.calificacion_final, cp.es_acreditado,
+               pe.nombre_periodo
+          FROM ades_calificaciones_periodo cp
+          JOIN ades_materias m ON m.id = cp.materia_id
+          JOIN ades_periodos_evaluacion pe ON pe.id = cp.periodo_evaluacion_id
+         WHERE cp.estudiante_id = CAST(:est AS uuid)
+           AND cp.is_active = TRUE
+         ORDER BY pe.fecha_inicio DESC
+         LIMIT 20
+    """), {"est": est_id})).mappings().all()
+
+    # Estadísticas de asistencia (últimos 60 días)
+    asis = (await db.execute(text("""
+        SELECT
+            COUNT(*) FILTER (WHERE a.estatus_asistencia = 'PRESENTE') AS presentes,
+            COUNT(*) FILTER (WHERE a.estatus_asistencia = 'FALTA') AS faltas,
+            COUNT(*) AS total
+          FROM ades_asistencias a
+          JOIN ades_clases cl ON cl.id = a.clase_id
+         WHERE a.estudiante_id = CAST(:est AS uuid)
+           AND cl.fecha_clase >= CURRENT_DATE - INTERVAL '60 days'
+    """), {"est": est_id})).mappings().first()
+
+    # Recursos del learning path
+    recursos = (await db.execute(text("""
+        SELECT titulo, tipo, duracion_min, obligatorio
+          FROM ades_lp_recursos
+         WHERE path_id = CAST(:pid AS uuid) AND is_active = TRUE
+         ORDER BY orden
+    """), {"pid": str(row["path_id"])})).mappings().all()
+
+    # Construir prompt para Claude
+    cal_texto = "\n".join(
+        f"  - {c['nombre_materia']}: {c['calificacion_final']} "
+        f"({'Acreditada' if c['es_acreditado'] else 'No acreditada'}) — {c['nombre_periodo']}"
+        for c in cals
+    ) or "  Sin calificaciones registradas."
+
+    pct_asistencia = (
+        round(100 * int(asis["presentes"]) / int(asis["total"]), 1)
+        if asis and asis["total"] else "N/D"
+    )
+
+    recursos_texto = "\n".join(
+        f"  {i+1}. [{r['tipo']}] {r['titulo']} ({r['duracion_min'] or 0} min)"
+        for i, r in enumerate(recursos)
+    )
+
+    prompt = f"""Eres un orientador educativo experto del sistema escolar mexicano SEP/UAEMEX.
+Analiza el perfil académico de este alumno y genera recomendaciones personalizadas.
+
+ALUMNO: {row['nombre_alumno']}
+PLANTEL: {row['plantel']}
+RUTA DE REFUERZO ASIGNADA: {row['path_nombre']}
+MOTIVO DE ASIGNACIÓN: {row['motivo']}
+
+HISTORIAL DE CALIFICACIONES (últimos periodos):
+{cal_texto}
+
+ASISTENCIA (últimos 60 días):
+  - Presencias: {asis['presentes'] if asis else 0} / {asis['total'] if asis else 0}
+  - Porcentaje: {pct_asistencia}%
+
+RECURSOS DISPONIBLES EN LA RUTA:
+{recursos_texto}
+
+Proporciona un análisis estructurado en JSON con exactamente estos campos:
+{{
+  "resumen": "2-3 oraciones sobre la situación académica del alumno",
+  "fortalezas": ["máximo 3 fortalezas identificadas"],
+  "areas_mejora": ["máximo 3 áreas prioritarias de mejora"],
+  "estrategias": ["3-4 estrategias concretas y realizables para este alumno específico"],
+  "recursos_priorizados": ["títulos de los 3 recursos más importantes para comenzar"],
+  "mensaje_motivacional": "una frase motivacional personalizada para el alumno (15-25 palabras)"
+}}
+
+Responde SOLO con el JSON, sin texto adicional."""
+
+    api_key = os.getenv("ANTHROPIC_API_KEY", "")
+    if not api_key:
+        raise HTTPException(
+            status_code=503,
+            detail="ANTHROPIC_API_KEY no configurada. Configure la variable de entorno."
+        )
+
+    try:
+        import anthropic
+        client = anthropic.Anthropic(api_key=api_key)
+        mensaje = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=1024,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        contenido = mensaje.content[0].text.strip()
+        # Extraer JSON aunque venga con bloques markdown
+        if "```" in contenido:
+            contenido = contenido.split("```")[1]
+            if contenido.startswith("json"):
+                contenido = contenido[4:]
+        ia_data = json.loads(contenido)
+    except json.JSONDecodeError as exc:
+        raise HTTPException(status_code=502, detail=f"Respuesta IA no es JSON válido: {exc}")
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Error al llamar Claude API: {exc}")
+
+    # Guardar análisis en BD
+    await db.execute(text("""
+        UPDATE ades_lp_asignaciones
+           SET ia_recomendacion = CAST(:ia AS jsonb),
+               fecha_modificacion = NOW(),
+               row_version = row_version + 1
+         WHERE id = CAST(:id AS uuid)
+    """), {"ia": json.dumps(ia_data, ensure_ascii=False), "id": str(asig_id)})
+    await db.commit()
+
+    return {
+        "asignacion_id": str(asig_id),
+        "alumno": row["nombre_alumno"],
+        "path": row["path_nombre"],
+        "ia_recomendacion": ia_data,
+    }

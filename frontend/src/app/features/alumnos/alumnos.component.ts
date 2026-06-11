@@ -8,8 +8,6 @@ import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { DialogModule } from 'primeng/dialog';
-import { MessageService } from 'primeng/api';
-import { ToastModule } from 'primeng/toast';
 
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
@@ -19,22 +17,22 @@ import { ImportButtonComponent } from '../../shared/components/import-button/imp
 import { AlumnoPerfilComponent } from '../../shared/components/alumno-perfil/alumno-perfil.component';
 import { HelpButtonComponent } from '../../shared/components/help-button/help-button.component';
 import type { Estudiante } from '../../core/models';
+import { ApexNotificationService } from 'apex-component-library';
 
 @Component({
   selector: 'app-alumnos',
   standalone: true,
   imports: [
     CommonModule, FormsModule,
-    ButtonModule, InputTextModule, DialogModule, ToastModule,
+    ButtonModule, InputTextModule, DialogModule,
     InteractiveGridComponent, ImportButtonComponent, AlumnoPerfilComponent, HelpButtonComponent,
   ],
-  providers: [MessageService],
   template: `
-    <p-toast />
 
     <!-- Drawer de perfil completo -->
     <app-alumno-perfil
-      [(visible)]="perfilVisible"
+      [visible]="perfilVisible()"
+      (visibleChange)="perfilVisible.set($event)"
       [alumno]="alumnoSeleccionado()"
       (saved)="onPerfilGuardado()"
     />
@@ -62,7 +60,7 @@ import type { Estudiante } from '../../core/models';
     />
 
     <!-- Diálogo de alta rápida -->
-    <p-dialog [(visible)]="showDialog" header="Nuevo Alumno" [modal]="true" [style]="{width:'400px'}">
+    <p-dialog [visible]="showDialog()" (visibleChange)="showDialog.set($event)" header="Nuevo Alumno" [modal]="true" [style]="{width:'400px'}">
       <div style="display:flex;flex-direction:column;gap:1rem">
         <div>
           <label class="dlg-lbl">Nombre(s) *</label>
@@ -95,15 +93,15 @@ import type { Estudiante } from '../../core/models';
 export class AlumnosComponent implements OnInit {
   private readonly api = inject(ApiService);
   private readonly ctx = inject(ContextService);
-  private readonly msg = inject(MessageService);
+  private readonly notify = inject(ApexNotificationService);
   private readonly exp = inject(ExportService);
 
   alumnos = signal<Estudiante[]>([]);
   alumnosDatos = signal<any[]>([]);
   totalAlumnos = signal(0);
   alumnoSeleccionado = signal<Estudiante | null>(null);
-  perfilVisible = false;
-  showDialog = false;
+  perfilVisible = signal(false);
+  showDialog = signal(false);
   loading = signal(false);
   loadingTabla = signal(false);
   form = { nombre: '', apellido_paterno: '', apellido_materno: '', curp: '' };
@@ -163,7 +161,7 @@ export class AlumnosComponent implements OnInit {
         },
         error: () => {
           this.loadingTabla.set(false);
-          this.msg.add({ severity: 'error', summary: 'Error', detail: 'No se pudieron cargar los alumnos' });
+          this.notify.error('Error', 'No se pudieron cargar los alumnos');
         },
       });
   }
@@ -174,10 +172,10 @@ export class AlumnosComponent implements OnInit {
     this.api.get<Estudiante>(`/alumnos/${alumno.id}`).subscribe({
       next: full => {
         this.alumnoSeleccionado.set(full);
-        this.perfilVisible = true;
+        this.perfilVisible.set(true);
       },
       error: () => {
-        this.msg.add({ severity: 'error', summary: 'Error', detail: 'No se pudo cargar el perfil' });
+        this.notify.error('Error', 'No se pudo cargar el perfil');
       },
     });
   }
@@ -187,7 +185,7 @@ export class AlumnosComponent implements OnInit {
   }
 
   openDialog(): void {
-    this.showDialog = true;
+    this.showDialog.set(true);
     this.form = { nombre: '', apellido_paterno: '', apellido_materno: '', curp: '' };
   }
 
@@ -196,7 +194,7 @@ export class AlumnosComponent implements OnInit {
 
   crearAlumno(): void {
     if (!this.form.nombre || !this.form.apellido_paterno || !this.form.curp) {
-      this.msg.add({ severity: 'warn', summary: 'Campos requeridos', detail: 'Nombre, apellido paterno y CURP son obligatorios' });
+      this.notify.warning('Campos requeridos', 'Nombre, apellido paterno y CURP son obligatorios');
       return;
     }
     this.loading.set(true);
@@ -211,15 +209,15 @@ export class AlumnosComponent implements OnInit {
     };
     this.api.post<Estudiante>('/alumnos', payload).subscribe({
       next: (newAlumno) => {
-        this.showDialog = false;
+        this.showDialog.set(false);
         this.loading.set(false);
-        this.msg.add({ severity: 'success', summary: 'Creado', detail: `Matrícula: ${newAlumno.matricula}` });
+        this.notify.success('Creado', `Matrícula: ${newAlumno.matricula}`);
         this.cargarAlumnos();
         this.abrirPerfil({ _original: newAlumno });
       },
       error: (e) => {
         this.loading.set(false);
-        this.msg.add({ severity: 'error', summary: 'Error', detail: e.error?.detail ?? 'Error al crear' });
+        this.notify.error('Error', e.error?.detail ?? 'Error al crear');
       },
     });
   }

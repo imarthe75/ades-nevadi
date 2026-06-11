@@ -8,11 +8,10 @@ import { SkeletonModule } from 'primeng/skeleton';
 import { TooltipModule } from 'primeng/tooltip';
 import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
-import { ToastModule } from 'primeng/toast';
-import { MessageService } from 'primeng/api';
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
 import type { Plantel } from '../../core/models';
+import { ApexNotificationService } from 'apex-component-library';
 
 interface NivelStats {
   nivel_educativo_id: string;
@@ -40,10 +39,8 @@ const NIVEL_ICON: Record<string, string> = {
 @Component({
   selector: 'app-planteles',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, ButtonModule, TagModule, SkeletonModule, TooltipModule, DialogModule, InputTextModule, ToastModule],
-  providers: [MessageService],
+  imports: [CommonModule, RouterModule, FormsModule, ButtonModule, TagModule, SkeletonModule, TooltipModule, DialogModule, InputTextModule],
   template: `
-    <p-toast />
 
     <div class="page-header">
       <div>
@@ -185,7 +182,7 @@ const NIVEL_ICON: Record<string, string> = {
 })
 export class PlantelesComponent implements OnInit {
   private readonly api = inject(ApiService);
-  private readonly msg = inject(MessageService);
+  private readonly notify = inject(ApexNotificationService);
   readonly ctx = inject(ContextService);
 
   stats   = signal<PlantelStats[]>([]);
@@ -222,12 +219,12 @@ export class PlantelesComponent implements OnInit {
             ? { ...s, nombre_plantel: this.plantelEdit!.nombre_plantel, clave_ct: this.plantelEdit!.clave_ct }
             : s
         ));
-        this.msg.add({ severity: 'success', summary: 'Guardado', detail: 'Plantel actualizado' });
+        this.notify.success('Guardado', 'Plantel actualizado');
         this.dlgPlantel = false;
         this.saving.set(false);
       },
       error: e => {
-        this.msg.add({ severity: 'error', summary: 'Error', detail: e.error?.detail ?? 'Error al guardar' });
+        this.notify.error('Error', e.error?.detail ?? 'Error al guardar');
         this.saving.set(false);
       },
     });

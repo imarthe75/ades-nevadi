@@ -18,8 +18,6 @@ import { SelectModule } from 'primeng/select';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
-import { MessageService } from 'primeng/api';
-import { ToastModule } from 'primeng/toast';
 import { ToolbarModule } from 'primeng/toolbar';
 import { Table } from 'primeng/table';
 
@@ -30,6 +28,7 @@ import { grupoLabel } from '../../core/models';
 
 type GrupoConLabel = Grupo & { _label: string };
 import { HelpButtonComponent } from '../../shared/components/help-button/help-button.component';
+import { ApexNotificationService } from 'apex-component-library';
 
 @Component({
   selector: 'app-calificaciones',
@@ -37,12 +36,10 @@ import { HelpButtonComponent } from '../../shared/components/help-button/help-bu
   imports: [
     CommonModule, FormsModule,
     TableModule, ButtonModule, SelectModule, InputNumberModule,
-    TagModule, TooltipModule, ToastModule, ToolbarModule,
+    TagModule, TooltipModule, ToolbarModule,
     HelpButtonComponent,
   ],
-  providers: [MessageService],
   template: `
-    <p-toast />
 
     <div class="page-header">
       <div>
@@ -61,7 +58,9 @@ import { HelpButtonComponent } from '../../shared/components/help-button/help-bu
         placeholder="Seleccionar grupo"
         (onChange)="onGrupoChange()"
         [showClear]="true"
-      />
+      
+
+      [filter]="true" filterPlaceholder="Buscar..."/>
       <p-select
         [options]="materias()"
         [(ngModel)]="selectedMateria"
@@ -70,7 +69,9 @@ import { HelpButtonComponent } from '../../shared/components/help-button/help-bu
         (onChange)="loadLibreta()"
         [showClear]="true"
         [disabled]="!selectedGrupo"
-      />
+      
+
+      [filter]="true" filterPlaceholder="Buscar..."/>
     </div>
 
     <!-- ── Libreta — Editable Interactive Report ── -->
@@ -216,7 +217,7 @@ import { HelpButtonComponent } from '../../shared/components/help-button/help-bu
 export class CalificacionesComponent implements OnInit {
   private readonly api = inject(ApiService);
   private readonly ctx = inject(ContextService);
-  private readonly msg = inject(MessageService);
+  private readonly notify = inject(ApexNotificationService);
 
   grupos    = signal<GrupoConLabel[]>([]);
   materias  = signal<Materia[]>([]);
@@ -269,7 +270,10 @@ export class CalificacionesComponent implements OnInit {
     if (!this.selectedGrupo) return;
 
     const gradoId = this.selectedGrupo.grado_id;
-    this.api.get<Materia[]>('/planes-estudio', { grado_id: gradoId }).subscribe(planes => {
+    const params: Record<string, any> = { grado_id: gradoId };
+    const cicloId = this.ctx.ciclo()?.id;
+    if (cicloId) params['ciclo_id'] = cicloId;
+    this.api.get<Materia[]>('/planes-estudio', params).subscribe(planes => {
       // planes contiene MateriaPlanOut — extraemos materias únicas
       const materias: Materia[] = (planes as any[]).map((p: any) => p.materia).filter(Boolean);
       this.materias.set(materias);
@@ -337,13 +341,13 @@ export class CalificacionesComponent implements OnInit {
           if (completed === requests.length && !hasError) {
             this.saving.set(false);
             this.editadas.clear();
-            this.msg.add({ severity: 'success', summary: 'Guardado', detail: `${completed} calificación(es) guardadas` });
+            this.notify.success('Guardado', `${completed} calificación(es) guardadas`);
           }
         },
         error: (e) => {
           hasError = true;
           this.saving.set(false);
-          this.msg.add({ severity: 'error', summary: 'Error', detail: e.error?.detail || 'Error al guardar' });
+          this.notify.error('Error', e.error?.detail || 'Error al guardar');
         },
       });
     });

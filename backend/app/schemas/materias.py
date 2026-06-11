@@ -57,11 +57,13 @@ class MateriaPlanUpdate(AdesSchema):
 
 
 class TemaOut(AdesResponse):
-    materia_plan_id: uuid.UUID
-    numero_tema: int
+    materia_id: uuid.UUID
+    grado_id: uuid.UUID | None = None
+    ciclo_escolar_id: uuid.UUID | None = None
     nombre_tema: str
-    descripcion: str | None
-    horas_estimadas: float | None
+    descripcion: str | None = None
+    orden: int = 1
+    periodo_sugerido: int | None = None
 
 
 class AsignacionDocenteOut(AdesResponse):

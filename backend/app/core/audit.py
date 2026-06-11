@@ -20,13 +20,11 @@ import logging
 import uuid
 from typing import Callable
 
-from jose import jwt, JWTError
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import settings
 from app.core.database import AsyncSessionLocal as async_session_factory
 
 log = logging.getLogger(__name__)
@@ -47,19 +45,18 @@ _METHOD_ACCION = {
 
 
 def _extract_user(request: Request) -> tuple[uuid.UUID | None, str | None]:
-    """Devuelve (usuario_id, nombre_usuario) del JWT de la request, o (None, None)."""
-    auth = request.headers.get("Authorization", "")
-    if not auth.startswith("Bearer "):
-        return None, None
-    token = auth[7:]
-    try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
-        sub = payload.get("sub")
-        nombre = payload.get("nombre") or payload.get("preferred_username") or payload.get("username")
-        uid = uuid.UUID(str(sub)) if sub else None
-        return uid, nombre
-    except (JWTError, ValueError):
-        return None, None
+    """
+    Lee usuario desde request.state (propagado por get_ades_user).
+    Evita re-decodificar el JWT con el algoritmo incorrecto (HS256 vs RS256).
+    """
+    uid_str = getattr(request.state, "ades_user_id", None)
+    nombre  = getattr(request.state, "ades_user_nombre", None)
+    if uid_str:
+        try:
+            return uuid.UUID(uid_str), nombre
+        except ValueError:
+            pass
+    return None, None
 
 
 def _extract_entidad(path: str) -> tuple[str, uuid.UUID | None]:

@@ -103,7 +103,8 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
                 <div class="form-row">
                   <label>Género</label>
                   <p-select [options]="[{l:'Masculino',v:'M'},{l:'Femenino',v:'F'}]"
-                    [(ngModel)]="form.genero" optionLabel="l" optionValue="v" />
+                    [(ngModel)]="form.genero" optionLabel="l" optionValue="v" 
+ [filter]="true" filterPlaceholder="Buscar..."/>
                 </div>
                 <div class="form-row">
                   <label>Fecha nacimiento</label>

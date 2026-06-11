@@ -161,7 +161,7 @@ async def subir_entrega(
                    comentario_alumno = :com,
                    archivo_url      = COALESCE(:url, ades_tareas_entregas.archivo_url),
                    estatus_entrega  = 'ENTREGADA',
-                   fcmodificacion   = now(),
+                   fecha_modificacion   = now(),
                    row_version      = ades_tareas_entregas.row_version + 1
         """),
         {"tid": tarea_id, "eid": alumno_id, "com": comentario, "url": archivo_url},
@@ -192,7 +192,7 @@ async def calificar_entrega(
                    calificado_por = :uid,
                    fecha_calificacion_docente = now(),
                    estatus_entrega = 'CALIFICADA',
-                   fcmodificacion = now(),
+                   fecha_modificacion = now(),
                    row_version = row_version + 1
              WHERE id = :id
         """),
@@ -217,7 +217,7 @@ async def registrar_excusa(
             UPDATE ades_tareas_entregas
                SET estatus_entrega = 'EXCUSA',
                    comentario_profesor = :motivo,
-                   fcmodificacion = now()
+                   fecha_modificacion = now()
              WHERE id = :id
         """),
         {"motivo": motivo, "id": entrega_id},

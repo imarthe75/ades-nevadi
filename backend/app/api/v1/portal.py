@@ -15,7 +15,7 @@ async def _ciclo_activo(db: AsyncSession, estudiante_id: str) -> str | None:
     r = await db.execute(text("""
         SELECT ins.ciclo_escolar_id FROM ades_inscripciones ins
          WHERE ins.estudiante_id = :eid
-         ORDER BY ins.fccreacion DESC LIMIT 1
+         ORDER BY ins.fecha_creacion DESC LIMIT 1
     """), {"eid": estudiante_id})
     row = r.fetchone()
     return str(row[0]) if row else None
@@ -185,7 +185,7 @@ async def resumen_alumno(
           FROM ades_lp_asignaciones la
           JOIN ades_learning_paths  lp ON lp.id = la.path_id
          WHERE la.estudiante_id = :eid
-         ORDER BY la.fccreacion DESC LIMIT 5
+         ORDER BY la.fecha_creacion DESC LIMIT 5
     """), {"eid": estudiante_id})
     learning_paths = [dict(r._mapping) for r in lp_rows.fetchall()]
 

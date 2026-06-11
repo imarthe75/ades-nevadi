@@ -25,8 +25,8 @@ CREATE TABLE IF NOT EXISTS ades_bajas (
   -- Auditoría
   ref                 UUID        UNIQUE DEFAULT uuidv7(),
   is_active           BOOLEAN     DEFAULT TRUE,
-  fccreacion          TIMESTAMPTZ DEFAULT NOW(),
-  fcmodificacion      TIMESTAMPTZ DEFAULT NOW(),
+  fecha_creacion          TIMESTAMPTZ DEFAULT NOW(),
+  fecha_modificacion      TIMESTAMPTZ DEFAULT NOW(),
   usuario_creacion    VARCHAR(150),
   usuario_modificacion VARCHAR(150),
   row_version         INTEGER     DEFAULT 1
@@ -55,8 +55,8 @@ CREATE TABLE IF NOT EXISTS ades_extraordinarias (
   -- Auditoría
   ref                 UUID        UNIQUE DEFAULT uuidv7(),
   is_active           BOOLEAN     DEFAULT TRUE,
-  fccreacion          TIMESTAMPTZ DEFAULT NOW(),
-  fcmodificacion      TIMESTAMPTZ DEFAULT NOW(),
+  fecha_creacion          TIMESTAMPTZ DEFAULT NOW(),
+  fecha_modificacion      TIMESTAMPTZ DEFAULT NOW(),
   usuario_creacion    VARCHAR(150),
   usuario_modificacion VARCHAR(150),
   row_version         INTEGER     DEFAULT 1,
@@ -84,7 +84,7 @@ CREATE TABLE IF NOT EXISTS ades_documentos_tipo (
   orden               SMALLINT    DEFAULT 1,
   -- Auditoría
   is_active           BOOLEAN     DEFAULT TRUE,
-  fccreacion          TIMESTAMPTZ DEFAULT NOW(),
+  fecha_creacion          TIMESTAMPTZ DEFAULT NOW(),
   usuario_creacion    VARCHAR(150),
   row_version         INTEGER     DEFAULT 1
 );
@@ -117,8 +117,8 @@ CREATE TABLE IF NOT EXISTS ades_expediente_docs (
   -- Auditoría
   ref                 UUID        UNIQUE DEFAULT uuidv7(),
   is_active           BOOLEAN     DEFAULT TRUE,
-  fccreacion          TIMESTAMPTZ DEFAULT NOW(),
-  fcmodificacion      TIMESTAMPTZ DEFAULT NOW(),
+  fecha_creacion          TIMESTAMPTZ DEFAULT NOW(),
+  fecha_modificacion      TIMESTAMPTZ DEFAULT NOW(),
   usuario_creacion    VARCHAR(150),
   usuario_modificacion VARCHAR(150),
   row_version         INTEGER     DEFAULT 1,
@@ -146,7 +146,7 @@ CREATE TABLE IF NOT EXISTS ades_cambios_grupo (
   -- Auditoría
   ref                 UUID        UNIQUE DEFAULT uuidv7(),
   is_active           BOOLEAN     DEFAULT TRUE,
-  fccreacion          TIMESTAMPTZ DEFAULT NOW(),
+  fecha_creacion          TIMESTAMPTZ DEFAULT NOW(),
   usuario_creacion    VARCHAR(150),
   row_version         INTEGER     DEFAULT 1
 );
@@ -173,8 +173,8 @@ CREATE TABLE IF NOT EXISTS ades_constancias (
   -- Auditoría
   ref                 UUID        UNIQUE DEFAULT uuidv7(),
   is_active           BOOLEAN     DEFAULT TRUE,
-  fccreacion          TIMESTAMPTZ DEFAULT NOW(),
-  fcmodificacion      TIMESTAMPTZ DEFAULT NOW(),
+  fecha_creacion          TIMESTAMPTZ DEFAULT NOW(),
+  fecha_modificacion      TIMESTAMPTZ DEFAULT NOW(),
   usuario_creacion    VARCHAR(150),
   usuario_modificacion VARCHAR(150),
   row_version         INTEGER     DEFAULT 1

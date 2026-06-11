@@ -1,0 +1,36 @@
+<div class="apex-dialog-wrapper" *ngIf="visible">
+  <div class="apex-dialog-mask" (click)="onMaskClick($event)"></div>
+  
+  <div 
+    #dialogElement
+    class="apex-dialog" 
+    [ngClass]="styleClass || ''"
+    [style.width]="width"
+    role="dialog"
+    [attr.aria-labelledby]="'dialog-title-' + title"
+    aria-modal="true"
+    tabindex="-1">
+    
+    <!-- Header -->
+    <div class="apex-dialog-header">
+      <h3 [id]="'dialog-title-' + title" class="apex-dialog-title">{{ title }}</h3>
+      <button 
+        *ngIf="closable" 
+        class="apex-dialog-close" 
+        (click)="close($event)"
+        aria-label="Close dialog">
+        <span class="pi pi-times"></span>
+      </button>
+    </div>
+    
+    <!-- Body -->
+    <div class="apex-dialog-content">
+      <ng-content></ng-content>
+    </div>
+    
+    <!-- Footer -->
+    <div class="apex-dialog-footer" *ngIf="footerTemplate">
+      <ng-container *ngTemplateOutlet="footerTemplate"></ng-container>
+    </div>
+  </div>
+</div>

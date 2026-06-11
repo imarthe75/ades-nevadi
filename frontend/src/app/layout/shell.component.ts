@@ -3,7 +3,7 @@
  * Contiene: logo, selector de plantel/ciclo (Application Items), nav lateral, router-outlet.
  * Colores institucionales Instituto Nevadi — primario #D02030.
  */
-import { Component, inject, OnInit, signal, computed, ViewChild } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, signal, computed, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, RouterOutlet } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -11,17 +11,18 @@ import { ToolbarModule } from 'primeng/toolbar';
 import { ButtonModule } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
 import { MenuModule } from 'primeng/menu';
-import { ToastModule } from 'primeng/toast';
 import { PopoverModule, Popover } from 'primeng/popover';
 import { BadgeModule } from 'primeng/badge';
 import { TagModule } from 'primeng/tag';
-import { MessageService } from 'primeng/api';
 
 import { ContextService } from '../core/services/context.service';
 import { AuthService } from '../core/services/auth.service';
 import { ApiService } from '../core/services/api.service';
 import { PushNotificationService } from '../core/services/push-notification.service';
 import type { Plantel, CicloEscolar, NivelEducativo } from '../core/models';
+import { ApexComponentsModule } from '../shared/apex-components.module';
+import { NavigationEnd, Router } from '@angular/router';
+import { filter } from 'rxjs/operators';
 
 // Sentinelas para "Todo el Instituto" / "Todos los niveles"
 const TODO_INSTITUTO: Plantel = { id: '', nombre_plantel: '— Todo el Instituto —', escuela_id: '', is_active: true };
@@ -37,12 +38,11 @@ interface Notif { id: string; titulo: string; cuerpo: string; tipo: string; leid
   standalone: true,
   imports: [
     CommonModule, RouterModule, RouterOutlet, FormsModule,
-    ToolbarModule, ButtonModule, SelectModule, MenuModule, ToastModule,
-    PopoverModule, BadgeModule, TagModule,
+    ToolbarModule, ButtonModule, SelectModule, MenuModule,
+    PopoverModule, BadgeModule, TagModule, ApexComponentsModule
   ],
-  providers: [MessageService],
   template: `
-    <p-toast position="top-right" />
+    <apex-toast-container position="top-right" />
 
     <!-- ── Topbar institucional ── -->
     <p-toolbar styleClass="ades-topbar">
@@ -93,7 +93,7 @@ interface Notif { id: string; titulo: string; cuerpo: string; tipo: string; leid
         <p-select
           [options]="ciclos()"
           [(ngModel)]="selectedCiclo"
-          optionLabel="nombre_ciclo"
+          optionLabel="_label"
           placeholder="Ciclo..."
           styleClass="ctx-selector ctx-selector-sm"
           (onChange)="onCicloChange($event.value)"
@@ -133,12 +133,13 @@ interface Notif { id: string; titulo: string; cuerpo: string; tipo: string; leid
         <div class="notif-empty">Sin notificaciones pendientes</div>
       }
       @for (n of notificaciones(); track n.id) {
-        <div class="notif-item" [class.notif-no-leida]="!n.leido" (click)="marcarLeida(n)">
-          <i [class]="'pi ' + notifIcon(n.tipo)"></i>
-          <div class="notif-text">
-            <div class="notif-titulo">{{ n.titulo }}</div>
-            <div class="notif-cuerpo">{{ n.cuerpo }}</div>
-          </div>
+        <div class="notif-item-wrapper" (click)="marcarLeida(n)" [style.opacity]="n.leido ? '0.6' : '1'">
+          <apex-alert
+            [severity]="n.tipo === 'ERROR' ? 'error' : n.tipo === 'WARNING' ? 'warning' : 'info'"
+            [message]="n.cuerpo"
+            [icon]="n.tipo === 'ERROR' ? 'pi pi-times-circle' : n.tipo === 'WARNING' ? 'pi pi-exclamation-triangle' : 'pi pi-info-circle'"
+            [closable]="false">
+          </apex-alert>
         </div>
       }
       <div class="notif-panel-footer">
@@ -183,6 +184,12 @@ interface Notif { id: string; titulo: string; cuerpo: string; tipo: string; leid
 
       <!-- Contenido principal -->
       <main class="main-content">
+        <div class="breadcrumb-container" *ngIf="breadcrumbItems.length > 0">
+          <apex-breadcrumb 
+            [items]="breadcrumbItems"
+            [home]="{ label: 'Home', routerLink: '/' }">
+          </apex-breadcrumb>
+        </div>
         <router-outlet />
       </main>
     </div>
@@ -297,17 +304,12 @@ interface Notif { id: string; titulo: string; cuerpo: string; tipo: string; leid
       padding: 1.5rem 1rem; text-align: center;
       color: var(--text-color-secondary); font-size: .85rem;
     }
-    .notif-item {
-      display: flex; gap: .75rem; padding: .65rem 1rem; cursor: pointer;
+    .notif-item-wrapper {
+      padding: .65rem 1rem; cursor: pointer;
       border-bottom: 1px solid var(--surface-100);
-      transition: background .12s;
+      transition: opacity .12s;
     }
-    .notif-item:hover { background: var(--surface-50); }
-    .notif-no-leida   { background: var(--blue-50); }
-    .notif-no-leida:hover { background: var(--blue-100); }
-    .notif-item i     { color: var(--primary-color); margin-top: .15rem; font-size: .9rem; flex-shrink: 0; }
-    .notif-titulo     { font-weight: 600; font-size: .82rem; margin-bottom: .1rem; }
-    .notif-cuerpo     { font-size: .75rem; color: var(--text-color-secondary); }
+    .notif-item-wrapper:hover { opacity: 0.8 !important; }
     .notif-panel-footer {
       padding: .5rem 1rem; text-align: center; border-top: 1px solid var(--surface-200);
     }
@@ -373,30 +375,38 @@ interface Notif { id: string; titulo: string; cuerpo: string; tipo: string; leid
     .main-content { flex: 1; overflow-y: auto; padding: 1.5rem; background: var(--surface-ground); }
   `],
 })
-export class ShellComponent implements OnInit {
+export class ShellComponent implements OnInit, OnDestroy {
   readonly ctx  = inject(ContextService);
   readonly auth = inject(AuthService);
   private readonly api  = inject(ApiService);
   private readonly push = inject(PushNotificationService);
+  private readonly router = inject(Router);
+
+  breadcrumbItems: any[] = [];
 
   planteles = signal<Plantel[]>([]);
   niveles   = signal<NivelEducativo[]>([]);
   ciclos    = signal<CicloEscolar[]>([]);
-  selectedPlantel: Plantel | null = this.ctx.plantel();
-  selectedNivel: NivelEducativo | null = this.ctx.nivel();
+
+  private readonly _selectedPlantel = signal<Plantel | null>(this.ctx.plantel());
+  private readonly _selectedNivel   = signal<NivelEducativo | null>(this.ctx.nivel());
   selectedCiclo: CicloEscolar | null = this.ctx.ciclo();
 
-  /** Label del plantel actual para mostrar en topbar */
-  readonly plantelLabel = () => {
-    const p = this.selectedPlantel;
-    if (!p || p.id === '') return 'Todo el Instituto';
-    return p.nombre_plantel;
-  };
-  readonly nivelLabel = () => {
-    const n = this.selectedNivel;
-    if (!n || n.id === '') return 'Todos los niveles';
-    return n.nombre_nivel;
-  };
+  get selectedPlantel(): Plantel | null { return this._selectedPlantel(); }
+  set selectedPlantel(v: Plantel | null)  { this._selectedPlantel.set(v); }
+  get selectedNivel(): NivelEducativo | null { return this._selectedNivel(); }
+  set selectedNivel(v: NivelEducativo | null) { this._selectedNivel.set(v); }
+
+  readonly plantelLabel = computed(() => {
+    const p = this._selectedPlantel();
+    return (!p || p.id === '') ? 'Todo el Instituto' : p.nombre_plantel;
+  });
+  readonly nivelLabel = computed(() => {
+    const n = this._selectedNivel();
+    return (!n || n.id === '') ? 'Todos los niveles' : n.nombre_nivel;
+  });
+
+  private notifInterval?: ReturnType<typeof setInterval>;
 
   notifCount    = signal(0);
   notificaciones = signal<Notif[]>([]);
@@ -407,139 +417,97 @@ export class ShellComponent implements OnInit {
     this.ctx.usuario()?.nombre_completo?.[0]?.toUpperCase() ?? 'U'
   );
 
-  // maxNivel: usuarios con nivel_acceso <= maxNivel ven el ítem
-  // 0=ADMIN_GLOBAL, 1=ADMIN_PLANTEL, 2-3=DIRECTOR/COORD, 4=DOCENTE, 5=ALUMNO
   private readonly _allNavGroups: NavGroup[] = [
-    {
-      section: 'Principal',
-      items: [
-        { route: '/dashboard',  icon: 'pi-home',       label: 'Dashboard' },
-        { route: '/planteles',  icon: 'pi-map-marker', label: 'Planteles', maxNivel: 1 },
-        { route: '/admin',      icon: 'pi-cog',        label: 'Administración', maxNivel: 1 },
-      ],
-    },
-    {
-      section: 'Académico',
-      maxNivel: 4,
-      items: [
-        { route: '/alumnos',        icon: 'pi-users',        label: 'Alumnos' },
-        { route: '/padres-admin',   icon: 'pi-users',        label: 'Gestión de Padres', maxNivel: 1 },
-        { route: '/profesores',     icon: 'pi-id-card',      label: 'Profesores' },
-        { route: '/grupos',         icon: 'pi-building',     label: 'Grupos' },
-        { route: '/planes-estudio', icon: 'pi-list',          label: 'Planes de Estudio', maxNivel: 3 },
-        { route: '/calificaciones', icon: 'pi-star',         label: 'Calificaciones' },
-        { route: '/evaluaciones',   icon: 'pi-file-check',   label: 'Evaluaciones' },
-        { route: '/asistencias',    icon: 'pi-check-square', label: 'Asistencias' },
-        { route: '/tareas',         icon: 'pi-file-edit',    label: 'Tareas' },
-        { route: '/planeacion',     icon: 'pi-list-check',   label: 'Planeación', maxNivel: 3 },
-      ],
-    },
-    {
-      section: 'Operaciones',
-      maxNivel: 3,
-      items: [
-        { route: '/horarios', icon: 'pi-calendar',           label: 'Horarios' },
-        { route: '/conducta', icon: 'pi-exclamation-circle', label: 'Conducta' },
-        { route: '/medico',   icon: 'pi-heart',              label: 'Expediente Médico' },
-      ],
-    },
-    {
-      section: 'Comunicación',
-      maxNivel: 4,
-      items: [
-        { route: '/comunicados', icon: 'pi-envelope',  label: 'Comunicados' },
-        { route: '/encuestas',   icon: 'pi-chart-pie', label: 'Encuestas', maxNivel: 3 },
-      ],
-    },
-    {
-      section: 'Gradebook',
-      maxNivel: 4,
-      items: [
-        { route: '/gradebook',          icon: 'pi-book',      label: 'Gradebook' },
-        { route: '/mi-progreso',        icon: 'pi-chart-line', label: 'Mi Progreso' },
-        { route: '/ponderacion-config', icon: 'pi-sliders-h', label: 'Ponderaciones', maxNivel: 3 },
-      ],
-    },
-    {
-      section: 'Recursos',
-      maxNivel: 4,
-      items: [
-        { route: '/rubricas', icon: 'pi-table',     label: 'Rúbricas' },
-        { route: '/badges',   icon: 'pi-star-fill', label: 'Insignias' },
-        { route: '/portal',   icon: 'pi-id-card',   label: 'Portal Alumno' },
-      ],
-    },
-    {
-      section: 'Mi Familia',
-      minNivel: 5,   // solo ALUMNO (5) y PADRE_FAMILIA (5)
-      items: [
-        { route: '/padres',      icon: 'pi-users',       label: 'Portal de Padres',    minNivel: 5 },
-        { route: '/portal',      icon: 'pi-chart-line',  label: 'Progreso del Alumno', minNivel: 5 },
-        { route: '/comunicados', icon: 'pi-envelope',    label: 'Comunicados',         minNivel: 5 },
-      ],
-    },
-    {
-      section: 'Inteligencia',
-      maxNivel: 3,
-      items: [
-        { route: '/bi',              icon: 'pi-chart-pie',      label: 'Dashboards BI' },
-        { route: '/grade-analytics', icon: 'pi-chart-bar',      label: 'Grade Analytics' },
-        { route: '/ia',              icon: 'pi-sparkles',       label: 'Asistente IA + Datos' },
-        { route: '/eval-docente',    icon: 'pi-star',           label: 'Eval. Docente 360°' },
-        { route: '/learning-paths',  icon: 'pi-graduation-cap', label: 'Learning Paths' },
-      ],
-    },
-    {
-      section: 'Reportes',
-      maxNivel: 3,
-      items: [
-        { route: '/reportes', icon: 'pi-file-pdf', label: 'Generador de Reportes' },
-        { route: '/boletas',  icon: 'pi-print',    label: 'Boletas (WeasyPrint)' },
-      ],
-    },
-    {
-      section: 'Sistema',
-      maxNivel: 1,
-      items: [
-        { route: '/monitor', icon: 'pi-heart-fill', label: 'Monitor del Sistema' },
-        { route: '/admin',   icon: 'pi-cog',        label: 'Administración' },
-      ],
-    },
-    {
-      section: 'Ayuda',
-      items: [
-        { route: '/ayuda', icon: 'pi-question-circle', label: 'Manual de Usuario' },
-      ],
-    },
+    { section: 'Principal', items: [
+      { route: '/dashboard',  icon: 'pi-home',         label: 'Dashboard' },
+      { route: '/planteles',  icon: 'pi-map-marker',   label: 'Planteles',       maxNivel: 1 },
+      { route: '/admin',      icon: 'pi-cog',          label: 'Administración',  maxNivel: 1 },
+    ]},
+    { section: 'Académico', maxNivel: 4, items: [
+      { route: '/alumnos',          icon: 'pi-users',        label: 'Alumnos' },
+      { route: '/padres-admin',     icon: 'pi-users',        label: 'Gestión de Padres',   maxNivel: 1 },
+      { route: '/profesores',       icon: 'pi-id-card',      label: 'Profesores' },
+      { route: '/grupos',           icon: 'pi-building',     label: 'Grupos' },
+      { route: '/planes-estudio',   icon: 'pi-list',         label: 'Planes de Estudio',   maxNivel: 3 },
+      { route: '/calificaciones',   icon: 'pi-star',         label: 'Calificaciones' },
+      { route: '/evaluaciones',     icon: 'pi-file-check',   label: 'Evaluaciones' },
+      { route: '/asistencias',      icon: 'pi-check-square', label: 'Asistencias' },
+      { route: '/tareas',           icon: 'pi-file-edit',    label: 'Tareas' },
+      { route: '/planeacion',       icon: 'pi-list-check',   label: 'Planeación',          maxNivel: 3 },
+    ]},
+    { section: 'Operaciones', maxNivel: 3, items: [
+      { route: '/horarios',  icon: 'pi-calendar',           label: 'Horarios' },
+      { route: '/conducta',  icon: 'pi-exclamation-circle', label: 'Conducta' },
+      { route: '/medico',    icon: 'pi-heart',              label: 'Expediente Médico' },
+    ]},
+    { section: 'Comunicación', maxNivel: 4, items: [
+      { route: '/comunicados', icon: 'pi-envelope',   label: 'Comunicados' },
+      { route: '/encuestas',   icon: 'pi-chart-pie',  label: 'Encuestas',  maxNivel: 3 },
+    ]},
+    { section: 'Gradebook', maxNivel: 4, items: [
+      { route: '/gradebook',         icon: 'pi-book',       label: 'Gradebook' },
+      { route: '/mi-progreso',       icon: 'pi-chart-line', label: 'Mi Progreso' },
+      { route: '/ponderacion-config', icon: 'pi-sliders-h', label: 'Ponderaciones', maxNivel: 3 },
+    ]},
+    { section: 'Recursos', maxNivel: 4, items: [
+      { route: '/rubricas', icon: 'pi-table',   label: 'Rúbricas' },
+      { route: '/badges',   icon: 'pi-star-fill', label: 'Insignias' },
+      { route: '/portal',   icon: 'pi-id-card',  label: 'Portal Alumno' },
+    ]},
+    { section: 'Mi Familia', minNivel: 5, items: [
+      { route: '/padres',       icon: 'pi-users',        label: 'Portal de Padres',    minNivel: 5 },
+      { route: '/portal',       icon: 'pi-chart-line',   label: 'Progreso del Alumno', minNivel: 5 },
+      { route: '/comunicados',  icon: 'pi-envelope',     label: 'Comunicados',         minNivel: 5 },
+    ]},
+    { section: 'Inteligencia', maxNivel: 3, items: [
+      { route: '/bi',             icon: 'pi-chart-pie',      label: 'Dashboards BI' },
+      { route: '/grade-analytics', icon: 'pi-chart-bar',     label: 'Grade Analytics' },
+      { route: '/ia',             icon: 'pi-sparkles',       label: 'Asistente IA + Datos' },
+      { route: '/eval-docente',   icon: 'pi-star',           label: 'Eval. Docente 360°' },
+      { route: '/learning-paths', icon: 'pi-graduation-cap', label: 'Learning Paths' },
+    ]},
+    { section: 'Reportes', maxNivel: 3, items: [
+      { route: '/reportes',     icon: 'pi-file-pdf',       label: 'Generador de Reportes' },
+      { route: '/certificados', icon: 'pi-verified',       label: 'Certificados Digitales', maxNivel: 3 },
+    ]},
+    { section: 'Sistema', maxNivel: 1, items: [
+      { route: '/monitor', icon: 'pi-heart-fill', label: 'Monitor del Sistema' },
+      { route: '/admin',   icon: 'pi-cog',        label: 'Administración' },
+    ]},
+    { section: 'Ayuda', items: [
+      { route: '/ayuda', icon: 'pi-question-circle', label: 'Manual de Usuario' },
+    ]},
   ];
 
-  /** Grupos/ítems visibles para el rol del usuario actual */
   readonly navGroupsVisible = computed(() => {
     const nivel = this.ctx.nivelAcceso();
-    const isGlobal = nivel === 0;
+    if (nivel === 0) return this._allNavGroups;
     const itemVisible = (item: NavItem, groupMax?: number, groupMin?: number) => {
-      if (isGlobal) return true;
       const max = item.maxNivel ?? groupMax ?? 99;
       const min = item.minNivel ?? groupMin ?? 0;
       return nivel <= max && nivel >= min;
     };
     return this._allNavGroups
       .filter(g => {
-        if (isGlobal) return true;
         const max = g.maxNivel ?? 99;
         const min = g.minNivel ?? 0;
         return nivel <= max && nivel >= min;
       })
-      .map(g => ({
-        ...g,
-        items: g.items.filter(item => itemVisible(item, g.maxNivel, g.minNivel)),
-      }))
+      .map(g => ({ ...g, items: g.items.filter(item => itemVisible(item, g.maxNivel, g.minNivel)) }))
       .filter(g => g.items.length > 0);
   });
 
   ngOnInit(): void {
     // FASE 20 — Inicializar push notifications (ntfy SSE) al cargar el shell
     this.push.init().catch(() => { /* ntfy opcional — modo degradado */ });
+
+    // Inicializar breadcrumbs
+    this.buildBreadcrumbs();
+    this.router.events.pipe(
+      filter(event => event instanceof NavigationEnd)
+    ).subscribe(() => {
+      this.buildBreadcrumbs();
+    });
 
     const usuario = this.ctx.usuario();
 
@@ -567,7 +535,11 @@ export class ShellComponent implements OnInit {
     });
 
     this.loadNotifCount();
-    setInterval(() => this.loadNotifCount(), 60_000);
+    this.notifInterval = setInterval(() => this.loadNotifCount(), 60_000);
+  }
+
+  ngOnDestroy(): void {
+    clearInterval(this.notifInterval);
   }
 
   loadNotifCount(): void {
@@ -689,14 +661,38 @@ export class ShellComponent implements OnInit {
     if (nivel) params['nivel'] = nivel;
 
     this.api.get<CicloEscolar[]>('/catalogs/ciclos', params).subscribe(c => {
-      this.ciclos.set(c);
-      if (c.length) {
-        // Mantener el ciclo seleccionado si sigue siendo válido
-        const existente = this.selectedCiclo ? c.find(x => x.id === this.selectedCiclo!.id) : null;
-        const elegido = existente ?? c[0];
+      const labeled = c.map(x => ({
+        ...x,
+        _label: (!this.selectedNivel?.id && x.nombre_nivel)
+          ? `${x.nombre_ciclo} — ${x.nombre_nivel}`
+          : x.nombre_ciclo,
+      }));
+      this.ciclos.set(labeled);
+      if (labeled.length) {
+        const existente = this.selectedCiclo ? labeled.find(x => x.id === this.selectedCiclo!.id) : null;
+        const elegido = existente ?? labeled[0];
         this.selectedCiclo = elegido;
         this.ctx.setCiclo(elegido);
       }
     });
+  }
+
+  private buildBreadcrumbs(): void {
+    const urlSegments = this.router.url.split('?')[0].split('/').filter(s => s);
+    
+    this.breadcrumbItems = urlSegments.map((segment, index) => {
+      const path = '/' + urlSegments.slice(0, index + 1).join('/');
+      return {
+        label: this.humanize(segment),
+        routerLink: path
+      };
+    });
+  }
+  
+  private humanize(text: string): string {
+    return text
+      .split('-')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
   }
 }

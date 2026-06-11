@@ -25,8 +25,8 @@ CREATE TABLE ades_criterios_eval_docente (
     nivel_educativo_id   UUID         REFERENCES ades_niveles_educativos(id),
     is_active            BOOLEAN     NOT NULL DEFAULT TRUE,
     ref                  UUID        NOT NULL DEFAULT uuidv7() UNIQUE,
-    fccreacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    fcmodificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_creacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_modificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     usuario_creacion     VARCHAR(150) NOT NULL DEFAULT current_user,
     usuario_modificacion VARCHAR(150) NOT NULL DEFAULT current_user,
     row_version          INTEGER     NOT NULL DEFAULT 1
@@ -46,8 +46,8 @@ CREATE TABLE ades_evaluacion_docente (
     estatus              VARCHAR(20) NOT NULL DEFAULT 'BORRADOR', -- BORRADOR, ENVIADA, APROBADA
     ref                  UUID        NOT NULL DEFAULT uuidv7() UNIQUE,
     is_active            BOOLEAN     NOT NULL DEFAULT TRUE,
-    fccreacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    fcmodificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_creacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_modificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     usuario_creacion     VARCHAR(150) NOT NULL DEFAULT current_user,
     usuario_modificacion VARCHAR(150) NOT NULL DEFAULT current_user,
     row_version          INTEGER     NOT NULL DEFAULT 1
@@ -62,8 +62,8 @@ CREATE TABLE ades_eval_docente_criterios (
     calificacion          SMALLINT     NOT NULL,
     observacion           TEXT,
     ref                   UUID        NOT NULL DEFAULT uuidv7() UNIQUE,
-    fccreacion            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    fcmodificacion        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_creacion            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_modificacion        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     usuario_creacion      VARCHAR(150) NOT NULL DEFAULT current_user,
     usuario_modificacion  VARCHAR(150) NOT NULL DEFAULT current_user,
     row_version           INTEGER     NOT NULL DEFAULT 1,
@@ -102,12 +102,12 @@ CREATE TABLE ades_ai_conversaciones (
     tokens_entrada       INTEGER,
     tokens_salida        INTEGER,
     contexto             JSONB,                                     -- plantel_id, ciclo_id, etc.
-    fccreacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_creacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     row_version          INTEGER     NOT NULL DEFAULT 1
 );
 COMMENT ON TABLE ades_ai_conversaciones IS 'Historial de mensajes con el asistente pedagógico IA.';
-CREATE INDEX idx_ai_conv_sesion ON ades_ai_conversaciones(sesion_id, fccreacion);
-CREATE INDEX idx_ai_conv_usuario ON ades_ai_conversaciones(usuario_id, fccreacion DESC);
+CREATE INDEX idx_ai_conv_sesion ON ades_ai_conversaciones(sesion_id, fecha_creacion);
+CREATE INDEX idx_ai_conv_usuario ON ades_ai_conversaciones(usuario_id, fecha_creacion DESC);
 
 
 -- =============================================================================
@@ -128,13 +128,13 @@ CREATE TABLE ades_alertas_academicas (
     atendida_por_id      UUID         REFERENCES ades_usuarios(id),
     ref                  UUID        NOT NULL DEFAULT uuidv7() UNIQUE,
     is_active            BOOLEAN     NOT NULL DEFAULT TRUE,
-    fccreacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    fcmodificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_creacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_modificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     usuario_creacion     VARCHAR(150) NOT NULL DEFAULT current_user,
     usuario_modificacion VARCHAR(150) NOT NULL DEFAULT current_user,
     row_version          INTEGER     NOT NULL DEFAULT 1
 );
 COMMENT ON TABLE ades_alertas_academicas IS 'Alertas de riesgo académico generadas por el sistema o la IA.';
-CREATE INDEX idx_alertas_estudiante ON ades_alertas_academicas(estudiante_id, fccreacion DESC);
+CREATE INDEX idx_alertas_estudiante ON ades_alertas_academicas(estudiante_id, fecha_creacion DESC);
 CREATE INDEX idx_alertas_grupo ON ades_alertas_academicas(grupo_id, atendida);
 SELECT auditoria.asignar_trigger('ades_alertas_academicas');

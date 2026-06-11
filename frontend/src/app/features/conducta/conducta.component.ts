@@ -12,18 +12,17 @@ import { ButtonModule } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
 import { AutoCompleteModule } from 'primeng/autocomplete';
 import { TagModule } from 'primeng/tag';
-import { ToastModule } from 'primeng/toast';
 import { DialogModule } from 'primeng/dialog';
 import { TextareaModule } from 'primeng/textarea';
 import { InputTextModule } from 'primeng/inputtext';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
-import { MessageService } from 'primeng/api';
 
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
 import { ExportService, ExportColumn } from '../../core/services/export.service';
 import type { Grupo } from '../../core/models';
 import { grupoLabel } from '../../core/models';
+import { ApexNotificationService } from 'apex-component-library';
 
 interface ReporteConducta {
   id: string;
@@ -50,12 +49,10 @@ const FALTA_SEVERITY: Record<string, TagSeverity> = {
   standalone: true,
   imports: [
     CommonModule, FormsModule,
-    TableModule, ButtonModule, SelectModule, AutoCompleteModule, TagModule, ToastModule,
+    TableModule, ButtonModule, SelectModule, AutoCompleteModule, TagModule,
     DialogModule, TextareaModule, InputTextModule, ToggleSwitchModule,
   ],
-  providers: [MessageService],
   template: `
-    <p-toast />
 
     <div class="page-header">
       <div>
@@ -79,7 +76,9 @@ const FALTA_SEVERITY: Record<string, TagSeverity> = {
         placeholder="Tipo de falta"
         [showClear]="true"
         (onChange)="cargar()"
-      />
+      
+
+      [filter]="true" filterPlaceholder="Buscar..."/>
       <p-select
         [options]="seguimientoOpts"
         [(ngModel)]="filtroSeguimiento"
@@ -88,7 +87,9 @@ const FALTA_SEVERITY: Record<string, TagSeverity> = {
         placeholder="Estado seguimiento"
         [showClear]="true"
         (onChange)="cargar()"
-      />
+      
+
+      [filter]="true" filterPlaceholder="Buscar..."/>
     </div>
 
     <!-- Tabla -->
@@ -177,7 +178,9 @@ const FALTA_SEVERITY: Record<string, TagSeverity> = {
             [showClear]="true"
             styleClass="w-full"
             (onChange)="onGrupoSelect($event.value)"
-          />
+          
+
+          [filter]="true" filterPlaceholder="Buscar..."/>
         </div>
         <div class="field">
           <label>Docente que reporta</label>
@@ -191,7 +194,9 @@ const FALTA_SEVERITY: Record<string, TagSeverity> = {
             optionLabel="label"
             optionValue="value"
             style="width:100%"
-          />
+          
+
+          [filter]="true" filterPlaceholder="Buscar..."/>
         </div>
         <div class="field">
           <label>Descripción del incidente</label>
@@ -234,7 +239,7 @@ const FALTA_SEVERITY: Record<string, TagSeverity> = {
 export class ConductaComponent implements OnInit {
   private readonly api    = inject(ApiService);
   readonly ctx            = inject(ContextService);
-  private readonly msg    = inject(MessageService);
+  private readonly notify = inject(ApexNotificationService);
   private readonly export = inject(ExportService);
 
   reportes     = signal<ReporteConducta[]>([]);
@@ -336,7 +341,7 @@ export class ConductaComponent implements OnInit {
 
   guardar(): void {
     if (!this.form.estudiante_id || !this.form.grupo_id || !this.form.descripcion) {
-      this.msg.add({ severity: 'warn', summary: 'Campos requeridos', detail: 'Alumno, grupo y descripción son obligatorios' });
+      this.notify.warning('Campos requeridos', 'Alumno, grupo y descripción son obligatorios');
       return;
     }
     this.saving.set(true);
@@ -347,11 +352,11 @@ export class ConductaComponent implements OnInit {
         this.reportes.update(list => [r, ...list]);
         this.showDialog = false;
         this.saving.set(false);
-        this.msg.add({ severity: 'success', summary: 'Reporte registrado' });
+        this.notify.success('Reporte registrado');
       },
       error: (e) => {
         this.saving.set(false);
-        this.msg.add({ severity: 'error', summary: 'Error', detail: e.error?.detail || 'Error al guardar' });
+        this.notify.error('Error', e.error?.detail || 'Error al guardar');
       },
     });
   }

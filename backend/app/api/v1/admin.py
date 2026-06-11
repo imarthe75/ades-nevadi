@@ -143,7 +143,8 @@ async def eliminar_ciclo(
 # USUARIOS
 # ══════════════════════════════════════════════════════════════════════════════
 
-class UsuarioAdminOut(AdesResponse):
+class UsuarioAdminOut(AdesSchema):
+    id: uuid.UUID
     nombre_usuario: str
     email_institucional: str
     nombre_completo: str
@@ -191,6 +192,8 @@ async def listar_usuarios_admin(
         .options(
             selectinload(Usuario.persona),
             selectinload(Usuario.rol),
+            selectinload(Usuario.plantel),
+            selectinload(Usuario.nivel_educativo),
         )
         .join(Rol, Rol.id == Usuario.rol_id)
     )
@@ -206,18 +209,8 @@ async def listar_usuarios_admin(
     q = q.offset((pagina - 1) * por_pagina).limit(por_pagina)
     rows = (await db.execute(q)).scalars().all()
 
-    # Resolver nombres de plantel y nivel para cada usuario
-    result = []
-    for u in rows:
-        nombre_plantel = None
-        nombre_nivel   = None
-        if u.plantel_id:
-            p = await db.get(Plantel, u.plantel_id)
-            nombre_plantel = p.nombre_plantel if p else None
-        if u.nivel_educativo_id:
-            n = await db.get(NivelEducativo, u.nivel_educativo_id)
-            nombre_nivel = n.nombre_nivel if n else None
-        result.append(UsuarioAdminOut(
+    return [
+        UsuarioAdminOut(
             id=u.id,
             nombre_usuario=u.nombre_usuario,
             email_institucional=u.email_institucional,
@@ -226,11 +219,12 @@ async def listar_usuarios_admin(
             nivel_acceso=u.rol.nivel_acceso if u.rol else 99,
             plantel_id=u.plantel_id,
             nivel_educativo_id=u.nivel_educativo_id,
-            nombre_plantel=nombre_plantel,
-            nombre_nivel=nombre_nivel,
+            nombre_plantel=u.plantel.nombre_plantel if u.plantel else None,
+            nombre_nivel=u.nivel_educativo.nombre_nivel if u.nivel_educativo else None,
             is_active=u.is_active,
-        ))
-    return result
+        )
+        for u in rows
+    ]
 
 
 @router.post("/usuarios", response_model=UsuarioAdminOut, status_code=201)

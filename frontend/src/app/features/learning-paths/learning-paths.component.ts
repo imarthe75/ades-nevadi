@@ -17,6 +17,10 @@ import { TooltipModule }       from 'primeng/tooltip';
 import { ProgressBarModule }   from 'primeng/progressbar';
 import { PanelModule }         from 'primeng/panel';
 import { DividerModule }       from 'primeng/divider';
+import { SkeletonModule }      from 'primeng/skeleton';
+import { ChipModule }          from 'primeng/chip';
+
+import { ApexNotificationService } from 'apex-component-library';
 
 import { ApiService }     from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
@@ -54,8 +58,23 @@ interface Asignacion {
   estatus: string;
   pct_completado: number;
   fccreacion: string;
-  // enriquecido en frontend
   alumno_nombre?: string;
+  ia_recomendacion?: IaRecomendacion | null;
+}
+
+interface IaRecomendacion {
+  resumen: string;
+  fortalezas: string[];
+  areas_mejora: string[];
+  estrategias: string[];
+  recursos_priorizados: string[];
+  mensaje_motivacional: string;
+}
+
+interface AlertaResumen {
+  tipo_alerta: string;
+  nivel_riesgo: string;
+  count: number;
 }
 
 const CRITERIO_LABELS: Record<string, string> = {
@@ -88,6 +107,7 @@ const TIPO_ICON: Record<string, string> = {
     ButtonModule, CardModule, TableModule, TagModule, TabsModule,
     DialogModule, SelectModule, AutoCompleteModule, TextareaModule, InputTextModule,
     TooltipModule, ProgressBarModule, PanelModule, DividerModule,
+    SkeletonModule, ChipModule,
   ],
   template: `
     <div class="page-header">
@@ -97,6 +117,26 @@ const TIPO_ICON: Record<string, string> = {
       </div>
       <div class="header-actions">
         <p-button label="Nueva ruta" icon="pi pi-plus" size="small" (onClick)="abrirNuevePath()" />
+      </div>
+    </div>
+
+    <!-- KPI strip de alertas -->
+    <div class="kpi-strip">
+      <div class="kpi-card kpi-danger">
+        <span class="kpi-value">{{ totalAlertas() }}</span>
+        <span class="kpi-label">Alertas activas</span>
+      </div>
+      <div class="kpi-card kpi-warning">
+        <span class="kpi-value">{{ alertasReprobacion() }}</span>
+        <span class="kpi-label">Riesgo reprobación</span>
+      </div>
+      <div class="kpi-card kpi-info">
+        <span class="kpi-value">{{ alertasAusentismo() }}</span>
+        <span class="kpi-label">Ausentismo crítico</span>
+      </div>
+      <div class="kpi-card kpi-success">
+        <span class="kpi-value">{{ asignaciones().length }}</span>
+        <span class="kpi-label">Asignaciones activas</span>
       </div>
     </div>
 
@@ -157,7 +197,9 @@ const TIPO_ICON: Record<string, string> = {
               placeholder="Filtrar por estatus..."
               (onChange)="cargarAsignaciones()"
               styleClass="w-auto"
-            />
+            
+
+            [filter]="true" filterPlaceholder="Buscar..."/>
             <p-button icon="pi pi-refresh" [text]="true" size="small"
               pTooltip="Actualizar" (onClick)="cargarAsignaciones()" />
             <p-button icon="pi pi-file" label="Exportar CSV" [text]="true" size="small"
@@ -198,9 +240,13 @@ const TIPO_ICON: Record<string, string> = {
                   </div>
                 </td>
                 <td>{{ asig.fccreacion | date:'dd/MM/yy' }}</td>
-                <td>
+                <td class="actions-cell">
                   <p-button icon="pi pi-eye" [text]="true" size="small"
                     pTooltip="Ver detalle" (onClick)="verAsignacion(asig)" />
+                  <p-button icon="pi pi-sparkles" [text]="true" size="small"
+                    [severity]="asig.ia_recomendacion ? 'success' : 'secondary'"
+                    pTooltip="Recomendación IA"
+                    (onClick)="abrirIA(asig)" />
                 </td>
               </tr>
             </ng-template>
@@ -268,7 +314,9 @@ const TIPO_ICON: Record<string, string> = {
           [options]="criterioOpts"
           [(ngModel)]="form.criterio_activacion"
           optionLabel="label" optionValue="value"
-        />
+        
+
+        [filter]="true" filterPlaceholder="Buscar..."/>
 
         @if (form.criterio_activacion !== 'MANUAL') {
           <label>Umbral</label>
@@ -279,6 +327,72 @@ const TIPO_ICON: Record<string, string> = {
       <ng-template pTemplate="footer">
         <p-button label="Cancelar" [text]="true" (onClick)="showNuevePath = false" />
         <p-button label="Crear ruta" icon="pi pi-check" (onClick)="crearPath()" [disabled]="!form.nombre" />
+      </ng-template>
+    </p-dialog>
+
+    <!-- ── Dialog: Recomendación IA ─────────────────────────────────── -->
+    <p-dialog
+      [(visible)]="showIA"
+      [header]="'Recomendación IA — ' + (asigSeleccionada()?.alumno_nombre || '')"
+      [modal]="true" [style]="{width: '680px'}" [closable]="!iaGenerando()">
+      @if (iaGenerando()) {
+        <div class="ia-loading">
+          <i class="pi pi-sparkles ia-spinner"></i>
+          <p>Claude está analizando el perfil académico del alumno...</p>
+          <p-skeleton height="1.5rem" styleClass="mb-2" />
+          <p-skeleton height="1.5rem" width="80%" styleClass="mb-2" />
+          <p-skeleton height="1.5rem" width="60%" />
+        </div>
+      } @else if (iaResult()) {
+        <div class="ia-result">
+          <div class="ia-resumen">
+            <i class="pi pi-info-circle"></i>
+            <p>{{ iaResult()!.resumen }}</p>
+          </div>
+          <div class="ia-grid">
+            <div class="ia-section">
+              <h5><i class="pi pi-check-circle" style="color:var(--green-500)"></i> Fortalezas</h5>
+              @for (f of iaResult()!.fortalezas; track f) {
+                <p-chip [label]="f" styleClass="chip-success mb-1" />
+              }
+            </div>
+            <div class="ia-section">
+              <h5><i class="pi pi-exclamation-triangle" style="color:var(--orange-500)"></i> Áreas de mejora</h5>
+              @for (a of iaResult()!.areas_mejora; track a) {
+                <p-chip [label]="a" styleClass="chip-warn mb-1" />
+              }
+            </div>
+          </div>
+          <p-divider />
+          <h5><i class="pi pi-lightbulb" style="color:var(--yellow-500)"></i> Estrategias recomendadas</h5>
+          <ol class="ia-list">
+            @for (e of iaResult()!.estrategias; track e) { <li>{{ e }}</li> }
+          </ol>
+          <h5><i class="pi pi-book" style="color:var(--primary-color)"></i> Empieza por estos recursos</h5>
+          <ul class="ia-list">
+            @for (r of iaResult()!.recursos_priorizados; track r) { <li>{{ r }}</li> }
+          </ul>
+          <div class="ia-motivacional">
+            <i class="pi pi-heart"></i>
+            <em>{{ iaResult()!.mensaje_motivacional }}</em>
+          </div>
+        </div>
+      } @else {
+        <div class="ia-prompt">
+          <i class="pi pi-sparkles" style="font-size:2rem;color:var(--primary-color)"></i>
+          <p>Claude analizará el historial de calificaciones, asistencia y recursos de la ruta asignada para generar recomendaciones personalizadas.</p>
+          <p-button label="Generar análisis con IA" icon="pi pi-sparkles"
+            (onClick)="generarIA()" />
+        </div>
+      }
+      <ng-template pTemplate="footer">
+        @if (!iaGenerando()) {
+          <p-button label="Cerrar" [text]="true" (onClick)="showIA = false" />
+          @if (iaResult()) {
+            <p-button label="Regenerar" icon="pi pi-refresh" [text]="true"
+              severity="secondary" (onClick)="generarIA()" />
+          }
+        }
       </ng-template>
     </p-dialog>
 
@@ -304,7 +418,9 @@ const TIPO_ICON: Record<string, string> = {
           [options]="motivoOpts"
           [(ngModel)]="formAsig.motivo"
           optionLabel="label" optionValue="value"
-        />
+        
+
+        [filter]="true" filterPlaceholder="Buscar..."/>
       </div>
       <ng-template pTemplate="footer">
         <p-button label="Cancelar" [text]="true" (onClick)="showAsignar = false" />
@@ -365,26 +481,71 @@ const TIPO_ICON: Record<string, string> = {
 
     .text-secondary { color: var(--text-color-secondary); }
     .text-sm { font-size: .82rem; }
+    .actions-cell { display: flex; gap: .15rem; }
+
+    /* KPI strip */
+    .kpi-strip {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: .75rem; margin-bottom: 1.25rem;
+    }
+    .kpi-card {
+      background: var(--surface-card); border: 1px solid var(--surface-border); border-radius: 8px;
+      padding: .75rem 1rem; text-align: center; border-top: 3px solid transparent;
+    }
+    .kpi-danger  { border-top-color: var(--red-500); }
+    .kpi-warning { border-top-color: var(--orange-400); }
+    .kpi-info    { border-top-color: var(--blue-500); }
+    .kpi-success { border-top-color: var(--green-500); }
+    .kpi-value { display: block; font-size: 1.6rem; font-weight: 700; line-height: 1.2; }
+    .kpi-label { font-size: .75rem; color: var(--text-color-secondary); }
+
+    /* IA dialog */
+    .ia-loading { display: flex; flex-direction: column; align-items: center; gap: .75rem; padding: 1.5rem; text-align: center; }
+    .ia-spinner { font-size: 2.5rem; color: var(--primary-color); animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+    .ia-prompt { display: flex; flex-direction: column; align-items: center; gap: 1rem; padding: 2rem; text-align: center; }
+    .ia-resumen { display: flex; gap: .75rem; align-items: flex-start; background: var(--surface-ground); border-radius: 6px; padding: .75rem 1rem; margin-bottom: .75rem; }
+    .ia-resumen i { color: var(--primary-color); font-size: 1.1rem; margin-top: 2px; }
+    .ia-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: .75rem; }
+    .ia-section h5 { margin: 0 0 .5rem; font-size: .85rem; display: flex; align-items: center; gap: .35rem; }
+    .ia-section :host ::ng-deep .p-chip { margin: 2px; font-size: .78rem; }
+    .ia-list { margin: .25rem 0 .75rem 1rem; padding: 0; font-size: .88rem; line-height: 1.6; }
+    .ia-motivacional { background: linear-gradient(135deg,var(--primary-50),var(--surface-ground)); border-radius: 8px; padding: .75rem 1rem; display: flex; gap: .75rem; align-items: center; margin-top: .5rem; }
+    .ia-motivacional i { color: var(--red-400); }
+    .ia-motivacional em { font-style: italic; font-size: .9rem; }
+    h5 { margin: .5rem 0; font-size: .9rem; display: flex; align-items: center; gap: .4rem; }
   `],
 })
 export class LearningPathsComponent implements OnInit {
   private readonly api    = inject(ApiService);
   private readonly ctx    = inject(ContextService);
   private readonly export = inject(ExportService);
+  private readonly notif  = inject(ApexNotificationService);
 
   tabActivo = '0';
 
   paths        = signal<LearningPath[]>([]);
   asignaciones = signal<Asignacion[]>([]);
   recursos     = signal<Recurso[]>([]);
+  alertas      = signal<AlertaResumen[]>([]);
   cargandoAsig = signal(false);
 
-  pathSeleccionado = signal<LearningPath | null>(null);
-  pathAsignar      = signal<LearningPath | null>(null);
+  pathSeleccionado  = signal<LearningPath | null>(null);
+  pathAsignar       = signal<LearningPath | null>(null);
+  asigSeleccionada  = signal<Asignacion | null>(null);
 
   showPathDetail = false;
   showNuevePath  = false;
   showAsignar    = false;
+  showIA         = false;
+
+  iaGenerando = signal(false);
+  iaResult    = signal<IaRecomendacion | null>(null);
+
+  readonly totalAlertas      = computed(() => this.alertas().reduce((s, a) => s + a.count, 0));
+  readonly alertasReprobacion = computed(() =>
+    this.alertas().filter(a => a.tipo_alerta === 'RIESGO_REPROBACION').reduce((s, a) => s + a.count, 0));
+  readonly alertasAusentismo  = computed(() =>
+    this.alertas().filter(a => a.tipo_alerta === 'AUSENTISMO_CRITICO').reduce((s, a) => s + a.count, 0));
 
   filtroEstatus: string | null = null;
 
@@ -429,6 +590,14 @@ export class LearningPathsComponent implements OnInit {
   ngOnInit(): void {
     this.cargarPaths();
     this.cargarAsignaciones();
+    this.cargarAlertas();
+  }
+
+  cargarAlertas(): void {
+    this.api.get<AlertaResumen[]>('/ai/alertas/resumen').subscribe({
+      next: r => this.alertas.set(r),
+      error: () => {},
+    });
   }
 
   cargarPaths(): void {
@@ -502,7 +671,39 @@ export class LearningPathsComponent implements OnInit {
   }
 
   verAsignacion(asig: Asignacion): void {
-    // TODO: abrir dialog de detalle de asignación con progreso por recurso
+    this.asigSeleccionada.set(asig);
+    this.iaResult.set(asig.ia_recomendacion ?? null);
+    this.showIA = true;
+  }
+
+  abrirIA(asig: Asignacion): void {
+    this.asigSeleccionada.set(asig);
+    this.iaResult.set(asig.ia_recomendacion ?? null);
+    this.showIA = true;
+  }
+
+  generarIA(): void {
+    const asig = this.asigSeleccionada();
+    if (!asig) return;
+    this.iaGenerando.set(true);
+    this.iaResult.set(null);
+    this.api.post<{ ia_recomendacion: IaRecomendacion }>(
+      `/learning-paths/asignaciones/${asig.id}/recomendar-ia`, {}
+    ).subscribe({
+      next: r => {
+        this.iaResult.set(r.ia_recomendacion);
+        this.iaGenerando.set(false);
+        // Actualizar la asignación en la lista local
+        this.asignaciones.update(list =>
+          list.map(a => a.id === asig.id ? { ...a, ia_recomendacion: r.ia_recomendacion } : a)
+        );
+        this.notif.success('Análisis IA generado correctamente');
+      },
+      error: (err) => {
+        this.iaGenerando.set(false);
+        this.notif.error(err?.error?.detail ?? 'Error al generar análisis IA');
+      },
+    });
   }
 
   criterioLabel(c: string): string { return CRITERIO_LABELS[c] ?? c; }

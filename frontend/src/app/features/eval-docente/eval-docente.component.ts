@@ -17,13 +17,12 @@ import { TagModule } from 'primeng/tag';
 import { TextareaModule } from 'primeng/textarea';
 import { SliderModule } from 'primeng/slider';
 import { SkeletonModule } from 'primeng/skeleton';
-import { ToastModule } from 'primeng/toast';
-import { MessageService } from 'primeng/api';
 
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
 import { ExportService, ExportColumn } from '../../core/services/export.service';
 import type { Profesor } from '../../core/models';
+import { ApexNotificationService } from 'apex-component-library';
 
 interface Criterio {
   id: string;
@@ -73,11 +72,9 @@ const TIPO_LABELS: Record<string, string> = {
   imports: [
     CommonModule, FormsModule,
     ButtonModule, SelectModule, TabsModule, CardModule, TableModule,
-    TagModule, TextareaModule, SliderModule, SkeletonModule, ToastModule,
+    TagModule, TextareaModule, SliderModule, SkeletonModule,
   ],
-  providers: [MessageService],
   template: `
-    <p-toast />
 
     <div class="page-header">
       <div>
@@ -99,7 +96,9 @@ const TIPO_LABELS: Record<string, string> = {
             [showClear]="true"
             (onChange)="cargarResumen()"
             styleClass="select-docente"
-          />
+          
+
+          [filter]="true" filterPlaceholder="Buscar..."/>
           <p-button label="CSV" icon="pi pi-file" severity="secondary" [text]="true"
             (onClick)="exportCSV()" [disabled]="!resumen().length" pTooltip="Exportar CSV" />
           <p-button label="Excel" icon="pi pi-file-excel" severity="secondary" [text]="true"
@@ -188,7 +187,9 @@ const TIPO_LABELS: Record<string, string> = {
                 [optionLabel]="'persona.nombre'"
                 placeholder="Seleccionar docente..."
                 styleClass="w-full"
-              />
+              
+
+              [filter]="true" filterPlaceholder="Buscar..."/>
             </div>
             <div class="field">
               <label>Tipo de evaluador *</label>
@@ -199,7 +200,9 @@ const TIPO_LABELS: Record<string, string> = {
                 optionValue="value"
                 placeholder="Seleccionar tipo..."
                 styleClass="w-full"
-              />
+              
+
+              [filter]="true" filterPlaceholder="Buscar..."/>
             </div>
           </div>
 
@@ -351,7 +354,7 @@ const TIPO_LABELS: Record<string, string> = {
 export class EvalDocenteComponent implements OnInit {
   private readonly api    = inject(ApiService);
   readonly ctx            = inject(ContextService);
-  private readonly msg    = inject(MessageService);
+  private readonly notify = inject(ApexNotificationService);
   private readonly export = inject(ExportService);
 
   profesores       = signal<Profesor[]>([]);
@@ -425,7 +428,7 @@ export class EvalDocenteComponent implements OnInit {
   guardar(enviar: boolean): void {
     if (!this.formProfesor || !this.formTipo) return;
     const ciclo = this.ctx.ciclo();
-    if (!ciclo) { this.msg.add({ severity: 'warn', summary: 'Ciclo requerido', detail: 'Selecciona un ciclo escolar en la barra superior' }); return; }
+    if (!ciclo) { this.notify.warning('Ciclo requerido', 'Selecciona un ciclo escolar en la barra superior'); return; }
 
     this.saving.set(true);
     const currentUser = this.ctx.usuario();
@@ -456,17 +459,17 @@ export class EvalDocenteComponent implements OnInit {
               this._doneSaving('Evaluación guardada como borrador');
             }
           },
-          error: (e) => { this.saving.set(false); this.msg.add({ severity: 'error', summary: 'Error', detail: e.error?.detail || 'Error al guardar criterios' }); },
+          error: (e) => { this.saving.set(false); this.notify.error('Error', e.error?.detail || 'Error al guardar criterios'); },
         });
       },
-      error: (e) => { this.saving.set(false); this.msg.add({ severity: 'error', summary: 'Error', detail: e.error?.detail || 'Error al crear evaluación' }); },
+      error: (e) => { this.saving.set(false); this.notify.error('Error', e.error?.detail || 'Error al crear evaluación'); },
     });
   }
 
   enviarEval(evalId: string): void {
     this.api.patch<any>(`/eval-docente/${evalId}/enviar`, {}).subscribe({
       next: () => {
-        this.msg.add({ severity: 'success', summary: 'Evaluación enviada' });
+        this.notify.success('Evaluación enviada');
         this.cargarResumen();
       },
     });
@@ -481,7 +484,7 @@ export class EvalDocenteComponent implements OnInit {
 
   private _doneSaving(detail: string): void {
     this.saving.set(false);
-    this.msg.add({ severity: 'success', summary: 'Listo', detail });
+    this.notify.success('Listo');
     this.formProfesor = null; this.formTipo = ''; this.formComentarios = '';
     this.criteriosForm.update(items => items.map(it => ({ ...it, calificacion: 3, observacion: '' })));
     if (this.selectedProfesor) this.cargarResumen();

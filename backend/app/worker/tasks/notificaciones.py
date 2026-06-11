@@ -45,7 +45,7 @@ def enviar_notificacion_alerta(
             text("""
                 UPDATE ades_alertas_academicas
                    SET notificada = TRUE,
-                       fcmodificacion = NOW()
+                       fecha_modificacion = NOW()
                  WHERE id = :id
             """),
             {"id": alerta_uuid},
@@ -57,7 +57,7 @@ def enviar_notificacion_alerta(
                     text("""
                         INSERT INTO ades_notificaciones
                             (id, usuario_id, tipo, entidad_tipo, entidad_id,
-                             titulo, cuerpo, leido, fccreacion)
+                             titulo, cuerpo, leido, fecha_creacion)
                         VALUES
                             (uuidv7(), :dest::uuid, 'ALERTA', 'ALERTA_ACADEMICA', :ref,
                              'Nueva alerta académica', 'Se detectó una alerta académica que requiere atención.',
@@ -69,7 +69,7 @@ def enviar_notificacion_alerta(
 
         session.commit()
 
-    log.info("notificacion_enviada", alerta_id=alerta_id, canal=canal, destinatarios=len(destinatarios))
+    log.info("notificacion_enviada alerta=%s canal=%s destinatarios=%d", alerta_id, canal, len(destinatarios))
     return {"estado": "ok", "alerta_id": alerta_id, "canal": canal, "enviadas": len(destinatarios)}
 
 
@@ -115,7 +115,7 @@ def scan_alertas_todos_grupos() -> dict:
                      GROUP BY e.id
                     HAVING AVG(cp.calificacion_final) < 6.0
                 """),
-                {"gid": grupo_id},
+                {"gid": str(grupo_id)},
             ).fetchall()
 
             for est_id, promedio in reprobacion:
@@ -124,7 +124,7 @@ def scan_alertas_todos_grupos() -> dict:
                     text("""
                         INSERT INTO ades_alertas_academicas
                             (id, estudiante_id, grupo_id, tipo_alerta, nivel_riesgo,
-                             descripcion, datos_calculo, generada_por, atendida, fccreacion)
+                             descripcion, datos_calculo, generada_por, atendida, fecha_creacion)
                         SELECT uuidv7(), :est, :gid, 'RIESGO_REPROBACION',
                                CASE WHEN :prom < 5.0 THEN 'ALTO' ELSE 'MEDIO' END,
                                'Promedio general ' || :prom || ' — riesgo de reprobación',
@@ -143,23 +143,26 @@ def scan_alertas_todos_grupos() -> dict:
                 creadas += 1
 
             # Alumnos con asistencia < 80 % en los últimos 30 días
+            # (asistencias se vinculan vía clase_id → ades_clases.fecha_clase)
             ausentismo = session.execute(
                 text("""
                     SELECT e.id,
                            ROUND(
-                               100.0 * SUM(CASE WHEN a.estatus = 'PRESENTE' THEN 1 ELSE 0 END)
+                               100.0 * SUM(CASE WHEN a.estatus_asistencia = 'PRESENTE' THEN 1 ELSE 0 END)
                                / NULLIF(COUNT(a.id), 0)
                            , 1) AS pct_asistencia
                       FROM ades_inscripciones i
                       JOIN ades_estudiantes e ON e.id = i.estudiante_id
+                      JOIN ades_clases cl ON cl.grupo_id = i.grupo_id
                       JOIN ades_asistencias a ON a.estudiante_id = e.id
-                                             AND a.fecha >= CURRENT_DATE - INTERVAL '30 days'
+                                             AND a.clase_id = cl.id
+                                             AND cl.fecha_clase >= CURRENT_DATE - INTERVAL '30 days'
                      WHERE i.grupo_id = :gid AND i.is_active = TRUE
                      GROUP BY e.id
-                    HAVING 100.0 * SUM(CASE WHEN a.estatus = 'PRESENTE' THEN 1 ELSE 0 END)
+                    HAVING 100.0 * SUM(CASE WHEN a.estatus_asistencia = 'PRESENTE' THEN 1 ELSE 0 END)
                            / NULLIF(COUNT(a.id), 0) < 80
                 """),
-                {"gid": grupo_id},
+                {"gid": str(grupo_id)},
             ).fetchall()
 
             for est_id, pct in ausentismo:
@@ -167,7 +170,7 @@ def scan_alertas_todos_grupos() -> dict:
                     text("""
                         INSERT INTO ades_alertas_academicas
                             (id, estudiante_id, grupo_id, tipo_alerta, nivel_riesgo,
-                             descripcion, datos_calculo, generada_por, atendida, fccreacion)
+                             descripcion, datos_calculo, generada_por, atendida, fecha_creacion)
                         SELECT uuidv7(), :est, :gid, 'AUSENTISMO_CRITICO',
                                CASE WHEN :pct < 70 THEN 'ALTO' ELSE 'MEDIO' END,
                                'Asistencia ' || :pct || '% en los últimos 30 días',
@@ -187,7 +190,7 @@ def scan_alertas_todos_grupos() -> dict:
 
         session.commit()
 
-    log.info("scan_alertas_ok", grupos=grupos_procesados, alertas_creadas=creadas)
+    log.info("scan_alertas_ok grupos=%d alertas_creadas=%d", grupos_procesados, creadas)
     return {"grupos_procesados": grupos_procesados, "alertas_creadas": creadas}
 
 
@@ -220,8 +223,8 @@ def refresh_vistas_materializadas() -> dict:
                 refrescadas.append(vista)
             except Exception as exc:
                 session.rollback()
-                log.warning("refresh_vista_error", vista=vista, error=str(exc))
+                log.warning("refresh_vista_error vista=%s error=%s", vista, exc)
                 errores.append({"vista": vista, "error": str(exc)})
 
-    log.info("refresh_vistas_ok", refrescadas=len(refrescadas), errores=len(errores))
+    log.info("refresh_vistas_ok refrescadas=%d errores=%d", len(refrescadas), len(errores))
     return {"refrescadas": refrescadas, "errores": errores}

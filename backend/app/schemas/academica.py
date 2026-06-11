@@ -53,6 +53,7 @@ class CicloOut(AdesResponse):
     fecha_fin: date
     tipo_ciclo: str
     es_vigente: bool
+    nombre_nivel: str | None = None
 
 
 # ── Grupo ─────────────────────────────────────────────────────────────────────

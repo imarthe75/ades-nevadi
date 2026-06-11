@@ -1,21 +1,29 @@
-# ADR 0001: Arquitectura de Memoria Soberana para el Agente Residente
+# ADR-0001 — Arquitectura Génesis ADES
 
-## Estado
-Aprobado ✅
+**Estado:** Aceptado  
+**Fecha:** 2026-06-04  
+**Autor:** Agente Residente v2.0
 
 ## Contexto
-Los agentes de IA modernos sufren de amnesia entre ejecuciones si no se cuenta con un gestor de estados persistente. Los servicios en la nube de VectorDBs o embeddings introducen latencia, costo y, lo más crítico, violan la soberanía de los datos del host local. 
 
-Para resolver esto, integramos conceptos de:
-- **ECC (Embedded Cognitive Control):** Para la autorregulación interna del agente.
-- **Short-Term Memory (Valkey):** Para la velocidad en retención temporal del contexto y caché semántica.
-- **Long-Term Memory (Postgres + pgvector):** Para la retención semántica y aprendizaje histórico local.
+El Instituto Nevadi requiere un sistema integral de administración escolar (SIS) para 3 planteles
+y 3 niveles educativos (Primaria SEP, Secundaria SEP, Preparatoria UAEMEX). El sistema debe
+soportar roles diferenciados, multi-plantel, multi-ciclo y cumplir con regulaciones SEP/UAEMEX.
 
 ## Decisión
-1. **Dockerización Local:** Todos los servicios de persistencia de datos (Valkey y Postgres) se instalan de manera local y con almacenamiento mapeado en el directorio `./data` del host.
-2. **Caché Semántica (Valkey):** Antes de consumir tokens en llamadas a APIs de LLMs, el agente buscará en Valkey si existe una consulta conceptualmente similar (similitud semántica).
-3. **Persistencia Semántica (pgvector):** Las lecciones del día y resúmenes de interacciones se traducirán a embeddings y se guardarán en PostgreSQL de forma local.
+
+Stack seleccionado:
+- **Backend:** FastAPI + SQLAlchemy 2.x async + Celery + Valkey
+- **Frontend:** Angular 22 + PrimeNG 21 (estilo Oracle APEX)
+- **Base de datos:** PostgreSQL 18 + pgvector
+- **Auth:** Authentik OIDC/OAuth2 (Google Workspace SSO para personal)
+- **Infra:** Docker Compose en ARM OCI (4 cores 24 GB RAM)
+- **PK:** UUID v7 en todas las tablas (`uuidv7()` nativo PG18)
 
 ## Consecuencias
-- **Positivas:** 100% de privacidad de datos, cero costos de almacenamiento en la nube, persistencia absoluta tras reinicios de contenedores (`docker compose down -v` conserva los datos locales).
-- **Negativas:** El host debe proveer los recursos de RAM mínimos asignados (aproximadamente 1.5 GB dedicados a la base de datos y cache).
+
+- Angular standalone components + Signals para reactividad zoneless
+- PrimeNG como librería de UI base, extendida por apex-component-library
+- Auditoría universal: trigger `auditoria.trg_aud_biu` en todas las tablas
+- `row_version` para optimistic locking en endpoints PATCH/PUT
+- Migraciones numeradas de 3 dígitos en `db/migrations/`

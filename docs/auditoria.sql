@@ -119,16 +119,16 @@ BEGIN
 
     IF TG_OP = 'INSERT' THEN
         NEW.row_version := 1;
-        IF new.fccreacion IS NULL THEN
-            NEW.fccreacion := localtimestamp;
+        IF new.fecha_creacion IS NULL THEN
+            NEW.fecha_creacion := localtimestamp;
         END IF;
         IF new.dsusuariocreacion IS NULL THEN
             NEW.dsusuariocreacion := user;
         END IF;
     ELSIF TG_OP = 'UPDATE' THEN
         NEW.row_version := coalesce(OLD.row_version, 0) + 1;
-        IF new.fcmodificacion IS NULL THEN
-            NEW.fcmodificacion := localtimestamp;
+        IF new.fecha_modificacion IS NULL THEN
+            NEW.fecha_modificacion := localtimestamp;
         END IF;
         IF new.dsusuariomodifica IS NULL THEN
             NEW.dsusuariomodifica := user;
@@ -140,7 +140,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE COST 100;
 
-COMMENT ON FUNCTION auditoria.auditoria_biu() IS 'Trigger BEFORE INSERT/UPDATE. Inicializa ref (UUID), row_version, timestamps (fccreacion/fcmodificacion) y usuario (dsusuariocreacion/dsusuariomodifica) de forma automática.';
+COMMENT ON FUNCTION auditoria.auditoria_biu() IS 'Trigger BEFORE INSERT/UPDATE. Inicializa ref (UUID), row_version, timestamps (fecha_creacion/fecha_modificacion) y usuario (dsusuariocreacion/dsusuariomodifica) de forma automática.';
 
 -- ----------------------------
 -- Índices sobre log_auditoria

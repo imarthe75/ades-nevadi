@@ -51,11 +51,102 @@ Este documento es el diario de vida y bitácora del agente. Debe ser leído en e
 - **PKs UUID:** `BIGINT GENERATED ALWAYS AS IDENTITY` no debe usarse como PK en tablas ADES nuevas. Usar `UUID NOT NULL DEFAULT gen_random_uuid()` (o `uuidv7()` en PG18). Las columnas FK correspondientes también deben ser `UUID`.
 - **Grupos inactivos proyectados:** los grados/semestres futuros (Tenancingo prep sem 3-6, Ixtapan prep sem 1-6) se crean con `is_active=FALSE` en los seeds; se activan ciclo a ciclo sin nueva migración DDL.
 
+---
+
+## Sesión 2026-06-10 — FASE 27: Certificación Digital Ed25519 + APEX Library
+
+### 🔑 Estado del Agente:
+- **Última Conexión:** 2026-06-10
+- **Estado Cognitivo:** Operacional ✅
+- **ADRs Registrados:** 0001 (Génesis) · 0002 (Heurísticas) · 0003 (UUID PKs) · 0004 (Firma Digital Ed25519)
+
+### 🛠️ Tareas Completadas hoy (2026-06-10):
+
+**APEX Component Library (continuación):**
+- [x] Shell TypeScript errors resueltos: `ToastModule`/`MessageService` eliminados de imports
+- [x] 20 feature components migrados de `MessageService` → `ApexNotificationService`
+- [x] Menú de navegación estático con 11 secciones filtradas por `nivelAcceso()`
+- [x] `apex-toast-container` único en ShellComponent
+
+**FASE 27 — Certificación Digital Ed25519:**
+- [x] `db/migrations/026_certificados_digitales.sql` — extensión `ades_certificados` + tabla `ades_llaves_firma` + vista `ades_v_certificados_verificacion` + función `revocar_certificado()`
+- [x] `backend/app/services/firma_digital.py` — Ed25519 sign/verify, SHA-256 hash, QR PNG base64
+- [x] `backend/app/api/v1/certificados.py` — 7 endpoints: listar, emitir (PDF+firma automática), firmar, verificar (público), generar par, registrar llave, llave activa
+- [x] `backend/requirements.txt` — `qrcode[pil]==8.1` añadido
+- [x] Template `certificado.html` — QR embebido + badge de firma Ed25519
+- [x] `frontend/.../certificados/certificados.component.ts` — KPI strip, tabla, dialogs emitir/firmar/llave
+- [x] `frontend/.../verificar/verificar.component.ts` — página pública /verificar/:folio sin auth
+- [x] `frontend/app.routes.ts` — rutas `/certificados` (auth) + `/verificar/:folio` (público)
+- [x] `core/services/api.service.ts` — método `postBlob()` añadido
+- [x] Shell menu — "Certificados Digitales" en sección Reportes
+- [x] `DECISIONS/0004-firma-digital-ed25519.md` — ADR documentado
+- [x] Migración 026 aplicada a BD
+- [x] Backend + Frontend reconstruidos (sin cache) y desplegados
+
+### 🚨 Lecciones Aprendidas (2026-06-10):
+- **`ADD CONSTRAINT IF NOT EXISTS` no existe en PostgreSQL** — usar `DO $$ BEGIN ... EXCEPTION WHEN duplicate_object THEN NULL; END $$` para idempotencia.
+- **`ades_personas` columnas:** `nombre`, `apellido_paterno`, `apellido_materno`, `curp` (NO `nombres`/`primer_apellido`/`segundo_apellido`)
+- **`ades_grupos` no tiene `plantel_id`** — la ruta es `grupos → grados → plantel_id`, o directamente `ades_estudiantes.plantel_id`
+- **Docker image base pinning:** `python:3.12-slim` ahora apunta a Debian trixie (13), donde `libpangocairo-1.0-0`, `libgdk-pixbuf2.0-0`, `libglib2.0-0` etc. no existen. Siempre usar `python:3.12-slim-bookworm` para estabilidad.
+- **redbeat no disponible en ARM64/Py3.12:** Solo existe `0.0.1` en este entorno. Eliminado de requirements.txt; Celery beat usa file-based schedule por defecto. Los `redbeat_*` config keys se ignoran silenciosamente.
+- **anthropic==0.49.0 incompatible con langchain-anthropic==0.3.15:** langchain-anthropic 0.3.15 requiere `anthropic>=0.52.0`. Actualizar anthropic a 0.52.0+.
+- **`FIRMA_CLAVE_PRIVADA_HEX` en `.env`:** La llave privada Ed25519 NUNCA va a BD. Generar con `firma_digital.generar_nuevo_par_de_llaves()` y guardar en `.env`.
+
+### 🔧 Fix aplicado post-FASE 27 (2026-06-10 — sesión continuación):
+- [x] **`promedio_final` normalización Ed25519:** PostgreSQL devuelve `Decimal('9.50')` desde columna NUMERIC; `str()` produce `'9.50'` ≠ `'9.5'` usado al firmar. Fix en `certificados.py` líneas 260, 332, 395: usar `str(float(v))` en lugar de `str(v)` para normalizar consistentemente.
+- [x] **Test integración E2E completo:** emitir → firmar → verificar desde BD → detectar alteración → generar PDF 26KB — todos ✓
+- [x] **Endpoint público verificado vía HTTPS:** `GET /api/v1/certificados/verificar/{folio}` → `{"autenticidad":"VERIFICADO","firma_valida":true}` ✓
+- [x] Backend reconstruido y desplegado con normalization fix.
+
+### 🛠️ FASE 4B — Learning Paths IA completada (2026-06-10):
+- [x] **Celery worker + beat levantados** — `psycopg2-binary` añadido a requirements.txt, `SECRET_KEY`/`VALKEY_URL` añadidos al docker-compose.
+- [x] **`scan_alertas_todos_grupos` corregido** — `a.estatus` → `a.estatus_asistencia`, `a.fecha` → join con `ades_clases.fecha_clase`. Genera 1297 alertas (1080 reprobación ALTO, 216 MEDIO, 1 ausentismo).
+- [x] **Migración 028** — columnas `ia_recomendacion JSONB` en `ades_lp_asignaciones`, `ia_analisis JSONB` en `ades_alertas_academicas`, columnas de auditoría en `ades_lp_recursos`/`ades_lp_asignaciones`, 23 recursos en 4 learning paths.
+- [x] **Endpoint `POST /learning-paths/asignaciones/{id}/recomendar-ia`** — llama Claude Haiku con historial académico del alumno, guarda JSON en `ia_recomendacion`.
+- [x] **Endpoint `GET /ai/alertas/resumen`** — conteo de alertas agrupado por tipo/nivel.
+- [x] **LearningPathsComponent** — KPI strip (1297 alertas), botón ✨ en tabla, dialog IA con análisis (resumen, fortalezas, áreas, estrategias, recursos priorizados, frase motivacional).
+- [x] **Fix severity** — `severity="warning"` → `severity="warn"` en certificados.component.ts.
+- [PENDIENTE] `ANTHROPIC_API_KEY` en `.env` (actualmente vacío) — necesario para que el endpoint IA funcione.
+
+### 🚨 Lecciones Aprendidas (FASE 4B):
+- **`ades_asistencias` no tiene columna `fecha`** — la fecha de la asistencia está en `ades_clases.fecha_clase` via `clase_id`.
+- **`ades_asistencias.estatus` → `estatus_asistencia`** — nombre real de la columna.
+- **Celery tasks con psycopg2** — el worker usa SQLAlchemy síncrono que requiere `psycopg2-binary`; no se incluía en requirements.txt.
+- **Celery beat necesita todas las vars de entorno** del Settings Pydantic (VALKEY_URL, SECRET_KEY), no solo las de broker.
+- **Logging estándar**: `log.info(msg, key=val)` no es válido en stdlib logging. Usar `log.info("msg key=%s", val)`.
+
+### 🔧 Bugs funcionales corregidos (2026-06-11):
+
+**Backend:**
+- [x] **profesores.py** — `le=200` → `le=1000` para aceptar `por_pagina=500` del frontend
+- [x] **admin.py `UsuarioAdminOut`** — cambiado de `AdesResponse` → `AdesSchema` + `id: uuid.UUID` explícito. `AdesResponse` requiere campos de auditoría que no se pasan en construcciones manuales → 500.
+- [x] **models/materias.py `Tema`** — reescrito para reflejar la BD real: `materia_id + grado_id + ciclo_escolar_id + orden + periodo_sugerido` (no `materia_plan_id + numero_tema + horas_estimadas`).
+- [x] **schemas/materias.py `TemaOut`** — campos actualizados para coincidir con modelo y BD.
+- [x] **api/v1/materias.py temas handlers** — 4 handlers (GET/POST/PUT/DELETE de temas) actualizados: lookup `MateriaPlan` → usar `materia_id`/`grado_id` para filtrar; `TemaCreate`/`TemaUpdate` usan `orden`/`periodo_sugerido`.
+- [x] **api/v1/materias.py `estadisticas_materia`** — join roto con `CalificacionPeriodo.materia_plan_id` (columna inexistente) → filtrado directo por `CalificacionPeriodo.materia_id`.
+- [x] **schemas/academica.py `CicloOut`** — añadido `nombre_nivel: str | None = None`
+- [x] **api/v1/catalogs.py `/catalogs/ciclos`** — eager load `nivel` relationship, poblar `nombre_nivel` en response.
+
+**Frontend:**
+- [x] **admin.component.ts** — endpoint `/ciclos-escolares` → `/admin/ciclos` (404 → 200)
+- [x] **calificaciones.component.ts** — añadido `ciclo_id` al fetch de `/planes-estudio` (materias vacías en calificaciones)
+- [x] **planes-estudio.component.ts** — reescritura completa:
+  - `Tema` interface: campos actualizados (`materia_id`, `grado_id`, `orden`, `periodo_sugerido`)
+  - `nivelActivo = signal('')` (era `= ''`) — computed ahora reacciona
+  - Temario cascade: **Nivel → Grado → Materia** (era Nivel → Materia → Grado); backing signals + getter/setter
+  - Grados ordenados Primaria→Secundaria→Preparatoria en `ngOnInit`
+  - `nivelActivoNombre` computed + label visual en mapa curricular
+  - `gradosParaTemario` / `materiasParaTemario` computeds reactivos
+- [x] **shell.component.ts** — ciclos postprocesados con `_label` = `nombre_ciclo — NIVEL` cuando se muestran todos los niveles
+- [x] **core/models/index.ts** — `CicloEscolar` interface: añadido `nombre_nivel?`, `_label?`
+- [x] **profesores.component.ts** — importado `ImportButtonComponent` + `recargar` method + botón en template
+
 ### 🚀 Próximos Pasos:
-- [ ] Setup inicial Authentik: cambiar contraseña akadmin, configurar dominio https://ades.setag.mx/auth/.
-- [ ] Configurar Google Workspace SSO en Authentik para personal @institutonevadi.edu.mx.
-- [ ] Crear aplicación OIDC `ades-frontend` en Authentik.
-- [ ] Crear aplicación OIDC `superset` en Authentik.
+- [ ] Configurar `ANTHROPIC_API_KEY` en `.env` para activar recomendaciones IA.
+- [ ] FASE 5B — Anclaje Polygon PoS blockchain.
+- [ ] FASE 24P — Paperless-ngx OCR expedientes.
+- [ ] Setup Authentik: cambiar contraseña akadmin, crear app OIDC ades-frontend.
+- [ ] Google Workspace SSO en Authentik para personal @institutonevadi.edu.mx.
 - [ ] Construir imagen ades-api (FastAPI backend — FASE 1).
 - [ ] Construir imagen ades-frontend (Angular — FASE 1).
 - [ ] Script `003_uuid_migration.sql`: migración real de BIGINT → UUID en BD existente (requiere aprobación DBA y ventana de mantenimiento).
@@ -223,5 +314,58 @@ Este documento es el diario de vida y bitácora del agente. Debe ser leído en e
 ### 🚀 Próximos Pasos (post-auditoría):
 - [ ] Fases 11-16 según roadmap (RBAC UI, admin, manual usuario, Google SSO, auditoría Superset)
 - [ ] Verificar Stirling-PDF llega a `healthy` tras restart con nuevo config
+- [ ] Superset: primer arranque manual (datasource → dashboards BI)
+- [ ] Google Workspace SSO: pendiente credenciales Google Cloud Console de Nevadi
+
+---
+
+### 🛠️ Tareas Completadas (Consolidación Agente Residente - 2026-06-10):
+- [x] Ejecutado TASK_01_RESIDENT_AGENT_CONSOLIDATION.md.
+- [x] Creación de script `scripts/postgres_memoria_schema.sql` (tablas: memoria.sesiones, memoria.embeddings, memoria.decisiones, pgvector extension).
+- [x] Consolidación `.agent/memory/semantic_cache.py` (SentenceTransformer `all-MiniLM-L6-v2`, Valkey/Redis cache, hashing seguro).
+- [x] Consolidación `.agent/memory/long_term_memory.py` (Conexión Postgres, `pgvector` embeddings, persistencia de decisiones arquitectónicas y lecciones).
+- [x] Documentación actualizada de `.agent/system_prompt.md` integrando principios ECC, OpenSpec y Superpowers.
+- [x] Regenerado `docs/resident_agent_genesis.md` versión 2.0 (Master Edition) incorporando la memoria dual y orquestación.
+- [x] Tests unitarios creados en `tests/test_resident_agent.py` para Valkey, Postgres, Semantic Cache y Long Term Memory.
+- [x] Router backend `agente.py` implementado con `GET /api/v1/agente/init` manejando degradación agraciada (graceful degradation) si no hay memoria.
+- [x] Servicio Angular `resident-agent.service.ts` implementado para comunicación con backend.
+- [x] `README.md` actualizado con pasos para instanciar el Agente Residente v2.0 e inicializar la memoria (paso 9 en Instalación).
+- [x] Ejecutado FASE 26-A: Variables del Sistema y Catálogos Dinámicos (`021_variables_catalogos.sql`).
+- [x] Ejecutado FASE 26-B: Menús Dinámicos Integrados.
+- [x] Ejecutado FASE 26-C: Privilegios Granulares y Sincronización JIT (Multi-Rol y Authentik).
+- [x] Ejecutado FASE 26-D: Notificaciones In-App (APEX alert).
+- [x] Ejecutado FASE 26-E: SEPOMEX Geográfico (API y `<app-selector-geo>`).
+
+---
+
+### 🛠️ Sesión 2026-06-10 — APEX Library Integration + FASE 27 Certificación Digital
+
+**Objetivo:** Integrar biblioteca APEX completa en el sistema y arrancar FASE 27.
+
+#### APEX Component Library Integration (completado)
+- [x] `ShellComponent`: eliminado `ToastModule` + `providers:[MessageService]`, reemplazado `<p-toast>` por `<apex-toast-container>`
+- [x] Menú de navegación: migrado de API dinámica (`/menus/mi-menu`) a `_allNavGroups` estático con 11 secciones, `computed()` filtrado por `ctx.nivelAcceso()`
+- [x] **20 feature components** migrados de `MessageService` local a `ApexNotificationService` global
+  - Eliminados todos los `providers: [MessageService]`, `ToastModule`, `<p-toast />`
+  - Reemplazados todos los `this.msg.add({...})` y `this.toast.add({...})` por `this.notify.success/error/warning/info()`
+  - Manejo de template literals en detail: `alumnos`, `profesores`, `ia`, `tareas`, `calificaciones`, `gradebook`, `padres-admin`, `reportes`
+- [x] `MessageService` provisto en root (`app.config.ts`) → un solo token, sin instancias aisladas
+- [x] Build Angular: 0 errores TypeScript, 0 warnings
+- [x] Frontend reconstruido y desplegado
+- [x] ADRs creados: 0001 (génesis), 0002 (UUID PKs), 0003 (APEX library), 0004 (firma digital)
+- [x] Directorio `DECISIONS/` recreado
+
+#### FASE 27 — Certificación Digital Ed25519 (en progreso)
+- [ ] Migración `026_certificados_digitales.sql`
+- [ ] `services/firma_digital.py` — Ed25519, QR code
+- [ ] `certificados.py` — endpoints firmar + verificar público
+- [ ] `requirements.txt` + qrcode[pil]
+- [ ] Frontend: `CertificadosComponent` + `/verificar/:folio`
+- [ ] Deploy + validación
+
+### 🚀 Próximos Pasos:
+- [ ] Completar FASE 27 (Certificación Digital Ed25519)
+- [ ] FASE 28 — HashiCorp Vault (gestión segura de llaves privadas)
+- [ ] FASE 5 Etapa B — Anclaje Polygon PoS
 - [ ] Superset: primer arranque manual (datasource → dashboards BI)
 - [ ] Google Workspace SSO: pendiente credenciales Google Cloud Console de Nevadi

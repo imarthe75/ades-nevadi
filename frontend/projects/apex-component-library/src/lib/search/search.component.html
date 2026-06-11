@@ -1,0 +1,29 @@
+<div class="apex-search" 
+     [ngClass]="[
+       'apex-search-' + size, 
+       isFocused ? 'apex-search-focused' : '', 
+       disabled ? 'apex-search-disabled' : '',
+       styleClass || ''
+     ]">
+     
+  <span class="apex-search-icon pi pi-search"></span>
+  
+  <input #searchInput
+         type="text" 
+         class="apex-search-input"
+         [placeholder]="placeholder"
+         [disabled]="disabled"
+         [value]="value"
+         (input)="handleInput($event)"
+         (focus)="handleFocus()"
+         (blur)="handleBlur()">
+         
+  <button *ngIf="showClearIcon && value.length > 0" 
+          type="button"
+          class="apex-search-clear" 
+          (click)="clearSearch()"
+          [disabled]="disabled"
+          aria-label="Clear search">
+    <span class="pi pi-times"></span>
+  </button>
+</div>

@@ -19,7 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 from app.core.database import get_db
-from app.core.security import get_current_user
+from app.core.security import get_current_user, get_ades_user, AdesUser
 from app.core.optimistic_locking import check_row_version
 from app.models.operacion import CalificacionPeriodo, PeriodoEvaluacion
 from app.models.academica import Grupo, CicloEscolar, NivelEducativo
@@ -59,8 +59,18 @@ async def listar_periodos(
 async def registrar_calificacion(
     data: CalificacionCreate,
     db: AsyncSession = Depends(get_db),
-    _user: dict = Depends(get_current_user),
+    ades_user: AdesUser = Depends(get_ades_user),
 ):
+    # RBAC: docentes y superiores (nivel_acceso ≤ 4); padres (6) no pueden registrar
+    if ades_user.nivel_acceso > 4:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Sin permiso para registrar calificaciones")
+
+    # Scope de plantel: verificar que el grupo pertenece al plantel del usuario
+    if ades_user.plantel_id is not None:
+        grupo = await db.get(Grupo, data.grupo_id)
+        if grupo and grupo.plantel_id != ades_user.plantel_id:
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "El grupo no pertenece a tu plantel")
+
     existing = (await db.execute(
         select(CalificacionPeriodo).where(
             CalificacionPeriodo.estudiante_id == data.estudiante_id,
@@ -105,7 +115,7 @@ async def actualizar_calificacion(
     cal_id: uuid.UUID,
     data: CalificacionUpdate,
     db: AsyncSession = Depends(get_db),
-    _user: dict = Depends(get_current_user),
+    ades_user: AdesUser = Depends(get_ades_user),
 ):
     """
     Actualizar calificación con optimistic locking.
@@ -113,9 +123,17 @@ async def actualizar_calificacion(
     Spec: spec/standards/api-design.md § Optimistic Locking
     Returns 409 Conflict si row_version no coincide con la BD.
     """
+    if ades_user.nivel_acceso > 4:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Sin permiso para editar calificaciones")
+
     cal = await db.get(CalificacionPeriodo, cal_id)
     if not cal:
         raise HTTPException(status_code=404, detail="Calificación no encontrada")
+
+    if ades_user.plantel_id is not None:
+        grupo = await db.get(Grupo, cal.grupo_id)
+        if grupo and grupo.plantel_id != ades_user.plantel_id:
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "El grupo no pertenece a tu plantel")
 
     # Verificar row_version para optimistic locking (Spec: API Design § Optimistic Locking)
     if hasattr(data, 'row_version') and data.row_version is not None:
@@ -148,15 +166,22 @@ async def libreta_grupo(
     grupo_id: uuid.UUID,
     materia_id: uuid.UUID | None = None,
     db: AsyncSession = Depends(get_db),
-    _user: dict = Depends(get_current_user),
+    ades_user: AdesUser = Depends(get_ades_user),
 ):
     """
     Libreta de calificaciones de un grupo para una materia.
     Si no se especifica materia_id, devuelve la primera materia del grupo.
     """
+    # RBAC: padres (nivel 6) no pueden ver libreta completa
+    if ades_user.nivel_acceso > 5:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Sin permiso para ver esta libreta")
+
     grupo = await db.get(Grupo, grupo_id)
     if not grupo:
         raise HTTPException(status_code=404, detail="Grupo no encontrado")
+
+    if ades_user.plantel_id is not None and grupo.plantel_id != ades_user.plantel_id:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "El grupo no pertenece a tu plantel")
 
     # Obtener periodos del ciclo del grupo
     periodos_q = (

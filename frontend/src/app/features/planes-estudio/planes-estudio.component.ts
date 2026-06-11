@@ -22,13 +22,12 @@ import { InputTextModule } from 'primeng/inputtext';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { DialogModule } from 'primeng/dialog';
 import { DrawerModule } from 'primeng/drawer';
-import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
 import { ProgressBarModule } from 'primeng/progressbar';
 import { MessageModule } from 'primeng/message';
-import { MessageService } from 'primeng/api';
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
+import { ApexNotificationService } from 'apex-component-library';
 
 interface NivelOpt   { id: string; nombre_nivel: string; }
 interface GradoOpt   { id: string; nombre_grado: string; numero_grado: number; nivel_educativo_id: string; }
@@ -53,11 +52,13 @@ interface MateriaPlan {
 interface CicloOpt  { id: string; nombre_ciclo: string; es_vigente: boolean; }
 interface Tema {
   id: string;
-  materia_plan_id: string;
-  numero_tema: number;
+  materia_id: string;
+  grado_id: string | null;
+  ciclo_escolar_id: string | null;
   nombre_tema: string;
   descripcion: string | null;
-  horas_estimadas: number | null;
+  orden: number;
+  periodo_sugerido: number | null;
 }
 interface Estadisticas {
   materia_id: string;
@@ -69,6 +70,8 @@ interface Estadisticas {
   promedio_calificaciones: number | null;
 }
 
+const NIVEL_ORDER = ['PRIMARIA', 'SECUNDARIA', 'PREPARATORIA'];
+
 @Component({
   selector: 'app-planes-estudio',
   standalone: true,
@@ -76,12 +79,10 @@ interface Estadisticas {
     CommonModule, FormsModule,
     TabsModule, TableModule, ButtonModule, TagModule, SelectModule,
     InputNumberModule, InputTextModule, ToggleSwitchModule,
-    DialogModule, DrawerModule, ToastModule, TooltipModule,
+    DialogModule, DrawerModule, TooltipModule,
     ProgressBarModule, MessageModule,
   ],
-  providers: [MessageService],
   template: `
-    <p-toast />
 
     <div class="page-header">
       <div>
@@ -111,13 +112,19 @@ interface Estadisticas {
           <div class="nivel-tabs">
             @for (n of niveles(); track n.id) {
               <button class="nivel-chip"
-                [class.activo]="nivelActivo === n.id"
+                [class.activo]="nivelActivo() === n.id"
                 (click)="seleccionarNivel(n)">
                 <i class="pi" [class]="nivelIcon(n.nombre_nivel)"></i>
                 {{ n.nombre_nivel | titlecase }}
               </button>
             }
           </div>
+
+          @if (nivelActivoNombre()) {
+            <div class="mapa-nivel-label">
+              <i class="pi pi-graduation-cap"></i> {{ nivelActivoNombre() | titlecase }}
+            </div>
+          }
 
           @if (loading()) {
             <div style="padding:3rem;text-align:center;color:var(--text-muted)">Cargando mapa curricular…</div>
@@ -217,7 +224,8 @@ interface Estadisticas {
             <p-select [options]="niveles()" [(ngModel)]="filtroNivelId"
               optionLabel="nombre_nivel" optionValue="id"
               placeholder="Todos los niveles" [showClear]="true"
-              (onChange)="filtrarMaterias()" style="width:180px" />
+              (onChange)="filtrarMaterias()" style="width:180px"
+ [filter]="true" filterPlaceholder="Buscar..."/>
             @if (esAdmin()) {
               <p-button label="Nueva materia" icon="pi pi-plus" size="small"
                 (onClick)="abrirNuevaMateria()" />
@@ -278,15 +286,17 @@ interface Estadisticas {
             <p-select [options]="nivelesConMaterias()" [(ngModel)]="temarioNivelId"
               optionLabel="nombre_nivel" optionValue="id"
               placeholder="Nivel..." style="width:180px"
-              (onChange)="onTemarioNivelChange()" />
+              (onChange)="onTemarioNivelChange()"
+              [filter]="true" filterPlaceholder="Buscar..."/>
+            <p-select [options]="gradosParaTemario()" [(ngModel)]="temarioGradoId"
+              optionLabel="nombre_grado" optionValue="id"
+              placeholder="Grado..." style="width:160px"
+              (onChange)="onTemarioGradoChange()"
+              [filter]="true" filterPlaceholder="Buscar..."/>
             <p-select [options]="materiasParaTemario()" [(ngModel)]="temarioMateriaId"
               optionLabel="nombre_materia" optionValue="id"
               placeholder="Materia..." style="width:260px" [filter]="true"
               (onChange)="onTemarioMateriaChange()" />
-            <p-select [options]="gradosParaTemario()" [(ngModel)]="temarioGradoId"
-              optionLabel="nombre_grado" optionValue="id"
-              placeholder="Grado..." style="width:160px"
-              (onChange)="cargarTemas()" />
           </div>
 
           @if (temarioPlanId()) {
@@ -303,10 +313,10 @@ interface Estadisticas {
               [reorderableColumns]="false">
               <ng-template pTemplate="header">
                 <tr>
-                  <th style="width:50px">#</th>
+                  <th style="width:50px">Orden</th>
                   <th>Tema</th>
                   <th>Descripción</th>
-                  <th style="width:80px;text-align:center">Horas</th>
+                  <th style="width:90px;text-align:center">Periodo</th>
                   @if (esAdmin() || ctx.nivelAcceso() === 4) {
                     <th style="width:80px"></th>
                   }
@@ -314,10 +324,10 @@ interface Estadisticas {
               </ng-template>
               <ng-template pTemplate="body" let-t>
                 <tr>
-                  <td style="text-align:center;font-weight:700;color:var(--primary-color)">{{ t.numero_tema }}</td>
+                  <td style="text-align:center;font-weight:700;color:var(--primary-color)">{{ t.orden }}</td>
                   <td>{{ t.nombre_tema }}</td>
                   <td style="font-size:.8rem;color:var(--text-color-secondary)">{{ t.descripcion || '—' }}</td>
-                  <td style="text-align:center">{{ t.horas_estimadas || '—' }}</td>
+                  <td style="text-align:center">{{ t.periodo_sugerido ? t.periodo_sugerido + 'P' : '—' }}</td>
                   @if (esAdmin() || ctx.nivelAcceso() === 4) {
                     <td>
                       <div style="display:flex;gap:.2rem">
@@ -337,7 +347,7 @@ interface Estadisticas {
               </ng-template>
             </p-table>
           } @else {
-            <p-message severity="info" text="Selecciona nivel, materia y grado para ver o editar el temario." />
+            <p-message severity="info" text="Selecciona nivel, grado y materia para ver o editar el temario." />
           }
         </p-tabpanel>
 
@@ -356,7 +366,8 @@ interface Estadisticas {
             style="font-family:monospace;text-transform:uppercase" placeholder="CBU-MAT-01" />
           <label>Nivel *</label>
           <p-select [options]="niveles()" [(ngModel)]="materiaEdit.nivel_educativo_id"
-            optionLabel="nombre_nivel" optionValue="id" />
+            optionLabel="nombre_nivel" optionValue="id"
+ [filter]="true" filterPlaceholder="Buscar..."/>
           <label>Horas/semana</label>
           <p-inputnumber [(ngModel)]="materiaEdit.horas_semana" [min]="1" [max]="30" />
           <label>Activa</label>
@@ -374,14 +385,14 @@ interface Estadisticas {
       [modal]="true" [style]="{width:'480px'}">
       @if (temaEdit) {
         <div class="form-grid">
-          <label>Número</label>
-          <p-inputnumber [(ngModel)]="temaEdit.numero_tema" [min]="1" [max]="50" />
+          <label>Orden</label>
+          <p-inputnumber [(ngModel)]="temaEdit.orden" [min]="1" [max]="99" />
           <label>Nombre del tema *</label>
           <input pInputText [(ngModel)]="temaEdit.nombre_tema" placeholder="Ej. Números naturales" />
           <label>Descripción</label>
           <input pInputText [(ngModel)]="temaEdit.descripcion" placeholder="Resumen breve" />
-          <label>Horas estimadas</label>
-          <p-inputnumber [(ngModel)]="temaEdit.horas_estimadas" [min]="1" [max]="40" />
+          <label>Periodo sugerido</label>
+          <p-inputnumber [(ngModel)]="temaEdit.periodo_sugerido" [min]="1" [max]="6" placeholder="1-6" />
         </div>
         <ng-template pTemplate="footer">
           <p-button label="Cancelar" severity="secondary" [text]="true" (onClick)="dlgTema=false" />
@@ -454,11 +465,13 @@ interface Estadisticas {
     :host ::ng-deep .ctx-selector { min-width:160px }
 
     /* ── Nivel chips ── */
-    .nivel-tabs { display:flex; gap:.5rem; margin-bottom:1rem; flex-wrap:wrap; }
+    .nivel-tabs { display:flex; gap:.5rem; margin-bottom:.5rem; flex-wrap:wrap; }
     .nivel-chip { padding:.35rem .9rem; border-radius:20px; border:1px solid var(--surface-300);
       background:var(--surface-0); font-size:.82rem; cursor:pointer; display:flex; align-items:center; gap:.4rem; }
     .nivel-chip.activo { background:var(--primary-color); color:#fff; border-color:var(--primary-color); }
     .nivel-chip i { font-size:.85rem; }
+    .mapa-nivel-label { font-size:.78rem; font-weight:600; color:var(--primary-color);
+      margin-bottom:.75rem; display:flex; align-items:center; gap:.35rem; }
 
     /* ── Mapa curricular ── */
     .mapa-scroll { overflow-x:auto; margin-bottom:.75rem; }
@@ -524,7 +537,7 @@ interface Estadisticas {
 })
 export class PlanesEstudioComponent implements OnInit {
   private readonly api = inject(ApiService);
-  private readonly msg = inject(MessageService);
+  private readonly notify = inject(ApexNotificationService);
   readonly ctx       = inject(ContextService);
 
   // ── Datos base ─────────────────────────────────────────────────────────────
@@ -541,7 +554,7 @@ export class PlanesEstudioComponent implements OnInit {
   saving          = signal(false);
   savingTema      = signal(false);
   tabActivo       = 'mapa';
-  nivelActivo     = '';
+  nivelActivo     = signal('');
   selectedCicloId = '';
   editCellKey     = signal('');
 
@@ -554,10 +567,19 @@ export class PlanesEstudioComponent implements OnInit {
   materiaDetalle  = signal<Materia | null>(null);
   estadisticasDetalle = signal<Estadisticas | null>(null);
 
-  // ── Temario selectors ────────────────────────────────────────────────────
-  temarioNivelId  = '';
-  temarioMateriaId = '';
-  temarioGradoId  = '';
+  // ── Temario selectors (backing signals + getter/setter for [(ngModel)]) ─────
+  private readonly _temarioNivelId   = signal('');
+  get temarioNivelId()               { return this._temarioNivelId(); }
+  set temarioNivelId(v: string)      { this._temarioNivelId.set(v); }
+
+  private readonly _temarioGradoId   = signal('');
+  get temarioGradoId()               { return this._temarioGradoId(); }
+  set temarioGradoId(v: string)      { this._temarioGradoId.set(v); }
+
+  private readonly _temarioMateriaId = signal('');
+  get temarioMateriaId()             { return this._temarioMateriaId(); }
+  set temarioMateriaId(v: string)    { this._temarioMateriaId.set(v); }
+
   temarioPlanId   = signal('');
 
   // ── Catálogo filtros ─────────────────────────────────────────────────────
@@ -568,13 +590,13 @@ export class PlanesEstudioComponent implements OnInit {
 
   readonly gradosActuales = computed(() =>
     this.grados()
-      .filter(g => g.nivel_educativo_id === this.nivelActivo)
+      .filter(g => g.nivel_educativo_id === this.nivelActivo())
       .sort((a, b) => a.numero_grado - b.numero_grado)
   );
 
   readonly materiasNivelActual = computed(() =>
     this.materias()
-      .filter(m => m.nivel_educativo_id === this.nivelActivo && m.is_active)
+      .filter(m => m.nivel_educativo_id === this.nivelActivo() && m.is_active)
       .sort((a, b) => a.nombre_materia.localeCompare(b.nombre_materia))
   );
 
@@ -591,15 +613,22 @@ export class PlanesEstudioComponent implements OnInit {
 
   readonly nivelesConMaterias = computed(() => this.niveles());
 
-  readonly materiasParaTemario = computed(() =>
-    this.materias().filter(m => !this.temarioNivelId || m.nivel_educativo_id === this.temarioNivelId)
+  // Cascade: Nivel → Grado → Materia
+  readonly gradosParaTemario = computed(() =>
+    this.grados()
+      .filter(g => !this._temarioNivelId() || g.nivel_educativo_id === this._temarioNivelId())
+      .sort((a, b) => a.numero_grado - b.numero_grado)
   );
 
-  readonly gradosParaTemario = computed(() =>
-    this.grados().filter(g => {
-      const mat = this.materias().find(m => m.id === this.temarioMateriaId);
-      return mat ? g.nivel_educativo_id === mat.nivel_educativo_id : false;
-    }).sort((a, b) => a.numero_grado - b.numero_grado)
+  readonly materiasParaTemario = computed(() => {
+    const grado = this.grados().find(g => g.id === this._temarioGradoId());
+    const nivelId = grado?.nivel_educativo_id ?? this._temarioNivelId();
+    return this.materias().filter(m => !nivelId || m.nivel_educativo_id === nivelId)
+      .sort((a, b) => a.nombre_materia.localeCompare(b.nombre_materia));
+  });
+
+  readonly nivelActivoNombre = computed(() =>
+    this.niveles().find(n => n.id === this.nivelActivo())?.nombre_nivel ?? ''
   );
 
   readonly planDeMateria = computed(() =>
@@ -613,15 +642,20 @@ export class PlanesEstudioComponent implements OnInit {
   );
 
   readonly temarioTituloActual = computed(() => {
-    const mat = this.materias().find(m => m.id === this.temarioMateriaId);
-    const gr  = this.grados().find(g => g.id === this.temarioGradoId);
+    const mat = this.materias().find(m => m.id === this._temarioMateriaId());
+    const gr  = this.grados().find(g => g.id === this._temarioGradoId());
     return mat && gr ? `${mat.nombre_materia} — ${gr.nombre_grado}` : '';
   });
 
   ngOnInit(): void {
     this.api.get<NivelOpt[]>('/catalogs/niveles').subscribe(n => {
-      this.niveles.set(n);
-      if (n.length) this.nivelActivo = n[0].id;
+      const sorted = [...n].sort((a, b) => {
+        const ai = NIVEL_ORDER.indexOf(a.nombre_nivel.toUpperCase());
+        const bi = NIVEL_ORDER.indexOf(b.nombre_nivel.toUpperCase());
+        return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+      });
+      this.niveles.set(sorted);
+      if (sorted.length) this.nivelActivo.set(sorted[0].id);
     });
 
     this.api.get<CicloOpt[]>('/catalogs/ciclos', { solo_vigentes: true }).subscribe(c => {
@@ -652,11 +686,9 @@ export class PlanesEstudioComponent implements OnInit {
     const plantelId = this.ctx.plantel()?.id;
     const params: any = {};
     if (plantelId) params['plantel_id'] = plantelId;
-    // Usar endpoint general de grados desde catálogos
     this.api.get<GradoOpt[]>('/catalogs/grados', params).subscribe({
       next: g => this.grados.set(g),
       error: () => {
-        // Fallback: endpoint de planteles si existe
         if (plantelId) {
           this.api.get<GradoOpt[]>(`/planteles/${plantelId}/grados`).subscribe(g => this.grados.set(g));
         }
@@ -674,8 +706,7 @@ export class PlanesEstudioComponent implements OnInit {
   }
 
   seleccionarNivel(n: NivelOpt): void {
-    this.nivelActivo = n.id;
-    // Si no hay grados para este nivel, intentar cargar
+    this.nivelActivo.set(n.id);
     if (!this.gradosActuales().length) {
       const plantelId = this.ctx.plantel()?.id;
       const params: any = { nivel_id: n.id };
@@ -712,7 +743,7 @@ export class PlanesEstudioComponent implements OnInit {
       horas_semana: 4, es_obligatoria: true,
     }).subscribe({
       next: p => { this.plan.update(l => [...l, p]); },
-      error: e => this.msg.add({ severity:'error', summary:'Error', detail: e.error?.detail ?? 'Error al asignar' }),
+      error: e => this.notify.error('Error', e.error?.detail ?? 'Error al asignar'),
     });
   }
 
@@ -722,14 +753,14 @@ export class PlanesEstudioComponent implements OnInit {
     if (!val || val < 1) return;
     this.api.patch<MateriaPlan>(`/planes-estudio/${planId}`, { horas_semana: val }).subscribe({
       next: updated => this.plan.update(l => l.map(p => p.id === planId ? { ...p, horas_semana: updated.horas_semana } : p)),
-      error: () => this.msg.add({ severity:'error', summary:'Error al guardar horas' }),
+      error: () => this.notify.error('Error al guardar horas'),
     });
   }
 
   quitarAsignacion(planId: string, materiaId: string, gradoId: string): void {
     this.api.delete(`/planes-estudio/${planId}`).subscribe({
       next: () => this.plan.update(l => l.filter(p => p.id !== planId)),
-      error: e => this.msg.add({ severity:'error', summary:'Error', detail: e.error?.detail }),
+      error: e => this.notify.error('Error', e.error?.detail),
     });
   }
 
@@ -738,7 +769,7 @@ export class PlanesEstudioComponent implements OnInit {
   filtrarMaterias(): void { /* computed se actualiza automáticamente */ }
 
   abrirNuevaMateria(): void {
-    this.materiaEdit = { nombre_materia:'', clave_materia:'', nivel_educativo_id: this.nivelActivo, horas_semana: 4, is_active: true };
+    this.materiaEdit = { nombre_materia:'', clave_materia:'', nivel_educativo_id: this.nivelActivo(), horas_semana: 4, is_active: true };
     this.dlgMateria = true;
   }
 
@@ -749,7 +780,7 @@ export class PlanesEstudioComponent implements OnInit {
 
   guardarMateria(): void {
     if (!this.materiaEdit?.nombre_materia || !this.materiaEdit?.nivel_educativo_id) {
-      this.msg.add({ severity:'warn', summary:'Campos requeridos' });
+      this.notify.warning('Campos requeridos');
       return;
     }
     this.saving.set(true);
@@ -764,9 +795,9 @@ export class PlanesEstudioComponent implements OnInit {
         );
         this.dlgMateria = false;
         this.saving.set(false);
-        this.msg.add({ severity:'success', summary:'Materia guardada' });
+        this.notify.success('Materia guardada');
       },
-      error: e => { this.msg.add({ severity:'error', summary:'Error', detail: e.error?.detail }); this.saving.set(false); },
+      error: e => { this.notify.error('Error', e.error?.detail); this.saving.set(false); },
     });
   }
 
@@ -774,9 +805,9 @@ export class PlanesEstudioComponent implements OnInit {
     this.api.patch(`/materias/${m.id}`, { is_active: false }).subscribe({
       next: () => {
         this.materias.update(l => l.map(x => x.id === m.id ? { ...x, is_active: false } : x));
-        this.msg.add({ severity:'success', summary:'Materia desactivada' });
+        this.notify.success('Materia desactivada');
       },
-      error: () => this.msg.add({ severity:'error', summary:'Error al desactivar' }),
+      error: () => this.notify.error('Error al desactivar'),
     });
   }
 
@@ -799,23 +830,29 @@ export class PlanesEstudioComponent implements OnInit {
   // ── Temario ───────────────────────────────────────────────────────────────
 
   onTemarioNivelChange(): void {
-    this.temarioMateriaId = '';
-    this.temarioGradoId  = '';
+    this._temarioGradoId.set('');
+    this._temarioMateriaId.set('');
+    this.temas.set([]);
+    this.temarioPlanId.set('');
+  }
+
+  onTemarioGradoChange(): void {
+    this._temarioMateriaId.set('');
     this.temas.set([]);
     this.temarioPlanId.set('');
   }
 
   onTemarioMateriaChange(): void {
-    this.temarioGradoId = '';
     this.temas.set([]);
     this.temarioPlanId.set('');
+    if (this._temarioMateriaId() && this._temarioGradoId()) this.cargarTemas();
   }
 
   cargarTemas(): void {
-    if (!this.temarioMateriaId || !this.temarioGradoId) return;
+    if (!this._temarioMateriaId() || !this._temarioGradoId()) return;
     const p = this.plan().find(x =>
-      x.materia_id === this.temarioMateriaId &&
-      x.grado_id === this.temarioGradoId &&
+      x.materia_id === this._temarioMateriaId() &&
+      x.grado_id === this._temarioGradoId() &&
       x.ciclo_escolar_id === this.selectedCicloId &&
       x.is_active
     );
@@ -833,8 +870,10 @@ export class PlanesEstudioComponent implements OnInit {
   }
 
   abrirNuevoTema(): void {
-    const siguiente = (this.temas().length > 0 ? Math.max(...this.temas().map(t => t.numero_tema)) : 0) + 1;
-    this.temaEdit = { numero_tema: siguiente, nombre_tema: '', descripcion: '', horas_estimadas: 2 };
+    const siguienteOrden = this.temas().length > 0
+      ? Math.max(...this.temas().map(t => t.orden)) + 1
+      : 1;
+    this.temaEdit = { orden: siguienteOrden, nombre_tema: '', descripcion: '', periodo_sugerido: null };
     this.dlgTema = true;
   }
 
@@ -845,7 +884,7 @@ export class PlanesEstudioComponent implements OnInit {
 
   guardarTema(): void {
     if (!this.temaEdit?.nombre_tema) {
-      this.msg.add({ severity:'warn', summary:'El nombre del tema es requerido' });
+      this.notify.warning('El nombre del tema es requerido');
       return;
     }
     this.savingTema.set(true);
@@ -861,17 +900,17 @@ export class PlanesEstudioComponent implements OnInit {
         );
         this.dlgTema = false;
         this.savingTema.set(false);
-        this.msg.add({ severity:'success', summary:'Tema guardado' });
+        this.notify.success('Tema guardado');
       },
-      error: e => { this.msg.add({ severity:'error', detail: e.error?.detail }); this.savingTema.set(false); },
+      error: e => { this.notify.error('Error', e.error?.detail); this.savingTema.set(false); },
     });
   }
 
   eliminarTema(t: Tema): void {
     const planId = this.temarioPlanId();
     this.api.delete(`/planes-estudio/${planId}/temas/${t.id}`).subscribe({
-      next: () => { this.temas.update(l => l.filter(x => x.id !== t.id)); this.msg.add({ severity:'success', summary:'Tema eliminado' }); },
-      error: () => this.msg.add({ severity:'error', summary:'Error al eliminar' }),
+      next: () => { this.temas.update(l => l.filter(x => x.id !== t.id)); this.notify.success('Tema eliminado'); },
+      error: () => this.notify.error('Error al eliminar'),
     });
   }
 

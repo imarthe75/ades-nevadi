@@ -1,0 +1,16 @@
+.usuarios-container {
+  padding: 1rem;
+  
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 1px solid var(--surface-d);
+    
+    h2 {
+      margin: 0;
+      font-size: 1.5rem;
+    }
+  }
+}

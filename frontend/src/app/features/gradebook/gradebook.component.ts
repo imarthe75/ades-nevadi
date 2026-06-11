@@ -12,11 +12,10 @@ import { DialogModule } from 'primeng/dialog';
 import { DrawerModule } from 'primeng/drawer';
 import { TabsModule } from 'primeng/tabs';
 import { ProgressBarModule } from 'primeng/progressbar';
-import { ToastModule } from 'primeng/toast';
-import { MessageService } from 'primeng/api';
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
 import { ExportService } from '../../core/services/export.service';
+import { ApexNotificationService } from 'apex-component-library';
 
 interface Actividad {
   id: string;
@@ -69,11 +68,9 @@ interface PeriodoOpt { id: string; nombre_periodo: string; }
   imports: [
     CommonModule, FormsModule, TableModule, ButtonModule, SelectModule,
     InputTextModule, InputNumberModule, TagModule, TooltipModule,
-    DialogModule, DrawerModule, TabsModule, ProgressBarModule, ToastModule,
+    DialogModule, DrawerModule, TabsModule, ProgressBarModule,
   ],
-  providers: [MessageService],
   template: `
-<p-toast />
 <div class="page-header">
   <div class="page-title">
     <i class="pi pi-book"></i> Gradebook — Calificaciones
@@ -92,13 +89,16 @@ interface PeriodoOpt { id: string; nombre_periodo: string; }
 <div class="filter-bar">
   <p-select [options]="grupos()" optionLabel="nombre_grupo" optionValue="id"
             placeholder="Grupo" [(ngModel)]="grupoSel"
-            (onChange)="onGrupoChange()" />
+            (onChange)="onGrupoChange()" 
+ [filter]="true" filterPlaceholder="Buscar..."/>
   <p-select [options]="materias()" optionLabel="nombre_materia" optionValue="id"
             placeholder="Materia" [(ngModel)]="materiaSel"
-            (onChange)="cargarActividades()" [disabled]="!grupoSel" />
+            (onChange)="cargarActividades()" [disabled]="!grupoSel" 
+ [filter]="true" filterPlaceholder="Buscar..."/>
   <p-select [options]="periodos()" optionLabel="nombre_periodo" optionValue="id"
             placeholder="Período" [(ngModel)]="periodoSel"
-            (onChange)="cargarConcentrado()" [disabled]="!grupoSel" />
+            (onChange)="cargarConcentrado()" [disabled]="!grupoSel" 
+ [filter]="true" filterPlaceholder="Buscar..."/>
 </div>
 
 <p-tabs value="0">
@@ -302,7 +302,8 @@ interface PeriodoOpt { id: string; nombre_periodo: string; }
     <div class="field">
       <label>Tipo</label>
       <p-select [options]="tiposItem" optionLabel="label" optionValue="value"
-                [(ngModel)]="nuevaAct.tipo_item" styleClass="w-full" />
+                [(ngModel)]="nuevaAct.tipo_item" styleClass="w-full" 
+ [filter]="true" filterPlaceholder="Buscar..."/>
     </div>
     <div class="field">
       <label>Puntaje máximo</label>
@@ -347,7 +348,7 @@ export class GradebookComponent implements OnInit {
   private api = inject(ApiService);
   private ctx = inject(ContextService);
   private exporter = inject(ExportService);
-  private msg = inject(MessageService);
+  private readonly notify = inject(ApexNotificationService);
 
   grupos = signal<GrupoOpt[]>([]);
   materias = signal<MateriaOpt[]>([]);
@@ -459,7 +460,7 @@ export class GradebookComponent implements OnInit {
       .map(e => ({ alumno_id: e.estudiante_id, calificacion: e._cal!, comentario: e.comentario_profesor }));
     if (!items.length) return;
     this.api.patch(`/actividades/${act.id}/calificar-masivo`, items).subscribe(() => {
-      this.msg.add({ severity: 'success', summary: 'Guardado', detail: `${items.length} calificaciones guardadas` });
+      this.notify.success('Guardado', `${items.length} calificaciones guardadas`);
       this.drawerCalifVisible = false;
       this.cargarActividades();
       this.cargarConcentrado();
@@ -477,14 +478,14 @@ export class GradebookComponent implements OnInit {
     const row = this.rowAjuste();
     if (!row || this.ajusteValor === null) return;
     if (this.ajusteJustificacion.trim().length < 20) {
-      this.msg.add({ severity: 'warn', summary: 'Justificación corta', detail: 'Mínimo 20 caracteres' });
+      this.notify.warning('Justificación corta', 'Mínimo 20 caracteres');
       return;
     }
     this.api.post(`/gradebook/${row.cal_periodo_id}/ajuste-manual`, {
       ajuste_manual: this.ajusteValor,
       justificacion_ajuste: this.ajusteJustificacion,
     }).subscribe(() => {
-      this.msg.add({ severity: 'success', summary: 'Ajuste aplicado', detail: 'Calificación actualizada' });
+      this.notify.success('Ajuste aplicado', 'Calificación actualizada');
       this.dialogAjusteVisible = false;
       this.cargarConcentrado();
     });
@@ -494,14 +495,14 @@ export class GradebookComponent implements OnInit {
     if (!this.grupoSel || !this.periodoSel) return;
     this.api.post(`/gradebook/periodo/${this.periodoSel}/recalcular-todo`,
       { grupo_id: this.grupoSel }).subscribe((r: any) => {
-      this.msg.add({ severity: 'info', summary: 'Recalculado', detail: `${r.recalculados} registros actualizados` });
+      this.notify.info('Recalculado', `${r.recalculados} registros actualizados`);
       this.cargarConcentrado();
     });
   }
 
   crearActividad() {
     if (!this.grupoSel || !this.materiaSel) {
-      this.msg.add({ severity: 'warn', summary: 'Falta información', detail: 'Selecciona grupo y materia' });
+      this.notify.warning('Falta información', 'Selecciona grupo y materia');
       return;
     }
     this.api.post('/actividades', {
@@ -510,7 +511,7 @@ export class GradebookComponent implements OnInit {
       materia_id: this.materiaSel,
       periodo_evaluacion_id: this.periodoSel,
     }).subscribe((r: any) => {
-      this.msg.add({ severity: 'success', summary: 'Creada', detail: `${r.slots_creados} slots generados` });
+      this.notify.success('Creada', `${r.slots_creados} slots generados`);
       this.mostrarNuevaActividad = false;
       this.nuevaAct = { titulo: '', descripcion: '', tipo_item: 'tarea', fecha_asignacion: '', fecha_entrega: '', puntaje_maximo: 10 };
       this.cargarActividades();

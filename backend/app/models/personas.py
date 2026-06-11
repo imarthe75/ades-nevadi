@@ -5,11 +5,15 @@ from __future__ import annotations
 import uuid
 from datetime import date, datetime
 from decimal import Decimal
+from typing import TYPE_CHECKING
 from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, Numeric, String, Text, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
 from .base import AuditMixin
+
+if TYPE_CHECKING:
+    from .academica import Plantel, NivelEducativo
 
 
 class Estatus(AuditMixin, Base):
@@ -135,6 +139,8 @@ class Usuario(AuditMixin, Base):
 
     persona: Mapped[Persona] = relationship()
     rol: Mapped[Rol] = relationship()
+    plantel: Mapped[Plantel | None] = relationship("Plantel", foreign_keys=[plantel_id], lazy="raise")
+    nivel_educativo: Mapped[NivelEducativo | None] = relationship("NivelEducativo", foreign_keys=[nivel_educativo_id], lazy="raise")
 
 
 class ContactoFamiliar(AuditMixin, Base):
@@ -261,4 +267,4 @@ class AuditLog(Base):
     metodo_http: Mapped[str | None] = mapped_column(String(10))
     codigo_respuesta: Mapped[int | None] = mapped_column(Integer)
     duracion_ms: Mapped[int | None] = mapped_column(Integer)
-    fccreacion: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    fecha_creacion: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), server_default=func.now())

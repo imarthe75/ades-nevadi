@@ -32,6 +32,8 @@ export interface CicloEscolar {
   fecha_fin: string;
   tipo_ciclo: string;
   es_vigente: boolean;
+  nombre_nivel?: string;
+  _label?: string;
 }
 
 export interface Grupo {

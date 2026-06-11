@@ -58,7 +58,7 @@ class AlertaOut(BaseModel):
     datos_calculo: dict | None
     generada_por: str
     atendida: bool
-    fccreacion: str
+    fecha_creacion: str
 
     class Config:
         from_attributes = True
@@ -154,14 +154,31 @@ async def listar_alertas(
 
     sql = f"""
         SELECT id, estudiante_id, grupo_id, tipo_alerta, nivel_riesgo, descripcion,
-               datos_calculo, generada_por, atendida, fccreacion::text
+               datos_calculo, generada_por, atendida, fecha_creacion::text
         FROM ades_alertas_academicas
         WHERE {' AND '.join(where)}
-        ORDER BY fccreacion DESC
+        ORDER BY fecha_creacion DESC
         LIMIT 100
     """
     rows = (await db.execute(text(sql), params)).mappings().all()
     return [AlertaOut(**dict(r)) for r in rows]
+
+
+@router.get("/alertas/resumen")
+async def resumen_alertas(
+    db: AsyncSession = Depends(get_db),
+    _user: dict = Depends(get_current_user),
+):
+    """Conteo de alertas activas agrupadas por tipo y nivel de riesgo."""
+    from sqlalchemy import text
+    rows = (await db.execute(text("""
+        SELECT tipo_alerta, nivel_riesgo, COUNT(*) AS count
+          FROM ades_alertas_academicas
+         WHERE atendida = FALSE AND is_active = TRUE
+         GROUP BY tipo_alerta, nivel_riesgo
+         ORDER BY tipo_alerta, nivel_riesgo
+    """))).mappings().all()
+    return [dict(r) for r in rows]
 
 
 @router.post("/alertas/scan/{grupo_id}", status_code=202)

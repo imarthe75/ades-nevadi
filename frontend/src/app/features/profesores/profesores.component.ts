@@ -8,8 +8,6 @@ import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { DialogModule } from 'primeng/dialog';
-import { ToastModule } from 'primeng/toast';
-import { MessageService } from 'primeng/api';
 
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
@@ -17,22 +15,23 @@ import { ExportService, ExportColumn } from '../../core/services/export.service'
 import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
 import { ProfesorPerfilComponent } from '../../shared/components/profesor-perfil/profesor-perfil.component';
 import { HelpButtonComponent } from '../../shared/components/help-button/help-button.component';
+import { ImportButtonComponent } from '../../shared/components/import-button/import-button.component';
 import type { Profesor } from '../../core/models';
+import { ApexNotificationService } from 'apex-component-library';
 
 @Component({
   selector: 'app-profesores',
   standalone: true,
   imports: [
     CommonModule, FormsModule,
-    ButtonModule, InputTextModule, DialogModule, ToastModule,
-    InteractiveGridComponent, ProfesorPerfilComponent, HelpButtonComponent,
+    ButtonModule, InputTextModule, DialogModule,
+    InteractiveGridComponent, ProfesorPerfilComponent, HelpButtonComponent, ImportButtonComponent,
   ],
-  providers: [MessageService],
   template: `
-    <p-toast />
 
     <app-profesor-perfil
-      [(visible)]="perfilVisible"
+      [visible]="perfilVisible()"
+      (visibleChange)="perfilVisible.set($event)"
       [profesor]="profesorSeleccionado()"
       (saved)="cargarProfesores()"
     />
@@ -44,6 +43,7 @@ import type { Profesor } from '../../core/models';
       </div>
       <div style="display:flex;gap:0.5rem;align-items:center">
         <app-help-button modulo="profesores" />
+        <app-import-button entidad="profesores" [onSuccess]="recargar" />
         <p-button label="CSV"   icon="pi pi-file"       severity="secondary" [text]="true" (onClick)="exportCSV()"  pTooltip="Exportar CSV" />
         <p-button label="Excel" icon="pi pi-file-excel" severity="secondary" [text]="true" (onClick)="exportXLSX()" pTooltip="Exportar Excel" />
         <p-button label="Nuevo profesor" icon="pi pi-plus" (onClick)="openDialog()" />
@@ -58,7 +58,7 @@ import type { Profesor } from '../../core/models';
       (rowSelected)="abrirPerfil($event)"
     />
 
-    <p-dialog [(visible)]="showDialog" header="Nuevo Profesor" [modal]="true" [style]="{width:'400px'}">
+    <p-dialog [visible]="showDialog()" (visibleChange)="showDialog.set($event)" header="Nuevo Profesor" [modal]="true" [style]="{width:'400px'}">
       <div style="display:flex;flex-direction:column;gap:1rem">
         <div>
           <label class="dlg-lbl">Nombre(s) *</label>
@@ -98,14 +98,14 @@ export class ProfesoresComponent implements OnInit {
   private readonly api = inject(ApiService);
   private readonly ctx = inject(ContextService);
   private readonly exp = inject(ExportService);
-  private readonly msg = inject(MessageService);
+  private readonly notify = inject(ApexNotificationService);
 
   profesores = signal<Profesor[]>([]);
   profesoresDatos = signal<any[]>([]);
   totalProfesores = signal(0);
   profesorSeleccionado = signal<Profesor | null>(null);
-  perfilVisible = false;
-  showDialog = false;
+  perfilVisible = signal(false);
+  showDialog = signal(false);
   loading = signal(false);
   loadingTabla = signal(false);
   form = { nombre: '', apellido_paterno: '', apellido_materno: '', numero_empleado: '', curp: '', tipo_contrato: '' };
@@ -126,6 +126,8 @@ export class ProfesoresComponent implements OnInit {
     { field: 'tipo_contrato', header: 'Contrato' },
     { field: 'especialidad', header: 'Especialidad' },
   ];
+
+  readonly recargar = () => this.cargarProfesores();
 
   ngOnInit(): void { this.cargarProfesores(); }
 
@@ -154,7 +156,7 @@ export class ProfesoresComponent implements OnInit {
       },
       error: () => {
         this.loadingTabla.set(false);
-        this.msg.add({ severity: 'error', summary: 'Error', detail: 'No se pudieron cargar los profesores' });
+        this.notify.error('Error', 'No se pudieron cargar los profesores');
       },
     });
   }
@@ -165,23 +167,23 @@ export class ProfesoresComponent implements OnInit {
     this.api.get<Profesor>(`/profesores/${prof.id}`).subscribe({
       next: full => {
         this.profesorSeleccionado.set(full);
-        this.perfilVisible = true;
+        this.perfilVisible.set(true);
       },
       error: () => {
-        this.msg.add({ severity: 'error', summary: 'Error', detail: 'No se pudo cargar el expediente' });
+        this.notify.error('Error', 'No se pudo cargar el expediente');
       },
     });
   }
 
   openDialog(): void {
-    this.showDialog = true;
+    this.showDialog.set(true);
     const nextEmp = `EMP-${this.totalProfesores() + 101}`;
     this.form = { nombre: '', apellido_paterno: '', apellido_materno: '', numero_empleado: nextEmp, curp: '', tipo_contrato: 'TIEMPO_COMPLETO' };
   }
 
   crearProfesor(): void {
     if (!this.form.nombre || !this.form.apellido_paterno || !this.form.numero_empleado || !this.form.curp) {
-      this.msg.add({ severity: 'warn', summary: 'Campos requeridos', detail: 'Nombre, apellido paterno, número de empleado y CURP son obligatorios' });
+      this.notify.warning('Campos requeridos', 'Nombre, apellido paterno, número de empleado y CURP son obligatorios');
       return;
     }
     this.loading.set(true);
@@ -198,14 +200,14 @@ export class ProfesoresComponent implements OnInit {
     };
     this.api.post<Profesor>('/profesores', payload).subscribe({
       next: (newProf) => {
-        this.showDialog = false;
+        this.showDialog.set(false);
         this.loading.set(false);
-        this.msg.add({ severity: 'success', summary: 'Creado', detail: `Profesor: ${newProf.numero_empleado}` });
+        this.notify.success('Creado', `Profesor: ${newProf.numero_empleado}`);
         this.cargarProfesores();
       },
       error: (e) => {
         this.loading.set(false);
-        this.msg.add({ severity: 'error', summary: 'Error', detail: e.error?.detail ?? 'Error al crear' });
+        this.notify.error('Error', e.error?.detail ?? 'Error al crear');
       },
     });
   }

@@ -39,8 +39,8 @@ CREATE TABLE IF NOT EXISTS ades_esquemas_ponderacion (
     activo              BOOLEAN       NOT NULL DEFAULT TRUE,
     ref                 UUID          NOT NULL UNIQUE DEFAULT uuidv7(),
     is_active           BOOLEAN       NOT NULL DEFAULT TRUE,
-    fccreacion          TIMESTAMPTZ   NOT NULL DEFAULT now(),
-    fcmodificacion      TIMESTAMPTZ   NOT NULL DEFAULT now(),
+    fecha_creacion          TIMESTAMPTZ   NOT NULL DEFAULT now(),
+    fecha_modificacion      TIMESTAMPTZ   NOT NULL DEFAULT now(),
     usuario_creacion    VARCHAR(150)  NOT NULL DEFAULT CURRENT_USER,
     usuario_modificacion VARCHAR(150) NOT NULL DEFAULT CURRENT_USER,
     row_version         INT           NOT NULL DEFAULT 1
@@ -65,8 +65,8 @@ CREATE TABLE IF NOT EXISTS ades_items_ponderacion (
     orden_display         INT          NOT NULL DEFAULT 1,
     ref                   UUID         NOT NULL UNIQUE DEFAULT uuidv7(),
     is_active             BOOLEAN      NOT NULL DEFAULT TRUE,
-    fccreacion            TIMESTAMPTZ  NOT NULL DEFAULT now(),
-    fcmodificacion        TIMESTAMPTZ  NOT NULL DEFAULT now(),
+    fecha_creacion            TIMESTAMPTZ  NOT NULL DEFAULT now(),
+    fecha_modificacion        TIMESTAMPTZ  NOT NULL DEFAULT now(),
     usuario_creacion      VARCHAR(150) NOT NULL DEFAULT CURRENT_USER,
     usuario_modificacion  VARCHAR(150) NOT NULL DEFAULT CURRENT_USER,
     row_version           INT          NOT NULL DEFAULT 1
@@ -295,7 +295,7 @@ BEGIN
             ELSE EXCLUDED.calificacion_calculada
         END,
         fecha_calculo        = now(),
-        fcmodificacion       = now(),
+        fecha_modificacion       = now(),
         row_version          = ades_calificaciones_periodo.row_version + 1;
 
     RETURN v_cal_final;

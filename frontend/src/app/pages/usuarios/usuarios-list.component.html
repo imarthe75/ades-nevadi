@@ -1,0 +1,22 @@
+<div class="usuarios-container">
+  <p-card>
+    <ng-template pTemplate="header">
+      <div class="card-header">
+        <h2>Usuarios</h2>
+        <p-button 
+          label="Nuevo Usuario"
+          icon="pi pi-plus"
+          (onClick)="openNewModal()">
+        </p-button>
+      </div>
+    </ng-template>
+    
+    <apex-interactive-grid
+      [columns]="columns"
+      [rows]="(usuarios$ | async) || []"
+      [editable]="true"
+      [selectable]="true"
+      (cellEdit)="onCellEdit($event)">
+    </apex-interactive-grid>
+  </p-card>
+</div>

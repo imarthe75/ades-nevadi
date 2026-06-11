@@ -1,0 +1,72 @@
+<div class="apex-interactive-grid">
+  <!-- Toolbar -->
+  <div class="grid-toolbar" *ngIf="filterable || pageable">
+    <div class="grid-filters">
+      <ng-container *ngFor="let col of columns">
+        <input *ngIf="col.filterable"
+               type="text"
+               [placeholder]="'Filter ' + col.header"
+               [value]="filters[col.field] || ''"
+               (input)="onFilter(col.field, $event.target.value)"
+               class="grid-filter-input">
+      </ng-container>
+    </div>
+    
+    <div class="grid-pagination" *ngIf="pageable">
+      <button (click)="currentPage = Math.max(0, currentPage - 1)"
+              [disabled]="currentPage === 0">← Previous</button>
+      <span>Page {{ currentPage + 1 }} of {{ totalPages }}</span>
+      <button (click)="currentPage = Math.min(totalPages - 1, currentPage + 1)"
+              [disabled]="currentPage === totalPages - 1">Next →</button>
+    </div>
+  </div>
+  
+  <!-- Table -->
+  <table class="grid-table" role="grid">
+    <thead>
+      <tr>
+        <th *ngIf="selectable" class="col-checkbox">
+          <input type="checkbox">
+        </th>
+        <th *ngFor="let col of columns"
+            [style.width]="col.width"
+            (click)="col.sortable && onSort(col.field)"
+            [class.sortable]="col.sortable">
+          {{ col.header }}
+          <span *ngIf="sortField === col.field" 
+                class="sort-icon">
+            {{ sortOrder === 1 ? '↑' : '↓' }}
+          </span>
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let row of paginatedRows; trackBy: trackByRowId"
+          [class.selected]="isRowSelected(row)">
+        
+        <td *ngIf="selectable" class="col-checkbox">
+          <input type="checkbox"
+                 [checked]="isRowSelected(row)"
+                 (change)="onRowSelect(row, $event)">
+        </td>
+        
+        <td *ngFor="let col of columns"
+            (dblclick)="startEditCell(row, col)"
+            [class.editable]="col.editable">
+          
+          <!-- View mode -->
+          <span *ngIf="!isEditing(row.id, col.field)">
+            {{ formatValue(col, row[col.field]) }}
+          </span>
+          
+          <!-- Edit mode -->
+          <input *ngIf="isEditing(row.id, col.field)"
+                 type="text"
+                 [value]="row[col.field]"
+                 (blur)="endEditCell(row, col, $event.target.value)"
+                 autofocus>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>

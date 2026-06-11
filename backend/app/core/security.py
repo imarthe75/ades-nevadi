@@ -10,10 +10,10 @@ import httpx
 from dataclasses import dataclass, field
 from functools import lru_cache
 from jose import jwt, JWTError
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.orm import selectinload
 from .config import settings
 from .database import get_db
@@ -102,6 +102,13 @@ class AdesUser:
     nivel_educativo_id: uuid.UUID | None = field(default=None)
     persona_id: uuid.UUID | None = field(default=None)
     oidc_sub: str = field(default="")
+    rol_id: uuid.UUID | None = field(default=None)
+    privilegios: list[str] = field(default_factory=list)
+    todos_roles: list[uuid.UUID] = field(default_factory=list)
+
+    def tiene_privilegio(self, codigo: str) -> bool:
+        """Verifica si el usuario tiene un privilegio específico."""
+        return codigo in self.privilegios
 
     @property
     def es_admin_global(self) -> bool:
@@ -128,6 +135,7 @@ class AdesUser:
 
 
 async def get_ades_user(
+    request: Request,
     token_payload: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> "AdesUser":
@@ -151,7 +159,52 @@ async def get_ades_user(
             detail="Usuario no registrado en ADES. Contacta al administrador.",
         )
 
-    return AdesUser(
+    auth_groups = token_payload.get("groups", []) or token_payload.get("roles", [])
+    todos_roles_db = []
+    privilegios_lista = []
+
+    if auth_groups:
+        # 1. Obtener los IDs de los roles correspondientes en Authentik
+        roles_query = text("SELECT id, nombre_rol, nivel_acceso FROM ades_roles WHERE nombre_rol = ANY(:groups)")
+        roles_result = await db.execute(roles_query, {"groups": auth_groups})
+        roles_db = roles_result.fetchall()
+        roles_ids = [r.id for r in roles_db]
+
+        # 2. Verificar discrepancias en ades_usuario_roles
+        current_roles_query = text("SELECT rol_id FROM ades_usuario_roles WHERE usuario_id = :uid")
+        current_roles_result = await db.execute(current_roles_query, {"uid": usuario.id})
+        current_roles = [r.rol_id for r in current_roles_result]
+
+        if set(roles_ids) != set(current_roles):
+            # Mismatch detectado -> Sync JIT
+            await db.execute(text("DELETE FROM ades_usuario_roles WHERE usuario_id = :uid"), {"uid": usuario.id})
+            if roles_ids:
+                insert_query = text("INSERT INTO ades_usuario_roles (usuario_id, rol_id, peso) VALUES (:uid, :rid, 100)")
+                for rid in roles_ids:
+                    await db.execute(insert_query, {"uid": usuario.id, "rid": rid})
+                
+                # Actualizar el rol principal en ades_usuarios (retrocompatibilidad)
+                mejor_rol = min(roles_db, key=lambda x: x.nivel_acceso)
+                if usuario.rol_id != mejor_rol.id:
+                    await db.execute(text("UPDATE ades_usuarios SET rol_id = :rid WHERE id = :uid"), 
+                                   {"rid": mejor_rol.id, "uid": usuario.id})
+            await db.commit()
+            todos_roles_db = roles_ids
+        else:
+            todos_roles_db = current_roles
+
+    # 3. Fetch Privilegios
+    priv_query = text("""
+        SELECT DISTINCT p.codigo 
+        FROM ades_privilegios p
+        JOIN ades_rol_privilegios rp ON rp.privilegio_id = p.id
+        JOIN ades_usuario_roles ur ON ur.rol_id = rp.rol_id
+        WHERE ur.usuario_id = :uid AND p.is_active = TRUE
+    """)
+    priv_result = await db.execute(priv_query, {"uid": usuario.id})
+    privilegios_lista = [row.codigo for row in priv_result]
+
+    ades_user = AdesUser(
         id=usuario.id,
         nombre_usuario=usuario.nombre_usuario,
         email=usuario.email_institucional,
@@ -161,7 +214,14 @@ async def get_ades_user(
         nivel_educativo_id=usuario.nivel_educativo_id,
         persona_id=usuario.persona_id,
         oidc_sub=usuario.oidc_sub or "",
+        rol_id=usuario.rol_id,
+        privilegios=privilegios_lista,
+        todos_roles=todos_roles_db,
     )
+    # Propagar al request.state para que AuditMiddleware lo use sin re-decodificar JWT
+    request.state.ades_user_id = str(usuario.id)
+    request.state.ades_user_nombre = usuario.nombre_usuario
+    return ades_user
 
 
 async def require_role(*roles: str):

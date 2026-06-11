@@ -22,8 +22,8 @@ CREATE TABLE IF NOT EXISTS ades_certificados (
     emitido_por_id      uuid        REFERENCES ades_usuarios(id),
     ref                 uuid        NOT NULL DEFAULT uuidv7() UNIQUE,
     is_active           boolean     NOT NULL DEFAULT TRUE,
-    fccreacion          timestamptz NOT NULL DEFAULT NOW(),
-    fcmodificacion      timestamptz NOT NULL DEFAULT NOW(),
+    fecha_creacion          timestamptz NOT NULL DEFAULT NOW(),
+    fecha_modificacion      timestamptz NOT NULL DEFAULT NOW(),
     usuario_creacion    varchar(150) NOT NULL DEFAULT CURRENT_USER,
     usuario_modificacion varchar(150) NOT NULL DEFAULT CURRENT_USER,
     row_version         integer     NOT NULL DEFAULT 1

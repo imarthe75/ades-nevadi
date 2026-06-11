@@ -35,7 +35,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from app.core.database import get_db
-from app.core.security import get_current_user
+from app.core.security import get_current_user, get_ades_user, AdesUser
 from app.models.personas import Persona, Estudiante, Profesor, Estatus
 from app.models.academica import (
     Plantel, NivelEducativo, Grado, CicloEscolar, Grupo,
@@ -135,13 +135,30 @@ async def _resolver_plantel(
 
 # ── POST /imports/alumnos ──────────────────────────────────────────────────────
 
+_MAX_FILE_BYTES = 10 * 1024 * 1024  # 10 MB
+_ALLOWED_MIME = {"text/csv", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}
+
+
+def _validar_archivo(file: UploadFile, content: bytes) -> None:
+    if len(content) > _MAX_FILE_BYTES:
+        raise HTTPException(status_code=413, detail="El archivo supera el límite de 10 MB")
+    mime = (file.content_type or "").split(";")[0].strip()
+    ext = (file.filename or "").rsplit(".", 1)[-1].lower()
+    if mime and mime not in _ALLOWED_MIME and ext not in ("csv", "xlsx"):
+        raise HTTPException(status_code=400, detail=f"Tipo de archivo no permitido: {mime}")
+
+
 @router.post("/alumnos", response_model=ImportResult)
 async def importar_alumnos(
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
-    _user: dict = Depends(get_current_user),
+    ades_user: AdesUser = Depends(get_ades_user),
 ):
+    if ades_user.nivel_acceso > 2:
+        raise HTTPException(status_code=403, detail="Solo administradores y coordinadores pueden importar alumnos")
+
     content = await file.read()
+    _validar_archivo(file, content)
     headers, rows = parse_file(content, file.filename or "upload.csv")
     if not rows:
         raise HTTPException(status_code=400, detail="El archivo no contiene datos")
@@ -223,9 +240,13 @@ async def importar_alumnos(
 async def importar_profesores(
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
-    _user: dict = Depends(get_current_user),
+    ades_user: AdesUser = Depends(get_ades_user),
 ):
+    if ades_user.nivel_acceso > 2:
+        raise HTTPException(status_code=403, detail="Solo administradores y coordinadores pueden importar profesores")
+
     content = await file.read()
+    _validar_archivo(file, content)
     headers, rows = parse_file(content, file.filename or "upload.csv")
     if not rows:
         raise HTTPException(status_code=400, detail="El archivo no contiene datos")
@@ -306,9 +327,13 @@ async def importar_profesores(
 async def importar_materias(
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
-    _user: dict = Depends(get_current_user),
+    ades_user: AdesUser = Depends(get_ades_user),
 ):
+    if ades_user.nivel_acceso > 2:
+        raise HTTPException(status_code=403, detail="Solo administradores y coordinadores pueden importar materias")
+
     content = await file.read()
+    _validar_archivo(file, content)
     headers, rows = parse_file(content, file.filename or "upload.csv")
     if not rows:
         raise HTTPException(status_code=400, detail="El archivo no contiene datos")
@@ -363,9 +388,13 @@ async def importar_materias(
 async def importar_grupos(
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
-    _user: dict = Depends(get_current_user),
+    ades_user: AdesUser = Depends(get_ades_user),
 ):
+    if ades_user.nivel_acceso > 2:
+        raise HTTPException(status_code=403, detail="Solo administradores y coordinadores pueden importar grupos")
+
     content = await file.read()
+    _validar_archivo(file, content)
     headers, rows = parse_file(content, file.filename or "upload.csv")
     if not rows:
         raise HTTPException(status_code=400, detail="El archivo no contiene datos")

@@ -51,7 +51,7 @@ async def tabla_calificaciones_grupo(
     rows = await db.execute(
         text(f"""
             SELECT p.nombre, p.apellido_paterno, p.apellido_materno,
-                   est.numero_matricula,
+                   est.matricula,
                    cp.materia_id,
                    m.nombre_materia,
                    cp.score_por_item,
@@ -138,7 +138,7 @@ async def ajuste_manual(
 ):
     # Verificar que no esté cerrada (solo ADMIN puede modificar cerradas)
     row = await db.execute(
-        text("SELECT cerrada FROM ades_calificaciones_periodo WHERE id = :id AND is_active = TRUE"),
+        text("SELECT cerrada, calificacion_calculada FROM ades_calificaciones_periodo WHERE id = :id AND is_active = TRUE"),
         {"id": cal_periodo_id},
     )
     cal = row.fetchone()
@@ -149,20 +149,24 @@ async def ajuste_manual(
         if "ADMIN_GLOBAL" not in roles and "ADMIN_PLANTEL" not in roles:
             raise HTTPException(403, "Calificación cerrada. Solo ADMIN puede modificarla.")
 
+    cal_base = float(cal.calificacion_calculada or 0)
+    cal_final = round(cal_base + body.ajuste_manual, 2)
+
     await db.execute(
         text("""
             UPDATE ades_calificaciones_periodo
-               SET ajuste_manual      = :aj,
-                   justificacion_ajuste = :just,
-                   calificacion_final = :aj,
-                   fcmodificacion     = now(),
-                   row_version        = row_version + 1
+               SET ajuste_manual         = :aj,
+                   justificacion_ajuste  = :just,
+                   calificacion_final    = :cal_final,
+                   fecha_modificacion    = now(),
+                   row_version           = row_version + 1
              WHERE id = :id
         """),
-        {"aj": body.ajuste_manual, "just": body.justificacion_ajuste, "id": cal_periodo_id},
+        {"aj": body.ajuste_manual, "just": body.justificacion_ajuste,
+         "cal_final": cal_final, "id": cal_periodo_id},
     )
     await db.commit()
-    return {"message": "Ajuste aplicado"}
+    return {"message": "Ajuste aplicado", "calificacion_final": cal_final}
 
 
 # ── POST /gradebook/periodo/{periodo_id}/recalcular-todo ──────
@@ -199,25 +203,29 @@ async def recalcular_periodo(
         params,
     )
 
-    recalculados = 0
-    for c in combos.fetchall():
-        if materia_id and str(c.materia_id) != materia_id:
-            continue
-        await db.execute(
-            text("""
-                SELECT calcular_calificacion_periodo(:eid, :gid, :mid, :pid)
-            """),
-            {
-                "eid": c.estudiante_id,
-                "gid": c.grupo_id,
-                "mid": c.materia_id,
-                "pid": periodo_id,
-            },
-        )
-        recalculados += 1
+    filas = combos.fetchall()
+    if materia_id:
+        filas = [c for c in filas if str(c.materia_id) == materia_id]
 
+    if not filas:
+        return {"recalculados": 0}
+
+    # Recalcular en bloque usando unnest — evita N+1 queries
+    eids = [str(c.estudiante_id) for c in filas]
+    gids = [str(c.grupo_id)      for c in filas]
+    mids = [str(c.materia_id)    for c in filas]
+    pids = [periodo_id] * len(filas)
+
+    await db.execute(
+        text("""
+            SELECT calcular_calificacion_periodo(e::uuid, g::uuid, m::uuid, p::uuid)
+              FROM unnest(:eids, :gids, :mids, :pids)
+                     AS t(e text, g text, m text, p text)
+        """),
+        {"eids": eids, "gids": gids, "mids": mids, "pids": pids},
+    )
     await db.commit()
-    return {"recalculados": recalculados}
+    return {"recalculados": len(filas)}
 
 
 # ── POST /gradebook/{cal_periodo_id}/cerrar ──────────────────
@@ -237,7 +245,7 @@ async def cerrar_calificacion(
         text("""
             UPDATE ades_calificaciones_periodo
                SET cerrada = TRUE, fecha_cierre = now(),
-                   fcmodificacion = now()
+                   fecha_modificacion = now()
              WHERE id = :id AND cerrada = FALSE
         """),
         {"id": cal_periodo_id},
@@ -258,7 +266,7 @@ async def concentrado_grupo(
     rows = await db.execute(
         text("""
             SELECT p.nombre || ' ' || p.apellido_paterno AS alumno,
-                   est.numero_matricula,
+                   est.matricula,
                    cp.materia_id,
                    m.nombre_materia,
                    cp.calificacion_final,

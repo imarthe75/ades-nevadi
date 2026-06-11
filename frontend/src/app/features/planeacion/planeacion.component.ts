@@ -71,13 +71,15 @@ const ESTADO_SEV: Record<string, TagSeverity> = {
                 optionLabel="label" optionValue="value"
                 placeholder="Seleccionar grupo..."
                 styleClass="filter-select"
-                (onChange)="onGrupoChange()" />
+                (onChange)="onGrupoChange()" 
+ [filter]="true" filterPlaceholder="Buscar..."/>
       <p-select [options]="materiasGrupo()" [(ngModel)]="selMateriaId"
                 optionLabel="label" optionValue="value"
                 placeholder="Todas las materias"
                 [showClear]="true"
                 styleClass="filter-select"
-                (onChange)="cargarTemas()" />
+                (onChange)="cargarTemas()" 
+ [filter]="true" filterPlaceholder="Buscar..."/>
       <p-button icon="pi pi-chart-bar" label="Ver cobertura" severity="secondary"
                 [text]="true" (onClick)="vistaCobertura = !vistaCobertura" />
     </div>

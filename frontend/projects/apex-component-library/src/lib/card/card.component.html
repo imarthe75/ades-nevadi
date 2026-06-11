@@ -1,0 +1,28 @@
+<div class="apex-card" [ngClass]="styleClass || ''">
+  <!-- Header -->
+  <div class="apex-card-header" *ngIf="headerTemplate || title || subtitle || icon">
+    <!-- Custom header template -->
+    <ng-container *ngIf="headerTemplate; else defaultHeader">
+      <ng-container *ngTemplateOutlet="headerTemplate"></ng-container>
+    </ng-container>
+    
+    <!-- Default header -->
+    <ng-template #defaultHeader>
+      <div class="apex-card-title-wrapper" *ngIf="title || icon">
+        <span *ngIf="icon" [class]="icon" class="apex-card-icon"></span>
+        <h3 class="apex-card-title" *ngIf="title">{{ title }}</h3>
+      </div>
+      <p class="apex-card-subtitle" *ngIf="subtitle">{{ subtitle }}</p>
+    </ng-template>
+  </div>
+  
+  <!-- Body -->
+  <div class="apex-card-body" [ngClass]="bodyStyleClass || ''">
+    <ng-content></ng-content>
+  </div>
+  
+  <!-- Footer -->
+  <div class="apex-card-footer" *ngIf="footerTemplate">
+    <ng-container *ngTemplateOutlet="footerTemplate"></ng-container>
+  </div>
+</div>

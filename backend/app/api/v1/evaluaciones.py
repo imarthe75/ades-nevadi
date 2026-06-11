@@ -217,7 +217,7 @@ async def guardar_calificaciones_bulk(
             DO UPDATE SET
                 calificacion  = EXCLUDED.calificacion,
                 comentarios   = EXCLUDED.comentarios,
-                fcmodificacion = NOW()
+                fecha_modificacion = NOW()
         """), {
             "eval_id":    str(evaluacion_id),
             "est_id":     str(item.estudiante_id),

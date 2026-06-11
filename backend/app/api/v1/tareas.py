@@ -120,7 +120,7 @@ async def listar_entregas(
     rows = await db.execute(
         select(TareaEntrega)
         .where(TareaEntrega.tarea_id == tarea_id, TareaEntrega.is_active == True)
-        .order_by(TareaEntrega.fccreacion)
+        .order_by(TareaEntrega.fecha_creacion)
     )
     return rows.scalars().all()
 

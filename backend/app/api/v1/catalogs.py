@@ -16,6 +16,7 @@ from app.core.security import get_current_user
 from app.models.academica import NivelEducativo, Grado, CicloEscolar
 from app.models.personas import Rol, Estatus
 from app.schemas.academica import NivelOut, GradoOut, CicloOut
+from sqlalchemy.orm import selectinload
 from app.schemas.base import AdesResponse, AdesSchema
 
 router = APIRouter(prefix="/catalogs", tags=["catálogos"])
@@ -43,6 +44,7 @@ async def listar_ciclos(
 ):
     q = (
         select(CicloEscolar)
+        .options(selectinload(CicloEscolar.nivel))
         .join(NivelEducativo, NivelEducativo.id == CicloEscolar.nivel_educativo_id)
     )
     if nivel:
@@ -50,8 +52,14 @@ async def listar_ciclos(
     if solo_vigentes:
         q = q.where(CicloEscolar.es_vigente == True)
     q = q.order_by(CicloEscolar.fecha_inicio.desc())
-    rows = await db.execute(q)
-    return rows.scalars().all()
+    ciclos = (await db.execute(q)).scalars().all()
+    result = []
+    for c in ciclos:
+        out = CicloOut.model_validate(c)
+        if c.nivel:
+            out.nombre_nivel = c.nivel.nombre_nivel
+        result.append(out)
+    return result
 
 
 # ── Grados (global) ────────────────────────────────────────────────────────────

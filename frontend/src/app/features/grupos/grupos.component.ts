@@ -10,8 +10,6 @@ import { InputTextModule } from 'primeng/inputtext';
 import { DialogModule } from 'primeng/dialog';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { SelectModule } from 'primeng/select';
-import { ToastModule } from 'primeng/toast';
-import { MessageService } from 'primeng/api';
 
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
@@ -19,18 +17,17 @@ import { ExportService, ExportColumn } from '../../core/services/export.service'
 import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
 import type { Grupo } from '../../core/models';
 import { grupoLabel } from '../../core/models';
+import { ApexNotificationService } from 'apex-component-library';
 
 @Component({
   selector: 'app-grupos',
   standalone: true,
   imports: [
     CommonModule, FormsModule,
-    ButtonModule, InputTextModule, DialogModule, ToggleSwitchModule, SelectModule, ToastModule,
+    ButtonModule, InputTextModule, DialogModule, ToggleSwitchModule, SelectModule,
     InteractiveGridComponent
   ],
-  providers: [MessageService],
   template: `
-    <p-toast />
 
     <div class="page-header">
       <div>
@@ -50,7 +47,7 @@ import { grupoLabel } from '../../core/models';
     <app-interactive-grid
       [data]="gruposDatos()"
       [columns]="columnas"
-      [loading]="false"
+      [loading]="loadingDatos()"
       (rowSelected)="abrirEditarGrupo($event)"
     />
 
@@ -67,7 +64,8 @@ import { grupoLabel } from '../../core/models';
           <p-select [options]="['MATUTINO','VESPERTINO','NOCTURNO']" [(ngModel)]="grupoEdit.turno" />
           @if (!grupoEdit.id) {
             <label>Nivel / Grado *</label>
-            <p-select [options]="grados()" [(ngModel)]="grupoEdit.grado_id" optionLabel="label" optionValue="id" placeholder="Seleccionar grado" />
+            <p-select [options]="grados()" [(ngModel)]="grupoEdit.grado_id" optionLabel="label" optionValue="id" placeholder="Seleccionar grado" 
+ [filter]="true" filterPlaceholder="Buscar..."/>
           }
           @if (grupoEdit.id) {
             <label>Estado</label>
@@ -92,12 +90,13 @@ export class GruposComponent implements OnInit {
   private readonly api = inject(ApiService);
   private readonly ctx = inject(ContextService);
   private readonly export = inject(ExportService);
-  private readonly msg = inject(MessageService);
+  private readonly notify = inject(ApexNotificationService);
 
   grupos = signal<Grupo[]>([]);
   gruposDatos = signal<any[]>([]);
   grados = signal<any[]>([]);
 
+  loadingDatos = signal(false);
   dlgGrupo = false;
   grupoEdit: any = null;
   saving = signal(false);
@@ -179,6 +178,7 @@ export class GruposComponent implements OnInit {
     const params: Record<string, any> = { ciclo_vigente: true };
     if (plantelId) params['plantel_id'] = plantelId;
 
+    this.loadingDatos.set(true);
     this.api.get<Grupo[]>('/grupos', params).subscribe({
       next: g => {
         this.grupos.set(g);
@@ -191,10 +191,12 @@ export class GruposComponent implements OnInit {
           turno: grp.turno || '—',
           _original: grp,
         })));
+        this.loadingDatos.set(false);
       },
       error: () => {
         this.grupos.set([]);
         this.gruposDatos.set([]);
+        this.loadingDatos.set(false);
       }
     });
   }
@@ -202,7 +204,7 @@ export class GruposComponent implements OnInit {
   abrirNuevoGrupo(): void {
     const cicloId = this.ctx.ciclo()?.id;
     if (!cicloId) {
-      this.msg.add({ severity: 'warn', summary: 'Ciclo requerido', detail: 'Debe seleccionar un ciclo escolar en la barra superior' });
+      this.notify.warning('Ciclo requerido', 'Debe seleccionar un ciclo escolar en la barra superior');
       return;
     }
     this.grupoEdit = { nombre_grupo: '', capacidad_maxima: 30, turno: 'MATUTINO', ciclo_escolar_id: cicloId, is_active: true };
@@ -219,7 +221,7 @@ export class GruposComponent implements OnInit {
   guardarGrupo(): void {
     if (!this.grupoEdit) return;
     if (!this.grupoEdit.nombre_grupo || !this.grupoEdit.capacidad_maxima) {
-      this.msg.add({ severity: 'warn', summary: 'Campos requeridos', detail: 'Nombre y capacidad son obligatorios' });
+      this.notify.warning('Campos requeridos', 'Nombre y capacidad son obligatorios');
       return;
     }
 
@@ -232,26 +234,26 @@ export class GruposComponent implements OnInit {
         is_active: this.grupoEdit.is_active,
       }).subscribe({
         next: () => {
-          this.msg.add({ severity: 'success', summary: 'Guardado', detail: 'Grupo actualizado' });
+          this.notify.success('Guardado', 'Grupo actualizado');
           this.dlgGrupo = false;
           this.saving.set(false);
           this.recargar();
         },
         error: e => {
-          this.msg.add({ severity: 'error', summary: 'Error', detail: e.error?.detail ?? 'Error al actualizar grupo' });
+          this.notify.error('Error', e.error?.detail ?? 'Error al actualizar grupo');
           this.saving.set(false);
         },
       });
     } else {
       this.api.post('/admin/grupos', this.grupoEdit).subscribe({
         next: () => {
-          this.msg.add({ severity: 'success', summary: 'Creado', detail: 'Grupo creado exitosamente' });
+          this.notify.success('Creado', 'Grupo creado exitosamente');
           this.dlgGrupo = false;
           this.saving.set(false);
           this.recargar();
         },
         error: e => {
-          this.msg.add({ severity: 'error', summary: 'Error', detail: e.error?.detail ?? 'Error al crear grupo' });
+          this.notify.error('Error', e.error?.detail ?? 'Error al crear grupo');
           this.saving.set(false);
         },
       });

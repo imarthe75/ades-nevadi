@@ -35,7 +35,7 @@ async def listar_reportes(
         q = q.where(ReporteConducta.tipo_falta == tipo_falta.upper())
     if requiere_seguimiento is not None:
         q = q.where(ReporteConducta.requiere_seguimiento == requiere_seguimiento)
-    q = q.order_by(ReporteConducta.fccreacion.desc())
+    q = q.order_by(ReporteConducta.fecha_creacion.desc())
     q = q.offset((pagina - 1) * por_pagina).limit(por_pagina)
     rows = (await db.execute(q)).scalars().all()
     return rows

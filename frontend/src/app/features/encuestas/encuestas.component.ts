@@ -414,12 +414,14 @@ const TIPOS_PREG = [
         <div class="form-field">
           <label>Tipo</label>
           <p-select [options]="tipos" [(ngModel)]="formNueva.tipo"
-                    optionLabel="label" optionValue="value" styleClass="w-full" />
+                    optionLabel="label" optionValue="value" styleClass="w-full" 
+ [filter]="true" filterPlaceholder="Buscar..."/>
         </div>
         <div class="form-field">
           <label>Audiencia</label>
           <p-select [options]="audiencias" [(ngModel)]="formNueva.audiencia"
-                    optionLabel="label" optionValue="value" styleClass="w-full" />
+                    optionLabel="label" optionValue="value" styleClass="w-full" 
+ [filter]="true" filterPlaceholder="Buscar..."/>
         </div>
         <div class="form-field">
           <label>Fecha inicio</label>
@@ -454,7 +456,8 @@ const TIPOS_PREG = [
           <label>Tipo de respuesta</label>
           <p-select [options]="tiposPreg" [(ngModel)]="formPreg.tipo_pregunta"
                     optionLabel="label" optionValue="value" styleClass="w-full"
-                    (onChange)="onTipoPregChange()" />
+                    (onChange)="onTipoPregChange()" 
+ [filter]="true" filterPlaceholder="Buscar..."/>
         </div>
         <div class="form-field">
           <label>Orden</label>

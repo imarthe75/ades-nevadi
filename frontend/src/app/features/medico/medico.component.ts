@@ -12,15 +12,14 @@ import { InputTextModule } from 'primeng/inputtext';
 import { TextareaModule } from 'primeng/textarea';
 import { CardModule } from 'primeng/card';
 import { TagModule } from 'primeng/tag';
-import { ToastModule } from 'primeng/toast';
 import { DialogModule } from 'primeng/dialog';
 import { DividerModule } from 'primeng/divider';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
-import { MessageService } from 'primeng/api';
 
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
 import type { Estudiante } from '../../core/models';
+import { ApexNotificationService } from 'apex-component-library';
 
 interface ExpedienteMedico {
   id: string;
@@ -47,11 +46,9 @@ interface IncidenteMedico {
   imports: [
     CommonModule, FormsModule,
     TableModule, ButtonModule, InputTextModule, TextareaModule, CardModule,
-    TagModule, ToastModule, DialogModule, DividerModule, ToggleSwitchModule,
+    TagModule, DialogModule, DividerModule, ToggleSwitchModule,
   ],
-  providers: [MessageService],
   template: `
-    <p-toast />
 
     <div class="page-header">
       <div>
@@ -224,7 +221,7 @@ interface IncidenteMedico {
 export class MedicoComponent implements OnInit {
   private readonly api = inject(ApiService);
   readonly ctx = inject(ContextService);
-  private readonly msg = inject(MessageService);
+  private readonly notify = inject(ApexNotificationService);
 
   buscarTerm = '';
   buscando  = signal(false);
@@ -268,8 +265,8 @@ export class MedicoComponent implements OnInit {
     const alumno = this.alumnoSeleccionado();
     if (!alumno) return;
     this.api.post<ExpedienteMedico>('/expedientes-medicos', { estudiante_id: alumno.id }).subscribe({
-      next: e => { this.expediente.set(e); this.msg.add({ severity: 'success', summary: 'Expediente creado' }); },
-      error: (e) => this.msg.add({ severity: 'error', detail: e.error?.detail }),
+      next: e => { this.expediente.set(e); this.notify.success('Expediente creado'); },
+      error: (e) => this.notify.error('Error', e.error?.detail),
     });
   }
 
@@ -279,7 +276,7 @@ export class MedicoComponent implements OnInit {
     this.savingExp.set(true);
     const { estudiante_id, ...datos } = exp as any;
     this.api.put(`/expedientes-medicos/${exp.id}`, datos).subscribe({
-      next: () => { this.savingExp.set(false); this.msg.add({ severity: 'success', summary: 'Expediente actualizado' }); },
+      next: () => { this.savingExp.set(false); this.notify.success('Expediente actualizado'); },
       error: () => this.savingExp.set(false),
     });
   }
@@ -299,7 +296,7 @@ export class MedicoComponent implements OnInit {
         this.incidentes.update(list => [r, ...list]);
         this.showIncidenteDialog = false;
         this.savingInc.set(false);
-        this.msg.add({ severity: 'success', summary: 'Incidente registrado' });
+        this.notify.success('Incidente registrado');
       },
       error: () => this.savingInc.set(false),
     });

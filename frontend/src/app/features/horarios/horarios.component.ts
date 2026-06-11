@@ -12,14 +12,13 @@ import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
 import { TagModule } from 'primeng/tag';
-import { ToastModule } from 'primeng/toast';
 import { ToolbarModule } from 'primeng/toolbar';
 import { SelectButtonModule } from 'primeng/selectbutton';
-import { MessageService } from 'primeng/api';
 
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
 import type { Grupo, Profesor } from '../../core/models';
+import { ApexNotificationService } from 'apex-component-library';
 
 interface HorarioEntry {
   id: string;
@@ -44,11 +43,9 @@ const COLORS: Record<string, string> = {
   standalone: true,
   imports: [
     CommonModule, FormsModule,
-    TableModule, ButtonModule, SelectModule, TagModule, ToastModule, ToolbarModule, SelectButtonModule,
+    TableModule, ButtonModule, SelectModule, TagModule, ToolbarModule, SelectButtonModule,
   ],
-  providers: [MessageService],
   template: `
-    <p-toast />
 
     <div class="page-header">
       <div>
@@ -75,7 +72,9 @@ const COLORS: Record<string, string> = {
           placeholder="Seleccionar grupo..."
           (onChange)="cargar()"
           [showClear]="true"
-        />
+        
+
+        [filter]="true" filterPlaceholder="Buscar..."/>
       } @else {
         <p-select
           [options]="profesores()"
@@ -84,7 +83,9 @@ const COLORS: Record<string, string> = {
           placeholder="Seleccionar docente..."
           (onChange)="cargar()"
           [showClear]="true"
-        />
+        
+
+        [filter]="true" filterPlaceholder="Buscar..."/>
       }
 
       <p-button
@@ -191,7 +192,7 @@ const COLORS: Record<string, string> = {
 export class HorariosComponent implements OnInit {
   private readonly api = inject(ApiService);
   readonly ctx = inject(ContextService);
-  private readonly msg = inject(MessageService);
+  private readonly notify = inject(ApexNotificationService);
 
   readonly dias = DIAS.slice(1).map((label, i) => ({ num: i + 1, label }));
   readonly modoOpts = [

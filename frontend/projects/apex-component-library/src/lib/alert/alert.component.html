@@ -1,0 +1,21 @@
+<div *ngIf="visible" 
+     class="apex-alert" 
+     [ngClass]="[severityClass, styleClass || '']"
+     role="alert">
+  
+  <div class="alert-content">
+    <span *ngIf="icon" [class]="icon" class="alert-icon"></span>
+    
+    <div class="alert-text">
+      <strong *ngIf="title">{{ title }}</strong>
+      <p>{{ message }}</p>
+    </div>
+  </div>
+  
+  <button *ngIf="closable" 
+          class="alert-close"
+          (click)="onClose()"
+          aria-label="Close alert">
+    ✕
+  </button>
+</div>

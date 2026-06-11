@@ -64,7 +64,7 @@ CREATE TABLE IF NOT EXISTS ades_contactos_emergencia (
   is_active         BOOLEAN     DEFAULT TRUE,
   created_by        UUID,
   updated_by        UUID,
-  fccreacion        TIMESTAMPTZ DEFAULT NOW(),
+  fecha_creacion        TIMESTAMPTZ DEFAULT NOW(),
   fcactualizacion   TIMESTAMPTZ DEFAULT NOW()
 );
 

@@ -4,13 +4,12 @@ import { FormsModule } from '@angular/forms';
 import { TableModule } from 'primeng/table';
 import { SelectModule } from 'primeng/select';
 import { ButtonModule } from 'primeng/button';
-import { MessageService } from 'primeng/api';
-import { ToastModule } from 'primeng/toast';
 import { ToolbarModule } from 'primeng/toolbar';
 
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
 import type { Clase, EstatusAsistencia } from '../../core/models';
+import { ApexNotificationService } from 'apex-component-library';
 
 interface AsistenciaLocal {
   estudiante_id: string;
@@ -24,11 +23,9 @@ interface AsistenciaLocal {
   standalone: true,
   imports: [
     CommonModule, FormsModule,
-    TableModule, SelectModule, ButtonModule, ToastModule, ToolbarModule,
+    TableModule, SelectModule, ButtonModule, ToolbarModule,
   ],
-  providers: [MessageService],
   template: `
-    <p-toast />
 
     <div class="page-header">
       <h2>Asistencias — Pase de Lista</h2>
@@ -42,7 +39,9 @@ interface AsistenciaLocal {
         optionLabel="id"
         (onChange)="onClaseChange()"
         [showClear]="true"
-      />
+      
+
+      [filter]="true" filterPlaceholder="Buscar..."/>
     </div>
 
     @if (asistencias().length > 0) {
@@ -102,7 +101,7 @@ interface AsistenciaLocal {
 export class AsistenciasComponent implements OnInit {
   private readonly api = inject(ApiService);
   private readonly ctx = inject(ContextService);
-  private readonly msg = inject(MessageService);
+  private readonly notify = inject(ApexNotificationService);
 
   readonly estatusOptions: EstatusAsistencia[] = ['PRESENTE', 'AUSENTE', 'TARDE', 'JUSTIFICADO'];
   clases = signal<any[]>([]);
@@ -149,11 +148,11 @@ export class AsistenciasComponent implements OnInit {
       .subscribe({
         next: () => {
           this.saving.set(false);
-          this.msg.add({ severity: 'success', summary: 'Guardado', detail: 'Asistencia registrada' });
+          this.notify.success('Guardado', 'Asistencia registrada');
         },
         error: (e) => {
           this.saving.set(false);
-          this.msg.add({ severity: 'error', summary: 'Error', detail: e.error?.detail || 'Error' });
+          this.notify.error('Error', e.error?.detail || 'Error');
         },
       });
   }

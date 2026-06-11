@@ -13,7 +13,6 @@ import { InputTextModule } from 'primeng/inputtext';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { TooltipModule } from 'primeng/tooltip';
 import { MessageModule } from 'primeng/message';
-import { ToastModule } from 'primeng/toast';
 
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
@@ -61,7 +60,7 @@ const TIPO_SEV: Record<string, TagSeverity> = {
   imports: [
     CommonModule, FormsModule,
     ButtonModule, DialogModule, SelectModule, InputTextModule, InputNumberModule,
-    TooltipModule, MessageModule, ToastModule,
+    TooltipModule, MessageModule,
     InteractiveGridComponent,
   ],
   template: `
@@ -165,7 +164,7 @@ const TIPO_SEV: Record<string, TagSeverity> = {
     }
 
     <!-- Dialog nueva evaluación -->
-    <p-dialog header="Nueva evaluación" [(visible)]="showDialog" [modal]="true" [style]="{width:'520px'}">
+    <p-dialog header="Nueva evaluación" [visible]="showDialog()" (visibleChange)="showDialog.set($event)" [modal]="true" [style]="{width:'520px'}">
       <div class="form-grid">
         <div class="form-field full">
           <label>Nombre *</label>
@@ -177,24 +176,28 @@ const TIPO_SEV: Record<string, TagSeverity> = {
           <p-select [options]="grupos()" [(ngModel)]="form.grupo_id"
                     optionLabel="label" optionValue="value"
                     placeholder="Seleccionar..." styleClass="w-full"
-                    (onChange)="onGrupoChange()" />
+                    (onChange)="onGrupoChange()" 
+ [filter]="true" filterPlaceholder="Buscar..."/>
         </div>
         <div class="form-field">
           <label>Materia *</label>
           <p-select [options]="materias()" [(ngModel)]="form.materia_id"
                     optionLabel="label" optionValue="value"
-                    placeholder="Seleccionar..." styleClass="w-full" />
+                    placeholder="Seleccionar..." styleClass="w-full" 
+ [filter]="true" filterPlaceholder="Buscar..."/>
         </div>
         <div class="form-field">
           <label>Periodo *</label>
           <p-select [options]="periodos()" [(ngModel)]="form.periodo_evaluacion_id"
                     optionLabel="label" optionValue="value"
-                    placeholder="Seleccionar..." styleClass="w-full" />
+                    placeholder="Seleccionar..." styleClass="w-full" 
+ [filter]="true" filterPlaceholder="Buscar..."/>
         </div>
         <div class="form-field">
           <label>Tipo</label>
           <p-select [options]="types" [(ngModel)]="form.tipo_evaluacion"
-                    optionLabel="label" optionValue="value" styleClass="w-full" />
+                    optionLabel="label" optionValue="value" styleClass="w-full" 
+ [filter]="true" filterPlaceholder="Buscar..."/>
         </div>
         <div class="form-field">
           <label>Fecha *</label>
@@ -207,7 +210,7 @@ const TIPO_SEV: Record<string, TagSeverity> = {
         </div>
       </div>
       <ng-template pTemplate="footer">
-        <p-button label="Cancelar" severity="secondary" [text]="true" (onClick)="showDialog = false" />
+        <p-button label="Cancelar" severity="secondary" [text]="true" (onClick)="showDialog.set(false)" />
         <p-button label="Crear evaluación" icon="pi pi-check"
                   (onClick)="crearEvaluacion()" [loading]="saving()" />
       </ng-template>
@@ -264,7 +267,7 @@ export class EvaluacionesComponent implements OnInit {
 
   loading        = signal(false);
   saving         = signal(false);
-  showDialog     = false;
+  showDialog     = signal(false);
   activeTab      = 'agenda';
   selEval: Evaluacion | null = null;
 
@@ -412,7 +415,7 @@ export class EvaluacionesComponent implements OnInit {
   }
 
   abrirNueva(): void {
-    this.showDialog = true;
+    this.showDialog.set(true);
     this.form = this.emptyForm();
   }
 
@@ -424,7 +427,7 @@ export class EvaluacionesComponent implements OnInit {
     this.api.post('/evaluaciones', this.form).subscribe({
       next: () => {
         this.saving.set(false);
-        this.showDialog = false;
+        this.showDialog.set(false);
         this.cargar();
       },
       error: () => this.saving.set(false),

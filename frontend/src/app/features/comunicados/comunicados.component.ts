@@ -178,7 +178,7 @@ const TIPOS = [
     <!-- Dialog nuevo comunicado -->
     <p-dialog
       header="Nuevo comunicado"
-      [(visible)]="showDialog"
+      [visible]="showDialog()" (visibleChange)="showDialog.set($event)"
       [modal]="true"
       [style]="{width:'600px'}"
       [closable]="true"
@@ -191,7 +191,8 @@ const TIPOS = [
         <div class="form-field">
           <label>Tipo</label>
           <p-select [options]="tipos" [(ngModel)]="form.tipo_comunicado"
-                    optionLabel="label" optionValue="value" styleClass="w-full" />
+                    optionLabel="label" optionValue="value" styleClass="w-full" 
+ [filter]="true" filterPlaceholder="Buscar..."/>
         </div>
         <div class="form-field">
           <label>Fecha vencimiento</label>
@@ -210,7 +211,7 @@ const TIPOS = [
       </div>
 
       <ng-template pTemplate="footer">
-        <p-button label="Cancelar" severity="secondary" [text]="true" (onClick)="showDialog = false" />
+        <p-button label="Cancelar" severity="secondary" [text]="true" (onClick)="showDialog.set(false)" />
         <p-button label="Publicar" icon="pi pi-send" (onClick)="publicar()" [loading]="saving()" />
       </ng-template>
     </p-dialog>
@@ -258,7 +259,7 @@ export class ComunicadosComponent implements OnInit {
   comunicados = signal<Comunicado[]>([]);
   loading     = signal(false);
   saving      = signal(false);
-  showDialog  = false;
+  showDialog  = signal(false);
   expandedRows: Record<string, boolean> = {};
   filtroTipo  = '';
 
@@ -305,7 +306,7 @@ export class ComunicadosComponent implements OnInit {
     });
   }
 
-  abrirNuevo(): void { this.form = this.emptyForm(); this.showDialog = true; }
+  abrirNuevo(): void { this.form = this.emptyForm(); this.showDialog.set(true); }
 
   publicar(): void {
     if (!this.form.titulo.trim() || !this.form.contenido.trim()) return;
@@ -317,7 +318,7 @@ export class ComunicadosComponent implements OnInit {
       fecha_vencimiento: this.form.fecha_vencimiento || null,
     };
     this.api.post('/comunicados', payload).subscribe({
-      next: () => { this.showDialog = false; this.saving.set(false); this.cargar(); },
+      next: () => { this.showDialog.set(false); this.saving.set(false); this.cargar(); },
       error: () => this.saving.set(false),
     });
   }

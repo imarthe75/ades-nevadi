@@ -30,7 +30,7 @@ class AuditLogOut(AdesResponse):
     metodo_http: str | None = None
     codigo_respuesta: int | None = None
     duracion_ms: int | None = None
-    fccreacion: datetime | None = None
+    fecha_creacion: datetime | None = None
 
 
 @router.get("", response_model=list[AuditLogOut])
@@ -47,7 +47,7 @@ async def listar_audit_log(
         from fastapi import HTTPException, status
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Solo ADMIN_GLOBAL")
 
-    q = select(AuditLog).order_by(desc(AuditLog.fccreacion)).limit(limite)
+    q = select(AuditLog).order_by(desc(AuditLog.fecha_creacion)).limit(limite)
     if entidad:
         q = q.where(AuditLog.entidad == entidad)
     if accion:

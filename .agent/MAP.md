@@ -88,7 +88,9 @@ del sistema ADES — Instituto Nevadi.
 │           ├── portal                                   (FASE 9)
 │           ├── gradebook/            ← FASE 10: panel profesor (spreadsheet)
 │           ├── mi-progreso/          ← FASE 10: vista alumno
-│           └── ponderacion-config/   ← FASE 10: admin ponderaciones
+│           ├── ponderacion-config/   ← FASE 10: admin ponderaciones
+│           ├── certificados/         ← FASE 27: emitir, firmar, gestión llaves Ed25519
+│           └── verificar/            ← FASE 27: verificación pública /verificar/:folio (sin auth)
 │
 ├── integrations/
 │   ├── superset/
@@ -110,8 +112,8 @@ del sistema ADES — Instituto Nevadi.
 | Valkey 9.1.0        | 6379           | —                                   | Caché + Celery broker + redbeat    |
 | MinIO               | 9000/9001      | minio.ades.setag.mx                 | Archivos de tareas, entregas       |
 | Authentik server    | 9000           | https://auth.ades.setag.mx          | IdP OIDC, SSO Google Workspace     |
-| ades-api (FastAPI)  | 8000           | https://ades.setag.mx/api/v1/       | 175 ops REST (FASES 1–10)          |
-| ades-frontend       | 4200           | https://ades.setag.mx/              | Angular 22 + PrimeNG 21 (27 comp.) |
+| ades-api (FastAPI)  | 8000           | https://ades.setag.mx/api/v1/       | 180+ ops REST (FASES 1–27)         |
+| ades-frontend       | 4200           | https://ades.setag.mx/              | Angular 22 + PrimeNG 21 (29 comp.) |
 | Superset            | 8088           | https://bi.ades.setag.mx/           | BI sobre schema ades_bi            |
 | nginx               | 80/443         | —                                   | TLS Let's Encrypt, reverse proxy   |
 

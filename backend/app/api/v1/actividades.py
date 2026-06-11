@@ -217,7 +217,7 @@ async def calificar_masivo(
                        calificado_por = :uid,
                        fecha_calificacion_docente = now(),
                        estatus_entrega = 'CALIFICADA',
-                       fcmodificacion = now(),
+                       fecha_modificacion = now(),
                        row_version = row_version + 1
                  WHERE tarea_id = :tid AND estudiante_id = :eid
             """),

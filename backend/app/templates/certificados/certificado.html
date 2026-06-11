@@ -181,6 +181,40 @@
     margin-top: 3mm;
     letter-spacing: 0.5px;
   }
+
+  /* QR + verificación digital */
+  .cert-qr-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1mm;
+  }
+  .cert-qr-block img {
+    width: 20mm;
+    height: 20mm;
+  }
+  .cert-qr-label {
+    font-size: 6pt;
+    color: #999;
+    text-align: center;
+    max-width: 22mm;
+    word-break: break-all;
+  }
+  .cert-firma-badge {
+    display: inline-block;
+    background: #f0fdf4;
+    border: 1px solid #86efac;
+    border-radius: 4px;
+    padding: 0.5mm 2mm;
+    font-size: 6.5pt;
+    color: #166534;
+    margin-top: 1mm;
+  }
+  .cert-firma-badge-pendiente {
+    background: #fffbeb;
+    border-color: #fcd34d;
+    color: #92400e;
+  }
 </style>
 </head>
 <body>
@@ -232,10 +266,21 @@
     </div>
 
     <div class="cert-folio-box">
-      <div class="cert-folio-label">Folio de verificación</div>
+      {% if qr_b64 %}
+      <div class="cert-qr-block">
+        <img src="data:image/png;base64,{{ qr_b64 }}" alt="QR Verificación" />
+        <div class="cert-qr-label">Escanea para verificar</div>
+      </div>
+      {% endif %}
+      <div class="cert-folio-label">Folio</div>
       <div class="cert-folio-valor">{{ folio }}</div>
-      <div class="cert-fecha">Emitido el {{ fecha_emision }}</div>
-      <div class="cert-slogan">EL ÚNICO CAMINO PARA SALIR ADELANTE ES LA EDUCACIÓN.</div>
+      <div class="cert-fecha">{{ fecha_emision }}</div>
+      {% if firmado %}
+      <div class="cert-firma-badge">&#10003; Firma Ed25519 válida</div>
+      {% else %}
+      <div class="cert-firma-badge cert-firma-badge-pendiente">&#9711; Pendiente de firma</div>
+      {% endif %}
+      <div class="cert-slogan" style="margin-top:2mm;">EL ÚNICO CAMINO PARA SALIR ADELANTE ES LA EDUCACIÓN.</div>
     </div>
 
     <div class="cert-firma">

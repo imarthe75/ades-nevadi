@@ -8,9 +8,8 @@ import { InputTextModule } from 'primeng/inputtext';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { TagModule } from 'primeng/tag';
 import { DialogModule } from 'primeng/dialog';
-import { ToastModule } from 'primeng/toast';
-import { MessageService } from 'primeng/api';
 import { ApiService } from '../../core/services/api.service';
+import { ApexNotificationService } from 'apex-component-library';
 
 interface NivelOpt  { id: string; nombre_nivel: string; escala_maxima: number; }
 interface EsquemaRow { id: string; nombre: string; nombre_nivel: string; materia_id: string | null;
@@ -22,10 +21,8 @@ interface ItemRow    { tipo_item: string; nombre_personalizado: string | null; p
   selector: 'app-ponderacion-config',
   standalone: true,
   imports: [CommonModule, FormsModule, TableModule, ButtonModule, SelectModule,
-            InputTextModule, InputNumberModule, TagModule, DialogModule, ToastModule],
-  providers: [MessageService],
+            InputTextModule, InputNumberModule, TagModule, DialogModule],
   template: `
-<p-toast />
 <div class="page-header">
   <div class="page-title"><i class="pi pi-sliders-h"></i> Configurar Ponderaciones</div>
   <div class="page-actions">
@@ -36,7 +33,8 @@ interface ItemRow    { tipo_item: string; nombre_personalizado: string | null; p
 <div class="filter-bar">
   <p-select [options]="niveles()" optionLabel="nombre_nivel" optionValue="id"
             placeholder="Filtrar por nivel" [(ngModel)]="nivelFiltro"
-            (onChange)="cargarEsquemas()" [showClear]="true" />
+            (onChange)="cargarEsquemas()" [showClear]="true" 
+ [filter]="true" filterPlaceholder="Buscar..."/>
 </div>
 
 <p-table [value]="esquemas()" [loading]="cargando()" styleClass="p-datatable-sm"
@@ -103,7 +101,8 @@ interface ItemRow    { tipo_item: string; nombre_personalizado: string | null; p
     <div class="field">
       <label>Nivel educativo *</label>
       <p-select [options]="niveles()" optionLabel="nombre_nivel" optionValue="id"
-                [(ngModel)]="form.nivel_educativo_id" styleClass="w-full" />
+                [(ngModel)]="form.nivel_educativo_id" styleClass="w-full" 
+ [filter]="true" filterPlaceholder="Buscar..."/>
     </div>
     <div class="field">
       <label>Vigente desde</label>
@@ -122,7 +121,8 @@ interface ItemRow    { tipo_item: string; nombre_personalizado: string | null; p
     @for (item of form.items; track $index; let i = $index) {
       <div class="item-row flex gap-2 mb-2 items-center">
         <p-select [options]="tiposItem" optionLabel="label" optionValue="value"
-                  [(ngModel)]="item.tipo_item" styleClass="flex-1" />
+                  [(ngModel)]="item.tipo_item" styleClass="flex-1" 
+ [filter]="true" filterPlaceholder="Buscar..."/>
         <input pInputText [(ngModel)]="item.nombre_personalizado" placeholder="Nombre personalizado"
                style="flex:1;max-width:160px" />
         <p-inputNumber [(ngModel)]="item.peso_porcentaje" suffix="%" [min]="1" [max]="100"
@@ -157,7 +157,7 @@ interface ItemRow    { tipo_item: string; nombre_personalizado: string | null; p
 })
 export class PonderacionConfigComponent implements OnInit {
   private api = inject(ApiService);
-  private msg = inject(MessageService);
+  private readonly notify = inject(ApexNotificationService);
 
   niveles  = signal<NivelOpt[]>([]);
   esquemas = signal<EsquemaRow[]>([]);
@@ -241,7 +241,7 @@ export class PonderacionConfigComponent implements OnInit {
       ? this.api.put(`/esquemas-ponderacion/${this.editandoId}`, payload)
       : this.api.post('/esquemas-ponderacion', payload);
     obs.subscribe(() => {
-      this.msg.add({ severity: 'success', summary: 'Guardado' });
+      this.notify.success('Guardado');
       this.dialogVisible = false;
       this.cargarEsquemas();
     });
@@ -249,7 +249,7 @@ export class PonderacionConfigComponent implements OnInit {
 
   desactivarEsquema(id: string) {
     this.api.delete(`/esquemas-ponderacion/${id}`).subscribe(() => {
-      this.msg.add({ severity: 'info', summary: 'Desactivado' });
+      this.notify.info('Desactivado');
       this.cargarEsquemas();
     });
   }

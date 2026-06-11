@@ -72,7 +72,8 @@ const NIVEL_COLORS = ['var(--red-400)', 'var(--yellow-400)', 'var(--teal-400)', 
                     optionLabel="label" optionValue="value"
                     placeholder="Filtrar por materia..."
                     [showClear]="true" styleClass="w-full"
-                    (onChange)="cargar()" />
+                    (onChange)="cargar()" 
+ [filter]="true" filterPlaceholder="Buscar..."/>
         </div>
 
         @if (rubricas().length === 0) {
@@ -177,13 +178,15 @@ const NIVEL_COLORS = ['var(--red-400)', 'var(--yellow-400)', 'var(--teal-400)', 
           <label>Materia</label>
           <p-select [options]="materias()" [(ngModel)]="formNueva.materia_id"
                     optionLabel="label" optionValue="value"
-                    placeholder="Opcional..." [showClear]="true" styleClass="w-full" />
+                    placeholder="Opcional..." [showClear]="true" styleClass="w-full" 
+ [filter]="true" filterPlaceholder="Buscar..."/>
         </div>
         <div class="form-field">
           <label>Nivel educativo</label>
           <p-select [options]="niveles()" [(ngModel)]="formNueva.nivel_educativo_id"
                     optionLabel="label" optionValue="value"
-                    placeholder="Opcional..." [showClear]="true" styleClass="w-full" />
+                    placeholder="Opcional..." [showClear]="true" styleClass="w-full" 
+ [filter]="true" filterPlaceholder="Buscar..."/>
         </div>
       </div>
       <ng-template pTemplate="footer">

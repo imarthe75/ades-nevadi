@@ -24,24 +24,24 @@ export const routes: Routes = [
       // ── FASE 1 ──────────────────────────────────────────────────────────
       { path: 'dashboard',  loadComponent: () => import('./features/dashboard/dashboard.component').then(m => m.DashboardComponent) },
       { path: 'planteles',  canActivate: [roleGuard(1)], loadComponent: () => import('./features/planteles/planteles.component').then(m => m.PlantelesComponent) },
-      { path: 'grupos',     loadComponent: () => import('./features/grupos/grupos.component').then(m => m.GruposComponent) },
-      { path: 'alumnos',    loadComponent: () => import('./features/alumnos/alumnos.component').then(m => m.AlumnosComponent) },
-      { path: 'profesores', loadComponent: () => import('./features/profesores/profesores.component').then(m => m.ProfesoresComponent) },
+      { path: 'grupos',     canActivate: [roleGuard(3)], loadComponent: () => import('./features/grupos/grupos.component').then(m => m.GruposComponent) },
+      { path: 'alumnos',    canActivate: [roleGuard(4)], loadComponent: () => import('./features/alumnos/alumnos.component').then(m => m.AlumnosComponent) },
+      { path: 'profesores', canActivate: [roleGuard(3)], loadComponent: () => import('./features/profesores/profesores.component').then(m => m.ProfesoresComponent) },
       // ── FASE 2 ──────────────────────────────────────────────────────────
-      { path: 'calificaciones', loadComponent: () => import('./features/calificaciones/calificaciones.component').then(m => m.CalificacionesComponent) },
-      { path: 'asistencias',    loadComponent: () => import('./features/asistencias/asistencias.component').then(m => m.AsistenciasComponent) },
-      { path: 'tareas',         loadComponent: () => import('./features/tareas/tareas.component').then(m => m.TareasComponent) },
+      { path: 'calificaciones', canActivate: [roleGuard(4)], loadComponent: () => import('./features/calificaciones/calificaciones.component').then(m => m.CalificacionesComponent) },
+      { path: 'asistencias',    canActivate: [roleGuard(4)], loadComponent: () => import('./features/asistencias/asistencias.component').then(m => m.AsistenciasComponent) },
+      { path: 'tareas',         canActivate: [roleGuard(4)], loadComponent: () => import('./features/tareas/tareas.component').then(m => m.TareasComponent) },
       // ── FASE 3 ──────────────────────────────────────────────────────────
-      { path: 'horarios',       loadComponent: () => import('./features/horarios/horarios.component').then(m => m.HorariosComponent) },
-      { path: 'conducta',       loadComponent: () => import('./features/conducta/conducta.component').then(m => m.ConductaComponent) },
-      { path: 'medico',         loadComponent: () => import('./features/medico/medico.component').then(m => m.MedicoComponent) },
+      { path: 'horarios',       canActivate: [roleGuard(4)], loadComponent: () => import('./features/horarios/horarios.component').then(m => m.HorariosComponent) },
+      { path: 'conducta',       canActivate: [roleGuard(4)], loadComponent: () => import('./features/conducta/conducta.component').then(m => m.ConductaComponent) },
+      { path: 'medico',         canActivate: [roleGuard(3)], loadComponent: () => import('./features/medico/medico.component').then(m => m.MedicoComponent) },
       // ── FASE 4 ──────────────────────────────────────────────────────────
-      { path: 'eval-docente',    loadComponent: () => import('./features/eval-docente/eval-docente.component').then(m => m.EvalDocenteComponent) },
+      { path: 'eval-docente',   canActivate: [roleGuard(3)], loadComponent: () => import('./features/eval-docente/eval-docente.component').then(m => m.EvalDocenteComponent) },
       { path: 'learning-paths', loadComponent: () => import('./features/learning-paths/learning-paths.component').then(m => m.LearningPathsComponent) },
-      { path: 'ia',             loadComponent: () => import('./features/ia/ia.component').then(m => m.IaComponent) },
+      { path: 'ia',             canActivate: [roleGuard(3)], loadComponent: () => import('./features/ia/ia.component').then(m => m.IaComponent) },
       // ── FASE 5 ──────────────────────────────────────────────────────────
       { path: 'comunicados',     loadComponent: () => import('./features/comunicados/comunicados.component').then(m => m.ComunicadosComponent) },
-      { path: 'grade-analytics', loadComponent: () => import('./features/grade-analytics/grade-analytics.component').then(m => m.GradeAnalyticsComponent) },
+      { path: 'grade-analytics', canActivate: [roleGuard(3)], loadComponent: () => import('./features/grade-analytics/grade-analytics.component').then(m => m.GradeAnalyticsComponent) },
       // ── FASE 6 ──────────────────────────────────────────────────────────
       { path: 'evaluaciones',    loadComponent: () => import('./features/evaluaciones/evaluaciones.component').then(m => m.EvaluacionesComponent) },
       { path: 'planeacion',      loadComponent: () => import('./features/planeacion/planeacion.component').then(m => m.PlaneacionComponent) },
@@ -53,20 +53,27 @@ export const routes: Routes = [
       // ── FASE 9 ──────────────────────────────────────────────────────────
       { path: 'portal',          loadComponent: () => import('./features/portal/portal.component').then(m => m.PortalComponent) },
       { path: 'padres',          loadComponent: () => import('./features/padres/padres.component').then(m => m.PadresComponent) },
-      { path: 'planes-estudio', loadComponent: () => import('./features/planes-estudio/planes-estudio.component').then(m => m.PlanesEstudioComponent) },
+      { path: 'planes-estudio',  loadComponent: () => import('./features/planes-estudio/planes-estudio.component').then(m => m.PlanesEstudioComponent) },
       // ── FASE 10 — Gradebook Curricular ──────────────────────────────────
-      { path: 'gradebook',        loadComponent: () => import('./features/gradebook/gradebook.component').then(m => m.GradebookComponent) },
+      { path: 'gradebook',        canActivate: [roleGuard(4)], loadComponent: () => import('./features/gradebook/gradebook.component').then(m => m.GradebookComponent) },
       { path: 'mi-progreso',      loadComponent: () => import('./features/mi-progreso/mi-progreso.component').then(m => m.MiProgresoComponent) },
       { path: 'ponderacion-config', canActivate: [roleGuard(3)], loadComponent: () => import('./features/ponderacion-config/ponderacion-config.component').then(m => m.PonderacionConfigComponent) },
       // ── FASE 16 — BI Dashboards Superset ────────────────────────────────
       { path: 'bi', loadComponent: () => import('./features/bi/bi.component').then(m => m.BiComponent) },
       // ── FASE 18 — Generador de Reportes (Carbone) ───────────────────────
-      { path: 'reportes', loadComponent: () => import('./features/reportes/reportes.component').then(m => m.ReportesComponent) },
+      { path: 'reportes', canActivate: [roleGuard(3)], loadComponent: () => import('./features/reportes/reportes.component').then(m => m.ReportesComponent) },
       // ── FASE 22 — Monitor del sistema (Grafana + Prometheus) ─────────────
       { path: 'monitor', canActivate: [roleGuard(1)], loadComponent: () => import('./features/monitor/monitor.component').then(m => m.MonitorComponent) },
       // ── FASE 24 — Gestión de Padres de Familia ──────────────────────────
       { path: 'padres-admin', canActivate: [roleGuard(1)], loadComponent: () => import('./features/padres-admin/padres-admin.component').then(m => m.PadresAdminComponent) },
+      // ── FASE 27 — Certificación Digital Ed25519 ─────────────────────────
+      { path: 'certificados', canActivate: [roleGuard(3)], loadComponent: () => import('./features/certificados/certificados.component').then(m => m.CertificadosComponent) },
     ],
+  },
+  // ── Pública — verificación de certificados (sin autenticación) ──────────
+  {
+    path: 'verificar/:folio',
+    loadComponent: () => import('./features/verificar/verificar.component').then(m => m.VerificarComponent),
   },
   { path: '**', redirectTo: 'dashboard' },
 ];

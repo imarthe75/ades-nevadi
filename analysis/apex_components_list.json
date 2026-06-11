@@ -1,0 +1,38 @@
+[
+  {
+    "id": "alert",
+    "name": "Alert Region",
+    "category": "Messaging",
+    "description": "Displays important messages and warnings to users."
+  },
+  {
+    "id": "breadcrumb",
+    "name": "Breadcrumb",
+    "category": "Navigation",
+    "description": "Provides a trail of links to indicate the user's location within the application."
+  },
+  {
+    "id": "button",
+    "name": "Button",
+    "category": "Actions",
+    "description": "Interactive element to trigger actions like submit or cancel."
+  },
+  {
+    "id": "interactive-grid",
+    "name": "Interactive Grid",
+    "category": "Data",
+    "description": "A rich, editable data table component with sorting, filtering, and pagination."
+  },
+  {
+    "id": "data-reporter",
+    "name": "Data Reporter",
+    "category": "Reporting",
+    "description": "Allows generating, exporting, and scheduling data reports."
+  },
+  {
+    "id": "ai-interactive-report",
+    "name": "AI Interactive Report",
+    "category": "AI & Insights",
+    "description": "Uses AI to generate insights, recommendations, and summaries over data grids."
+  }
+]

@@ -23,8 +23,8 @@ CREATE TABLE IF NOT EXISTS ades_encuestas (
     creado_por_id       uuid        REFERENCES ades_usuarios(id),
     ref                 uuid        NOT NULL DEFAULT uuidv7() UNIQUE,
     is_active           boolean     NOT NULL DEFAULT TRUE,
-    fccreacion          timestamptz NOT NULL DEFAULT NOW(),
-    fcmodificacion      timestamptz NOT NULL DEFAULT NOW(),
+    fecha_creacion          timestamptz NOT NULL DEFAULT NOW(),
+    fecha_modificacion      timestamptz NOT NULL DEFAULT NOW(),
     usuario_creacion    varchar(150) NOT NULL DEFAULT CURRENT_USER,
     usuario_modificacion varchar(150) NOT NULL DEFAULT CURRENT_USER,
     row_version         integer     NOT NULL DEFAULT 1
@@ -49,8 +49,8 @@ CREATE TABLE IF NOT EXISTS ades_encuesta_preguntas (
     obligatoria     boolean     NOT NULL DEFAULT TRUE,
     ref             uuid        NOT NULL DEFAULT uuidv7() UNIQUE,
     is_active       boolean     NOT NULL DEFAULT TRUE,
-    fccreacion      timestamptz NOT NULL DEFAULT NOW(),
-    fcmodificacion  timestamptz NOT NULL DEFAULT NOW(),
+    fecha_creacion      timestamptz NOT NULL DEFAULT NOW(),
+    fecha_modificacion  timestamptz NOT NULL DEFAULT NOW(),
     usuario_creacion    varchar(150) NOT NULL DEFAULT CURRENT_USER,
     usuario_modificacion varchar(150) NOT NULL DEFAULT CURRENT_USER,
     row_version     integer     NOT NULL DEFAULT 1
@@ -75,7 +75,7 @@ CREATE TABLE IF NOT EXISTS ades_encuesta_respuestas (
     texto_respuesta      text,
     valor_numerico       numeric(5,2),   -- ESCALA_5: 1.0–5.0
     opcion_seleccionada  varchar(255),   -- OPCION_MULTIPLE: texto de la opción elegida
-    fccreacion           timestamptz NOT NULL DEFAULT NOW(),
+    fecha_creacion           timestamptz NOT NULL DEFAULT NOW(),
     UNIQUE (pregunta_id, sesion_id)
 );
 

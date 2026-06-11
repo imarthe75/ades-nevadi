@@ -15,14 +15,14 @@ import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { TabsModule } from 'primeng/tabs';
 import { TooltipModule } from 'primeng/tooltip';
-import { ToastModule } from 'primeng/toast';
 import { FileUploadModule } from 'primeng/fileupload';
 import { MessageModule } from 'primeng/message';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
-import { MessageService } from 'primeng/api';
 
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
+import { AuthService } from '../../core/services/auth.service';
+import { ApexNotificationService } from 'apex-component-library';
 
 interface Plantilla {
   id: string;
@@ -57,11 +57,9 @@ const TIPOS_DOC = [
     CommonModule, FormsModule,
     ButtonModule, SelectModule, TableModule, TagModule,
     TabsModule,
-    TooltipModule, ToastModule, FileUploadModule, MessageModule, ProgressSpinnerModule,
+    TooltipModule, FileUploadModule, MessageModule, ProgressSpinnerModule,
   ],
-  providers: [MessageService],
   template: `
-    <p-toast />
 
     <div class="page-header">
       <div>
@@ -112,7 +110,8 @@ const TIPOS_DOC = [
                   optionLabel="nombre"
                   optionValue="id"
                   placeholder="Seleccionar plantilla..."
-                  style="width:320px" />
+                  style="width:320px" 
+ [filter]="true" filterPlaceholder="Buscar..."/>
               </div>
 
               <div class="form-row">
@@ -122,7 +121,8 @@ const TIPOS_DOC = [
                   [(ngModel)]="tipoDocSel"
                   optionLabel="label"
                   optionValue="value"
-                  style="width:220px" />
+                  style="width:220px" 
+ [filter]="true" filterPlaceholder="Buscar..."/>
               </div>
 
               @if (tipoDocSel === 'BOLETA') {
@@ -133,7 +133,8 @@ const TIPOS_DOC = [
                     [(ngModel)]="periodoSel"
                     optionLabel="label"
                     optionValue="value"
-                    style="width:200px" />
+                    style="width:200px" 
+ [filter]="true" filterPlaceholder="Buscar..."/>
                 </div>
               }
 
@@ -176,7 +177,8 @@ const TIPOS_DOC = [
                   [(ngModel)]="plantillaGrupoSel"
                   optionLabel="nombre" optionValue="id"
                   placeholder="Plantilla de tipo BOLETA..."
-                  style="width:320px" />
+                  style="width:320px" 
+ [filter]="true" filterPlaceholder="Buscar..."/>
               </div>
 
               <div class="form-row">
@@ -185,7 +187,8 @@ const TIPOS_DOC = [
                   [options]="[{label:'Todos',value:null},{label:'Periodo 1',value:1},{label:'Periodo 2',value:2},{label:'Periodo 3',value:3}]"
                   [(ngModel)]="periodoGrupoSel"
                   optionLabel="label" optionValue="value"
-                  style="width:180px" />
+                  style="width:180px" 
+ [filter]="true" filterPlaceholder="Buscar..."/>
               </div>
 
               <div class="form-row">
@@ -258,7 +261,8 @@ const TIPOS_DOC = [
                 <input pInputText [(ngModel)]="nuevaPlantillaNombre" placeholder="ej. Boleta Primaria 2026" />
                 <label>Tipo de documento</label>
                 <p-select [options]="tiposDoc" [(ngModel)]="nuevaPlantillaTipo"
-                  optionLabel="label" optionValue="value" style="width:100%" />
+                  optionLabel="label" optionValue="value" style="width:100%" 
+ [filter]="true" filterPlaceholder="Buscar..."/>
                 <label>Descripción</label>
                 <input pInputText [(ngModel)]="nuevaPlantillaDesc" placeholder="Descripción opcional" />
               </div>
@@ -310,7 +314,8 @@ const TIPOS_DOC = [
 export class ReportesComponent implements OnInit {
   readonly api = inject(ApiService);
   readonly ctx = inject(ContextService);
-  private readonly msg = inject(MessageService);
+  private readonly auth = inject(AuthService);
+  private readonly notify = inject(ApexNotificationService);
 
   tabActivo          = signal('generar');
   plantillas         = signal<Plantilla[]>([]);
@@ -398,7 +403,7 @@ export class ReportesComponent implements OnInit {
   generarBoletasGrupo(): void {
     if (!this.grupoSel || !this.plantillaGrupoSel) return;
     this.generandoGrupo.set(true);
-    const token = localStorage.getItem('ades_access_token') || sessionStorage.getItem('ades_access_token') || '';
+    const token = this.auth.accessToken() ?? '';
     const base = (window as any).__env?.apiUrl || '';
     let qs = `template_id=${this.plantillaGrupoSel}&agregar_marca_agua=${this.marcaAgua}`;
     if (this.periodoGrupoSel) qs += `&periodo=${this.periodoGrupoSel}`;
@@ -420,9 +425,9 @@ export class ReportesComponent implements OnInit {
         a.download = `boletas_grupo_${this.grupoSel?.slice(0,6)}.${ext}`;
         a.click();
         URL.revokeObjectURL(url);
-        this.msg.add({ severity:'success', summary:'PDF generado', detail:`Boletas del grupo descargadas (.${ext})` });
+        this.notify.success('PDF generado', `Boletas del grupo descargadas (.${ext})`);
       })
-      .catch(err => this.msg.add({ severity:'error', summary:'Error', detail: err.message }))
+      .catch(err => this.notify.error('Error', err.message))
       .finally(() => this.generandoGrupo.set(false));
   }
 
@@ -438,7 +443,7 @@ export class ReportesComponent implements OnInit {
     if (this.tipoDocSel === 'BOLETA' && this.periodoSel) params['periodo'] = this.periodoSel;
 
     // Usar fetch directo para descargar blob
-    const token = localStorage.getItem('ades_access_token') || sessionStorage.getItem('ades_access_token') || '';
+    const token = this.auth.accessToken() ?? '';
     const base = (window as any).__env?.apiUrl || '';
     const qs = Object.entries(params).map(([k,v]) => `${k}=${v}`).join('&');
 
@@ -457,9 +462,9 @@ export class ReportesComponent implements OnInit {
         a.download = `reporte_${Date.now()}.pdf`;
         a.click();
         URL.revokeObjectURL(url);
-        this.msg.add({ severity: 'success', summary: 'PDF generado', detail: 'Descarga iniciada' });
+        this.notify.success('PDF generado', 'Descarga iniciada');
       })
-      .catch(err => this.msg.add({ severity: 'error', summary: 'Error', detail: err.message }))
+      .catch(err => this.notify.error('Error', err.message))
       .finally(() => this.generando.set(false));
   }
 
@@ -467,9 +472,9 @@ export class ReportesComponent implements OnInit {
     this.api.delete(`/carbone/templates/${id}`).subscribe({
       next: () => {
         this.plantillas.update(p => p.filter(x => x.id !== id));
-        this.msg.add({ severity: 'success', summary: 'Eliminada' });
+        this.notify.success('Eliminada');
       },
-      error: () => this.msg.add({ severity: 'error', summary: 'Error al eliminar' }),
+      error: () => this.notify.error('Error al eliminar'),
     });
   }
 
@@ -486,11 +491,11 @@ export class ReportesComponent implements OnInit {
     this.api.postFormData<Plantilla>('/carbone/templates', fd).subscribe({
       next: p => {
         this.plantillas.update(lst => [...lst, p]);
-        this.msg.add({ severity: 'success', summary: 'Plantilla subida', detail: p.nombre });
+        this.notify.success('Plantilla subida', p.nombre);
         this.nuevaPlantillaNombre = '';
         this.nuevaPlantillaDesc  = '';
       },
-      error: () => this.msg.add({ severity: 'error', summary: 'Error al subir plantilla' }),
+      error: () => this.notify.error('Error al subir plantilla'),
     });
   }
 }

@@ -49,7 +49,7 @@ class PlantillaOut(AdesSchema):
     descripcion: str = ""
     extension: str
     tamano_bytes: int = 0
-    fccreacion: str
+    fecha_creacion: str
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────

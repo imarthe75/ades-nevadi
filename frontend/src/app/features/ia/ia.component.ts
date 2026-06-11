@@ -15,13 +15,12 @@ import { CardModule } from 'primeng/card';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { SelectModule } from 'primeng/select';
-import { ToastModule } from 'primeng/toast';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
-import { MessageService } from 'primeng/api';
 
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
 import type { Grupo } from '../../core/models';
+import { ApexNotificationService } from 'apex-component-library';
 
 interface Mensaje {
   rol: 'user' | 'assistant';
@@ -50,11 +49,9 @@ const RIESGO_SEVERITY: Record<string, AlertaSeverity> = {
   imports: [
     CommonModule, FormsModule,
     ButtonModule, InputTextModule, TabsModule, CardModule, TableModule,
-    TagModule, SelectModule, ToastModule, ProgressSpinnerModule,
+    TagModule, SelectModule, ProgressSpinnerModule,
   ],
-  providers: [MessageService],
   template: `
-    <p-toast />
 
     <div class="page-header">
       <div>
@@ -138,7 +135,9 @@ const RIESGO_SEVERITY: Record<string, AlertaSeverity> = {
             optionLabel="nombre_grupo"
             placeholder="Seleccionar grupo..."
             [showClear]="true"
-          />
+          
+
+          [filter]="true" filterPlaceholder="Buscar..."/>
           <p-button
             label="Escanear grupo"
             icon="pi pi-search"
@@ -360,7 +359,7 @@ const RIESGO_SEVERITY: Record<string, AlertaSeverity> = {
 export class IaComponent implements OnInit {
   private readonly api = inject(ApiService);
   readonly ctx = inject(ContextService);
-  private readonly msg = inject(MessageService);
+  private readonly notify = inject(ApexNotificationService);
 
   @ViewChild('messagesContainer') messagesContainer?: ElementRef<HTMLDivElement>;
 
@@ -439,7 +438,7 @@ export class IaComponent implements OnInit {
       },
       error: (e) => {
         this.cargando.set(false);
-        this.msg.add({ severity: 'error', summary: 'Error', detail: e.error?.detail || 'Error al contactar al asistente' });
+        this.notify.error('Error', e.error?.detail || 'Error al contactar al asistente');
       },
     });
   }
@@ -472,7 +471,7 @@ export class IaComponent implements OnInit {
     this.api.post<any>(`/ai/alertas/scan/${this.selectedGrupo.id}`, {}).subscribe({
       next: (r) => {
         this.escaneando.set(false);
-        this.msg.add({ severity: 'success', summary: 'Escaneo completado', detail: `${r.alertas_generadas} alerta(s) generadas para ${r.alumnos_analizados} alumnos` });
+        this.notify.success('Escaneo completado', `${r.alertas_generadas} alerta(s) generadas para ${r.alumnos_analizados} alumnos`);
         this.cargarAlertas();
       },
       error: () => this.escaneando.set(false),

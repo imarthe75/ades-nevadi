@@ -1,0 +1,97 @@
+.apex-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 1px solid transparent;
+  border-radius: 0.25rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  
+  /* Sizes */
+  &.apex-btn-small {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+  }
+  
+  &.apex-btn-medium {
+    padding: 0.5rem 1rem;
+    font-size: 1rem;
+  }
+  
+  &.apex-btn-large {
+    padding: 0.75rem 1.5rem;
+    font-size: 1.125rem;
+  }
+  
+  &.apex-btn-full {
+    width: 100%;
+  }
+  
+  &.apex-btn-icon-only {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+  
+  /* Variants */
+  &.apex-btn-primary {
+    background-color: #0066cc;
+    color: white;
+    
+    &:hover:not(:disabled) {
+      background-color: #0052a3;
+    }
+    
+    &:active:not(:disabled) {
+      background-color: #004080;
+    }
+  }
+  
+  &.apex-btn-secondary {
+    background-color: #e9ecef;
+    color: #495057;
+    border-color: #ced4da;
+    
+    &:hover:not(:disabled) {
+      background-color: #dde2e6;
+    }
+    
+    &:active:not(:disabled) {
+      background-color: #cdd3d8;
+    }
+  }
+  
+  &.apex-btn-success {
+    background-color: #28a745;
+    color: white;
+    
+    &:hover:not(:disabled) {
+      background-color: #218838;
+    }
+  }
+  
+  &.apex-btn-danger {
+    background-color: #dc3545;
+    color: white;
+    
+    &:hover:not(:disabled) {
+      background-color: #c82333;
+    }
+  }
+  
+  &.apex-btn-text {
+    background-color: transparent;
+    color: #0066cc;
+    
+    &:hover:not(:disabled) {
+      background-color: rgba(0, 102, 204, 0.1);
+    }
+  }
+}

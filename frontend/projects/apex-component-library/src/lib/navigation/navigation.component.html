@@ -1,0 +1,86 @@
+<nav class="apex-nav" [ngClass]="{'apex-nav-collapsed': collapsed, 'apex-nav-horizontal': mode === 'horizontal'}">
+  <!-- Top Level Items -->
+  <ul class="apex-nav-list" role="menu">
+    <li *ngFor="let item of items" 
+        class="apex-nav-item" 
+        [ngClass]="{'has-submenu': hasSubmenu(item), 'expanded': item.expanded, 'active': item.active}"
+        role="none">
+        
+      <!-- Item with Router Link -->
+      <a *ngIf="item.route" 
+         [routerLink]="item.route" 
+         class="apex-nav-link" 
+         routerLinkActive="active"
+         role="menuitem"
+         (click)="toggleSubmenu($event, item)">
+         
+        <span *ngIf="item.icon" [class]="item.icon" class="apex-nav-icon"></span>
+        <span class="apex-nav-label" *ngIf="!collapsed">{{ item.label }}</span>
+      </a>
+      
+      <!-- Item with External URL -->
+      <a *ngIf="item.url && !item.route" 
+         [href]="item.url" 
+         [target]="item.target || '_self'"
+         class="apex-nav-link"
+         role="menuitem"
+         (click)="toggleSubmenu($event, item)">
+         
+        <span *ngIf="item.icon" [class]="item.icon" class="apex-nav-icon"></span>
+        <span class="apex-nav-label" *ngIf="!collapsed">{{ item.label }}</span>
+      </a>
+      
+      <!-- Item that only acts as a toggle for submenu -->
+      <a *ngIf="!item.route && !item.url" 
+         href="#" 
+         class="apex-nav-link" 
+         role="menuitem" 
+         [attr.aria-haspopup]="true"
+         [attr.aria-expanded]="item.expanded"
+         (click)="toggleSubmenu($event, item)">
+         
+        <span *ngIf="item.icon" [class]="item.icon" class="apex-nav-icon"></span>
+        <span class="apex-nav-label" *ngIf="!collapsed">{{ item.label }}</span>
+        
+        <span *ngIf="hasSubmenu(item) && !collapsed" 
+              class="apex-nav-toggle-icon pi" 
+              [ngClass]="{'pi-angle-down': item.expanded, 'pi-angle-right': !item.expanded}">
+        </span>
+      </a>
+      
+      <!-- Submenu Items (Recursive rendering not implemented for MVP, assuming max depth of 1 level) -->
+      <ul *ngIf="hasSubmenu(item)" 
+          class="apex-nav-submenu" 
+          [style.display]="(item.expanded || mode === 'horizontal') && !collapsed ? 'block' : 'none'"
+          role="menu">
+          
+        <li *ngFor="let subitem of item.items" 
+            class="apex-nav-submenu-item"
+            [ngClass]="{'active': subitem.active}"
+            role="none">
+            
+          <a *ngIf="subitem.route" 
+             [routerLink]="subitem.route" 
+             class="apex-nav-link" 
+             routerLinkActive="active"
+             role="menuitem"
+             (click)="toggleSubmenu($event, subitem)">
+            <span *ngIf="subitem.icon" [class]="subitem.icon" class="apex-nav-icon"></span>
+            <span class="apex-nav-label">{{ subitem.label }}</span>
+          </a>
+          
+          <a *ngIf="subitem.url && !subitem.route" 
+             [href]="subitem.url" 
+             [target]="subitem.target || '_self'"
+             class="apex-nav-link"
+             role="menuitem"
+             (click)="toggleSubmenu($event, subitem)">
+            <span *ngIf="subitem.icon" [class]="subitem.icon" class="apex-nav-icon"></span>
+            <span class="apex-nav-label">{{ subitem.label }}</span>
+          </a>
+        </li>
+      </ul>
+      
+    </li>
+  </ul>
+</nav>

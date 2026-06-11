@@ -6,8 +6,6 @@ import { CardModule } from 'primeng/card';
 import { ButtonModule } from 'primeng/button';
 import { TagModule } from 'primeng/tag';
 import { FileUploadModule } from 'primeng/fileupload';
-import { MessageService } from 'primeng/api';
-import { ToastModule } from 'primeng/toast';
 import { SelectModule } from 'primeng/select';
 import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
@@ -17,6 +15,7 @@ import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
 import type { Tarea, Grupo, Materia } from '../../core/models';
 import { grupoLabel } from '../../core/models';
+import { ApexNotificationService } from 'apex-component-library';
 
 type GrupoConLabel = Grupo & { _label: string };
 
@@ -25,12 +24,10 @@ type GrupoConLabel = Grupo & { _label: string };
   standalone: true,
   imports: [
     CommonModule, FormsModule,
-    TableModule, CardModule, ButtonModule, TagModule, FileUploadModule, ToastModule,
+    TableModule, CardModule, ButtonModule, TagModule, FileUploadModule,
     SelectModule, DialogModule, InputTextModule, InputNumberModule,
   ],
-  providers: [MessageService],
   template: `
-    <p-toast />
 
     <div class="page-header">
       <div>
@@ -52,7 +49,9 @@ type GrupoConLabel = Grupo & { _label: string };
         (onChange)="onGrupoChange()"
         [showClear]="true"
         styleClass="filter-select"
-      />
+      
+
+      [filter]="true" filterPlaceholder="Buscar..."/>
       <p-select
         [options]="materias()"
         [(ngModel)]="selectedMateria"
@@ -62,7 +61,9 @@ type GrupoConLabel = Grupo & { _label: string };
         [showClear]="true"
         [disabled]="!selectedGrupo"
         styleClass="filter-select"
-      />
+      
+
+      [filter]="true" filterPlaceholder="Buscar..."/>
     </div>
 
     @if (!selectedGrupo || !selectedMateria) {
@@ -219,7 +220,7 @@ type GrupoConLabel = Grupo & { _label: string };
 export class TareasComponent implements OnInit {
   private readonly api = inject(ApiService);
   private readonly ctx = inject(ContextService);
-  private readonly msg = inject(MessageService);
+  private readonly notify = inject(ApexNotificationService);
 
   grupos = signal<GrupoConLabel[]>([]);
   materias = signal<Materia[]>([]);
@@ -331,7 +332,7 @@ export class TareasComponent implements OnInit {
 
   guardarTarea(): void {
     if (!this.form.titulo || !this.form.fecha_entrega || !this.selectedGrupo || !this.selectedMateria) {
-      this.msg.add({ severity: 'warn', summary: 'Campos vacíos', detail: 'Debe rellenar los campos obligatorios' });
+      this.notify.warning('Campos vacíos', 'Debe rellenar los campos obligatorios');
       return;
     }
 
@@ -353,7 +354,7 @@ export class TareasComponent implements OnInit {
         next: () => {
           this.saving.set(false);
           this.showDialog = false;
-          this.msg.add({ severity: 'success', summary: 'Actualizado', detail: 'Tarea modificada correctamente' });
+          this.notify.success('Actualizado', 'Tarea modificada correctamente');
           this.loadTareas();
         },
         error: () => this.saving.set(false),
@@ -363,7 +364,7 @@ export class TareasComponent implements OnInit {
         next: () => {
           this.saving.set(false);
           this.showDialog = false;
-          this.msg.add({ severity: 'success', summary: 'Creado', detail: 'Tarea agregada correctamente' });
+          this.notify.success('Creado', 'Tarea agregada correctamente');
           this.loadTareas();
         },
         error: () => this.saving.set(false),
@@ -372,6 +373,6 @@ export class TareasComponent implements OnInit {
   }
 
   showUploadDialog(entrega: any): void {
-    this.msg.add({ severity: 'info', summary: 'Upload', detail: `Subir entrega de: ${entrega.titulo}` });
+    this.notify.info('Upload', `Subir entrega de: ${entrega.titulo}`);
   }
 }

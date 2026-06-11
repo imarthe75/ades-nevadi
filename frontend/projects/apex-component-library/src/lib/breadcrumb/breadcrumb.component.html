@@ -1,0 +1,48 @@
+<nav class="apex-breadcrumb" [ngClass]="styleClass || ''" aria-label="Breadcrumb">
+  <ol class="breadcrumb-list">
+    <!-- Home item -->
+    <li *ngIf="home" class="breadcrumb-item">
+      <a *ngIf="home.routerLink" [routerLink]="home.routerLink"
+         (click)="onClick(home, -1, $event)"
+         class="breadcrumb-link">
+        <span *ngIf="home.icon" [class]="home.icon"></span>
+        {{ home.label }}
+      </a>
+      <a *ngIf="!home.routerLink" href="#"
+         (click)="onClick(home, -1, $event)"
+         class="breadcrumb-link">
+        <span *ngIf="home.icon" [class]="home.icon"></span>
+        {{ home.label }}
+      </a>
+    </li>
+    
+    <!-- Regular items -->
+    <li *ngFor="let item of items; let i = index; let last = last"
+        class="breadcrumb-item"
+        [attr.aria-current]="last ? 'page' : null">
+      
+      <span *ngIf="i > 0 || home" [class]="separatorIcon" class="breadcrumb-separator"></span>
+      
+      <a *ngIf="item.routerLink && !last"
+         [routerLink]="item.routerLink"
+         (click)="onClick(item, i, $event)"
+         class="breadcrumb-link">
+        <span *ngIf="item.icon" [class]="item.icon"></span>
+        {{ item.label }}
+      </a>
+      
+      <a *ngIf="!item.routerLink && !last"
+         href="#"
+         (click)="onClick(item, i, $event)"
+         class="breadcrumb-link">
+        <span *ngIf="item.icon" [class]="item.icon"></span>
+        {{ item.label }}
+      </a>
+      
+      <span *ngIf="last" class="breadcrumb-text">
+        <span *ngIf="item.activeIcon" [class]="item.activeIcon"></span>
+        {{ item.label }}
+      </span>
+    </li>
+  </ol>
+</nav>

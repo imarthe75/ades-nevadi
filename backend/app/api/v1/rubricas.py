@@ -81,7 +81,7 @@ async def listar_rubricas(
         LEFT JOIN ades_rubrica_criterios rc ON rc.rubrica_id = r.id AND rc.is_active = TRUE
         WHERE {where}
         GROUP BY r.id, m.nombre_materia, ne.nombre_nivel
-        ORDER BY r.fccreacion DESC
+        ORDER BY r.fecha_creacion DESC
         LIMIT :limit
     """), params)
     return rows.mappings().all()

@@ -23,19 +23,19 @@ CREATE OR REPLACE FUNCTION auditoria.fn_auditoria_biu()
 RETURNS TRIGGER AS $$
 BEGIN
     IF TG_OP = 'INSERT' THEN
-        NEW.fccreacion      := NOW();
-        NEW.fcmodificacion  := NOW();
+        NEW.fecha_creacion      := NOW();
+        NEW.fecha_modificacion  := NOW();
         NEW.usuario_creacion     := current_user;
         NEW.usuario_modificacion := current_user;
         NEW.ref             := COALESCE(NEW.ref, uuidv7());
         NEW.row_version     := 1;
         NEW.is_active       := COALESCE(NEW.is_active, TRUE);
     ELSIF TG_OP = 'UPDATE' THEN
-        NEW.fcmodificacion       := NOW();
+        NEW.fecha_modificacion       := NOW();
         NEW.usuario_modificacion := current_user;
         NEW.row_version          := COALESCE(OLD.row_version, 0) + 1;
-        -- No permitir cambiar fccreacion ni usuario_creacion
-        NEW.fccreacion      := OLD.fccreacion;
+        -- No permitir cambiar fecha_creacion ni usuario_creacion
+        NEW.fecha_creacion      := OLD.fecha_creacion;
         NEW.usuario_creacion     := OLD.usuario_creacion;
     END IF;
     RETURN NEW;
@@ -62,8 +62,8 @@ $$ LANGUAGE plpgsql;
 -- id                   UUID        NOT NULL DEFAULT uuidv7() PRIMARY KEY
 -- ref                  UUID        NOT NULL DEFAULT uuidv7() UNIQUE
 -- is_active            BOOLEAN     NOT NULL DEFAULT TRUE
--- fccreacion           TIMESTAMPTZ NOT NULL DEFAULT NOW()
--- fcmodificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+-- fecha_creacion           TIMESTAMPTZ NOT NULL DEFAULT NOW()
+-- fecha_modificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW()
 -- usuario_creacion     VARCHAR(150) NOT NULL DEFAULT current_user
 -- usuario_modificacion VARCHAR(150) NOT NULL DEFAULT current_user
 -- row_version          INTEGER     NOT NULL DEFAULT 1
@@ -78,8 +78,8 @@ CREATE TABLE ades_estatus (
     descripcion          VARCHAR(255),
     ref                  UUID        NOT NULL DEFAULT uuidv7() UNIQUE,
     is_active            BOOLEAN     NOT NULL DEFAULT TRUE,
-    fccreacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    fcmodificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_creacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_modificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     usuario_creacion     VARCHAR(150) NOT NULL DEFAULT current_user,
     usuario_modificacion VARCHAR(150) NOT NULL DEFAULT current_user,
     row_version          INTEGER     NOT NULL DEFAULT 1,
@@ -99,8 +99,8 @@ CREATE TABLE ades_paises (
     nombre_pais          VARCHAR(100) NOT NULL,
     ref                  UUID        NOT NULL DEFAULT uuidv7() UNIQUE,
     is_active            BOOLEAN     NOT NULL DEFAULT TRUE,
-    fccreacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    fcmodificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_creacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_modificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     usuario_creacion     VARCHAR(150) NOT NULL DEFAULT current_user,
     usuario_modificacion VARCHAR(150) NOT NULL DEFAULT current_user,
     row_version          INTEGER     NOT NULL DEFAULT 1
@@ -116,8 +116,8 @@ CREATE TABLE ades_estados (
     pais_id              UUID         NOT NULL REFERENCES ades_paises(id),
     ref                  UUID        NOT NULL DEFAULT uuidv7() UNIQUE,
     is_active            BOOLEAN     NOT NULL DEFAULT TRUE,
-    fccreacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    fcmodificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_creacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_modificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     usuario_creacion     VARCHAR(150) NOT NULL DEFAULT current_user,
     usuario_modificacion VARCHAR(150) NOT NULL DEFAULT current_user,
     row_version          INTEGER     NOT NULL DEFAULT 1,
@@ -134,8 +134,8 @@ CREATE TABLE ades_municipios (
     estado_id            UUID         NOT NULL REFERENCES ades_estados(id),
     ref                  UUID        NOT NULL DEFAULT uuidv7() UNIQUE,
     is_active            BOOLEAN     NOT NULL DEFAULT TRUE,
-    fccreacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    fcmodificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_creacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_modificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     usuario_creacion     VARCHAR(150) NOT NULL DEFAULT current_user,
     usuario_modificacion VARCHAR(150) NOT NULL DEFAULT current_user,
     row_version          INTEGER     NOT NULL DEFAULT 1,
@@ -150,8 +150,8 @@ CREATE TABLE ades_tipos_asentamiento (
     nombre_tipo          VARCHAR(100) NOT NULL,
     ref                  UUID        NOT NULL DEFAULT uuidv7() UNIQUE,
     is_active            BOOLEAN     NOT NULL DEFAULT TRUE,
-    fccreacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    fcmodificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_creacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_modificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     usuario_creacion     VARCHAR(150) NOT NULL DEFAULT current_user,
     usuario_modificacion VARCHAR(150) NOT NULL DEFAULT current_user,
     row_version          INTEGER     NOT NULL DEFAULT 1
@@ -166,8 +166,8 @@ CREATE TABLE ades_localidades (
     tipo_asentamiento_id     UUID         REFERENCES ades_tipos_asentamiento(id),
     ref                      UUID        NOT NULL DEFAULT uuidv7() UNIQUE,
     is_active                BOOLEAN     NOT NULL DEFAULT TRUE,
-    fccreacion               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    fcmodificacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_creacion               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_modificacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     usuario_creacion         VARCHAR(150) NOT NULL DEFAULT current_user,
     usuario_modificacion     VARCHAR(150) NOT NULL DEFAULT current_user,
     row_version              INTEGER     NOT NULL DEFAULT 1
@@ -186,8 +186,8 @@ CREATE TABLE ades_codigos_postales (
     tipo_asentamiento_id UUID         REFERENCES ades_tipos_asentamiento(id),
     ref                  UUID        NOT NULL DEFAULT uuidv7() UNIQUE,
     is_active            BOOLEAN     NOT NULL DEFAULT TRUE,
-    fccreacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    fcmodificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_creacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_modificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     usuario_creacion     VARCHAR(150) NOT NULL DEFAULT current_user,
     usuario_modificacion VARCHAR(150) NOT NULL DEFAULT current_user,
     row_version          INTEGER     NOT NULL DEFAULT 1
@@ -212,8 +212,8 @@ CREATE TABLE ades_direcciones (
     entidad_id           UUID         NOT NULL, -- FK polimórfica; tipo UUID para consistencia con PKs
     ref                  UUID        NOT NULL DEFAULT uuidv7() UNIQUE,
     is_active            BOOLEAN     NOT NULL DEFAULT TRUE,
-    fccreacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    fcmodificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_creacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_modificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     usuario_creacion     VARCHAR(150) NOT NULL DEFAULT current_user,
     usuario_modificacion VARCHAR(150) NOT NULL DEFAULT current_user,
     row_version          INTEGER     NOT NULL DEFAULT 1
@@ -231,8 +231,8 @@ CREATE TABLE ades_telefonos (
     entidad_id           UUID         NOT NULL, -- FK polimórfica; tipo UUID
     ref                  UUID        NOT NULL DEFAULT uuidv7() UNIQUE,
     is_active            BOOLEAN     NOT NULL DEFAULT TRUE,
-    fccreacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    fcmodificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_creacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_modificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     usuario_creacion     VARCHAR(150) NOT NULL DEFAULT current_user,
     usuario_modificacion VARCHAR(150) NOT NULL DEFAULT current_user,
     row_version          INTEGER     NOT NULL DEFAULT 1
@@ -250,8 +250,8 @@ CREATE TABLE ades_correos_electronicos (
     entidad_id           UUID         NOT NULL, -- FK polimórfica; tipo UUID
     ref                  UUID        NOT NULL DEFAULT uuidv7() UNIQUE,
     is_active            BOOLEAN     NOT NULL DEFAULT TRUE,
-    fccreacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    fcmodificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_creacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_modificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     usuario_creacion     VARCHAR(150) NOT NULL DEFAULT current_user,
     usuario_modificacion VARCHAR(150) NOT NULL DEFAULT current_user,
     row_version          INTEGER     NOT NULL DEFAULT 1
@@ -275,8 +275,8 @@ CREATE TABLE ades_archivos (
     entidad_id           UUID         NOT NULL, -- FK polimórfica; tipo UUID
     ref                  UUID        NOT NULL DEFAULT uuidv7() UNIQUE,
     is_active            BOOLEAN     NOT NULL DEFAULT TRUE,
-    fccreacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    fcmodificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_creacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_modificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     usuario_creacion     VARCHAR(150) NOT NULL DEFAULT current_user,
     usuario_modificacion VARCHAR(150) NOT NULL DEFAULT current_user,
     row_version          INTEGER     NOT NULL DEFAULT 1
@@ -301,8 +301,8 @@ CREATE TABLE ades_identidad_institucional (
     nivel_educativo_id   UUID,
     ref                  UUID        NOT NULL DEFAULT uuidv7() UNIQUE,
     is_active            BOOLEAN     NOT NULL DEFAULT TRUE,
-    fccreacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    fcmodificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_creacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_modificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     usuario_creacion     VARCHAR(150) NOT NULL DEFAULT current_user,
     usuario_modificacion VARCHAR(150) NOT NULL DEFAULT current_user,
     row_version          INTEGER     NOT NULL DEFAULT 1
@@ -319,8 +319,8 @@ CREATE TABLE ades_historico_identidad (
     motivo_cambio            VARCHAR(500),
     ref                      UUID        NOT NULL DEFAULT uuidv7() UNIQUE,
     is_active                BOOLEAN     NOT NULL DEFAULT TRUE,
-    fccreacion               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    fcmodificacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_creacion               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_modificacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     usuario_creacion         VARCHAR(150) NOT NULL DEFAULT current_user,
     usuario_modificacion     VARCHAR(150) NOT NULL DEFAULT current_user,
     row_version              INTEGER     NOT NULL DEFAULT 1
@@ -340,8 +340,8 @@ CREATE TABLE ades_escuelas (
     estatus_id                       UUID REFERENCES ades_estatus(id),
     ref                              UUID        NOT NULL DEFAULT uuidv7() UNIQUE,
     is_active                        BOOLEAN     NOT NULL DEFAULT TRUE,
-    fccreacion                       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    fcmodificacion                   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_creacion                       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_modificacion                   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     usuario_creacion                 VARCHAR(150) NOT NULL DEFAULT current_user,
     usuario_modificacion             VARCHAR(150) NOT NULL DEFAULT current_user,
     row_version                      INTEGER     NOT NULL DEFAULT 1
@@ -358,8 +358,8 @@ CREATE TABLE ades_planteles (
     estatus_id           UUID REFERENCES ades_estatus(id),
     ref                  UUID        NOT NULL DEFAULT uuidv7() UNIQUE,
     is_active            BOOLEAN     NOT NULL DEFAULT TRUE,
-    fccreacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    fcmodificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_creacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_modificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     usuario_creacion     VARCHAR(150) NOT NULL DEFAULT current_user,
     usuario_modificacion VARCHAR(150) NOT NULL DEFAULT current_user,
     row_version          INTEGER     NOT NULL DEFAULT 1,
@@ -382,8 +382,8 @@ CREATE TABLE ades_niveles_educativos (
     tiene_extraordinario BOOLEAN      NOT NULL DEFAULT FALSE,
     ref                  UUID        NOT NULL DEFAULT uuidv7() UNIQUE,
     is_active            BOOLEAN     NOT NULL DEFAULT TRUE,
-    fccreacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    fcmodificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_creacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_modificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     usuario_creacion     VARCHAR(150) NOT NULL DEFAULT current_user,
     usuario_modificacion VARCHAR(150) NOT NULL DEFAULT current_user,
     row_version          INTEGER     NOT NULL DEFAULT 1
@@ -402,8 +402,8 @@ CREATE TABLE ades_plantel_niveles (
     estatus_id           UUID REFERENCES ades_estatus(id),
     ref                  UUID        NOT NULL DEFAULT uuidv7() UNIQUE,
     is_active            BOOLEAN     NOT NULL DEFAULT TRUE,
-    fccreacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    fcmodificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_creacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_modificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     usuario_creacion     VARCHAR(150) NOT NULL DEFAULT current_user,
     usuario_modificacion VARCHAR(150) NOT NULL DEFAULT current_user,
     row_version          INTEGER     NOT NULL DEFAULT 1,
@@ -422,8 +422,8 @@ CREATE TABLE ades_grados (
     estatus_id           UUID REFERENCES ades_estatus(id),
     ref                  UUID        NOT NULL DEFAULT uuidv7() UNIQUE,
     is_active            BOOLEAN     NOT NULL DEFAULT TRUE,
-    fccreacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    fcmodificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_creacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_modificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     usuario_creacion     VARCHAR(150) NOT NULL DEFAULT current_user,
     usuario_modificacion VARCHAR(150) NOT NULL DEFAULT current_user,
     row_version          INTEGER     NOT NULL DEFAULT 1,
@@ -443,8 +443,8 @@ CREATE TABLE ades_ciclos_escolares (
     es_vigente           BOOLEAN      NOT NULL DEFAULT TRUE,
     ref                  UUID        NOT NULL DEFAULT uuidv7() UNIQUE,
     is_active            BOOLEAN     NOT NULL DEFAULT TRUE,
-    fccreacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    fcmodificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_creacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_modificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     usuario_creacion     VARCHAR(150) NOT NULL DEFAULT current_user,
     usuario_modificacion VARCHAR(150) NOT NULL DEFAULT current_user,
     row_version          INTEGER     NOT NULL DEFAULT 1,
@@ -465,8 +465,8 @@ CREATE TABLE ades_periodos_evaluacion (
     fecha_entrega_boletas DATE,
     ref                  UUID        NOT NULL DEFAULT uuidv7() UNIQUE,
     is_active            BOOLEAN     NOT NULL DEFAULT TRUE,
-    fccreacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    fcmodificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_creacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_modificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     usuario_creacion     VARCHAR(150) NOT NULL DEFAULT current_user,
     usuario_modificacion VARCHAR(150) NOT NULL DEFAULT current_user,
     row_version          INTEGER     NOT NULL DEFAULT 1,
@@ -486,8 +486,8 @@ CREATE TABLE ades_calendario_escolar (
     plantel_id           UUID         REFERENCES ades_planteles(id), -- null = todos
     ref                  UUID        NOT NULL DEFAULT uuidv7() UNIQUE,
     is_active            BOOLEAN     NOT NULL DEFAULT TRUE,
-    fccreacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    fcmodificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_creacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_modificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     usuario_creacion     VARCHAR(150) NOT NULL DEFAULT current_user,
     usuario_modificacion VARCHAR(150) NOT NULL DEFAULT current_user,
     row_version          INTEGER     NOT NULL DEFAULT 1
@@ -508,8 +508,8 @@ CREATE TABLE ades_materias (
     es_inglés            BOOLEAN      NOT NULL DEFAULT FALSE, -- flag especial para asignación docente
     ref                  UUID        NOT NULL DEFAULT uuidv7() UNIQUE,
     is_active            BOOLEAN     NOT NULL DEFAULT TRUE,
-    fccreacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    fcmodificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_creacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_modificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     usuario_creacion     VARCHAR(150) NOT NULL DEFAULT current_user,
     usuario_modificacion VARCHAR(150) NOT NULL DEFAULT current_user,
     row_version          INTEGER     NOT NULL DEFAULT 1,
@@ -529,8 +529,8 @@ CREATE TABLE ades_materias_plan (
     es_obligatoria       BOOLEAN      NOT NULL DEFAULT TRUE,
     ref                  UUID        NOT NULL DEFAULT uuidv7() UNIQUE,
     is_active            BOOLEAN     NOT NULL DEFAULT TRUE,
-    fccreacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    fcmodificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_creacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_modificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     usuario_creacion     VARCHAR(150) NOT NULL DEFAULT current_user,
     usuario_modificacion VARCHAR(150) NOT NULL DEFAULT current_user,
     row_version          INTEGER     NOT NULL DEFAULT 1,
@@ -551,8 +551,8 @@ CREATE TABLE ades_temas (
     periodo_sugerido     INTEGER,               -- número de bimestre/parcial sugerido
     ref                  UUID        NOT NULL DEFAULT uuidv7() UNIQUE,
     is_active            BOOLEAN     NOT NULL DEFAULT TRUE,
-    fccreacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    fcmodificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_creacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_modificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     usuario_creacion     VARCHAR(150) NOT NULL DEFAULT current_user,
     usuario_modificacion VARCHAR(150) NOT NULL DEFAULT current_user,
     row_version          INTEGER     NOT NULL DEFAULT 1
@@ -571,8 +571,8 @@ CREATE TABLE ades_roles (
     nivel_acceso         INTEGER      NOT NULL DEFAULT 0, -- 0=más alto, escala
     ref                  UUID        NOT NULL DEFAULT uuidv7() UNIQUE,
     is_active            BOOLEAN     NOT NULL DEFAULT TRUE,
-    fccreacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    fcmodificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_creacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_modificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     usuario_creacion     VARCHAR(150) NOT NULL DEFAULT current_user,
     usuario_modificacion VARCHAR(150) NOT NULL DEFAULT current_user,
     row_version          INTEGER     NOT NULL DEFAULT 1
@@ -592,8 +592,8 @@ CREATE TABLE ades_personas (
     foto_url             VARCHAR(500),
     ref                  UUID        NOT NULL DEFAULT uuidv7() UNIQUE,
     is_active            BOOLEAN     NOT NULL DEFAULT TRUE,
-    fccreacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    fcmodificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_creacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_modificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     usuario_creacion     VARCHAR(150) NOT NULL DEFAULT current_user,
     usuario_modificacion VARCHAR(150) NOT NULL DEFAULT current_user,
     row_version          INTEGER     NOT NULL DEFAULT 1
@@ -618,8 +618,8 @@ CREATE TABLE ades_usuarios (
     ultimo_acceso        TIMESTAMPTZ,
     ref                  UUID        NOT NULL DEFAULT uuidv7() UNIQUE,
     is_active            BOOLEAN     NOT NULL DEFAULT TRUE,
-    fccreacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    fcmodificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_creacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_modificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     usuario_creacion     VARCHAR(150) NOT NULL DEFAULT current_user,
     usuario_modificacion VARCHAR(150) NOT NULL DEFAULT current_user,
     row_version          INTEGER     NOT NULL DEFAULT 1,
@@ -645,8 +645,8 @@ CREATE TABLE ades_profesores (
     tipo_contrato        VARCHAR(30)  DEFAULT 'BASE', -- BASE, INTERINO, HONORARIOS
     ref                  UUID        NOT NULL DEFAULT uuidv7() UNIQUE,
     is_active            BOOLEAN     NOT NULL DEFAULT TRUE,
-    fccreacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    fcmodificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_creacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_modificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     usuario_creacion     VARCHAR(150) NOT NULL DEFAULT current_user,
     usuario_modificacion VARCHAR(150) NOT NULL DEFAULT current_user,
     row_version          INTEGER     NOT NULL DEFAULT 1
@@ -667,8 +667,8 @@ CREATE TABLE ades_disponibilidad_docente (
     ciclo_escolar_id     UUID         REFERENCES ades_ciclos_escolares(id),
     ref                  UUID        NOT NULL DEFAULT uuidv7() UNIQUE,
     is_active            BOOLEAN     NOT NULL DEFAULT TRUE,
-    fccreacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    fcmodificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_creacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_modificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     usuario_creacion     VARCHAR(150) NOT NULL DEFAULT current_user,
     usuario_modificacion VARCHAR(150) NOT NULL DEFAULT current_user,
     row_version          INTEGER     NOT NULL DEFAULT 1
@@ -686,8 +686,8 @@ CREATE TABLE ades_estudiantes (
     fecha_ingreso        DATE,
     ref                  UUID        NOT NULL DEFAULT uuidv7() UNIQUE,
     is_active            BOOLEAN     NOT NULL DEFAULT TRUE,
-    fccreacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    fcmodificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_creacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_modificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     usuario_creacion     VARCHAR(150) NOT NULL DEFAULT current_user,
     usuario_modificacion VARCHAR(150) NOT NULL DEFAULT current_user,
     row_version          INTEGER     NOT NULL DEFAULT 1
@@ -706,8 +706,8 @@ CREATE TABLE ades_contactos_familiares (
     puede_recoger        BOOLEAN      NOT NULL DEFAULT TRUE,
     ref                  UUID        NOT NULL DEFAULT uuidv7() UNIQUE,
     is_active            BOOLEAN     NOT NULL DEFAULT TRUE,
-    fccreacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    fcmodificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_creacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_modificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     usuario_creacion     VARCHAR(150) NOT NULL DEFAULT current_user,
     usuario_modificacion VARCHAR(150) NOT NULL DEFAULT current_user,
     row_version          INTEGER     NOT NULL DEFAULT 1
@@ -730,8 +730,8 @@ CREATE TABLE ades_grupos (
     estatus_id           UUID         REFERENCES ades_estatus(id),
     ref                  UUID        NOT NULL DEFAULT uuidv7() UNIQUE,
     is_active            BOOLEAN     NOT NULL DEFAULT TRUE,
-    fccreacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    fcmodificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_creacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_modificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     usuario_creacion     VARCHAR(150) NOT NULL DEFAULT current_user,
     usuario_modificacion VARCHAR(150) NOT NULL DEFAULT current_user,
     row_version          INTEGER     NOT NULL DEFAULT 1,
@@ -750,8 +750,8 @@ CREATE TABLE ades_asignaciones_docentes (
     ciclo_escolar_id     UUID         NOT NULL REFERENCES ades_ciclos_escolares(id),
     ref                  UUID        NOT NULL DEFAULT uuidv7() UNIQUE,
     is_active            BOOLEAN     NOT NULL DEFAULT TRUE,
-    fccreacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    fcmodificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_creacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_modificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     usuario_creacion     VARCHAR(150) NOT NULL DEFAULT current_user,
     usuario_modificacion VARCHAR(150) NOT NULL DEFAULT current_user,
     row_version          INTEGER     NOT NULL DEFAULT 1,
@@ -770,8 +770,8 @@ CREATE TABLE ades_inscripciones (
     estatus_id           UUID         REFERENCES ades_estatus(id),
     ref                  UUID        NOT NULL DEFAULT uuidv7() UNIQUE,
     is_active            BOOLEAN     NOT NULL DEFAULT TRUE,
-    fccreacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    fcmodificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_creacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_modificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     usuario_creacion     VARCHAR(150) NOT NULL DEFAULT current_user,
     usuario_modificacion VARCHAR(150) NOT NULL DEFAULT current_user,
     row_version          INTEGER     NOT NULL DEFAULT 1,
@@ -791,8 +791,8 @@ CREATE TABLE ades_aulas (
     capacidad            INTEGER      DEFAULT 35,
     ref                  UUID        NOT NULL DEFAULT uuidv7() UNIQUE,
     is_active            BOOLEAN     NOT NULL DEFAULT TRUE,
-    fccreacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    fcmodificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_creacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_modificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     usuario_creacion     VARCHAR(150) NOT NULL DEFAULT current_user,
     usuario_modificacion VARCHAR(150) NOT NULL DEFAULT current_user,
     row_version          INTEGER     NOT NULL DEFAULT 1,
@@ -815,8 +815,8 @@ CREATE TABLE ades_horarios (
     origen               VARCHAR(20)  NOT NULL DEFAULT 'ASC', -- ASC, MANUAL
     ref                  UUID        NOT NULL DEFAULT uuidv7() UNIQUE,
     is_active            BOOLEAN     NOT NULL DEFAULT TRUE,
-    fccreacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    fcmodificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_creacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_modificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     usuario_creacion     VARCHAR(150) NOT NULL DEFAULT current_user,
     usuario_modificacion VARCHAR(150) NOT NULL DEFAULT current_user,
     row_version          INTEGER     NOT NULL DEFAULT 1
@@ -845,8 +845,8 @@ CREATE TABLE ades_clases (
     estatus_clase        VARCHAR(20)  NOT NULL DEFAULT 'PROGRAMADA', -- PROGRAMADA, IMPARTIDA, CANCELADA, SUSPENDIDA
     ref                  UUID        NOT NULL DEFAULT uuidv7() UNIQUE,
     is_active            BOOLEAN     NOT NULL DEFAULT TRUE,
-    fccreacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    fcmodificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_creacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_modificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     usuario_creacion     VARCHAR(150) NOT NULL DEFAULT current_user,
     usuario_modificacion VARCHAR(150) NOT NULL DEFAULT current_user,
     row_version          INTEGER     NOT NULL DEFAULT 1
@@ -863,8 +863,8 @@ CREATE TABLE ades_asistencias (
     observacion          VARCHAR(255),
     ref                  UUID        NOT NULL DEFAULT uuidv7() UNIQUE,
     is_active            BOOLEAN     NOT NULL DEFAULT TRUE,
-    fccreacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    fcmodificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_creacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_modificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     usuario_creacion     VARCHAR(150) NOT NULL DEFAULT current_user,
     usuario_modificacion VARCHAR(150) NOT NULL DEFAULT current_user,
     row_version          INTEGER     NOT NULL DEFAULT 1,
@@ -883,8 +883,8 @@ CREATE TABLE ades_planeacion_clases (
     recursos_didacticos      TEXT,
     ref                      UUID        NOT NULL DEFAULT uuidv7() UNIQUE,
     is_active                BOOLEAN     NOT NULL DEFAULT TRUE,
-    fccreacion               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    fcmodificacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_creacion               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_modificacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     usuario_creacion         VARCHAR(150) NOT NULL DEFAULT current_user,
     usuario_modificacion     VARCHAR(150) NOT NULL DEFAULT current_user,
     row_version              INTEGER     NOT NULL DEFAULT 1
@@ -901,8 +901,8 @@ CREATE TABLE ades_avance_planificacion (
     comentarios_profesor     TEXT,
     ref                      UUID        NOT NULL DEFAULT uuidv7() UNIQUE,
     is_active                BOOLEAN     NOT NULL DEFAULT TRUE,
-    fccreacion               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    fcmodificacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_creacion               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_modificacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     usuario_creacion         VARCHAR(150) NOT NULL DEFAULT current_user,
     usuario_modificacion     VARCHAR(150) NOT NULL DEFAULT current_user,
     row_version              INTEGER     NOT NULL DEFAULT 1
@@ -928,8 +928,8 @@ CREATE TABLE ades_tareas (
     origen               VARCHAR(20)  NOT NULL DEFAULT 'MANUAL', -- MANUAL, AUTO (generada por plan de estudios)
     ref                  UUID        NOT NULL DEFAULT uuidv7() UNIQUE,
     is_active            BOOLEAN     NOT NULL DEFAULT TRUE,
-    fccreacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    fcmodificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_creacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_modificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     usuario_creacion     VARCHAR(150) NOT NULL DEFAULT current_user,
     usuario_modificacion VARCHAR(150) NOT NULL DEFAULT current_user,
     row_version          INTEGER     NOT NULL DEFAULT 1
@@ -949,8 +949,8 @@ CREATE TABLE ades_tareas_entregas (
     estatus_entrega      VARCHAR(20)  NOT NULL DEFAULT 'PENDIENTE', -- PENDIENTE, ENTREGADO, CALIFICADO, TARDE
     ref                  UUID        NOT NULL DEFAULT uuidv7() UNIQUE,
     is_active            BOOLEAN     NOT NULL DEFAULT TRUE,
-    fccreacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    fcmodificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_creacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_modificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     usuario_creacion     VARCHAR(150) NOT NULL DEFAULT current_user,
     usuario_modificacion VARCHAR(150) NOT NULL DEFAULT current_user,
     row_version          INTEGER     NOT NULL DEFAULT 1,
@@ -970,8 +970,8 @@ CREATE TABLE ades_rubricas (
     nivel_educativo_id   UUID         REFERENCES ades_niveles_educativos(id),
     ref                  UUID        NOT NULL DEFAULT uuidv7() UNIQUE,
     is_active            BOOLEAN     NOT NULL DEFAULT TRUE,
-    fccreacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    fcmodificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_creacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_modificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     usuario_creacion     VARCHAR(150) NOT NULL DEFAULT current_user,
     usuario_modificacion VARCHAR(150) NOT NULL DEFAULT current_user,
     row_version          INTEGER     NOT NULL DEFAULT 1
@@ -988,8 +988,8 @@ CREATE TABLE ades_rubrica_criterios (
     orden                INTEGER      NOT NULL DEFAULT 1,
     ref                  UUID        NOT NULL DEFAULT uuidv7() UNIQUE,
     is_active            BOOLEAN     NOT NULL DEFAULT TRUE,
-    fccreacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    fcmodificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_creacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_modificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     usuario_creacion     VARCHAR(150) NOT NULL DEFAULT current_user,
     usuario_modificacion VARCHAR(150) NOT NULL DEFAULT current_user,
     row_version          INTEGER     NOT NULL DEFAULT 1
@@ -1006,8 +1006,8 @@ CREATE TABLE ades_calificaciones_tareas (
     fecha_calificacion   TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
     ref                  UUID        NOT NULL DEFAULT uuidv7() UNIQUE,
     is_active            BOOLEAN     NOT NULL DEFAULT TRUE,
-    fccreacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    fcmodificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_creacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_modificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     usuario_creacion     VARCHAR(150) NOT NULL DEFAULT current_user,
     usuario_modificacion VARCHAR(150) NOT NULL DEFAULT current_user,
     row_version          INTEGER     NOT NULL DEFAULT 1
@@ -1027,8 +1027,8 @@ CREATE TABLE ades_evaluaciones (
     puntaje_maximo        NUMERIC(5,2) DEFAULT 10.0,
     ref                   UUID        NOT NULL DEFAULT uuidv7() UNIQUE,
     is_active             BOOLEAN     NOT NULL DEFAULT TRUE,
-    fccreacion            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    fcmodificacion        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_creacion            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_modificacion        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     usuario_creacion      VARCHAR(150) NOT NULL DEFAULT current_user,
     usuario_modificacion  VARCHAR(150) NOT NULL DEFAULT current_user,
     row_version           INTEGER     NOT NULL DEFAULT 1
@@ -1045,8 +1045,8 @@ CREATE TABLE ades_calificaciones_evaluaciones (
     comentarios          TEXT,
     ref                  UUID        NOT NULL DEFAULT uuidv7() UNIQUE,
     is_active            BOOLEAN     NOT NULL DEFAULT TRUE,
-    fccreacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    fcmodificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_creacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_modificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     usuario_creacion     VARCHAR(150) NOT NULL DEFAULT current_user,
     usuario_modificacion VARCHAR(150) NOT NULL DEFAULT current_user,
     row_version          INTEGER     NOT NULL DEFAULT 1,
@@ -1068,8 +1068,8 @@ CREATE TABLE ades_calificaciones_periodo (
     observaciones         TEXT,
     ref                   UUID        NOT NULL DEFAULT uuidv7() UNIQUE,
     is_active             BOOLEAN     NOT NULL DEFAULT TRUE,
-    fccreacion            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    fcmodificacion        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_creacion            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_modificacion        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     usuario_creacion      VARCHAR(150) NOT NULL DEFAULT current_user,
     usuario_modificacion  VARCHAR(150) NOT NULL DEFAULT current_user,
     row_version           INTEGER     NOT NULL DEFAULT 1,
@@ -1090,8 +1090,8 @@ CREATE TABLE ades_personal_salud (
     estatus_id           UUID         REFERENCES ades_estatus(id),
     ref                  UUID        NOT NULL DEFAULT uuidv7() UNIQUE,
     is_active            BOOLEAN     NOT NULL DEFAULT TRUE,
-    fccreacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    fcmodificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_creacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_modificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     usuario_creacion     VARCHAR(150) NOT NULL DEFAULT current_user,
     usuario_modificacion VARCHAR(150) NOT NULL DEFAULT current_user,
     row_version          INTEGER     NOT NULL DEFAULT 1
@@ -1109,8 +1109,8 @@ CREATE TABLE ades_expedientes_medicos (
     observaciones_generales TEXT,
     ref                  UUID        NOT NULL DEFAULT uuidv7() UNIQUE,
     is_active            BOOLEAN     NOT NULL DEFAULT TRUE,
-    fccreacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    fcmodificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_creacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_modificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     usuario_creacion     VARCHAR(150) NOT NULL DEFAULT current_user,
     usuario_modificacion VARCHAR(150) NOT NULL DEFAULT current_user,
     row_version          INTEGER     NOT NULL DEFAULT 1
@@ -1130,8 +1130,8 @@ CREATE TABLE ades_incidentes_medicos (
     fecha_notificacion_tutor TIMESTAMPTZ,
     ref                     UUID        NOT NULL DEFAULT uuidv7() UNIQUE,
     is_active               BOOLEAN     NOT NULL DEFAULT TRUE,
-    fccreacion              TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    fcmodificacion          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_creacion              TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_modificacion          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     usuario_creacion        VARCHAR(150) NOT NULL DEFAULT current_user,
     usuario_modificacion    VARCHAR(150) NOT NULL DEFAULT current_user,
     row_version             INTEGER     NOT NULL DEFAULT 1
@@ -1156,8 +1156,8 @@ CREATE TABLE ades_reportes_conducta (
     estatus_id            UUID         REFERENCES ades_estatus(id),
     ref                   UUID        NOT NULL DEFAULT uuidv7() UNIQUE,
     is_active             BOOLEAN     NOT NULL DEFAULT TRUE,
-    fccreacion            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    fcmodificacion        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_creacion            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_modificacion        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     usuario_creacion      VARCHAR(150) NOT NULL DEFAULT current_user,
     usuario_modificacion  VARCHAR(150) NOT NULL DEFAULT current_user,
     row_version           INTEGER     NOT NULL DEFAULT 1
@@ -1176,8 +1176,8 @@ CREATE TABLE ades_reportes_academicos (
     generado_por_id       UUID         REFERENCES ades_usuarios(id),
     ref                   UUID        NOT NULL DEFAULT uuidv7() UNIQUE,
     is_active             BOOLEAN     NOT NULL DEFAULT TRUE,
-    fccreacion            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    fcmodificacion        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_creacion            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_modificacion        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     usuario_creacion      VARCHAR(150) NOT NULL DEFAULT current_user,
     usuario_modificacion  VARCHAR(150) NOT NULL DEFAULT current_user,
     row_version           INTEGER     NOT NULL DEFAULT 1
@@ -1206,8 +1206,8 @@ CREATE TABLE ades_comunicados (
     creado_por_id        UUID         REFERENCES ades_usuarios(id),
     ref                  UUID        NOT NULL DEFAULT uuidv7() UNIQUE,
     is_active            BOOLEAN     NOT NULL DEFAULT TRUE,
-    fccreacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    fcmodificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_creacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_modificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     usuario_creacion     VARCHAR(150) NOT NULL DEFAULT current_user,
     usuario_modificacion VARCHAR(150) NOT NULL DEFAULT current_user,
     row_version          INTEGER     NOT NULL DEFAULT 1
@@ -1223,8 +1223,8 @@ CREATE TABLE ades_acuses_comunicado (
     ip_origen            INET,
     ref                  UUID        NOT NULL DEFAULT uuidv7() UNIQUE,
     is_active            BOOLEAN     NOT NULL DEFAULT TRUE,
-    fccreacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    fcmodificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_creacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_modificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     usuario_creacion     VARCHAR(150) NOT NULL DEFAULT current_user,
     usuario_modificacion VARCHAR(150) NOT NULL DEFAULT current_user,
     row_version          INTEGER     NOT NULL DEFAULT 1,
@@ -1246,8 +1246,8 @@ CREATE TABLE ades_notificaciones (
     canal                VARCHAR(20)  NOT NULL DEFAULT 'WEB', -- WEB, EMAIL, PUSH
     ref                  UUID        NOT NULL DEFAULT uuidv7() UNIQUE,
     is_active            BOOLEAN     NOT NULL DEFAULT TRUE,
-    fccreacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    fcmodificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_creacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_modificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     usuario_creacion     VARCHAR(150) NOT NULL DEFAULT current_user,
     usuario_modificacion VARCHAR(150) NOT NULL DEFAULT current_user,
     row_version          INTEGER     NOT NULL DEFAULT 1
@@ -1269,8 +1269,8 @@ CREATE TABLE ades_informacion_escuela (
     historia             TEXT,
     ref                  UUID        NOT NULL DEFAULT uuidv7() UNIQUE,
     is_active            BOOLEAN     NOT NULL DEFAULT TRUE,
-    fccreacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    fcmodificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_creacion           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fecha_modificacion       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     usuario_creacion     VARCHAR(150) NOT NULL DEFAULT current_user,
     usuario_modificacion VARCHAR(150) NOT NULL DEFAULT current_user,
     row_version          INTEGER     NOT NULL DEFAULT 1

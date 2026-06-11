@@ -1,0 +1,145 @@
+.apex-form {
+  width: 100%;
+  
+  .apex-form-title {
+    margin: 0 0 1.5rem 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #111827;
+  }
+  
+  /* Vertical Layout (Default) */
+  &.apex-form-vertical {
+    :host-context(apex-form-item) {
+      display: block;
+      margin-bottom: 1rem;
+      
+      .apex-form-label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        color: #374151;
+      }
+      
+      .apex-form-control-wrapper {
+        width: 100%;
+      }
+    }
+  }
+  
+  /* Horizontal Layout */
+  &.apex-form-horizontal {
+    :host-context(apex-form-item) {
+      display: flex;
+      margin-bottom: 1rem;
+      
+      .apex-form-label {
+        flex: 0 0 25%;
+        max-width: 25%;
+        padding-top: 0.5rem;
+        padding-right: 1rem;
+        text-align: right;
+        font-weight: 500;
+        color: #374151;
+      }
+      
+      .apex-form-control-wrapper {
+        flex: 1;
+        min-width: 0;
+      }
+    }
+  }
+  
+  /* Inline Layout */
+  &.apex-form-inline {
+    .apex-form-content {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      gap: 1rem;
+    }
+    
+    :host-context(apex-form-item) {
+      display: inline-block;
+      margin-bottom: 0;
+      
+      .apex-form-label {
+        display: block;
+        margin-bottom: 0.25rem;
+        font-weight: 500;
+        color: #374151;
+      }
+    }
+  }
+}
+
+/* Common Form Item Styles */
+.apex-form-item {
+  width: 100%;
+  
+  .apex-required-asterisk {
+    color: #dc2626;
+    margin-left: 0.25rem;
+  }
+  
+  .apex-form-help-text {
+    margin-top: 0.25rem;
+    font-size: 0.75rem;
+    color: #6b7280;
+  }
+  
+  .apex-form-error-text {
+    margin-top: 0.25rem;
+    font-size: 0.75rem;
+    color: #dc2626;
+  }
+  
+  &.has-error {
+    .apex-form-label {
+      color: #dc2626;
+    }
+    
+    ::ng-deep input, 
+    ::ng-deep select, 
+    ::ng-deep textarea {
+      border-color: #dc2626;
+      
+      &:focus {
+        outline-color: #fca5a5;
+        border-color: #dc2626;
+        box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+      }
+    }
+  }
+  
+  /* Default styling for standard inputs placed inside */
+  ::ng-deep input[type="text"],
+  ::ng-deep input[type="password"],
+  ::ng-deep input[type="email"],
+  ::ng-deep input[type="number"],
+  ::ng-deep select,
+  ::ng-deep textarea {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: #111827;
+    background-color: #ffffff;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    
+    &:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+    
+    &:disabled {
+      background-color: #f3f4f6;
+      color: #6b7280;
+      cursor: not-allowed;
+    }
+  }
+}

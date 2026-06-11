@@ -1,0 +1,43 @@
+<div class="apex-data-reporter" *ngIf="report">
+  <div class="reporter-header">
+    <h2>{{ report.name }}</h2>
+    <p *ngIf="report.description">{{ report.description }}</p>
+  </div>
+  
+  <div class="reporter-controls" *ngIf="showExportOptions || showScheduleOptions || allowSave">
+    <div class="control-group" *ngIf="showExportOptions">
+      <label>Format:</label>
+      <select [(ngModel)]="exportFormat">
+        <option value="csv">CSV</option>
+        <option value="pdf">PDF</option>
+        <option value="xlsx">Excel</option>
+        <option value="json">JSON</option>
+      </select>
+      <button (click)="onExport()" class="btn-primary">Export</button>
+    </div>
+    
+    <div class="control-group" *ngIf="showScheduleOptions">
+      <label>Schedule:</label>
+      <select [(ngModel)]="scheduleFrequency">
+        <option value="daily">Daily</option>
+        <option value="weekly">Weekly</option>
+        <option value="monthly">Monthly</option>
+      </select>
+      <input type="email" [(ngModel)]="scheduleEmail" placeholder="Email address">
+      <button (click)="onSchedule()" class="btn-secondary">Schedule</button>
+    </div>
+    
+    <div class="control-group" *ngIf="allowSave">
+      <button (click)="onSave()" class="btn-primary">Save Report</button>
+    </div>
+  </div>
+  
+  <div class="reporter-grid-container">
+    <apex-interactive-grid 
+      [columns]="report.columns"
+      [rows]="report.data"
+      [editable]="false"
+      [selectable]="true">
+    </apex-interactive-grid>
+  </div>
+</div>

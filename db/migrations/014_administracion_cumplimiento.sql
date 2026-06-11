@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS ades_cuotas_concepto (
   aplica_ciclo        BOOLEAN       DEFAULT TRUE,
   -- Auditoría
   is_active           BOOLEAN       DEFAULT TRUE,
-  fccreacion          TIMESTAMPTZ   DEFAULT NOW(),
+  fecha_creacion          TIMESTAMPTZ   DEFAULT NOW(),
   usuario_creacion    VARCHAR(150),
   row_version         INTEGER       DEFAULT 1
 );
@@ -61,8 +61,8 @@ CREATE TABLE IF NOT EXISTS ades_cuotas_pagos (
   -- Auditoría
   ref                 UUID          UNIQUE DEFAULT uuidv7(),
   is_active           BOOLEAN       DEFAULT TRUE,
-  fccreacion          TIMESTAMPTZ   DEFAULT NOW(),
-  fcmodificacion      TIMESTAMPTZ   DEFAULT NOW(),
+  fecha_creacion          TIMESTAMPTZ   DEFAULT NOW(),
+  fecha_modificacion      TIMESTAMPTZ   DEFAULT NOW(),
   usuario_creacion    VARCHAR(150),
   usuario_modificacion VARCHAR(150),
   row_version         INTEGER       DEFAULT 1
@@ -106,8 +106,8 @@ CREATE TABLE IF NOT EXISTS ades_solicitudes_tramites (
   -- Auditoría
   ref                 UUID        UNIQUE DEFAULT uuidv7(),
   is_active           BOOLEAN     DEFAULT TRUE,
-  fccreacion          TIMESTAMPTZ DEFAULT NOW(),
-  fcmodificacion      TIMESTAMPTZ DEFAULT NOW(),
+  fecha_creacion          TIMESTAMPTZ DEFAULT NOW(),
+  fecha_modificacion      TIMESTAMPTZ DEFAULT NOW(),
   usuario_creacion    VARCHAR(150),
   usuario_modificacion VARCHAR(150),
   row_version         INTEGER     DEFAULT 1
@@ -141,17 +141,17 @@ CREATE TABLE IF NOT EXISTS ades_audit_log (
   metodo_http         VARCHAR(10),
   codigo_respuesta    SMALLINT,
   duracion_ms         INTEGER,
-  fccreacion          TIMESTAMPTZ DEFAULT NOW() NOT NULL
+  fecha_creacion          TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_audit_usuario
-  ON ades_audit_log(usuario_id, fccreacion DESC);
+  ON ades_audit_log(usuario_id, fecha_creacion DESC);
 CREATE INDEX IF NOT EXISTS idx_audit_entidad
-  ON ades_audit_log(entidad, entidad_id, fccreacion DESC);
+  ON ades_audit_log(entidad, entidad_id, fecha_creacion DESC);
 CREATE INDEX IF NOT EXISTS idx_audit_accion
-  ON ades_audit_log(accion, fccreacion DESC);
+  ON ades_audit_log(accion, fecha_creacion DESC);
 CREATE INDEX IF NOT EXISTS idx_audit_fecha
-  ON ades_audit_log(fccreacion DESC);
+  ON ades_audit_log(fecha_creacion DESC);
 
 COMMENT ON TABLE ades_audit_log IS
   'Log inmutable de mutaciones del sistema. No usar UPDATE/DELETE. Retención: 5 años mínimo (SEP).';
@@ -169,7 +169,7 @@ CREATE TABLE IF NOT EXISTS ades_periodos_inscripcion (
   activo              BOOLEAN     DEFAULT TRUE,
   -- Auditoría
   is_active           BOOLEAN     DEFAULT TRUE,
-  fccreacion          TIMESTAMPTZ DEFAULT NOW(),
+  fecha_creacion          TIMESTAMPTZ DEFAULT NOW(),
   usuario_creacion    VARCHAR(150),
   row_version         INTEGER     DEFAULT 1,
   CONSTRAINT chk_periodo_fechas CHECK (fecha_fin >= fecha_inicio)

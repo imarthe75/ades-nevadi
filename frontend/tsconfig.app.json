@@ -6,6 +6,6 @@
     "outDir": "./out-tsc/app",
     "types": []
   },
-  "include": ["src/**/*.ts"],
-  "exclude": ["src/**/*.spec.ts"]
+  "include": ["src/**/*.ts", "projects/apex-component-library/src/**/*.ts"],
+  "exclude": ["src/**/*.spec.ts", "projects/**/*.spec.ts", "projects/**/*.stories.ts"]
 }

@@ -108,7 +108,7 @@ async def listar_encuestas(
             e.id, e.titulo, e.descripcion, e.tipo, e.audiencia,
             e.plantel_id, pl.nombre_plantel,
             e.fecha_inicio, e.fecha_fin,
-            e.anonima, e.activa, e.fccreacion,
+            e.anonima, e.activa, e.fecha_creacion,
             COUNT(DISTINCT ep.id) FILTER (WHERE ep.is_active = TRUE) AS total_preguntas,
             COUNT(DISTINCT er.sesion_id)                             AS total_respuestas
         FROM ades_encuestas e
@@ -117,7 +117,7 @@ async def listar_encuestas(
         LEFT JOIN ades_encuesta_respuestas     er ON er.encuesta_id = e.id
         WHERE {where}
         GROUP BY e.id, pl.nombre_plantel
-        ORDER BY e.fccreacion DESC
+        ORDER BY e.fecha_creacion DESC
         LIMIT :limit
     """), params)
     return rows.mappings().all()
@@ -137,7 +137,7 @@ async def crear_encuesta(
         VALUES
             (:titulo, :desc, :tipo, :audiencia, :plantel_id, :nivel_id, :grupo_id,
              :f_ini, :f_fin, :anonima, :uid)
-        RETURNING id, titulo, tipo, activa, fccreacion
+        RETURNING id, titulo, tipo, activa, fecha_creacion
     """), {
         "titulo":    body.titulo,
         "desc":      body.descripcion,
@@ -398,11 +398,11 @@ async def resultados_encuesta(
 
         elif tipo == "TEXTO_LIBRE":
             rows = await db.execute(text("""
-                SELECT texto_respuesta, fccreacion
+                SELECT texto_respuesta, fecha_creacion
                 FROM ades_encuesta_respuestas
                 WHERE pregunta_id = :pid::uuid AND texto_respuesta IS NOT NULL
                   AND LENGTH(TRIM(texto_respuesta)) > 0
-                ORDER BY fccreacion DESC
+                ORDER BY fecha_creacion DESC
                 LIMIT 20
             """), {"pid": pid})
             stats["respuestas"] = [r["texto_respuesta"] for r in rows.mappings().all()]
@@ -433,7 +433,7 @@ async def respuestas_raw(
             er.valor_numerico,
             er.opcion_seleccionada,
             er.texto_respuesta,
-            er.fccreacion
+            er.fecha_creacion
         FROM ades_encuesta_respuestas er
         JOIN ades_encuesta_preguntas ep ON ep.id = er.pregunta_id
         WHERE er.encuesta_id = :id::uuid

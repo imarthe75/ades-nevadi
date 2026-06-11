@@ -17,10 +17,10 @@ class AuditMixin:
         UUID(as_uuid=True), default=uuid.uuid4, nullable=False, unique=True
     )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-    fccreacion: Mapped[datetime] = mapped_column(
+    fecha_creacion: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
-    fcmodificacion: Mapped[datetime] = mapped_column(
+    fecha_modificacion: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
     usuario_creacion: Mapped[str] = mapped_column(String(150), server_default=func.current_user(), nullable=False)

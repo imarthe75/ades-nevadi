@@ -263,6 +263,11 @@ services:
       ENVIRONMENT:         ${ENVIRONMENT:-development}
       LOG_LEVEL:           ${LOG_LEVEL:-info}
       ALLOWED_ORIGINS:     ${ALLOWED_ORIGINS:-http://localhost:4200,https://escolar.institutonevadi.edu.mx}
+      # FASE 27 — Certificación Digital Ed25519
+      FIRMA_CLAVE_PRIVADA_HEX: ${FIRMA_CLAVE_PRIVADA_HEX:-}
+      BASE_URL:            ${BASE_URL:-https://ades.setag.mx}
+      # FASE 4 — IA Asistente
+      ANTHROPIC_API_KEY:   ${ANTHROPIC_API_KEY:-}
     volumes:
       - ./backend:/app:cached     # hot-reload en desarrollo
     ports:
@@ -308,8 +313,11 @@ services:
       MINIO_ACCESS_KEY:    ${MINIO_ROOT_USER}
       MINIO_SECRET_KEY:    ${MINIO_ROOT_PASSWORD}
       MINIO_SECURE:        "false"
-      # Claude API para asistente IA (Fase 4)
+      SECRET_KEY:          ${SECRET_KEY:-cambiar-en-produccion}
       ANTHROPIC_API_KEY:   ${ANTHROPIC_API_KEY:-}
+      FIRMA_CLAVE_PRIVADA_HEX: ${FIRMA_CLAVE_PRIVADA_HEX:-}
+      BASE_URL:            ${BASE_URL:-https://ades.setag.mx}
+      ENVIRONMENT:         ${ENVIRONMENT:-development}
     volumes:
       - ./backend:/app:cached
     networks:
@@ -324,17 +332,23 @@ services:
         limits:
           memory: 512M
 
-  # Celery Beat — tareas programadas (sincronización calendarios, reportes nocturnos)
+  # Celery Beat — tareas programadas (alertas nocturnas, refresco BI)
   celery-beat:
     build:
       context: ./backend
       dockerfile: Dockerfile
     container_name: ades-celery-beat
     restart: unless-stopped
-    command: celery -A app.worker.celery_app beat --loglevel=info --scheduler redbeat.RedBeatScheduler
+    command: celery -A app.worker.celery_app beat --loglevel=info
     environment:
+      DATABASE_URL:        postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@ades-postgres:5432/${POSTGRES_DB}
       DATABASE_URL_SYNC:   postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@ades-postgres:5432/${POSTGRES_DB}
       CELERY_BROKER_URL:   redis://:${VALKEY_PASSWORD}@ades-valkey:6379/0
+      CELERY_RESULT_URL:   redis://:${VALKEY_PASSWORD}@ades-valkey:6379/0
+      VALKEY_URL:          redis://:${VALKEY_PASSWORD}@ades-valkey:6379/0
+      SECRET_KEY:          ${SECRET_KEY:-cambiar-en-produccion}
+      ANTHROPIC_API_KEY:   ${ANTHROPIC_API_KEY:-}
+      ENVIRONMENT:         ${ENVIRONMENT:-development}
     volumes:
       - ./backend:/app:cached
     networks:
@@ -487,7 +501,7 @@ services:
       NTFY_BASE_URL:          ${NTFY_BASE_URL:-http://notify.ades.setag.mx}
       NTFY_CACHE_FILE:        /var/cache/ntfy/cache.db
       NTFY_AUTH_FILE:         /var/lib/ntfy/auth.db
-      NTFY_AUTH_DEFAULT_ACCESS: deny-all
+      NTFY_AUTH_DEFAULT_ACCESS: read-only
       NTFY_BEHIND_PROXY:      "true"
     volumes:
       - ntfy-data:/var/lib/ntfy

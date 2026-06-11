@@ -14,12 +14,12 @@ import { InputTextModule } from 'primeng/inputtext';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { TooltipModule } from 'primeng/tooltip';
 import { TagModule } from 'primeng/tag';
-import { ToastModule } from 'primeng/toast';
-import { MessageService, ConfirmationService } from 'primeng/api';
+import { ConfirmationService } from 'primeng/api';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { CardModule } from 'primeng/card';
 import { ApiService } from '../../core/services/api.service';
+import { ApexNotificationService } from 'apex-component-library';
 
 interface EstudianteOpt { id: string; nombre_completo: string; matricula?: string; }
 interface ContactoFamiliar {
@@ -48,12 +48,10 @@ interface ParentescoOpt { label: string; value: string; }
   imports: [
     CommonModule, FormsModule, ReactiveFormsModule,
     TableModule, ButtonModule, DialogModule, SelectModule,
-    InputTextModule, InputNumberModule, TooltipModule, TagModule,
-    ToastModule, ConfirmDialogModule, ToggleSwitchModule, CardModule,
+    InputTextModule, InputNumberModule, TooltipModule, TagModule, ConfirmDialogModule, ToggleSwitchModule, CardModule,
   ],
-  providers: [MessageService, ConfirmationService],
+  providers: [ConfirmationService],
   template: `
-    <p-toast />
     <p-confirmDialog />
 
     <div class="page-header">
@@ -75,7 +73,8 @@ interface ParentescoOpt { label: string; value: string; }
           placeholder="Seleccionar estudiante..."
           [showClear]="true"
           (onChange)="cargarContactos()"
-          style="width:300px;flex-shrink:0">
+          style="width:300px;flex-shrink:0"
+              [filter]="true" filterPlaceholder="Buscar...">
         </p-select>
       </div>
       <p-button label="Agregar contacto" icon="pi pi-plus" size="small"
@@ -172,7 +171,8 @@ interface ParentescoOpt { label: string; value: string; }
                 [options]="parentescos()"
                 optionLabel="label"
                 optionValue="value"
-                placeholder="Seleccionar parentesco..." />
+                placeholder="Seleccionar parentesco..." 
+ [filter]="true" filterPlaceholder="Buscar..."/>
             </div>
             <div class="field">
               <label>Ocupación</label>
@@ -191,7 +191,8 @@ interface ParentescoOpt { label: string; value: string; }
                 ]"
                 optionLabel="label"
                 optionValue="value"
-                placeholder="Seleccionar..." />
+                placeholder="Seleccionar..." 
+ [filter]="true" filterPlaceholder="Buscar..."/>
             </div>
           </div>
 
@@ -227,7 +228,8 @@ interface ParentescoOpt { label: string; value: string; }
                   {label: 'Consulta (Solo información)', value: 'CONSULTA'}
                 ]"
                 optionLabel="label"
-                optionValue="value" />
+                optionValue="value" 
+ [filter]="true" filterPlaceholder="Buscar..."/>
             </div>
           </div>
         </div>
@@ -273,7 +275,7 @@ interface ParentescoOpt { label: string; value: string; }
 })
 export class PadresAdminComponent implements OnInit {
   private api = inject(ApiService);
-  private toast = inject(MessageService);
+  private readonly notify = inject(ApexNotificationService);
   private confirm = inject(ConfirmationService);
   private fb = inject(FormBuilder);
 
@@ -331,7 +333,7 @@ export class PadresAdminComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        this.toast.add({ severity: 'error', summary: 'Error', detail: 'No se pudieron cargar los estudiantes' });
+        this.notify.error('Error', 'No se pudieron cargar los estudiantes');
         this.loading.set(false);
       },
     });
@@ -348,7 +350,7 @@ export class PadresAdminComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        this.toast.add({ severity: 'error', summary: 'Error', detail: 'No se pudieron cargar los contactos' });
+        this.notify.error('Error', 'No se pudieron cargar los contactos');
         this.loading.set(false);
       },
     });
@@ -403,17 +405,13 @@ export class PadresAdminComponent implements OnInit {
 
     this.api[metodo as 'post'|'patch']<any>(endpoint, payload).subscribe({
       next: () => {
-        this.toast.add({
-          severity: 'success',
-          summary: 'Éxito',
-          detail: `Contacto ${this.contactoEditado ? 'actualizado' : 'creado'} correctamente`,
-        });
+        this.notify.success('Éxito', `Contacto ${this.contactoEditado ? 'actualizado' : 'creado'} correctamente`);
         this.mostrarFormulario.set(false);
         this.guardando.set(false);
         this.cargarContactos();
       },
       error: () => {
-        this.toast.add({ severity: 'error', summary: 'Error', detail: 'No se pudo guardar el contacto' });
+        this.notify.error('Error', 'No se pudo guardar el contacto');
         this.guardando.set(false);
       },
     });
@@ -427,11 +425,11 @@ export class PadresAdminComponent implements OnInit {
       accept: () => {
         this.api.delete(`/contactos/${row.id}`).subscribe({
           next: () => {
-            this.toast.add({ severity: 'success', summary: 'Eliminado', detail: 'Contacto eliminado correctamente' });
+            this.notify.success('Eliminado', 'Contacto eliminado correctamente');
             this.cargarContactos();
           },
           error: () => {
-            this.toast.add({ severity: 'error', summary: 'Error', detail: 'No se pudo eliminar el contacto' });
+            this.notify.error('Error', 'No se pudo eliminar el contacto');
           },
         });
       },

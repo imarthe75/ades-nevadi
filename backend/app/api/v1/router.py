@@ -150,3 +150,15 @@ api_router.include_router(pdf_tools_router)
 # ── FASE 23 — n8n automatización de flujos ───────────────────────────────────
 from .automations import router as automations_router  # noqa: E402
 api_router.include_router(automations_router)
+
+# ── FASE 26-A — Variables del Sistema + Catálogos Dinámicos ──────────────────
+from .catalogos_sistema import router as catalogos_sistema_router  # noqa: E402
+api_router.include_router(catalogos_sistema_router)
+
+# ── FASE 26-B — Menús Dinámicos ───────────────────────────────────────────────
+from .menus import router as menus_router  # noqa: E402
+api_router.include_router(menus_router)
+
+# ── FASE 26-E — SEPOMEX Geográfico ──────────────────────────────────────────────
+from .geo import router as geo_router  # noqa: E402
+api_router.include_router(geo_router)
