@@ -354,3 +354,104 @@ async def cobertura_curricular(
         "pct_cobertura": round(con_evidencia / total * 100, 1) if total else 0,
         "temas": data,
     }
+
+
+# ── EV-007: Detección de inconsistencias ────────────────────────────────────
+@router.get("/inconsistencias/{grupo_id}")
+async def detectar_inconsistencias(
+    grupo_id: str,
+    periodo_id: Optional[str] = None,
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """EV-007: Alumnos con calificación aprobatoria pero sin entregas registradas."""
+    periodo_filter = "AND cp.periodo_evaluacion_id = :pid" if periodo_id else ""
+    params: dict = {"gid": grupo_id}
+    if periodo_id:
+        params["pid"] = periodo_id
+
+    rows = await db.execute(
+        text(f"""
+            SELECT
+                est.id        AS estudiante_id,
+                per.nombre    AS nombre,
+                per.apellido_paterno,
+                est.matricula,
+                cp.calificacion_final,
+                cp.es_acreditado,
+                COUNT(e.id) FILTER (WHERE e.calificacion_obtenida IS NOT NULL) AS entregas_calificadas,
+                COUNT(t.id) AS total_actividades
+            FROM ades_calificaciones_periodo cp
+            JOIN ades_estudiantes est ON est.id = cp.estudiante_id
+            JOIN ades_personas per    ON per.id = est.persona_id
+            LEFT JOIN ades_tareas t   ON t.grupo_id = :gid AND t.is_active = TRUE
+            LEFT JOIN ades_tareas_entregas e ON e.tarea_id = t.id AND e.estudiante_id = est.id
+            WHERE cp.grupo_id = :gid
+              AND cp.is_active = TRUE
+              AND cp.calificacion_final IS NOT NULL
+              {periodo_filter}
+            GROUP BY est.id, per.nombre, per.apellido_paterno, est.matricula,
+                     cp.calificacion_final, cp.es_acreditado
+            HAVING cp.es_acreditado = TRUE AND COUNT(e.id) FILTER (WHERE e.calificacion_obtenida IS NOT NULL) = 0
+            ORDER BY per.apellido_paterno, per.nombre
+        """),
+        params,
+    )
+    inconsistencias = [dict(r) for r in rows.mappings().all()]
+    return {
+        "grupo_id": grupo_id,
+        "total_inconsistencias": len(inconsistencias),
+        "descripcion": "Alumnos con calificación aprobatoria pero sin entregas calificadas",
+        "casos": inconsistencias,
+    }
+
+
+# ── EV-018: Alumnos candidatos a extraordinario ─────────────────────────────
+@router.get("/candidatos-extraordinario/{grupo_id}")
+async def candidatos_extraordinario(
+    grupo_id: str,
+    periodo_id: Optional[str] = None,
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """EV-018: Alumnos con calificación < mínimo aprobatorio, candidatos a examen extraordinario."""
+    periodo_filter = "AND cp.periodo_evaluacion_id = :pid" if periodo_id else ""
+    params: dict = {"gid": grupo_id}
+    if periodo_id:
+        params["pid"] = periodo_id
+
+    rows = await db.execute(
+        text(f"""
+            SELECT
+                est.id        AS estudiante_id,
+                per.nombre    AS nombre,
+                per.apellido_paterno,
+                est.matricula,
+                cp.calificacion_final,
+                cp.calificacion_calculada,
+                cp.es_acreditado,
+                ne.minimo_aprobatorio,
+                pe.nombre_periodo
+            FROM ades_calificaciones_periodo cp
+            JOIN ades_estudiantes est      ON est.id = cp.estudiante_id
+            JOIN ades_personas per         ON per.id = est.persona_id
+            JOIN ades_grupos g             ON g.id = cp.grupo_id
+            JOIN ades_grados gr            ON gr.id = g.grado_id
+            JOIN ades_niveles_educativos ne ON ne.id = gr.nivel_educativo_id
+            LEFT JOIN ades_periodos_evaluacion pe ON pe.id = cp.periodo_evaluacion_id
+            WHERE cp.grupo_id = :gid
+              AND cp.is_active = TRUE
+              AND cp.es_acreditado = FALSE
+              AND cp.calificacion_final IS NOT NULL
+              {periodo_filter}
+            ORDER BY cp.calificacion_final ASC, per.apellido_paterno
+        """),
+        params,
+    )
+    candidatos = [dict(r) for r in rows.mappings().all()]
+    return {
+        "grupo_id": grupo_id,
+        "total_candidatos": len(candidatos),
+        "descripcion": "Alumnos con calificación reprobatoria — candidatos a examen extraordinario",
+        "candidatos": candidatos,
+    }

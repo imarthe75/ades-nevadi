@@ -74,37 +74,36 @@ async def chat(
 ):
     """Envía un mensaje al asistente pedagógico y devuelve la respuesta."""
     try:
-        import anthropic
+        from openai import OpenAI
     except ImportError:
-        raise HTTPException(status_code=503, detail="Cliente Anthropic no disponible")
+        raise HTTPException(status_code=503, detail="Cliente OpenAI no disponible")
 
-    if not settings.ANTHROPIC_API_KEY:
-        raise HTTPException(status_code=503, detail="ANTHROPIC_API_KEY no configurada")
+    if not settings.OPENAI_API_KEY:
+        raise HTTPException(status_code=503, detail="OPENAI_API_KEY no configurada")
 
-    client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
+    client = OpenAI(api_key=settings.OPENAI_API_KEY, base_url=settings.OPENAI_BASE_URL)
 
     # Construir historial de mensajes
-    messages = []
+    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+
+    # Contexto adicional del plantel/ciclo si se envió
+    if data.contexto:
+        ctx_str = ", ".join(f"{k}: {v}" for k, v in data.contexto.items() if v)
+        if ctx_str:
+            messages[0]["content"] += f"\n\nContexto actual del usuario: {ctx_str}"
+
     for h in data.historial[-10:]:  # máximo 10 turnos de contexto
         if h.get("role") in ("user", "assistant"):
             messages.append({"role": h["role"], "content": h["content"]})
     messages.append({"role": "user", "content": data.mensaje})
 
-    # Contexto adicional del plantel/ciclo si se envió
-    system = SYSTEM_PROMPT
-    if data.contexto:
-        ctx_str = ", ".join(f"{k}: {v}" for k, v in data.contexto.items() if v)
-        if ctx_str:
-            system += f"\n\nContexto actual del usuario: {ctx_str}"
-
-    response = client.messages.create(
-        model="claude-sonnet-4-6",
+    response = client.chat.completions.create(
+        model=settings.OPENAI_MODEL,
         max_tokens=1024,
-        system=system,
         messages=messages,
     )
 
-    respuesta = response.content[0].text
+    respuesta = response.choices[0].message.content
 
     # Guardar en historial (best-effort, sin bloquear la respuesta)
     try:
@@ -112,16 +111,28 @@ async def chat(
         await db.execute(
             text("""
                 INSERT INTO ades_ai_conversaciones (sesion_id, rol, contenido, modelo, tokens_entrada, tokens_salida, contexto)
-                VALUES (:sid, 'user', :user_msg, 'claude-sonnet-4-6', :tin, 0, :ctx::jsonb)
+                VALUES (:sid, 'user', :user_msg, :model, :tin, 0, :ctx::jsonb)
             """),
-            {"sid": data.sesion_id, "user_msg": data.mensaje, "tin": response.usage.input_tokens, "ctx": str(data.contexto).replace("'", '"')},
+            {
+                "sid": data.sesion_id,
+                "user_msg": data.mensaje,
+                "model": settings.OPENAI_MODEL,
+                "tin": response.usage.prompt_tokens,
+                "ctx": str(data.contexto).replace("'", '"')
+            },
         )
         await db.execute(
             text("""
                 INSERT INTO ades_ai_conversaciones (sesion_id, rol, contenido, modelo, tokens_entrada, tokens_salida, contexto)
-                VALUES (:sid, 'assistant', :resp, 'claude-sonnet-4-6', 0, :tout, :ctx::jsonb)
+                VALUES (:sid, 'assistant', :resp, :model, 0, :tout, :ctx::jsonb)
             """),
-            {"sid": data.sesion_id, "resp": respuesta, "tout": response.usage.output_tokens, "ctx": str(data.contexto).replace("'", '"')},
+            {
+                "sid": data.sesion_id,
+                "resp": respuesta,
+                "model": settings.OPENAI_MODEL,
+                "tout": response.usage.completion_tokens,
+                "ctx": str(data.contexto).replace("'", '"')
+            },
         )
         await db.commit()
     except Exception:
@@ -130,7 +141,7 @@ async def chat(
     return {
         "respuesta": respuesta,
         "sesion_id": data.sesion_id,
-        "tokens": {"entrada": response.usage.input_tokens, "salida": response.usage.output_tokens},
+        "tokens": {"entrada": response.usage.prompt_tokens, "salida": response.usage.completion_tokens},
     }
 
 

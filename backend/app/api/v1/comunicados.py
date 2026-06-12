@@ -38,6 +38,9 @@ async def _resolve_usuario_id(db: AsyncSession, jwt_sub: str) -> str | None:
 
 # ── schemas ───────────────────────────────────────────────────────────────────
 
+_PERIODICIDADES = ["DIARIA", "SEMANAL", "QUINCENAL", "MENSUAL", "TRIMESTRAL"]
+
+
 class ComunicadoCreate(BaseModel):
     titulo: str
     contenido: str
@@ -47,6 +50,8 @@ class ComunicadoCreate(BaseModel):
     grupo_id: Optional[UUID] = None
     requiere_acuse: bool = False
     fecha_vencimiento: Optional[datetime.datetime] = None
+    es_recurrente: bool = False
+    periodicidad: Optional[str] = None   # CO-007: SEMANAL MENSUAL etc.
 
 
 # ── endpoints ─────────────────────────────────────────────────────────────────
@@ -114,10 +119,10 @@ async def crear_comunicado(
     row = await db.execute(text("""
         INSERT INTO ades_comunicados
             (titulo, contenido, tipo_comunicado, plantel_id, nivel_educativo_id, grupo_id,
-             requiere_acuse, fecha_vencimiento, creado_por_id)
+             requiere_acuse, fecha_vencimiento, es_recurrente, periodicidad, creado_por_id)
         VALUES
             (:titulo, :contenido, :tipo, :plantel_id, :nivel_id, :grupo_id,
-             :requiere_acuse, :fecha_vencimiento, :creado_por)
+             :requiere_acuse, :fecha_vencimiento, :es_recurrente, :periodicidad, :creado_por)
         RETURNING id, titulo, tipo_comunicado, fecha_publicacion
     """), {
         "titulo": body.titulo,
@@ -128,6 +133,8 @@ async def crear_comunicado(
         "grupo_id": str(body.grupo_id) if body.grupo_id else None,
         "requiere_acuse": body.requiere_acuse,
         "fecha_vencimiento": body.fecha_vencimiento,
+        "es_recurrente": body.es_recurrente,
+        "periodicidad": body.periodicidad if body.es_recurrente else None,
         "creado_por": uid,
     })
     await db.commit()
@@ -206,3 +213,107 @@ async def eliminar_comunicado(
         WHERE id = :id::uuid
     """), {"id": str(comunicado_id)})
     await db.commit()
+
+
+# ── CO-007: Comunicados recurrentes ──────────────────────────────────────────
+@router.get("/recurrentes/pendientes")
+async def comunicados_recurrentes_pendientes(
+    db: AsyncSession = Depends(get_db),
+    _user: dict = Depends(get_current_user),
+):
+    """CO-007: Lista comunicados recurrentes con próximo envío vencido o próximo."""
+    rows = await db.execute(text("""
+        SELECT id, titulo, tipo_comunicado, periodicidad,
+               proximo_envio, fecha_publicacion, plantel_id, nivel_educativo_id
+        FROM ades_comunicados
+        WHERE es_recurrente = TRUE AND is_active = TRUE
+        ORDER BY proximo_envio ASC NULLS LAST
+    """))
+    return [dict(r) for r in rows.mappings().all()]
+
+
+@router.post("/{comunicado_id}/programar-siguiente")
+async def programar_siguiente_envio(
+    comunicado_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """CO-007: Calcula y actualiza proximo_envio según periodicidad."""
+    row = await db.execute(
+        text("SELECT periodicidad, proximo_envio FROM ades_comunicados WHERE id=:id::uuid AND is_active=TRUE"),
+        {"id": str(comunicado_id)},
+    )
+    rec = row.mappings().first()
+    if not rec:
+        raise HTTPException(status_code=404, detail="Comunicado no encontrado")
+    if not rec["periodicidad"]:
+        raise HTTPException(status_code=400, detail="El comunicado no tiene periodicidad configurada")
+
+    import datetime as dt
+    delta_map = {
+        "DIARIA":     dt.timedelta(days=1),
+        "SEMANAL":    dt.timedelta(weeks=1),
+        "QUINCENAL":  dt.timedelta(days=15),
+        "MENSUAL":    dt.timedelta(days=30),
+        "TRIMESTRAL": dt.timedelta(days=90),
+    }
+    delta = delta_map.get(rec["periodicidad"], dt.timedelta(days=30))
+    base  = rec["proximo_envio"] or dt.datetime.now(dt.timezone.utc)
+    siguiente = base + delta
+
+    await db.execute(
+        text("UPDATE ades_comunicados SET proximo_envio=:next WHERE id=:id::uuid"),
+        {"next": siguiente, "id": str(comunicado_id)},
+    )
+    await db.commit()
+    return {"proximo_envio": siguiente.isoformat(), "periodicidad": rec["periodicidad"]}
+
+
+# ── CO-005: Reporte de lectura ──────────────────────────────────────────────
+@router.get("/{comunicado_id}/reporte-lectura")
+async def reporte_lectura(
+    comunicado_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    _user: dict = Depends(get_current_user),
+):
+    com = (await db.execute(
+        text("SELECT id, titulo, total_destinatarios FROM ades_comunicados WHERE id = :id::uuid AND is_active = TRUE"),
+        {"id": str(comunicado_id)},
+    )).mappings().first()
+    if not com:
+        raise HTTPException(404, "Comunicado no encontrado")
+
+    acuses = (await db.execute(
+        text("""
+            SELECT COUNT(*) AS leidos,
+                   COUNT(DISTINCT ac.usuario_id) AS usuarios_distintos
+            FROM ades_acuses_comunicado ac
+            WHERE ac.comunicado_id = :cid::uuid AND ac.is_active = TRUE
+        """),
+        {"cid": str(comunicado_id)},
+    )).mappings().first()
+
+    leidos = acuses["leidos"] or 0
+    total  = com.get("total_destinatarios") or 0
+    pct    = round(leidos / total * 100, 1) if total else 0.0
+
+    detalle = (await db.execute(
+        text("""
+            SELECT u.nombre_usuario, ac.fecha_acuse, ac.ip_origen
+            FROM ades_acuses_comunicado ac
+            JOIN ades_usuarios u ON u.id = ac.usuario_id
+            WHERE ac.comunicado_id = :cid::uuid AND ac.is_active = TRUE
+            ORDER BY ac.fecha_acuse DESC
+            LIMIT 200
+        """),
+        {"cid": str(comunicado_id)},
+    )).mappings().all()
+
+    return {
+        "comunicado_id": str(comunicado_id),
+        "titulo": com["titulo"],
+        "total_destinatarios": total,
+        "total_leidos": leidos,
+        "pct_lectura": pct,
+        "detalle": [dict(r) for r in detalle],
+    }

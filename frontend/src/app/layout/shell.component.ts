@@ -420,14 +420,14 @@ export class ShellComponent implements OnInit, OnDestroy {
   private readonly _allNavGroups: NavGroup[] = [
     { section: 'Principal', items: [
       { route: '/dashboard',  icon: 'pi-home',         label: 'Dashboard' },
-      { route: '/planteles',  icon: 'pi-map-marker',   label: 'Planteles',       maxNivel: 1 },
-      { route: '/admin',      icon: 'pi-cog',          label: 'Administración',  maxNivel: 1 },
     ]},
     { section: 'Académico', maxNivel: 4, items: [
       { route: '/alumnos',          icon: 'pi-users',        label: 'Alumnos' },
+      { route: '/reinscripcion',    icon: 'pi-refresh',      label: 'Reinscripción',       maxNivel: 3 },
       { route: '/padres-admin',     icon: 'pi-users',        label: 'Gestión de Padres',   maxNivel: 1 },
       { route: '/profesores',       icon: 'pi-id-card',      label: 'Profesores' },
       { route: '/grupos',           icon: 'pi-building',     label: 'Grupos' },
+      { route: '/aulas',            icon: 'pi-map',          label: 'Aulas',               maxNivel: 3 },
       { route: '/planes-estudio',   icon: 'pi-list',         label: 'Planes de Estudio',   maxNivel: 3 },
       { route: '/calificaciones',   icon: 'pi-star',         label: 'Calificaciones' },
       { route: '/evaluaciones',     icon: 'pi-file-check',   label: 'Evaluaciones' },
@@ -436,9 +436,19 @@ export class ShellComponent implements OnInit, OnDestroy {
       { route: '/planeacion',       icon: 'pi-list-check',   label: 'Planeación',          maxNivel: 3 },
     ]},
     { section: 'Operaciones', maxNivel: 3, items: [
-      { route: '/horarios',  icon: 'pi-calendar',           label: 'Horarios' },
+      { route: '/horarios',   icon: 'pi-calendar',           label: 'Horarios' },
+      { route: '/calendario', icon: 'pi-calendar-clock',    label: 'Calendario Escolar', maxNivel: 3 },
       { route: '/conducta',  icon: 'pi-exclamation-circle', label: 'Conducta' },
-      { route: '/medico',    icon: 'pi-heart',              label: 'Expediente Médico' },
+      { route: '/medico',               icon: 'pi-heart',           label: 'Expediente Médico' },
+      { route: '/condiciones-cronicas', icon: 'pi-exclamation-triangle', label: 'Condiciones Crónicas', maxNivel: 3 },
+      { route: '/justificaciones',      icon: 'pi-check-circle',    label: 'Justificaciones Faltas', maxNivel: 3 },
+    ]},
+    { section: 'Recursos Humanos', maxNivel: 2, items: [
+      { route: '/licencias',           icon: 'pi-calendar-times',  label: 'Licencias y Permisos',   maxNivel: 2 },
+      { route: '/capacitaciones',      icon: 'pi-graduation-cap',  label: 'Capacitaciones',          maxNivel: 2 },
+      { route: '/expediente-laboral',  icon: 'pi-id-card',         label: 'Expediente Laboral',      maxNivel: 2 },
+      { route: '/disponibilidad',      icon: 'pi-calendar',        label: 'Disponibilidad Docente',  maxNivel: 2 },
+      { route: '/asistencia-personal', icon: 'pi-clock',           label: 'Asistencia Personal',     maxNivel: 2 },
     ]},
     { section: 'Comunicación', maxNivel: 4, items: [
       { route: '/comunicados', icon: 'pi-envelope',   label: 'Comunicados' },
@@ -467,8 +477,9 @@ export class ShellComponent implements OnInit, OnDestroy {
       { route: '/learning-paths', icon: 'pi-graduation-cap', label: 'Learning Paths' },
     ]},
     { section: 'Reportes', maxNivel: 3, items: [
-      { route: '/reportes',     icon: 'pi-file-pdf',       label: 'Generador de Reportes' },
-      { route: '/certificados', icon: 'pi-verified',       label: 'Certificados Digitales', maxNivel: 3 },
+      { route: '/reportes',         icon: 'pi-file-pdf',       label: 'Generador de Reportes' },
+      { route: '/certificados',     icon: 'pi-verified',       label: 'Certificados Digitales', maxNivel: 3 },
+      { route: '/expediente-doc',   icon: 'pi-folder-open',    label: 'Expediente Digital',     maxNivel: 3 },
     ]},
     { section: 'Sistema', maxNivel: 1, items: [
       { route: '/monitor', icon: 'pi-heart-fill', label: 'Monitor del Sistema' },

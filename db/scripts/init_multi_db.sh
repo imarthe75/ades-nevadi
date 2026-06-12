@@ -23,6 +23,10 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-E
     SELECT 'CREATE DATABASE n8n OWNER ${POSTGRES_USER}'
     WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'n8n')\gexec
 
+    -- Base de datos para Paperless-ngx (gestión documental OCR — FASE 28)
+    SELECT 'CREATE DATABASE paperless OWNER ${POSTGRES_USER}'
+    WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'paperless')\gexec
+
     -- Extensiones en la base principal ADES
     \c ${POSTGRES_DB:-ades}
     CREATE EXTENSION IF NOT EXISTS "pgcrypto";

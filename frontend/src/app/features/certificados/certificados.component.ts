@@ -10,7 +10,7 @@ import { InputTextModule } from 'primeng/inputtext';
 import { AutoCompleteModule } from 'primeng/autocomplete';
 import { TooltipModule } from 'primeng/tooltip';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
-import { ApexNotificationService } from 'apex-component-library';
+import { ApexNotificationService, ApexDynamicActionTargetDirective, ApexDynamicActionService } from 'apex-component-library';
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
 
@@ -28,6 +28,10 @@ interface Certificado {
   verificable_url: string | null;
   nombre_alumno: string;
   nombre_ciclo: string;
+  blockchain_tx: string | null;
+  blockchain_status: 'PENDIENTE' | 'ANCLADO' | 'FALLIDO' | null;
+  fecha_anclaje: string | null;
+  blockchain_network: string | null;
 }
 
 interface AlumnoOpt { id: string; label: string; }
@@ -39,7 +43,7 @@ interface AlumnoOpt { id: string; label: string; }
     CommonModule, FormsModule,
     TableModule, ButtonModule, TagModule, DialogModule,
     SelectModule, InputTextModule, AutoCompleteModule, TooltipModule,
-    ProgressSpinnerModule,
+    ProgressSpinnerModule, ApexDynamicActionTargetDirective,
   ],
   template: `
     <div class="page-header">
@@ -50,7 +54,7 @@ interface AlumnoOpt { id: string; label: string; }
       @if (esAdmin()) {
         <div style="display:flex;gap:.5rem">
           <p-button label="Emitir certificado" icon="pi pi-plus-circle"
-            (onClick)="showEmitir.set(true)" />
+            (onClick)="abrirEmitir()" />
           <p-button label="Gestión de llaves" icon="pi pi-key"
             severity="secondary" [outlined]="true"
             (onClick)="showLlaves.set(true)" />
@@ -90,7 +94,8 @@ interface AlumnoOpt { id: string; label: string; }
           <th>Ciclo</th>
           <th>Promedio</th>
           <th pSortableColumn="fecha_emision">Fecha <p-sortIcon field="fecha_emision" /></th>
-          <th>Estado</th>
+          <th>Estado Firma</th>
+          <th>Anclaje Blockchain</th>
           <th class="col-acciones">Acciones</th>
         </tr>
       </ng-template>
@@ -110,6 +115,19 @@ interface AlumnoOpt { id: string; label: string; }
               [pTooltip]="c.fecha_firma ? 'Firmado: ' + (c.fecha_firma | date:'dd/MM/yyyy HH:mm') : ''"
             />
           </td>
+          <td>
+            @if (c.blockchain_status === 'ANCLADO') {
+              <a [href]="blockchainLink(c.blockchain_tx, c.blockchain_network)" target="_blank" style="text-decoration:none">
+                <p-tag value="ANCLADO" severity="success" icon="pi pi-link" pTooltip="Ver transacción en explorador" />
+              </a>
+            } @else if (c.blockchain_status === 'PENDIENTE') {
+              <p-tag value="PENDIENTE" severity="warn" icon="pi pi-spin pi-spinner" pTooltip="Procesando anclaje en segundo plano" />
+            } @else if (c.blockchain_status === 'FALLIDO') {
+              <p-tag value="FALLIDO" severity="danger" icon="pi pi-exclamation-triangle" pTooltip="Error al anclar en blockchain" />
+            } @else {
+              <span class="text-muted">—</span>
+            }
+          </td>
           <td class="acciones-cell">
             @if (c.verificable_url) {
               <p-button icon="pi pi-external-link" [text]="true" severity="info" size="small"
@@ -125,7 +143,7 @@ interface AlumnoOpt { id: string; label: string; }
         </tr>
       </ng-template>
       <ng-template pTemplate="emptymessage">
-        <tr><td colspan="9" style="text-align:center;padding:2rem;color:var(--text-color-secondary)">
+        <tr><td colspan="10" style="text-align:center;padding:2rem;color:var(--text-color-secondary)">
           Sin certificados emitidos
         </td></tr>
       </ng-template>
@@ -152,14 +170,15 @@ interface AlumnoOpt { id: string; label: string; }
           <label>Tipo *</label>
           <p-select [(ngModel)]="emitirForm.tipo_certificado"
             [options]="tiposOpts" optionLabel="label" optionValue="value"
+            (onChange)="onTipoChange()"
             styleClass="w-full" />
         </div>
-        <div class="form-row">
+        <div class="form-row" [apexDATarget]="'grado-row'">
           <label>Grado completado</label>
           <input pInputText [(ngModel)]="emitirForm.grado_completado"
             placeholder="ej. 6° Primaria" class="w-full" />
         </div>
-        <div class="form-row">
+        <div class="form-row" [apexDATarget]="'promedio-row'">
           <label>Promedio final</label>
           <input pInputText type="number" [(ngModel)]="emitirForm.promedio_final"
             placeholder="ej. 9.2" class="w-full" />
@@ -292,10 +311,12 @@ interface AlumnoOpt { id: string; label: string; }
     .nueva-llave-item code { font-size:.7rem; word-break:break-all; background:var(--surface-100); padding:.25rem .5rem; border-radius:4px; display:block; }
   `],
 })
+
 export class CertificadosComponent implements OnInit {
   private readonly api    = inject(ApiService);
   private readonly notify = inject(ApexNotificationService);
   readonly ctx            = inject(ContextService);
+  private readonly da     = inject(ApexDynamicActionService);
 
   certificados = signal<Certificado[]>([]);
   cargando     = signal(false);
@@ -339,6 +360,27 @@ export class CertificadosComponent implements OnInit {
   ngOnInit(): void {
     this.cargar();
     if (this.esAdmin()) this.cargarLlaveActiva();
+  }
+
+  onTipoChange(): void {
+    const tipo = this.emitirForm.tipo_certificado;
+    if (tipo === 'ESTUDIOS' || tipo === 'MERITO_ACADEMICO') {
+      this.da.broadcast({ action: 'show', targetRegionId: 'grado-row' });
+      this.da.broadcast({ action: 'show', targetRegionId: 'promedio-row' });
+    } else {
+      this.da.broadcast({ action: 'hide', targetRegionId: 'grado-row' });
+      this.da.broadcast({ action: 'hide', targetRegionId: 'promedio-row' });
+    }
+  }
+
+  abrirEmitir(): void {
+    this.emitirForm.estudiante_id = '';
+    this.emitirForm.tipo_certificado = 'ESTUDIOS';
+    this.emitirForm.grado_completado = '';
+    this.emitirForm.promedio_final = null;
+    this.alumnoQuery = '';
+    this.showEmitir.set(true);
+    setTimeout(() => this.onTipoChange(), 50);
   }
 
   esAdmin(): boolean {
@@ -479,5 +521,13 @@ export class CertificadosComponent implements OnInit {
 
   estadoSeverity(estado: string): 'success' | 'warn' | 'danger' | 'info' {
     return { PENDIENTE: 'warn', FIRMADO: 'success', REVOCADO: 'danger' }[estado] as any ?? 'info';
+  }
+
+  blockchainLink(tx: string | null, network: string | null): string {
+    if (!tx) return '#';
+    if (network === 'MOCK') {
+      return `/verificar/mock-tx/${tx}`;
+    }
+    return `https://amoy.polygonscan.com/tx/${tx}`;
   }
 }

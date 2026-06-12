@@ -41,6 +41,7 @@ export * from './lib/spinner/spinner.component';
 // Phase 5 (Dynamic Actions & Validations)
 export * from './lib/dynamic-actions/dynamic-action.service';
 export * from './lib/dynamic-actions/dynamic-action.directive';
+export * from './lib/dynamic-actions/dynamic-action-target.directive';
 export * from './lib/validations/apex-validators';
 export * from './lib/validations/server-validation.service';
 

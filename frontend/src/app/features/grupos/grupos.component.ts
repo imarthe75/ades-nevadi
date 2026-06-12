@@ -15,6 +15,7 @@ import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
 import { ExportService, ExportColumn } from '../../core/services/export.service';
 import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
+import { ImportButtonComponent } from '../../shared/components/import-button/import-button.component';
 import type { Grupo } from '../../core/models';
 import { grupoLabel } from '../../core/models';
 import { ApexNotificationService } from 'apex-component-library';
@@ -25,7 +26,7 @@ import { ApexNotificationService } from 'apex-component-library';
   imports: [
     CommonModule, FormsModule,
     ButtonModule, InputTextModule, DialogModule, ToggleSwitchModule, SelectModule,
-    InteractiveGridComponent
+    InteractiveGridComponent, ImportButtonComponent
   ],
   template: `
 
@@ -38,6 +39,7 @@ import { ApexNotificationService } from 'apex-component-library';
         <p-button label="CSV"   icon="pi pi-file"       severity="secondary" [text]="true" (onClick)="exportCSV()"  pTooltip="Exportar CSV" />
         <p-button label="Excel" icon="pi pi-file-excel" severity="secondary" [text]="true" (onClick)="exportXLSX()" pTooltip="Exportar Excel" />
         @if (isAdmin()) {
+          <app-import-button entidad="grupos" [onSuccess]="recargar" />
           <p-button label="Nuevo grupo" icon="pi pi-plus" (onClick)="abrirNuevoGrupo()" />
         }
       </div>

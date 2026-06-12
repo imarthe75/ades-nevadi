@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Reinscripción Aprobada - Instituto Nevadi</title>
+  <style>
+    body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #f4f6f9; color: #333333; margin: 0; padding: 0; }
+    .email-container { max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 8px; border: 1px solid #e1e8ed; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+    .header { background: linear-gradient(135deg, #1e3a8a, #3b82f6); color: #ffffff; padding: 30px; text-align: center; }
+    .header h1 { margin: 0; font-size: 24px; font-weight: 600; }
+    .content { padding: 30px; line-height: 1.6; }
+    .student-card { background-color: #f8fafc; border-left: 4px solid #1e3a8a; padding: 15px; margin: 20px 0; border-radius: 0 6px 6px 0; }
+    .student-card table { width: 100%; border-collapse: collapse; }
+    .student-card td { padding: 4px 0; font-size: 14px; }
+    .student-card td.label { color: #64748b; width: 120px; }
+    .btn { display: inline-block; background-color: #1e3a8a; color: #ffffff !important; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 600; margin-top: 15px; text-align: center; }
+    .footer { background-color: #f1f5f9; padding: 20px; text-align: center; font-size: 12px; color: #64748b; border-top: 1px solid #e2e8f0; }
+  </style>
+</head>
+<body>
+  <div class="email-container">
+    <div class="header">
+      <h1>Reinscripción Confirmada</h1>
+    </div>
+    <div class="content">
+      <p>Estimado(a) Padre / Madre de Familia o Tutor,</p>
+      <p>Nos complace informarle que el proceso de validación académica y administrativa ha concluido de forma exitosa. La solicitud de reinscripción para el siguiente ciclo escolar ha sido <strong>APROBADA</strong>.</p>
+      
+      <div class="student-card">
+        <table>
+          <tr>
+            <td class="label">Estudiante:</td>
+            <td><strong>{{ nombre_alumno }}</strong></td>
+          </tr>
+          <tr>
+            <td class="label">Ciclo escolar:</td>
+            <td>{{ ciclo_nombre }}</td>
+          </tr>
+          <tr>
+            <td class="label">Grado/Grupo:</td>
+            <td>{{ grado_grupo }}</td>
+          </tr>
+          <tr>
+            <td class="label">Plantel:</td>
+            <td>{{ plantel_nombre }}</td>
+          </tr>
+        </table>
+      </div>
+
+      <p>Le invitamos a ingresar al Portal ADES para descargar su Ficha Oficial de Reinscripción y revisar la lista de útiles, uniformes y cuotas correspondientes.</p>
+      
+      <p style="text-align: center;">
+        <a href="https://ades.setag.mx/portal" class="btn">Ir al Portal Escolar</a>
+      </p>
+    </div>
+    <div class="footer">
+      <p>© 2026 Instituto Nevadi. Todos los derechos reservados.</p>
+      <p>Este es un correo automático, por favor no responda a este mensaje.</p>
+    </div>
+  </div>
+</body>
+</html>

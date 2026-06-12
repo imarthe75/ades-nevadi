@@ -42,6 +42,9 @@ volumes:
   prometheus-data:    # métricas históricas de Prometheus
   grafana-data:       # dashboards y configuración de Grafana
   n8n-data:           # workflows y credenciales de n8n
+  paperless-data:     # base de datos y configuración de Paperless-ngx
+  paperless-media:    # documentos PDF/imagen gestionados por Paperless-ngx
+  paperless-export:   # exportaciones y backups de Paperless-ngx
   certbot-certs:   # /etc/letsencrypt — compartido entre certbot y nginx
   certbot-www:     # /var/www/certbot — webroot para ACME challenge
 
@@ -130,6 +133,7 @@ services:
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD requerido}
     volumes:
       - minio-data:/data
+      - ./backups:/backups
     ports:
       - "127.0.0.1:9000:9000"   # API S3
       - "127.0.0.1:9001:9001"   # Consola web
@@ -233,6 +237,23 @@ services:
           memory: 600M
 
   # ---------------------------------------------------------------------------
+  # HashiCorp Vault — Gestión de Secretos y Credenciales
+  # ---------------------------------------------------------------------------
+  vault:
+    image: hashicorp/vault:latest
+    container_name: ades-vault
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8200:8200"
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: ${VAULT_TOKEN:-root_token_desarrollo}
+      VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
+    cap_add:
+      - IPC_LOCK
+    networks:
+      - ades-internal
+
+  # ---------------------------------------------------------------------------
   # ADES API — FastAPI backend principal
   # ---------------------------------------------------------------------------
   ades-api:
@@ -268,6 +289,11 @@ services:
       BASE_URL:            ${BASE_URL:-https://ades.setag.mx}
       # FASE 4 — IA Asistente
       ANTHROPIC_API_KEY:   ${ANTHROPIC_API_KEY:-}
+      VAULT_ADDR:          ${VAULT_ADDR:-}
+      VAULT_TOKEN:         ${VAULT_TOKEN:-}
+      OPENAI_BASE_URL:     ${OPENAI_BASE_URL:-}
+      OPENAI_API_KEY:      ${OPENAI_API_KEY:-}
+      OPENAI_MODEL:        ${OPENAI_MODEL:-}
     volumes:
       - ./backend:/app:cached     # hot-reload en desarrollo
     ports:
@@ -318,6 +344,11 @@ services:
       FIRMA_CLAVE_PRIVADA_HEX: ${FIRMA_CLAVE_PRIVADA_HEX:-}
       BASE_URL:            ${BASE_URL:-https://ades.setag.mx}
       ENVIRONMENT:         ${ENVIRONMENT:-development}
+      VAULT_ADDR:          ${VAULT_ADDR:-}
+      VAULT_TOKEN:         ${VAULT_TOKEN:-}
+      OPENAI_BASE_URL:     ${OPENAI_BASE_URL:-}
+      OPENAI_API_KEY:      ${OPENAI_API_KEY:-}
+      OPENAI_MODEL:        ${OPENAI_MODEL:-}
     volumes:
       - ./backend:/app:cached
     networks:
@@ -349,6 +380,11 @@ services:
       SECRET_KEY:          ${SECRET_KEY:-cambiar-en-produccion}
       ANTHROPIC_API_KEY:   ${ANTHROPIC_API_KEY:-}
       ENVIRONMENT:         ${ENVIRONMENT:-development}
+      VAULT_ADDR:          ${VAULT_ADDR:-}
+      VAULT_TOKEN:         ${VAULT_TOKEN:-}
+      OPENAI_BASE_URL:     ${OPENAI_BASE_URL:-}
+      OPENAI_API_KEY:      ${OPENAI_API_KEY:-}
+      OPENAI_MODEL:        ${OPENAI_MODEL:-}
     volumes:
       - ./backend:/app:cached
     networks:
@@ -681,6 +717,66 @@ services:
       resources:
         limits:
           memory: 512M
+
+  # ---------------------------------------------------------------------------
+  # Paperless-ngx — Gestión Documental con OCR (FASE 28)
+  # Expedientes digitales del alumno: CURP, actas, certificados previos
+  # UI interna en puerto 8010 (accesible vía nginx /docs/)
+  # Reutiliza: ades-postgres (DB paperless) + ades-valkey (broker DB 1)
+  # ---------------------------------------------------------------------------
+  paperless:
+    image: ghcr.io/paperless-ngx/paperless-ngx:latest
+    container_name: ades-paperless
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+    environment:
+      # Base de datos — usa el PostgreSQL existente de ADES
+      PAPERLESS_DBENGINE:      postgresql
+      PAPERLESS_DBHOST:        ades-postgres
+      PAPERLESS_DBPORT:        5432
+      PAPERLESS_DBNAME:        paperless
+      PAPERLESS_DBUSER:        ${POSTGRES_USER:-ades_admin}
+      PAPERLESS_DBPASS:        ${POSTGRES_PASSWORD}
+      # Broker de tareas — reutiliza Valkey con DB separada (db=1) + auth
+      PAPERLESS_REDIS:         redis://:${VALKEY_PASSWORD}@ades-valkey:6379/1
+      # Seguridad
+      PAPERLESS_SECRET_KEY:    ${PAPERLESS_SECRET_KEY:-paperless_dev_secret_change_in_prod}
+      PAPERLESS_ALLOWED_HOSTS: "*"
+      PAPERLESS_CORS_ALLOWED_HOSTS: "http://localhost:4200,https://ades.setag.mx"
+      # OCR — tesseract con español como idioma primario
+      PAPERLESS_OCR_LANGUAGE:  spa
+      PAPERLESS_OCR_LANGUAGES: spa+eng
+      # Configuración de usuario admin inicial
+      PAPERLESS_ADMIN_USER:    ${PAPERLESS_ADMIN_USER:-admin}
+      PAPERLESS_ADMIN_PASSWORD: ${PAPERLESS_ADMIN_PASSWORD:-paperless_admin_dev}
+      PAPERLESS_ADMIN_MAIL:    admin@institutonevadi.edu.mx
+      # Configuración de la aplicación
+      PAPERLESS_TIME_ZONE:     America/Mexico_City
+      PAPERLESS_URL:           http://ades-paperless:8000
+      PAPERLESS_ENABLE_HTTP_REMOTE_USER: "false"
+      # Rendimiento
+      PAPERLESS_TASK_WORKERS:  1
+      PAPERLESS_THREADS_PER_WORKER: 1
+    volumes:
+      - paperless-data:/usr/src/paperless/data
+      - paperless-media:/usr/src/paperless/media
+      - paperless-export:/usr/src/paperless/export
+    networks:
+      - ades-internal
+    healthcheck:
+      test: ["CMD", "curl", "-fs", "-S", "--max-time", "10", "http://localhost:8000"]
+      interval: 30s
+      timeout: 15s
+      retries: 5
+      start_period: 120s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
 
   # ---------------------------------------------------------------------------
   # Nginx — reverse proxy y gateway principal

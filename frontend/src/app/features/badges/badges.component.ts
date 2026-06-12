@@ -238,8 +238,30 @@ interface AlumnoSugerencia {
  [filter]="true" filterPlaceholder="Buscar..."/>
     </div>
     <div class="field">
-      <label>Ícono (pi-...)</label>
-      <input pInputText [(ngModel)]="form.icono" placeholder="pi-star" />
+      <label>Ícono</label>
+      <div style="display:flex;gap:.5rem;align-items:center">
+        <p-select [options]="iconsOpt" [(ngModel)]="form.icono"
+                  optionLabel="label" optionValue="value" placeholder="Seleccionar ícono" 
+                  [filter]="true" filterPlaceholder="Buscar..." style="flex:1">
+          <ng-template pTemplate="selectedItem" let-selectedOption>
+            @if (selectedOption) {
+              <div style="display:flex;align-items:center;gap:.5rem">
+                <i [class]="'pi ' + selectedOption.value" style="font-size:1.1rem"></i>
+                <span>{{ selectedOption.label }}</span>
+              </div>
+            }
+          </ng-template>
+          <ng-template pTemplate="option" let-option>
+            <div style="display:flex;align-items:center;gap:.5rem">
+              <i [class]="'pi ' + option.value" style="font-size:1.1rem;width:20px;text-align:center"></i>
+              <span>{{ option.label }}</span>
+            </div>
+          </ng-template>
+        </p-select>
+        <div [style.background]="form.color + '22'" style="width:38px;height:38px;border-radius:6px;display:flex;align-items:center;justify-content:center;border:1px solid var(--surface-border)">
+          <i [class]="'pi ' + form.icono" [style.color]="form.color" style="font-size:1.3rem"></i>
+        </div>
+      </div>
     </div>
     <div class="field">
       <label>Color</label>
@@ -406,6 +428,24 @@ export class BadgesComponent implements OnInit {
     { label: '% Asistencia',      value: 'pct_asistencia' },
     { label: 'Promedio general',  value: 'promedio_general' },
     { label: 'Sin reportes cond.', value: 'sin_reportes_conducta' },
+  ];
+  iconsOpt = [
+    { label: 'Estrella Rellena', value: 'pi-star-fill' },
+    { label: 'Estrella Vacía', value: 'pi-star' },
+    { label: 'Trofeo', value: 'pi-trophy' },
+    { label: 'Corona', value: 'pi-crown' },
+    { label: 'Escudo', value: 'pi-shield' },
+    { label: 'Medalla / Premio', value: 'pi-award' },
+    { label: 'Verificado', value: 'pi-verified' },
+    { label: 'Destello / Chispas', value: 'pi-sparkles' },
+    { label: 'Rayo', value: 'pi-bolt' },
+    { label: 'Corazón Relleno', value: 'pi-heart-fill' },
+    { label: 'Corazón', value: 'pi-heart' },
+    { label: 'Bandera', value: 'pi-flag' },
+    { label: 'Libro', value: 'pi-book' },
+    { label: 'Graduación', value: 'pi-graduation-cap' },
+    { label: 'Pulgar Arriba', value: 'pi-thumbs-up-fill' },
+    { label: 'Ojo', value: 'pi-eye' },
   ];
 
   // ── init ───────────────────────────────────────────────────────────────────

@@ -76,14 +76,28 @@ celery -A app.worker.celery_app worker --loglevel=info
 
 1. PKs: siempre UUID con `uuidv7()` o `gen_random_uuid()`. NUNCA SERIAL, BIGINT, INTEGER como PK.
 2. FKs: siempre referencian UUID.
-3. Cada tabla nueva: trigger `auditoria_biu` + log en `auditoria.log_auditoria`.
-4. Cada INSERT/UPDATE/DELETE: auditado, con `row_version` para concurrencia.
-5. Volúmenes Docker: mapear a `./data/postgres/`, `./data/valkey/`, `./data/minio/`.
-6. UI: estilo Oracle APEX — interactive grids, master-detail, LOV, edición inline.
-7. `docker compose down -v` no debe perder datos con volúmenes correctamente configurados.
-8. `.gitignore` incluye: `data/`, `.env`, `.agent/brain/`, `node_modules/`.
-9. Migraciones: numeradas con 3 dígitos en `db/migrations/` (ej: `019_certificados.sql`).
-10. Endpoints mutantes (POST/PUT/PATCH/DELETE): siempre pasan por `AuditMiddleware`.
+3. **Toda tabla nueva `ades_*` DEBE tener columnas de auditoría:** `ref UUID`, `row_version INTEGER`, `fecha_creacion TIMESTAMPTZ`, `fecha_modificacion TIMESTAMPTZ`, `usuario_creacion TEXT`, `usuario_modificacion TEXT`.
+4. **Triggers de auditoría obligatorios:** al final de cada migración con tablas nuevas llamar `SELECT auditoria.asignar_biu('public.ades_<tabla>');` — aplica `audit_biu` automáticamente. El `audit_aiud` se activa solo en producción.
+5. Cada INSERT/UPDATE: el trigger `audit_biu` gestiona automáticamente `ref` (uuidv7), `row_version`, timestamps y usuarios. No asignar manualmente.
+6. Para producción: `SELECT auditoria.asignar_triggers('public.ades_<tabla>');` activa también `audit_aiud` (log completo en `auditoria.log_auditoria`).
+7. Verificar cobertura: `SELECT * FROM auditoria.reporte_cobertura();`
+8. Volúmenes Docker: mapear a `./data/postgres/`, `./data/valkey/`, `./data/minio/`.
+9. UI: estilo Oracle APEX — interactive grids, master-detail, LOV, edición inline.
+10. `docker compose down -v` no debe perder datos con volúmenes correctamente configurados.
+11. `.gitignore` incluye: `data/`, `.env`, `.agent/brain/`, `node_modules/`.
+12. Migraciones: numeradas con 3 dígitos en `db/migrations/` (ej: `039_xxx.sql`).
+13. Endpoints mutantes (POST/PUT/PATCH/DELETE): siempre pasan por `AuditMiddleware`.
+
+### Esquema de auditoría ADES (implementado en 038_auditoria_v2.sql)
+
+| Elemento | Descripción |
+|---|---|
+| `auditoria.log_auditoria` | Tabla de log con PK UUID, hash MD5 encadenado, TIMESTAMPTZ |
+| `auditoria.fn_auditoria_biu()` | BEFORE INSERT/UPDATE — gestiona ref/row_version/timestamps/usuario |
+| `auditoria.fn_auditoria_aiud()` | AFTER INSERT/UPDATE/DELETE — graba en log_auditoria (solo producción) |
+| `auditoria.asignar_biu(tabla)` | Aplica solo `audit_biu` — usar en migraciones DEV |
+| `auditoria.asignar_triggers(tabla)` | Aplica `audit_biu` + `audit_aiud` — usar al pasar a producción |
+| `auditoria.reporte_cobertura()` | Reporte de cobertura de triggers por tabla |
 
 ---
 

@@ -64,7 +64,7 @@ Historia y Geografía, Formación Cívica, Educación Física, Tecnología.
 
 ---
 
-## Estado de Fases (2026-06-10)
+## Estado de Fases (2026-06-11)
 
 | Fase | Estado | Notas |
 |---|---|---|
@@ -75,11 +75,29 @@ Historia y Geografía, Formación Cívica, Educación Física, Tecnología.
 | FASE 5 Etapa A — Blockchain | Completa | Ed25519 firma+QR+verificación pública. Migración 026 aplicada. |
 | FASE 5 Etapa B — Blockchain | Pendiente | Anclaje Polygon PoS (web3.py) |
 | FASE 27 — Certificación Digital | Completa | firma_digital.py, certificados.py, CertificadosComponent, VerificarComponent |
+| **Auditoría 360°** | **Completa** | 64 hallazgos (11 críticos, 22 altos, 21 medios, 10 bajos). Plan en linked-forging-sprout.md |
+| **Sprint 1 — Fixes Críticos** | **Completo** | 7 fixes: gradebook, migración 029, audit trail, RBAC, routes, reportes, admin |
+| **Sprint 2 — Altos** | **Completo** | 8/8 completados: N+1 admin.py, setInterval, async JWKS, model_validator, computed() signals, InteractiveGrid migration |
 | Migración 008 | Completa | 4 roles nuevos, ades_areas_academicas, ades_coordinaciones_area |
 | Migración 009 | Completa | ades_parametros_sistema 18 params, ades_promociones_pendientes, cerrar_ciclo_y_promover() |
 | Migración 026 | Completa | Firma Ed25519 en ades_certificados, tabla ades_llaves_firma, vista ades_v_certificados_verificacion |
+| **Migración 029** | **Completa** | trigger asistencia corregido, TARDANZA→TARDE, 4 CHECK, 6 audit triggers, 3 índices FK |
+| **Migración 030** | **Completa** | `es_acreditado` dinámico por nivel: drop GENERATED → trigger BEFORE INSERT/UPDATE → `minimo_aprobatorio` vía grupo→grado→nivel. 76,320 rows backfilled |
 | Frontend Auth | Corregido | app.html limpio, authGuard, oidcRedirectUri a ades.setag.mx/callback |
 | APEX Component Library | Completa | ApexNotificationService, static nav menu, apex-toast-container, 20 componentes migrados |
+| **RBAC Enforcement** | **Completo** | get_ades_user + plantel scope en calificaciones/imports; roleGuard(3/4) en 11 rutas (ADR 0006) |
+| **Audit Trail** | **Corregido** | usuario_id en 100% logs mutantes via request.state (ADR 0005) |
+
+## ADRs Vigentes
+
+| ADR | Título | Estado |
+|-----|--------|--------|
+| 0001 | Arquitectura de Génesis | Aceptado |
+| 0002 | UUID como Primary Keys | Aceptado |
+| 0003 | APEX Component Library | Aceptado |
+| 0004 | Firma Digital Ed25519 | Aceptado |
+| 0005 | Audit Trail via request.state | Aceptado |
+| 0006 | RBAC con Scope de Plantel | Aceptado |
 
 ---
 

@@ -10,6 +10,11 @@ class MateriaOut(AdesResponse):
     nivel_educativo_id: uuid.UUID
     horas_semana: float | None = None
     es_inglés: bool = False
+    tipo_materia: str | None = None
+    reporta_a_sep_uaemex: bool = True
+    incluir_en_boleta: bool = True
+    codigo_sep: str | None = None
+    ponderacion_default: float | None = None
 
 
 class MateriaCreate(AdesSchema):
@@ -18,6 +23,11 @@ class MateriaCreate(AdesSchema):
     nivel_educativo_id: uuid.UUID
     horas_semana: float | None = None
     es_inglés: bool = False
+    tipo_materia: str | None = None
+    reporta_a_sep_uaemex: bool = True
+    incluir_en_boleta: bool = True
+    codigo_sep: str | None = Field(None, max_length=30)
+    ponderacion_default: float | None = None
 
 
 class MateriaUpdate(AdesSchema):
@@ -26,6 +36,11 @@ class MateriaUpdate(AdesSchema):
     nivel_educativo_id: uuid.UUID | None = None
     horas_semana: float | None = None
     es_inglés: bool | None = None
+    tipo_materia: str | None = None
+    reporta_a_sep_uaemex: bool | None = None
+    incluir_en_boleta: bool | None = None
+    codigo_sep: str | None = Field(None, max_length=30)
+    ponderacion_default: float | None = None
     is_active: bool | None = None
 
 

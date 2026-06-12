@@ -1,5 +1,26 @@
+import os
+
+# Inject Vault secrets into environment variables before initializing BaseSettings
+try:
+    from app.core.vault import get_vault_client
+    client = get_vault_client()
+    if client:
+        try:
+            read_response = client.secrets.kv.v2.read_secret_version(
+                path="ades",
+                mount_point="secret"
+            )
+            secrets_data = read_response.get("data", {}).get("data", {})
+            for k, v in secrets_data.items():
+                if v is not None:
+                    os.environ[k] = str(v)
+        except Exception:
+            pass
+except Exception:
+    pass
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import AnyHttpUrl, field_validator
+from pydantic import AnyHttpUrl, field_validator, model_validator
 from typing import Literal
 
 
@@ -60,6 +81,22 @@ class Settings(BaseSettings):
     FLOWISE_API_KEY: str = ""
     FLOWISE_CHATFLOW_ID: str = ""
 
+    # Polygon PoS Blockchain (FASE 5 Etapa B)
+    POLYGON_RPC_URL: str = "MOCK"
+    POLYGON_PRIVATE_KEY: str = ""
+    POLYGON_CONTRACT_ADDRESS: str = ""
+
+    # OpenAI / NVIDIA NIM (FASE 4 / FASE 27)
+    OPENAI_BASE_URL: str = "https://integrate.api.nvidia.com/v1"
+    OPENAI_API_KEY: str = ""
+    OPENAI_MODEL: str = "meta/llama-3-71b-instruct"
+    ANTHROPIC_API_KEY: str = ""
+
+    # Paperless-ngx — Gestión Documental OCR (FASE 28)
+    PAPERLESS_URL: str = "http://ades-paperless:8000"
+    PAPERLESS_API_TOKEN: str = ""       # Se inyecta desde Vault (path: secret/ades -> PAPERLESS_API_TOKEN)
+    PAPERLESS_DEFAULT_OWNER: int = 1    # ID del usuario admin de Paperless
+
     # Apache Superset — integración embebida (FASE 16)
     SUPERSET_URL: str = "http://ades-superset:8088"
     SUPERSET_ADMIN_USER: str = "admin"
@@ -81,6 +118,24 @@ class Settings(BaseSettings):
     @classmethod
     def set_celery_urls(cls, v: str, info) -> str:
         return v or info.data.get("VALKEY_URL", "")
+
+    @model_validator(mode="after")
+    def check_production_secrets(self) -> "Settings":
+        if self.ENVIRONMENT == "production":
+            missing = [
+                name for name, val in [
+                    ("ADES_INTERNAL_API_KEY", self.ADES_INTERNAL_API_KEY),
+                    ("OIDC_CLIENT_SECRET",    self.OIDC_CLIENT_SECRET),
+                    ("MINIO_SECRET_KEY",      self.MINIO_SECRET_KEY),
+                    ("NTFY_ADMIN_TOKEN",      self.NTFY_ADMIN_TOKEN),
+                ]
+                if not val
+            ]
+            if missing:
+                raise ValueError(
+                    f"Secretos requeridos en producción no configurados: {', '.join(missing)}"
+                )
+        return self
 
     @property
     def allowed_origins_list(self) -> list[str]:

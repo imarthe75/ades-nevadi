@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, effect } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TableModule } from 'primeng/table';
@@ -229,7 +229,7 @@ export class TareasComponent implements OnInit {
 
   tareas = signal<Tarea[]>([]);
   entregas = signal<any[]>([]);
-  pendientes = () => this.entregas().filter(e => e.estado === 'PENDIENTE').length;
+  readonly pendientes = computed(() => this.entregas().filter(e => e.estado === 'PENDIENTE').length);
 
   showDialog = false;
   saving = signal(false);
@@ -242,9 +242,7 @@ export class TareasComponent implements OnInit {
     puntaje_maximo: 10,
   };
 
-  puedeCrear(): boolean {
-    return this.ctx.nivelAcceso() <= 4; // Docentes y administradores
-  }
+  readonly puedeCrear = computed(() => this.ctx.nivelAcceso() <= 4);
 
   constructor() {
     effect(() => {

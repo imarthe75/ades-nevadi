@@ -185,3 +185,64 @@ async def grupos_del_profesor(
     )
     rows = await db.execute(q)
     return rows.scalars().all()
+
+
+# ── DP-010: Reasignación de docente ────────────────────────────────────────
+from pydantic import BaseModel as _BM2
+from sqlalchemy import text as _text2
+from app.core.security import get_ades_user as _get_ades_user2, AdesUser as _AdesUser2
+
+class _ReasignacionIn(_BM2):
+    profesor_id_origen:  uuid.UUID
+    profesor_id_destino: uuid.UUID
+    grupo_id:            uuid.UUID
+    motivo:              str
+
+@router.post("/reasignar")
+async def reasignar_docente(
+    body: _ReasignacionIn,
+    db: AsyncSession = Depends(get_db),
+    user: _AdesUser2 = Depends(_get_ades_user2),
+):
+    """Reasigna todas las asignaciones activas de un docente en un grupo a otro docente (DP-010)."""
+    if user.nivel_acceso > 2:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Solo Admin Plantel o superior")
+
+    result = await db.execute(_text2("""
+        UPDATE ades_asignaciones_docente
+        SET profesor_id          = :nuevo::uuid,
+            usuario_modificacion = :usr,
+            row_version          = row_version + 1
+        WHERE profesor_id = :origen::uuid
+          AND grupo_id    = :grupo::uuid
+          AND is_active   = TRUE
+        RETURNING id
+    """), {
+        "nuevo":  str(body.profesor_id_destino),
+        "origen": str(body.profesor_id_origen),
+        "grupo":  str(body.grupo_id),
+        "usr":    user.id,
+    })
+    await db.commit()
+    afectadas = result.rowcount if hasattr(result, 'rowcount') else len(result.all())
+
+    # Actualizar también los horarios del grupo para ese docente
+    await db.execute(_text2("""
+        UPDATE ades_horarios
+        SET profesor_id          = :nuevo::uuid,
+            motivo_cambio        = :motivo,
+            fecha_cambio         = now(),
+            usuario_modificacion = :usr
+        WHERE profesor_id = :origen::uuid
+          AND grupo_id    = :grupo::uuid
+          AND is_active   = TRUE
+    """), {
+        "nuevo":  str(body.profesor_id_destino),
+        "origen": str(body.profesor_id_origen),
+        "grupo":  str(body.grupo_id),
+        "motivo": body.motivo,
+        "usr":    user.id,
+    })
+    await db.commit()
+
+    return {"asignaciones_actualizadas": afectadas, "motivo": body.motivo}

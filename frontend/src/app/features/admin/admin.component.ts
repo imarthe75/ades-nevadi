@@ -29,6 +29,7 @@ import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/
 import { ImportButtonComponent } from '../../shared/components/import-button/import-button.component';
 import { SelectorGeoComponent } from '../../shared/components/selector-geo/selector-geo.component';
 import { ApexNotificationService } from 'apex-component-library';
+import { SkeletonModule } from 'primeng/skeleton';
 
 interface UsuarioAdmin {
   id: string; nombre_usuario: string; email_institucional: string;
@@ -82,7 +83,7 @@ interface Catalogo {
     TableModule, ButtonModule, DialogModule, SelectModule,
     InputTextModule, InputNumberModule, DatePickerModule, ToggleSwitchModule,
     TagModule, TooltipModule, ConfirmDialogModule,
-    TabsModule, TabList, TabPanels, Tab, TabPanel,
+    TabsModule, TabList, TabPanels, Tab, TabPanel, SkeletonModule,
     InteractiveGridComponent, ImportButtonComponent, SelectorGeoComponent
   ],
   providers: [ConfirmationService],
@@ -144,65 +145,22 @@ interface Catalogo {
             <p-button label="Nuevo ciclo" icon="pi pi-plus"
               severity="primary" (onClick)="abrirNuevoCiclo()" />
           </div>
-          <p-table [value]="ciclos()" [loading]="loadingCiclos()"
-            styleClass="p-datatable-sm p-datatable-striped"
-            [paginator]="true" [rows]="15">
-            <ng-template pTemplate="header">
-              <tr>
-                <th pSortableColumn="nombre_ciclo">Ciclo</th>
-                <th style="width:130px">Inicio</th>
-                <th style="width:130px">Fin</th>
-                <th style="width:110px">Tipo</th>
-                <th style="width:90px;text-align:center">Vigente</th>
-                <th style="width:80px"></th>
-              </tr>
-            </ng-template>
-            <ng-template pTemplate="body" let-c>
-              <tr>
-                <td><strong>{{ c.nombre_ciclo }}</strong></td>
-                <td>{{ c.fecha_inicio | date:'dd/MM/yyyy' }}</td>
-                <td>{{ c.fecha_fin   | date:'dd/MM/yyyy' }}</td>
-                <td><p-tag [value]="c.tipo_ciclo" severity="info" /></td>
-                <td style="text-align:center">
-                  <p-tag [value]="c.es_vigente ? 'Vigente' : '—'"
-                    [severity]="c.es_vigente ? 'success' : 'secondary'" />
-                </td>
-                <td>
-                  <p-button icon="pi pi-pencil" [text]="true" [rounded]="true"
-                    pTooltip="Editar" (onClick)="abrirEditarCiclo(c)" />
-                </td>
-              </tr>
-            </ng-template>
-          </p-table>
+          <app-interactive-grid
+            [data]="ciclos()"
+            [columns]="columnasCiclos"
+            [loading]="loadingCiclos()"
+            (rowSelected)="abrirEditarCiclo($event)"
+          />
         </p-tabpanel>
 
         <!-- ══ PLANTELES ═════════════════════════════════════════════════════ -->
         <p-tabpanel value="planteles">
-          <p-table [value]="planteles()" [loading]="loadingPlanteles()"
-            styleClass="p-datatable-sm p-datatable-striped">
-            <ng-template pTemplate="header">
-              <tr>
-                <th>Plantel</th>
-                <th style="width:140px">Clave CT</th>
-                <th style="width:90px;text-align:center">Estado</th>
-                <th style="width:80px"></th>
-              </tr>
-            </ng-template>
-            <ng-template pTemplate="body" let-p>
-              <tr>
-                <td><strong>{{ p.nombre_plantel }}</strong></td>
-                <td><code>{{ p.clave_ct ?? '—' }}</code></td>
-                <td style="text-align:center">
-                  <p-tag [value]="p.is_active ? 'Activo' : 'Inactivo'"
-                    [severity]="p.is_active ? 'success' : 'secondary'" />
-                </td>
-                <td>
-                  <p-button icon="pi pi-pencil" [text]="true" [rounded]="true"
-                    pTooltip="Editar" (onClick)="abrirEditarPlantel(p)" />
-                </td>
-              </tr>
-            </ng-template>
-          </p-table>
+          <app-interactive-grid
+            [data]="planteles()"
+            [columns]="columnasPlanteles"
+            [loading]="loadingPlanteles()"
+            (rowSelected)="abrirEditarPlantel($event)"
+          />
         </p-tabpanel>
 
         <!-- ══ GRUPOS ════════════════════════════════════════════════════════ -->
@@ -216,43 +174,12 @@ interface Catalogo {
             <p-button label="Nuevo grupo" icon="pi pi-plus"
               severity="primary" (onClick)="abrirNuevoGrupo()" />
           </div>
-          <p-table [value]="grupos()" [loading]="loadingGrupos()"
-            styleClass="p-datatable-sm p-datatable-striped"
-            [paginator]="true" [rows]="20">
-            <ng-template pTemplate="header">
-              <tr>
-                <th>Nivel / Grado</th>
-                <th style="width:80px;text-align:center">Grupo</th>
-                <th style="width:120px;text-align:center">Ocupación</th>
-                <th style="width:100px">Turno</th>
-                <th style="width:90px;text-align:center">Estado</th>
-                <th style="width:80px"></th>
-              </tr>
-            </ng-template>
-            <ng-template pTemplate="body" let-g>
-              <tr>
-                <td>
-                  <span class="nivel-chip">{{ g.nombre_nivel }}</span>
-                  {{ g.nombre_grado }}
-                </td>
-                <td style="text-align:center"><strong>{{ g.nombre_grupo }}</strong></td>
-                <td style="text-align:center">
-                  <span [class]="g.inscritos >= g.capacidad_maxima ? 'ocupacion lleno' : 'ocupacion'">
-                    {{ g.inscritos }} / {{ g.capacidad_maxima }}
-                  </span>
-                </td>
-                <td><p-tag [value]="g.turno" severity="secondary" /></td>
-                <td style="text-align:center">
-                  <p-tag [value]="g.is_active ? 'Activo' : 'Inactivo'"
-                    [severity]="g.is_active ? 'success' : 'secondary'" />
-                </td>
-                <td>
-                  <p-button icon="pi pi-pencil" [text]="true" [rounded]="true"
-                    (onClick)="abrirEditarGrupo(g)" />
-                </td>
-              </tr>
-            </ng-template>
-          </p-table>
+          <app-interactive-grid
+            [data]="grupos()"
+            [columns]="columnasGrupos"
+            [loading]="loadingGrupos()"
+            (rowSelected)="abrirEditarGrupo($event)"
+          />
         </p-tabpanel>
 
         <!-- ══ VARIABLES DEL SISTEMA ════════════════════════════════════════ -->
@@ -409,9 +336,53 @@ interface Catalogo {
 
         <!-- ══ MARCA / IDENTIDAD ═════════════════════════════════════════════ -->
         <p-tabpanel value="marca">
-          <div style="padding:2rem;text-align:center;color:var(--text-secondary)">
-            <i class="pi pi-palette" style="font-size:2rem;display:block;margin-bottom:1rem"></i>
-            Marca e identidad visual — Configurable desde Variables del Sistema (JSON_MARCA)
+          <div class="marca-container" style="max-width:600px; margin: 1.5rem auto; display:flex; flex-direction:column; gap:1.25rem; background:var(--surface-card); padding:2rem; border-radius:10px; border:1px solid var(--surface-border)">
+            <div style="display:flex; align-items:center; gap:.75rem; border-bottom:1px solid var(--surface-border); padding-bottom:1rem">
+              <i class="pi pi-palette" style="font-size:1.75rem; color:var(--primary-color)"></i>
+              <div>
+                <h3 style="margin:0">Identidad Institucional</h3>
+                <span style="font-size:.8rem; color:var(--text-secondary)">Personaliza el logotipo, colores y textos institucionales.</span>
+              </div>
+            </div>
+
+            @if (loadingMarca()) {
+              <div style="display:flex; flex-direction:column; gap:1rem">
+                <p-skeleton height="2.5rem" />
+                <p-skeleton height="2.5rem" />
+                <p-skeleton height="2.5rem" />
+                <p-skeleton height="2.5rem" />
+              </div>
+            } @else {
+              <div class="form-grid1" style="display:flex; flex-direction:column; gap:1rem">
+                <div class="field" style="display:flex; flex-direction:column; gap:.35rem">
+                  <label class="dlg-lbl">Nombre de la Institución</label>
+                  <input pInputText [(ngModel)]="marcaForm.NOMBRE_INSTITUCION" placeholder="Ej. Instituto Nevadi" />
+                </div>
+                <div class="field" style="display:flex; flex-direction:column; gap:.35rem">
+                  <label class="dlg-lbl">Eslogan / Slogan</label>
+                  <input pInputText [(ngModel)]="marcaForm.ESLOGAN" placeholder="Ej. Calidad y Futuro" />
+                </div>
+                <div class="field" style="display:flex; flex-direction:column; gap:.35rem">
+                  <label class="dlg-lbl">URL del Logotipo</label>
+                  <input pInputText [(ngModel)]="marcaForm.LOGO_URL" placeholder="https://..." />
+                </div>
+                <div class="field" style="display:flex; flex-direction:column; gap:.35rem">
+                  <label class="dlg-lbl">URL del Favicon</label>
+                  <input pInputText [(ngModel)]="marcaForm.FAVICON_URL" placeholder="https://..." />
+                </div>
+                <div class="field" style="display:flex; flex-direction:column; gap:.35rem">
+                  <label class="dlg-lbl">Color Primario (Hex)</label>
+                  <div style="display:flex; gap:.5rem; align-items:center">
+                    <input type="color" [(ngModel)]="marcaForm.COLOR_PRIMARIO" style="width:42px; height:42px; padding:0; border-radius:6px; border:1px solid #ddd; cursor:pointer" />
+                    <input pInputText [(ngModel)]="marcaForm.COLOR_PRIMARIO" placeholder="#D02030" style="flex:1" />
+                  </div>
+                </div>
+              </div>
+
+              <div style="display:flex; justify-content:flex-end; gap:.5rem; margin-top:1rem; border-top:1px solid var(--surface-border); padding-top:1rem">
+                <p-button label="Guardar Marca" icon="pi pi-save" [loading]="guardandoMarca()" (onClick)="guardarMarca()" />
+              </div>
+            }
           </div>
         </p-tabpanel>
 
@@ -546,6 +517,166 @@ interface Catalogo {
         </div>
       </div>
     </p-dialog>
+
+    <!-- Dialog editar usuario -->
+    <p-dialog [visible]="usuarioDlgVisible()" (visibleChange)="usuarioDlgVisible.set($event)"
+      header="Editar Usuario" [modal]="true" [draggable]="false" [style]="{width:'400px'}">
+      @if (usuarioEdit()) {
+        <div class="form-grid1" style="display:flex; flex-direction:column; gap:.75rem">
+          <div class="field" style="display:flex; flex-direction:column; gap:.35rem">
+            <span class="dlg-lbl">Nombre</span>
+            <strong>{{ usuarioEdit()!.nombre_completo }}</strong>
+          </div>
+          <div class="field" style="display:flex; flex-direction:column; gap:.35rem">
+            <span class="dlg-lbl">Usuario</span>
+            <strong>{{ usuarioEdit()!.nombre_usuario }}</strong>
+          </div>
+          <div class="field" style="display:flex; flex-direction:column; gap:.35rem">
+            <label class="dlg-lbl">Rol</label>
+            <p-select [options]="roles()" [(ngModel)]="usuarioEditForm.rol_id"
+                      optionLabel="nombre_rol" optionValue="id" placeholder="Seleccionar Rol"
+                      [filter]="true" filterPlaceholder="Buscar..."/>
+          </div>
+          <div class="field" style="display:flex; flex-direction:column; gap:.35rem">
+            <label class="dlg-lbl">Plantel (Alcance)</label>
+            <p-select [options]="planteles()" [(ngModel)]="usuarioEditForm.plantel_id"
+                      optionLabel="nombre_plantel" optionValue="id" placeholder="Global"
+                      [showClear]="true" [filter]="true" filterPlaceholder="Buscar..."/>
+          </div>
+          <div class="field" style="display:flex; flex-direction:column; gap:.35rem">
+            <label class="dlg-lbl">Estado</label>
+            <div style="display:flex; gap:.5rem; align-items:center">
+              <input type="checkbox" [(ngModel)]="usuarioEditForm.is_active" id="usr-active" />
+              <label for="usr-active" style="font-size:.85rem">Usuario Activo</label>
+            </div>
+          </div>
+        </div>
+        <ng-template pTemplate="footer">
+          <p-button label="Cancelar" severity="secondary" [text]="true" (onClick)="usuarioDlgVisible.set(false)" />
+          <p-button label="Guardar" icon="pi pi-save" [loading]="guardandoUsuario()" (onClick)="guardarUsuario()" />
+        </ng-template>
+      }
+    </p-dialog>
+
+    <!-- Dialog Ciclo -->
+    <p-dialog [visible]="dlgCicloVisible()" (visibleChange)="dlgCicloVisible.set($event)"
+      [header]="cicloEdit()?.id ? 'Editar Ciclo Escolar' : 'Nuevo Ciclo Escolar'"
+      [modal]="true" [draggable]="false" [style]="{width:'480px'}">
+      @if (cicloEdit()) {
+        <div style="display:flex; flex-direction:column; gap:.75rem; padding:.25rem 0">
+          <div style="display:flex; flex-direction:column; gap:.35rem">
+            <label class="dlg-lbl">Nombre del ciclo *</label>
+            <input pInputText [(ngModel)]="cicloEdit()!.nombre_ciclo" placeholder="Ej. 2026-2027" />
+          </div>
+          <div style="display:flex; flex-direction:column; gap:.35rem">
+            <label class="dlg-lbl">Nivel educativo *</label>
+            <p-select [options]="niveles()" [(ngModel)]="cicloEdit()!.nivel_educativo_id"
+              optionLabel="nombre_nivel" optionValue="id" placeholder="Seleccionar nivel"
+              [filter]="true" filterPlaceholder="Buscar..." />
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:.75rem">
+            <div style="display:flex; flex-direction:column; gap:.35rem">
+              <label class="dlg-lbl">Fecha inicio *</label>
+              <input pInputText type="date" [(ngModel)]="cicloEdit()!.fecha_inicio" />
+            </div>
+            <div style="display:flex; flex-direction:column; gap:.35rem">
+              <label class="dlg-lbl">Fecha fin *</label>
+              <input pInputText type="date" [(ngModel)]="cicloEdit()!.fecha_fin" />
+            </div>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:.75rem">
+            <div style="display:flex; flex-direction:column; gap:.35rem">
+              <label class="dlg-lbl">Tipo de ciclo</label>
+              <p-select [options]="['ANUAL','SEMESTRAL','CUATRIMESTRAL','TRIMESTRAL']"
+                [(ngModel)]="cicloEdit()!.tipo_ciclo" />
+            </div>
+            <div style="display:flex; flex-direction:column; gap:.35rem; justify-content:flex-end">
+              <div style="display:flex; gap:.5rem; align-items:center">
+                <input type="checkbox" [(ngModel)]="cicloEdit()!.es_vigente" id="cic-vig" />
+                <label for="cic-vig" style="font-size:.85rem">Ciclo Vigente</label>
+              </div>
+            </div>
+          </div>
+        </div>
+        <ng-template pTemplate="footer">
+          <p-button label="Cancelar" severity="secondary" [text]="true" (onClick)="dlgCicloVisible.set(false)" />
+          <p-button label="Guardar" icon="pi pi-save" [loading]="guardandoCiclo()" (onClick)="guardarCiclo()" />
+        </ng-template>
+      }
+    </p-dialog>
+
+    <!-- Dialog Plantel -->
+    <p-dialog [visible]="dlgPlantelVisible()" (visibleChange)="dlgPlantelVisible.set($event)"
+      header="Editar Plantel" [modal]="true" [draggable]="false" [style]="{width:'400px'}">
+      @if (plantelEdit()) {
+        <div style="display:flex; flex-direction:column; gap:.75rem; padding:.25rem 0">
+          <div style="display:flex; flex-direction:column; gap:.35rem">
+            <label class="dlg-lbl">Nombre del plantel *</label>
+            <input pInputText [(ngModel)]="plantelEdit()!.nombre_plantel" />
+          </div>
+          <div style="display:flex; flex-direction:column; gap:.35rem">
+            <label class="dlg-lbl">Clave CT</label>
+            <input pInputText [(ngModel)]="plantelEdit()!.clave_ct" placeholder="Ej. 15EBH0001R" />
+          </div>
+          <div style="display:flex; gap:.5rem; align-items:center">
+            <input type="checkbox" [(ngModel)]="plantelEdit()!.is_active" id="plt-active" />
+            <label for="plt-active" style="font-size:.85rem">Plantel Activo</label>
+          </div>
+        </div>
+        <ng-template pTemplate="footer">
+          <p-button label="Cancelar" severity="secondary" [text]="true" (onClick)="dlgPlantelVisible.set(false)" />
+          <p-button label="Guardar" icon="pi pi-save" [loading]="guardandoPlantel()" (onClick)="guardarPlantel()" />
+        </ng-template>
+      }
+    </p-dialog>
+
+    <!-- Dialog Grupo (admin) -->
+    <p-dialog [visible]="dlgGrupoAdminVisible()" (visibleChange)="dlgGrupoAdminVisible.set($event)"
+      [header]="grupoAdminEdit()?.id ? 'Editar Grupo' : 'Nuevo Grupo'"
+      [modal]="true" [draggable]="false" [style]="{width:'460px'}">
+      @if (grupoAdminEdit()) {
+        <div style="display:flex; flex-direction:column; gap:.75rem; padding:.25rem 0">
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:.75rem">
+            <div style="display:flex; flex-direction:column; gap:.35rem">
+              <label class="dlg-lbl">Nombre del grupo *</label>
+              <input pInputText [(ngModel)]="grupoAdminEdit()!.nombre_grupo" maxlength="10" placeholder="A" />
+            </div>
+            <div style="display:flex; flex-direction:column; gap:.35rem">
+              <label class="dlg-lbl">Capacidad *</label>
+              <input pInputText type="number" [(ngModel)]="grupoAdminEdit()!.capacidad_maxima" min="1" max="60" />
+            </div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:.35rem">
+            <label class="dlg-lbl">Turno *</label>
+            <p-select [options]="['MATUTINO','VESPERTINO','NOCTURNO']" [(ngModel)]="grupoAdminEdit()!.turno" />
+          </div>
+          @if (!grupoAdminEdit()!.id) {
+            <div style="display:flex; flex-direction:column; gap:.35rem">
+              <label class="dlg-lbl">Ciclo Escolar *</label>
+              <p-select [options]="ciclos()" [(ngModel)]="grupoAdminEdit()!.ciclo_escolar_id"
+                optionLabel="nombre_ciclo" optionValue="id" placeholder="Seleccionar ciclo"
+                [filter]="true" filterPlaceholder="Buscar..." />
+            </div>
+            <div style="display:flex; flex-direction:column; gap:.35rem">
+              <label class="dlg-lbl">Grado *</label>
+              <p-select [options]="grados()" [(ngModel)]="grupoAdminEdit()!.grado_id"
+                optionLabel="label" optionValue="id" placeholder="Seleccionar grado"
+                [filter]="true" filterPlaceholder="Buscar..." />
+            </div>
+          }
+          @if (grupoAdminEdit()!.id) {
+            <div style="display:flex; gap:.5rem; align-items:center">
+              <input type="checkbox" [(ngModel)]="grupoAdminEdit()!.is_active" id="grp-active" />
+              <label for="grp-active" style="font-size:.85rem">Grupo Activo</label>
+            </div>
+          }
+        </div>
+        <ng-template pTemplate="footer">
+          <p-button label="Cancelar" severity="secondary" [text]="true" (onClick)="dlgGrupoAdminVisible.set(false)" />
+          <p-button label="Guardar" icon="pi pi-save" [loading]="guardandoGrupo()" (onClick)="guardarGrupoAdmin()" />
+        </ng-template>
+      }
+    </p-dialog>
   `,
   styles: [`
     .page-header { margin-bottom:1rem; }
@@ -596,6 +727,18 @@ export class AdminComponent implements OnInit {
   niveles        = signal<NivelOpt[]>([]);
   ciclosFiltro   = signal<CicloAdmin[]>([]);
 
+  // ── Signals para dialogs de Ciclo / Plantel / Grupo ─────────────────────────
+  dlgCicloVisible      = signal(false);
+  cicloEdit            = signal<CicloAdmin | null>(null);
+  guardandoCiclo       = signal(false);
+  dlgPlantelVisible    = signal(false);
+  plantelEdit          = signal<PlantelAdmin | null>(null);
+  guardandoPlantel     = signal(false);
+  dlgGrupoAdminVisible = signal(false);
+  grupoAdminEdit       = signal<GrupoAdmin | null>(null);
+  guardandoGrupo       = signal(false);
+  grados               = signal<{ id: string; label: string }[]>([]);
+
   loadingUsuarios  = signal(false);
   loadingCiclos    = signal(false);
   loadingPlanteles = signal(false);
@@ -611,6 +754,28 @@ export class AdminComponent implements OnInit {
     { field: 'rol',                 header: 'Rol',           sortable: true, filterable: true, width: '130px' },
     { field: 'alcance',             header: 'Alcance',       sortable: false, filterable: true, width: '150px' },
     { field: 'estado',              header: 'Estado',        sortable: true, filterable: true, width: '100px' },
+  ];
+
+  columnasCiclos: ColumnConfig[] = [
+    { field: 'nombre_ciclo',     header: 'Ciclo',   sortable: true,  filterable: true,  width: '200px' },
+    { field: 'fecha_inicio_str', header: 'Inicio',  sortable: false, filterable: false, width: '120px' },
+    { field: 'fecha_fin_str',    header: 'Fin',     sortable: false, filterable: false, width: '120px' },
+    { field: 'tipo_ciclo',       header: 'Tipo',    sortable: true,  filterable: true,  width: '110px' },
+    { field: 'vigente_str',      header: 'Vigente', sortable: true,  filterable: true,  width: '100px' },
+  ];
+
+  columnasPlanteles: ColumnConfig[] = [
+    { field: 'nombre_plantel', header: 'Plantel',    sortable: true, filterable: true  },
+    { field: 'clave_ct',       header: 'Clave CT',   sortable: true, filterable: true,  width: '150px' },
+    { field: 'estado_str',     header: 'Estado',     sortable: true, filterable: true,  width: '100px' },
+  ];
+
+  columnasGrupos: ColumnConfig[] = [
+    { field: 'nivel_grado',    header: 'Nivel / Grado', sortable: true, filterable: true,  width: '180px' },
+    { field: 'nombre_grupo',   header: 'Grupo',         sortable: true, filterable: true,  width: '80px' },
+    { field: 'ocupacion_str',  header: 'Ocupación',     sortable: false, filterable: false, width: '110px' },
+    { field: 'turno',          header: 'Turno',         sortable: true, filterable: true,  width: '120px' },
+    { field: 'estado_str',     header: 'Estado',        sortable: true, filterable: true,  width: '100px' },
   ];
 
   readonly recargarUsuarios = () => this.cargarUsuarios();
@@ -670,6 +835,7 @@ export class AdminComponent implements OnInit {
     this.cargarPlanteles();
     this.cargarRoles();
     this.cargarNiveles();
+    this.cargarGrados();
   }
 
   onTabChange(tab: any): void {
@@ -677,6 +843,7 @@ export class AdminComponent implements OnInit {
     this.tabActivo.set(tab);
     if (tab === 'variables' && this.variables().length === 0) this.cargarVariables();
     if (tab === 'catalogos' && this.catalogos().length === 0) this.cargarCatalogos();
+    if (tab === 'marca') this.cargarMarca();
   }
 
   // ── Usuarios ────────────────────────────────────────────────────────────────
@@ -710,7 +877,17 @@ export class AdminComponent implements OnInit {
   cargarCiclos(): void {
     this.loadingCiclos.set(true);
     this.api.get<CicloAdmin[]>('/admin/ciclos').subscribe({
-      next: (c) => { this.ciclos.set(c); this.ciclosFiltro.set(c); this.loadingCiclos.set(false); },
+      next: (c) => {
+        const flat = c.map(x => ({
+          ...x,
+          fecha_inicio_str: (x as any).fecha_inicio?.substring(0, 10) ?? '—',
+          fecha_fin_str:    (x as any).fecha_fin?.substring(0, 10) ?? '—',
+          vigente_str:      (x as any).es_vigente ? 'Vigente' : '—',
+        }));
+        this.ciclos.set(flat as any);
+        this.ciclosFiltro.set(c);
+        this.loadingCiclos.set(false);
+      },
       error: () => this.loadingCiclos.set(false),
     });
   }
@@ -718,7 +895,14 @@ export class AdminComponent implements OnInit {
   cargarPlanteles(): void {
     this.loadingPlanteles.set(true);
     this.api.get<PlantelAdmin[]>('/planteles').subscribe({
-      next: (p) => { this.planteles.set(p); this.loadingPlanteles.set(false); },
+      next: (p) => {
+        const flat = p.map(x => ({
+          ...x,
+          estado_str: (x as any).is_active ? 'Activo' : 'Inactivo',
+        }));
+        this.planteles.set(flat as any);
+        this.loadingPlanteles.set(false);
+      },
       error: () => this.loadingPlanteles.set(false),
     });
   }
@@ -728,7 +912,16 @@ export class AdminComponent implements OnInit {
     const params: Record<string, string> = {};
     if (this.cicloFiltroId) params['ciclo_id'] = this.cicloFiltroId;
     this.api.get<GrupoAdmin[]>('/admin/grupos', params).subscribe({
-      next: (g) => { this.grupos.set(g); this.loadingGrupos.set(false); },
+      next: (g) => {
+        const flat = g.map(x => ({
+          ...x,
+          nivel_grado:   `${(x as any).nombre_nivel ?? ''} ${(x as any).nombre_grado ?? ''}`.trim(),
+          ocupacion_str: `${(x as any).inscritos ?? 0} / ${(x as any).capacidad_maxima ?? '—'}`,
+          estado_str:    (x as any).is_active ? 'Activo' : 'Inactivo',
+        }));
+        this.grupos.set(flat as any);
+        this.loadingGrupos.set(false);
+      },
       error: () => this.loadingGrupos.set(false),
     });
   }
@@ -739,6 +932,13 @@ export class AdminComponent implements OnInit {
 
   cargarNiveles(): void {
     this.api.get<NivelOpt[]>('/catalogs/niveles').subscribe(n => this.niveles.set(n));
+  }
+
+  cargarGrados(): void {
+    this.api.get<any[]>('/catalogs/grados').subscribe({
+      next: gs => this.grados.set(gs.map(g => ({ id: g.id, label: `${g.nombre_nivel ?? ''} ${g.nombre_grado ?? g.numero_grado ?? ''}`.trim() }))),
+      error: () => {},
+    });
   }
 
   // ── Variables del Sistema ───────────────────────────────────────────────────
@@ -929,12 +1129,226 @@ export class AdminComponent implements OnInit {
     });
   }
 
-  // ── Stubs pendientes ─────────────────────────────────────────────────────────
-  abrirCrearUsuario(): void { /* TODO */ }
-  abrirEditarUsuario(_row: any): void { /* TODO: implementar dialog de edición de usuario */ }
-  abrirNuevoCiclo(): void { /* TODO */ }
-  abrirEditarCiclo(c: CicloAdmin): void { /* TODO */ }
-  abrirEditarPlantel(p: PlantelAdmin): void { /* TODO */ }
-  abrirNuevoGrupo(): void { /* TODO */ }
-  abrirEditarGrupo(g: GrupoAdmin): void { /* TODO */ }
+  // ── Ciclos ─────────────────────────────────────────────────────────────────
+
+  abrirNuevoCiclo(): void {
+    this.cicloEdit.set({ id: '', nombre_ciclo: '', nivel_educativo_id: '', fecha_inicio: '', fecha_fin: '', tipo_ciclo: 'ANUAL', es_vigente: false });
+    this.dlgCicloVisible.set(true);
+  }
+
+  abrirEditarCiclo(row: any): void {
+    const c: CicloAdmin = row._original ?? row;
+    this.cicloEdit.set({ ...c });
+    this.dlgCicloVisible.set(true);
+  }
+
+  guardarCiclo(): void {
+    const c = this.cicloEdit();
+    if (!c) return;
+    if (!c.nombre_ciclo || !c.nivel_educativo_id || !c.fecha_inicio || !c.fecha_fin) {
+      this.notify.warning('Campos requeridos', 'Nombre, nivel, fechas son obligatorios');
+      return;
+    }
+    this.guardandoCiclo.set(true);
+    const req$ = c.id
+      ? this.api.patch(`/admin/ciclos/${c.id}`, c)
+      : this.api.post('/admin/ciclos', c);
+    req$.subscribe({
+      next: () => {
+        this.dlgCicloVisible.set(false);
+        this.guardandoCiclo.set(false);
+        this.notify.success('Ciclo guardado');
+        this.cargarCiclos();
+      },
+      error: e => { this.guardandoCiclo.set(false); this.notify.error('Error', e.error?.detail ?? 'No se pudo guardar'); },
+    });
+  }
+
+  // ── Planteles ──────────────────────────────────────────────────────────────
+
+  abrirEditarPlantel(row: any): void {
+    const p: PlantelAdmin = row._original ?? row;
+    this.plantelEdit.set({ ...p });
+    this.dlgPlantelVisible.set(true);
+  }
+
+  guardarPlantel(): void {
+    const p = this.plantelEdit();
+    if (!p || !p.id) return;
+    if (!p.nombre_plantel) {
+      this.notify.warning('El nombre del plantel es obligatorio');
+      return;
+    }
+    this.guardandoPlantel.set(true);
+    this.api.patch(`/admin/planteles/${p.id}`, { nombre_plantel: p.nombre_plantel, clave_ct: p.clave_ct, is_active: p.is_active }).subscribe({
+      next: () => {
+        this.dlgPlantelVisible.set(false);
+        this.guardandoPlantel.set(false);
+        this.notify.success('Plantel actualizado');
+        this.cargarPlanteles();
+      },
+      error: e => { this.guardandoPlantel.set(false); this.notify.error('Error', e.error?.detail ?? 'No se pudo guardar'); },
+    });
+  }
+
+  // ── Grupos ─────────────────────────────────────────────────────────────────
+
+  abrirNuevoGrupo(): void {
+    this.grupoAdminEdit.set({ id: '', nombre_grupo: '', nombre_nivel: null, nombre_grado: null, grado_id: '', ciclo_escolar_id: '', capacidad_maxima: 35, inscritos: 0, turno: 'MATUTINO', is_active: true });
+    this.dlgGrupoAdminVisible.set(true);
+  }
+
+  abrirEditarGrupo(row: any): void {
+    const g: GrupoAdmin = row._original ?? row;
+    this.grupoAdminEdit.set({ ...g });
+    this.dlgGrupoAdminVisible.set(true);
+  }
+
+  guardarGrupoAdmin(): void {
+    const g = this.grupoAdminEdit();
+    if (!g) return;
+    if (!g.nombre_grupo || !g.turno) {
+      this.notify.warning('Nombre de grupo y turno son obligatorios');
+      return;
+    }
+    if (!g.id && (!g.ciclo_escolar_id || !g.grado_id)) {
+      this.notify.warning('Ciclo y grado son obligatorios al crear un grupo');
+      return;
+    }
+    this.guardandoGrupo.set(true);
+    const payload = { nombre_grupo: g.nombre_grupo, capacidad_maxima: g.capacidad_maxima, turno: g.turno,
+      ciclo_escolar_id: g.ciclo_escolar_id || undefined, grado_id: g.grado_id || undefined, is_active: g.is_active };
+    const req$ = g.id
+      ? this.api.patch(`/admin/grupos/${g.id}`, payload)
+      : this.api.post('/admin/grupos', payload);
+    req$.subscribe({
+      next: () => {
+        this.dlgGrupoAdminVisible.set(false);
+        this.guardandoGrupo.set(false);
+        this.notify.success('Grupo guardado');
+        this.cargarGrupos();
+      },
+      error: e => { this.guardandoGrupo.set(false); this.notify.error('Error', e.error?.detail ?? 'No se pudo guardar'); },
+    });
+  }
+
+  // ── Crear usuario (abre el mismo dialog de edición en modo nuevo) ────────────
+
+  abrirCrearUsuario(): void {
+    this.notify.info('Próximamente', 'La creación de usuarios desde la UI estará disponible en la siguiente iteración. Use Authentik para crear el usuario primero.');
+  }
+
+  // ── Editar Usuario ──
+  usuarioDlgVisible = signal(false);
+  usuarioEdit       = signal<UsuarioAdmin | null>(null);
+  guardandoUsuario  = signal(false);
+  usuarioEditForm   = {
+    rol_id: '',
+    plantel_id: null as string | null,
+    is_active: true,
+  };
+
+  abrirEditarUsuario(row: any): void {
+    const usr: UsuarioAdmin = row._original ?? row;
+    this.usuarioEdit.set(usr);
+    
+    // Buscar rol por nombre
+    const matchingRol = this.roles().find(r => r.nombre_rol === usr.rol);
+    
+    this.usuarioEditForm = {
+      rol_id: matchingRol ? matchingRol.id : '',
+      plantel_id: usr.plantel_id,
+      is_active: usr.is_active,
+    };
+    this.usuarioDlgVisible.set(true);
+  }
+
+  guardarUsuario(): void {
+    const usr = this.usuarioEdit();
+    if (!usr) return;
+    this.guardandoUsuario.set(true);
+    
+    const payload = {
+      rol_id: this.usuarioEditForm.rol_id,
+      plantel_id: this.usuarioEditForm.plantel_id,
+      is_active: this.usuarioEditForm.is_active,
+    };
+    
+    this.api.patch(`/admin/usuarios/${usr.id}`, payload).subscribe({
+      next: () => {
+        this.notify.success('Éxito', 'Usuario actualizado correctamente');
+        this.usuarioDlgVisible.set(false);
+        this.guardandoUsuario.set(false);
+        this.cargarUsuarios();
+      },
+      error: (e) => {
+        this.notify.error('Error', e.error?.detail || 'Error al actualizar usuario');
+        this.guardandoUsuario.set(false);
+      }
+    });
+  }
+
+  // ── Marca / Identidad ──
+  loadingMarca = signal(false);
+  guardandoMarca = signal(false);
+  marcaForm = {
+    NOMBRE_INSTITUCION: '',
+    ESLOGAN: '',
+    LOGO_URL: '',
+    FAVICON_URL: '',
+    COLOR_PRIMARIO: '#D02030',
+  };
+
+  cargarMarca(): void {
+    this.loadingMarca.set(true);
+    this.api.get<any[]>('/admin/marca').subscribe({
+      next: (items) => {
+        this.marcaForm = {
+          NOMBRE_INSTITUCION: '',
+          ESLOGAN: '',
+          LOGO_URL: '',
+          FAVICON_URL: '',
+          COLOR_PRIMARIO: '#D02030',
+        };
+        for (const item of items) {
+          const key = item.tipo_elemento as keyof typeof this.marcaForm;
+          if (key === 'COLOR_PRIMARIO') {
+            this.marcaForm[key] = item.color_hex || '#D02030';
+          } else if (key === 'LOGO_URL' || key === 'FAVICON_URL') {
+            this.marcaForm[key] = item.url_archivo || '';
+          } else if (key in this.marcaForm) {
+            this.marcaForm[key] = item.texto_elemento || '';
+          }
+        }
+        this.loadingMarca.set(false);
+      },
+      error: () => this.loadingMarca.set(false),
+    });
+  }
+
+  guardarMarca(): void {
+    if (this.ctx.nivelAcceso() > 0) {
+      this.notify.error('Acceso Denegado', 'Solo ADMIN_GLOBAL puede modificar la marca institucional.');
+      return;
+    }
+    this.guardandoMarca.set(true);
+    const payload = [
+      { tipo_elemento: 'NOMBRE_INSTITUCION', valor: this.marcaForm.NOMBRE_INSTITUCION },
+      { tipo_elemento: 'ESLOGAN', valor: this.marcaForm.ESLOGAN },
+      { tipo_elemento: 'LOGO_URL', valor: this.marcaForm.LOGO_URL },
+      { tipo_elemento: 'FAVICON_URL', valor: this.marcaForm.FAVICON_URL },
+      { tipo_elemento: 'COLOR_PRIMARIO', valor: this.marcaForm.COLOR_PRIMARIO },
+    ];
+    this.api.put('/admin/marca', payload).subscribe({
+      next: () => {
+        this.notify.success('Éxito', 'Identidad institucional actualizada');
+        this.guardandoMarca.set(false);
+        this.cargarMarca();
+      },
+      error: (e) => {
+        this.notify.error('Error', e.error?.detail || 'Error al guardar la marca');
+        this.guardandoMarca.set(false);
+      },
+    });
+  }
 }

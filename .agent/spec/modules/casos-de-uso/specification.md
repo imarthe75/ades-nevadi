@@ -1,9 +1,9 @@
 # Especificación: Catálogo Completo de Casos de Uso - ADES
 
-**Version:** 1.0.0  
+**Version:** 1.1.0  
 **Status:** Active  
-**Last Updated:** 2026-06-09  
-**Scope:** Todas las fases implementadas (1-10, 15-23)  
+**Last Updated:** 2026-06-12  
+**Scope:** Todas las fases implementadas (1-10, 15-23, 29-31)  
 **Audience:** Arquitectos, Desarrolladores, Product Managers  
 
 ---
@@ -11,11 +11,25 @@
 ## 🎯 Introducción
 
 Este documento define de forma exhaustiva los **22 casos de uso críticos** del sistema ADES, mapeados a:
-- Actores del sistema (roles de Authentik)
+- Actores del sistema (roles de Authentik / nivel_acceso numérico)
 - Flujos de negocio paso a paso
 - Reglas de negocio específicas por nivel educativo (SEP Primaria/Secundaria, UAEMEX Preparatoria)
 - Impacto técnico en PostgreSQL, n8n, ntfy y componentes Angular
 - UI Interactive Grid con edición inline
+
+## 🔐 Tabla de Actores — Mapeo nivel_acceso
+
+| Nombre actor (CU) | nivel_acceso | Descripción | roleGuard Angular |
+|---|---|---|---|
+| `ADMIN_GLOBAL` | 1 | Acceso total al sistema + configuración | roleGuard(1) |
+| `ADMIN_PLANTEL` | 2 | Gestión de un plantel específico | roleGuard(2) |
+| `DIRECTOR` / `COORDINADOR_*` / `SECRETARIA_ACADEMICA` / `MEDICO_ESCOLAR` / `ORIENTADOR` / `PREFECTO` (supervisor) | 3 | Personal directivo y administrativo | roleGuard(3) |
+| `DOCENTE` / `TUTOR` / `PREFECTO` (levantador) | 4 | Personal operativo de aula | roleGuard(4) |
+| `PADRE_FAMILIA` / `ALUMNO` | 5 | Usuarios externos del portal | minNivel: 5 |
+
+> **Nota:** `COORDINADOR_AREA` (CU-02) se mapea a nivel_acceso=3. La gestión de áreas académicas se implementa en `planes-estudio.component.ts` (tab "Catálogo"), no como componente separado. El RLS por coordinador es una mejora planificada.
+
+> **Nota:** La importación masiva CSV/Excel está disponible en: Alumnos, Profesores, Grupos, Aulas y Materias — a través del componente `ImportButtonComponent` en la barra de herramientas de cada módulo.
 
 ---
 
@@ -95,9 +109,9 @@ Referencia rápida que vincula cada CU a sus componentes técnicos:
 
 | CU | Tablas PostgreSQL | Endpoints FastAPI | Componentes Angular | Triggers/Jobs | Notificaciones |
 |----|------------------|-------------------|------------------|--------------|----------------|
-| CU-01 | `ades_ciclos_escolares`, `ades_periodos_evaluacion`, `ades_plantel_niveles` | POST/PATCH `/ciclos-escolares` | `ciclos.component.ts` (Interactive Grid) | Creación de periodos automática | — |
-| CU-02 | `ades_areas_academicas`, `ades_coordinaciones_area` | GET/PATCH `/areas-academicas` | `areas.component.ts` (Editor inline) | — | — |
-| CU-03 | `ades_inscripciones`, `ades_estudiantes`, `ades_grupos` | POST/PATCH `/inscripciones` | `inscripciones.component.ts` (Dialog + Grid) | Webhook → Authentik API | Email confirmación |
+| CU-01 | `ades_ciclos_escolares`, `ades_periodos_evaluacion`, `ades_plantel_niveles` | POST/PATCH `/admin/ciclos` | `admin.component.ts` tab "Ciclos Escolares" (Interactive Grid) | Creación de periodos automática | — |
+| CU-02 | `ades_areas_academicas`, `ades_coordinaciones_area` | GET/PATCH `/materias` `/planes-estudio` | `planes-estudio.component.ts` tab "Catálogo" (Editor inline) | — | — |
+| CU-03 | `ades_estudiantes`, `ades_grupos`, `ades_reinscripciones` | POST `/alumnos` PATCH `/reinscripcion/{id}` | `alumnos.component.ts` (alta inicial) + `reinscripcion.component.ts` (asignación a grupo) | Webhook → Authentik API | Email confirmación |
 | CU-04 | `ades_asistencias`, `ades_clases` | POST/PATCH `/asistencias` | `asistencias.component.ts` (Grid filtrable por grupo) | Alert ausentismo en n8n | Push ntfy si ausencia |
 | CU-05 | `ades_asistencias`, `ades_clases`, `ades_horarios` | POST/PATCH `/asistencias` | `asistencias.component.ts` (Grid por materia) | Cálculo de % ausentismo Celery | Push si riesgo |
 | CU-06 | `ades_calificaciones_periodo`, `ades_materias_plan`, `ades_rubricas` | PATCH `/calificaciones` | `gradebook.component.ts` (Spreadsheet editable) | `calcular_calificacion_periodo()` trigger PG | — |
@@ -105,7 +119,7 @@ Referencia rápida que vincula cada CU a sus componentes técnicos:
 | CU-08 | `ades_reportes_academicos`, `ades_calificaciones_periodo`, `ades_asistencias` | GET `/reportes-academicos` | `reportes.component.ts` (Dashboard BI) | Agente IA (LangChain + Claude) Celery semanal | Email director si riesgo alto |
 | CU-09 | `ades_expedientes_medicos`, `ades_incidentes_medicos` | PATCH `/expedientes-medicos` | `expediente-medico.component.ts` (Drawer formulario) | Webhook crítico n8n | Push ntfy urgente a padre |
 | CU-10 | `ades_reportes_conducta`, `ades_personas` | POST/PATCH `/reportes-conducta` | `conducta.component.ts` (Grid + Drawer acuse) | Email padre obligatorio | Push notificación acuse |
-| CU-11 | `ades_calificaciones_periodo` (lectura), `MinIO` (almacenamiento) | POST `/reportes/boletas-lote` | `reportes.component.ts` (Button generador) | Celery → Carbone (3001) → Stirling-PDF (8081) | Email descarga a padre |
+| CU-11 | `ades_calificaciones_periodo` (lectura), `MinIO` (almacenamiento), `ades_certificados_digitales` | POST `/reportes/boletas-lote` POST `/certificados` | `certificados.component.ts` (firma Ed25519 + folio QR) + `reportes.component.ts` (generador boletas) | Celery → Carbone (3001) → Stirling-PDF (8081) → MinIO | Email descarga a padre |
 | CU-12 | Vistas materializadas `ades_bi.*` | GET `/superset/guest-token` | `bi.component.ts` (iframe embed) | — | — |
 
 ---

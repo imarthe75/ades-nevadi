@@ -296,3 +296,67 @@ async def exportar_asc_xml(
         media_type="application/xml",
         headers={"Content-Disposition": f"attachment; filename=asc_horarios_{ciclo_id}.xml"},
     )
+
+
+# ── AC-018: Cambio dinámico de horario (motivo, temporal) ──────────────────
+from typing import Optional as _Opt
+from pydantic import BaseModel as _BM
+from sqlalchemy import text as _text
+from app.core.security import get_ades_user as _get_ades_user, AdesUser as _AdesUser
+import datetime as _dt
+
+class _CambioHorario(_BM):
+    motivo_cambio: str
+    es_temporal: bool = False
+    fecha_fin_temp: _Opt[str] = None   # ISO date YYYY-MM-DD
+
+@router.patch("/{horario_id}/cambio")
+async def cambio_dinamico_horario(
+    horario_id: uuid.UUID,
+    body: _CambioHorario,
+    db: AsyncSession = Depends(get_db),
+    user: _AdesUser = Depends(_get_ades_user),
+):
+    """Registra motivo de cambio dinámico y marca si es temporal (AC-018)."""
+    if user.nivel_acceso > 3:
+        raise HTTPException(403, "Sin permisos")
+    result = await db.execute(_text("""
+        UPDATE ades_horarios
+        SET motivo_cambio = :motivo,
+            es_temporal   = :es_temp,
+            fecha_fin_temp = :fin_temp,
+            fecha_cambio  = now(),
+            usuario_modificacion = :usr
+        WHERE id = :id::uuid AND is_active = TRUE
+        RETURNING id
+    """), {
+        "motivo":   body.motivo_cambio,
+        "es_temp":  body.es_temporal,
+        "fin_temp": body.fecha_fin_temp,
+        "usr":      user.id,
+        "id":       str(horario_id),
+    })
+    await db.commit()
+    row = result.mappings().first()
+    if not row:
+        raise HTTPException(404, "Horario no encontrado")
+    return {"id": str(row["id"]), "ok": True}
+
+
+# ── AC-019: Detección de conflictos ────────────────────────────────────────
+@router.get("/conflictos/{ciclo_id}")
+async def detectar_conflictos(
+    ciclo_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    _user: dict = Depends(get_current_user),
+):
+    """Lista conflictos de doble asignación docente/aula/grupo (AC-019)."""
+    rows = (await db.execute(_text("""
+        SELECT horario_a_id, horario_b_id, dia_semana,
+               hora_inicio, hora_fin, tipo_conflicto,
+               profesor_id, aula_id, grupo_id
+        FROM v_conflictos_horario
+        WHERE ciclo_escolar_id = :ciclo_id::uuid
+        ORDER BY dia_semana, hora_inicio, tipo_conflicto
+    """), {"ciclo_id": str(ciclo_id)})).mappings().all()
+    return [dict(r) for r in rows]

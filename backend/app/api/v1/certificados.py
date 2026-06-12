@@ -194,6 +194,7 @@ async def listar_certificados(
             c.grado_completado, c.promedio_final,
             c.fecha_emision, c.fecha_vencimiento, c.vigente,
             c.estado_firma, c.fecha_firma, c.verificable_url,
+            c.blockchain_tx, c.blockchain_status, c.fecha_anclaje, c.blockchain_network,
             p.nombre || ' ' || p.apellido_paterno
                 || COALESCE(' ' || p.apellido_materno, '') AS nombre_alumno,
             ce.nombre_ciclo
@@ -287,6 +288,14 @@ async def emitir_certificado(
         "firmado":          firma_info["estado_firma"] == "FIRMADO",
     }
 
+    # Lanzar tarea de anclaje blockchain de fondo
+    if firma_info["estado_firma"] == "FIRMADO":
+        try:
+            from app.worker.tasks.blockchain import anclar_certificado_task
+            anclar_certificado_task.delay(str(cert["id"]))
+        except Exception:
+            pass
+
     pdf_bytes = _render_pdf(context)
     return StreamingResponse(
         iter([pdf_bytes]),
@@ -335,6 +344,12 @@ async def firmar_certificado(
         "ciclo_escolar_id": str(cert["ciclo_escolar_id"]),
     }
     resultado = await _firmar_certificado_db(db, str(cert_id), cert_dict)
+    if resultado["estado_firma"] == "FIRMADO":
+        try:
+            from app.worker.tasks.blockchain import anclar_certificado_task
+            anclar_certificado_task.delay(str(cert_id))
+        except Exception:
+            pass
     return {"folio": cert["folio"], **resultado}
 
 
@@ -356,6 +371,7 @@ async def verificar_certificado_publico(
             c.hash_sha256, c.firma_ed25519,
             c.estudiante_id, c.ciclo_escolar_id,
             c.verificable_url,
+            c.blockchain_tx, c.blockchain_status, c.fecha_anclaje, c.blockchain_network,
             p.nombre || ' ' || p.apellido_paterno
                 || COALESCE(' ' || p.apellido_materno, '') AS nombre_alumno,
             p.curp AS alumno_curp,
@@ -431,6 +447,10 @@ async def verificar_certificado_publico(
         "autenticidad":    autenticidad,
         "mensaje":         mensaje,
         "firma_valida":    firma_valida,
+        "blockchain_tx":      cert["blockchain_tx"],
+        "blockchain_status":  cert["blockchain_status"],
+        "fecha_anclaje":      cert["fecha_anclaje"].isoformat() if cert["fecha_anclaje"] else None,
+        "blockchain_network": cert["blockchain_network"],
     }
 
 

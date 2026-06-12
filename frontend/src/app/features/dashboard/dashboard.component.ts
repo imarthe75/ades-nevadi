@@ -1,14 +1,37 @@
-import { Component, inject, signal, effect } from '@angular/core';
+import { Component, inject, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import { CardModule } from 'primeng/card';
 import { SkeletonModule } from 'primeng/skeleton';
 import { ButtonModule } from 'primeng/button';
 import { DividerModule } from 'primeng/divider';
+import { DialogModule } from 'primeng/dialog';
+import { InputTextModule } from 'primeng/inputtext';
+import { TooltipModule } from 'primeng/tooltip';
+import { TagModule } from 'primeng/tag';
 
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
-import type { ResumenPlantel } from '../../core/models';
+import type { ResumenPlantel, Plantel } from '../../core/models';
+import { ApexNotificationService } from 'apex-component-library';
+
+interface NivelStats {
+  nivel_educativo_id: string;
+  nombre_nivel: string;
+  grupos_activos: number;
+  grados: number;
+}
+
+interface PlantelStats {
+  id: string;
+  nombre_plantel: string;
+  clave_ct: string | null;
+  total_alumnos: number;
+  total_profesores: number;
+  total_grupos: number;
+  niveles: NivelStats[];
+}
 
 interface DistribucionNivel {
   nombre_nivel: string;
@@ -16,10 +39,20 @@ interface DistribucionNivel {
   total_grupos: number;
 }
 
+const NIVEL_COLOR: Record<string, string> = {
+  PRIMARIA: '#22c55e', SECUNDARIA: '#3b82f6', PREPARATORIA: '#a855f7',
+};
+const NIVEL_ICON: Record<string, string> = {
+  PRIMARIA: 'pi-star', SECUNDARIA: 'pi-book', PREPARATORIA: 'pi-graduation-cap',
+};
+
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterModule, CardModule, SkeletonModule, ButtonModule, DividerModule],
+  imports: [
+    CommonModule, RouterModule, FormsModule, CardModule, SkeletonModule,
+    ButtonModule, DividerModule, DialogModule, InputTextModule, TooltipModule, TagModule
+  ],
   template: `
     <div class="dashboard">
       <!-- ── Bienvenida contextual ── -->
@@ -87,6 +120,113 @@ interface DistribucionNivel {
         </div>
       </div>
 
+      <!-- ── Mi Plantel (para usuarios con plantel seleccionado que NO son admin global) ── -->
+      @if (!ctx.esAdminGlobal() && ctx.plantel() && resumen()) {
+        <p-divider styleClass="dash-divider" />
+        <h4 class="section-title">Mi Plantel</h4>
+        <div class="mi-plantel-card">
+          <div class="card-title-row">
+            <div class="avatar">{{ ctx.plantel()!.nombre_plantel[0] }}</div>
+            <div>
+              <h3 class="card-nombre">{{ ctx.plantel()!.nombre_plantel }}</h3>
+              @if (ctx.plantel()!.clave_ct) {
+                <code class="clave-ct">{{ ctx.plantel()!.clave_ct }}</code>
+              }
+            </div>
+          </div>
+          <div class="kpi-row">
+            <div class="kpi">
+              <span class="kv">{{ resumen()!.total_alumnos | number }}</span>
+              <span class="kl">Alumnos</span>
+            </div>
+            <div class="sep"></div>
+            <div class="kpi">
+              <span class="kv">{{ resumen()!.total_profesores }}</span>
+              <span class="kl">Profesores</span>
+            </div>
+            <div class="sep"></div>
+            <div class="kpi">
+              <span class="kv">{{ resumen()!.total_grupos_activos }}</span>
+              <span class="kl">Grupos activos</span>
+            </div>
+            <div class="sep"></div>
+            <div class="kpi">
+              <span class="kv">{{ resumen()!.total_clases_hoy }}</span>
+              <span class="kl">Clases hoy</span>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- ── Planteles del Instituto (Administradores Globales — siempre visible) ── -->
+      @if (ctx.esAdminGlobal()) {
+        <p-divider styleClass="dash-divider" />
+        <h4 class="section-title">Planteles del Instituto</h4>
+        @if (loadingPlanteles()) {
+          <div class="cards-grid">
+            @for (i of [1, 2, 3]; track i) {
+              <p-skeleton height="280px" />
+            }
+          </div>
+        } @else {
+          <div class="cards-grid">
+            @for (p of stats(); track p.id) {
+              <div class="plantel-card" [class.activo]="ctx.plantel()?.id === p.id">
+                <div class="card-top">
+                  <div class="card-title-row">
+                    <div class="avatar">{{ p.nombre_plantel[0] }}</div>
+                    <div>
+                      <h3 class="card-nombre">{{ p.nombre_plantel }}</h3>
+                      @if (p.clave_ct) { <code class="clave-ct">{{ p.clave_ct }}</code> }
+                    </div>
+                  </div>
+                  @if (ctx.plantel()?.id === p.id) {
+                    <p-tag value="Contexto actual" severity="success" />
+                  }
+                </div>
+
+                <div class="kpi-row">
+                  <div class="kpi">
+                    <span class="kv">{{ p.total_alumnos | number }}</span>
+                    <span class="kl">Alumnos</span>
+                  </div>
+                  <div class="sep"></div>
+                  <div class="kpi">
+                    <span class="kv">{{ p.total_profesores }}</span>
+                    <span class="kl">Profesores</span>
+                  </div>
+                  <div class="sep"></div>
+                  <div class="kpi">
+                    <span class="kv">{{ p.total_grupos }}</span>
+                    <span class="kl">Grupos</span>
+                  </div>
+                </div>
+
+                <div class="niveles">
+                  @for (n of p.niveles; track n.nivel_educativo_id) {
+                    <div class="nivel-row" [style.border-left-color]="color(n.nombre_nivel)">
+                      <i class="pi" [class]="icon(n.nombre_nivel)" [style.color]="color(n.nombre_nivel)"></i>
+                      <span class="nn">{{ n.nombre_nivel | titlecase }}</span>
+                      <span class="nd">{{ n.grados }} grados</span>
+                      <span class="nd">{{ n.grupos_activos }} grupos</span>
+                    </div>
+                  }
+                </div>
+
+                <div class="card-btns">
+                  <p-button label="Seleccionar" icon="pi pi-check" severity="primary" size="small"
+                    [text]="true" (onClick)="seleccionar(p)" />
+                  @if (isAdmin()) {
+                    <p-button icon="pi pi-pencil" severity="warn" size="small"
+                      [text]="true" pTooltip="Editar plantel" (onClick)="abrirEditar(p)" />
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        }
+      }
+
       <!-- ── Gráfico: distribución por nivel ── -->
       @if (distribucion().length > 0) {
         <p-divider styleClass="dash-divider" />
@@ -135,6 +275,23 @@ interface DistribucionNivel {
         }
       </div>
     </div>
+
+    <!-- Diálogo editar plantel -->
+    <p-dialog [(visible)]="dlgPlantel" header="Editar plantel"
+      [modal]="true" [draggable]="false" [style]="{width:'380px'}">
+      @if (plantelEdit) {
+        <div class="form-grid">
+          <label>Nombre *</label>
+          <input pInputText [(ngModel)]="plantelEdit.nombre_plantel" />
+          <label>Clave CT</label>
+          <input pInputText [(ngModel)]="plantelEdit.clave_ct" placeholder="CCT12345" />
+        </div>
+        <ng-template pTemplate="footer">
+          <p-button label="Cancelar" severity="secondary" [text]="true" (onClick)="dlgPlantel=false" />
+          <p-button label="Guardar" icon="pi pi-save" [loading]="saving()" (onClick)="guardarPlantel()" />
+        </ng-template>
+      }
+    </p-dialog>
   `,
   styles: [`
     .dashboard { padding: 0.5rem 0; }
@@ -190,6 +347,52 @@ interface DistribucionNivel {
     .alumnos-dot { background: var(--nevadi-slate-mid, #4A6FA5); }
     .grupos-dot  { background: var(--nevadi-sage-mid, #5A7A5A); }
 
+    /* Mi Plantel card (usuarios no-admin con plantel activo) */
+    .mi-plantel-card {
+      background: var(--surface-0); border: 1px solid var(--primary-200); border-radius: 12px;
+      padding: 1.25rem; display: flex; flex-direction: column; gap: .9rem;
+      box-shadow: 0 0 0 2px var(--primary-50); max-width: 480px;
+    }
+
+    /* Cards Grid (Planteles) */
+    .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.25rem; margin-top: 0.5rem; }
+    .plantel-card {
+      background: var(--surface-0); border: 1px solid var(--surface-200); border-radius: 12px;
+      padding: 1.25rem; display: flex; flex-direction: column; gap: .9rem;
+      transition: box-shadow .15s, border-color .15s;
+    }
+    .plantel-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.08); border-color: var(--primary-200); }
+    .plantel-card.activo { border-color: var(--primary-color); box-shadow: 0 0 0 2px var(--primary-100); }
+
+    .card-top { display: flex; justify-content: space-between; align-items: flex-start; }
+    .card-title-row { display: flex; gap: .7rem; align-items: center; }
+    .avatar {
+      width: 42px; height: 42px; border-radius: 10px; background: var(--primary-color); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 1.1rem; flex-shrink: 0;
+    }
+    .card-nombre { font-size: 1rem; font-weight: 700; margin: 0; }
+    .clave-ct { font-size: .72rem; color: var(--text-color-secondary); background: var(--surface-100); padding: .1rem .4rem; border-radius: 3px; }
+
+    .kpi-row { display: flex; align-items: center; justify-content: space-around; background: var(--surface-50); border-radius: 8px; padding: .7rem; }
+    .kpi { display: flex; flex-direction: column; align-items: center; }
+    .kv { font-size: 1.35rem; font-weight: 700; color: var(--primary-color); line-height: 1.1; }
+    .kl { font-size: .7rem; color: var(--text-color-secondary); }
+    .sep { width: 1px; height: 28px; background: var(--surface-200); }
+
+    .niveles { display: flex; flex-direction: column; gap: .35rem; }
+    .nivel-row {
+      display: flex; align-items: center; gap: .55rem; padding: .4rem .65rem;
+      border-radius: 6px; background: var(--surface-50); border-left: 3px solid #ccc;
+    }
+    .nn { font-size: .83rem; font-weight: 600; flex: 1; text-transform: capitalize; }
+    .nd { font-size: .72rem; color: var(--text-color-secondary); background: var(--surface-100); padding: .1rem .35rem; border-radius: 10px; }
+    .nivel-row i { font-size: .82rem; }
+
+    .card-btns { display: flex; gap: .4rem; padding-top: .25rem; border-top: 1px solid var(--surface-100); flex-wrap: wrap; }
+    .form-grid { display: grid; grid-template-columns: 100px 1fr; gap: .75rem 1rem; align-items: center; padding: .5rem 0; }
+    .form-grid label { font-size: .85rem; color: var(--text-color-secondary); font-weight: 600; }
+
     /* Accesos rápidos */
     .dash-divider { margin: 1.25rem 0 1rem !important; }
     .section-title { margin: 0 0 0.75rem; font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--text-secondary); }
@@ -208,11 +411,19 @@ interface DistribucionNivel {
 export class DashboardComponent {
   private readonly api = inject(ApiService);
   readonly ctx = inject(ContextService);
+  private readonly notify = inject(ApexNotificationService);
 
   resumen      = signal<ResumenPlantel | null>(null);
   distribucion = signal<DistribucionNivel[]>([]);
   loading      = signal(true);
   loadingChart = signal(true);
+
+  // Planteles properties
+  stats            = signal<PlantelStats[]>([]);
+  loadingPlanteles = signal(true);
+  dlgPlantel       = false;
+  plantelEdit: { id: string; nombre_plantel: string; clave_ct: string | null } | null = null;
+  saving           = signal(false);
 
   readonly quickLinks = [
     { route: '/calificaciones',  icon: 'pi-star',          label: 'Calificaciones' },
@@ -242,17 +453,63 @@ export class DashboardComponent {
         error: () => { this.distribucion.set([]); this.loadingChart.set(false); },
       });
     });
+
+    // Load planteles stats if user is global admin
+    if (this.ctx.esAdminGlobal()) {
+      this.loadingPlanteles.set(true);
+      this.api.get<PlantelStats[]>('/planteles/stats').subscribe({
+        next: s => { this.stats.set(s); this.loadingPlanteles.set(false); },
+        error: () => this.loadingPlanteles.set(false),
+      });
+    }
   }
 
-  maxAlumnos(): number {
-    return Math.max(1, ...this.distribucion().map(d => d.total_alumnos));
-  }
-
-  maxGrupos(): number {
-    return Math.max(1, ...this.distribucion().map(d => d.total_grupos));
-  }
+  readonly maxAlumnos = computed(() => Math.max(1, ...this.distribucion().map(d => d.total_alumnos)));
+  readonly maxGrupos  = computed(() => Math.max(1, ...this.distribucion().map(d => d.total_grupos)));
 
   barPct(value: number, max: number): number {
     return max > 0 ? Math.round((value / max) * 100) : 0;
   }
+
+  isAdmin(): boolean { return this.ctx.nivelAcceso() <= 1; }
+
+  abrirEditar(p: PlantelStats): void {
+    this.plantelEdit = { id: p.id, nombre_plantel: p.nombre_plantel, clave_ct: p.clave_ct };
+    this.dlgPlantel = true;
+  }
+
+  guardarPlantel(): void {
+    if (!this.plantelEdit || !this.plantelEdit.nombre_plantel.trim()) return;
+    this.saving.set(true);
+    this.api.patch(`/admin/planteles/${this.plantelEdit.id}`, {
+      nombre_plantel: this.plantelEdit.nombre_plantel,
+      clave_ct: this.plantelEdit.clave_ct,
+    }).subscribe({
+      next: () => {
+        this.stats.update(list => list.map(s =>
+          s.id === this.plantelEdit!.id
+            ? { ...s, nombre_plantel: this.plantelEdit!.nombre_plantel, clave_ct: this.plantelEdit!.clave_ct }
+            : s
+        ));
+        this.notify.success('Guardado', 'Plantel actualizado');
+        this.dlgPlantel = false;
+        this.saving.set(false);
+      },
+      error: e => {
+        this.notify.error('Error', e.error?.detail ?? 'Error al guardar');
+        this.saving.set(false);
+      },
+    });
+  }
+
+  seleccionar(p: PlantelStats): void {
+    this.ctx.setPlantel({
+      id: p.id, nombre_plantel: p.nombre_plantel,
+      clave_ct: p.clave_ct ?? undefined,
+      escuela_id: '', is_active: true,
+    } as Plantel);
+  }
+
+  color(n: string): string { return NIVEL_COLOR[n] ?? '#94a3b8'; }
+  icon(n: string):  string { return NIVEL_ICON[n]  ?? 'pi-school'; }
 }

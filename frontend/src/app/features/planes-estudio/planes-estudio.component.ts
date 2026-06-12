@@ -28,6 +28,7 @@ import { MessageModule } from 'primeng/message';
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
 import { ApexNotificationService } from 'apex-component-library';
+import { ImportButtonComponent } from '../../shared/components/import-button/import-button.component';
 
 interface NivelOpt   { id: string; nombre_nivel: string; }
 interface GradoOpt   { id: string; nombre_grado: string; numero_grado: number; nivel_educativo_id: string; }
@@ -80,7 +81,7 @@ const NIVEL_ORDER = ['PRIMARIA', 'SECUNDARIA', 'PREPARATORIA'];
     TabsModule, TableModule, ButtonModule, TagModule, SelectModule,
     InputNumberModule, InputTextModule, ToggleSwitchModule,
     DialogModule, DrawerModule, TooltipModule,
-    ProgressBarModule, MessageModule,
+    ProgressBarModule, MessageModule, ImportButtonComponent,
   ],
   template: `
 
@@ -227,6 +228,7 @@ const NIVEL_ORDER = ['PRIMARIA', 'SECUNDARIA', 'PREPARATORIA'];
               (onChange)="filtrarMaterias()" style="width:180px"
  [filter]="true" filterPlaceholder="Buscar..."/>
             @if (esAdmin()) {
+              <app-import-button entidad="materias" [onSuccess]="cargarMaterias.bind(this)" />
               <p-button label="Nueva materia" icon="pi pi-plus" size="small"
                 (onClick)="abrirNuevaMateria()" />
             }

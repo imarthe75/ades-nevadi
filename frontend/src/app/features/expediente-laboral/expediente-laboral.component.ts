@@ -1,0 +1,326 @@
+import { Component, OnInit, signal, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
+import { TableModule } from 'primeng/table';
+import { ButtonModule } from 'primeng/button';
+import { DialogModule } from 'primeng/dialog';
+import { InputTextModule } from 'primeng/inputtext';
+import { SelectModule } from 'primeng/select';
+import { TagModule } from 'primeng/tag';
+import { ToastModule } from 'primeng/toast';
+import { DatePickerModule } from 'primeng/datepicker';
+import { InputNumberModule } from 'primeng/inputnumber';
+import { MessageService } from 'primeng/api';
+import { ApexNotificationService } from 'apex-component-library';
+
+interface ExpedienteLab {
+  id: string;
+  persona_id: string;
+  tipo_contrato: string;
+  fecha_contratacion: string;
+  fecha_fin_contrato: string | null;
+  salario_mensual: number;
+  imss_numero: string | null;
+  infonavit_numero: string | null;
+  curp: string | null;
+  rfc: string | null;
+  cedula_profesional: string | null;
+  nivel_estudios: string | null;
+  especialidad: string | null;
+  institucion_formacion: string | null;
+  clave_ct: string | null;
+  documentos_urls: Record<string, string>;
+  row_version: number;
+  fecha_creacion: string;
+}
+
+@Component({
+  selector: 'app-expediente-laboral',
+  standalone: true,
+  imports: [
+    CommonModule, FormsModule, TableModule, ButtonModule,
+    DialogModule, InputTextModule, SelectModule, TagModule,
+    ToastModule, DatePickerModule, InputNumberModule,
+  ],
+  providers: [MessageService],
+  template: `
+    <p-toast />
+    <div class="apex-page">
+      <div class="apex-toolbar">
+        <h2 class="apex-title">Expediente Laboral Digital</h2>
+        <div class="apex-toolbar-actions">
+          <input pInputText [(ngModel)]="busquedaPersonaId" placeholder="UUID de persona…"
+            style="width:280px" (keyup.enter)="cargar()" />
+          <p-button label="Buscar" icon="pi pi-search" size="small" (onClick)="cargar()" />
+          <p-button label="Nuevo Expediente" icon="pi pi-plus" size="small" (onClick)="abrirNuevo()" />
+        </div>
+      </div>
+
+      <p-table [value]="expedientes()" [loading]="cargando()" [paginator]="true" [rows]="15"
+        stripedRows styleClass="p-datatable-sm">
+        <ng-template pTemplate="header">
+          <tr>
+            <th style="width:130px">Tipo Contrato</th>
+            <th style="width:120px">F. Contratación</th>
+            <th style="width:120px">F. Fin</th>
+            <th style="width:110px">Salario</th>
+            <th style="width:100px">IMSS</th>
+            <th style="width:100px">RFC</th>
+            <th>Estudios</th>
+            <th style="width:90px">Documentos</th>
+            <th style="width:120px">Acciones</th>
+          </tr>
+        </ng-template>
+        <ng-template pTemplate="body" let-exp>
+          <tr>
+            <td><p-tag [value]="exp.tipo_contrato" [severity]="contratoSev(exp.tipo_contrato)" /></td>
+            <td>{{ exp.fecha_contratacion }}</td>
+            <td>{{ exp.fecha_fin_contrato ?? '—' }}</td>
+            <td class="font-semibold">$ {{ exp.salario_mensual | number:'1.0-0' }}</td>
+            <td class="text-sm">{{ exp.imss_numero ?? '—' }}</td>
+            <td class="text-sm font-mono">{{ exp.rfc ?? '—' }}</td>
+            <td class="text-sm">
+              {{ exp.nivel_estudios ?? '—' }}
+              @if (exp.cedula_profesional) { <span class="text-gray-400"> · Céd. {{ exp.cedula_profesional }}</span> }
+            </td>
+            <td class="text-center">
+              <span class="font-semibold text-primary-600">{{ docCount(exp.documentos_urls) }}</span>
+            </td>
+            <td>
+              <div class="flex gap-1">
+                <p-button icon="pi pi-eye"  size="small" [text]="true" severity="info"  (onClick)="ver(exp)" pTooltip="Ver detalle" />
+                <p-button icon="pi pi-file" size="small" [text]="true" severity="secondary" (onClick)="verDocs(exp)" pTooltip="Documentos" />
+                <p-button icon="pi pi-pencil" size="small" [text]="true" (onClick)="editar(exp)" pTooltip="Editar" />
+              </div>
+            </td>
+          </tr>
+        </ng-template>
+        <ng-template pTemplate="emptymessage">
+          <tr><td colspan="9" class="text-center py-4 text-gray-500">Sin expedientes. Busque por UUID de persona o cree uno nuevo.</td></tr>
+        </ng-template>
+      </p-table>
+    </div>
+
+    <!-- Dialog: Form -->
+    <p-dialog [header]="editandoId ? 'Editar Expediente Laboral' : 'Nuevo Expediente Laboral'"
+      [(visible)]="dialogForm" [modal]="true" [style]="{width:'680px'}" [draggable]="false">
+      <div class="grid grid-cols-2 gap-3 p-2">
+        @if (!editandoId) {
+          <div class="col-span-2 flex flex-col gap-1">
+            <label class="text-sm font-medium">ID Persona <span class="text-red-500">*</span></label>
+            <input pInputText [(ngModel)]="form.persona_id" placeholder="UUID de la persona" />
+          </div>
+        }
+        <div class="flex flex-col gap-1">
+          <label class="text-sm font-medium">Tipo Contrato</label>
+          <p-select [options]="contratoOpts" [(ngModel)]="form.tipo_contrato" />
+        </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-sm font-medium">F. Contratación <span class="text-red-500">*</span></label>
+          <p-calendar [(ngModel)]="form.fecha_contratacion" dateFormat="yy-mm-dd" [showIcon]="true" />
+        </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-sm font-medium">F. Fin Contrato</label>
+          <p-calendar [(ngModel)]="form.fecha_fin_contrato" dateFormat="yy-mm-dd" [showIcon]="true" [showClear]="true" />
+        </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-sm font-medium">Salario Mensual</label>
+          <p-inputNumber [(ngModel)]="form.salario_mensual" mode="currency" currency="MXN" locale="es-MX" />
+        </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-sm font-medium">No. IMSS</label>
+          <input pInputText [(ngModel)]="form.imss_numero" placeholder="11 dígitos" />
+        </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-sm font-medium">No. INFONAVIT</label>
+          <input pInputText [(ngModel)]="form.infonavit_numero" />
+        </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-sm font-medium">CURP</label>
+          <input pInputText [(ngModel)]="form.curp" placeholder="18 caracteres" class="uppercase" />
+        </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-sm font-medium">RFC</label>
+          <input pInputText [(ngModel)]="form.rfc" placeholder="13 caracteres" class="uppercase" />
+        </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-sm font-medium">Cédula Profesional</label>
+          <input pInputText [(ngModel)]="form.cedula_profesional" />
+        </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-sm font-medium">Nivel de Estudios</label>
+          <p-select [options]="estudiosOpts" [(ngModel)]="form.nivel_estudios" [showClear]="true" />
+        </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-sm font-medium">Especialidad</label>
+          <input pInputText [(ngModel)]="form.especialidad" />
+        </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-sm font-medium">Institución de Formación</label>
+          <input pInputText [(ngModel)]="form.institucion_formacion" placeholder="UNAM, IPN, UAEMEX…" />
+        </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-sm font-medium">Clave CT (SEP)</label>
+          <input pInputText [(ngModel)]="form.clave_ct" placeholder="15MEP00…" />
+        </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-sm font-medium">Clave ISSSTE</label>
+          <input pInputText [(ngModel)]="form.clave_issste" />
+        </div>
+      </div>
+      <ng-template pTemplate="footer">
+        <p-button label="Cancelar" [text]="true" (onClick)="dialogForm=false" />
+        <p-button [label]="editandoId ? 'Guardar cambios' : 'Crear expediente'" icon="pi pi-save"
+          [loading]="guardando()" (onClick)="guardar()" />
+      </ng-template>
+    </p-dialog>
+
+    <!-- Dialog: Documentos -->
+    <p-dialog header="Documentos del Expediente" [(visible)]="dialogDocs" [modal]="true"
+      [style]="{width:'520px'}" [draggable]="false">
+      @if (seleccionado()) {
+        <div class="p-3">
+          @for (entry of docEntries(seleccionado()!.documentos_urls); track entry[0]) {
+            <div class="flex items-center justify-between py-2 border-b border-gray-100">
+              <span class="capitalize text-sm font-medium">{{ entry[0] }}</span>
+              <a [href]="entry[1]" target="_blank" class="text-primary-600 text-sm pi pi-external-link"> Ver</a>
+            </div>
+          }
+          @if (docEntries(seleccionado()!.documentos_urls).length === 0) {
+            <p class="text-gray-500 text-sm text-center py-4">Sin documentos registrados.</p>
+          }
+          <div class="mt-4 border-t pt-3 flex gap-2">
+            <p-select [options]="docTipoOpts" [(ngModel)]="nuevoDocTipo" placeholder="Tipo doc." style="flex:1" />
+            <input pInputText [(ngModel)]="nuevoDocUrl" placeholder="URL en MinIO…" style="flex:2" />
+            <p-button icon="pi pi-plus" size="small" (onClick)="agregarDoc()" />
+          </div>
+        </div>
+      }
+    </p-dialog>
+  `,
+  styles: [`
+    .apex-page { padding: 1rem; }
+    .apex-toolbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; flex-wrap:wrap; gap:.5rem; }
+    .apex-title { margin:0; font-size:1.25rem; font-weight:600; }
+    .apex-toolbar-actions { display:flex; gap:.5rem; align-items:center; flex-wrap:wrap; }
+  `],
+})
+export class ExpedienteLaboralComponent implements OnInit {
+  private http = inject(HttpClient);
+  private notify = inject(ApexNotificationService);
+
+  expedientes   = signal<ExpedienteLab[]>([]);
+  cargando      = signal(false);
+  guardando     = signal(false);
+  seleccionado  = signal<ExpedienteLab | null>(null);
+
+  dialogForm  = false;
+  dialogDocs  = false;
+  editandoId  = '';
+  busquedaPersonaId = '';
+  nuevoDocTipo = '';
+  nuevoDocUrl  = '';
+
+  form: any = this.resetForm();
+
+  contratoOpts = [
+    { label: 'Indefinido',    value: 'INDEFINIDO' },
+    { label: 'Determinado',   value: 'DETERMINADO' },
+    { label: 'Honorarios',    value: 'HONORARIOS' },
+    { label: 'Comisión',      value: 'COMISION' },
+  ];
+  estudiosOpts = [
+    { label: 'Licenciatura',    value: 'LICENCIATURA' },
+    { label: 'Maestría',        value: 'MAESTRIA' },
+    { label: 'Doctorado',       value: 'DOCTORADO' },
+    { label: 'Normal Básica',   value: 'NORMAL_BASICA' },
+    { label: 'Bachillerato',    value: 'BACHILLERATO' },
+    { label: 'Otro',            value: 'OTRO' },
+  ];
+  docTipoOpts = [
+    { label: 'Contrato',    value: 'contrato' },
+    { label: 'Título',      value: 'titulo' },
+    { label: 'Cédula',      value: 'cedula' },
+    { label: 'NSS',         value: 'nss' },
+    { label: 'ID oficial',  value: 'identificacion' },
+    { label: 'Acta nac.',   value: 'acta_nacimiento' },
+    { label: 'CURP doc.',   value: 'curp_doc' },
+    { label: 'IMSS',        value: 'imss' },
+    { label: 'Otro',        value: 'otro' },
+  ];
+
+  ngOnInit() { this.cargar(); }
+
+  cargar() {
+    this.cargando.set(true);
+    const params: any = {};
+    if (this.busquedaPersonaId) params['persona_id'] = this.busquedaPersonaId;
+    this.http.get<ExpedienteLab[]>('/api/v1/expediente-laboral', { params }).subscribe({
+      next: d => { this.expedientes.set(d); this.cargando.set(false); },
+      error: () => { this.cargando.set(false); this.notify.error('Error al cargar expedientes'); },
+    });
+  }
+
+  abrirNuevo() { this.editandoId = ''; this.form = this.resetForm(); this.dialogForm = true; }
+
+  editar(exp: ExpedienteLab) {
+    this.editandoId = exp.id;
+    this.form = {
+      tipo_contrato: exp.tipo_contrato, salario_mensual: exp.salario_mensual,
+      imss_numero: exp.imss_numero, infonavit_numero: exp.infonavit_numero,
+      curp: exp.curp, rfc: exp.rfc, cedula_profesional: exp.cedula_profesional,
+      nivel_estudios: exp.nivel_estudios, especialidad: exp.especialidad,
+      institucion_formacion: exp.institucion_formacion, clave_ct: exp.clave_ct,
+    };
+    this.dialogForm = true;
+  }
+
+  guardar() {
+    this.guardando.set(true);
+    const req = this.editandoId
+      ? this.http.patch<ExpedienteLab>(`/api/v1/expediente-laboral/${this.editandoId}`, this.form)
+      : this.http.post<ExpedienteLab>('/api/v1/expediente-laboral', {
+          ...this.form,
+          fecha_contratacion: this.toDateStr(this.form.fecha_contratacion),
+          fecha_fin_contrato:  this.form.fecha_fin_contrato ? this.toDateStr(this.form.fecha_fin_contrato) : null,
+        });
+    req.subscribe({
+      next: () => {
+        this.guardando.set(false); this.dialogForm = false;
+        this.notify.success(this.editandoId ? 'Expediente actualizado' : 'Expediente creado');
+        this.cargar();
+      },
+      error: (e) => { this.guardando.set(false); this.notify.error(e.error?.detail ?? 'Error al guardar'); },
+    });
+  }
+
+  ver(exp: ExpedienteLab) { this.seleccionado.set(exp); this.dialogDocs = true; }
+  verDocs(exp: ExpedienteLab) { this.seleccionado.set(exp); this.dialogDocs = true; }
+
+  agregarDoc() {
+    if (!this.seleccionado() || !this.nuevoDocTipo || !this.nuevoDocUrl) return;
+    this.http.post<ExpedienteLab>(`/api/v1/expediente-laboral/${this.seleccionado()!.id}/documento`,
+      { tipo_documento: this.nuevoDocTipo, url: this.nuevoDocUrl }
+    ).subscribe({
+      next: (updated) => {
+        this.seleccionado.set(updated); this.nuevoDocTipo = ''; this.nuevoDocUrl = '';
+        this.notify.success('Documento registrado');
+      },
+      error: () => this.notify.error('Error al agregar documento'),
+    });
+  }
+
+  contratoSev(tipo: string): 'success' | 'warn' | 'danger' | 'secondary' {
+    const m: Record<string, any> = { INDEFINIDO:'success', DETERMINADO:'warn', HONORARIOS:'secondary', COMISION:'secondary' };
+    return m[tipo] ?? 'secondary';
+  }
+  docCount(docs: Record<string, string>): number { return Object.keys(docs ?? {}).length; }
+  docEntries(docs: Record<string, string>): [string, string][] { return Object.entries(docs ?? {}); }
+  private toDateStr(d: Date | null): string { return d ? d.toISOString().split('T')[0] : ''; }
+  private resetForm() {
+    return { persona_id:'', tipo_contrato:'INDEFINIDO', fecha_contratacion:null, fecha_fin_contrato:null,
+             salario_mensual:0, imss_numero:'', infonavit_numero:'', curp:'', rfc:'',
+             cedula_profesional:'', nivel_estudios:'', especialidad:'', institucion_formacion:'', clave_ct:'', clave_issste:'' };
+  }
+}

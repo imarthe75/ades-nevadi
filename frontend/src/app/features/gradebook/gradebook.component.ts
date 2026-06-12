@@ -16,6 +16,7 @@ import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
 import { ExportService } from '../../core/services/export.service';
 import { ApexNotificationService } from 'apex-component-library';
+import { CierrePeriodoComponent } from './cierre-periodo.component';
 
 interface Actividad {
   id: string;
@@ -69,6 +70,7 @@ interface PeriodoOpt { id: string; nombre_periodo: string; }
     CommonModule, FormsModule, TableModule, ButtonModule, SelectModule,
     InputTextModule, InputNumberModule, TagModule, TooltipModule,
     DialogModule, DrawerModule, TabsModule, ProgressBarModule,
+    CierrePeriodoComponent,
   ],
   template: `
 <div class="page-header">
@@ -82,6 +84,10 @@ interface PeriodoOpt { id: string; nombre_periodo: string; }
             (click)="exportarExcel()"></button>
     <button pButton icon="pi pi-plus" label="Nueva actividad"
             (click)="mostrarNuevaActividad = true"></button>
+    <button pButton icon="pi pi-lock" label="Cerrar período" severity="warn"
+            pTooltip="Cierre formal del período seleccionado"
+            [disabled]="!grupoSel || !periodoSel"
+            (click)="abrirCierrePeriodo()"></button>
   </div>
 </div>
 
@@ -329,6 +335,15 @@ interface PeriodoOpt { id: string; nombre_periodo: string; }
     <button pButton label="Crear y generar slots" icon="pi pi-plus" (click)="crearActividad()"></button>
   </ng-template>
 </p-dialog>
+<!-- ── Wizard: Cierre de Período ── -->
+<app-cierre-periodo
+  [(visible)]="cierreVisible"
+  [periodoId]="periodoSel"
+  [periodoNombre]="periodoNombreSel()"
+  [grupoId]="grupoSel"
+  [grupoNombre]="grupoNombreSel()"
+  (periodoCerrado)="onPeriodoCerrado()"
+/>
   `,
   styles: [`
     .filter-bar { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
@@ -371,8 +386,16 @@ export class GradebookComponent implements OnInit {
   drawerCalifVisible = false;
   dialogAjusteVisible = false;
   mostrarNuevaActividad = false;
+  cierreVisible = false;
   ajusteValor: number | null = null;
   ajusteJustificacion = '';
+
+  readonly periodoNombreSel = computed(() =>
+    this.periodos().find(p => p.id === this.periodoSel)?.nombre_periodo ?? ''
+  );
+  readonly grupoNombreSel = computed(() =>
+    this.grupos().find(g => g.id === this.grupoSel)?.nombre_grupo ?? ''
+  );
 
   tiposItem = [
     { label: 'Tarea', value: 'tarea' },
@@ -516,6 +539,16 @@ export class GradebookComponent implements OnInit {
       this.nuevaAct = { titulo: '', descripcion: '', tipo_item: 'tarea', fecha_asignacion: '', fecha_entrega: '', puntaje_maximo: 10 };
       this.cargarActividades();
     });
+  }
+
+  abrirCierrePeriodo() {
+    if (!this.grupoSel || !this.periodoSel) return;
+    this.cierreVisible = true;
+  }
+
+  onPeriodoCerrado() {
+    this.cierreVisible = false;
+    this.cargarConcentrado();
   }
 
   exportarExcel() {

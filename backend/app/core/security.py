@@ -4,11 +4,12 @@ Descarga JWKS por la red interna Docker (más rápido, sin hairpin NAT).
 Valida firma RS256 + claims de audiencia.
 """
 from __future__ import annotations
+import asyncio
 import logging
+import time
 import uuid
 import httpx
 from dataclasses import dataclass, field
-from functools import lru_cache
 from jose import jwt, JWTError
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -25,19 +26,24 @@ _bearer = HTTPBearer(auto_error=True)
 # URL interna de Authentik dentro de la red Docker — evita hairpin NAT y SSL overhead
 _AUTHENTIK_INTERNAL = "http://ades-authentik-server:9000"
 
+# TTL cache para JWKS — evita re-fetch en cada request
+_JWKS_CACHE: dict = {}   # claves: "keys" → dict, "exp" → float (monotonic)
+_JWKS_TTL   = 300         # 5 minutos
+_JWKS_LOCK  = asyncio.Lock()
 
-@lru_cache(maxsize=1)
-def _jwks_uri() -> str:
-    # Intentar primero por red interna Docker; si falla, usar URL externa
+
+async def _get_jwks_uri() -> str:
+    """Obtiene JWKS URI del discovery endpoint de Authentik (async)."""
     for base in (_AUTHENTIK_INTERNAL, settings.OIDC_ISSUER.split("/application/")[0]):
         try:
             slug = settings.OIDC_ISSUER.split("/application/o/")[-1].rstrip("/")
             disc_url = f"{base}/application/o/{slug}/.well-known/openid-configuration"
-            resp = httpx.get(disc_url, timeout=5)
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                resp = await client.get(disc_url)
             resp.raise_for_status()
-            jwks = resp.json()["jwks_uri"]
+            jwks_uri = resp.json()["jwks_uri"]
             # Reemplazar host externo por interno para la descarga de claves
-            jwks_internal = jwks.replace(
+            jwks_internal = jwks_uri.replace(
                 settings.OIDC_ISSUER.split("/application/")[0],
                 _AUTHENTIK_INTERNAL,
             )
@@ -48,16 +54,26 @@ def _jwks_uri() -> str:
     raise RuntimeError("No se pudo obtener el JWKS URI de Authentik")
 
 
-def _fetch_jwks() -> dict:
-    uri = _jwks_uri()
-    resp = httpx.get(uri, timeout=10)
-    resp.raise_for_status()
-    return resp.json()
+async def _fetch_jwks() -> dict:
+    """Descarga JWKS con TTL cache de 5 minutos (async, thread-safe con asyncio.Lock)."""
+    now = time.monotonic()
+    async with _JWKS_LOCK:
+        if _JWKS_CACHE.get("exp", 0.0) > now:
+            return _JWKS_CACHE["keys"]
+        uri = await _get_jwks_uri()
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(uri)
+        resp.raise_for_status()
+        keys = resp.json()
+        _JWKS_CACHE["keys"] = keys
+        _JWKS_CACHE["exp"]  = now + _JWKS_TTL
+        logger.info("JWKS actualizado, expira en %ds", _JWKS_TTL)
+        return keys
 
 
-def verify_token(token: str) -> dict:
+async def verify_token(token: str) -> dict:
     try:
-        jwks = _fetch_jwks()
+        jwks = await _fetch_jwks()
         payload = jwt.decode(
             token,
             jwks,
@@ -85,7 +101,7 @@ def verify_token(token: str) -> dict:
 async def get_current_user(
     creds: HTTPAuthorizationCredentials = Depends(_bearer),
 ) -> dict:
-    return verify_token(creds.credentials)
+    return await verify_token(creds.credentials)
 
 
 # ── ADES User context (enriquecido con scope RBAC) ────────────────────────────

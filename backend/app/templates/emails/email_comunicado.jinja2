@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Comunicado Oficial - Instituto Nevadi</title>
+  <style>
+    body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #f4f6f9; color: #333333; margin: 0; padding: 0; }
+    .email-container { max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 8px; border: 1px solid #e1e8ed; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+    .header { background: linear-gradient(135deg, #1e293b, #334155); color: #ffffff; padding: 30px; text-align: center; }
+    .header h1 { margin: 0; font-size: 24px; font-weight: 600; }
+    .content { padding: 30px; line-height: 1.6; }
+    .comunicado-box { background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 20px; margin: 20px 0; border-radius: 6px; }
+    .comunicado-title { font-size: 18px; font-weight: 700; color: #1e293b; margin-top: 0; margin-bottom: 12px; }
+    .comunicado-body { font-size: 14px; color: #334155; }
+    .btn { display: inline-block; background-color: #1e293b; color: #ffffff !important; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 600; margin-top: 15px; text-align: center; }
+    .footer { background-color: #f1f5f9; padding: 20px; text-align: center; font-size: 12px; color: #64748b; border-top: 1px solid #e2e8f0; }
+  </style>
+</head>
+<body>
+  <div class="email-container">
+    <div class="header">
+      <h1>Comunicado Oficial</h1>
+    </div>
+    <div class="content">
+      <p>Estimada Comunidad Escolar del Instituto Nevadi,</p>
+      <p>Compartimos con ustedes la siguiente circular informativa emitida por la Dirección General.</p>
+      
+      <div class="comunicado-box">
+        <h2 class="comunicado-title">{{ comunicado_titulo }}</h2>
+        <div class="comunicado-body">
+          {{ comunicado_contenido | safe }}
+        </div>
+      </div>
+
+      <p>Para ver el archivo completo, adjuntos oficiales o realizar acuses de recibo en línea, le sugerimos acceder a su cuenta en el portal escolar.</p>
+      
+      <p style="text-align: center;">
+        <a href="https://ades.setag.mx/comunicados" class="btn">Ir a Comunicados</a>
+      </p>
+    </div>
+    <div class="footer">
+      <p>© 2026 Instituto Nevadi. Todos los derechos reservados.</p>
+      <p>Este es un correo automático, por favor no responda a este mensaje.</p>
+    </div>
+  </div>
+</body>
+</html>

@@ -47,6 +47,8 @@ from .esquemas_ponderacion import router as esquemas_ponderacion_router
 from .actividades import router as actividades_router
 from .entregas import router as entregas_router
 from .gradebook import router as gradebook_router
+# FASE 27
+from .reinscripcion import router as reinscripcion_router
 
 api_router = APIRouter()
 
@@ -123,6 +125,13 @@ api_router.include_router(actividades_router)
 api_router.include_router(entregas_router)
 api_router.include_router(gradebook_router)
 
+# ── FASE 27 — Reinscripción Masiva + Calendario + Aulas ─────────────────────
+api_router.include_router(reinscripcion_router)
+from .calendario import router as calendario_router  # noqa: E402
+api_router.include_router(calendario_router)
+from .aulas import router as aulas_router  # noqa: E402
+api_router.include_router(aulas_router)
+
 # ── FASE 15 — Auditoría ───────────────────────────────────────────────────────
 from .auditoria import router as auditoria_router  # noqa: E402
 api_router.include_router(auditoria_router)
@@ -162,3 +171,27 @@ api_router.include_router(menus_router)
 # ── FASE 26-E — SEPOMEX Geográfico ──────────────────────────────────────────────
 from .geo import router as geo_router  # noqa: E402
 api_router.include_router(geo_router)
+
+# ── FASE 28 — Expediente Digital con Paperless-ngx ──────────────────────────────
+from .expediente_documentos import router as expediente_docs_router  # noqa: E402
+api_router.include_router(expediente_docs_router)
+
+# ── FASE 29 — Licencias y Capacitaciones (DP-006, DP-007) ────────────────────
+from .licencias import router as licencias_router  # noqa: E402
+from .capacitaciones import router as capacitaciones_router  # noqa: E402
+api_router.include_router(licencias_router)
+api_router.include_router(capacitaciones_router)
+
+# ── FASE 30 — RRHH Avanzado (DP-003, DP-004, DP-005) ─────────────────────────
+from .disponibilidad import router as disponibilidad_router  # noqa: E402
+from .expediente_laboral import router as exp_laboral_router  # noqa: E402
+from .asistencia_personal import router as asistencia_personal_router  # noqa: E402
+api_router.include_router(disponibilidad_router)
+api_router.include_router(exp_laboral_router)
+api_router.include_router(asistencia_personal_router)
+
+# ── FASE 31 — Operatividad Avanzada (SB-006/007, OA-003) ─────────────────────
+from .condiciones_cronicas import router as condiciones_cronicas_router  # noqa: E402
+from .justificaciones import router as justificaciones_router  # noqa: E402
+api_router.include_router(condiciones_cronicas_router)
+api_router.include_router(justificaciones_router)

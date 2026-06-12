@@ -36,12 +36,12 @@ interface AsistenciaLocal {
         [options]="clases()"
         [(ngModel)]="selectedClase"
         placeholder="Seleccionar clase"
-        optionLabel="id"
+        optionLabel="_label"
         (onChange)="onClaseChange()"
         [showClear]="true"
-      
-
-      [filter]="true" filterPlaceholder="Buscar..."/>
+        [filter]="true"
+        filterPlaceholder="Buscar..."
+      />
     </div>
 
     @if (asistencias().length > 0) {
@@ -111,7 +111,13 @@ export class AsistenciasComponent implements OnInit {
 
   ngOnInit(): void {
     this.api.get<any[]>('/clases', { solo_activos: true })
-      .subscribe(c => this.clases.set(c.slice(0, 10)));
+      .subscribe(c => {
+        const mapped = c.map(x => ({
+          ...x,
+          _label: `${x.materia_nombre || 'Materia'} — ${x.grupo_nombre || 'Grupo'} (${x.fecha_clase} ${x.hora_inicio})`
+        }));
+        this.clases.set(mapped.slice(0, 10));
+      });
   }
 
   onClaseChange(): void {

@@ -593,22 +593,23 @@ Proporciona un análisis estructurado en JSON con exactamente estos campos:
 
 Responde SOLO con el JSON, sin texto adicional."""
 
-    api_key = os.getenv("ANTHROPIC_API_KEY", "")
+    from app.core.config import settings
+    api_key = settings.OPENAI_API_KEY
     if not api_key:
         raise HTTPException(
             status_code=503,
-            detail="ANTHROPIC_API_KEY no configurada. Configure la variable de entorno."
+            detail="OPENAI_API_KEY no configurada. Configure la variable de entorno o en Vault."
         )
 
     try:
-        import anthropic
-        client = anthropic.Anthropic(api_key=api_key)
-        mensaje = client.messages.create(
-            model="claude-haiku-4-5-20251001",
+        from openai import OpenAI
+        client = OpenAI(api_key=api_key, base_url=settings.OPENAI_BASE_URL)
+        mensaje = client.chat.completions.create(
+            model=settings.OPENAI_MODEL,
             max_tokens=1024,
             messages=[{"role": "user", "content": prompt}],
         )
-        contenido = mensaje.content[0].text.strip()
+        contenido = mensaje.choices[0].message.content.strip()
         # Extraer JSON aunque venga con bloques markdown
         if "```" in contenido:
             contenido = contenido.split("```")[1]
@@ -618,7 +619,7 @@ Responde SOLO con el JSON, sin texto adicional."""
     except json.JSONDecodeError as exc:
         raise HTTPException(status_code=502, detail=f"Respuesta IA no es JSON válido: {exc}")
     except Exception as exc:
-        raise HTTPException(status_code=502, detail=f"Error al llamar Claude API: {exc}")
+        raise HTTPException(status_code=502, detail=f"Error al llamar NVIDIA NIM API: {exc}")
 
     # Guardar análisis en BD
     await db.execute(text("""

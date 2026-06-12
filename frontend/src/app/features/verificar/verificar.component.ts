@@ -22,6 +22,10 @@ interface VerificacionResult {
   autenticidad: 'VERIFICADO' | 'EMITIDO' | 'INVALIDO' | 'REVOCADO';
   mensaje: string;
   firma_valida: boolean | null;
+  blockchain_tx: string | null;
+  blockchain_status: string | null;
+  fecha_anclaje: string | null;
+  blockchain_network: string | null;
 }
 
 @Component({
@@ -167,6 +171,39 @@ interface VerificacionResult {
               }
             </div>
           </div>
+
+          <!-- Anclaje Blockchain -->
+          <div class="verif-firma-block" style="border-left: 4px solid #16a34a">
+            <div class="verif-section-title">Anclaje en Blockchain (Polygon PoS)</div>
+            <div class="verif-firma-row">
+              @if (result()!.blockchain_status === 'ANCLADO') {
+                <i class="pi pi-link" style="color:#16a34a;font-size:1.5rem"></i>
+                <div>
+                  <div class="verif-firma-label" style="color:#16a34a">Hash anclado de forma inmutable</div>
+                  <div class="verif-firma-meta">
+                    Red: {{ result()!.blockchain_network }} <br>
+                    Fecha: {{ result()!.fecha_anclaje | date:'dd/MM/yyyy HH:mm' }} <br>
+                    Transacción: 
+                    <a [href]="blockchainLink(result()!.blockchain_tx, result()!.blockchain_network)" target="_blank" style="color:#D02030;text-decoration:none;word-break:break-all;font-family:monospace">
+                      {{ result()!.blockchain_tx }}
+                    </a>
+                  </div>
+                </div>
+              } @else if (result()!.blockchain_status === 'PENDIENTE') {
+                <i class="pi pi-spin pi-spinner" style="color:#d97706;font-size:1.5rem"></i>
+                <div>
+                  <div class="verif-firma-label" style="color:#d97706">Registro en blockchain pendiente</div>
+                  <div class="verif-firma-meta">La transacción se está procesando en segundo plano.</div>
+                </div>
+              } @else {
+                <i class="pi pi-info-circle" style="color:#64748b;font-size:1.5rem"></i>
+                <div>
+                  <div class="verif-firma-label" style="color:#64748b">Sin anclaje en Blockchain</div>
+                  <div class="verif-firma-meta">Este certificado aún no ha sido registrado en la blockchain.</div>
+                </div>
+              }
+            </div>
+          </div>
         }
 
         <!-- Footer -->
@@ -277,5 +314,13 @@ export class VerificarComponent implements OnInit {
       ASISTENCIA_PERFECTA: 'Certificado de Asistencia Perfecta',
     };
     return m[tipo] ?? tipo;
+  }
+
+  blockchainLink(tx: string | null, network: string | null): string {
+    if (!tx) return '#';
+    if (network === 'MOCK') {
+      return `/verificar/mock-tx/${tx}`;
+    }
+    return `https://amoy.polygonscan.com/tx/${tx}`;
   }
 }

@@ -40,6 +40,7 @@ from app.models.personas import Persona, Estudiante, Profesor, Estatus
 from app.models.academica import (
     Plantel, NivelEducativo, Grado, CicloEscolar, Grupo,
 )
+from app.models.fase3 import Aula
 from app.models.materias import Materia
 from app.utils.importador import parse_file, get_col, parse_date, parse_float, parse_int
 
@@ -86,6 +87,11 @@ _PLANTILLAS: dict[str, tuple[list[str], list[list[str]]]] = {
         ["nombre_grupo", "turno", "capacidad_maxima", "nombre_grado", "nombre_ciclo"],
         [["1A", "MATUTINO", "35", "Primer Grado", "2024-2025"],
          ["2B", "VESPERTINO", "30", "Segundo Grado", "2024-2025"]],
+    ),
+    "aulas": (
+        ["nombre_aula", "tipo_aula", "capacidad_alumnos", "clave_plantel", "tiene_proyector", "tiene_pizarra_digital", "tiene_internet", "observaciones"],
+        [["Aula 101", "SALON", "35", "NV-PRI-001", "SI", "NO", "SI", "Planta baja"],
+         ["Lab Cómputo", "COMPUTO", "25", "NV-PRI-001", "SI", "SI", "SI", "Planta alta"]],
     ),
 }
 
@@ -456,5 +462,77 @@ async def importar_grupos(
 
     await db.commit()
     return ImportResult(entidad="grupos", total=len(rows),
+                        exitosos=exitosos, errores=len(errores),
+                        detalle_errores=errores)
+
+
+# ── POST /imports/aulas ────────────────────────────────────────────────────────
+
+@router.post("/aulas", response_model=ImportResult)
+async def importar_aulas(
+    file: UploadFile = File(...),
+    user: AdesUser = Depends(get_ades_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if user.nivel_acceso > 3:
+        raise HTTPException(status_code=403, detail="Solo coordinadores o superiores pueden importar aulas")
+
+    content = await file.read()
+    _validar_archivo(file, content)
+    headers, rows = parse_file(content, file.filename or "upload.csv")
+    if not rows:
+        raise HTTPException(status_code=400, detail="El archivo no contiene datos")
+
+    plantel_res = await db.execute(select(Plantel))
+    planteles_clave = {p.clave_ct.lower(): p.id for p in plantel_res.scalars().all() if p.clave_ct}
+
+    errores: list[ErrorFila] = []
+    exitosos = 0
+
+    for i, row in enumerate(rows, start=2):
+        nombre_aula = get_col(row, headers, "nombre_aula", "nombre", "aula")
+        if not nombre_aula:
+            errores.append(ErrorFila(fila=i, dato=f"fila {i}", error="'nombre_aula' es obligatorio"))
+            continue
+
+        clave_plantel = get_col(row, headers, "clave_plantel", "plantel")
+        plantel_id = planteles_clave.get((clave_plantel or "").lower())
+
+        tipo_aula = (get_col(row, headers, "tipo_aula", "tipo") or "SALON").upper()
+        capacidad = parse_int(get_col(row, headers, "capacidad", "capacidad_maxima")) or 30
+
+        def _bool_col(name: str) -> bool:
+            v = (get_col(row, headers, name) or "").strip().upper()
+            return v in ("SI", "SÍ", "YES", "TRUE", "1", "S")
+
+        tiene_proyector = _bool_col("tiene_proyector")
+        tiene_pizarra_digital = _bool_col("tiene_pizarra_digital")
+        tiene_internet = _bool_col("tiene_internet")
+        observaciones = get_col(row, headers, "observaciones", "ubicacion", "ubicacion_fisica") or None
+
+        sp = await db.begin_nested()
+        try:
+            aula = Aula(
+                nombre_aula=nombre_aula,
+                tipo_aula=tipo_aula,
+                capacidad_alumnos=capacidad,
+                plantel_id=plantel_id,
+                tiene_proyector=tiene_proyector,
+                tiene_pizarra_digital=tiene_pizarra_digital,
+                tiene_internet=tiene_internet,
+                observaciones=observaciones,
+                usuario_creacion=user.id,
+                usuario_modificacion=user.id,
+            )
+            db.add(aula)
+            await db.flush()
+            exitosos += 1
+        except Exception as exc:
+            await sp.rollback()
+            errores.append(ErrorFila(fila=i, dato=nombre_aula, error=str(exc)[:150]))
+            continue
+
+    await db.commit()
+    return ImportResult(entidad="aulas", total=len(rows),
                         exitosos=exitosos, errores=len(errores),
                         detalle_errores=errores)

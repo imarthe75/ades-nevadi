@@ -23,9 +23,11 @@ export const routes: Routes = [
       { path: 'ayuda', loadComponent: () => import('./features/ayuda/ayuda.component').then(m => m.AyudaComponent) },
       // ── FASE 1 ──────────────────────────────────────────────────────────
       { path: 'dashboard',  loadComponent: () => import('./features/dashboard/dashboard.component').then(m => m.DashboardComponent) },
-      { path: 'planteles',  canActivate: [roleGuard(1)], loadComponent: () => import('./features/planteles/planteles.component').then(m => m.PlantelesComponent) },
+      { path: 'aulas',      canActivate: [roleGuard(3)], loadComponent: () => import('./features/aulas/aulas.component').then(m => m.AulasComponent) },
       { path: 'grupos',     canActivate: [roleGuard(3)], loadComponent: () => import('./features/grupos/grupos.component').then(m => m.GruposComponent) },
-      { path: 'alumnos',    canActivate: [roleGuard(4)], loadComponent: () => import('./features/alumnos/alumnos.component').then(m => m.AlumnosComponent) },
+      { path: 'alumnos',        canActivate: [roleGuard(4)], loadComponent: () => import('./features/alumnos/alumnos.component').then(m => m.AlumnosComponent) },
+      { path: 'reinscripcion',  canActivate: [roleGuard(3)], loadComponent: () => import('./features/reinscripcion/reinscripcion.component').then(m => m.ReinscripcionComponent) },
+      { path: 'calendario',     canActivate: [roleGuard(3)], loadComponent: () => import('./features/calendario/calendario.component').then(m => m.CalendarioComponent) },
       { path: 'profesores', canActivate: [roleGuard(3)], loadComponent: () => import('./features/profesores/profesores.component').then(m => m.ProfesoresComponent) },
       // ── FASE 2 ──────────────────────────────────────────────────────────
       { path: 'calificaciones', canActivate: [roleGuard(4)], loadComponent: () => import('./features/calificaciones/calificaciones.component').then(m => m.CalificacionesComponent) },
@@ -68,6 +70,18 @@ export const routes: Routes = [
       { path: 'padres-admin', canActivate: [roleGuard(1)], loadComponent: () => import('./features/padres-admin/padres-admin.component').then(m => m.PadresAdminComponent) },
       // ── FASE 27 — Certificación Digital Ed25519 ─────────────────────────
       { path: 'certificados', canActivate: [roleGuard(3)], loadComponent: () => import('./features/certificados/certificados.component').then(m => m.CertificadosComponent) },
+      // ── FASE 28 — Expediente Digital con Paperless-ngx ──────────────────
+      { path: 'expediente-doc', canActivate: [roleGuard(3)], loadComponent: () => import('./features/expediente-doc/expediente-doc.component').then(m => m.ExpedienteDocComponent) },
+      // ── FASE 29 — Seguridad Avanzada y RRHH ──────────────────────────────
+      { path: 'licencias',           canActivate: [roleGuard(2)], loadComponent: () => import('./features/licencias/licencias.component').then(m => m.LicenciasComponent) },
+      { path: 'capacitaciones',      canActivate: [roleGuard(2)], loadComponent: () => import('./features/capacitaciones/capacitaciones.component').then(m => m.CapacitacionesComponent) },
+      // ── FASE 30 — RRHH Avanzado ───────────────────────────────────────────
+      { path: 'expediente-laboral',  canActivate: [roleGuard(2)], loadComponent: () => import('./features/expediente-laboral/expediente-laboral.component').then(m => m.ExpedienteLaboralComponent) },
+      { path: 'disponibilidad',      canActivate: [roleGuard(2)], loadComponent: () => import('./features/disponibilidad/disponibilidad.component').then(m => m.DisponibilidadComponent) },
+      { path: 'asistencia-personal', canActivate: [roleGuard(2)], loadComponent: () => import('./features/asistencia-personal/asistencia-personal.component').then(m => m.AsistenciaPersonalComponent) },
+      // ── FASE 31 — Operatividad Avanzada ──────────────────────────────────────
+      { path: 'condiciones-cronicas', canActivate: [roleGuard(3)], loadComponent: () => import('./features/condiciones-cronicas/condiciones-cronicas.component').then(m => m.CondicionesCronicasComponent) },
+      { path: 'justificaciones',      canActivate: [roleGuard(3)], loadComponent: () => import('./features/justificaciones/justificaciones.component').then(m => m.JustificacionesComponent) },
     ],
   },
   // ── Pública — verificación de certificados (sin autenticación) ──────────

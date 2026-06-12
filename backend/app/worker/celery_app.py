@@ -20,6 +20,7 @@ celery_app = Celery(
     include=[
         "app.worker.tasks.boletas",
         "app.worker.tasks.notificaciones",
+        "app.worker.tasks.blockchain",
     ],
 )
 
@@ -35,7 +36,7 @@ celery_app.conf.update(
     result_expires=86400,          # resultados disponibles 24 h
     task_soft_time_limit=300,      # 5 min advertencia
     task_time_limit=600,           # 10 min límite duro
-    # redbeat — beat scheduler Redis-backed
+    # redbeat — beat scheduler Valkey-backed
     redbeat_redis_url=settings.CELERY_BROKER_URL,
     redbeat_key_prefix="ades:celery:beat:",
     redbeat_lock_timeout=5 * 60,   # 5 min — evita lock muerto si beat se cae

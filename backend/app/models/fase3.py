@@ -26,10 +26,23 @@ class Aula(AuditMixin, Base):
     __tablename__ = "ades_aulas"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, server_default=func.uuidv7())
-    nombre_aula: Mapped[str] = mapped_column(String(50), nullable=False)
+    nombre_aula: Mapped[str] = mapped_column(String(80), nullable=False)
+    clave_aula: Mapped[str | None] = mapped_column(String(20))
     plantel_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("ades_planteles.id"), nullable=False)
-    tipo_aula: Mapped[str] = mapped_column(String(30), nullable=False, default="AULA")
-    capacidad: Mapped[int | None] = mapped_column(Integer, default=35)
+    tipo_aula: Mapped[str] = mapped_column(String(30), nullable=False, default="SALON")
+    estado_aula: Mapped[str] = mapped_column(String(30), nullable=False, default="ACTIVA")
+    piso: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    edificio: Mapped[str | None] = mapped_column(String(40))
+    capacidad_alumnos: Mapped[int] = mapped_column(Integer, nullable=False, default=30)
+    capacidad_maxima: Mapped[int | None] = mapped_column(Integer)
+    tiene_proyector: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    tiene_pizarra_digital: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    tiene_pizarron: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    tiene_aire_acondicionado: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    tiene_ventiladores: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    tiene_internet: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    num_computadoras: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    observaciones: Mapped[str | None] = mapped_column(Text)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 
 

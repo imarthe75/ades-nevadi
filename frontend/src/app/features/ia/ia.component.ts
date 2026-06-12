@@ -56,7 +56,7 @@ const RIESGO_SEVERITY: Record<string, AlertaSeverity> = {
     <div class="page-header">
       <div>
         <h2>Asistente Pedagógico IA</h2>
-        <p class="subtitle">Análisis académico y alertas de riesgo — powered by Claude</p>
+        <p class="subtitle">Análisis académico y alertas de riesgo — powered by IA</p>
       </div>
     </div>
 

@@ -29,7 +29,7 @@ from decimal import Decimal
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, delete
+from sqlalchemy import select, func, delete, or_
 from sqlalchemy.orm import selectinload
 
 from app.core.database import get_db
@@ -226,7 +226,19 @@ async def asignar_materia_plan(
             MateriaPlan.ciclo_escolar_id == body.ciclo_escolar_id,
         )
     )
-    if existing.scalar_one_or_none():
+    existing_obj = existing.scalar_one_or_none()
+    if existing_obj:
+        if not existing_obj.is_active:
+            existing_obj.is_active = True
+            if body.orden is not None:
+                existing_obj.orden = body.orden
+            if body.horas_semanales is not None:
+                existing_obj.horas_semanales = body.horas_semanales
+            if body.es_obligatoria is not None:
+                existing_obj.es_obligatoria = body.es_obligatoria
+            await db.commit()
+            await db.refresh(existing_obj, ["materia"])
+            return existing_obj
         raise HTTPException(409, "Esta materia ya está asignada a ese grado y ciclo")
 
     obj = MateriaPlan(**body.model_dump())
@@ -293,7 +305,7 @@ async def temas_del_plan(
         select(Tema)
         .where(
             Tema.materia_id == plan.materia_id,
-            Tema.grado_id == plan.grado_id,
+            or_(Tema.grado_id == plan.grado_id, Tema.grado_id == None),
             Tema.is_active == True,
         )
         .order_by(Tema.orden, Tema.nombre_tema)

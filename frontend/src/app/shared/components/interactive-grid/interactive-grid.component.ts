@@ -228,6 +228,9 @@ export class InteractiveGridComponent implements OnChanges {
   filterSuggestions: Record<string, string[]> = {};
   filterModels:      Record<string, string>   = {};
 
+  // Índice precalculado de valores únicos por campo — se reconstruye en ngOnChanges
+  private _suggestionsIndex: Record<string, string[]> = {};
+
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['columns']) {
       this.columnasVisibles.set(this.columns);
@@ -235,24 +238,32 @@ export class InteractiveGridComponent implements OnChanges {
     if (changes['data']) {
       this.datosOriginales = [...this.data];
       this.datosActuales   = [...this.data];
+      this._rebuildSuggestionsIndex();
       this.aplicarFiltros();
     }
   }
 
   // ── LOV filter ───────────────────────────────────────────────────────────────
 
+  private _rebuildSuggestionsIndex(): void {
+    this._suggestionsIndex = {};
+    for (const col of this.columns) {
+      this._suggestionsIndex[col.field] = [...new Set(
+        this.datosOriginales.map(r => String(r[col.field] ?? '')).filter(Boolean)
+      )].sort();
+    }
+  }
+
   getFilterSuggestions(field: string): string[] {
     return this.filterSuggestions[field] ?? [];
   }
 
   buscarSugerencias(field: string, query: string): void {
-    const distinct = [...new Set(
-      this.datosOriginales.map(r => String(r[field] ?? '')).filter(Boolean)
-    )].sort();
+    const all = this._suggestionsIndex[field] ?? [];
     const q = query.toLowerCase();
     this.filterSuggestions[field] = q
-      ? distinct.filter(v => v.toLowerCase().includes(q))
-      : distinct;
+      ? all.filter(v => v.toLowerCase().includes(q))
+      : all;
   }
 
   onFilterSelect(field: string, value: string): void {

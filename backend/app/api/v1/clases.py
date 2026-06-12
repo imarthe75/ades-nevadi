@@ -14,7 +14,8 @@ from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models.operacion import Clase, Asistencia
 from app.models.academica import Grupo, Grado
-from app.models.personas import Estudiante, Inscripcion
+from app.models.personas import Estudiante, Inscripcion, Persona
+from app.models.materias import Materia
 from app.schemas.operacion import ClaseCreate, ClaseUpdate, ClaseOut
 
 router = APIRouter(prefix="/clases", tags=["clases"])
@@ -31,7 +32,16 @@ async def listar_clases(
     db: AsyncSession = Depends(get_db),
     _user: dict = Depends(get_current_user),
 ):
-    q = select(Clase).where(Clase.is_active == True)
+    q = (
+        select(
+            Clase,
+            Grupo.nombre_grupo.label("grupo_nombre"),
+            Materia.nombre_materia.label("materia_nombre"),
+        )
+        .outerjoin(Grupo, Grupo.id == Clase.grupo_id)
+        .outerjoin(Materia, Materia.id == Clase.materia_id)
+        .where(Clase.is_active == True)
+    )
     if grupo_id:
         q = q.where(Clase.grupo_id == grupo_id)
     if materia_id:
@@ -46,7 +56,14 @@ async def listar_clases(
         q = q.where(Clase.estatus_clase == estatus.upper())
     q = q.order_by(Clase.fecha_clase.desc(), Clase.hora_inicio)
     rows = await db.execute(q)
-    return rows.scalars().all()
+    
+    results = []
+    for row in rows:
+        clase_obj = row.Clase
+        clase_obj.grupo_nombre = row.grupo_nombre
+        clase_obj.materia_nombre = row.materia_nombre
+        results.append(clase_obj)
+    return results
 
 
 @router.get("/{clase_id}", response_model=ClaseOut)
@@ -55,10 +72,23 @@ async def obtener_clase(
     db: AsyncSession = Depends(get_db),
     _user: dict = Depends(get_current_user),
 ):
-    row = await db.get(Clase, clase_id)
-    if not row:
+    q = (
+        select(
+            Clase,
+            Grupo.nombre_grupo.label("grupo_nombre"),
+            Materia.nombre_materia.label("materia_nombre"),
+        )
+        .outerjoin(Grupo, Grupo.id == Clase.grupo_id)
+        .outerjoin(Materia, Materia.id == Clase.materia_id)
+        .where(Clase.id == clase_id)
+    )
+    res = (await db.execute(q)).one_or_none()
+    if not res:
         raise HTTPException(status_code=404, detail="Clase no encontrada")
-    return row
+    clase_obj = res.Clase
+    clase_obj.grupo_nombre = res.grupo_nombre
+    clase_obj.materia_nombre = res.materia_nombre
+    return clase_obj
 
 
 @router.post("", response_model=ClaseOut, status_code=status.HTTP_201_CREATED)
@@ -102,19 +132,23 @@ async def alumnos_esperados(
     if not clase:
         raise HTTPException(status_code=404, detail="Clase no encontrada")
 
-    # Obtener alumnos inscritos activos en el grupo
+    # Obtener alumnos inscritos activos en el grupo con sus nombres
     q = (
         select(
             Inscripcion.estudiante_id,
             Estudiante.matricula,
+            Persona.nombre,
+            Persona.apellido_paterno,
+            Persona.apellido_materno,
         )
         .join(Estudiante, Estudiante.id == Inscripcion.estudiante_id)
+        .join(Persona, Persona.id == Estudiante.persona_id)
         .where(
             Inscripcion.grupo_id == clase.grupo_id,
             Inscripcion.is_active == True,
             Estudiante.is_active == True,
         )
-        .order_by(Estudiante.matricula)
+        .order_by(Persona.apellido_paterno, Persona.apellido_materno, Persona.nombre)
     )
     rows = (await db.execute(q)).all()
 
@@ -129,6 +163,7 @@ async def alumnos_esperados(
         {
             "estudiante_id": str(r.estudiante_id),
             "matricula": r.matricula,
+            "nombre": f"{r.apellido_paterno} {r.apellido_materno or ''} {r.nombre}".strip(),
             "asistencia_registrada": str(r.estudiante_id) in asist_map,
             "estatus": asist_map.get(str(r.estudiante_id)),
         }

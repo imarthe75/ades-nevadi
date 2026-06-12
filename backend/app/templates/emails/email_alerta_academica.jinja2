@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Alerta Académica - Instituto Nevadi</title>
+  <style>
+    body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #f4f6f9; color: #333333; margin: 0; padding: 0; }
+    .email-container { max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 8px; border: 1px solid #fecaca; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+    .header { background: linear-gradient(135deg, #991b1b, #dc2626); color: #ffffff; padding: 30px; text-align: center; }
+    .header h1 { margin: 0; font-size: 24px; font-weight: 600; }
+    .content { padding: 30px; line-height: 1.6; }
+    .alert-card { background-color: #fef2f2; border-left: 4px solid #dc2626; padding: 15px; margin: 20px 0; border-radius: 0 6px 6px 0; }
+    .alert-card table { width: 100%; border-collapse: collapse; }
+    .alert-card td { padding: 6px 0; font-size: 14px; }
+    .alert-card td.label { color: #991b1b; font-weight: 600; width: 120px; }
+    .btn { display: inline-block; background-color: #991b1b; color: #ffffff !important; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 600; margin-top: 15px; text-align: center; }
+    .footer { background-color: #f1f5f9; padding: 20px; text-align: center; font-size: 12px; color: #64748b; border-top: 1px solid #e2e8f0; }
+  </style>
+</head>
+<body>
+  <div class="email-container">
+    <div class="header">
+      <h1>Aviso de Alerta Académica</h1>
+    </div>
+    <div class="content">
+      <p>Estimado(a) Padre / Madre de Familia o Tutor,</p>
+      <p>El departamento de Coordinación Académica del Instituto Nevadi emite esta notificación formal debido a inconsistencias en el desempeño o asistencia escolar detectadas recientemente.</p>
+      
+      <div class="alert-card">
+        <table>
+          <tr>
+            <td class="label">Estudiante:</td>
+            <td><strong>{{ nombre_alumno }}</strong></td>
+          </tr>
+          <tr>
+            <td class="label">Tipo Alerta:</td>
+            <td><strong>{{ alerta_tipo }}</strong></td>
+          </tr>
+          <tr>
+            <td class="label">Detalle:</td>
+            <td>{{ alerta_detalle }}</td>
+          </tr>
+        </table>
+      </div>
+
+      <p>Es indispensable mantener una comunicación estrecha con los tutores del grupo y docentes. Le pedimos ingresar de inmediato al portal para revisar el reporte de conducta o citatorio académico correspondiente.</p>
+      
+      <p style="text-align: center;">
+        <a href="https://ades.setag.mx/padres" class="btn">Ver Expediente Escolar</a>
+      </p>
+    </div>
+    <div class="footer">
+      <p>© 2026 Instituto Nevadi. Todos los derechos reservados.</p>
+      <p>Este es un correo automático, por favor no responda a este mensaje.</p>
+    </div>
+  </div>
+</body>
+</html>

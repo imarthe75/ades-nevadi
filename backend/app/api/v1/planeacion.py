@@ -232,3 +232,48 @@ async def eliminar_planeacion(
         UPDATE ades_planeacion_clases SET is_active = FALSE WHERE id = :id::uuid
     """), {"id": str(planeacion_id)})
     await db.commit()
+
+
+# ── OA-011: Alertas de rezago curricular (<80% temas cubiertos) ──────────────
+@router.get("/alertas-rezago/{ciclo_id}")
+async def alertas_rezago(
+    ciclo_id: UUID,
+    umbral_pct: float = 80.0,
+    db: AsyncSession = Depends(get_db),
+    _user: dict = Depends(get_current_user),
+):
+    """OA-011: Grupos/materias con menos del umbral% de temas impartidos."""
+    rows = await db.execute(text("""
+        SELECT
+            g.id                   AS grupo_id,
+            g.nombre_grupo,
+            m.id                   AS materia_id,
+            m.nombre_materia,
+            COUNT(t.id)            AS total_temas,
+            COUNT(pc.id) FILTER (WHERE pc.estado = 'IMPARTIDO') AS temas_impartidos,
+            ROUND(
+                COUNT(pc.id) FILTER (WHERE pc.estado = 'IMPARTIDO') * 100.0
+                / NULLIF(COUNT(t.id), 0), 1
+            ) AS pct_cubierto
+        FROM ades_grupos g
+        JOIN ades_grados gr          ON gr.id = g.grado_id
+        JOIN ades_materias_grado mg  ON mg.grado_id = gr.id AND mg.is_active = TRUE
+        JOIN ades_materias m         ON m.id = mg.materia_id
+        LEFT JOIN ades_temas t       ON t.materia_id = m.id AND t.is_active = TRUE
+        LEFT JOIN ades_planeacion_clases pc
+               ON pc.grupo_id = g.id AND pc.materia_id = m.id AND pc.is_active = TRUE
+        WHERE g.ciclo_escolar_id = :cid AND g.is_active = TRUE
+        GROUP BY g.id, g.nombre_grupo, m.id, m.nombre_materia
+        HAVING COUNT(t.id) > 0
+           AND (COUNT(pc.id) FILTER (WHERE pc.estado = 'IMPARTIDO') * 100.0
+                / NULLIF(COUNT(t.id), 0)) < :umbral
+        ORDER BY pct_cubierto ASC, g.nombre_grupo, m.nombre_materia
+    """), {"cid": str(ciclo_id), "umbral": umbral_pct})
+
+    alertas = [dict(r) for r in rows.mappings().all()]
+    return {
+        "ciclo_id":      str(ciclo_id),
+        "umbral_pct":    umbral_pct,
+        "total_alertas": len(alertas),
+        "alertas":       alertas,
+    }

@@ -48,6 +48,8 @@ class ClaseOut(AdesResponse):
     tema_visto: str | None
     observaciones: str | None
     estatus_clase: str
+    grupo_nombre: str | None = None
+    materia_nombre: str | None = None
 
 
 # ── Asistencias ───────────────────────────────────────────────────────────────

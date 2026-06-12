@@ -8,7 +8,7 @@ import uuid
 from datetime import date, datetime, time
 from decimal import Decimal
 from sqlalchemy import (
-    BigInteger, Boolean, Computed, Date, DateTime, ForeignKey,
+    BigInteger, Boolean, Date, DateTime, ForeignKey,
     Integer, Numeric, String, Text, Time, UniqueConstraint, func,
 )
 from sqlalchemy.dialects.postgresql import UUID
@@ -72,11 +72,8 @@ class CalificacionPeriodo(AuditMixin, Base):
     materia_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("ades_materias.id"), nullable=False)
     periodo_evaluacion_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("ades_periodos_evaluacion.id"), nullable=False)
     calificacion_final: Mapped[Decimal] = mapped_column(Numeric(5, 2), nullable=False)
-    # Columna generada por PostgreSQL — solo lectura desde Python
-    es_acreditado: Mapped[bool] = mapped_column(
-        Boolean,
-        Computed("calificacion_final >= 6.0", persisted=True),
-    )
+    # Determinado por trigger trg_calificacion_periodo_acreditado según el nivel educativo
+    es_acreditado: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="FALSE")
     observaciones: Mapped[str | None] = mapped_column(Text)
 
 

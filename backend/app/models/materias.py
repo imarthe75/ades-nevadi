@@ -20,6 +20,11 @@ class Materia(AuditMixin, Base):
     nivel_educativo_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("ades_niveles_educativos.id"), nullable=False)
     horas_semana: Mapped[float | None] = mapped_column(Numeric(4, 1))
     es_inglés: Mapped[bool] = mapped_column(Boolean, default=False)
+    tipo_materia: Mapped[str | None] = mapped_column(String(50))
+    reporta_a_sep_uaemex: Mapped[bool] = mapped_column(Boolean, default=True)
+    incluir_en_boleta: Mapped[bool] = mapped_column(Boolean, default=True)
+    codigo_sep: Mapped[str | None] = mapped_column(String(30))
+    ponderacion_default: Mapped[float | None] = mapped_column(Numeric(5, 4))
 
     nivel: Mapped["NivelEducativo"] = relationship("NivelEducativo", foreign_keys=[nivel_educativo_id])
     planes: Mapped[list[MateriaPlan]] = relationship(back_populates="materia")

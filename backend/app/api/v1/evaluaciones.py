@@ -20,7 +20,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.security import get_current_user
+from app.core.security import get_current_user, get_ades_user, AdesUser
 
 router = APIRouter(prefix="/evaluaciones", tags=["evaluaciones"])
 
@@ -240,3 +240,159 @@ async def eliminar_evaluacion(
         UPDATE ades_evaluaciones SET is_active = FALSE WHERE id = :id::uuid
     """), {"id": str(evaluacion_id)})
     await db.commit()
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# CIERRE FORMAL DE PERÍODO (EV-006)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class CierrePeriodoBody(BaseModel):
+    grupo_id: UUID
+    notas: Optional[str] = None
+
+
+_ROLES_CIERRE = {"ADMIN_GLOBAL", "ADMIN_PLANTEL", "DIRECTOR", "COORDINADOR_ACADEMICO"}
+
+
+@router.get("/periodos/{periodo_id}/validar-cierre")
+async def validar_cierre(
+    periodo_id: UUID,
+    grupo_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    ades_user: AdesUser = Depends(get_ades_user),
+):
+    """
+    Valida si un período puede cerrarse para el grupo indicado.
+    Retorna: puede_cerrar, alumnos_faltantes, materias_incompletas, detalles.
+    """
+    if ades_user.nivel_acceso > 3:
+        raise HTTPException(403, "Solo DIRECTOR/COORDINADOR/ADMIN puede cerrar períodos")
+
+    row = await db.execute(
+        text("SELECT * FROM validar_cierre_periodo(:periodo_id::uuid, :grupo_id::uuid)"),
+        {"periodo_id": str(periodo_id), "grupo_id": str(grupo_id)},
+    )
+    result = row.mappings().first()
+    if not result:
+        raise HTTPException(404, "Período o grupo no encontrado")
+    return dict(result)
+
+
+@router.post("/periodos/{periodo_id}/cerrar", status_code=200)
+async def cerrar_periodo_formal(
+    periodo_id: UUID,
+    body: CierrePeriodoBody,
+    db: AsyncSession = Depends(get_db),
+    ades_user: AdesUser = Depends(get_ades_user),
+):
+    """
+    Cierre formal de período:
+    1. Valida que todos los alumnos tengan calificación
+    2. Genera snapshot histórico
+    3. Bloquea edición (cerrada = TRUE)
+    4. Registra en ades_cierre_periodo_log
+    """
+    if ades_user.nivel_acceso > 3:
+        raise HTTPException(403, "Solo DIRECTOR/COORDINADOR/ADMIN puede cerrar períodos")
+
+    grupo_id  = str(body.grupo_id)
+    per_id    = str(periodo_id)
+    usuario_id = str(ades_user.usuario_id)
+
+    # ── 1. Validar ─────────────────────────────────────────────────────────────
+    val = await db.execute(
+        text("SELECT * FROM validar_cierre_periodo(:per_id::uuid, :grupo_id::uuid)"),
+        {"per_id": per_id, "grupo_id": grupo_id},
+    )
+    validacion = val.mappings().first()
+    if not validacion:
+        raise HTTPException(404, "Período o grupo no encontrado")
+    if not validacion["puede_cerrar"]:
+        raise HTTPException(
+            422,
+            {
+                "detail": "No se puede cerrar: hay calificaciones faltantes",
+                "alumnos_faltantes": validacion["alumnos_faltantes"],
+                "materias_incompletas": validacion["materias_incompletas"],
+                "detalles": validacion["detalles"],
+            },
+        )
+
+    # ── 2. Obtener ciclo_escolar_id del período ─────────────────────────────────
+    ciclo_row = await db.execute(
+        text("SELECT ciclo_escolar_id FROM ades_periodos_evaluacion WHERE id = :id::uuid"),
+        {"id": per_id},
+    )
+    ciclo_id_val = ciclo_row.scalar_one_or_none()
+
+    # ── 3. Crear registro de log (devuelve el ID del cierre) ────────────────────
+    log_row = await db.execute(
+        text("""
+            INSERT INTO ades_cierre_periodo_log
+                (periodo_evaluacion_id, grupo_id, ciclo_escolar_id,
+                 calificaciones_cerradas, alumnos_sin_calificacion,
+                 estado, cerrado_por, notas)
+            VALUES
+                (:per_id::uuid, :grupo_id::uuid, :ciclo_id::uuid,
+                 :cal_cerradas, 0,
+                 'CERRADO', :usuario_id::uuid, :notas)
+            RETURNING id
+        """),
+        {
+            "per_id":        per_id,
+            "grupo_id":      grupo_id,
+            "ciclo_id":      str(ciclo_id_val) if ciclo_id_val else None,
+            "cal_cerradas":  int(validacion["detalles"].get("total_esperadas", 0)),
+            "usuario_id":    usuario_id,
+            "notas":         body.notas,
+        },
+    )
+    cierre_id = str(log_row.scalar_one())
+
+    # ── 4. Snapshot histórico ───────────────────────────────────────────────────
+    await db.execute(
+        text("""
+            INSERT INTO ades_calificaciones_historico
+                (cierre_id, cal_periodo_id, estudiante_id, grupo_id,
+                 materia_id, periodo_evaluacion_id,
+                 calificacion_final, calificacion_calculada, ajuste_manual, es_acreditado)
+            SELECT
+                :cierre_id::uuid,
+                cp.id, cp.estudiante_id, cp.grupo_id,
+                cp.materia_id, cp.periodo_evaluacion_id,
+                cp.calificacion_final, cp.calificacion_calculada,
+                cp.ajuste_manual, cp.es_acreditado
+            FROM ades_calificaciones_periodo cp
+            WHERE cp.grupo_id              = :grupo_id::uuid
+              AND cp.periodo_evaluacion_id = :per_id::uuid
+              AND cp.is_active             = TRUE
+        """),
+        {"cierre_id": cierre_id, "grupo_id": grupo_id, "per_id": per_id},
+    )
+
+    # ── 5. Bloquear edición ─────────────────────────────────────────────────────
+    result = await db.execute(
+        text("""
+            UPDATE ades_calificaciones_periodo
+               SET cerrada            = TRUE,
+                   fecha_cierre       = now(),
+                   cerrado_por        = :usuario_id::uuid,
+                   fecha_modificacion = now()
+             WHERE grupo_id              = :grupo_id::uuid
+               AND periodo_evaluacion_id = :per_id::uuid
+               AND is_active             = TRUE
+               AND cerrada               = FALSE
+            RETURNING id
+        """),
+        {"usuario_id": usuario_id, "grupo_id": grupo_id, "per_id": per_id},
+    )
+    filas_cerradas = len(result.fetchall())
+
+    await db.commit()
+
+    return {
+        "ok": True,
+        "cierre_id": cierre_id,
+        "calificaciones_cerradas": filas_cerradas,
+        "message": f"Período cerrado correctamente. {filas_cerradas} calificaciones bloqueadas.",
+    }
