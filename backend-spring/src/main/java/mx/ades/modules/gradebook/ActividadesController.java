@@ -160,7 +160,7 @@ public class ActividadesController {
                 "te.fecha_entrega, te.es_tarde, " +
                 "te.calificacion_obtenida, te.comentario_profesor, " +
                 "te.archivo_url, " +
-                "p.nombre || ' ' || p.apellido_paterno AS alumno_nombre, " +
+                "COALESCE(p.nombre_social, p.nombre) || ' ' || p.apellido_paterno AS alumno_nombre, " +
                 "est.matricula " +
                 "FROM ades_tareas_entregas te " +
                 "JOIN ades_estudiantes est ON est.id = te.estudiante_id " +

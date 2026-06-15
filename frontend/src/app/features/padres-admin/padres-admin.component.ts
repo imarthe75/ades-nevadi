@@ -1,8 +1,3 @@
-/**
- * FASE 24 — Gestión de Padres de Familia (Parent/Family Management)
- * Admin module para CRUD de contactos familiares y tutores legales
- * Accessible: ADMIN_GLOBAL (nivel_acceso=0), DIRECTOR (nivel_acceso=1)
- */
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
@@ -12,15 +7,17 @@ import { SelectModule } from 'primeng/select';
 import { InputTextModule } from 'primeng/inputtext';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { TooltipModule } from 'primeng/tooltip';
-import { ConfirmationService } from 'primeng/api';
-import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { CardModule } from 'primeng/card';
+import { TabsModule, TabList, Tab, TabPanels, TabPanel } from 'primeng/tabs';
+import { ConfirmationService } from 'primeng/api';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ApiService } from '../../core/services/api.service';
 import { ApexNotificationService } from 'apex-component-library';
 import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
 
 interface EstudianteOpt { id: string; nombre_completo: string; matricula?: string; }
+
 interface ContactoFamiliar {
   id: string;
   estudiante_id: string;
@@ -39,7 +36,30 @@ interface ContactoFamiliar {
   grado_responsabilidad: string;
   is_active: boolean;
 }
+
+interface TutorAlumno {
+  id: string;
+  relacion: string;
+  prioridad: number;
+  puede_recoger: boolean;
+  es_responsable_economico: boolean;
+  es_contacto_emergencia: boolean;
+  nivel_acceso_portal: string;
+  is_active: boolean;
+  nombre: string;
+  apellido_paterno: string;
+  apellido_materno: string | null;
+  telefono_principal: string | null;
+  email: string | null;
+}
+
 interface ParentescoOpt { label: string; value: string; }
+
+const NIVELES_ACCESO_PORTAL = [
+  { label: 'Lectura (solo ver)', value: 'LECTURA' },
+  { label: 'Completo (ver y comunicarse)', value: 'COMPLETO' },
+  { label: 'Restringido', value: 'RESTRINGIDO' },
+];
 
 @Component({
   selector: 'app-padres-admin',
@@ -47,8 +67,10 @@ interface ParentescoOpt { label: string; value: string; }
   imports: [
     CommonModule, FormsModule, ReactiveFormsModule,
     ButtonModule, DialogModule, SelectModule,
-    InputTextModule, InputNumberModule, TooltipModule, ConfirmDialogModule, ToggleSwitchModule, CardModule,
-    InteractiveGridComponent,
+    InputTextModule, InputNumberModule, TooltipModule,
+    ToggleSwitchModule, CardModule,
+    TabsModule, TabList, Tab, TabPanels, TabPanel,
+    ConfirmDialogModule, InteractiveGridComponent,
   ],
   providers: [ConfirmationService],
   template: `
@@ -57,112 +79,145 @@ interface ParentescoOpt { label: string; value: string; }
     <div class="page-header">
       <div>
         <h2>Gestión de Padres de Familia</h2>
-        <p class="subtitle">Administración de contactos familiares y tutores legales</p>
+        <p class="subtitle">Contactos familiares y tutores legales con acceso al portal</p>
       </div>
     </div>
 
-    <!-- FILTRO Y BÚSQUEDA -->
-    <div class="toolbar">
-      <div style="display:flex;gap:.5rem;align-items:center;flex:1">
-        <label style="font-size:.85rem;color:var(--text-secondary)">Estudiante:</label>
-        <p-select
-          [(ngModel)]="estudianteSeleccionado"
-          [options]="estudiantes()"
-          optionLabel="nombre_completo"
-          optionValue="id"
-          placeholder="Seleccionar estudiante..."
-          [showClear]="true"
-          (onChange)="cargarContactos()"
-          style="width:300px;flex-shrink:0"
-              [filter]="true" filterPlaceholder="Buscar...">
-        </p-select>
-      </div>
-      <p-button label="Agregar contacto" icon="pi pi-plus" size="small"
-        (onClick)="abrirFormulario()"
-        [disabled]="!estudianteSeleccionado" />
+    <!-- Selector de estudiante compartido -->
+    <div class="student-bar">
+      <label class="student-label">Estudiante:</label>
+      <p-select
+        [(ngModel)]="estudianteSeleccionado"
+        [options]="estudiantes()"
+        optionLabel="nombre_completo"
+        optionValue="id"
+        placeholder="Seleccionar estudiante..."
+        [showClear]="true"
+        [filter]="true"
+        filterPlaceholder="Buscar..."
+        (onChange)="onEstudianteChange()"
+        style="width:320px" />
     </div>
 
-    <!-- TABLA DE CONTACTOS FAMILIARES -->
-    <app-interactive-grid
-      [data]="contactosFlat()"
-      [columns]="contactosColumns"
-      [loading]="loading()"
-      [showDelete]="true"
-      (rowSelected)="editarContacto($event)"
-      (rowDeleted)="eliminarContacto($event)"
-    />
+    <p-tabs [value]="tabActivo()" (valueChange)="onTabChange($event)">
+      <p-tablist>
+        <p-tab value="contactos"><i class="pi pi-users"></i> Contactos Familiares</p-tab>
+        <p-tab value="tutores"><i class="pi pi-shield"></i> Tutores y Portal</p-tab>
+      </p-tablist>
 
-    <!-- DIÁLOGO FORMULARIO -->
-    <p-dialog [visible]="mostrarFormulario()" (visibleChange)="mostrarFormulario.set($event)" [header]="formularioTitulo()"
-      [modal]="true" [style]="{width:'90vw'}" [maximizable]="true">
-      <form [formGroup]="form">
-        <div class="form-grid">
-          <!-- DATOS PERSONALES DEL CONTACTO -->
-          <div class="form-section">
-            <h4>Datos Personales del Contacto</h4>
-            <div class="field">
-              <label>Nombre Completo *</label>
-              <input pInputText formControlName="nombre_completo"
-                placeholder="Ej: Juan García Pérez" />
+      <p-tabpanels>
+
+        <!-- ═══ TAB 1: CONTACTOS FAMILIARES ═══ -->
+        <p-tabpanel value="contactos">
+          <div class="tab-toolbar">
+            <div></div>
+            <p-button label="Agregar contacto" icon="pi pi-plus" size="small"
+              [disabled]="!estudianteSeleccionado" (onClick)="abrirFormulario()" />
+          </div>
+
+          <app-interactive-grid
+            [data]="contactosFlat()"
+            [columns]="contactosColumns"
+            [loading]="loading()"
+            [showDelete]="true"
+            (rowSelected)="editarContacto($event)"
+            (rowDeleted)="eliminarContacto($event)"
+          />
+        </p-tabpanel>
+
+        <!-- ═══ TAB 2: TUTORES Y PORTAL (PE-029, PE-032, PE-033) ═══ -->
+        <p-tabpanel value="tutores">
+          <div class="tab-toolbar">
+            <div class="hint-text" *ngIf="!estudianteSeleccionado">
+              <i class="pi pi-info-circle"></i> Selecciona un estudiante para gestionar sus tutores legales.
             </div>
-            <div class="field">
-              <label>Email</label>
-              <input pInputText type="email" formControlName="email"
-                placeholder="contacto@example.com" />
+            <div *ngIf="estudianteSeleccionado" class="hint-text">
+              <i class="pi pi-info-circle"></i> Los tutores legales tienen acceso al Portal de Familias. Haz clic en una fila para ver acciones.
             </div>
-            <div class="field">
-              <label>Teléfono Principal *</label>
-              <input pInputText formControlName="telefono_principal"
-                placeholder="Ej: 5551234567" />
-            </div>
-            <div class="field">
-              <label>RFC</label>
-              <input pInputText formControlName="rfc" [maxLength]="13"
-                placeholder="Ej: XXXX000000YYY" />
+            <div class="tab-actions" *ngIf="estudianteSeleccionado">
+              <p-button label="Añadir Tutor" icon="pi pi-user-plus" severity="secondary" size="small"
+                (onClick)="abrirAgregarTutor()" />
             </div>
           </div>
 
-          <!-- RELACIÓN CON ALUMNO -->
+          <app-interactive-grid
+            [data]="tutoresFlat()"
+            [columns]="tutoresColumns"
+            [loading]="loadingTutores()"
+            [showDelete]="true"
+            (rowSelected)="onTutorSelected($event)"
+            (rowDeleted)="eliminarTutor($event)"
+          />
+
+          <!-- Acciones por tutor seleccionado -->
+          @if (tutorSeleccionado()) {
+            <div class="tutor-actions-bar">
+              <span class="tutor-sel-name">
+                <i class="pi pi-user"></i>
+                {{ tutorSeleccionado()!.nombre }} {{ tutorSeleccionado()!.apellido_paterno }}
+              </span>
+              <p-button label="Crear Cuenta Portal" icon="pi pi-key" severity="secondary" size="small"
+                pTooltip="Crea un usuario en Authentik para que el tutor acceda al Portal de Familias"
+                (onClick)="abrirCrearCuenta()" />
+              <p-button label="Configurar Accesos" icon="pi pi-lock" severity="secondary" size="small"
+                pTooltip="Define qué información puede ver este tutor en el portal"
+                (onClick)="abrirConfigurarAccesos()" />
+            </div>
+          }
+        </p-tabpanel>
+
+      </p-tabpanels>
+    </p-tabs>
+
+    <!-- ─── Dialog: Agregar/Editar Contacto ─── -->
+    <p-dialog [visible]="mostrarFormulario()" (visibleChange)="mostrarFormulario.set($event)"
+      [header]="formularioTitulo()" [modal]="true" [style]="{width:'90vw'}" [maximizable]="true">
+      <form [formGroup]="form">
+        <div class="form-grid">
+          <div class="form-section">
+            <h4>Datos Personales</h4>
+            <div class="field">
+              <label>Nombre Completo *</label>
+              <input pInputText formControlName="nombre_completo" placeholder="Ej: Juan García Pérez" style="width:100%" />
+            </div>
+            <div class="field">
+              <label>Email</label>
+              <input pInputText type="email" formControlName="email" placeholder="contacto@example.com" style="width:100%" />
+            </div>
+            <div class="field">
+              <label>Teléfono Principal *</label>
+              <input pInputText formControlName="telefono_principal" placeholder="Ej: 5551234567" style="width:100%" />
+            </div>
+            <div class="field">
+              <label>RFC</label>
+              <input pInputText formControlName="rfc" [maxLength]="13" placeholder="Ej: XXXX000000YYY" style="width:100%" />
+            </div>
+          </div>
+
           <div class="form-section">
             <h4>Relación con el Alumno</h4>
             <div class="field">
               <label>Parentesco *</label>
-              <p-select formControlName="parentesco"
-                [options]="parentescos()"
-                optionLabel="label"
-                optionValue="value"
-                placeholder="Seleccionar parentesco..." 
- [filter]="true" filterPlaceholder="Buscar..."/>
+              <p-select formControlName="parentesco" [options]="parentescos()" optionLabel="label" optionValue="value"
+                placeholder="Seleccionar parentesco..." [filter]="true" [style]="{width:'100%'}" />
             </div>
             <div class="field">
               <label>Ocupación</label>
-              <input pInputText formControlName="ocupacion"
-                placeholder="Ej: Ingeniero, Empleado, Independiente" />
+              <input pInputText formControlName="ocupacion" placeholder="Ej: Ingeniero, Independiente" style="width:100%" />
             </div>
             <div class="field">
               <label>Nivel de Estudios</label>
-              <p-select formControlName="nivel_estudios"
-                [options]="[
-                  {label: 'Primaria', value: 'PRIMARIA'},
-                  {label: 'Secundaria', value: 'SECUNDARIA'},
-                  {label: 'Preparatoria', value: 'PREPARATORIA'},
-                  {label: 'Licenciatura', value: 'LICENCIATURA'},
-                  {label: 'Posgrado', value: 'POSGRADO'}
-                ]"
-                optionLabel="label"
-                optionValue="value"
-                placeholder="Seleccionar..." 
- [filter]="true" filterPlaceholder="Buscar..."/>
+              <p-select formControlName="nivel_estudios" [options]="nivelesEstudios" optionLabel="label" optionValue="value"
+                placeholder="Seleccionar..." [style]="{width:'100%'}" />
             </div>
           </div>
 
-          <!-- PERMISOS Y RESPONSABILIDADES -->
           <div class="form-section">
             <h4>Permisos y Responsabilidades</h4>
             <div class="field-toggle">
               <label>Tutor Legal</label>
               <p-toggleSwitch formControlName="es_tutor_legal" />
-              <small>Tiene autoridad legal sobre decisiones del alumno</small>
+              <small>Autoridad legal sobre decisiones del alumno</small>
             </div>
             <div class="field-toggle">
               <label>Contacto de Emergencia</label>
@@ -170,35 +225,27 @@ interface ParentescoOpt { label: string; value: string; }
               <small>A contactar en caso de emergencia médica</small>
             </div>
             <div class="field-toggle">
-              <label>Puede Recoger al Alumno</label>
+              <label>Puede Recoger</label>
               <p-toggleSwitch formControlName="puede_recoger" />
-              <small>Autorizado para recoger al alumno en la escuela</small>
+              <small>Autorizado para recoger al alumno</small>
             </div>
             <div class="field-toggle">
-              <label>Toma de Decisión Conjunta</label>
+              <label>Decisión Conjunta</label>
               <p-toggleSwitch formControlName="toma_decision_conjunta" />
-              <small>Requiere aprobación de ambos padres para decisiones mayores</small>
+              <small>Requiere aprobación de ambos padres</small>
             </div>
             <div class="field">
               <label>Grado de Responsabilidad</label>
-              <p-select formControlName="grado_responsabilidad"
-                [options]="[
-                  {label: 'Principal (Todas las decisiones)', value: 'PRINCIPAL'},
-                  {label: 'Secundario (Coaprobación)', value: 'SECUNDARIO'},
-                  {label: 'Consulta (Solo información)', value: 'CONSULTA'}
-                ]"
-                optionLabel="label"
-                optionValue="value" 
- [filter]="true" filterPlaceholder="Buscar..."/>
+              <p-select formControlName="grado_responsabilidad" [options]="gradosResponsabilidad"
+                optionLabel="label" optionValue="value" [style]="{width:'100%'}" />
             </div>
           </div>
         </div>
 
-        <!-- VALIDACIÓN -->
         @if (mostrarErrores()) {
-          <div style="background:#fef2f2;padding:1rem;border-radius:6px;margin:.5rem 0;color:#dc2626;font-size:.85rem">
-            <strong>Errores de validación:</strong>
-            <ul style="margin:.5rem 0;padding-left:1.5rem">
+          <div class="validation-errors">
+            <strong>Errores:</strong>
+            <ul>
               @if (form.get('nombre_completo')?.hasError('required')) { <li>Nombre completo es requerido</li> }
               @if (form.get('telefono_principal')?.hasError('required')) { <li>Teléfono principal es requerido</li> }
               @if (form.get('parentesco')?.hasError('required')) { <li>Parentesco es requerido</li> }
@@ -207,106 +254,340 @@ interface ParentescoOpt { label: string; value: string; }
           </div>
         }
       </form>
-
       <ng-template pTemplate="footer">
-        <p-button label="Cancelar" icon="pi pi-times" severity="secondary"
-          (onClick)="mostrarFormulario.set(false)" />
+        <p-button label="Cancelar" icon="pi pi-times" severity="secondary" (onClick)="mostrarFormulario.set(false)" />
         <p-button label="Guardar" icon="pi pi-check" severity="success"
-          (onClick)="guardarContacto()" [disabled]="!form.valid || guardando()" />
+          (onClick)="guardarContacto()" [loading]="guardando()" [disabled]="guardando()" />
+      </ng-template>
+    </p-dialog>
+
+    <!-- ─── Dialog: Añadir Tutor Legal ─── -->
+    <p-dialog header="Añadir Tutor Legal" [(visible)]="dlgAgregarTutor"
+      [modal]="true" [style]="{width:'480px'}" [draggable]="false">
+      <div class="dlg-grid">
+        <p class="hint-text">
+          <i class="pi pi-info-circle"></i>
+          Selecciona un contacto familiar ya registrado para asignarlo como tutor legal con acceso al portal.
+        </p>
+        <div class="field">
+          <label>Contacto Familiar *</label>
+          <p-select [options]="contactosLov()" optionLabel="label" optionValue="value"
+            [(ngModel)]="agregarTutorForm.personaId" [filter]="true" filterBy="label"
+            placeholder="Seleccionar contacto..." [style]="{width:'100%'}" />
+        </div>
+        <div class="field">
+          <label>Relación</label>
+          <p-select [options]="relacionesTutor" optionLabel="label" optionValue="value"
+            [(ngModel)]="agregarTutorForm.relacion" [style]="{width:'100%'}" />
+        </div>
+        <div class="field">
+          <label>Prioridad</label>
+          <p-inputnumber [(ngModel)]="agregarTutorForm.prioridad" [min]="1" [max]="5" [style]="{width:'100%'}" />
+        </div>
+        <div class="field">
+          <label>Nivel de Acceso al Portal</label>
+          <p-select [options]="nivelesAccesoPortal" optionLabel="label" optionValue="value"
+            [(ngModel)]="agregarTutorForm.nivelAccesoPortal" [style]="{width:'100%'}" />
+        </div>
+        <div class="field-toggle">
+          <label>Responsable Económico</label>
+          <p-toggleSwitch [(ngModel)]="agregarTutorForm.esResponsableEconomico" />
+        </div>
+        <div class="field-toggle">
+          <label>Contacto de Emergencia</label>
+          <p-toggleSwitch [(ngModel)]="agregarTutorForm.esContactoEmergencia" />
+        </div>
+        <div class="field-toggle">
+          <label>Puede Recoger</label>
+          <p-toggleSwitch [(ngModel)]="agregarTutorForm.puedeRecoger" />
+        </div>
+      </div>
+      <ng-template pTemplate="footer">
+        <p-button label="Cancelar" [text]="true" (onClick)="dlgAgregarTutor = false" />
+        <p-button label="Agregar Tutor" icon="pi pi-user-plus" severity="secondary"
+          [loading]="guardandoTutor()" (onClick)="guardarTutor()" />
+      </ng-template>
+    </p-dialog>
+
+    <!-- ─── Dialog: Crear Cuenta Portal (PE-032) ─── -->
+    <p-dialog header="Crear Cuenta en Portal de Familias" [(visible)]="dlgCrearCuenta"
+      [modal]="true" [style]="{width:'440px'}" [draggable]="false">
+      <div class="dlg-grid">
+        <p class="hint-text">
+          <i class="pi pi-key"></i>
+          Se creará un usuario en Authentik para que <strong>{{ tutorSeleccionado()?.nombre }} {{ tutorSeleccionado()?.apellido_paterno }}</strong>
+          acceda al portal con email y contraseña temporal.
+        </p>
+        <div class="field">
+          <label>Email de acceso *</label>
+          <input pInputText [(ngModel)]="crearCuentaForm.email" type="email"
+            placeholder="email@example.com" style="width:100%" />
+        </div>
+        <div class="field">
+          <label>Nombre completo (para el portal)</label>
+          <input pInputText [(ngModel)]="crearCuentaForm.nombreCompleto" style="width:100%" />
+        </div>
+      </div>
+      <ng-template pTemplate="footer">
+        <p-button label="Cancelar" [text]="true" (onClick)="dlgCrearCuenta = false" />
+        <p-button label="Crear Cuenta" icon="pi pi-key" severity="success"
+          [loading]="guardandoTutor()" (onClick)="crearCuentaPortal()" />
+      </ng-template>
+    </p-dialog>
+
+    <!-- ─── Dialog: Configurar Accesos (PE-033) ─── -->
+    <p-dialog header="Configurar Accesos al Portal" [(visible)]="dlgConfigurarAccesos"
+      [modal]="true" [style]="{width:'480px'}" [draggable]="false">
+      <div class="dlg-grid">
+        <p class="hint-text">
+          <i class="pi pi-lock"></i>
+          Define qué información puede ver <strong>{{ tutorSeleccionado()?.nombre }} {{ tutorSeleccionado()?.apellido_paterno }}</strong>
+          en el Portal de Familias.
+        </p>
+        <div class="field-toggle">
+          <label>Ver Calificaciones</label>
+          <p-toggleSwitch [(ngModel)]="accesoForm.puedeVerCalificaciones" />
+        </div>
+        <div class="field-toggle">
+          <label>Ver Asistencias</label>
+          <p-toggleSwitch [(ngModel)]="accesoForm.puedeVerAsistencias" />
+        </div>
+        <div class="field-toggle">
+          <label>Ver Conducta</label>
+          <p-toggleSwitch [(ngModel)]="accesoForm.puedeVerConducta" />
+        </div>
+        <div class="field-toggle">
+          <label>Ver Tareas</label>
+          <p-toggleSwitch [(ngModel)]="accesoForm.puedeVerTareas" />
+        </div>
+        <div class="field-toggle">
+          <label>Descargar Documentos</label>
+          <p-toggleSwitch [(ngModel)]="accesoForm.puedeDescargarDocumentos" />
+        </div>
+        <div class="field-toggle">
+          <label>Comunicarse con Docentes</label>
+          <p-toggleSwitch [(ngModel)]="accesoForm.puedeComunicarseDocentes" />
+        </div>
+        <div class="field">
+          <label>Razón de restricción (si aplica)</label>
+          <input pInputText [(ngModel)]="accesoForm.razonRestriccion"
+            placeholder="Ej: Orden judicial, custodia parcial..." style="width:100%" />
+        </div>
+      </div>
+      <ng-template pTemplate="footer">
+        <p-button label="Cancelar" [text]="true" (onClick)="dlgConfigurarAccesos = false" />
+        <p-button label="Guardar Configuración" icon="pi pi-save" severity="secondary"
+          [loading]="guardandoTutor()" (onClick)="guardarAccesos()" />
       </ng-template>
     </p-dialog>
   `,
   styles: [`
-    .page-header { display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.5rem }
+    .page-header { display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1rem }
     .page-header h2 { margin:0;font-size:1.5rem }
     .subtitle { font-size:.85rem;color:var(--text-color-secondary);margin:.25rem 0 0 }
-    .toolbar { display:flex;gap:1rem;margin-bottom:1rem;align-items:center }
+    .student-bar { display:flex;gap:.75rem;align-items:center;margin-bottom:1rem;padding:.5rem .75rem;background:var(--surface-50);border-radius:8px;border:1px solid var(--surface-200) }
+    .student-label { font-size:.85rem;font-weight:600;color:var(--text-color-secondary);flex-shrink:0 }
+    .tab-toolbar { display:flex;align-items:center;justify-content:space-between;padding:.75rem 0;flex-wrap:wrap;gap:.5rem }
+    .tab-actions { display:flex;gap:.5rem }
+    .hint-text { font-size:.8rem;color:var(--text-color-secondary) }
+    .tutor-actions-bar { display:flex;align-items:center;gap:.75rem;padding:.75rem 1rem;margin-top:.5rem;background:var(--surface-50);border-radius:8px;border:1px solid var(--primary-200,#bfdbfe);flex-wrap:wrap }
+    .tutor-sel-name { font-size:.9rem;font-weight:600;color:var(--primary-color);display:flex;align-items:center;gap:.35rem;flex:1 }
     .form-grid { display:grid;grid-template-columns:1fr 1fr;gap:2rem;margin:1.5rem 0 }
     .form-section { padding:1rem;background:var(--surface-50);border-radius:8px }
     .form-section h4 { margin:0 0 1rem;font-size:.95rem;font-weight:600;color:var(--primary-color) }
     .field { margin-bottom:1rem }
-    .field label { display:block;font-size:.85rem;font-weight:600;margin-bottom:.35rem;color:var(--text-color) }
-    .field input, .field p-select { width:100%;max-width:100% }
-    .field-toggle { display:flex;align-items:center;gap:.75rem;margin-bottom:1rem;padding:0.75rem;background:var(--surface-0);border-radius:6px }
-    .field-toggle label { margin:0;flex-shrink:0 }
-    .field-toggle small { font-size:.75rem;color:var(--text-muted);margin-left:auto }
-    :deep(.p-select-option) { padding:.5rem 1rem }
+    .field label { display:block;font-size:.85rem;font-weight:500;margin-bottom:.35rem;color:var(--text-color-secondary) }
+    .field-toggle { display:flex;align-items:center;gap:.75rem;margin-bottom:.75rem;padding:.5rem .75rem;background:var(--surface-0);border-radius:6px }
+    .field-toggle label { margin:0;flex-shrink:0;font-size:.85rem;font-weight:500;min-width:170px }
+    .field-toggle small { font-size:.75rem;color:var(--text-color-secondary);margin-left:auto }
+    .validation-errors { background:#fef2f2;padding:1rem;border-radius:6px;margin:.5rem 0;color:#dc2626;font-size:.85rem }
+    .validation-errors ul { margin:.5rem 0;padding-left:1.5rem }
+    .dlg-grid { display:flex;flex-direction:column;gap:.75rem;padding:.25rem 0 }
   `],
 })
 export class PadresAdminComponent implements OnInit {
-  private api = inject(ApiService);
+  private readonly api    = inject(ApiService);
   private readonly notify = inject(ApexNotificationService);
-  private confirm = inject(ConfirmationService);
-  private fb = inject(FormBuilder);
+  private readonly confirm = inject(ConfirmationService);
+  private readonly fb     = inject(FormBuilder);
 
-  estudiantes = signal<EstudianteOpt[]>([]);
+  // ── Shared state ──────────────────────────────────────────────
+  tabActivo             = signal('contactos');
+  estudiantes           = signal<EstudianteOpt[]>([]);
+  estudianteSeleccionado: string | null = null;
+  loading               = signal(false);
+  guardando             = signal(false);
+
+  // ── Contactos tab ─────────────────────────────────────────────
+  contactos             = signal<ContactoFamiliar[]>([]);
+  mostrarFormulario     = signal(false);
+  mostrarErrores        = signal(false);
+  formularioTitulo      = signal('Agregar Contacto Familiar');
+  contactoEditado: ContactoFamiliar | null = null;
 
   readonly contactosFlat = computed(() =>
     this.contactos().map(c => ({
       ...c,
-      tutor_str:     c.es_tutor_legal          ? 'Sí' : 'No',
-      emergencia_str: c.es_contacto_emergencia ? 'Sí' : 'No',
-      recoger_str:   c.puede_recoger           ? 'Sí' : 'No',
+      tutor_str:      c.es_tutor_legal          ? 'Sí' : 'No',
+      emergencia_str: c.es_contacto_emergencia  ? 'Sí' : 'No',
+      recoger_str:    c.puede_recoger           ? 'Sí' : 'No',
     }))
   );
-  readonly contactosColumns: ColumnConfig[] = [
-    { field: 'nombre_completo',  header: 'Nombre' },
-    { field: 'parentesco',       header: 'Parentesco',    width: '120px' },
-    { field: 'telefono_principal', header: 'Teléfono',    width: '130px' },
-    { field: 'email',            header: 'Email' },
-    { field: 'tutor_str',        header: 'Tutor Legal',   width: '110px' },
-    { field: 'emergencia_str',   header: 'Emergencia',    width: '110px' },
-    { field: 'recoger_str',      header: 'Puede Recoger', width: '120px' },
-  ];
-  estudianteSeleccionado: string | null = null;
-  contactos = signal<ContactoFamiliar[]>([]);
-  loading = signal(false);
-  mostrarFormulario = signal(false);
-  guardando = signal(false);
-  mostrarErrores = signal(false);
-  formularioTitulo = signal('Agregar Contacto Familiar');
-  contactoEditado: ContactoFamiliar | null = null;
 
-  parentescos = signal<ParentescoOpt[]>([
+  readonly contactosColumns: ColumnConfig[] = [
+    { field: 'nombre_completo',    header: 'Nombre' },
+    { field: 'parentesco',         header: 'Parentesco',    width: '120px' },
+    { field: 'telefono_principal', header: 'Teléfono',      width: '130px' },
+    { field: 'email',              header: 'Email' },
+    { field: 'tutor_str',          header: 'Tutor Legal',   width: '110px' },
+    { field: 'emergencia_str',     header: 'Emergencia',    width: '110px' },
+    { field: 'recoger_str',        header: 'Puede Recoger', width: '120px' },
+  ];
+
+  // Contactos LOV para añadir tutor (persona_id como value)
+  readonly contactosLov = computed(() =>
+    this.contactos().map(c => ({
+      label: `${c.nombre_completo} (${c.parentesco})`,
+      value: c.persona_id,
+    }))
+  );
+
+  // ── Tutores tab ───────────────────────────────────────────────
+  tutores               = signal<TutorAlumno[]>([]);
+  loadingTutores        = signal(false);
+  guardandoTutor        = signal(false);
+  tutorSeleccionado     = signal<TutorAlumno | null>(null);
+
+  dlgAgregarTutor      = false;
+  dlgCrearCuenta       = false;
+  dlgConfigurarAccesos = false;
+
+  readonly tutoresFlat = computed(() =>
+    this.tutores().map(t => ({
+      ...t,
+      nombre_completo:   `${t.nombre} ${t.apellido_paterno}${t.apellido_materno ? ' ' + t.apellido_materno : ''}`,
+      puede_recoger_str: t.puede_recoger          ? 'Sí' : 'No',
+      responsable_str:   t.es_responsable_economico ? 'Sí' : 'No',
+    }))
+  );
+
+  readonly tutoresColumns: ColumnConfig[] = [
+    { field: 'nombre_completo',    header: 'Nombre' },
+    { field: 'relacion',           header: 'Relación',         width: '100px' },
+    { field: 'prioridad',          header: 'Prioridad',        width: '90px' },
+    { field: 'nivel_acceso_portal',header: 'Acceso Portal',    width: '130px' },
+    { field: 'puede_recoger_str',  header: 'Puede Recoger',    width: '120px' },
+    { field: 'responsable_str',    header: 'Resp. Económico',  width: '140px' },
+  ];
+
+  agregarTutorForm = {
+    personaId: '',
+    relacion: 'TUTOR',
+    esResponsableEconomico: false,
+    esContactoEmergencia: false,
+    prioridad: 1,
+    puedeRecoger: true,
+    nivelAccesoPortal: 'LECTURA',
+  };
+
+  crearCuentaForm = { email: '', nombreCompleto: '' };
+
+  accesoForm = {
+    puedeVerCalificaciones: true,
+    puedeVerAsistencias: true,
+    puedeVerConducta: true,
+    puedeVerTareas: true,
+    puedeDescargarDocumentos: true,
+    puedeComunicarseDocentes: true,
+    razonRestriccion: '',
+  };
+
+  // ── Catálogos ─────────────────────────────────────────────────
+  readonly nivelesAccesoPortal = NIVELES_ACCESO_PORTAL;
+
+  readonly relacionesTutor = [
+    { label: 'Tutor', value: 'TUTOR' },
     { label: 'Padre', value: 'PADRE' },
     { label: 'Madre', value: 'MADRE' },
-    { label: 'Tutor', value: 'TUTOR' },
     { label: 'Abuelo', value: 'ABUELO' },
-    { label: 'Abuela', value: 'ABUELA' },
-    { label: 'Tío', value: 'TIO' },
-    { label: 'Tía', value: 'TIA' },
-    { label: 'Hermano', value: 'HERMANO' },
-    { label: 'Hermana', value: 'HERMANA' },
-    { label: 'Otro', value: 'OTRO' },
+    { label: 'Otro familiar', value: 'OTRO' },
+  ];
+
+  readonly nivelesEstudios = [
+    { label: 'Primaria',     value: 'PRIMARIA' },
+    { label: 'Secundaria',   value: 'SECUNDARIA' },
+    { label: 'Preparatoria', value: 'PREPARATORIA' },
+    { label: 'Licenciatura', value: 'LICENCIATURA' },
+    { label: 'Posgrado',     value: 'POSGRADO' },
+  ];
+
+  readonly gradosResponsabilidad = [
+    { label: 'Principal (todas las decisiones)', value: 'PRINCIPAL' },
+    { label: 'Secundario (coaprobación)',         value: 'SECUNDARIO' },
+    { label: 'Consulta (solo información)',       value: 'CONSULTA' },
+  ];
+
+  readonly parentescos = signal([
+    { label: 'Padre',    value: 'PADRE' },
+    { label: 'Madre',    value: 'MADRE' },
+    { label: 'Tutor',    value: 'TUTOR' },
+    { label: 'Abuelo',   value: 'ABUELO' },
+    { label: 'Abuela',   value: 'ABUELA' },
+    { label: 'Tío',      value: 'TIO' },
+    { label: 'Tía',      value: 'TIA' },
+    { label: 'Hermano',  value: 'HERMANO' },
+    { label: 'Hermana',  value: 'HERMANA' },
+    { label: 'Otro',     value: 'OTRO' },
   ]);
 
-  form = this.fb.group({
-    nombre_completo: ['', Validators.required],
-    email: ['', [Validators.email]],
-    telefono_principal: ['', Validators.required],
-    rfc: [''],
-    parentesco: ['', Validators.required],
-    ocupacion: [''],
-    nivel_estudios: [''],
-    es_tutor_legal: [false],
-    es_contacto_emergencia: [false],
-    puede_recoger: [true],
-    toma_decision_conjunta: [false],
+  form: FormGroup = this.fb.group({
+    nombre_completo:       ['', Validators.required],
+    email:                 ['', [Validators.email]],
+    telefono_principal:    ['', Validators.required],
+    rfc:                   [''],
+    parentesco:            ['', Validators.required],
+    ocupacion:             [''],
+    nivel_estudios:        [''],
+    es_tutor_legal:        [false],
+    es_contacto_emergencia:[false],
+    puede_recoger:         [true],
+    toma_decision_conjunta:[false],
     grado_responsabilidad: ['PRINCIPAL'],
   });
 
+  // ─────────────────────────────────────────────────────────────
   ngOnInit(): void {
     this.cargarEstudiantes();
   }
 
+  onTabChange(tab: string | number | undefined): void {
+    this.tabActivo.set(String(tab ?? 'contactos'));
+    if (tab === 'tutores' && this.estudianteSeleccionado) {
+      this.cargarTutores();
+    }
+  }
+
+  onEstudianteChange(): void {
+    this.tutorSeleccionado.set(null);
+    if (this.tabActivo() === 'contactos') {
+      this.cargarContactos();
+    } else {
+      this.cargarTutores();
+    }
+  }
+
+  // ── Carga de datos ────────────────────────────────────────────
+
   private cargarEstudiantes(): void {
     this.loading.set(true);
-    this.api.get<{ data: any[] }>('/alumnos?por_pagina=1000').subscribe({
+    this.api.get<{ data: any[] }>('/alumnos').subscribe({
       next: (res) => {
-        this.estudiantes.set((res.data || []).map((a: any) => ({
+        this.estudiantes.set((res.data ?? []).map((a: any) => ({
           id: a.id,
           matricula: a.matricula,
-          nombre_completo: a.persona?.nombre_completo ?? a.nombre_completo ?? a.matricula ?? 'Sin nombre',
+          nombre_completo: [a.persona?.nombre, a.persona?.apellido_paterno, a.persona?.apellido_materno]
+            .filter(Boolean).join(' ')
+            + ` — ${a.matricula ?? ''}`,
         })));
         this.loading.set(false);
       },
@@ -318,13 +599,11 @@ export class PadresAdminComponent implements OnInit {
   }
 
   cargarContactos(): void {
-    const estId = this.estudianteSeleccionado;
-    if (!estId) return;
-
+    if (!this.estudianteSeleccionado) return;
     this.loading.set(true);
-    this.api.get<ContactoFamiliar[]>(`/contactos?estudiante_id=${estId}`).subscribe({
+    this.api.get<ContactoFamiliar[]>(`/contactos?estudiante_id=${this.estudianteSeleccionado}`).subscribe({
       next: (res) => {
-        this.contactos.set(Array.isArray(res) ? res : (res as any).data || []);
+        this.contactos.set(Array.isArray(res) ? res : (res as any).data ?? []);
         this.loading.set(false);
       },
       error: () => {
@@ -333,6 +612,17 @@ export class PadresAdminComponent implements OnInit {
       },
     });
   }
+
+  cargarTutores(): void {
+    if (!this.estudianteSeleccionado) return;
+    this.loadingTutores.set(true);
+    this.api.get<TutorAlumno[]>(`/portal-familias/tutores/${this.estudianteSeleccionado}`).subscribe({
+      next: (d) => { this.tutores.set(Array.isArray(d) ? d : []); this.loadingTutores.set(false); },
+      error: () => { this.loadingTutores.set(false); },
+    });
+  }
+
+  // ── Contactos CRUD ────────────────────────────────────────────
 
   abrirFormulario(): void {
     this.contactoEditado = null;
@@ -364,26 +654,17 @@ export class PadresAdminComponent implements OnInit {
   }
 
   guardarContacto(): void {
-    if (!this.form.valid) {
-      this.mostrarErrores.set(true);
-      return;
-    }
-
+    if (!this.form.valid) { this.mostrarErrores.set(true); return; }
     this.guardando.set(true);
-    const estId = this.estudianteSeleccionado!;
-    const payload = {
-      estudiante_id: estId,
-      ...this.form.value
-    };
+    const payload = { estudiante_id: this.estudianteSeleccionado!, ...this.form.value };
+    const endpoint = this.contactoEditado ? `/contactos/${this.contactoEditado.id}` : '/contactos';
+    const req = this.contactoEditado
+      ? this.api.patch<any>(endpoint, payload)
+      : this.api.post<any>(endpoint, payload);
 
-    const endpoint = this.contactoEditado
-      ? `/contactos/${this.contactoEditado.id}`
-      : '/contactos';
-    const metodo = this.contactoEditado ? 'patch' : 'post';
-
-    this.api[metodo as 'post'|'patch']<any>(endpoint, payload).subscribe({
+    req.subscribe({
       next: () => {
-        this.notify.success('Éxito', `Contacto ${this.contactoEditado ? 'actualizado' : 'creado'} correctamente`);
+        this.notify.success('Guardado', `Contacto ${this.contactoEditado ? 'actualizado' : 'creado'} correctamente`);
         this.mostrarFormulario.set(false);
         this.guardando.set(false);
         this.cargarContactos();
@@ -402,14 +683,147 @@ export class PadresAdminComponent implements OnInit {
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
         this.api.delete(`/contactos/${row.id}`).subscribe({
-          next: () => {
-            this.notify.success('Eliminado', 'Contacto eliminado correctamente');
-            this.cargarContactos();
-          },
-          error: () => {
-            this.notify.error('Error', 'No se pudo eliminar el contacto');
-          },
+          next: () => { this.notify.success('Eliminado', 'Contacto eliminado correctamente'); this.cargarContactos(); },
+          error: () => { this.notify.error('Error', 'No se pudo eliminar el contacto'); },
         });
+      },
+    });
+  }
+
+  // ── Tutores CRUD (PE-029) ─────────────────────────────────────
+
+  abrirAgregarTutor(): void {
+    // Ensure contactos are loaded (used as LOV for persona selection)
+    if (this.contactos().length === 0) {
+      this.cargarContactos();
+    }
+    this.agregarTutorForm = {
+      personaId: '', relacion: 'TUTOR', esResponsableEconomico: false,
+      esContactoEmergencia: false, prioridad: 1, puedeRecoger: true, nivelAccesoPortal: 'LECTURA',
+    };
+    this.dlgAgregarTutor = true;
+  }
+
+  guardarTutor(): void {
+    if (!this.agregarTutorForm.personaId) {
+      this.notify.warning('Campo requerido', 'Selecciona un contacto familiar para asignar como tutor');
+      return;
+    }
+    this.guardandoTutor.set(true);
+    const body = {
+      persona_id: this.agregarTutorForm.personaId,
+      relacion: this.agregarTutorForm.relacion,
+      es_responsable_economico: this.agregarTutorForm.esResponsableEconomico,
+      es_contacto_emergencia: this.agregarTutorForm.esContactoEmergencia,
+      prioridad: this.agregarTutorForm.prioridad,
+      puede_recoger: this.agregarTutorForm.puedeRecoger,
+      nivel_acceso_portal: this.agregarTutorForm.nivelAccesoPortal,
+    };
+    this.api.post(`/portal-familias/tutores/${this.estudianteSeleccionado}`, body).subscribe({
+      next: () => {
+        this.guardandoTutor.set(false);
+        this.dlgAgregarTutor = false;
+        this.notify.success('Tutor agregado', 'El tutor legal ha sido vinculado al alumno');
+        this.cargarTutores();
+      },
+      error: (e: any) => {
+        this.guardandoTutor.set(false);
+        this.notify.error('Error', e?.error?.message ?? 'No se pudo agregar el tutor');
+      },
+    });
+  }
+
+  onTutorSelected(row: any): void {
+    this.tutorSeleccionado.set(row as TutorAlumno);
+  }
+
+  eliminarTutor(row: any): void {
+    this.confirm.confirm({
+      message: `¿Eliminar el vínculo de tutor para "${row.nombre} ${row.apellido_paterno}"?`,
+      header: 'Confirmar eliminación',
+      icon: 'pi pi-exclamation-triangle',
+      accept: () => {
+        this.api.delete(`/portal-familias/tutores/${row.id}`).subscribe({
+          next: () => {
+            this.notify.success('Eliminado', 'Vínculo de tutor eliminado');
+            if (this.tutorSeleccionado()?.id === row.id) this.tutorSeleccionado.set(null);
+            this.cargarTutores();
+          },
+          error: () => { this.notify.error('Error', 'No se pudo eliminar el tutor'); },
+        });
+      },
+    });
+  }
+
+  // ── Crear Cuenta Portal (PE-032) ──────────────────────────────
+
+  abrirCrearCuenta(): void {
+    const t = this.tutorSeleccionado();
+    if (!t) return;
+    this.crearCuentaForm = {
+      email: t.email ?? '',
+      nombreCompleto: `${t.nombre} ${t.apellido_paterno}`,
+    };
+    this.dlgCrearCuenta = true;
+  }
+
+  crearCuentaPortal(): void {
+    if (!this.crearCuentaForm.email) {
+      this.notify.warning('Email requerido', 'Ingresa el email para la cuenta del portal');
+      return;
+    }
+    const tutor = this.tutorSeleccionado()!;
+    this.guardandoTutor.set(true);
+    const body = {
+      tutor_alumno_id: tutor.id,
+      email: this.crearCuentaForm.email,
+      nombre_completo: this.crearCuentaForm.nombreCompleto,
+    };
+    this.api.post('/portal-familias/crear-usuario', body).subscribe({
+      next: () => {
+        this.guardandoTutor.set(false);
+        this.dlgCrearCuenta = false;
+        this.notify.success('Cuenta creada', `Se ha creado el acceso al portal para ${tutor.nombre}`);
+      },
+      error: (e: any) => {
+        this.guardandoTutor.set(false);
+        this.notify.error('Error', e?.error?.message ?? 'No se pudo crear la cuenta');
+      },
+    });
+  }
+
+  // ── Configurar Accesos (PE-033) ───────────────────────────────
+
+  abrirConfigurarAccesos(): void {
+    this.accesoForm = {
+      puedeVerCalificaciones: true, puedeVerAsistencias: true, puedeVerConducta: true,
+      puedeVerTareas: true, puedeDescargarDocumentos: true, puedeComunicarseDocentes: true,
+      razonRestriccion: '',
+    };
+    this.dlgConfigurarAccesos = true;
+  }
+
+  guardarAccesos(): void {
+    const tutor = this.tutorSeleccionado()!;
+    this.guardandoTutor.set(true);
+    const body = {
+      puede_ver_calificaciones: this.accesoForm.puedeVerCalificaciones,
+      puede_ver_asistencias: this.accesoForm.puedeVerAsistencias,
+      puede_ver_conducta: this.accesoForm.puedeVerConducta,
+      puede_ver_tareas: this.accesoForm.puedeVerTareas,
+      puede_descargar_documentos: this.accesoForm.puedeDescargarDocumentos,
+      puede_comunicarse_docentes: this.accesoForm.puedeComunicarseDocentes,
+      razon_restriccion: this.accesoForm.razonRestriccion || null,
+    };
+    this.api.post(`/portal-familias/restriccion/${tutor.id}`, body).subscribe({
+      next: () => {
+        this.guardandoTutor.set(false);
+        this.dlgConfigurarAccesos = false;
+        this.notify.success('Accesos guardados', `Configuración de accesos actualizada para ${tutor.nombre}`);
+      },
+      error: (e: any) => {
+        this.guardandoTutor.set(false);
+        this.notify.error('Error', e?.error?.message ?? 'No se pudo guardar la configuración');
       },
     });
   }

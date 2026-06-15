@@ -276,7 +276,7 @@ export class AdmisionComponent implements OnInit {
 
     this.http.get<Solicitud[]>('/api/v1/procesos/admision', { params }).subscribe({
       next: d => { this.solicitudes.set(d); this.cargando.set(false); },
-      error: () => { this.cargando.set(false); this.notify.error('Error al cargar solicitudes'); },
+      error: () => { this.cargando.set(false); this.notify.error('Error', 'No se pudieron cargar las solicitudes'); },
     });
   }
 
@@ -287,12 +287,12 @@ export class AdmisionComponent implements OnInit {
 
   guardar() {
     if (!this.form.nombre || !this.form.apellidoPaterno || !this.form.curp || !this.form.fechaNacimiento || !this.form.tutorNombre || !this.form.tutorTelefono) {
-      this.notify.warning('Complete los campos obligatorios');
+      this.notify.warning('Validación', 'Complete los campos obligatorios');
       return;
     }
     const plantelId = this.ctx.plantel()?.id;
     if (!plantelId) {
-      this.notify.warning('Seleccione un plantel desde el contexto antes de registrar');
+      this.notify.warning('Plantel requerido', 'Seleccione un plantel desde el contexto antes de registrar');
       return;
     }
     this.guardando.set(true);
@@ -313,28 +313,28 @@ export class AdmisionComponent implements OnInit {
     };
     this.http.post('/api/v1/procesos/admision', payload).subscribe({
       next: () => {
-        this.notify.success('Solicitud de admisión registrada');
+        this.notify.success('Registrada', 'Solicitud de admisión registrada');
         this.dlgNueva = false;
         this.cargar();
       },
       error: (e) => {
         this.guardando.set(false);
-        this.notify.error(e.error?.detail ?? 'Error al registrar solicitud');
+        this.notify.error('Error', e.error?.detail ?? 'Error al registrar solicitud');
       }
     });
   }
 
   resolver(s: Solicitud, decision: string) {
     this.http.post(`/api/v1/procesos/admision/${s.id}/aceptar`, { decision }).subscribe({
-      next: (r: any) => { this.notify.success(r.message); this.cargar(); },
-      error: e => this.notify.error(e.error?.detail ?? 'Error'),
+      next: (r: any) => { this.notify.success('Éxito', r.message); this.cargar(); },
+      error: e => this.notify.error('Error', e.error?.detail ?? 'Error'),
     });
   }
 
   notificarEspera(s: Solicitud) {
     this.http.post(`/api/v1/procesos/lista-espera/${s.id}/notificar`, {}).subscribe({
-      next: (r: any) => { this.notify.success(r.message); this.cargar(); },
-      error: e => this.notify.error(e.error?.detail ?? 'Error'),
+      next: (r: any) => { this.notify.success('Éxito', r.message); this.cargar(); },
+      error: e => this.notify.error('Error', e.error?.detail ?? 'Error'),
     });
   }
 
@@ -353,11 +353,11 @@ export class AdmisionComponent implements OnInit {
       observaciones_diagnostico: this.evalObs
     }).subscribe({
       next: (r: any) => {
-        this.notify.success(r.message);
+        this.notify.success('Guardado', r.message);
         this.dlgDetalle = false;
         this.cargar();
       },
-      error: (e) => this.notify.error(e.error?.detail ?? 'Error al registrar evaluación')
+      error: (e) => this.notify.error('Error', e.error?.detail ?? 'Error al registrar evaluación')
     });
   }
 
@@ -365,12 +365,12 @@ export class AdmisionComponent implements OnInit {
     const s = this.solicitudSeleccionada();
     if (!s) return;
     if (!this.cartaTemplateId) {
-      this.notify.warning('Ingrese el ID de la plantilla Carbone');
+      this.notify.warning('Aviso', 'Ingrese el ID de la plantilla Carbone');
       return;
     }
     const url = `/api/v1/procesos/admision/${s.id}/carta?template_id=${this.cartaTemplateId}`;
     window.open(url, '_blank');
-    this.notify.info('Generando carta de admisión PDF...');
+    this.notify.success('PDF', 'Generando carta de admisión PDF...');
   }
 
   countEstado(estado: string): number {

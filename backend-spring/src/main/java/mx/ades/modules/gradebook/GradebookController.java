@@ -41,7 +41,7 @@ public class GradebookController {
         userService.resolveUser(jwt);
 
         StringBuilder sql = new StringBuilder(
-                "SELECT p.nombre, p.apellido_paterno, p.apellido_materno, " +
+                "SELECT COALESCE(p.nombre_social, p.nombre) AS nombre, p.apellido_paterno, p.apellido_materno, " +
                 "est.matricula, " +
                 "cp.materia_id, " +
                 "m.nombre_materia, " +
@@ -279,7 +279,7 @@ public class GradebookController {
             @AuthenticationPrincipal Jwt jwt) {
         userService.resolveUser(jwt);
 
-        String sql = "SELECT p.nombre || ' ' || p.apellido_paterno AS alumno, " +
+        String sql = "SELECT COALESCE(p.nombre_social, p.nombre) || ' ' || p.apellido_paterno AS alumno, " +
                 "est.matricula, " +
                 "cp.materia_id, " +
                 "m.nombre_materia, " +
@@ -410,7 +410,7 @@ public class GradebookController {
         StringBuilder sql = new StringBuilder(
                 "SELECT " +
                 "    est.id        AS estudiante_id, " +
-                "    per.nombre    AS nombre, " +
+                "    COALESCE(per.nombre_social, per.nombre) AS nombre, " +
                 "    per.apellido_paterno, " +
                 "    est.matricula, " +
                 "    cp.calificacion_final, " +
@@ -462,7 +462,7 @@ public class GradebookController {
         StringBuilder sql = new StringBuilder(
                 "SELECT " +
                 "    est.id        AS estudiante_id, " +
-                "    per.nombre    AS nombre, " +
+                "    COALESCE(per.nombre_social, per.nombre) AS nombre, " +
                 "    per.apellido_paterno, " +
                 "    est.matricula, " +
                 "    cp.calificacion_final, " +

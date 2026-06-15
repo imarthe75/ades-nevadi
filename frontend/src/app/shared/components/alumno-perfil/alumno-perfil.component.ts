@@ -110,10 +110,27 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
                     style="font-family:monospace;text-transform:uppercase" />
                 </div>
                 <div class="form-row">
-                  <label>Género</label>
-                  <p-select [options]="[{l:'Masculino',v:'M'},{l:'Femenino',v:'F'}]"
-                    [(ngModel)]="form.genero" optionLabel="l" optionValue="v" 
-  [filter]="true" filterPlaceholder="Buscar..."/>
+                  <label>Género (legal)</label>
+                  <p-select [options]="generosLegales" [(ngModel)]="form.genero"
+                    optionLabel="l" optionValue="v" [showClear]="true" placeholder="Seleccionar…" />
+                </div>
+                <div class="form-row" style="flex-direction:column;align-items:flex-start;gap:.35rem">
+                  <label style="font-weight:500">Nombre social
+                    <i class="pi pi-info-circle" style="font-size:.8rem;color:#64748b;margin-left:.3rem"
+                      pTooltip="Nombre con el que el alumno prefiere ser llamado en el aula. Se usa en listas de asistencia. Dejar vacío si coincide con el nombre legal."></i>
+                  </label>
+                  <input pInputText [(ngModel)]="form.nombre_social" style="width:100%"
+                    placeholder="Opcional — solo si difiere del nombre legal" />
+                </div>
+                <div class="form-row">
+                  <label>Género autopercibido</label>
+                  <p-select [options]="generosAutopercibidos" [(ngModel)]="form.genero_autopercibido"
+                    optionLabel="l" optionValue="v" [showClear]="true" placeholder="Seleccionar…" />
+                </div>
+                <div class="form-row">
+                  <label>Pronombres</label>
+                  <input pInputText [(ngModel)]="form.pronombres" style="width:100%"
+                    placeholder="Ej: él/sus, ella/sus, elle/sus" />
                 </div>
                 <div class="form-row">
                   <label>Fecha nacimiento</label>
@@ -548,6 +565,21 @@ export class AlumnoPerfilComponent implements OnInit, OnChanges {
   readonly tiposSangre  = TIPOS_SANGRE;
   readonly estadosCivil = ESTADOS_CIVIL;
   readonly nivelesSocio = NIVELES_SOCIO;
+
+  readonly generosLegales = [
+    { l: 'Masculino',            v: 'MASCULINO' },
+    { l: 'Femenino',             v: 'FEMENINO' },
+    { l: 'No binario (X-CURP)', v: 'NO_BINARIO' },
+    { l: 'Prefiero no decir',   v: 'PREFIERO_NO_DECIR' },
+  ];
+
+  readonly generosAutopercibidos = [
+    { l: 'Masculino',          v: 'MASCULINO' },
+    { l: 'Femenino',           v: 'FEMENINO' },
+    { l: 'No binario',         v: 'NO_BINARIO' },
+    { l: 'Otro',               v: 'OTRO' },
+    { l: 'Prefiero no decir',  v: 'PREFIERO_NO_DECIR' },
+  ];
   readonly parentescos  = PARENTESCOS;
   readonly nivelesEst   = NIVELESEST;
   readonly becas        = BECAS;
@@ -664,7 +696,9 @@ export class AlumnoPerfilComponent implements OnInit, OnChanges {
 
   private initForm(): void {
     const a = this.alumno!;
-    const p = a.persona ?? {};
+    // Detail endpoint returns flat joined row; list endpoint returns nested persona object.
+    // Fall back to 'a' itself so both paths populate the form correctly.
+    const p = (a.persona ?? a) as any;
     this.form = {
       // Persona
       nombre: (p as any).nombre ?? '',
@@ -672,6 +706,9 @@ export class AlumnoPerfilComponent implements OnInit, OnChanges {
       apellido_materno: (p as any).apellido_materno ?? '',
       curp: (p as any).curp ?? '',
       genero: (p as any).genero ?? null,
+      nombre_social: (p as any).nombre_social ?? '',
+      genero_autopercibido: (p as any).genero_autopercibido ?? null,
+      pronombres: (p as any).pronombres ?? '',
       fecha_nacimiento: (p as any).fecha_nacimiento ? new Date((p as any).fecha_nacimiento) : null,
       telefono: (p as any).telefono ?? '',
       email_personal: (p as any).email_personal ?? '',
@@ -817,6 +854,9 @@ export class AlumnoPerfilComponent implements OnInit, OnChanges {
         apellido_paterno: this.form.apellido_paterno,
         apellido_materno: this.form.apellido_materno || null,
         genero: this.form.genero,
+        nombre_social: this.form.nombre_social || null,
+        genero_autopercibido: this.form.genero_autopercibido || null,
+        pronombres: this.form.pronombres || null,
         fecha_nacimiento: this.form.fecha_nacimiento ? this.formatDate(this.form.fecha_nacimiento) : null,
         telefono: this.form.telefono || null,
         email_personal: this.form.email_personal || null,

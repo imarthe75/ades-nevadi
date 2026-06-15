@@ -325,8 +325,8 @@ public class MovilidadController {
         }
 
         StringBuilder query = new StringBuilder(
-                "SELECT b.id, b.tipo_baja, b.motivo, b.fecha_efectiva, b.fecha_reingreso, " +
-                "b.plantel_destino, b.is_active, e.numero_control, p.nombre || ' ' || p.apellido_paterno as nombre_alumno, " +
+                "SELECT b.id, b.estudiante_id, b.tipo_baja, b.motivo, b.fecha_efectiva, b.fecha_reingreso, " +
+                "b.plantel_destino, b.is_active, e.numero_control, COALESCE(p.nombre_social, p.nombre) || ' ' || p.apellido_paterno as nombre_alumno, " +
                 "g.nombre_grupo, pl.nombre_plantel " +
                 "FROM ades_bajas b " +
                 "JOIN ades_estudiantes e ON e.id = b.estudiante_id " +
@@ -351,6 +351,51 @@ public class MovilidadController {
         }
 
         query.append("ORDER BY b.fecha_efectiva DESC LIMIT ? OFFSET ?");
+        params.add(limit);
+        params.add(skip);
+
+        return ResponseEntity.ok(jdbc.queryForList(query.toString(), params.toArray()));
+    }
+
+    @GetMapping("/cambios-grupo")
+    public ResponseEntity<List<Map<String, Object>>> listarCambiosGrupo(
+            @RequestParam(value = "plantel_id", required = false) UUID plantelId,
+            @RequestParam(value = "estudiante_id", required = false) UUID estudianteId,
+            @RequestParam(value = "skip", defaultValue = "0") int skip,
+            @RequestParam(value = "limit", defaultValue = "50") int limit,
+            @AuthenticationPrincipal Jwt jwt) {
+
+        AdesUser user = userService.resolveUser(jwt);
+
+        StringBuilder query = new StringBuilder(
+                "SELECT cg.id, cg.fecha_cambio, cg.motivo, " +
+                "COALESCE(p.nombre_social, p.nombre) || ' ' || p.apellido_paterno AS nombre_alumno, " +
+                "e.matricula AS numero_control, cg.estudiante_id, " +
+                "go.nombre_grupo AS grupo_origen, gd.nombre_grupo AS grupo_destino, " +
+                "go.plantel_id " +
+                "FROM ades_cambios_grupo cg " +
+                "JOIN ades_estudiantes e ON e.id = cg.estudiante_id " +
+                "JOIN ades_personas p ON p.id = e.persona_id " +
+                "JOIN ades_grupos go ON go.id = cg.grupo_origen_id " +
+                "JOIN ades_grupos gd ON gd.id = cg.grupo_destino_id " +
+                "WHERE 1=1 ");
+
+        List<Object> params = new ArrayList<>();
+
+        if (estudianteId != null) {
+            query.append("AND cg.estudiante_id = ? ");
+            params.add(estudianteId);
+        }
+        if (plantelId != null) {
+            query.append("AND go.plantel_id = ? ");
+            params.add(plantelId);
+        }
+        if (user.getNivelAcceso() != null && user.getNivelAcceso() > 1 && user.getPlantelId() != null) {
+            query.append("AND go.plantel_id = ? ");
+            params.add(user.getPlantelId());
+        }
+
+        query.append("ORDER BY cg.fecha_cambio DESC LIMIT ? OFFSET ?");
         params.add(limit);
         params.add(skip);
 

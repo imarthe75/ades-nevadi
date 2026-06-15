@@ -1,6 +1,8 @@
 package mx.ades.modules.alumnos;
 
 import lombok.RequiredArgsConstructor;
+import mx.ades.security.AdesUser;
+import mx.ades.security.AdesUserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -22,24 +24,30 @@ public class AlumnoController {
 
     private final EstudianteRepository repository;
     private final JdbcTemplate jdbc;
+    private final AdesUserService userService;
 
     @GetMapping
     public ResponseEntity<Map<String, Object>> list(
-            @RequestParam(name = "plantel_id", required = false) UUID plantelId) {
+            @RequestParam(name = "plantel_id", required = false) UUID plantelId,
+            @AuthenticationPrincipal Jwt jwt) {
+
+        AdesUser user = userService.resolveUser(jwt);
+        UUID effectivePlantel = userService.getEffectivePlantelId(user, plantelId);
 
         StringBuilder sql = new StringBuilder("""
                 SELECT e.id, e.matricula, e.nss, e.fecha_ingreso, e.is_active, e.tipo_alumno,
                        e.plantel_id, e.persona_id,
-                       p.nombre, p.apellido_paterno, p.apellido_materno, p.curp
+                       COALESCE(p.nombre_social, p.nombre) AS nombre,
+                       p.apellido_paterno, p.apellido_materno, p.curp
                 FROM ades_estudiantes e
                 JOIN ades_personas p ON p.id = e.persona_id
                 WHERE e.is_active = true
                 """);
 
         Object[] params;
-        if (plantelId != null) {
+        if (effectivePlantel != null) {
             sql.append(" AND e.plantel_id = ?");
-            params = new Object[]{plantelId};
+            params = new Object[]{effectivePlantel};
         } else {
             params = new Object[0];
         }
@@ -73,8 +81,9 @@ public class AlumnoController {
         List<Map<String, Object>> rows = jdbc.queryForList(
             "SELECT e.*, " +
             "  p.nombre, p.apellido_paterno, p.apellido_materno, p.curp, p.rfc, p.genero, " +
+            "  p.nombre_social, p.genero_autopercibido, p.pronombres, p.datos_sensibles_restringidos, " +
             "  p.fecha_nacimiento, p.telefono, p.email_personal, p.estado_civil, " +
-            "  p.municipio_nacimiento, p.estado_nacimiento, p.nacionalidad, p.foto_url " +
+            "  p.pais_nacimiento, p.municipio_nacimiento, p.estado_nacimiento, p.nacionalidad, p.foto_url " +
             "FROM ades_estudiantes e " +
             "JOIN ades_personas p ON p.id = e.persona_id " +
             "WHERE e.id = ?", id);
@@ -102,14 +111,17 @@ public class AlumnoController {
                 "apellido_materno=?, curp=COALESCE(?,curp), genero=?, fecha_nacimiento=?, " +
                 "telefono=?, email_personal=?, estado_civil=?, " +
                 "pais_nacimiento=?, municipio_nacimiento=?, estado_nacimiento=?, " +
-                "nacionalidad=COALESCE(?,nacionalidad) " +
+                "nacionalidad=COALESCE(?,nacionalidad), " +
+                "nombre_social=?, genero_autopercibido=?, pronombres=? " +
                 "WHERE id=?",
                 per.get("nombre"), per.get("apellido_paterno"), per.get("apellido_materno"),
                 per.get("curp"), per.get("genero"),
                 per.get("fecha_nacimiento") != null ? java.sql.Date.valueOf(per.get("fecha_nacimiento").toString().substring(0, 10)) : null,
                 per.get("telefono"), per.get("email_personal"), per.get("estado_civil"),
                 per.get("pais_nacimiento"), per.get("municipio_nacimiento"), per.get("estado_nacimiento"),
-                per.get("nacionalidad"), personaId);
+                per.get("nacionalidad"),
+                per.get("nombre_social"), per.get("genero_autopercibido"), per.get("pronombres"),
+                personaId);
         }
 
         // 3. Update ades_estudiantes complementarios

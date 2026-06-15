@@ -6,8 +6,8 @@ import java.util.regex.Pattern;
 
 public class ValidationUtils {
 
-    // Standard official CURP pattern
-    private static final Pattern CURP_PATTERN = Pattern.compile("^[A-Z]{4}\\d{6}[HM][A-Z]{5}[A-Z\\d]\\d$");
+    // CURP: posición 9 acepta H (hombre), M (mujer) o X (no binario — reforma RENAPO 2021)
+    private static final Pattern CURP_PATTERN = Pattern.compile("^[A-Z]{4}\\d{6}[HMX][A-Z]{5}[A-Z\\d]\\d$");
 
     // Standard official RFC pattern (12 or 13 characters)
     private static final Pattern RFC_PATTERN = Pattern.compile("^[A-ZÑ&]{3,4}\\d{6}[A-Z\\d]{3}$");

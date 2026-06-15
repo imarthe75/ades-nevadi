@@ -547,6 +547,20 @@ public class ProcesosEscolaresController {
         ));
     }
 
+    @DeleteMapping("/optativas/{id}")
+    public ResponseEntity<Void> bajaOptativa(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal Jwt jwt) {
+        AdesUser user = userService.resolveUser(jwt);
+        int updated = jdbc.update(
+                "UPDATE ades_inscripciones_optativas SET is_active = FALSE, usuario_modificacion = ? WHERE id = ? AND is_active = TRUE",
+                user.getUsername(), id);
+        if (updated == 0) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Inscripción no encontrada o ya inactiva");
+        }
+        return ResponseEntity.noContent().build();
+    }
+
     // ── PE-026: Acuerdo de convivencia ───────────────────────────────────────
 
     @Data

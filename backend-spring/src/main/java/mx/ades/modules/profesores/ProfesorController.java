@@ -1,10 +1,14 @@
 package mx.ades.modules.profesores;
 
 import lombok.RequiredArgsConstructor;
+import mx.ades.security.AdesUser;
+import mx.ades.security.AdesUserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.LinkedHashMap;
@@ -19,11 +23,16 @@ public class ProfesorController {
 
     private final ProfesorRepository repository;
     private final JdbcTemplate jdbc;
+    private final AdesUserService userService;
 
     @GetMapping
     public ResponseEntity<Map<String, Object>> list(
             @RequestParam(name = "plantel_id", required = false) UUID plantelId,
-            @RequestParam(name = "buscar", required = false) String buscar) {
+            @RequestParam(name = "buscar", required = false) String buscar,
+            @AuthenticationPrincipal Jwt jwt) {
+
+        AdesUser user = userService.resolveUser(jwt);
+        UUID effectivePlantel = userService.getEffectivePlantelId(user, plantelId);
 
         StringBuilder sql = new StringBuilder("""
                 SELECT pr.id, pr.numero_empleado, pr.rfc, pr.nss, pr.cedula_profesional,
@@ -36,9 +45,9 @@ public class ProfesorController {
                 """);
 
         List<Object> paramList = new java.util.ArrayList<>();
-        if (plantelId != null) {
+        if (effectivePlantel != null) {
             sql.append(" AND pr.plantel_id = ?");
-            paramList.add(plantelId);
+            paramList.add(effectivePlantel);
         }
         if (buscar != null && !buscar.isBlank()) {
             sql.append(" AND (p.nombre ILIKE ? OR p.apellido_paterno ILIKE ? OR p.apellido_materno ILIKE ? OR CONCAT(p.nombre,' ',p.apellido_paterno) ILIKE ?)");

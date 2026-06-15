@@ -75,6 +75,8 @@ export const routes: Routes = [
       // ── FASE 29 — Seguridad Avanzada y RRHH ──────────────────────────────
       { path: 'licencias',           canActivate: [roleGuard(2)], loadComponent: () => import('./features/licencias/licencias.component').then(m => m.LicenciasComponent) },
       { path: 'capacitaciones',      canActivate: [roleGuard(2)], loadComponent: () => import('./features/capacitaciones/capacitaciones.component').then(m => m.CapacitacionesComponent) },
+      // ── SPRINT A1 — Personal no-docente ──────────────────────────────────
+      { path: 'personal-admin', canActivate: [roleGuard(2)], loadComponent: () => import('./features/personal-admin/personal-admin.component').then(m => m.PersonalAdminComponent) },
       // ── FASE 30 — RRHH Avanzado ───────────────────────────────────────────
       { path: 'expediente-laboral',  canActivate: [roleGuard(2)], loadComponent: () => import('./features/expediente-laboral/expediente-laboral.component').then(m => m.ExpedienteLaboralComponent) },
       { path: 'disponibilidad',      canActivate: [roleGuard(2)], loadComponent: () => import('./features/disponibilidad/disponibilidad.component').then(m => m.DisponibilidadComponent) },
@@ -90,6 +92,8 @@ export const routes: Routes = [
       { path: 'cierre-ciclo', canActivate: [roleGuard(2)], loadComponent: () => import('./features/cierre-ciclo/cierre-ciclo.component').then(m => m.CierreCicloComponent) },
       // ── FASE 39 — Admisión ───────────────────────────────────────────────────
       { path: 'admision', canActivate: [roleGuard(3)], loadComponent: () => import('./features/admision/admision.component').then(m => m.AdmisionComponent) },
+      // ── Sprint D — Optativas ─────────────────────────────────────────────────
+      { path: 'optativas', canActivate: [roleGuard(3)], loadComponent: () => import('./features/optativas/optativas.component').then(m => m.OptativasComponent) },
     ],
   },
   // ── Pública — verificación de certificados (sin autenticación) ──────────

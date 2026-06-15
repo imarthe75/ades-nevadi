@@ -102,6 +102,7 @@ interface Catalogo {
         <p-tab value="planteles"><i class="pi pi-map-marker"></i> Planteles</p-tab>
         <p-tab value="grupos"><i class="pi pi-th-large"></i> Grupos</p-tab>
         <p-tab value="variables"><i class="pi pi-cog"></i> Variables del Sistema</p-tab>
+        <p-tab value="reglas"><i class="pi pi-graduation-cap"></i> Reglas de Promoción</p-tab>
         <p-tab value="catalogos"><i class="pi pi-list"></i> Catálogos</p-tab>
         <p-tab value="geo"><i class="pi pi-map"></i> Geográficos</p-tab>
         <p-tab value="marca"><i class="pi pi-palette"></i> Marca / Identidad</p-tab>
@@ -321,6 +322,69 @@ interface Catalogo {
               </div>
             }
           </div>
+        </p-tabpanel>
+
+        <!-- ══ REGLAS DE PROMOCIÓN ═══════════════════════════════════════════ -->
+        <p-tabpanel value="reglas">
+          <div class="tab-toolbar" style="margin-bottom:1rem">
+            <h3 style="margin:0">Reglas de Promoción por Nivel Educativo</h3>
+            <p-button label="Evaluar Promoción" icon="pi pi-play-circle" severity="contrast"
+              [loading]="evaluandoPromocion()"
+              (onClick)="evaluarPromocion()"
+              pTooltip="Marca cada alumno ACTIVO como PROMOVIDO o REPROBADO según estas reglas. Ejecutar ANTES de cerrar el ciclo." />
+          </div>
+
+          @if (loadingReglas()) {
+            <div style="text-align:center;padding:2rem"><i class="pi pi-spin pi-spinner" style="font-size:1.5rem"></i></div>
+          } @else {
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:1.5rem">
+              @for (nivel of nivelesReglas(); track nivel.id) {
+                <div class="regla-card">
+                  <div class="regla-card-header">
+                    <span class="regla-titulo">{{ nivel.nombre_nivel }}</span>
+                    <small class="regla-sub">{{ nivel.autoridad_educativa }} · Escala 0 – {{ nivel.escala_maxima }}</small>
+                  </div>
+
+                  <div class="regla-fields">
+                    <div class="regla-field">
+                      <label>Calificación mínima aprobatoria</label>
+                      <input pInputText type="number" step="0.5" min="0" [max]="nivel.escala_maxima"
+                        [(ngModel)]="nivel.minimo_aprobatorio" style="width:100px" />
+                    </div>
+                    <div class="regla-field">
+                      <label>Máx. materias reprobadas</label>
+                      <input pInputText type="number" step="1" min="0" max="10"
+                        [(ngModel)]="nivel.max_materias_reprobadas" style="width:80px" />
+                    </div>
+                    <div class="regla-field">
+                      <label>Asistencia mínima requerida (%)</label>
+                      <input pInputText type="number" step="1" min="0" max="100"
+                        [(ngModel)]="nivel.min_asistencia_pct" style="width:90px" />
+                    </div>
+                    <div class="regla-field">
+                      <label>Máx. años de recursamiento</label>
+                      <input pInputText type="number" step="1" min="0" max="5"
+                        [(ngModel)]="nivel.max_anios_reprobados" style="width:80px" />
+                    </div>
+                    <div class="regla-field regla-field--toggle">
+                      <label>Permite recursamiento</label>
+                      <p-toggleswitch [(ngModel)]="nivel.permite_recursamiento" />
+                    </div>
+                    <div class="regla-field regla-field--toggle">
+                      <label>Tiene examen extraordinario</label>
+                      <p-toggleswitch [(ngModel)]="nivel.tiene_examen_extra" />
+                    </div>
+                  </div>
+
+                  <div style="text-align:right;margin-top:.75rem">
+                    <p-button label="Guardar" icon="pi pi-save" size="small"
+                      [loading]="guardandoRegla()"
+                      (onClick)="actualizarRegla(nivel)" />
+                  </div>
+                </div>
+              }
+            </div>
+          }
         </p-tabpanel>
 
         <!-- ══ AUDITORÍA ═════════════════════════════════════════════════════ -->
@@ -646,6 +710,16 @@ interface Catalogo {
     .empty-msg { color:var(--text-secondary); font-size:.88rem; padding:1rem; text-align:center; }
     .dlg-lbl { display:block; font-size:.85rem; margin-bottom:.25rem; color:var(--text-secondary); }
     :deep(.w-full) { width:100% !important; }
+    /* Reglas de Promoción */
+    .regla-card { background:var(--surface-card,#fff); border:1px solid var(--surface-border,#e2e8f0);
+      border-radius:.5rem; padding:1.25rem; box-shadow:0 1px 3px rgba(0,0,0,.06); }
+    .regla-card-header { margin-bottom:1rem; }
+    .regla-titulo { font-size:1rem; font-weight:700; color:var(--text-primary,#1e293b); display:block; }
+    .regla-sub { font-size:.78rem; color:var(--text-secondary,#64748b); }
+    .regla-fields { display:flex; flex-direction:column; gap:.65rem; }
+    .regla-field { display:flex; justify-content:space-between; align-items:center; gap:.5rem; }
+    .regla-field label { font-size:.82rem; color:var(--text-secondary,#64748b); }
+    .regla-field--toggle { flex-direction:row; }
   `],
 })
 export class AdminComponent implements OnInit {
@@ -791,6 +865,12 @@ export class AdminComponent implements OnInit {
   itemEdit: CatalogoItem | null = null;
   itemForm         = { valor: '', descripcion: '', orden: 0, is_active: true };
 
+  // ── Reglas de Promoción ─────────────────────────────────────────────────────
+  nivelesReglas        = signal<any[]>([]);
+  loadingReglas        = signal(false);
+  guardandoRegla       = signal(false);
+  evaluandoPromocion   = signal(false);
+
   constructor() {
     effect(() => {
       // Reactivo al cambio de plantel/ciclo en la barra superior
@@ -813,6 +893,7 @@ export class AdminComponent implements OnInit {
     if (!tab) return;
     this.tabActivo.set(tab);
     if (tab === 'variables' && this.variables().length === 0) this.cargarVariables();
+    if (tab === 'reglas' && this.nivelesReglas().length === 0) this.cargarReglasPromocion();
     if (tab === 'catalogos' && this.catalogos().length === 0) this.cargarCatalogos();
     if (tab === 'marca') this.cargarMarca();
   }
@@ -1319,6 +1400,68 @@ export class AdminComponent implements OnInit {
       error: (e) => {
         this.notify.error('Error', e.error?.detail || 'Error al guardar la marca');
         this.guardandoMarca.set(false);
+      },
+    });
+  }
+
+  // ── Reglas de Promoción ─────────────────────────────────────────────────────
+
+  cargarReglasPromocion(): void {
+    this.loadingReglas.set(true);
+    this.api.get<any[]>('/admin/reglas-promocion').subscribe({
+      next: (niveles) => {
+        this.nivelesReglas.set(niveles);
+        this.loadingReglas.set(false);
+      },
+      error: () => this.loadingReglas.set(false),
+    });
+  }
+
+  actualizarRegla(nivel: any): void {
+    this.guardandoRegla.set(true);
+    const payload = {
+      minimo_aprobatorio:      nivel.minimo_aprobatorio,
+      max_materias_reprobadas: nivel.max_materias_reprobadas,
+      min_asistencia_pct:      nivel.min_asistencia_pct,
+      permite_recursamiento:   nivel.permite_recursamiento,
+      max_anios_reprobados:    nivel.max_anios_reprobados,
+      tiene_examen_extra:      nivel.tiene_examen_extra,
+    };
+    this.api.patch<any>(`/admin/reglas-promocion/${nivel.id}`, payload).subscribe({
+      next: () => {
+        this.notify.success('Guardado', `Reglas de ${nivel.nombre_nivel} actualizadas`);
+        this.guardandoRegla.set(false);
+      },
+      error: (e) => {
+        this.notify.error('Error', e.error?.message ?? 'No se pudieron guardar las reglas');
+        this.guardandoRegla.set(false);
+      },
+    });
+  }
+
+  evaluarPromocion(): void {
+    const ciclo = this.ctx.ciclo();
+    if (!ciclo?.id) {
+      this.notify.warning('Sin ciclo seleccionado', 'Selecciona un ciclo escolar en la barra superior');
+      return;
+    }
+    this.evaluandoPromocion.set(true);
+    const payload: Record<string, string> = { ciclo_id: ciclo.id };
+    const plantel = this.ctx.plantel();
+    if (plantel?.id) payload['plantel_id'] = plantel.id;
+
+    this.api.post<any>('/admin/reglas-promocion/evaluar', payload).subscribe({
+      next: (res) => {
+        const r = res.resultado ? JSON.parse(res.resultado) : res;
+        this.notify.success(
+          'Evaluación completada',
+          `Promovidos: ${r.promovidos} · Reprobados: ${r.reprobados} · Sin notas: ${r.sin_calificacion}`
+        );
+        this.evaluandoPromocion.set(false);
+      },
+      error: (e) => {
+        this.notify.error('Error', e.error?.message ?? 'No se pudo evaluar la promoción');
+        this.evaluandoPromocion.set(false);
       },
     });
   }

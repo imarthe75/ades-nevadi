@@ -92,7 +92,7 @@ public class EntregasController {
                 "t.titulo, t.tipo_item, t.fecha_entrega AS fecha_limite, " +
                 "t.id AS actividad_id, " +
                 "m.nombre_materia, " +
-                "p.nombre || ' ' || p.apellido_paterno AS alumno_nombre, " +
+                "COALESCE(p.nombre_social, p.nombre) || ' ' || p.apellido_paterno AS alumno_nombre, " +
                 "est.matricula " +
                 "FROM ades_tareas_entregas te " +
                 "JOIN ades_tareas t ON t.id = te.tarea_id " +

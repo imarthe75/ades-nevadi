@@ -377,7 +377,8 @@ export class ProfesorPerfilComponent implements OnInit, OnChanges {
 
   private initForm(): void {
     const p = this.profesor!;
-    const per = (p.persona ?? {}) as any;
+    // Detail endpoint returns flat joined row; list endpoint returns nested persona.
+    const per = (p.persona ?? p) as any;
     this.form = {
       nombre: per.nombre ?? '',
       apellido_paterno: per.apellido_paterno ?? '',

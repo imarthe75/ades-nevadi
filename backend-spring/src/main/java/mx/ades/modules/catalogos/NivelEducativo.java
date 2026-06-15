@@ -8,6 +8,8 @@ import lombok.Setter;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import mx.ades.common.AdesBaseEntity;
 
+import java.math.BigDecimal;
+
 @Entity
 @Table(name = "ades_niveles_educativos")
 @Getter
@@ -32,4 +34,27 @@ public class NivelEducativo extends AdesBaseEntity {
 
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
+
+    // ── Reglas de calificación (mig 007) ─────────────────────────────────────
+    @Column(name = "escala_maxima", nullable = false, precision = 5, scale = 1)
+    private BigDecimal escalaMaxima = BigDecimal.TEN;
+
+    @Column(name = "minimo_aprobatorio", nullable = false, precision = 5, scale = 1)
+    private BigDecimal minimoAprobatorio = new BigDecimal("6.0");
+
+    // ── Reglas de promoción (mig 056) ─────────────────────────────────────────
+    @Column(name = "max_materias_reprobadas", nullable = false)
+    private Short maxMateriasReprobadas = 3;
+
+    @Column(name = "min_asistencia_pct", nullable = false, precision = 5, scale = 2)
+    private BigDecimal minAsistenciaPct = new BigDecimal("80.00");
+
+    @Column(name = "permite_recursamiento", nullable = false)
+    private Boolean permiteRecursamiento = true;
+
+    @Column(name = "max_anios_reprobados", nullable = false)
+    private Short maxAniosReprobados = 2;
+
+    @Column(name = "tiene_examen_extra", nullable = false)
+    private Boolean tieneExamenExtra = false;
 }

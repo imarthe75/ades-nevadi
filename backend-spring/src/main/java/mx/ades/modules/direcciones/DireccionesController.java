@@ -31,7 +31,7 @@ public class DireccionesController {
     // ══════════════════════════════════════════════════════════════════════════
 
     private static final String SEPOMEX_SELECT =
-            "SELECT DISTINCT ON (cp.localidad_id) " +
+            "SELECT " +
             "  cp.id AS cp_id, l.id AS localidad_id, cp.codigo_postal, " +
             "  l.nombre_localidad, ta.nombre_tipo AS tipo_asentamiento, " +
             "  m.id AS municipio_id, m.nombre_municipio, " +
@@ -42,7 +42,7 @@ public class DireccionesController {
             "JOIN ades_municipios m ON m.id = cp.municipio_id " +
             "JOIN ades_estados e ON e.id = cp.estado_id " +
             "JOIN ades_paises pa ON pa.id = e.pais_id " +
-            "LEFT JOIN ades_tipos_asentamiento ta ON ta.id = cp.tipo_asentamiento_id " +
+            "LEFT JOIN ades_tipos_asentamiento ta ON ta.id = l.tipo_asentamiento_id " +
             "WHERE cp.is_active = TRUE ";
 
     @GetMapping("/catalogs/sepomex/por-cp")
@@ -50,7 +50,7 @@ public class DireccionesController {
         if (cp == null || !cp.matches("\\d{5}")) return ResponseEntity.ok(List.of());
         List<Map<String, Object>> rows = jdbc.queryForList(
                 SEPOMEX_SELECT + "AND cp.codigo_postal = ? " +
-                "ORDER BY cp.localidad_id, l.nombre_localidad",
+                "ORDER BY l.nombre_localidad",
                 cp);
         return ResponseEntity.ok(rows);
     }
@@ -64,7 +64,7 @@ public class DireccionesController {
         List<Map<String, Object>> rows = jdbc.queryForList(
                 SEPOMEX_SELECT +
                 "AND (l.nombre_localidad ILIKE ? OR cp.codigo_postal ILIKE ? OR m.nombre_municipio ILIKE ?) " +
-                "ORDER BY cp.localidad_id, l.nombre_localidad LIMIT ?",
+                "ORDER BY l.nombre_localidad LIMIT ?",
                 term, term, term, limit);
         return ResponseEntity.ok(rows);
     }

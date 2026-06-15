@@ -24,11 +24,12 @@ public class MateriaController {
     public ResponseEntity<List<Map<String, Object>>> list(
             @RequestParam(name = "nivel_educativo_id", required = false) UUID nivelEducativoId,
             @RequestParam(name = "grupo_id", required = false) UUID grupoId,
+            @RequestParam(name = "tipo", required = false) String tipo,
             @RequestParam(name = "incluir_inactivas", required = false, defaultValue = "false") boolean incluirInactivas) {
 
         StringBuilder sql = new StringBuilder(
             "SELECT m.id, m.nombre_materia, m.clave_materia, m.nivel_educativo_id, " +
-            "  m.horas_semana, m.es_inglés AS es_ingles, m.is_active, " +
+            "  m.horas_semana, m.tipo_materia, m.es_inglés AS es_ingles, m.is_active, " +
             "  ne.nombre_nivel " +
             "FROM ades_materias m " +
             "LEFT JOIN ades_niveles_educativos ne ON ne.id = m.nivel_educativo_id " +
@@ -38,7 +39,10 @@ public class MateriaController {
         if (!incluirInactivas) {
             sql.append("AND m.is_active = TRUE ");
         }
-
+        if (tipo != null && !tipo.isBlank()) {
+            sql.append("AND m.tipo_materia LIKE ? ");
+            params.add(tipo.toUpperCase() + "%");
+        }
         if (grupoId != null) {
             sql.append("AND m.nivel_educativo_id = (" +
                 "SELECT gr.nivel_educativo_id FROM ades_grados gr " +
@@ -49,7 +53,7 @@ public class MateriaController {
             params.add(nivelEducativoId);
         }
 
-        sql.append("ORDER BY m.nombre_materia");
+        sql.append("ORDER BY m.tipo_materia, m.nombre_materia");
         return ResponseEntity.ok(jdbc.queryForList(sql.toString(), params.toArray()));
     }
 

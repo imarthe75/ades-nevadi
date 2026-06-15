@@ -79,6 +79,8 @@ import { ApexNotificationService, ApexSearchComponent, ApexModalDialogComponent 
               [filter]="true" filterPlaceholder="Buscar..."/>
           }
           @if (grupoEdit.id) {
+            <label>Nivel / Grado</label>
+            <span style="font-weight:600;font-size:.9rem">{{ grupoEdit.nivel_y_grado ?? '—' }}</span>
             <label>Estado</label>
             <p-toggleswitch [(ngModel)]="grupoEdit.is_active" />
           }
@@ -235,7 +237,14 @@ export class GruposComponent implements OnInit {
   abrirEditarGrupo(row: any): void {
     const grp = row._original || this.grupos().find(g => g.id === row.id);
     if (!grp || !this.isAdmin()) return;
-    this.grupoEdit = { id: grp.id, nombre_grupo: grp.nombre_grupo, capacidad_maxima: grp.capacidad_maxima, turno: grp.turno, is_active: grp.is_active };
+    this.grupoEdit = {
+      id: grp.id,
+      nombre_grupo: grp.nombre_grupo,
+      capacidad_maxima: grp.capacidad_maxima,
+      turno: grp.turno,
+      is_active: grp.is_active,
+      nivel_y_grado: grp.nivel_y_grado,
+    };
     this.dlgGrupo = true;
   }
 

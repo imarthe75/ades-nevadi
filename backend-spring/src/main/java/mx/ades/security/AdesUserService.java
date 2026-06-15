@@ -60,6 +60,18 @@ public class AdesUserService {
         }
     }
 
+    /**
+     * Devuelve el plantel_id efectivo para queries de datos sensibles.
+     * - nivel_acceso = 1 (superadmin): usa el plantelId del request (puede ser null = todos)
+     * - nivel_acceso > 1: fuerza el plantel del usuario — no puede ver datos de otros planteles
+     */
+    public UUID getEffectivePlantelId(AdesUser user, UUID requestedPlantelId) {
+        if (user.getNivelAcceso() != null && user.getNivelAcceso() > 1 && user.getPlantelId() != null) {
+            return user.getPlantelId();
+        }
+        return requestedPlantelId;
+    }
+
     private AdesUser buildAdesUser(Usuario usuario) {
         List<String> roles = jdbc.queryForList(
                 "SELECT r.nombre_rol FROM ades_roles r " +

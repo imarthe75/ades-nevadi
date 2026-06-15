@@ -79,6 +79,15 @@ superset:
     alumno: ${SUPERSET_DASHBOARD_ALUMNO:}
 
 
+portal:
+  jwt:
+    secret: ${PORTAL_JWT_SECRET:cambia-este-secret-en-produccion-minimo-32-chars}
+    expiry-hours: ${PORTAL_JWT_EXPIRY_HOURS:24}
+  minio:
+    bucket: ${PORTAL_MINIO_BUCKET:portal-convocatorias}
+  base-url: ${PORTAL_BASE_URL:https://portalnvd.setag.mx}
+  arco-email: ${PORTAL_ARCO_EMAIL:privacidad@nevadi.edu.mx}
+
 logging:
   level:
     root: INFO
