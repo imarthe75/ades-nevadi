@@ -8,4 +8,11 @@ RUN . /app/.venv/bin/activate && \
 # Custom security manager y config disponibles en /app/pythonpath/
 COPY custom_sso_security_manager.py /app/pythonpath/custom_sso_security_manager.py
 COPY superset_config.py /app/pythonpath/superset_config.py
+
+# Aprovisionar script de inicialización
+COPY docker-init.sh /app/docker-init.sh
+USER root
+RUN chmod +x /app/docker-init.sh
 USER superset
+
+ENTRYPOINT ["/app/docker-init.sh"]

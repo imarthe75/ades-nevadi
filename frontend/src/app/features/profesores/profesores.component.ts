@@ -207,11 +207,15 @@ export class ProfesoresComponent implements OnInit {
       },
       error: (e) => {
         this.loading.set(false);
-        this.notify.error('Error', e.error?.detail ?? 'Error al crear');
+        const detail = e.error?.detail;
+        const msg = Array.isArray(detail) ? detail.map((d: any) => d.msg || d).join('; ')
+                  : typeof detail === 'string' ? detail
+                  : 'Error al crear profesor';
+        this.notify.error('Error', msg);
       },
     });
   }
 
-  exportCSV():  void { this.exp.toCSV(this.profesores(), this.exportCols, 'profesores'); }
-  exportXLSX(): void { this.exp.toXLSX(this.profesores(), this.exportCols, 'Profesores', 'profesores'); }
+  exportCSV():  void { this.exp.toCSV(this.profesoresDatos(), this.exportCols, 'profesores'); }
+  exportXLSX(): void { this.exp.toXLSX(this.profesoresDatos(), this.exportCols, 'Profesores', 'profesores'); }
 }

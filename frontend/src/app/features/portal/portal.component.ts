@@ -2,13 +2,13 @@ import { Component, inject, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
-import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { TabsModule } from 'primeng/tabs';
 import { AutoCompleteModule } from 'primeng/autocomplete';
 import { ProgressBarModule } from 'primeng/progressbar';
 import { TooltipModule } from 'primeng/tooltip';
 import { SelectModule } from 'primeng/select';
+import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
 
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
@@ -36,8 +36,9 @@ interface AlumnoResumen {
   standalone: true,
   imports: [
     CommonModule, FormsModule,
-    ButtonModule, TableModule, TagModule, TabsModule,
+    ButtonModule, TagModule, TabsModule,
     AutoCompleteModule, ProgressBarModule, TooltipModule, SelectModule,
+    InteractiveGridComponent,
   ],
   template: `
 <div class="page-header">
@@ -144,40 +145,10 @@ interface AlumnoResumen {
           <p-button label="Exportar Excel" icon="pi pi-file-excel" severity="secondary"
                     size="small" (onClick)="exportCalXLSX()" />
         </div>
-        <p-table [value]="calificaciones()" size="small" [scrollable]="true">
-          <ng-template pTemplate="header">
-            <tr>
-              <th style="min-width:180px">Materia</th>
-              @for (p of periodosHeader(); track p) {
-                <th style="text-align:center; min-width:90px">{{ p }}</th>
-              }
-              <th style="text-align:center">Promedio</th>
-            </tr>
-          </ng-template>
-          <ng-template pTemplate="body" let-row>
-            <tr>
-              <td>{{ row.materia }}</td>
-              @for (p of periodosHeader(); track p) {
-                <td style="text-align:center">
-                  @let cal = calPeriodo(row, p);
-                  @if (cal !== null) {
-                    <span [class]="'cal-chip ' + calClass(cal)">{{ cal | number:'1.1-1' }}</span>
-                  } @else {
-                    <span style="color:#ccc">—</span>
-                  }
-                </td>
-              }
-              <td style="text-align:center; font-weight:600">
-                <span [class]="'cal-chip ' + calClass(row.promedio)">{{ row.promedio | number:'1.1-1' }}</span>
-              </td>
-            </tr>
-          </ng-template>
-          <ng-template pTemplate="emptymessage">
-            <tr><td [attr.colspan]="periodosHeader().length + 2" style="text-align:center;color:#999">
-              Sin calificaciones registradas
-            </td></tr>
-          </ng-template>
-        </p-table>
+        <app-interactive-grid
+          [data]="calificacionesFlat()"
+          [columns]="calificacionesColumns()"
+        />
       }
     </p-tabpanel>
 
@@ -210,23 +181,10 @@ interface AlumnoResumen {
                            [styleClass]="(asistencias()?.resumen?.pct_asistencia ?? 0) >= 85 ? 'pbar-ok' : 'pbar-low'" />
           </div>
         </div>
-        <p-table [value]="asistencias()?.detalle ?? []" [rows]="20" [paginator]="true" size="small">
-          <ng-template pTemplate="header">
-            <tr>
-              <th>Fecha</th><th>Materia</th><th style="text-align:center">Estado</th><th>Observación</th>
-            </tr>
-          </ng-template>
-          <ng-template pTemplate="body" let-a>
-            <tr>
-              <td>{{ a.fecha | date:'dd/MM/yyyy' }}</td>
-              <td>{{ a.materia }}</td>
-              <td style="text-align:center">
-                <p-tag [value]="a.estado" [severity]="asistSeverity(a.estado)" />
-              </td>
-              <td>{{ a.observacion }}</td>
-            </tr>
-          </ng-template>
-        </p-table>
+        <app-interactive-grid
+          [data]="asistenciasFlat()"
+          [columns]="asistenciasColumns"
+        />
       }
     </p-tabpanel>
 
@@ -243,40 +201,10 @@ interface AlumnoResumen {
             size="small"
             (onClick)="togglePendientes()" />
         </div>
-        <p-table [value]="tareas()" [rows]="15" [paginator]="true" size="small">
-          <ng-template pTemplate="header">
-            <tr>
-              <th>Tarea</th><th>Materia</th><th>Entrega</th>
-              <th style="text-align:center">Estado</th>
-              <th style="text-align:center">Calificación</th>
-            </tr>
-          </ng-template>
-          <ng-template pTemplate="body" let-t>
-            <tr [class.row-pending]="!t.entrega_id">
-              <td>{{ t.titulo }}</td>
-              <td>{{ t.materia }}</td>
-              <td>{{ t.fecha_entrega | date:'dd/MM/yyyy' }}</td>
-              <td style="text-align:center">
-                @if (t.entrega_id) {
-                  <p-tag value="Entregada" severity="success" />
-                  @if (t.es_tarde) { <p-tag value="Tarde" severity="warn" /> }
-                } @else {
-                  <p-tag value="Pendiente" severity="danger" />
-                }
-              </td>
-              <td style="text-align:center">
-                @if (t.calificacion_tarea !== null) {
-                  <span [class]="'cal-chip ' + calClass(+t.calificacion_tarea)">
-                    {{ t.calificacion_tarea | number:'1.1-1' }}
-                  </span>
-                } @else { — }
-              </td>
-            </tr>
-          </ng-template>
-          <ng-template pTemplate="emptymessage">
-            <tr><td colspan="5" style="text-align:center;color:#999">Sin tareas</td></tr>
-          </ng-template>
-        </p-table>
+        <app-interactive-grid
+          [data]="tareasFlat()"
+          [columns]="tareasColumns"
+        />
       }
     </p-tabpanel>
 
@@ -482,6 +410,58 @@ export class PortalComponent implements OnInit {
     );
     return [...new Set(all)];
   });
+
+  readonly calificacionesFlat = computed(() => {
+    const periodos = this.periodosHeader();
+    return this.calificaciones().map((row: any) => {
+      const flat: Record<string, any> = { materia: row.materia };
+      for (const p of periodos) {
+        const found = (row.periodos ?? []).find((x: any) => x.periodo === p);
+        flat[`p_${p}`] = found ? Number(found.calificacion).toFixed(1) : '—';
+      }
+      flat['promedio_str'] = row.promedio !== null ? Number(row.promedio).toFixed(1) : '—';
+      return flat;
+    });
+  });
+
+  readonly calificacionesColumns = computed((): ColumnConfig[] => {
+    const periodos = this.periodosHeader();
+    const cols: ColumnConfig[] = [
+      { field: 'materia', header: 'Materia' },
+      ...periodos.map(p => ({ field: `p_${p}`, header: p, width: '90px' } as ColumnConfig)),
+      { field: 'promedio_str', header: 'Promedio', width: '90px' },
+    ];
+    return cols;
+  });
+
+  readonly asistenciasFlat = computed(() =>
+    (this.asistencias()?.detalle ?? []).map((a: any) => ({
+      ...a,
+      fecha_str: a.fecha ? new Date(a.fecha).toLocaleDateString('es-MX') : '—',
+    }))
+  );
+  readonly asistenciasColumns: ColumnConfig[] = [
+    { field: 'fecha_str',   header: 'Fecha',        width: '110px' },
+    { field: 'materia',     header: 'Materia' },
+    { field: 'estado',      header: 'Estado',       width: '100px' },
+    { field: 'observacion', header: 'Observación' },
+  ];
+
+  readonly tareasFlat = computed(() =>
+    this.tareas().map((t: any) => ({
+      ...t,
+      fecha_str:   t.fecha_entrega ? new Date(t.fecha_entrega).toLocaleDateString('es-MX') : '—',
+      estado_str:  t.entrega_id ? (t.es_tarde ? 'Entregada (tarde)' : 'Entregada') : 'Pendiente',
+      cal_str:     t.calificacion_tarea !== null ? Number(t.calificacion_tarea).toFixed(1) : '—',
+    }))
+  );
+  readonly tareasColumns: ColumnConfig[] = [
+    { field: 'titulo',     header: 'Tarea' },
+    { field: 'materia',    header: 'Materia' },
+    { field: 'fecha_str',  header: 'Entrega',      width: '110px' },
+    { field: 'estado_str', header: 'Estado',       width: '130px' },
+    { field: 'cal_str',    header: 'Calificación', width: '110px' },
+  ];
 
   ngOnInit() {
     this.cargarCiclos();

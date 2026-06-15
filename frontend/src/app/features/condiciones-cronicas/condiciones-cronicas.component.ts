@@ -2,17 +2,16 @@ import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
-import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
-import { TagModule } from 'primeng/tag';
 import { ToastModule } from 'primeng/toast';
 import { CheckboxModule } from 'primeng/checkbox';
 import { TooltipModule } from 'primeng/tooltip';
 import { MessageService } from 'primeng/api';
 import { ApexNotificationService } from 'apex-component-library';
+import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
 
 interface Condicion {
   id: string;
@@ -31,11 +30,14 @@ interface Condicion {
   fecha_creacion: string;
 }
 
+type TagSev = 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast';
+
 interface AlertaEmergencia {
   tipo_condicion: string;
   descripcion: string;
   medicacion_nombre: string | null;
   dosis: string | null;
+  frecuencia: string | null;
   alergias: string | null;
   medico_responsable: string | null;
   telefono_medico: string | null;
@@ -60,8 +62,9 @@ const TIPOS = [
   selector: 'app-condiciones-cronicas',
   standalone: true,
   imports: [
-    CommonModule, FormsModule, TableModule, ButtonModule, DialogModule,
-    InputTextModule, SelectModule, TagModule, ToastModule, CheckboxModule, TooltipModule,
+    CommonModule, FormsModule, ButtonModule, DialogModule,
+    InputTextModule, SelectModule, ToastModule, CheckboxModule, TooltipModule,
+    InteractiveGridComponent,
   ],
   providers: [MessageService],
   template: `
@@ -79,58 +82,14 @@ const TIPOS = [
         </div>
       </div>
 
-      <p-table [value]="condiciones()" [loading]="cargando()" styleClass="p-datatable-sm"
-        [paginator]="true" [rows]="20" selectionMode="single"
-        (onRowSelect)="abrirEdicion($event.data)">
-        <ng-template pTemplate="header">
-          <tr>
-            <th>Alumno</th>
-            <th>Tipo</th>
-            <th>Descripción</th>
-            <th>Medicación</th>
-            <th>Médico</th>
-            <th>Estado</th>
-            <th style="width:80px"></th>
-          </tr>
-        </ng-template>
-        <ng-template pTemplate="body" let-c>
-          <tr [pSelectableRow]="c">
-            <td>
-              <div class="font-medium">{{ c.alumno_nombre }}</div>
-              <div class="text-xs text-gray-500">{{ c.numero_control }}</div>
-            </td>
-            <td><p-tag [value]="c.tipo_condicion" [severity]="tipoSev(c.tipo_condicion)" /></td>
-            <td class="text-sm">{{ c.descripcion | slice:0:80 }}{{ c.descripcion?.length > 80 ? '…' : '' }}</td>
-            <td class="text-sm">
-              @if (c.medicacion_nombre) {
-                <div class="font-medium">{{ c.medicacion_nombre }}</div>
-                <div class="text-xs text-gray-500">{{ c.dosis }} — {{ c.frecuencia }}</div>
-              } @else { <span class="text-gray-400">—</span> }
-            </td>
-            <td class="text-sm">
-              @if (c.medico_responsable) {
-                <div>{{ c.medico_responsable }}</div>
-                <div class="text-xs text-gray-500">{{ c.telefono_medico }}</div>
-              } @else { <span class="text-gray-400">—</span> }
-            </td>
-            <td>
-              <p-tag [value]="c.activa ? 'Activa' : 'Inactiva'"
-                [severity]="c.activa ? 'success' : 'secondary'" />
-            </td>
-            <td>
-              <p-button icon="pi pi-pencil" [text]="true" size="small"
-                (onClick)="abrirEdicion(c); $event.stopPropagation()" />
-              <p-button icon="pi pi-trash" [text]="true" size="small" severity="danger"
-                (onClick)="eliminar(c); $event.stopPropagation()" />
-            </td>
-          </tr>
-        </ng-template>
-        <ng-template pTemplate="emptymessage">
-          <tr><td colspan="7" class="text-center py-4 text-gray-500">
-            Sin condiciones registradas. Busque por alumno o registre una nueva.
-          </td></tr>
-        </ng-template>
-      </p-table>
+      <app-interactive-grid
+        [data]="condicionesFlat()"
+        [columns]="condicionesColumns"
+        [loading]="cargando()"
+        [showDelete]="true"
+        (rowSelected)="abrirEdicion($event)"
+        (rowDeleted)="eliminar($event)"
+      />
     </div>
 
     <!-- Dialog: Crear/Editar -->
@@ -242,6 +201,26 @@ export class CondicionesCronicasComponent implements OnInit {
   private http = inject(HttpClient);
   private notify = inject(ApexNotificationService);
 
+  readonly condicionesColumns: ColumnConfig[] = [
+    { field: 'alumno_str',   header: 'Alumno' },
+    { field: 'tipo_condicion', header: 'Tipo',       width: '130px' },
+    { field: 'descripcion_str', header: 'Descripción' },
+    { field: 'medicacion_str', header: 'Medicación',  width: '160px' },
+    { field: 'medico_str',   header: 'Médico',       width: '160px' },
+    { field: 'estado_str',   header: 'Estado',       width: '90px' },
+  ];
+
+  readonly condicionesFlat = computed(() =>
+    this.condiciones().map(c => ({
+      ...c,
+      alumno_str:      `${c.alumno_nombre} (${c.numero_control})`,
+      descripcion_str: c.descripcion.length > 80 ? c.descripcion.slice(0, 80) + '…' : c.descripcion,
+      medicacion_str:  c.medicacion_nombre ? `${c.medicacion_nombre} — ${c.dosis ?? ''} ${c.frecuencia ?? ''}`.trim() : '—',
+      medico_str:      c.medico_responsable ? `${c.medico_responsable}${c.telefono_medico ? ' · ' + c.telefono_medico : ''}` : '—',
+      estado_str:      c.activa ? 'Activa' : 'Inactiva',
+    }))
+  );
+
   condiciones = signal<Condicion[]>([]);
   alertas     = signal<AlertaEmergencia[]>([]);
   cargando    = signal(false);
@@ -323,8 +302,8 @@ export class CondicionesCronicasComponent implements OnInit {
     });
   }
 
-  tipoSev(tipo: string): string {
-    const map: Record<string, string> = {
+  tipoSev(tipo: string): TagSev {
+    const map: Record<string, TagSev> = {
       EPILEPSIA: 'danger', DIABETES: 'warn', CARDIACA: 'danger',
       ASMA: 'warn', ALERGIA: 'warn', HIPERTENSION: 'warn',
       DISCAPACIDAD_VISUAL: 'info', DISCAPACIDAD_AUDITIVA: 'info', OTRA: 'secondary',

@@ -143,29 +143,26 @@ async def _flowise_chat(pregunta: str, sesion_id: str, override_config: dict) ->
 
 async def _vanna_sql(pregunta: str, rls_ctx: dict, db: AsyncSession) -> tuple[str, list[dict]]:
     """
-    Genera SQL desde lenguaje natural usando el LLM de Claude + schema ADES.
+    Genera SQL desde lenguaje natural usando el LLM de NVIDIA NIM (Llama-3) + schema ADES.
     Aplica RLS según el contexto del usuario.
     Devuelve (sql_generado, filas_resultado).
     """
     # Construir el prompt de sistema con el schema relevante y el RLS
     system_prompt = _build_sql_system_prompt(rls_ctx)
 
-    from anthropic import AsyncAnthropic
-    client = AsyncAnthropic(api_key=__import__("os").environ.get("ANTHROPIC_API_KEY", ""))
+    from openai import AsyncOpenAI
+    client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY, base_url=settings.OPENAI_BASE_URL)
 
-    message = await client.messages.create(
-        model="claude-haiku-4-5-20251001",   # Haiku para consultas SQL — más rápido y económico
+    response = await client.chat.completions.create(
+        model=settings.OPENAI_MODEL,
         max_tokens=1024,
-        system=system_prompt,
         messages=[
-            {
-                "role": "user",
-                "content": f"Genera el SQL para responder: {pregunta}\n\nDevuelve SOLO el SQL, sin explicaciones ni markdown."
-            }
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": f"Genera el SQL para responder: {pregunta}\n\nDevuelve SOLO el SQL, sin explicaciones ni markdown."}
         ],
     )
 
-    sql = message.content[0].text.strip()
+    sql = response.choices[0].message.content.strip()
     # Limpiar posibles bloques de código
     if sql.startswith("```"):
         lines = sql.split("\n")
@@ -259,11 +256,11 @@ async def _generar_resumen(pregunta: str, sql: str, filas: list[dict]) -> str:
 
     resumen_datos = str(filas[:5])  # primeras 5 filas para el contexto
 
-    from anthropic import AsyncAnthropic
-    client = AsyncAnthropic(api_key=__import__("os").environ.get("ANTHROPIC_API_KEY", ""))
+    from openai import AsyncOpenAI
+    client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY, base_url=settings.OPENAI_BASE_URL)
 
-    message = await client.messages.create(
-        model="claude-haiku-4-5-20251001",
+    response = await client.chat.completions.create(
+        model=settings.OPENAI_MODEL,
         max_tokens=512,
         messages=[{
             "role": "user",
@@ -277,7 +274,7 @@ async def _generar_resumen(pregunta: str, sql: str, filas: list[dict]) -> str:
             )
         }],
     )
-    return message.content[0].text.strip()
+    return response.choices[0].message.content.strip()
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
@@ -290,7 +287,7 @@ async def enviar_mensaje(
 ) -> MensajeOut:
     """
     Endpoint principal del chatbot.
-    Intenta usar Flowise si está configurado; si no, usa NL→SQL directo con Claude.
+    Intenta usar Flowise si está configurado; si no, usa NL→SQL directo con NVIDIA NIM.
     """
     rls_ctx = _build_rls_context(ades_user)
     sesion_id = body.sesion_id or str(uuid.uuid4())
@@ -313,7 +310,7 @@ async def enviar_mensaje(
                 raise
             # Flowise no disponible — fallback a modo directo
 
-    # Modo directo: NL→SQL + resumen Claude
+    # Modo directo: NL→SQL + resumen NVIDIA NIM
     try:
         sql, filas = await _vanna_sql(body.pregunta, rls_ctx, db)
         resumen = await _generar_resumen(body.pregunta, sql, filas)
@@ -374,6 +371,6 @@ async def chatbot_status():
         "flowise_disponible":   flowise_ok,
         "flowise_version":      flowise_version,
         "chatflow_configurado": bool(settings.FLOWISE_CHATFLOW_ID),
-        "modo_fallback":        "vanna_directo (Claude Haiku + SQL)",
-        "anthropic_disponible": bool(__import__("os").environ.get("ANTHROPIC_API_KEY")),
+        "modo_fallback":        "vanna_directo (NVIDIA NIM + SQL)",
+        "nvidia_nim_disponible": bool(settings.OPENAI_API_KEY),
     }

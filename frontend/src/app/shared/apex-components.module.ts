@@ -3,85 +3,66 @@ import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 
 import {
-  ApexAlertComponent,
+  // Data & Reports
+  ApexInteractiveGridComponent,
+  ApexReportComponent,
+  ApexDataReporterComponent,
+  // Navigation & Layout
+  ApexNavigationComponent,
   ApexBreadcrumbComponent,
-  ApexButtonComponent,
-  ApexCardComponent,
+  ApexModalDialogComponent,
+  // Feedback
+  ApexAlertComponent,
+  ApexToastContainerComponent,
+  // Forms
   ApexFormComponent,
   ApexFormItemComponent,
-  ApexInteractiveGridComponent,
-  ApexModalDialogComponent,
-  ApexNavigationComponent,
-  ApexReportComponent,
   ApexSearchComponent,
-  ApexTabsComponent,
-  ApexDataReporterComponent,
-  ApexAIInteractiveReportComponent,
-  ApexBadgeComponent,
-  ApexChartComponent,
-  ApexTreeComponent,
-  ApexCarouselComponent,
-  ApexCollapseComponent,
-  ApexListComponent,
   ApexPopupLOVComponent,
-  ApexRTEComponent,
-  ApexShuttleComponent,
+  ApexFileUploadComponent,
+  // Data Display
+  ApexChartComponent,
+  ApexListComponent,
   ApexTimelineComponent,
-  ApexCtxMenuComponent,
   ApexIconListComponent,
   ApexMediaListComponent,
-  ApexSliderComponent,
-  ApexSpinnerComponent,
+  // Utilities
   ApexDynamicActionDirective,
-  ApexToastContainerComponent,
-  ApexFileUploadComponent
 } from 'apex-component-library';
 
-const MODULE_IMPORTS = [
+const APEX_COMPONENTS = [
   CommonModule,
   FormsModule,
   ReactiveFormsModule,
-  // Phase 1
-  ApexAlertComponent,
+  // Data & Reports
+  ApexInteractiveGridComponent,
+  ApexReportComponent,
+  ApexDataReporterComponent,
+  // Navigation & Layout
+  ApexNavigationComponent,
   ApexBreadcrumbComponent,
-  ApexButtonComponent,
-  ApexCardComponent,
+  ApexModalDialogComponent,
+  // Feedback
+  ApexAlertComponent,
+  ApexToastContainerComponent,
+  // Forms
   ApexFormComponent,
   ApexFormItemComponent,
-  ApexInteractiveGridComponent,
-  ApexModalDialogComponent,
-  ApexNavigationComponent,
-  ApexReportComponent,
   ApexSearchComponent,
-  ApexTabsComponent,
-  ApexDataReporterComponent,
-  ApexAIInteractiveReportComponent,
-  // Phase 2
-  ApexBadgeComponent,
-  ApexChartComponent,
-  ApexTreeComponent,
-  ApexCarouselComponent,
-  ApexCollapseComponent,
-  // Phase 3
-  ApexListComponent,
   ApexPopupLOVComponent,
-  ApexRTEComponent,
-  ApexShuttleComponent,
+  ApexFileUploadComponent,
+  // Data Display
+  ApexChartComponent,
+  ApexListComponent,
   ApexTimelineComponent,
-  // Phase 4
-  ApexCtxMenuComponent,
   ApexIconListComponent,
-  ApexSliderComponent,
-  ApexSpinnerComponent,
-  // Phase 5
+  ApexMediaListComponent,
+  // Utilities
   ApexDynamicActionDirective,
-  // Phase 6
-  ApexToastContainerComponent,
-  ApexFileUploadComponent
 ];
 
 @NgModule({
-  imports: [...MODULE_IMPORTS],
-  exports: [...MODULE_IMPORTS]
+  imports: [...APEX_COMPONENTS],
+  exports: [...APEX_COMPONENTS],
 })
 export class ApexComponentsModule {}

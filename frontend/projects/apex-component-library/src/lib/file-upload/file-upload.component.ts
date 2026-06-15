@@ -1,166 +1,136 @@
-import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy, forwardRef, ViewChild } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FileUploadModule, FileUpload } from 'primeng/fileupload';
-import { FormsModule, NG_VALUE_ACCESSOR, ControlValueAccessor } from '@angular/forms';
+import {
+  Component, Input, Output, EventEmitter, ChangeDetectionStrategy
+} from '@angular/core';
+import { FileUploadModule } from 'primeng/fileupload';
+import { ButtonModule } from 'primeng/button';
 
 @Component({
-  selector: 'apex-fileupload',
+  selector: 'apex-file-upload',
   standalone: true,
-  imports: [CommonModule, FileUploadModule, FormsModule],
+  imports: [FileUploadModule, ButtonModule],
   template: `
     <div class="apex-fileupload-container">
-      <label *ngIf="label" class="apex-fileupload-label" [ngClass]="{'is-required': required}">
-        {{label}}
-      </label>
-      
-      <!-- Advanced mode (Drag & Drop) -->
-      <p-fileUpload *ngIf="mode === 'advanced'"
-        #advancedUpload
-        [name]="name"
-        [url]="url"
-        [multiple]="multiple"
-        [accept]="accept"
-        [maxFileSize]="maxFileSize"
-        [auto]="auto"
-        [disabled]="disabled"
-        (onUpload)="onUploadComplete($event)"
-        (onSelect)="onFileSelect($event)"
-        (onError)="onUploadError($event)"
-        (onClear)="onFileClear()"
-        [chooseLabel]="chooseLabel"
-        [uploadLabel]="uploadLabel"
-        [cancelLabel]="cancelLabel"
-        styleClass="apex-p-fileupload">
-      </p-fileUpload>
+      @if (label) {
+        <label class="apex-fileupload-label">{{ label }}</label>
+      }
 
-      <!-- Basic mode (Simple button) -->
-      <p-fileUpload *ngIf="mode === 'basic'"
-        #basicUpload
-        mode="basic"
-        [name]="name"
-        [url]="url"
-        [multiple]="multiple"
-        [accept]="accept"
-        [maxFileSize]="maxFileSize"
-        [auto]="auto"
-        [disabled]="disabled"
-        (onUpload)="onUploadComplete($event)"
-        (onSelect)="onFileSelect($event)"
-        (onError)="onUploadError($event)"
-        [chooseLabel]="chooseLabel"
-        styleClass="apex-p-fileupload-basic">
-      </p-fileUpload>
+      @if (mode === 'advanced') {
+        <p-fileUpload
+          [name]="'file'"
+          [url]="uploadUrl"
+          [multiple]="multiple"
+          [accept]="accept"
+          [maxFileSize]="maxFileSize"
+          [auto]="!!uploadUrl"
+          (onUpload)="uploadComplete.emit($event)"
+          (onSelect)="fileSelect.emit($event)"
+          (onError)="error.emit($event)"
+          chooseLabel="Choose File"
+          uploadLabel="Upload"
+          cancelLabel="Clear"
+          styleClass="apex-p-fileupload">
+          <ng-template pTemplate="content">
+            <div class="apex-fileupload-dropzone">
+              <i class="pi pi-cloud-upload apex-fileupload-icon"></i>
+              <p class="apex-fileupload-hint">
+                Drag and drop files here, or click <strong>Choose File</strong>
+              </p>
+              @if (accept) {
+                <small class="apex-fileupload-meta">Accepted: {{ accept }}</small>
+              }
+              @if (maxFileSize) {
+                <small class="apex-fileupload-meta">Max size: {{ formatSize(maxFileSize) }}</small>
+              }
+            </div>
+          </ng-template>
+        </p-fileUpload>
+      } @else {
+        <p-fileUpload
+          mode="basic"
+          [name]="'file'"
+          [url]="uploadUrl"
+          [multiple]="multiple"
+          [accept]="accept"
+          [maxFileSize]="maxFileSize"
+          [auto]="!!uploadUrl"
+          chooseLabel="{{ label || 'Choose File' }}"
+          (onUpload)="uploadComplete.emit($event)"
+          (onSelect)="fileSelect.emit($event)"
+          (onError)="error.emit($event)"
+          styleClass="apex-p-fileupload-basic">
+        </p-fileUpload>
+      }
     </div>
   `,
   styles: [`
-    :host {
-      display: block;
-      margin-bottom: 1rem;
-    }
-    .apex-fileupload-container {
-      width: 100%;
-    }
+    :host { display: block; }
+    .apex-fileupload-container { width: 100%; }
     .apex-fileupload-label {
       display: block;
-      margin-bottom: 0.5rem;
+      font-size: 0.875rem;
       font-weight: 500;
-      color: var(--text-color, #374151);
+      color: var(--text-color);
+      margin-bottom: 0.5rem;
+    }
+    .apex-fileupload-dropzone {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1rem;
+      border: 2px dashed var(--surface-border);
+      border-radius: var(--border-radius, 6px);
+      background: var(--surface-ground);
+      color: var(--text-color-secondary);
+      text-align: center;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .apex-fileupload-dropzone:hover {
+      border-color: var(--primary-color);
+      background: var(--primary-50, #eff6ff);
+    }
+    .apex-fileupload-icon {
+      font-size: 2.5rem;
+      color: var(--primary-300, #93c5fd);
+      margin-bottom: 0.75rem;
+    }
+    .apex-fileupload-hint {
+      margin: 0 0 0.35rem;
       font-size: 0.875rem;
     }
-    .apex-fileupload-label.is-required::after {
-      content: '*';
-      color: var(--red-500, #ef4444);
-      margin-left: 0.25rem;
+    .apex-fileupload-meta {
+      font-size: 0.78rem;
+      color: var(--text-color-secondary);
+      display: block;
+    }
+    :host ::ng-deep .apex-p-fileupload .p-fileupload-buttonbar {
+      background: var(--surface-section);
+      border-bottom: 1px solid var(--surface-border);
+      padding: 0.5rem 0.75rem;
+      gap: 0.5rem;
+    }
+    :host ::ng-deep .apex-p-fileupload .p-fileupload-content {
+      padding: 0;
+      border: none;
     }
   `],
-  providers: [
-    {
-      provide: NG_VALUE_ACCESSOR,
-      useExisting: forwardRef(() => ApexFileUploadComponent),
-      multi: true
-    }
-  ],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class ApexFileUploadComponent implements ControlValueAccessor {
-  /** Mode of the uploader */
-  @Input() mode: 'advanced' | 'basic' = 'advanced';
-
-  /** Target URL for the upload (if auto or manual upload is used) */
-  @Input() url?: string;
-
-  /** Name of the request parameter to identify the files at backend */
-  @Input() name: string = 'file';
-
-  /** Label for the component */
-  @Input() label: string = '';
-
-  /** Allow multiple file selection */
+export class ApexFileUploadComponent {
+  @Input() accept: string = '';
   @Input() multiple: boolean = false;
+  @Input() maxFileSize: number = 10485760; // 10 MB
+  @Input() uploadUrl?: string;
+  @Input() label: string = '';
+  @Input() mode: 'basic' | 'advanced' = 'advanced';
 
-  /** Accept attribute, e.g. "image/*,.pdf" */
-  @Input() accept?: string;
-
-  /** Max file size in bytes */
-  @Input() maxFileSize?: number;
-
-  /** Automatically upload on selection */
-  @Input() auto: boolean = false;
-
-  /** Disabled state */
-  @Input() disabled: boolean = false;
-
-  /** Required field indicator */
-  @Input() required: boolean = false;
-
-  // Labels
-  @Input() chooseLabel: string = 'Choose';
-  @Input() uploadLabel: string = 'Upload';
-  @Input() cancelLabel: string = 'Cancel';
-
-  // Events
-  @Output() fileSelect = new EventEmitter<any>();
   @Output() uploadComplete = new EventEmitter<any>();
-  @Output() uploadError = new EventEmitter<any>();
-  @Output() fileClear = new EventEmitter<void>();
+  @Output() fileSelect = new EventEmitter<any>();
+  @Output() error = new EventEmitter<any>();
 
-  // CVA
-  public onChange: any = () => {};
-  public onTouched: any = () => {};
-
-  public writeValue(val: any): void {
-    // File upload doesn't typically accept incoming values natively unless preloading logic is added.
-  }
-
-  public registerOnChange(fn: any): void {
-    this.onChange = fn;
-  }
-
-  public registerOnTouched(fn: any): void {
-    this.onTouched = fn;
-  }
-
-  public setDisabledState?(isDisabled: boolean): void {
-    this.disabled = isDisabled;
-  }
-
-  public onFileSelect(event: any): void {
-    this.fileSelect.emit(event);
-    // For reactive forms, pass the files
-    this.onChange(event.currentFiles);
-    this.onTouched();
-  }
-
-  public onUploadComplete(event: any): void {
-    this.uploadComplete.emit(event);
-  }
-
-  public onUploadError(event: any): void {
-    this.uploadError.emit(event);
-  }
-
-  public onFileClear(): void {
-    this.fileClear.emit();
-    this.onChange(null);
+  formatSize(bytes: number): string {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1048576) return `${(bytes / 1024).toFixed(0)} KB`;
+    return `${(bytes / 1048576).toFixed(1)} MB`;
   }
 }

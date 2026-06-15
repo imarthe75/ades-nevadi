@@ -1,9 +1,9 @@
 /**
  * AlumnoPerfilComponent — Drawer lateral con perfil completo del alumno.
- * 4 tabs: Datos Personales | Académico | Salud | Contactos
+ * 5 tabs: Datos Personales | Académico | Salud | Contactos | Bajas
  * Se abre desde el listado de alumnos al hacer clic en una fila.
  */
-import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, inject, signal } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnChanges, OnInit, SimpleChanges, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DrawerModule } from 'primeng/drawer';
@@ -19,6 +19,7 @@ import { TagModule } from 'primeng/tag';
 import { ToastModule } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
 import { ApiService } from '../../../core/services/api.service';
+import { DomicilioComponent } from '../domicilio/domicilio.component';
 import type { Estudiante, ContactoEmergencia } from '../../../core/models';
 
 interface ExpedienteMedico {
@@ -53,6 +54,7 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
     TabsModule, TabList, Tab, TabPanels, TabPanel,
     InputTextModule, SelectModule, DatePickerModule,
     InputNumberModule, TextareaModule,
+    DomicilioComponent,
   ],
   providers: [MessageService],
   template: `
@@ -68,14 +70,21 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
           @if (expedienteMedico()?.tipo_sangre) {
             <p-tag [value]="expedienteMedico()!.tipo_sangre!" severity="danger" />
           }
+          @if (!alumno.is_active) {
+            <p-tag value="BAJA" severity="danger" />
+          } @else {
+            <p-tag value="ACTIVO" severity="success" />
+          }
         </div>
 
         <p-tabs [(value)]="tabActivo">
           <p-tablist>
             <p-tab value="personal"><i class="pi pi-user"></i> Personal</p-tab>
+            <p-tab value="domicilio"><i class="pi pi-map-marker"></i> Domicilio</p-tab>
             <p-tab value="academico"><i class="pi pi-book"></i> Académico</p-tab>
             <p-tab value="salud"><i class="pi pi-heart"></i> Salud</p-tab>
-            <p-tab value="contactos"><i class="pi pi-phone"></i> Contactos</p-tab>
+            <p-tab value="contactos"><i class="pi pi-users"></i> Familia</p-tab>
+            <p-tab value="bajas"><i class="pi pi-user-minus"></i> Bajas</p-tab>
           </p-tablist>
 
           <p-tabpanels>
@@ -104,7 +113,7 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
                   <label>Género</label>
                   <p-select [options]="[{l:'Masculino',v:'M'},{l:'Femenino',v:'F'}]"
                     [(ngModel)]="form.genero" optionLabel="l" optionValue="v" 
- [filter]="true" filterPlaceholder="Buscar..."/>
+  [filter]="true" filterPlaceholder="Buscar..."/>
                 </div>
                 <div class="form-row">
                   <label>Fecha nacimiento</label>
@@ -116,20 +125,62 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
                 </div>
                 <div class="form-row">
                   <label>Nacionalidad</label>
-                  <input pInputText [(ngModel)]="form.nacionalidad" />
+                  <p-select
+                    [options]="nacionalidades()"
+                    [(ngModel)]="form.nacionalidad"
+                    [filter]="true"
+                    filterPlaceholder="Buscar..."
+                    [showClear]="true"
+                    placeholder="Seleccionar..."
+                    style="width:100%" />
                 </div>
               </div>
 
               <div class="form-section">
                 <h4 class="sec-title">Lugar de nacimiento</h4>
                 <div class="form-row">
-                  <label>Municipio</label>
-                  <input pInputText [(ngModel)]="form.municipio_nacimiento" />
+                  <label>País</label>
+                  <p-select [options]="paises()"
+                    [ngModel]="paisNacId()" (ngModelChange)="onPaisNacChange($event)"
+                    optionLabel="nombre_pais" optionValue="id"
+                    [filter]="true" filterBy="nombre_pais"
+                    [showClear]="true" placeholder="Seleccionar país…"
+                    style="width:100%" />
                 </div>
-                <div class="form-row">
-                  <label>Estado</label>
-                  <input pInputText [(ngModel)]="form.estado_nacimiento" />
-                </div>
+                @if (esMexicano()) {
+                  <div class="form-row">
+                    <label>Estado</label>
+                    <p-select [options]="estadosMex()"
+                      [(ngModel)]="estadoNacId"
+                      optionLabel="nombre_estado" optionValue="id"
+                      [filter]="true" filterBy="nombre_estado"
+                      [showClear]="true" placeholder="Seleccionar estado…"
+                      (onChange)="onEstadoNacChange($event.value)"
+                      style="width:100%" />
+                  </div>
+                  <div class="form-row">
+                    <label>Municipio</label>
+                    <p-select [options]="municipiosMex()"
+                      [(ngModel)]="municipioNacId"
+                      optionLabel="nombre_municipio" optionValue="id"
+                      [filter]="true" filterBy="nombre_municipio"
+                      [showClear]="true" placeholder="Seleccionar municipio…"
+                      [disabled]="!estadoNacId"
+                      (onChange)="onMunicipioNacChange($event.value)"
+                      style="width:100%" />
+                  </div>
+                } @else {
+                  <div class="form-row">
+                    <label>Estado / Provincia</label>
+                    <input pInputText [(ngModel)]="form.estado_nacimiento"
+                      placeholder="Estado, provincia o región" />
+                  </div>
+                  <div class="form-row">
+                    <label>Ciudad / Municipio</label>
+                    <input pInputText [(ngModel)]="form.municipio_nacimiento"
+                      placeholder="Ciudad o municipio" />
+                  </div>
+                }
               </div>
 
               <div class="form-section">
@@ -145,7 +196,12 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
               </div>
             </p-tabpanel>
 
-            <!-- ── Tab 2: Académico ───────────────────────────────────── -->
+            <!-- ── Tab 2: Domicilio y Contactos ─────────────────────────── -->
+            <p-tabpanel value="domicilio">
+              <app-domicilio [personaId]="alumno?.persona_id ?? alumno?.persona?.id ?? null" />
+            </p-tabpanel>
+
+            <!-- ── Tab 3: Académico ───────────────────────────────────── -->
             <p-tabpanel value="academico">
               <div class="form-section">
                 <h4 class="sec-title">Escuela de procedencia</h4>
@@ -184,12 +240,22 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
                   <p-select [options]="nivelesSocio" [(ngModel)]="form.nivel_socioeconomico" [showClear]="true" />
                 </div>
                 <div class="form-row">
-                  <label>Etnia / Origen</label>
-                  <input pInputText [(ngModel)]="form.etnia" placeholder="Mestizo, Nahua, etc." />
+                  <label>Etnia / Autoidentificación</label>
+                  <input pInputText [(ngModel)]="form.etnia" placeholder="Ej. Náhuatl, Otomí, Mestizo…" />
                 </div>
                 <div class="form-row">
-                  <label>Lengua indígena</label>
-                  <input pInputText [(ngModel)]="form.lengua_indigena" />
+                  <label>Lengua indígena (INALI)</label>
+                  <p-select [options]="lenguasIndigenas()" [(ngModel)]="form.lengua_indigena_id"
+                    optionLabel="label" optionValue="value"
+                    [showClear]="true" [filter]="true" filterBy="label"
+                    placeholder="Seleccionar agrupación lingüística…" />
+                </div>
+                <div class="form-row">
+                  <label>Nivel de inglés (CEFR)</label>
+                  <p-select [options]="nivelesIngles()" [(ngModel)]="form.nivel_ingles_id"
+                    optionLabel="label" optionValue="value"
+                    [showClear]="true"
+                    placeholder="Seleccionar nivel…" />
                 </div>
               </div>
             </p-tabpanel>
@@ -337,6 +403,17 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
                     <input pInputText [(ngModel)]="contactoEdit.rfc" maxlength="13" style="font-family:monospace;text-transform:uppercase" />
                   </div>
                   <div class="form-row">
+                    <label>Nacionalidad</label>
+                    <p-select
+                      [options]="nacionalidades()"
+                      [(ngModel)]="contactoEdit.nacionalidad"
+                      [filter]="true"
+                      filterPlaceholder="Buscar..."
+                      [showClear]="true"
+                      placeholder="Seleccionar..."
+                      style="width:100%" />
+                  </div>
+                  <div class="form-row">
                     <label>¿Tutor legal?</label>
                     <input type="checkbox" [(ngModel)]="contactoEdit.es_tutor_legal" />
                   </div>
@@ -352,6 +429,49 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
                   </div>
                 </div>
               }
+            </p-tabpanel>
+
+            <!-- ── Tab 5: Bajas y Reactivaciones ────────────────────── -->
+            <p-tabpanel value="bajas">
+              <div class="form-section">
+                @if (alumno.is_active) {
+                  <h4 class="sec-title">Registrar Baja del Alumno</h4>
+                  <div class="form-row">
+                    <label>Tipo de baja *</label>
+                    <p-select [options]="['TEMPORAL', 'DEFINITIVA', 'TRASLADO', 'DESERCION']" [(ngModel)]="bajaForm.tipo_baja" />
+                  </div>
+                  <div class="form-row">
+                    <label>Fecha efectiva *</label>
+                    <p-datepicker [(ngModel)]="bajaForm.fecha_efectiva" dateFormat="dd/mm/yy" />
+                  </div>
+                  <div class="form-row aligns-start">
+                    <label>Motivo</label>
+                    <textarea pTextarea [(ngModel)]="bajaForm.motivo" rows="2" style="width:100%"></textarea>
+                  </div>
+                  <div class="form-row aligns-start">
+                    <label>Observaciones</label>
+                    <textarea pTextarea [(ngModel)]="bajaForm.observaciones" rows="2" style="width:100%"></textarea>
+                  </div>
+                  <div style="display:flex;justify-content:flex-end;margin-top:1rem">
+                    <p-button label="Registrar Baja" icon="pi pi-user-minus" severity="danger" (onClick)="ejecutarBaja()" />
+                  </div>
+                } @else {
+                  <h4 class="sec-title">Reactivación de Alumno</h4>
+                  <p class="text-sm text-gray-600 mb-3">El alumno se encuentra actualmente en estado de <strong>BAJA</strong>.</p>
+                  
+                  @if (ultimaBaja()) {
+                    <div class="contacto-card" style="border-color:var(--red-300); background:var(--red-50); margin-bottom: 1rem;">
+                      <div><strong>Tipo de baja:</strong> {{ ultimaBaja().tipo_baja }}</div>
+                      <div><strong>Fecha efectiva:</strong> {{ ultimaBaja().fecha_efectiva | date:'dd/MM/yyyy' }}</div>
+                      @if (ultimaBaja().motivo) { <div><strong>Motivo:</strong> {{ ultimaBaja().motivo }}</div> }
+                    </div>
+                  }
+                  
+                  <div style="display:flex;justify-content:flex-end">
+                    <p-button label="Reactivar Alumno" icon="pi pi-user-plus" severity="success" (onClick)="ejecutarReactivacion()" />
+                  </div>
+                }
+              </div>
             </p-tabpanel>
           </p-tabpanels>
         </p-tabs>
@@ -395,7 +515,7 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
     .drawer-footer { display: flex; justify-content: flex-end; gap: .75rem; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--surface-200); }
   `],
 })
-export class AlumnoPerfilComponent implements OnChanges {
+export class AlumnoPerfilComponent implements OnInit, OnChanges {
   private readonly api = inject(ApiService);
   private readonly msg = inject(MessageService);
 
@@ -416,6 +536,15 @@ export class AlumnoPerfilComponent implements OnChanges {
   contactoEdit: any = {};
   medForm: any = {};
 
+  // Bajas Form
+  bajaForm = {
+    tipo_baja: 'TEMPORAL',
+    fecha_efectiva: new Date(),
+    motivo: '',
+    observaciones: ''
+  };
+  ultimaBaja = signal<any | null>(null);
+
   readonly tiposSangre  = TIPOS_SANGRE;
   readonly estadosCivil = ESTADOS_CIVIL;
   readonly nivelesSocio = NIVELES_SOCIO;
@@ -423,11 +552,113 @@ export class AlumnoPerfilComponent implements OnChanges {
   readonly nivelesEst   = NIVELESEST;
   readonly becas        = BECAS;
 
+  nacionalidades    = signal<string[]>([]);
+  lenguasIndigenas  = signal<{ label: string; value: string }[]>([]);
+  nivelesIngles     = signal<{ label: string; value: string }[]>([]);
+  paises            = signal<any[]>([]);
+  estadosMex        = signal<any[]>([]);
+  municipiosMex     = signal<any[]>([]);
+  paisNacId         = signal('');
+  estadoNacId       = '';
+  municipioNacId    = '';
+  esMexicano        = computed(() => {
+    const id = this.paisNacId();
+    if (!id) return true;
+    const p = this.paises().find((x: any) => x.id === id);
+    return !p || p.nombre_pais === 'México';
+  });
+
+  ngOnInit(): void {
+    this.api.get<{ nacionalidad: string }[]>('/catalogs/nacionalidades').subscribe({
+      next: list => this.nacionalidades.set(list.map(n => n.nacionalidad)),
+      error: () => {},
+    });
+    this.api.get<any[]>('/catalogs/lenguas-indigenas').subscribe({
+      next: list => this.lenguasIndigenas.set(list.map(l => ({
+        label: l.autonym ? `${l.agrupacion} (${l.autonym})` : l.agrupacion,
+        value: l.id,
+      }))),
+      error: () => {},
+    });
+    this.api.get<any[]>('/catalogs/niveles-ingles').subscribe({
+      next: list => this.nivelesIngles.set(list.map(n => ({
+        label: `${n.nivel} — ${n.nombre}`,
+        value: n.id,
+      }))),
+      error: () => {},
+    });
+    this.api.get<any[]>('/catalogs/estados-mexico').subscribe({
+      next: list => {
+        this.estadosMex.set(list);
+        if (this.form?.estado_nacimiento) {
+          const est = list.find((e: any) => e.nombre_estado === this.form.estado_nacimiento);
+          if (est) this.cargarMunicipiosNac(est.id, false);
+        }
+      },
+      error: () => {},
+    });
+    this.api.get<any[]>('/catalogs/paises').subscribe({
+      next: list => {
+        this.paises.set(list);
+        // Pre-seleccionar país si ya hay uno guardado
+        if (this.form?.pais_nacimiento) {
+          const p = list.find((x: any) => x.nombre_pais === this.form.pais_nacimiento);
+          if (p) this.paisNacId.set(p.id);
+        } else {
+          const mx = list.find((x: any) => x.nombre_pais === 'México');
+          if (mx) this.paisNacId.set(mx.id);
+        }
+      },
+      error: () => {},
+    });
+  }
+
+  onPaisNacChange(paisId: string): void {
+    this.paisNacId.set(paisId ?? '');
+    const p = this.paises().find((x: any) => x.id === paisId);
+    this.form.pais_nacimiento = p?.nombre_pais ?? '';
+    // Si cambia a no-México, limpiar los LOVs de estado/municipio
+    if (p?.nombre_pais !== 'México') {
+      this.estadoNacId = '';
+      this.municipioNacId = '';
+      this.municipiosMex.set([]);
+    }
+  }
+
+  onEstadoNacChange(estadoId: string): void {
+    this.municipioNacId = '';
+    this.form.municipio_nacimiento = '';
+    this.municipiosMex.set([]);
+    if (!estadoId) { this.form.estado_nacimiento = ''; return; }
+    const est = this.estadosMex().find((e: any) => e.id === estadoId);
+    this.form.estado_nacimiento = est?.nombre_estado ?? '';
+    this.cargarMunicipiosNac(estadoId, true);
+  }
+
+  private cargarMunicipiosNac(estadoId: string, limpiar: boolean): void {
+    this.api.get<any[]>('/catalogs/municipios', { estado_id: estadoId }).subscribe({
+      next: list => {
+        this.municipiosMex.set(list);
+        if (!limpiar && this.form?.municipio_nacimiento) {
+          const mun = list.find((m: any) => m.nombre_municipio === this.form.municipio_nacimiento);
+          if (mun) this.municipioNacId = mun.id;
+        }
+      },
+      error: () => {},
+    });
+  }
+
+  onMunicipioNacChange(municipioId: string): void {
+    const mun = this.municipiosMex().find((m: any) => m.id === municipioId);
+    this.form.municipio_nacimiento = mun?.nombre_municipio ?? '';
+  }
+
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['alumno'] && this.alumno) {
       this.initForm();
       this.cargarContactos();
       this.cargarExpedienteMedico();
+      this.cargarUltimaBaja();
     }
   }
 
@@ -445,9 +676,10 @@ export class AlumnoPerfilComponent implements OnChanges {
       telefono: (p as any).telefono ?? '',
       email_personal: (p as any).email_personal ?? '',
       estado_civil: (p as any).estado_civil ?? null,
+      pais_nacimiento: (p as any).pais_nacimiento ?? 'México',
       municipio_nacimiento: (p as any).municipio_nacimiento ?? '',
       estado_nacimiento: (p as any).estado_nacimiento ?? '',
-      nacionalidad: (p as any).nacionalidad ?? 'MEXICANA',
+      nacionalidad: (p as any).nacionalidad ?? 'Mexicana',
       // Estudiante
       nss: a.nss ?? '',
       discapacidad: a.discapacidad ?? '',
@@ -458,7 +690,28 @@ export class AlumnoPerfilComponent implements OnChanges {
       beca_monto: a.beca_monto ?? null,
       nivel_socioeconomico: a.nivel_socioeconomico ?? null,
       etnia: a.etnia ?? '',
-      lengua_indigena: a.lengua_indigena ?? '',
+      lengua_indigena_id: a.lengua_indigena_id ?? null,
+      nivel_ingles_id: a.nivel_ingles_id ?? null,
+    };
+    // Pre-seleccionar estado/municipio si el catálogo ya cargó
+    this.estadoNacId = '';
+    this.municipioNacId = '';
+    this.municipiosMex.set([]);
+    const paisGuardado = (p as any).pais_nacimiento ?? 'México';
+    const paisObj = this.paises().find((x: any) => x.nombre_pais === paisGuardado);
+    this.paisNacId.set(paisObj?.id ?? '');
+    if (paisGuardado === 'México' || !paisGuardado) {
+      const estadoGuardado = (p as any).estado_nacimiento;
+      if (estadoGuardado && this.estadosMex().length > 0) {
+        const est = this.estadosMex().find((e: any) => e.nombre_estado === estadoGuardado);
+        if (est) { this.estadoNacId = est.id; this.cargarMunicipiosNac(est.id, false); }
+      }
+    }
+    this.bajaForm = {
+      tipo_baja: 'TEMPORAL',
+      fecha_efectiva: new Date(),
+      motivo: '',
+      observaciones: ''
     };
   }
 
@@ -478,6 +731,64 @@ export class AlumnoPerfilComponent implements OnChanges {
         },
         error: () => {},
       });
+  }
+
+  cargarUltimaBaja(): void {
+    if (!this.alumno?.id) return;
+    this.api.get<any[]>('/procesos/bajas').subscribe({
+      next: list => {
+        const userBajas = list.filter(b => b.estudiante_id === this.alumno!.id);
+        if (userBajas.length > 0) {
+          this.ultimaBaja.set(userBajas[0]);
+        } else {
+          this.ultimaBaja.set(null);
+        }
+      },
+      error: () => {}
+    });
+  }
+
+  ejecutarBaja(): void {
+    if (!this.alumno?.id) return;
+    const activeInscription = (this.alumno as any).inscripciones?.find((i: any) => i.is_active);
+    const payload = {
+      estudiante_id: this.alumno.id,
+      inscripcion_id: activeInscription ? activeInscription.id : null,
+      tipo_baja: this.bajaForm.tipo_baja,
+      motivo: this.bajaForm.motivo || null,
+      fecha_efectiva: this.formatDate(this.bajaForm.fecha_efectiva),
+      observaciones: this.bajaForm.observaciones || null
+    };
+    this.api.post('/procesos/bajas', payload).subscribe({
+      next: (r: any) => {
+        this.msg.add({ severity: 'success', summary: 'Baja registrada', detail: r.message });
+        this.alumno!.is_active = false;
+        this.cargarUltimaBaja();
+        this.saved.emit();
+      },
+      error: e => {
+        this.msg.add({ severity: 'error', summary: 'Error', detail: e.error?.detail ?? 'Error' });
+      }
+    });
+  }
+
+  ejecutarReactivacion(): void {
+    const baja = this.ultimaBaja();
+    if (!baja) {
+      this.msg.add({ severity: 'warn', summary: 'No se puede reactivar', detail: 'No hay registro de baja activo' });
+      return;
+    }
+    this.api.post(`/procesos/bajas/${baja.id}/reactivar`, {}).subscribe({
+      next: (r: any) => {
+        this.msg.add({ severity: 'success', summary: 'Reactivado', detail: r.message });
+        this.alumno!.is_active = true;
+        this.ultimaBaja.set(null);
+        this.saved.emit();
+      },
+      error: e => {
+        this.msg.add({ severity: 'error', summary: 'Error', detail: e.error?.detail ?? 'Error' });
+      }
+    });
   }
 
   guardarExpedienteMedico(): void {
@@ -510,6 +821,7 @@ export class AlumnoPerfilComponent implements OnChanges {
         telefono: this.form.telefono || null,
         email_personal: this.form.email_personal || null,
         estado_civil: this.form.estado_civil,
+        pais_nacimiento: this.form.pais_nacimiento || 'México',
         municipio_nacimiento: this.form.municipio_nacimiento || null,
         estado_nacimiento: this.form.estado_nacimiento || null,
         nacionalidad: this.form.nacionalidad,
@@ -524,7 +836,8 @@ export class AlumnoPerfilComponent implements OnChanges {
         beca_monto: this.form.beca_monto,
         nivel_socioeconomico: this.form.nivel_socioeconomico,
         etnia: this.form.etnia || null,
-        lengua_indigena: this.form.lengua_indigena || null,
+        lengua_indigena_id: this.form.lengua_indigena_id || null,
+        nivel_ingles_id: this.form.nivel_ingles_id || null,
       },
     };
 
@@ -546,6 +859,7 @@ export class AlumnoPerfilComponent implements OnChanges {
       nombre_completo: '', parentesco: null, telefono: '',
       telefono_alt: '', email: '', es_tutor_legal: false,
       es_contacto_prim: false, ocupacion: '', nivel_estudios: null, rfc: '',
+      nacionalidad: 'Mexicana',
     };
     this.editandoContacto.set(true);
   }

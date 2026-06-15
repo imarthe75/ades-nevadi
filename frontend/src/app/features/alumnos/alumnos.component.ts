@@ -2,13 +2,11 @@
  * FASE 1 & FASE 24 — Alumnos (Students) + Interactive Grid APEX-style
  * Lists, filters, sorts, and manages student records with optimistic locking.
  */
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
-import { DialogModule } from 'primeng/dialog';
-
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
 import { ExportService } from '../../core/services/export.service';
@@ -17,15 +15,16 @@ import { ImportButtonComponent } from '../../shared/components/import-button/imp
 import { AlumnoPerfilComponent } from '../../shared/components/alumno-perfil/alumno-perfil.component';
 import { HelpButtonComponent } from '../../shared/components/help-button/help-button.component';
 import type { Estudiante } from '../../core/models';
-import { ApexNotificationService } from 'apex-component-library';
+import { ApexNotificationService, ApexSearchComponent, ApexModalDialogComponent } from 'apex-component-library';
 
 @Component({
   selector: 'app-alumnos',
   standalone: true,
   imports: [
     CommonModule, FormsModule,
-    ButtonModule, InputTextModule, DialogModule,
+    ButtonModule, InputTextModule,
     InteractiveGridComponent, ImportButtonComponent, AlumnoPerfilComponent, HelpButtonComponent,
+    ApexSearchComponent, ApexModalDialogComponent,
   ],
   template: `
 
@@ -51,16 +50,27 @@ import { ApexNotificationService } from 'apex-component-library';
       </div>
     </div>
 
+    <!-- Búsqueda rápida -->
+    <apex-search
+      placeholder="Buscar alumno..."
+      [debounce]="300"
+      (valueChange)="busqueda.set($event)"
+    />
+
     <!-- Interactive Grid APEX-style (Spec: spec/modules/fase-24-interactive-grid/) -->
     <app-interactive-grid
-      [data]="alumnosDatos()"
+      [data]="alumnosFiltrados()"
       [columns]="columnas"
       [loading]="loadingTabla()"
       (rowSelected)="abrirPerfil($event)"
     />
 
     <!-- Diálogo de alta rápida -->
-    <p-dialog [visible]="showDialog()" (visibleChange)="showDialog.set($event)" header="Nuevo Alumno" [modal]="true" [style]="{width:'400px'}">
+    <apex-modal-dialog
+      [visible]="showDialog()"
+      (visibleChange)="showDialog.set($event)"
+      title="Nuevo Alumno"
+      size="sm">
       <div style="display:flex;flex-direction:column;gap:1rem">
         <div>
           <label class="dlg-lbl">Nombre(s) *</label>
@@ -79,9 +89,11 @@ import { ApexNotificationService } from 'apex-component-library';
           <input pInputText [(ngModel)]="form.curp" style="width:100%;text-transform:uppercase;font-family:monospace" maxlength="18" />
         </div>
         <p class="dlg-note">Una vez creado podrás completar el expediente completo desde el perfil.</p>
-        <p-button label="Crear alumno" (onClick)="crearAlumno()" [loading]="loading()" />
       </div>
-    </p-dialog>
+      <ng-template #footer>
+        <p-button label="Crear alumno" (onClick)="crearAlumno()" [loading]="loading()" />
+      </ng-template>
+    </apex-modal-dialog>
   `,
   styles: [`
     .page-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem; }
@@ -99,6 +111,16 @@ export class AlumnosComponent implements OnInit {
   alumnos = signal<Estudiante[]>([]);
   alumnosDatos = signal<any[]>([]);
   totalAlumnos = signal(0);
+  busqueda = signal('');
+
+  readonly alumnosFiltrados = computed(() => {
+    const q = this.busqueda().toLowerCase();
+    if (!q) return this.alumnosDatos();
+    return this.alumnosDatos().filter(a =>
+      (a.nombre_completo ?? a.nombre ?? '').toLowerCase().includes(q) ||
+      (a.matricula ?? '').toLowerCase().includes(q)
+    );
+  });
   alumnoSeleccionado = signal<Estudiante | null>(null);
   perfilVisible = signal(false);
   showDialog = signal(false);
@@ -150,7 +172,7 @@ export class AlumnosComponent implements OnInit {
             matricula: a.matricula,
             nombre_completo: `${a.persona?.nombre} ${a.persona?.apellido_paterno} ${a.persona?.apellido_materno || ''}`.trim(),
             curp: a.persona?.curp,
-            nss: a.nss ? '✓' : '',
+            nss: a.nss || '',
             nivel: a.nivel_educativo?.nombre_nivel || '—',
             grado: a.grado?.nombre_grado || '—',
             grupo: a.grupo?.nombre_grupo || '—',
@@ -189,12 +211,16 @@ export class AlumnosComponent implements OnInit {
     this.form = { nombre: '', apellido_paterno: '', apellido_materno: '', curp: '' };
   }
 
-  exportCSV(): void  { this.exp.toCSV(this.alumnos(), this.exportCols, 'alumnos'); }
-  exportXLSX(): void { this.exp.toXLSX(this.alumnos(), this.exportCols, 'Alumnos', 'alumnos'); }
+  exportCSV(): void  { this.exp.toCSV(this.alumnosDatos(), this.exportCols, 'alumnos'); }
+  exportXLSX(): void { this.exp.toXLSX(this.alumnosDatos(), this.exportCols, 'Alumnos', 'alumnos'); }
 
   crearAlumno(): void {
     if (!this.form.nombre || !this.form.apellido_paterno || !this.form.curp) {
       this.notify.warning('Campos requeridos', 'Nombre, apellido paterno y CURP son obligatorios');
+      return;
+    }
+    if (this.form.curp.length !== 18) {
+      this.notify.warning('CURP inválida', 'La CURP debe tener exactamente 18 caracteres');
       return;
     }
     this.loading.set(true);
@@ -217,7 +243,11 @@ export class AlumnosComponent implements OnInit {
       },
       error: (e) => {
         this.loading.set(false);
-        this.notify.error('Error', e.error?.detail ?? 'Error al crear');
+        const detail = e.error?.detail;
+        const msg = Array.isArray(detail) ? detail.map((d: any) => d.msg || d).join('; ')
+                  : typeof detail === 'string' ? detail
+                  : 'Error al crear alumno';
+        this.notify.error('Error', msg);
       },
     });
   }

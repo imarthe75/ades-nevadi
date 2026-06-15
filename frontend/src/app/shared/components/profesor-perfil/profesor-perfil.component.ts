@@ -2,7 +2,7 @@
  * ProfesorPerfilComponent — Drawer lateral con perfil completo del profesor.
  * 3 tabs: Datos Personales | Datos Laborales | Nómina y Banco
  */
-import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, inject, signal } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnChanges, OnInit, SimpleChanges, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DrawerModule } from 'primeng/drawer';
@@ -15,6 +15,7 @@ import { SelectModule } from 'primeng/select';
 import { DatePickerModule } from 'primeng/datepicker';
 import { MessageService } from 'primeng/api';
 import { ApiService } from '../../../core/services/api.service';
+import { DomicilioComponent } from '../domicilio/domicilio.component';
 import type { Profesor } from '../../../core/models';
 
 const CONTRATOS       = ['BASE','INTERINO','CONTRATO','HONORARIOS','TIEMPO_COMPLETO','MEDIO_TIEMPO'];
@@ -32,6 +33,7 @@ const BANCOS          = ['BBVA','SANTANDER','BANAMEX','BANORTE','HSBC','SCOTIABA
     DrawerModule, ButtonModule, ToastModule,
     TabsModule, TabList, Tab, TabPanels, TabPanel,
     InputTextModule, SelectModule, DatePickerModule,
+    DomicilioComponent,
   ],
   providers: [MessageService],
   template: `
@@ -52,6 +54,7 @@ const BANCOS          = ['BBVA','SANTANDER','BANAMEX','BANORTE','HSBC','SCOTIABA
         <p-tabs [(value)]="tabActivo">
           <p-tablist>
             <p-tab value="personal"><i class="pi pi-user"></i> Personal</p-tab>
+            <p-tab value="domicilio"><i class="pi pi-map-marker"></i> Domicilio</p-tab>
             <p-tab value="laboral"><i class="pi pi-briefcase"></i> Laboral</p-tab>
             <p-tab value="nomina"><i class="pi pi-credit-card"></i> Nómina</p-tab>
           </p-tablist>
@@ -102,6 +105,17 @@ const BANCOS          = ['BBVA','SANTANDER','BANAMEX','BANORTE','HSBC','SCOTIABA
                   <label>Estado civil</label>
                   <p-select [options]="estadosCivil" [(ngModel)]="form.estado_civil" [showClear]="true" />
                 </div>
+                <div class="form-row">
+                  <label>Nacionalidad</label>
+                  <p-select
+                    [options]="nacionalidades()"
+                    [(ngModel)]="form.nacionalidad"
+                    [filter]="true"
+                    filterPlaceholder="Buscar..."
+                    [showClear]="true"
+                    placeholder="Seleccionar..."
+                    style="width:100%" />
+                </div>
               </div>
               <div class="form-section">
                 <h4 class="sec-title">Contacto</h4>
@@ -114,17 +128,57 @@ const BANCOS          = ['BBVA','SANTANDER','BANAMEX','BANORTE','HSBC','SCOTIABA
                   <input pInputText [(ngModel)]="form.email_personal" type="email" />
                 </div>
                 <div class="form-row">
-                  <label>Municipio nacimiento</label>
-                  <input pInputText [(ngModel)]="form.municipio_nacimiento" />
+                  <label>País nacimiento</label>
+                  <p-select [options]="paises()"
+                    [ngModel]="paisNacId()" (ngModelChange)="onPaisNacChange($event)"
+                    optionLabel="nombre_pais" optionValue="id"
+                    [filter]="true" filterBy="nombre_pais"
+                    [showClear]="true" placeholder="Seleccionar país…"
+                    style="width:100%" />
                 </div>
-                <div class="form-row">
-                  <label>Estado nacimiento</label>
-                  <input pInputText [(ngModel)]="form.estado_nacimiento" />
-                </div>
+                @if (esMexicano()) {
+                  <div class="form-row">
+                    <label>Estado nacimiento</label>
+                    <p-select [options]="estadosMex()"
+                      [(ngModel)]="estadoNacId"
+                      optionLabel="nombre_estado" optionValue="id"
+                      [filter]="true" filterBy="nombre_estado"
+                      [showClear]="true" placeholder="Seleccionar estado…"
+                      (onChange)="onEstadoNacChange($event.value)"
+                      style="width:100%" />
+                  </div>
+                  <div class="form-row">
+                    <label>Municipio nacimiento</label>
+                    <p-select [options]="municipiosMex()"
+                      [(ngModel)]="municipioNacId"
+                      optionLabel="nombre_municipio" optionValue="id"
+                      [filter]="true" filterBy="nombre_municipio"
+                      [showClear]="true" placeholder="Seleccionar municipio…"
+                      [disabled]="!estadoNacId"
+                      (onChange)="onMunicipioNacChange($event.value)"
+                      style="width:100%" />
+                  </div>
+                } @else {
+                  <div class="form-row">
+                    <label>Estado / Provincia</label>
+                    <input pInputText [(ngModel)]="form.estado_nacimiento"
+                      placeholder="Estado, provincia o región" />
+                  </div>
+                  <div class="form-row">
+                    <label>Ciudad / Municipio</label>
+                    <input pInputText [(ngModel)]="form.municipio_nacimiento"
+                      placeholder="Ciudad o municipio" />
+                  </div>
+                }
               </div>
             </p-tabpanel>
 
-            <!-- ── Tab 2: Datos Laborales ─────────────────────────────── -->
+            <!-- ── Tab 2: Domicilio y Contactos ─────────────────────────── -->
+            <p-tabpanel value="domicilio">
+              <app-domicilio [personaId]="profesor?.persona_id ?? null" />
+            </p-tabpanel>
+
+            <!-- ── Tab 3: Datos Laborales ─────────────────────────────── -->
             <p-tabpanel value="laboral">
               <div class="form-section">
                 <h4 class="sec-title">Contratación</h4>
@@ -213,7 +267,7 @@ const BANCOS          = ['BBVA','SANTANDER','BANAMEX','BANORTE','HSBC','SCOTIABA
       margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--surface-200); }
   `],
 })
-export class ProfesorPerfilComponent implements OnChanges {
+export class ProfesorPerfilComponent implements OnInit, OnChanges {
   private readonly api = inject(ApiService);
   private readonly msg = inject(MessageService);
 
@@ -231,6 +285,89 @@ export class ProfesorPerfilComponent implements OnChanges {
   readonly turnos        = TURNOS;
   readonly estadosCivil  = ESTADOS_CIVIL;
   readonly bancos        = BANCOS;
+
+  nacionalidades = signal<string[]>([]);
+  paises         = signal<any[]>([]);
+  estadosMex     = signal<any[]>([]);
+  municipiosMex  = signal<any[]>([]);
+  paisNacId      = signal('');
+  estadoNacId    = '';
+  municipioNacId = '';
+  esMexicano     = computed(() => {
+    const id = this.paisNacId();
+    if (!id) return true;
+    const p = this.paises().find((x: any) => x.id === id);
+    return !p || p.nombre_pais === 'México';
+  });
+
+  ngOnInit(): void {
+    this.api.get<{ nacionalidad: string }[]>('/catalogs/nacionalidades').subscribe({
+      next: list => this.nacionalidades.set(list.map(n => n.nacionalidad)),
+      error: () => {},
+    });
+    this.api.get<any[]>('/catalogs/estados-mexico').subscribe({
+      next: list => {
+        this.estadosMex.set(list);
+        if (this.form?.estado_nacimiento) {
+          const est = list.find((e: any) => e.nombre_estado === this.form.estado_nacimiento);
+          if (est) this.cargarMunicipiosNac(est.id, false);
+        }
+      },
+      error: () => {},
+    });
+    this.api.get<any[]>('/catalogs/paises').subscribe({
+      next: list => {
+        this.paises.set(list);
+        if (this.form?.pais_nacimiento) {
+          const p = list.find((x: any) => x.nombre_pais === this.form.pais_nacimiento);
+          if (p) this.paisNacId.set(p.id);
+        } else {
+          const mx = list.find((x: any) => x.nombre_pais === 'México');
+          if (mx) this.paisNacId.set(mx.id);
+        }
+      },
+      error: () => {},
+    });
+  }
+
+  onPaisNacChange(paisId: string): void {
+    this.paisNacId.set(paisId ?? '');
+    const p = this.paises().find((x: any) => x.id === paisId);
+    this.form.pais_nacimiento = p?.nombre_pais ?? '';
+    if (p?.nombre_pais !== 'México') {
+      this.estadoNacId = '';
+      this.municipioNacId = '';
+      this.municipiosMex.set([]);
+    }
+  }
+
+  onEstadoNacChange(estadoId: string): void {
+    this.municipioNacId = '';
+    this.form.municipio_nacimiento = '';
+    this.municipiosMex.set([]);
+    if (!estadoId) { this.form.estado_nacimiento = ''; return; }
+    const est = this.estadosMex().find((e: any) => e.id === estadoId);
+    this.form.estado_nacimiento = est?.nombre_estado ?? '';
+    this.cargarMunicipiosNac(estadoId, true);
+  }
+
+  private cargarMunicipiosNac(estadoId: string, limpiar: boolean): void {
+    this.api.get<any[]>('/catalogs/municipios', { estado_id: estadoId }).subscribe({
+      next: list => {
+        this.municipiosMex.set(list);
+        if (!limpiar && this.form?.municipio_nacimiento) {
+          const mun = list.find((m: any) => m.nombre_municipio === this.form.municipio_nacimiento);
+          if (mun) this.municipioNacId = mun.id;
+        }
+      },
+      error: () => {},
+    });
+  }
+
+  onMunicipioNacChange(municipioId: string): void {
+    const mun = this.municipiosMex().find((m: any) => m.id === municipioId);
+    this.form.municipio_nacimiento = mun?.nombre_municipio ?? '';
+  }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['profesor'] && this.profesor) {
@@ -251,8 +388,24 @@ export class ProfesorPerfilComponent implements OnChanges {
       telefono: per.telefono ?? '',
       email_personal: per.email_personal ?? '',
       estado_civil: per.estado_civil ?? null,
+      pais_nacimiento: per.pais_nacimiento ?? 'México',
       municipio_nacimiento: per.municipio_nacimiento ?? '',
       estado_nacimiento: per.estado_nacimiento ?? '',
+      nacionalidad: per.nacionalidad ?? 'Mexicana',
+    };
+    this.estadoNacId = '';
+    this.municipioNacId = '';
+    this.municipiosMex.set([]);
+    const paisGuardado = per.pais_nacimiento ?? 'México';
+    const paisObj = this.paises().find((x: any) => x.nombre_pais === paisGuardado);
+    this.paisNacId.set(paisObj?.id ?? '');
+    if (paisGuardado === 'México' || !paisGuardado) {
+      if (per.estado_nacimiento && this.estadosMex().length > 0) {
+        const est = this.estadosMex().find((e: any) => e.nombre_estado === per.estado_nacimiento);
+        if (est) { this.estadoNacId = est.id; this.cargarMunicipiosNac(est.id, false); }
+      }
+    }
+    this.form = { ...this.form,
       // Laborales
       tipo_contrato: p.tipo_contrato ?? null,
       rfc: p.rfc ?? '',
@@ -281,8 +434,10 @@ export class ProfesorPerfilComponent implements OnChanges {
         telefono: this.form.telefono || null,
         email_personal: this.form.email_personal || null,
         estado_civil: this.form.estado_civil,
+        pais_nacimiento: this.form.pais_nacimiento || 'México',
         municipio_nacimiento: this.form.municipio_nacimiento || null,
         estado_nacimiento: this.form.estado_nacimiento || null,
+        nacionalidad: this.form.nacionalidad || null,
       },
       laborales: {
         tipo_contrato: this.form.tipo_contrato,

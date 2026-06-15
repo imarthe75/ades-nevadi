@@ -5,7 +5,7 @@ import { RouterModule } from '@angular/router';
 
 import { ButtonModule }        from 'primeng/button';
 import { CardModule }          from 'primeng/card';
-import { TableModule }         from 'primeng/table';
+import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
 import { TagModule }           from 'primeng/tag';
 import { TabsModule }          from 'primeng/tabs';
 import { DialogModule }        from 'primeng/dialog';
@@ -104,7 +104,7 @@ const TIPO_ICON: Record<string, string> = {
   standalone: true,
   imports: [
     CommonModule, FormsModule, RouterModule,
-    ButtonModule, CardModule, TableModule, TagModule, TabsModule,
+    ButtonModule, CardModule, TagModule, TabsModule, InteractiveGridComponent,
     DialogModule, SelectModule, AutoCompleteModule, TextareaModule, InputTextModule,
     TooltipModule, ProgressBarModule, PanelModule, DividerModule,
     SkeletonModule, ChipModule,
@@ -208,52 +208,12 @@ const TIPO_ICON: Record<string, string> = {
               (onClick)="exportXLSX()" />
           </div>
 
-          <p-table
-            [value]="asignaciones()"
+          <app-interactive-grid
+            [data]="asignacionesFlat()"
+            [columns]="asignacionesColumns"
             [loading]="cargandoAsig()"
-            [paginator]="true" [rows]="15"
-            styleClass="p-datatable-sm p-datatable-gridlines"
-          >
-            <ng-template pTemplate="header">
-              <tr>
-                <th pSortableColumn="path_nombre">Ruta <p-sortIcon field="path_nombre" /></th>
-                <th>Alumno</th>
-                <th pSortableColumn="motivo">Motivo <p-sortIcon field="motivo" /></th>
-                <th pSortableColumn="estatus">Estatus <p-sortIcon field="estatus" /></th>
-                <th style="width:180px">Progreso</th>
-                <th pSortableColumn="fccreacion" style="width:130px">Asignado <p-sortIcon field="fccreacion" /></th>
-                <th style="width:80px"></th>
-              </tr>
-            </ng-template>
-            <ng-template pTemplate="body" let-asig>
-              <tr>
-                <td>{{ asig.path_nombre }}</td>
-                <td>{{ asig.alumno_nombre || asig.estudiante_id }}</td>
-                <td>{{ asig.motivo.replace('_', ' ') }}</td>
-                <td>
-                  <p-tag [value]="asig.estatus" [severity]="estatusSev(asig.estatus)" />
-                </td>
-                <td>
-                  <div class="progress-cell">
-                    <p-progressBar [value]="asig.pct_completado" styleClass="h-1rem" />
-                    <span class="pct-label">{{ asig.pct_completado }}%</span>
-                  </div>
-                </td>
-                <td>{{ asig.fccreacion | date:'dd/MM/yy' }}</td>
-                <td class="actions-cell">
-                  <p-button icon="pi pi-eye" [text]="true" size="small"
-                    pTooltip="Ver detalle" (onClick)="verAsignacion(asig)" />
-                  <p-button icon="pi pi-sparkles" [text]="true" size="small"
-                    [severity]="asig.ia_recomendacion ? 'success' : 'secondary'"
-                    pTooltip="Recomendación IA"
-                    (onClick)="abrirIA(asig)" />
-                </td>
-              </tr>
-            </ng-template>
-            <ng-template pTemplate="emptymessage">
-              <tr><td colspan="7" class="text-center p-4">Sin asignaciones</td></tr>
-            </ng-template>
-          </p-table>
+            (rowSelected)="verAsignacion($event)"
+          />
         </p-tabpanel>
 
       </p-tabpanels>
@@ -546,6 +506,22 @@ export class LearningPathsComponent implements OnInit {
     this.alertas().filter(a => a.tipo_alerta === 'RIESGO_REPROBACION').reduce((s, a) => s + a.count, 0));
   readonly alertasAusentismo  = computed(() =>
     this.alertas().filter(a => a.tipo_alerta === 'AUSENTISMO_CRITICO').reduce((s, a) => s + a.count, 0));
+
+  readonly asignacionesFlat = computed(() =>
+    this.asignaciones().map(a => ({
+      ...a,
+      pct_str: `${a.pct_completado}%`,
+      fecha_str: a.fccreacion ? new Date(a.fccreacion).toLocaleDateString('es-MX') : '—',
+    }))
+  );
+  readonly asignacionesColumns: ColumnConfig[] = [
+    { field: 'alumno_nombre',  header: 'Alumno' },
+    { field: 'path_nombre',    header: 'Ruta de aprendizaje' },
+    { field: 'motivo',         header: 'Motivo',       width: '110px' },
+    { field: 'estatus',        header: 'Estado',       width: '100px' },
+    { field: 'pct_str',        header: 'Completado',   width: '100px' },
+    { field: 'fecha_str',      header: 'Asignada',     width: '110px' },
+  ];
 
   filtroEstatus: string | null = null;
 

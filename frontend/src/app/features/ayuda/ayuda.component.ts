@@ -16,8 +16,10 @@ import { TabsModule } from 'primeng/tabs';
 import { TagModule } from 'primeng/tag';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
-import { TableModule } from 'primeng/table';
+import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
 import { ContextService } from '../../core/services/context.service';
+import { ApexListComponent } from 'apex-component-library';
+import type { ApexListItem } from 'apex-component-library';
 
 interface Paso { titulo: string; pasos: string[]; nota?: string; tip?: string; }
 interface Modulo { nombre: string; ruta: string; icono: string; fase: number; descripcion: string; secciones: Paso[]; }
@@ -196,6 +198,46 @@ const MODULOS: Modulo[] = [
         nota: 'Los registros de auditoría son inmutables y no pueden eliminarse.' },
     ],
   },
+  {
+    nombre: 'Expediente Digital', ruta: '/expediente-doc', icono: 'pi-folder-open', fase: 28,
+    descripcion: 'Expediente digital integrado con OCR en español de Paperless-ngx para el almacenamiento y validación de documentos.',
+    secciones: [
+      { titulo: 'Consultar expediente de alumno',
+        pasos: ['Busca al alumno en la barra de búsqueda', 'El panel izquierdo mostrará los documentos obligatorios según el nivel educativo', 'La barra de progreso indica el porcentaje de completitud actual del expediente'] },
+      { titulo: 'Subir documentos',
+        pasos: ['Selecciona el tipo de documento a subir (CURP, Acta de Nacimiento, etc.)', 'Arrastra o selecciona el archivo PDF/imagen', 'El archivo se subirá automáticamente a Paperless-ngx y se iniciará el proceso de OCR', 'El visor del panel derecho cargará el PDF directamente'] },
+      { titulo: 'Análisis inteligente con IA',
+        pasos: ['Clic en "✨ Analizar con IA"', 'La inteligencia artificial procesa los documentos extraídos por OCR, verifica coherencia de datos y genera un reporte con recomendaciones de documentos faltantes o inconsistentes'] }
+    ]
+  },
+  {
+    nombre: 'Certificados Digitales', ruta: '/certificados', icono: 'pi-verified', fase: 27,
+    descripcion: 'Generación, firma digital Ed25519 y validación de certificados y boletas del Instituto.',
+    secciones: [
+      { titulo: 'Emitir certificado',
+        pasos: ['Selecciona el alumno y el ciclo escolar', 'Completa los datos académicos correspondientes', 'El sistema generará el PDF e insertará la firma criptográfica Ed25519 automáticamente'] },
+      { titulo: 'Verificación pública',
+        pasos: ['Cada certificado emitido cuenta con un código QR único', 'Al escanear el QR o acceder a /verificar/:folio, se muestra el validador público que confirma la autenticidad en tiempo real e integridad del documento'] }
+    ]
+  },
+  {
+    nombre: 'Recursos Humanos', ruta: '/licencias', icono: 'pi-users', fase: 29,
+    descripcion: 'Gestión de licencias, permisos de personal, capacitaciones docentes y expedientes laborales.',
+    secciones: [
+      { titulo: 'Solicitar licencias y permisos',
+        pasos: ['Ve al módulo de Licencias → "Nueva solicitud"', 'Selecciona fechas, tipo de licencia (médica, personal, etc.) y adjunta justificante', 'La coordinación de RH revisará y aprobará o rechazará la solicitud'] },
+      { titulo: 'Registrar capacitaciones',
+        pasos: ['Registra cursos tomados indicando institución, fecha y total de horas', 'RH validará la constancia para computar las horas acumuladas de capacitación docente'] }
+    ]
+  },
+  {
+    nombre: 'Operatividad Avanzada', ruta: '/justificaciones', icono: 'pi-calendar-plus', fase: 31,
+    descripcion: 'Gestión de condiciones médicas crónicas del alumnado, justificaciones de faltas y resolución de conflictos horarios.',
+    secciones: [
+      { titulo: 'Aprobación de justificaciones de inasistencia',
+        pasos: ['Padres o alumnos suben justificantes en el sistema', 'La administración del plantel revisa y aprueba para anular la inasistencia académica del día', 'Las justificaciones aprobadas recalculan automáticamente el porcentaje de asistencia acumulado'] }
+    ]
+  },
 ];
 
 const SERVICIOS = [
@@ -272,7 +314,7 @@ const GUIAS_ROL = [
 @Component({
   selector: 'app-ayuda',
   standalone: true,
-  imports: [CommonModule, FormsModule, AccordionModule, TabsModule, TagModule, ButtonModule, InputTextModule, TableModule],
+  imports: [CommonModule, FormsModule, AccordionModule, TabsModule, TagModule, ButtonModule, InputTextModule, InteractiveGridComponent, ApexListComponent],
   template: `
     <div class="page-header">
       <div>
@@ -340,6 +382,17 @@ const GUIAS_ROL = [
           <!-- ══ MÓDULOS ══ -->
           <p-tabpanel value="modulos">
             <p class="section-desc">Documentación detallada de cada módulo con instrucciones paso a paso.</p>
+
+            <!-- Navegación rápida de módulos -->
+            <apex-list
+              [items]="modulosListItems"
+              title="Acceso rápido a módulos"
+              [selectable]="true"
+              emptyMessage="Sin módulos disponibles"
+              (itemSelect)="navegarModulo($event)"
+              style="margin-bottom:1.25rem;display:block"
+            />
+
             <p-accordion [multiple]="false">
               @for (mod of MODULOS; track mod.nombre) {
                 <p-accordion-panel>
@@ -372,24 +425,10 @@ const GUIAS_ROL = [
           <!-- ══ SERVICIOS ══ -->
           <p-tabpanel value="servicios">
             <p class="section-desc">Stack tecnológico open-source de ADES — todos auto-hospedados en infraestructura propia del Instituto.</p>
-            <p-table [value]="SERVICIOS" styleClass="p-datatable-sm p-datatable-striped">
-              <ng-template pTemplate="header">
-                <tr>
-                  <th style="width:130px">Servicio</th>
-                  <th style="width:200px">URL / Puerto</th>
-                  <th>Descripción</th>
-                  <th>Configuración</th>
-                </tr>
-              </ng-template>
-              <ng-template pTemplate="body" let-s>
-                <tr>
-                  <td><strong>{{ s.nombre }}</strong></td>
-                  <td style="font-size:.75rem;font-family:monospace;color:#0f766e">{{ s.puerto }}</td>
-                  <td style="font-size:.82rem">{{ s.descripcion }}</td>
-                  <td style="font-size:.78rem;color:var(--text-secondary)">{{ s.config }}</td>
-                </tr>
-              </ng-template>
-            </p-table>
+            <app-interactive-grid
+              [data]="SERVICIOS"
+              [columns]="SERVICIOS_COLUMNS"
+            />
 
             <div class="arch-note">
               <h4><i class="pi pi-lock" style="margin-right:.4rem"></i>Modelo de seguridad de la arquitectura</h4>
@@ -541,6 +580,26 @@ export class AyudaComponent {
   readonly GUIAS_ROL = GUIAS_ROL;
   readonly MODULOS   = MODULOS;
   readonly SERVICIOS = SERVICIOS;
+
+  readonly SERVICIOS_COLUMNS: ColumnConfig[] = [
+    { field: 'nombre',      header: 'Servicio',      width: '130px' },
+    { field: 'puerto',      header: 'URL / Puerto',  width: '200px' },
+    { field: 'descripcion', header: 'Descripción' },
+    { field: 'config',      header: 'Configuración' },
+  ];
+
+  readonly modulosListItems: ApexListItem[] = MODULOS.map(mod => ({
+    id: mod.ruta,
+    title: mod.nombre,
+    subtitle: mod.descripcion,
+    icon: `pi ${mod.icono}`,
+    badge: `F${mod.fase}`,
+    badgeSeverity: 'secondary' as const,
+  }));
+
+  navegarModulo(item: ApexListItem): void {
+    window.location.href = String(item.id);
+  }
 
   categoriasFAQ = () => [...new Set(FAQS.map(f => f.categoria))];
   faqsPorCategoria = (cat: string) => FAQS.filter(f => f.categoria === cat);

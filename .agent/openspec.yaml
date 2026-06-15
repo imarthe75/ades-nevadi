@@ -63,7 +63,7 @@ modules:
 
   - name: FASE 4 - IA
     path: spec/modules/fase-04-ia/
-    status: in_progress
+    status: active
 
   - name: FASE 24 - Interactive Grid & Gestión Padres
     path: spec/modules/fase-24-interactive-grid/

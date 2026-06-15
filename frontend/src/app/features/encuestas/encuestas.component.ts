@@ -2,8 +2,8 @@ import { Component, inject, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
-import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
+import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
 import { DialogModule } from 'primeng/dialog';
 import { SelectModule } from 'primeng/select';
 import { InputTextModule } from 'primeng/inputtext';
@@ -105,9 +105,10 @@ const TIPOS_PREG = [
   standalone: true,
   imports: [
     CommonModule, FormsModule,
-    ButtonModule, TableModule, TagModule, DialogModule, SelectModule,
+    ButtonModule, TagModule, DialogModule, SelectModule,
     InputTextModule, TextareaModule, TooltipModule, InputNumberModule,
     CheckboxModule, ToggleSwitchModule, DividerModule,
+    InteractiveGridComponent,
   ],
   template: `
     <div class="page-header">
@@ -122,38 +123,13 @@ const TIPOS_PREG = [
 
       <!-- ── Panel izquierdo: lista ── -->
       <div class="panel-list">
-        <p-table [value]="encuestas()" [loading]="loading()" dataKey="id"
-                 styleClass="p-datatable-sm" selectionMode="single"
-                 [(selection)]="selEncuesta" (onRowSelect)="onSeleccion($event.data)">
-          <ng-template pTemplate="header">
-            <tr>
-              <th>Encuesta</th>
-              <th style="width:90px">Respuestas</th>
-            </tr>
-          </ng-template>
-          <ng-template pTemplate="body" let-e>
-            <tr [pSelectableRow]="e" [class.row-selected]="selEncuesta?.id === e.id">
-              <td>
-                <div class="enc-title">{{ e.titulo }}</div>
-                <div class="enc-meta">
-                  <p-tag [value]="e.tipo" [severity]="tipoSev(e.tipo)" />
-                  @if (e.anonima) { <span class="tag-anon">Anónima</span> }
-                  <p-tag [value]="e.activa ? 'Activa' : 'Cerrada'"
-                         [severity]="e.activa ? 'success' : 'secondary'" />
-                </div>
-              </td>
-              <td style="text-align:center">
-                <div class="resp-count">{{ e.total_respuestas }}</div>
-                <div style="font-size:.7rem; color:var(--text-color-secondary)">
-                  {{ e.total_preguntas }} preg.
-                </div>
-              </td>
-            </tr>
-          </ng-template>
-          <ng-template pTemplate="emptymessage">
-            <tr><td colspan="2" class="empty-msg">No hay encuestas.</td></tr>
-          </ng-template>
-        </p-table>
+        <app-interactive-grid
+          [data]="encuestasFlat()"
+          [columns]="encuestaColumns"
+          [loading]="loading()"
+          [showDelete]="false"
+          (rowSelected)="onSeleccion($event)"
+        />
       </div>
 
       <!-- ── Panel derecho: detalle ── -->
@@ -634,6 +610,21 @@ export class EncuestasComponent implements OnInit {
   private readonly exporter = inject(ExportService);
 
   encuestas   = signal<Encuesta[]>([]);
+
+  readonly encuestaColumns: ColumnConfig[] = [
+    { field: 'titulo',         header: 'Encuesta',    sortable: true, filterable: true },
+    { field: 'tipoLabel',      header: 'Tipo',        sortable: true, filterable: true, width: '110px' },
+    { field: 'activaLabel',    header: 'Estado',      sortable: true, filterable: true, width: '80px' },
+    { field: 'total_respuestas', header: 'Respuestas', sortable: true, filterable: false, width: '90px' },
+  ];
+
+  readonly encuestasFlat = computed(() =>
+    this.encuestas().map(e => ({
+      ...e,
+      tipoLabel: e.tipo,
+      activaLabel: e.activa ? 'Activa' : 'Cerrada',
+    }))
+  );
   preguntas   = signal<Pregunta[]>([]);
   resultados  = signal<Resultados | null>(null);
 

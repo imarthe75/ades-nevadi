@@ -3,7 +3,7 @@
 # Docker Compose — Infraestructura completa
 #
 # FASES:
-#   FASE 1 (activa):  postgres, valkey, authentik, minio, ades-api, ades-frontend,
+#   FASE 1 (activa):  postgres, valkey, authentik, seaweedfs, ades-api, ades-frontend,
 #                     celery-worker, celery-beat, nginx, certbot
 #   FASE 3 (activa):  superset (conectado directo a postgres)
 #   FASE 4 (comentada): redpanda, debezium, clickhouse, dbt, cube
@@ -33,12 +33,13 @@ networks:
 volumes:
   postgres-data:
   valkey-data:
-  minio-data:
+  seaweedfs-data:
   authentik-media:
   superset-data:
   carbone-templates:  # plantillas DOCX/XLSX para Carbone
   flowise-data:       # flujos, API keys y logs de Flowise
-  ntfy-data:          # base de datos SQLite de ntfy y cache
+  ntfy-data:          # base de datos SQLite de ntfy (auth, configs)
+  ntfy-cache:         # cache de mensajes e historial de ntfy
   prometheus-data:    # métricas históricas de Prometheus
   grafana-data:       # dashboards y configuración de Grafana
   n8n-data:           # workflows y credenciales de n8n
@@ -47,6 +48,8 @@ volumes:
   paperless-export:   # exportaciones y backups de Paperless-ngx
   certbot-certs:   # /etc/letsencrypt — compartido entre certbot y nginx
   certbot-www:     # /var/www/certbot — webroot para ACME challenge
+  vault-data:
+  vault-init:
 
 # =============================================================================
 # SERVICIOS — FASE 1: INFRAESTRUCTURA BASE
@@ -121,26 +124,28 @@ services:
           memory: 600M
 
   # ---------------------------------------------------------------------------
-  # MinIO — almacenamiento S3 para archivos de tareas, documentos, logos
+  # SeaweedFS — almacenamiento S3 compatible para archivos, documentos y logos
   # ---------------------------------------------------------------------------
-  minio:
-    image: minio/minio:latest
-    container_name: ades-minio
+  seaweedfs:
+    image: chrislusf/seaweedfs:latest
+    container_name: ades-seaweedfs
     restart: unless-stopped
-    command: server /data --console-address ":9001"
+    command: server -dir=/data -s3 -s3.port=9000 -filer
     environment:
-      MINIO_ROOT_USER:     ${MINIO_ROOT_USER:-ades_minio}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD requerido}
+      WEED_S3_AUTH_ENABLED: "true"
+      WEED_S3_ACCESS_KEY:   ${MINIO_ROOT_USER:-ades_minio}
+      WEED_S3_SECRET_KEY:   ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD requerido}
     volumes:
-      - minio-data:/data
+      - seaweedfs-data:/data
       - ./backups:/backups
     ports:
       - "127.0.0.1:9000:9000"   # API S3
-      - "127.0.0.1:9001:9001"   # Consola web
+      - "127.0.0.1:9333:9333"   # Consola/Master
+      - "127.0.0.1:8888:8888"   # Filer UI
     networks:
       - ades-internal
     healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
+      test: ["CMD", "curl", "-f", "http://localhost:9333/"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -243,13 +248,32 @@ services:
     image: hashicorp/vault:latest
     container_name: ades-vault
     restart: unless-stopped
+    environment:
+      SKIP_SETCAP: "true"
+      SKIP_CHOWN: "true"
     ports:
       - "127.0.0.1:8200:8200"
-    environment:
-      VAULT_DEV_ROOT_TOKEN_ID: ${VAULT_TOKEN:-root_token_desarrollo}
-      VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
+    volumes:
+      - vault-data:/vault/data
+      - ./infrastructure/vault/config:/vault/config:ro
+      - vault-init:/vault/init
+    command: vault server -config=/vault/config/vault.hcl
     cap_add:
       - IPC_LOCK
+    user: root
+    networks:
+      - ades-internal
+
+  vault-init:
+    image: hashicorp/vault:latest
+    container_name: ades-vault-init
+    depends_on:
+      - vault
+    volumes:
+      - vault-init:/vault/init
+      - ./infrastructure/vault/scripts:/vault/scripts:ro
+    entrypoint: /vault/scripts/vault-init.sh
+    user: root
     networks:
       - ades-internal
 
@@ -263,39 +287,19 @@ services:
     container_name: ades-api
     restart: unless-stopped
     environment:
-      # Base de datos
-      DATABASE_URL:        postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@ades-postgres:5432/${POSTGRES_DB}
-      DATABASE_URL_SYNC:   postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@ades-postgres:5432/${POSTGRES_DB}
-      # Valkey/Celery
-      VALKEY_URL:          redis://:${VALKEY_PASSWORD}@ades-valkey:6379/0
-      CELERY_BROKER_URL:   redis://:${VALKEY_PASSWORD}@ades-valkey:6379/0
-      CELERY_RESULT_URL:   redis://:${VALKEY_PASSWORD}@ades-valkey:6379/0
-      # MinIO
-      MINIO_ENDPOINT:      ades-minio:9000
-      MINIO_ACCESS_KEY:    ${MINIO_ROOT_USER}
-      MINIO_SECRET_KEY:    ${MINIO_ROOT_PASSWORD}
-      MINIO_SECURE:        "false"
       # Authentik OIDC
       OIDC_ISSUER:         ${OIDC_ISSUER:-https://auth.ades.setag.mx/application/o/ades-frontend/}
       OIDC_CLIENT_ID:      ${OIDC_CLIENT_ID:-ades-frontend}
-      OIDC_CLIENT_SECRET:  ${OIDC_CLIENT_SECRET}
-      # API
-      SECRET_KEY:          ${API_SECRET_KEY:?API_SECRET_KEY requerido}
+      # API Config
       ENVIRONMENT:         ${ENVIRONMENT:-development}
       LOG_LEVEL:           ${LOG_LEVEL:-info}
       ALLOWED_ORIGINS:     ${ALLOWED_ORIGINS:-http://localhost:4200,https://escolar.institutonevadi.edu.mx}
-      # FASE 27 — Certificación Digital Ed25519
-      FIRMA_CLAVE_PRIVADA_HEX: ${FIRMA_CLAVE_PRIVADA_HEX:-}
       BASE_URL:            ${BASE_URL:-https://ades.setag.mx}
-      # FASE 4 — IA Asistente
-      ANTHROPIC_API_KEY:   ${ANTHROPIC_API_KEY:-}
-      VAULT_ADDR:          ${VAULT_ADDR:-}
-      VAULT_TOKEN:         ${VAULT_TOKEN:-}
-      OPENAI_BASE_URL:     ${OPENAI_BASE_URL:-}
-      OPENAI_API_KEY:      ${OPENAI_API_KEY:-}
-      OPENAI_MODEL:        ${OPENAI_MODEL:-}
+      VAULT_ADDR:          http://ades-vault:8200
+      MINIO_SECURE:        "false"
     volumes:
       - ./backend:/app:cached     # hot-reload en desarrollo
+      - vault-init:/vault/init:ro
     ports:
       - "127.0.0.1:8000:8000"
     networks:
@@ -305,13 +309,43 @@ services:
         condition: service_healthy
       valkey:
         condition: service_healthy
-      minio:
+      seaweedfs:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
       interval: 30s
       timeout: 10s
       retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  # ---------------------------------------------------------------------------
+  # ADES BFF — Spring Boot backend
+  # ---------------------------------------------------------------------------
+  ades-bff:
+    build:
+      context: ./backend-spring
+      dockerfile: Dockerfile
+    container_name: ades-bff
+    restart: unless-stopped
+    environment:
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://authentik-server:9000/application/o/ades-frontend/jwks/
+      VAULT_ADDR:                  http://ades-vault:8200
+    volumes:
+      - vault-init:/vault/init:ro
+    ports:
+      - "127.0.0.1:8080:8080"
+    networks:
+      - ades-internal
+    depends_on:
+      postgres:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+      seaweedfs:
+        condition: service_healthy
     deploy:
       resources:
         limits:
@@ -330,27 +364,13 @@ services:
     restart: unless-stopped
     command: celery -A app.worker.celery_app worker --loglevel=info --concurrency=2
     environment:
-      DATABASE_URL:        postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@ades-postgres:5432/${POSTGRES_DB}
-      DATABASE_URL_SYNC:   postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@ades-postgres:5432/${POSTGRES_DB}
-      VALKEY_URL:          redis://:${VALKEY_PASSWORD}@ades-valkey:6379/0
-      CELERY_BROKER_URL:   redis://:${VALKEY_PASSWORD}@ades-valkey:6379/0
-      CELERY_RESULT_URL:   redis://:${VALKEY_PASSWORD}@ades-valkey:6379/0
-      MINIO_ENDPOINT:      ades-minio:9000
-      MINIO_ACCESS_KEY:    ${MINIO_ROOT_USER}
-      MINIO_SECRET_KEY:    ${MINIO_ROOT_PASSWORD}
-      MINIO_SECURE:        "false"
-      SECRET_KEY:          ${SECRET_KEY:-cambiar-en-produccion}
-      ANTHROPIC_API_KEY:   ${ANTHROPIC_API_KEY:-}
-      FIRMA_CLAVE_PRIVADA_HEX: ${FIRMA_CLAVE_PRIVADA_HEX:-}
-      BASE_URL:            ${BASE_URL:-https://ades.setag.mx}
+      VAULT_ADDR:          http://ades-vault:8200
       ENVIRONMENT:         ${ENVIRONMENT:-development}
-      VAULT_ADDR:          ${VAULT_ADDR:-}
-      VAULT_TOKEN:         ${VAULT_TOKEN:-}
-      OPENAI_BASE_URL:     ${OPENAI_BASE_URL:-}
-      OPENAI_API_KEY:      ${OPENAI_API_KEY:-}
-      OPENAI_MODEL:        ${OPENAI_MODEL:-}
+      BASE_URL:            ${BASE_URL:-https://ades.setag.mx}
+      MINIO_SECURE:        "false"
     volumes:
       - ./backend:/app:cached
+      - vault-init:/vault/init:ro
     networks:
       - ades-internal
     depends_on:
@@ -372,21 +392,36 @@ services:
     restart: unless-stopped
     command: celery -A app.worker.celery_app beat --loglevel=info
     environment:
-      DATABASE_URL:        postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@ades-postgres:5432/${POSTGRES_DB}
-      DATABASE_URL_SYNC:   postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@ades-postgres:5432/${POSTGRES_DB}
-      CELERY_BROKER_URL:   redis://:${VALKEY_PASSWORD}@ades-valkey:6379/0
-      CELERY_RESULT_URL:   redis://:${VALKEY_PASSWORD}@ades-valkey:6379/0
-      VALKEY_URL:          redis://:${VALKEY_PASSWORD}@ades-valkey:6379/0
-      SECRET_KEY:          ${SECRET_KEY:-cambiar-en-produccion}
-      ANTHROPIC_API_KEY:   ${ANTHROPIC_API_KEY:-}
+      VAULT_ADDR:          http://ades-vault:8200
       ENVIRONMENT:         ${ENVIRONMENT:-development}
-      VAULT_ADDR:          ${VAULT_ADDR:-}
-      VAULT_TOKEN:         ${VAULT_TOKEN:-}
-      OPENAI_BASE_URL:     ${OPENAI_BASE_URL:-}
-      OPENAI_API_KEY:      ${OPENAI_API_KEY:-}
-      OPENAI_MODEL:        ${OPENAI_MODEL:-}
     volumes:
       - ./backend:/app:cached
+      - vault-init:/vault/init:ro
+    networks:
+      - ades-internal
+    depends_on:
+      - celery-worker
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  # Celery Flower — Monitoreo visual de tareas Celery
+  celery-flower:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ades-celery-flower
+    restart: unless-stopped
+    command: celery -A app.worker.celery_app flower --port=5555 --url-prefix=flower
+    environment:
+      VAULT_ADDR:          http://ades-vault:8200
+      ENVIRONMENT:         ${ENVIRONMENT:-development}
+    ports:
+      - "127.0.0.1:5555:5555"
+    volumes:
+      - ./backend:/app:cached
+      - vault-init:/vault/init:ro
     networks:
       - ades-internal
     depends_on:
@@ -541,7 +576,7 @@ services:
       NTFY_BEHIND_PROXY:      "true"
     volumes:
       - ntfy-data:/var/lib/ntfy
-      - ntfy-data:/var/cache/ntfy
+      - ntfy-cache:/var/cache/ntfy
     ports:
       - "127.0.0.1:2586:80"
     networks:
@@ -643,7 +678,9 @@ services:
       GF_SECURITY_ADMIN_USER:           ${GRAFANA_ADMIN_USER:-admin}
       GF_SECURITY_ADMIN_PASSWORD:       ${GRAFANA_ADMIN_PASSWORD:-cambia_esto_en_produccion}
       GF_USERS_ALLOW_SIGN_UP:           "false"
-      GF_AUTH_ANONYMOUS_ENABLED:        "false"
+      GF_AUTH_ANONYMOUS_ENABLED:        "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE:       "Viewer"
+      GF_SECURITY_ALLOW_EMBEDDING:      "true"
       GF_INSTALL_PLUGINS:               "grafana-piechart-panel"
       GF_PATHS_PROVISIONING:            /etc/grafana/provisioning
     volumes:
@@ -753,7 +790,7 @@ services:
       # Configuración de usuario admin inicial
       PAPERLESS_ADMIN_USER:    ${PAPERLESS_ADMIN_USER:-admin}
       PAPERLESS_ADMIN_PASSWORD: ${PAPERLESS_ADMIN_PASSWORD:-paperless_admin_dev}
-      PAPERLESS_ADMIN_MAIL:    admin@institutonevadi.edu.mx
+      PAPERLESS_ADMIN_MAIL:    admin@setag.mx
       # Configuración de la aplicación
       PAPERLESS_TIME_ZONE:     America/Mexico_City
       PAPERLESS_URL:           http://ades-paperless:8000

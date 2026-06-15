@@ -13,6 +13,7 @@ import { CardModule } from 'primeng/card';
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
 import { ExportService, ExportColumn } from '../../core/services/export.service';
+import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
 
 type TagSeverity = 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' | undefined;
 
@@ -51,8 +52,9 @@ const RIESGO_SEV: Record<string, TagSeverity> = { ALTO: 'danger', MEDIO: 'warn',
   standalone: true,
   imports: [
     CommonModule, FormsModule, RouterModule,
-    ButtonModule, SelectModule, TableModule, TagModule,
+    ButtonModule, SelectModule, TagModule,
     ProgressBarModule, TooltipModule, CardModule,
+    InteractiveGridComponent,
   ],
   template: `
     <div class="page-header">
@@ -144,95 +146,20 @@ const RIESGO_SEV: Record<string, TagSeverity> = { ALTO: 'danger', MEDIO: 'warn',
 
     <!-- Tab: Tendencias por materia -->
     @if (activeTab === 'tendencias') {
-      <p-table [value]="tendencias()" [loading]="loadingTendencias()" dataKey="nombre_materia"
-               styleClass="p-datatable-sm p-datatable-striped" [paginator]="true" [rows]="20">
-        <ng-template pTemplate="header">
-          <tr>
-            <th pSortableColumn="nombre_materia">Materia <p-sortIcon field="nombre_materia" /></th>
-            <th pSortableColumn="nombre_periodo">Periodo <p-sortIcon field="nombre_periodo" /></th>
-            <th pSortableColumn="promedio">Promedio <p-sortIcon field="promedio" /></th>
-            <th>Rango (min–max)</th>
-            <th>% Aprobados</th>
-            <th>Evaluados</th>
-          </tr>
-        </ng-template>
-        <ng-template pTemplate="body" let-r>
-          <tr>
-            <td><strong>{{ r.nombre_materia }}</strong></td>
-            <td>{{ r.nombre_periodo }}</td>
-            <td>
-              <span [class]="promedioClass(r.promedio)">{{ r.promedio | number:'1.1-1' }}</span>
-            </td>
-            <td style="font-size:.8rem; color:var(--text-color-secondary)">
-              {{ r.minimo | number:'1.1-1' }} – {{ r.maximo | number:'1.1-1' }}
-            </td>
-            <td>
-              <div class="pct-bar-row">
-                <div class="pct-bar-fill" [style.width]="r.pct_aprobados + '%'"
-                     [style.background]="r.pct_aprobados >= 80 ? 'var(--green-400)' : r.pct_aprobados >= 60 ? 'var(--yellow-400)' : 'var(--red-400)'">
-                </div>
-                <span>{{ r.pct_aprobados | number:'1.0-1' }}%</span>
-              </div>
-            </td>
-            <td>{{ r.alumnos_evaluados }}</td>
-          </tr>
-        </ng-template>
-        <ng-template pTemplate="emptymessage">
-          <tr><td colspan="6" class="empty-msg">Selecciona un grupo para ver las tendencias.</td></tr>
-        </ng-template>
-      </p-table>
+      <app-interactive-grid
+        [data]="tendenciasFlat()"
+        [columns]="tendenciasColumns"
+        [loading]="loadingTendencias()"
+      />
     }
 
     <!-- Tab: Alumnos en riesgo -->
     @if (activeTab === 'riesgo') {
-      <p-table [value]="riesgo()" [loading]="loadingRiesgo()" dataKey="estudiante_id"
-               styleClass="p-datatable-sm p-datatable-striped" [paginator]="true" [rows]="20"
-               [globalFilterFields]="['nombre_alumno','nombre_grupo']">
-        <ng-template pTemplate="caption">
-          <div style="display:flex; justify-content:flex-end;">
-            <input pInputText placeholder="Buscar alumno..." style="font-size:.85rem; padding:.35rem .7rem;"
-                   (input)="onFilterRiesgo($event)" />
-          </div>
-        </ng-template>
-        <ng-template pTemplate="header">
-          <tr>
-            <th pSortableColumn="nombre_alumno">Alumno <p-sortIcon field="nombre_alumno" /></th>
-            <th>Grupo</th>
-            <th pSortableColumn="promedio_general">Promedio <p-sortIcon field="promedio_general" /></th>
-            <th pSortableColumn="pct_asistencia">% Asistencia <p-sortIcon field="pct_asistencia" /></th>
-            <th>Materias reprobadas</th>
-            <th pSortableColumn="nivel_riesgo">Riesgo <p-sortIcon field="nivel_riesgo" /></th>
-          </tr>
-        </ng-template>
-        <ng-template pTemplate="body" let-r>
-          <tr>
-            <td><strong>{{ r.nombre_alumno }}</strong></td>
-            <td>{{ r.nombre_grupo }}</td>
-            <td>
-              <span [class]="promedioClass(r.promedio_general)">{{ r.promedio_general | number:'1.1-1' }}</span>
-            </td>
-            <td>
-              <p-progressBar [value]="r.pct_asistencia"
-                [style]="{'height':'6px'}"
-                [styleClass]="r.pct_asistencia < 80 ? 'pbar-danger' : 'pbar-ok'" />
-              <span style="font-size:.75rem">{{ r.pct_asistencia | number:'1.0-1' }}%</span>
-            </td>
-            <td style="text-align:center;">
-              @if (r.materias_reprobadas > 0) {
-                <span class="rep-badge">{{ r.materias_reprobadas }}</span>
-              } @else {
-                <span style="color:var(--green-500)">0</span>
-              }
-            </td>
-            <td>
-              <p-tag [value]="r.nivel_riesgo" [severity]="riesgoSev(r.nivel_riesgo)" />
-            </td>
-          </tr>
-        </ng-template>
-        <ng-template pTemplate="emptymessage">
-          <tr><td colspan="6" class="empty-msg">No se encontraron alumnos con los filtros aplicados.</td></tr>
-        </ng-template>
-      </p-table>
+      <app-interactive-grid
+        [data]="riesgoFlat()"
+        [columns]="riesgoColumns"
+        [loading]="loadingRiesgo()"
+      />
     }
 
     <!-- Tab: Distribución calificaciones -->
@@ -262,38 +189,11 @@ const RIESGO_SEV: Record<string, TagSeverity> = { ALTO: 'danger', MEDIO: 'warn',
 
     <!-- Tab: Resumen ejecutivo por plantel -->
     @if (activeTab === 'resumen') {
-      <p-table [value]="resumen()" [loading]="loadingResumen()"
-               styleClass="p-datatable-sm p-datatable-striped">
-        <ng-template pTemplate="header">
-          <tr>
-            <th>Plantel</th>
-            <th>Nivel</th>
-            <th>Alumnos</th>
-            <th>Promedio gral.</th>
-            <th>% Aprobados</th>
-            <th>% En riesgo</th>
-          </tr>
-        </ng-template>
-        <ng-template pTemplate="body" let-r>
-          <tr>
-            <td><strong>{{ r.nombre_plantel }}</strong></td>
-            <td>{{ r.nombre_nivel }}</td>
-            <td>{{ r.total_alumnos }}</td>
-            <td><span [class]="promedioClass(r.promedio_general)">{{ r.promedio_general | number:'1.1-1' }}</span></td>
-            <td>
-              <div class="pct-bar-row">
-                <div class="pct-bar-fill" [style.width]="r.pct_aprobados + '%'"
-                     [style.background]="r.pct_aprobados >= 80 ? 'var(--green-400)' : 'var(--yellow-400)'"></div>
-                <span>{{ r.pct_aprobados | number:'1.0-1' }}%</span>
-              </div>
-            </td>
-            <td>
-              <p-tag [value]="(r.pct_riesgo | number:'1.0-1') + '%'"
-                     [severity]="r.pct_riesgo > 20 ? 'danger' : r.pct_riesgo > 10 ? 'warn' : 'success'" />
-            </td>
-          </tr>
-        </ng-template>
-      </p-table>
+      <app-interactive-grid
+        [data]="resumenFlat()"
+        [columns]="resumenColumns"
+        [loading]="loadingResumen()"
+      />
     }
   `,
   styles: [`
@@ -392,6 +292,56 @@ export class GradeAnalyticsComponent implements OnInit {
     { label: 'Alto',   value: 'ALTO' },
     { label: 'Medio',  value: 'MEDIO' },
     { label: 'Bajo',   value: 'BAJO' },
+  ];
+
+  readonly tendenciasFlat = computed(() =>
+    this.tendencias().map(r => ({
+      ...r,
+      promedio_str:    Number(r.promedio).toFixed(1),
+      rango_str:       `${Number(r.minimo).toFixed(1)} – ${Number(r.maximo).toFixed(1)}`,
+      pct_aprobados_str: `${Number(r.pct_aprobados).toFixed(0)}%`,
+    }))
+  );
+  readonly tendenciasColumns: ColumnConfig[] = [
+    { field: 'nombre_materia',      header: 'Materia',      sortable: true },
+    { field: 'nombre_periodo',      header: 'Período',      sortable: true },
+    { field: 'promedio_str',        header: 'Promedio',     width: '90px', sortable: true },
+    { field: 'rango_str',           header: 'Rango min–max', width: '130px' },
+    { field: 'pct_aprobados_str',   header: '% Aprobados',  width: '110px' },
+    { field: 'alumnos_evaluados',   header: 'Evaluados',    width: '90px' },
+  ];
+
+  readonly riesgoFlat = computed(() =>
+    this.riesgo().map(r => ({
+      ...r,
+      promedio_str:    Number(r.promedio_general).toFixed(1),
+      asistencia_str:  `${Number(r.pct_asistencia).toFixed(0)}%`,
+    }))
+  );
+  readonly riesgoColumns: ColumnConfig[] = [
+    { field: 'nombre_alumno',        header: 'Alumno',            sortable: true },
+    { field: 'nombre_grupo',         header: 'Grupo' },
+    { field: 'promedio_str',         header: 'Promedio',          width: '90px', sortable: true },
+    { field: 'asistencia_str',       header: '% Asistencia',      width: '110px' },
+    { field: 'materias_reprobadas',  header: 'Mat. Reprobadas',   width: '130px' },
+    { field: 'nivel_riesgo',         header: 'Riesgo',            width: '90px', sortable: true },
+  ];
+
+  readonly resumenFlat = computed(() =>
+    this.resumen().map(r => ({
+      ...r,
+      promedio_str:       Number(r.promedio_general).toFixed(1),
+      pct_aprobados_str:  `${Number(r.pct_aprobados).toFixed(0)}%`,
+      pct_riesgo_str:     `${Number(r.pct_riesgo).toFixed(0)}%`,
+    }))
+  );
+  readonly resumenColumns: ColumnConfig[] = [
+    { field: 'nombre_plantel',    header: 'Plantel' },
+    { field: 'nombre_nivel',      header: 'Nivel' },
+    { field: 'total_alumnos',     header: 'Alumnos',      width: '90px' },
+    { field: 'promedio_str',      header: 'Promedio gral.', width: '120px' },
+    { field: 'pct_aprobados_str', header: '% Aprobados',  width: '110px' },
+    { field: 'pct_riesgo_str',    header: '% En riesgo',  width: '100px' },
   ];
 
   // KPI computeds

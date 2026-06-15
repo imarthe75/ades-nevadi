@@ -1,0 +1,94 @@
+{
+  "__inputs": [],
+  "__requires": [],
+  "annotations": { "list": [] },
+  "description": "Estado del servidor Prometheus e Infraestructura de telemetría ADES",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" }, "unit": "percentunit" },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "id": 1,
+      "title": "Uso de CPU de Prometheus (interno)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "rate(process_cpu_seconds_total{job=\"prometheus\"}[5m])",
+          "legendFormat": "CPU Usage"
+        }
+      ]
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" }, "unit": "bytes" },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "id": 2,
+      "title": "Consumo de Memoria de Prometheus (Resident Set Size)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "process_resident_memory_bytes{job=\"prometheus\"}",
+          "legendFormat": "Memory Used"
+        }
+      ]
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": { "unit": "short" },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "id": 3,
+      "title": "Métricas Totales Recolectadas (Series en Memoria)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "prometheus_tsdb_head_series",
+          "legendFormat": "Series activas"
+        }
+      ]
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": { "unit": "s" },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "id": 4,
+      "title": "Uptime del Servidor Prometheus",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "time() - process_start_time_seconds{job=\"prometheus\"}",
+          "legendFormat": "Uptime (segundos)"
+        }
+      ]
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 38,
+  "tags": ["ades", "infraestructura", "prometheus"],
+  "time": { "from": "now-3h", "to": "now" },
+  "timepicker": {},
+  "timezone": "America/Mexico_City",
+  "title": "ADES Infraestructura — Monitoreo",
+  "uid": "ades-infra-monitor",
+  "version": 1
+}

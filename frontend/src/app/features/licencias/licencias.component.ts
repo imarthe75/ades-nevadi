@@ -2,8 +2,8 @@ import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
-import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
+import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
 import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
@@ -13,12 +13,14 @@ import { ToastModule } from 'primeng/toast';
 import { DatePickerModule } from 'primeng/datepicker';
 import { CheckboxModule } from 'primeng/checkbox';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { AutoCompleteModule } from 'primeng/autocomplete';
 import { MessageService, ConfirmationService } from 'primeng/api';
 import { ApexNotificationService } from 'apex-component-library';
 
 interface Licencia {
   id: string;
   personal_id: string;
+  nombre_completo?: string;
   tipo_licencia: string;
   fecha_inicio: string;
   fecha_fin: string;
@@ -26,21 +28,9 @@ interface Licencia {
   estado: string;
   motivo: string | null;
   observaciones_rh: string | null;
-  sustituto_id: string | null;
-  aprobado_por: string | null;
-  fecha_aprobacion: string | null;
   con_goce_sueldo: boolean;
   row_version: number;
   fecha_creacion: string;
-}
-
-interface LicenciaForm {
-  personal_id: string;
-  tipo_licencia: string;
-  fecha_inicio: Date | null;
-  fecha_fin: Date | null;
-  motivo: string;
-  con_goce_sueldo: boolean;
 }
 
 @Component({
@@ -48,10 +38,11 @@ interface LicenciaForm {
   standalone: true,
   imports: [
     CommonModule, FormsModule, ReactiveFormsModule,
-    TableModule, ButtonModule, DialogModule,
+    ButtonModule, DialogModule,
     InputTextModule, SelectModule, TextareaModule,
     TagModule, ToastModule, DatePickerModule,
-    CheckboxModule, ConfirmDialogModule,
+    CheckboxModule, ConfirmDialogModule, AutoCompleteModule,
+    InteractiveGridComponent,
   ],
   providers: [MessageService, ConfirmationService],
   template: `
@@ -59,111 +50,46 @@ interface LicenciaForm {
     <p-confirmDialog />
 
     <div class="apex-page">
-      <!-- Toolbar -->
       <div class="apex-toolbar">
         <h2 class="apex-title">Licencias y Permisos de Personal</h2>
         <div class="apex-toolbar-actions">
-          <!-- Filtros rápidos -->
-          <p-select
-            [options]="estadoOpts"
-            [(ngModel)]="filtroEstado"
-            placeholder="Todos los estados"
-            [showClear]="true"
-            (onChange)="cargar()"
-            style="min-width:180px">
-          </p-select>
-          <p-select
-            [options]="tipoOpts"
-            [(ngModel)]="filtroTipo"
-            placeholder="Todos los tipos"
-            [showClear]="true"
-            (onChange)="cargar()"
-            style="min-width:180px">
-          </p-select>
-          <p-button
-            label="Nueva Licencia"
-            icon="pi pi-plus"
-            size="small"
-            (onClick)="abrirNueva()">
-          </p-button>
+          <input pInputText [(ngModel)]="filtroNombre" (input)="onFiltroNombre()"
+            placeholder="Buscar por nombre…" style="min-width:200px" />
+          <p-select [options]="estadoOpts" [(ngModel)]="filtroEstado" placeholder="Todos los estados"
+            [showClear]="true" (onChange)="cargar()" style="min-width:160px" />
+          <p-select [options]="tipoOpts" [(ngModel)]="filtroTipo" placeholder="Todos los tipos"
+            [showClear]="true" (onChange)="cargar()" style="min-width:160px" />
+          <p-button label="Nueva Licencia" icon="pi pi-plus" size="small" (onClick)="abrirNueva()" />
         </div>
       </div>
 
-      <!-- Grid -->
-      <p-table
-        [value]="licencias()"
+      <app-interactive-grid
+        [data]="licenciasFlat()"
+        [columns]="licenciaColumns"
         [loading]="cargando()"
-        [paginator]="true"
-        [rows]="15"
-        [rowsPerPageOptions]="[15,30,50]"
-        stripedRows
-        styleClass="p-datatable-sm">
-
-        <ng-template pTemplate="header">
-          <tr>
-            <th style="width:180px">Personal</th>
-            <th style="width:140px">Tipo</th>
-            <th style="width:110px">Fecha Inicio</th>
-            <th style="width:110px">Fecha Fin</th>
-            <th style="width:80px" pSortableColumn="dias_habiles">Días<p-sortIcon field="dias_habiles"/></th>
-            <th style="width:90px">Goce</th>
-            <th style="width:120px">Estado</th>
-            <th>Motivo</th>
-            <th style="width:160px">Acciones</th>
-          </tr>
-        </ng-template>
-
-        <ng-template pTemplate="body" let-lic>
-          <tr>
-            <td><code class="text-xs">{{ lic.personal_id | slice:0:8 }}…</code></td>
-            <td>{{ tipoLabel(lic.tipo_licencia) }}</td>
-            <td>{{ lic.fecha_inicio }}</td>
-            <td>{{ lic.fecha_fin }}</td>
-            <td class="text-center font-semibold">{{ lic.dias_habiles }}</td>
-            <td class="text-center">
-              <span [class]="lic.con_goce_sueldo ? 'text-green-600 font-semibold' : 'text-gray-500'">
-                {{ lic.con_goce_sueldo ? 'Con goce' : 'Sin goce' }}
-              </span>
-            </td>
-            <td>
-              <p-tag [value]="lic.estado" [severity]="estadoSeverity(lic.estado)" />
-            </td>
-            <td class="text-sm text-gray-600">{{ lic.motivo | slice:0:60 }}</td>
-            <td>
-              <div class="flex gap-1">
-                <p-button icon="pi pi-eye"    size="small" [text]="true" severity="info"
-                  (onClick)="verDetalle(lic)" pTooltip="Ver detalle" />
-                @if (lic.estado === 'PENDIENTE') {
-                  <p-button icon="pi pi-check" size="small" [text]="true" severity="success"
-                    (onClick)="aprobar(lic)" pTooltip="Aprobar" />
-                  <p-button icon="pi pi-times" size="small" [text]="true" severity="danger"
-                    (onClick)="rechazar(lic)" pTooltip="Rechazar" />
-                  <p-button icon="pi pi-ban"   size="small" [text]="true" severity="warn"
-                    (onClick)="cancelar(lic)" pTooltip="Cancelar" />
-                }
-              </div>
-            </td>
-          </tr>
-        </ng-template>
-
-        <ng-template pTemplate="emptymessage">
-          <tr><td colspan="9" class="text-center py-4 text-gray-500">Sin licencias registradas.</td></tr>
-        </ng-template>
-      </p-table>
+        [showDelete]="false"
+        (rowSelected)="verDetalle($event)"
+      />
     </div>
 
     <!-- Dialog: Nueva Licencia -->
-    <p-dialog
-      header="Solicitar Licencia o Permiso"
-      [(visible)]="dialogNueva"
-      [modal]="true"
-      [style]="{width:'580px'}"
-      [draggable]="false">
+    <p-dialog header="Solicitar Licencia o Permiso" [(visible)]="dialogNueva"
+      [modal]="true" [style]="{width:'580px'}" [draggable]="false">
 
       <div class="grid grid-cols-2 gap-3 p-2">
         <div class="col-span-2 flex flex-col gap-1">
-          <label class="text-sm font-medium">ID de Personal <span class="text-red-500">*</span></label>
-          <input pInputText [(ngModel)]="form.personal_id" placeholder="UUID del empleado" />
+          <label class="text-sm font-medium">Personal <span class="text-red-500">*</span></label>
+          <p-autocomplete
+            [(ngModel)]="personalSeleccionado"
+            [suggestions]="personalSugerencias()"
+            (completeMethod)="buscarPersonal($event)"
+            optionLabel="label"
+            [dropdown]="false"
+            placeholder="Escriba nombre del empleado…"
+            [forceSelection]="true"
+            [delay]="300"
+            style="width:100%"
+          />
         </div>
 
         <div class="flex flex-col gap-1">
@@ -181,12 +107,12 @@ interface LicenciaForm {
 
         <div class="flex flex-col gap-1">
           <label class="text-sm font-medium">Fecha Inicio <span class="text-red-500">*</span></label>
-          <p-calendar [(ngModel)]="form.fecha_inicio" dateFormat="yy-mm-dd" [showIcon]="true" />
+          <p-datepicker [(ngModel)]="form.fecha_inicio" dateFormat="yy-mm-dd" [showIcon]="true" />
         </div>
 
         <div class="flex flex-col gap-1">
           <label class="text-sm font-medium">Fecha Fin <span class="text-red-500">*</span></label>
-          <p-calendar [(ngModel)]="form.fecha_fin" dateFormat="yy-mm-dd" [showIcon]="true" />
+          <p-datepicker [(ngModel)]="form.fecha_fin" dateFormat="yy-mm-dd" [showIcon]="true" />
         </div>
 
         <div class="col-span-2 flex flex-col gap-1">
@@ -202,14 +128,11 @@ interface LicenciaForm {
     </p-dialog>
 
     <!-- Dialog: Detalle -->
-    <p-dialog
-      header="Detalle de Licencia"
-      [(visible)]="dialogDetalle"
-      [modal]="true"
-      [style]="{width:'560px'}"
-      [draggable]="false">
+    <p-dialog header="Detalle de Licencia" [(visible)]="dialogDetalle"
+      [modal]="true" [style]="{width:'560px'}" [draggable]="false">
       @if (seleccionada()) {
         <div class="grid grid-cols-2 gap-y-3 gap-x-4 p-2 text-sm">
+          <div class="col-span-2"><span class="font-medium">Personal:</span> {{ seleccionada()!.nombre_completo || seleccionada()!.personal_id }}</div>
           <div><span class="font-medium">Tipo:</span> {{ tipoLabel(seleccionada()!.tipo_licencia) }}</div>
           <div><span class="font-medium">Estado:</span>
             <p-tag [value]="seleccionada()!.estado" [severity]="estadoSeverity(seleccionada()!.estado)" class="ml-1" />
@@ -224,21 +147,13 @@ interface LicenciaForm {
           @if (seleccionada()!.observaciones_rh) {
             <div class="col-span-2"><span class="font-medium">Observaciones RH:</span> {{ seleccionada()!.observaciones_rh }}</div>
           }
-          @if (seleccionada()!.fecha_aprobacion) {
-            <div class="col-span-2"><span class="font-medium">Aprobada:</span> {{ seleccionada()!.fecha_aprobacion }}</div>
-          }
-          <div class="col-span-2 text-gray-400 text-xs">Versión {{ seleccionada()!.row_version }} — {{ seleccionada()!.fecha_creacion }}</div>
         </div>
       }
     </p-dialog>
 
     <!-- Dialog: Rechazar -->
-    <p-dialog
-      header="Rechazar Licencia"
-      [(visible)]="dialogRechazar"
-      [modal]="true"
-      [style]="{width:'420px'}"
-      [draggable]="false">
+    <p-dialog header="Rechazar Licencia" [(visible)]="dialogRechazar"
+      [modal]="true" [style]="{width:'420px'}" [draggable]="false">
       <div class="flex flex-col gap-2 p-2">
         <label class="text-sm font-medium">Motivo de rechazo <span class="text-red-500">*</span></label>
         <textarea pTextarea [(ngModel)]="motivoRechazo" rows="3" placeholder="Indique el motivo…"></textarea>
@@ -246,8 +161,7 @@ interface LicenciaForm {
       <ng-template pTemplate="footer">
         <p-button label="Cancelar" [text]="true" (onClick)="dialogRechazar=false" />
         <p-button label="Confirmar rechazo" severity="danger" [loading]="guardando()"
-          [disabled]="motivoRechazo.length < 5"
-          (onClick)="confirmarRechazo()" />
+          [disabled]="motivoRechazo.length < 5" (onClick)="confirmarRechazo()" />
       </ng-template>
     </p-dialog>
   `,
@@ -259,16 +173,39 @@ interface LicenciaForm {
     }
     .apex-title { margin: 0; font-size: 1.25rem; font-weight: 600; }
     .apex-toolbar-actions { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
-    code.text-xs { font-family: monospace; font-size: 0.75rem; }
   `],
 })
 export class LicenciasComponent implements OnInit {
   private http = inject(HttpClient);
   private notify = inject(ApexNotificationService);
 
-  licencias  = signal<Licencia[]>([]);
-  cargando   = signal(false);
-  guardando  = signal(false);
+  licencias = signal<Licencia[]>([]);
+  personalSugerencias = signal<{ label: string; value: string }[]>([]);
+  personalSeleccionado: { label: string; value: string } | null = null;
+
+  readonly licenciaColumns: ColumnConfig[] = [
+    { field: 'nombrePersonal',  header: 'Personal',     sortable: true, filterable: true },
+    { field: 'tipoLabel',       header: 'Tipo',         sortable: true, filterable: true,  width: '140px' },
+    { field: 'fecha_inicio',    header: 'Fecha Inicio', sortable: true, filterable: false, width: '110px' },
+    { field: 'fecha_fin',       header: 'Fecha Fin',    sortable: true, filterable: false, width: '110px' },
+    { field: 'dias_habiles',    header: 'Días',         sortable: true, filterable: false, width: '80px' },
+    { field: 'goceLabel',       header: 'Goce',         sortable: true, filterable: true,  width: '90px' },
+    { field: 'estado',          header: 'Estado',       sortable: true, filterable: true,  width: '120px' },
+    { field: 'motivoCorto',     header: 'Motivo',       sortable: false, filterable: true },
+  ];
+
+  readonly licenciasFlat = computed(() =>
+    this.licencias().map(lic => ({
+      ...lic,
+      nombrePersonal: lic.nombre_completo || lic.personal_id,
+      tipoLabel: this.tipoOpts.find(o => o.value === lic.tipo_licencia)?.label ?? lic.tipo_licencia,
+      goceLabel: lic.con_goce_sueldo ? 'Con goce' : 'Sin goce',
+      motivoCorto: lic.motivo ? lic.motivo.slice(0, 60) : '',
+    }))
+  );
+
+  cargando  = signal(false);
+  guardando = signal(false);
   seleccionada = signal<Licencia | null>(null);
 
   dialogNueva    = false;
@@ -277,10 +214,13 @@ export class LicenciasComponent implements OnInit {
 
   filtroEstado = '';
   filtroTipo   = '';
+  filtroNombre = '';
   motivoRechazo = '';
   licenciaARechazar: Licencia | null = null;
 
-  form: LicenciaForm = this.resetForm();
+  form = this.resetForm();
+
+  private filtroTimer: ReturnType<typeof setTimeout> | null = null;
 
   estadoOpts = [
     { label: 'Pendiente',  value: 'PENDIENTE' },
@@ -302,30 +242,51 @@ export class LicenciasComponent implements OnInit {
 
   ngOnInit() { this.cargar(); }
 
+  onFiltroNombre() {
+    if (this.filtroTimer) clearTimeout(this.filtroTimer);
+    this.filtroTimer = setTimeout(() => this.cargar(), 400);
+  }
+
   cargar() {
     this.cargando.set(true);
     const params: Record<string, string> = {};
     if (this.filtroEstado) params['estado'] = this.filtroEstado;
     if (this.filtroTipo)   params['tipo']   = this.filtroTipo;
+    if (this.filtroNombre) params['q']      = this.filtroNombre;
     this.http.get<Licencia[]>('/api/v1/licencias', { params }).subscribe({
       next: data => { this.licencias.set(data); this.cargando.set(false); },
       error: () => { this.cargando.set(false); this.notify.error('Error al cargar licencias'); },
     });
   }
 
+  buscarPersonal(event: { query: string }) {
+    if (!event.query || event.query.length < 2) { this.personalSugerencias.set([]); return; }
+    this.http.get<any>('/api/v1/profesores', { params: { buscar: event.query } }).subscribe({
+      next: res => {
+        const data = res?.data ?? res ?? [];
+        this.personalSugerencias.set(data.map((p: any) => ({
+          label: [p.nombre ?? p.persona?.nombre, p.apellido_paterno ?? p.persona?.apellido_paterno, p.apellido_materno ?? p.persona?.apellido_materno].filter(Boolean).join(' '),
+          value: p.id,
+        })));
+      },
+      error: () => this.personalSugerencias.set([]),
+    });
+  }
+
   abrirNueva() {
     this.form = this.resetForm();
+    this.personalSeleccionado = null;
     this.dialogNueva = true;
   }
 
   guardar() {
-    if (!this.form.personal_id || !this.form.tipo_licencia || !this.form.fecha_inicio || !this.form.fecha_fin) {
+    if (!this.personalSeleccionado?.value || !this.form.tipo_licencia || !this.form.fecha_inicio || !this.form.fecha_fin) {
       this.notify.warning('Complete los campos obligatorios');
       return;
     }
     this.guardando.set(true);
     const payload = {
-      personal_id:     this.form.personal_id,
+      personal_id:     this.personalSeleccionado.value,
       tipo_licencia:   this.form.tipo_licencia,
       fecha_inicio:    this.toDateStr(this.form.fecha_inicio),
       fecha_fin:       this.toDateStr(this.form.fecha_fin),
@@ -397,8 +358,8 @@ export class LicenciasComponent implements OnInit {
     return this.tipoOpts.find(o => o.value === tipo)?.label ?? tipo;
   }
 
-  private resetForm(): LicenciaForm {
-    return { personal_id: '', tipo_licencia: '', fecha_inicio: null, fecha_fin: null, motivo: '', con_goce_sueldo: true };
+  private resetForm() {
+    return { tipo_licencia: '', fecha_inicio: null as Date | null, fecha_fin: null as Date | null, motivo: '', con_goce_sueldo: true };
   }
 
   private toDateStr(d: Date | null): string {

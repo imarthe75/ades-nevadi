@@ -11,12 +11,14 @@ import { TagModule } from 'primeng/tag';
 import { ToastModule } from 'primeng/toast';
 import { DatePickerModule } from 'primeng/datepicker';
 import { InputNumberModule } from 'primeng/inputnumber';
+import { AutoCompleteModule } from 'primeng/autocomplete';
 import { MessageService } from 'primeng/api';
 import { ApexNotificationService } from 'apex-component-library';
 
 interface ExpedienteLab {
   id: string;
   persona_id: string;
+  nombre_completo?: string;
   tipo_contrato: string;
   fecha_contratacion: string;
   fecha_fin_contrato: string | null;
@@ -41,7 +43,7 @@ interface ExpedienteLab {
   imports: [
     CommonModule, FormsModule, TableModule, ButtonModule,
     DialogModule, InputTextModule, SelectModule, TagModule,
-    ToastModule, DatePickerModule, InputNumberModule,
+    ToastModule, DatePickerModule, InputNumberModule, AutoCompleteModule,
   ],
   providers: [MessageService],
   template: `
@@ -50,9 +52,8 @@ interface ExpedienteLab {
       <div class="apex-toolbar">
         <h2 class="apex-title">Expediente Laboral Digital</h2>
         <div class="apex-toolbar-actions">
-          <input pInputText [(ngModel)]="busquedaPersonaId" placeholder="UUID de persona…"
-            style="width:280px" (keyup.enter)="cargar()" />
-          <p-button label="Buscar" icon="pi pi-search" size="small" (onClick)="cargar()" />
+          <input pInputText [(ngModel)]="busquedaNombre" (input)="onBusquedaNombre()"
+            placeholder="Buscar por nombre de persona…" style="width:280px" />
           <p-button label="Nuevo Expediente" icon="pi pi-plus" size="small" (onClick)="abrirNuevo()" />
         </div>
       </div>
@@ -61,11 +62,11 @@ interface ExpedienteLab {
         stripedRows styleClass="p-datatable-sm">
         <ng-template pTemplate="header">
           <tr>
+            <th>Personal</th>
             <th style="width:130px">Tipo Contrato</th>
             <th style="width:120px">F. Contratación</th>
             <th style="width:120px">F. Fin</th>
             <th style="width:110px">Salario</th>
-            <th style="width:100px">IMSS</th>
             <th style="width:100px">RFC</th>
             <th>Estudios</th>
             <th style="width:90px">Documentos</th>
@@ -74,11 +75,11 @@ interface ExpedienteLab {
         </ng-template>
         <ng-template pTemplate="body" let-exp>
           <tr>
+            <td class="font-medium">{{ exp.nombre_completo || exp.persona_id }}</td>
             <td><p-tag [value]="exp.tipo_contrato" [severity]="contratoSev(exp.tipo_contrato)" /></td>
             <td>{{ exp.fecha_contratacion }}</td>
             <td>{{ exp.fecha_fin_contrato ?? '—' }}</td>
             <td class="font-semibold">$ {{ exp.salario_mensual | number:'1.0-0' }}</td>
-            <td class="text-sm">{{ exp.imss_numero ?? '—' }}</td>
             <td class="text-sm font-mono">{{ exp.rfc ?? '—' }}</td>
             <td class="text-sm">
               {{ exp.nivel_estudios ?? '—' }}
@@ -89,15 +90,15 @@ interface ExpedienteLab {
             </td>
             <td>
               <div class="flex gap-1">
-                <p-button icon="pi pi-eye"  size="small" [text]="true" severity="info"  (onClick)="ver(exp)" pTooltip="Ver detalle" />
-                <p-button icon="pi pi-file" size="small" [text]="true" severity="secondary" (onClick)="verDocs(exp)" pTooltip="Documentos" />
-                <p-button icon="pi pi-pencil" size="small" [text]="true" (onClick)="editar(exp)" pTooltip="Editar" />
+                <p-button icon="pi pi-eye"    size="small" [text]="true" severity="info"     (onClick)="ver(exp)"     pTooltip="Ver detalle" />
+                <p-button icon="pi pi-file"   size="small" [text]="true" severity="secondary"(onClick)="verDocs(exp)" pTooltip="Documentos" />
+                <p-button icon="pi pi-pencil" size="small" [text]="true"                     (onClick)="editar(exp)"  pTooltip="Editar" />
               </div>
             </td>
           </tr>
         </ng-template>
         <ng-template pTemplate="emptymessage">
-          <tr><td colspan="9" class="text-center py-4 text-gray-500">Sin expedientes. Busque por UUID de persona o cree uno nuevo.</td></tr>
+          <tr><td colspan="9" class="text-center py-4 text-gray-500">Sin expedientes. Busque por nombre de persona o cree uno nuevo.</td></tr>
         </ng-template>
       </p-table>
     </div>
@@ -108,8 +109,17 @@ interface ExpedienteLab {
       <div class="grid grid-cols-2 gap-3 p-2">
         @if (!editandoId) {
           <div class="col-span-2 flex flex-col gap-1">
-            <label class="text-sm font-medium">ID Persona <span class="text-red-500">*</span></label>
-            <input pInputText [(ngModel)]="form.persona_id" placeholder="UUID de la persona" />
+            <label class="text-sm font-medium">Personal <span class="text-red-500">*</span></label>
+            <p-autocomplete
+              [(ngModel)]="personaSeleccionada"
+              [suggestions]="personaSugerencias()"
+              (completeMethod)="buscarPersona($event)"
+              optionLabel="label"
+              [forceSelection]="true"
+              [delay]="300"
+              placeholder="Escriba nombre del empleado…"
+              style="width:100%"
+            />
           </div>
         }
         <div class="flex flex-col gap-1">
@@ -118,11 +128,11 @@ interface ExpedienteLab {
         </div>
         <div class="flex flex-col gap-1">
           <label class="text-sm font-medium">F. Contratación <span class="text-red-500">*</span></label>
-          <p-calendar [(ngModel)]="form.fecha_contratacion" dateFormat="yy-mm-dd" [showIcon]="true" />
+          <p-datepicker [(ngModel)]="form.fecha_contratacion" dateFormat="yy-mm-dd" [showIcon]="true" />
         </div>
         <div class="flex flex-col gap-1">
           <label class="text-sm font-medium">F. Fin Contrato</label>
-          <p-calendar [(ngModel)]="form.fecha_fin_contrato" dateFormat="yy-mm-dd" [showIcon]="true" [showClear]="true" />
+          <p-datepicker [(ngModel)]="form.fecha_fin_contrato" dateFormat="yy-mm-dd" [showIcon]="true" [showClear]="true" />
         </div>
         <div class="flex flex-col gap-1">
           <label class="text-sm font-medium">Salario Mensual</label>
@@ -214,13 +224,17 @@ export class ExpedienteLaboralComponent implements OnInit {
   cargando      = signal(false);
   guardando     = signal(false);
   seleccionado  = signal<ExpedienteLab | null>(null);
+  personaSugerencias = signal<{ label: string; value: string }[]>([]);
+  personaSeleccionada: { label: string; value: string } | null = null;
 
   dialogForm  = false;
   dialogDocs  = false;
   editandoId  = '';
-  busquedaPersonaId = '';
+  busquedaNombre = '';
   nuevoDocTipo = '';
   nuevoDocUrl  = '';
+
+  private busquedaTimer: ReturnType<typeof setTimeout> | null = null;
 
   form: any = this.resetForm();
 
@@ -252,17 +266,41 @@ export class ExpedienteLaboralComponent implements OnInit {
 
   ngOnInit() { this.cargar(); }
 
+  onBusquedaNombre() {
+    if (this.busquedaTimer) clearTimeout(this.busquedaTimer);
+    this.busquedaTimer = setTimeout(() => this.cargar(), 400);
+  }
+
   cargar() {
     this.cargando.set(true);
     const params: any = {};
-    if (this.busquedaPersonaId) params['persona_id'] = this.busquedaPersonaId;
+    if (this.busquedaNombre) params['q'] = this.busquedaNombre;
     this.http.get<ExpedienteLab[]>('/api/v1/expediente-laboral', { params }).subscribe({
       next: d => { this.expedientes.set(d); this.cargando.set(false); },
       error: () => { this.cargando.set(false); this.notify.error('Error al cargar expedientes'); },
     });
   }
 
-  abrirNuevo() { this.editandoId = ''; this.form = this.resetForm(); this.dialogForm = true; }
+  buscarPersona(event: { query: string }) {
+    if (!event.query || event.query.length < 2) { this.personaSugerencias.set([]); return; }
+    this.http.get<any>('/api/v1/profesores', { params: { buscar: event.query } }).subscribe({
+      next: res => {
+        const data = res?.data ?? res ?? [];
+        this.personaSugerencias.set(data.map((p: any) => ({
+          label: [p.nombre ?? p.persona?.nombre, p.apellido_paterno ?? p.persona?.apellido_paterno, p.apellido_materno ?? p.persona?.apellido_materno].filter(Boolean).join(' '),
+          value: p.persona_id ?? p.id,
+        })));
+      },
+      error: () => this.personaSugerencias.set([]),
+    });
+  }
+
+  abrirNuevo() {
+    this.editandoId = '';
+    this.form = this.resetForm();
+    this.personaSeleccionada = null;
+    this.dialogForm = true;
+  }
 
   editar(exp: ExpedienteLab) {
     this.editandoId = exp.id;
@@ -278,13 +316,22 @@ export class ExpedienteLaboralComponent implements OnInit {
 
   guardar() {
     this.guardando.set(true);
-    const req = this.editandoId
-      ? this.http.patch<ExpedienteLab>(`/api/v1/expediente-laboral/${this.editandoId}`, this.form)
-      : this.http.post<ExpedienteLab>('/api/v1/expediente-laboral', {
-          ...this.form,
-          fecha_contratacion: this.toDateStr(this.form.fecha_contratacion),
-          fecha_fin_contrato:  this.form.fecha_fin_contrato ? this.toDateStr(this.form.fecha_fin_contrato) : null,
-        });
+    let req;
+    if (this.editandoId) {
+      req = this.http.patch<ExpedienteLab>(`/api/v1/expediente-laboral/${this.editandoId}`, this.form);
+    } else {
+      if (!this.personaSeleccionada?.value) {
+        this.guardando.set(false);
+        this.notify.warning('Seleccione una persona');
+        return;
+      }
+      req = this.http.post<ExpedienteLab>('/api/v1/expediente-laboral', {
+        ...this.form,
+        persona_id: this.personaSeleccionada.value,
+        fecha_contratacion: this.toDateStr(this.form.fecha_contratacion),
+        fecha_fin_contrato: this.form.fecha_fin_contrato ? this.toDateStr(this.form.fecha_fin_contrato) : null,
+      });
+    }
     req.subscribe({
       next: () => {
         this.guardando.set(false); this.dialogForm = false;
@@ -319,7 +366,7 @@ export class ExpedienteLaboralComponent implements OnInit {
   docEntries(docs: Record<string, string>): [string, string][] { return Object.entries(docs ?? {}); }
   private toDateStr(d: Date | null): string { return d ? d.toISOString().split('T')[0] : ''; }
   private resetForm() {
-    return { persona_id:'', tipo_contrato:'INDEFINIDO', fecha_contratacion:null, fecha_fin_contrato:null,
+    return { tipo_contrato:'INDEFINIDO', fecha_contratacion:null, fecha_fin_contrato:null,
              salario_mensual:0, imss_numero:'', infonavit_numero:'', curp:'', rfc:'',
              cedula_profesional:'', nivel_estudios:'', especialidad:'', institucion_formacion:'', clave_ct:'', clave_issste:'' };
   }

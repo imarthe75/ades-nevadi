@@ -684,11 +684,290 @@ Reporte completo en plan activo (`linked-forging-sprout.md`).
 
 ---
 
-### 🚀 Próximos Pasos (histórico):
+## Sesión 2026-06-12 — Planes de Estudio NEM, Auditoría v2, Fase 28 y Documentación Completa
 
-- [ ] **Fase 27.2**: Diseñar la migración DDL `031_reinscripcion.sql` para el flujo de reinscripción masiva.
-- [ ] **Fase 27.2 (Backend)**: Desarrollar endpoints en FastAPI para validar adeudos académicos y de cobranza en lote.
-- [ ] **Fase 27.3**: Desarrollar el asistente de cierre de período académico de 4 pasos (APEX Wizard pattern).
-- [ ] **Fase 27.4**: Implementar notificaciones y resúmenes automáticos por email.
-- [ ] Swagger/ReDoc deshabilitado en producción (`main.py`)
-- [ ] FASE 28 (inicio): Integración de Paperless-ngx e ingesta de documentos OCR.
+### 🔑 Estado del Agente:
+- **Última Conexión:** 2026-06-12
+- **Estado Cognitivo:** Operacional ✅
+- **ADRs Registrados:** 0001–0007
+- **Migración activa:** 044 (última aplicada — `044_planes_estudio_primaria_nem.sql`)
+
+### 🛠️ Infraestructura (2026-06-12):
+- Todos los servicios de Docker Compose (incluyendo `ades-api`, `ades-postgres`, `ades-paperless`, `ades-valkey`, `ades-minio` y `ades-nginx`) se reportan saludables y operacionales en producción.
+
+### 🛠️ Tareas Completadas hoy (2026-06-12):
+- [x] **Planes de Estudio Primaria NEM (DML)**: Creada y aplicada la migración `044_planes_estudio_primaria_nem.sql`. Inserta **648 temas detallados y específicos** para cada grado escolar (de 1º a 6º) alineados con los programas sintéticos de la SEP para los 4 campos formativos de la NEM y materias institucionales.
+- [x] **Limpieza de base de datos**: Eliminación permanente de los **100 temas placeholders inactivos** de Primaria para evitar redundancias.
+- [x] **Manual de Usuario Integrado**: Actualizado `/app/features/ayuda/ayuda.component.ts` agregando la documentación paso a paso para los módulos de:
+  - *Expediente Digital* (Fase 28)
+  - *Certificados Digitales y firma Ed25519* (Fase 27)
+  - *Recursos Humanos, Licencias y Capacitaciones* (Fase 29/30)
+  - *Operatividad Avanzada e inasistencias* (Fase 31)
+- [x] **Manual Descargable**: Generado el manual a detalle en formato markdown en [manual_usuario_ades.md](file:///opt/ades/docs/manual_usuario_ades.md).
+- [x] **README Principal**: Actualizado el [README.md](file:///opt/ades/README.md) del repositorio para consolidar el avance total del proyecto hasta la Fase 31 y corregir el mapa de estado actual.
+- [x] **Módulos 2, 4 y 5 Completados**:
+  - *IA y Analítica Avanzada*: Predicción de abandono escolar (GET `/ia-avanzada/prediccion-abandono/{alumno_id}`), ajuste dinámico de Learning Paths (POST `/learning-paths/ajustar-dinamico/{estudiante_id}`), y escaneo semántico de encuestas para detectar bullying y acoso en [encuestas.py](file:///opt/ades/backend/app/api/v1/encuestas.py).
+  - *Salud Escolar*: Control de medicamentos en el plantel, actas de incidentes médicos y certificados de aptitud física en PDF generados con WeasyPrint en [salud_avanzada.py](file:///opt/ades/backend/app/api/v1/salud_avanzada.py) y enlazados a la interfaz médica en [medico.component.ts](file:///opt/ades/frontend/src/app/features/medico/medico.component.ts).
+  - *Foros de Comunicación*: Ampliados para soportar tipos de materia y tutoría en [foros.py](file:///opt/ades/backend/app/api/v1/foros.py) y moderación de contenido en [foros.component.ts](file:///opt/ades/frontend/src/app/features/foros/foros.component.ts).
+  - *Dashboard Personalizable*: Configuración de visualización de widgets guardada en `localStorage` y filtros dinámicos por cantidad mínima de alumnos en [dashboard.component.ts](file:///opt/ades/frontend/src/app/features/dashboard/dashboard.component.ts).
+
+### 📊 Cobertura CUs actualizada:
+- **Total implementados: 194/230 CUs (84.3%)** — Fases 27 a 34 completamente operacionales en backend y frontend.
+
+### 🚀 Próximos Pasos (Pendientes de Desarrollo):
+
+- **IA local (NVIDIA NIM)**: ✅ Ya integrado y desarrollado localmente en reemplazo de Anthropic.
+- **Blockchain (Polygon PoS)**: ⏳ Diseñado y preparado en el backend; pospuesta la fase final y anclaje a red pública para cuando esté listo en producción.
+
+#### 🛠️ Gaps de Infraestructura Detectados (FASE 33: Consolidación y HA)
+- [x] **HashiCorp Vault**: Automatizar el unseal (desellado) y la inyección dinámica del token de secretos hacia el contenedor `ades-api` (eliminando la lectura directa de credenciales en texto plano en `.env`).
+- [x] **Apache Superset**: Implementar un script de aprovisionamiento que conecte la base de datos `ades` de PostgreSQL y cree el usuario administrador por defecto automáticamente durante la inicialización.
+- [x] **Grafana**: Aprovisionar los dashboards de telemetría institucional de forma automática mediante plantillas JSON en `conf` al levantar el volumen, en lugar de importación manual.
+- [x] **ntfy**: Habilitar volumen de persistencia para la base de datos SQLite de ntfy, asegurando que las alertas previas no se pierdan al reiniciar el contenedor.
+- [x] **Celery Flower**: Agregar el servicio Flower en el `docker-compose.yml` para monitorear visualmente las colas de tareas asíncronas en segundo plano.
+
+#### 1. Datos Maestros e Infraestructura Académica (ID / AC)
+- [ ] **ID-003**: Desactivación de plantel (soft delete y archivado de registros).
+- [ ] **ID-008**: Configuración avanzada de plantillas de boletas en PDF (tipografías, espacios, firmas).
+- [ ] **ID-016**: Generación automatizada de actas formales de inicio y cierre de ciclo escolar.
+- [ ] **AC-005**: Traslado de asignación de grupo (entre planteles o niveles educativos).
+- [ ] **AC-014**: Creación de planes de estudio alternativos/adecuaciones para alumnos con Necesidades Educativas Especiales (NEE).
+- [ ] **AC-015**: Publicar y archivar versiones históricas de planes de estudio.
+
+#### 2. Procesos Escolares y Admisión (PE)
+- [x] **PE-007**: Importación automatizada de listados de alumnos admitidos directamente desde el portal de la SEP.
+- [ ] **PE-012**: Inscripción y control de materias optativas específicas (Secundaria y Preparatoria).
+- [ ] **PE-018**: Solicitud y trámite administrativo de cambio de grupo.
+- [ ] **PE-019**: Trámite administrativo de cambio de plantel (traslado de sede).
+- [x] **PE-026**: Descarga masiva del expediente digital del alumno consolidado en un archivo ZIP.
+- [ ] **PE-029**: Gestión y validación jurídica de múltiples tutores por alumno (por ejemplo, custodia compartida, abuelos autorizados).
+- [ ] **PE-032**: Generación automatizada de usuarios de portal para padres de familia vía Authentik.
+- [ ] **PE-033**: Restricción de accesos a información académica para tutores sin custodia legal.
+
+#### 3. Desarrollo Profesional Docente (DP)
+- [ ] **DP-016**: Generación de planes de mejora académica orientada al docente basados en sus evaluaciones de desempeño.
+
+#### 4. Operación de Aula (OA)
+- [ ] **OA-006**: Visualización e indicadores de clases presenciales vs. remotas.
+- [ ] **OA-012**: Ajuste dinámico de cronogramas y temarios planeados ante suspensiones oficiales de clases.
+- [ ] **OA-013**: Cuadro de mando (dashboard) de avance por grado y asignatura a nivel dirección.
+- [ ] **OA-017**: Detección automatizada de plagio en entregas de tareas (análisis interno / Turnitin).
+- [ ] **OA-019**: Módulo para adjuntar retroalimentaciones de tareas en formato de video/audio.
+- [ ] **OA-020**: Reasignación manual de tareas a alumnos específicos por excepciones académicas.
+
+#### 5. Evaluaciones y Boletas (EV)
+- [ ] **EV-012**: Configuración de ponderaciones de evaluación diferenciadas para alumnos bajo adecuación curricular (NEE).
+- [ ] **EV-014**: Asignación y optimización automática de aulas físicas y horarios para evaluaciones parciales/finales.
+- [ ] **EV-017**: Generación oficial de actas de calificaciones con formatos requeridos por la SEP.
+- [ ] **EV-024**: Emisión de boletas con observaciones pedagógicas cualitativas integradas.
+- [ ] **EV-025**: Configuración de catálogos y escalas de evaluación cualitativa.
+
+#### 6. Inteligencia Artificial Avanzada (IA)
+- [ ] **IA-015**: Persistencia e historial conversacional del chatbot pedagógico por usuario.
+- [ ] **IA-020**: Exportación avanzada de reportes interactivos de Business Intelligence (BI) a formatos PowerPoint, Excel y PDF.
+
+#### 7. Salud y Bienestar (SB)
+- [ ] **SB-017**: Generación formal y firmas de actas de evaluación de conducta y convivencia.
+- [ ] **SB-023**: Módulo de calendario y control del programa de bienestar y salud (eventos, conferencias y campañas).
+
+#### 8. Administración del Sistema (AD)
+- [ ] **AD-030**: Módulo de telemetría y estadísticas de uso de recursos del servidor (usuarios activos concurrentes, espacio disponible en disco MinIO/PostgreSQL).
+
+---
+- [x] **Fernet column encryption**: Implementada y consolidada exitosamente en la capa de aplicación usando cifrado simétrico fuerte `Fernet` (AES-128 + HMAC SHA-256) para proteger campos sensibles (RFC, NSS/IMSS, e Infonavit) en `ades_expediente_laboral`. Se descarta `pgcrypto` en base de datos para prevenir fugas de claves en logs de consultas de PostgreSQL y mantener la consistencia con el diseño existente.
+- [x] **Habilitación de Grafana Embedding**: Configurado `GF_SECURITY_ALLOW_EMBEDDING="true"`, `GF_AUTH_ANONYMOUS_ENABLED="true"`, y `GF_AUTH_ANONYMOUS_ORG_ROLE="Viewer"` en el archivo `docker-compose.yml` para permitir el correcto funcionamiento del iframe de monitoreo en el módulo de administración (`monitor.component.ts`) sin requerir autenticación manual ni ser bloqueado por cabeceras X-Frame-Options.
+- [x] **FASE 33 — Consolidación de Infraestructura y HA**:
+  - Habilitado el desellado y la siembra automática de secretos desde `.env` hacia HashiCorp Vault usando `scripts/vault_init.sh`.
+  - Configurada e inicializada la conexión de Apache Superset al datasource `ADES BI` (esquema `ades_bi`) usando el script `infrastructure/superset/init.sh` automatizando el primer arranque.
+  - Implementado y desplegado el servicio `celery-flower` expuesto en el puerto `5555` para el monitoreo visual de tareas asíncronas de Celery, añadiendo la dependencia correspondiente en `requirements.txt`.
+  - Separado el volumen de persistencia de `ntfy` en `ntfy-data` y `ntfy-cache` para evitar colisiones y asegurar el guardado del historial de notificaciones.
+  - Pre-aprovisionado el dashboard de infraestructura de Prometheus en `prometheus.json` dentro de Grafana.
+- [x] **FASE 34 — Integraciones SEP y Documentación ZIP**:
+  - Creada y aplicada la migración SQL `20260612_0001_ades_nevadi.sql` para soportar las tablas `ades_webhooks` y `ades_webhook_logs`.
+  - Implementado el endpoint de importación `POST /imports/preinscritos-sep` para registrar aspirantes del portal oficial.
+  - Creados los endpoints de descarga ZIP `GET /procesos/estudiantes/{id}/expediente-zip` (individual) y `GET /procesos/grupos/{id}/expedientes-zip` (grupal/lote) extrayendo archivos desde Paperless.
+  - Implementado el motor asíncrono y firmas HMAC-SHA256 en `webhook_dispatcher.py` y los endpoints de administración en `webhooks.py`.
+  - Actualizados los correos del administrador en todo el sistema a `admin@setag.mx`.
+  - Modificados las credenciales de administración y read-only de Superset a contraseñas seguras y actualizadas en base de datos.
+
+---
+
+## Sesión 2026-06-12 — Sustitución SeaweedFS y Migración de Endpoints BFF Fases 3-7
+
+### 🔑 Estado del Agente:
+- **Última Conexión:** 2026-06-12 (Local Time)
+- **Estado Cognitivo:** Operacional ✅
+- **ADRs Registrados:** 0001–0006
+- **Migración activa:** SeaweedFS + Spring Boot BFF Fases 3 a 7 completos
+
+### 🏗️ Estado de Infraestructura (2026-06-12):
+- **SeaweedFS**: Exponiendo API de S3 en puerto `9000` (compatible con cliente MinIO del backend), Filer UI en `8888` y Consola Master en `9333`. Sustituye a MinIO.
+- **Spring Boot BFF**: Compilado y levantado exitosamente en el puerto `8080`, atendiendo la mayoría de los módulos funcionales del sistema.
+- **Nginx**: Reverse proxy configurado en `nginx.conf` redirigiendo la API principal al BFF, y los microservicios específicos de Python (IA, PDF, webhooks, push) a FastAPI (`:8000`).
+
+### 🛠️ Tareas Completadas hoy (2026-06-12):
+- [x] **Sustitución de MinIO por SeaweedFS**:
+  - Configurado en `docker-compose.yml` usando la imagen oficial de SeaweedFS.
+  - Configurado Nginx para redirigir `minio.ades.setag.mx` al Filer de SeaweedFS (`:8888`).
+  - Adaptado el healthcheck en `health.py` para validar contra el puerto `9333` de la consola master de SeaweedFS.
+- [x] **Migración e implementación en Spring Boot BFF de los endpoints de Fases 3 a 7**:
+  - **[EvalDocenteController.java](file:///opt/ades/backend-spring/src/main/java/mx/ades/modules/eval_docente/EvalDocenteController.java)**: Implementado para manejar evaluaciones docentes 360°, resúmenes, y guardado/actualización de criterios.
+  - **[JustificacionController.java](file:///opt/ades/backend-spring/src/main/java/mx/ades/modules/justificaciones/JustificacionController.java)**: Implementado para registrar, listar y resolver justificaciones de inasistencias.
+  - **[NotificacionController.java](file:///opt/ades/backend-spring/src/main/java/mx/ades/modules/notificaciones/NotificacionController.java)**: Implementado para gestionar notificaciones de sistema in-app del usuario logueado.
+  - **[AsistenciaPersonalController.java](file:///opt/ades/backend-spring/src/main/java/mx/ades/modules/asistencia_personal/AsistenciaPersonalController.java)**: Implementado para registrar y reportar la asistencia de recursos humanos operativos del plantel.
+- [x] **Corrección de bugs y compilación**:
+  - Corregido error de sintaxis en `AdminController.java` (`usuario.plantelId()` -> `usuario.getPlantelId()`).
+  - Resuelto build y ejecución de `ades-bff` con éxito.
+- [x] **Enrutamiento Nginx**:
+  - Modificado `nginx.conf` con enrutamiento prioritario basado en expresiones regulares para mandar `/api/v1/ai`, `/api/v1/ia-avanzada`, `/api/v1/chatbot`, `/api/v1/carbone`, `/api/v1/pdf`, `/api/v1/webhooks`, `/api/v1/automations`, y `/api/v1/push` a FastAPI (`ades-api:8000`), y el resto de peticiones `/api/` a Spring Boot BFF (`ades-bff:8080`).
+
+---
+
+## 🔍 Análisis de Gaps y Próximos Desarrollos (Spring Boot BFF vs FastAPI)
+
+Actualmente, el backend BFF de Spring Boot ya maneja la mayoría de los módulos operacionales principales. Sin embargo, persisten ciertos módulos no-IA y endpoints en FastAPI que se deben migrar a Spring Boot para culminar la transición del backend.
+
+### 1. Módulos y Endpoints que Permanecen en FastAPI/Python (Microservicios Permanentes)
+*Estos módulos NO se migrarán a Java debido a su fuerte acoplamiento con librerías de IA en Python o herramientas específicas de generación de PDF.*
+- **IA y Asistente Pedagógico** (`ai_assistant.py` y `ia_avanzada.py` -> `/api/v1/ai/*`, `/api/v1/ia-avanzada/*`): Uso de NVIDIA NIM y prompts locales.
+- **Chatbot Conversacional** (`chatbot.py` -> `/api/v1/chatbot/*`): Integración de NL-to-SQL y Flowise.
+- **Herramientas de Generación y Edición PDF** (`pdf_tools.py` y `carbone.py` -> `/api/v1/pdf/*`, `/api/v1/carbone/*`): Integración con Stirling-PDF y Carbone.
+- **Notificaciones Push y Webhooks** (`push.py`, `webhooks.py`, `automations.py` -> `/api/v1/push/*`, `/api/v1/webhooks/*`, `/api/v1/automations/*`): Lógica de cola de mensajería asíncrona y webhooks HMAC.
+
+### 2. Gaps Pendientes de Migración a Spring Boot BFF (Módulos No-IA)
+*Módulos que siguen ejecutándose en FastAPI y que deben ser re-escritos en controladores de Java:*
+
+#### A — Módulo Gradebook Curricular (Fase 10) [MIGRADO]
+- **Spring Boot Controllers**: `EsquemasPonderacionController.java`, `ActividadesController.java`, `EntregasController.java`, `GradebookController.java` (Sustituyen a los correspondientes scripts de FastAPI).
+- **Funcionalidad completada**:
+  - CRUD de esquemas e ítems de ponderación (SEP vs UAEMEX).
+  - Creación de slots de actividades académicas por grupo/materia y calificar en bulk.
+  - Subida de archivos de entrega a SeaweedFS filer (S3 client en Java con `MinioService`) y cálculo de estatus de entrega.
+  - Generación de la matriz interactiva del Gradebook (ajuste manual de promedios con justificación >= 20 chars, recalcular periodos asíncronamente).
+  - Concentrado de calificaciones, detección de inconsistencias y candidatos a extraordinario.
+
+#### B — Expedientes, Padres y Portal (Fase 6 y 34)
+- **FastAPI routers**: `expediente.py`, `expediente_documentos.py`, `expediente_laboral.py`, `padres.py`, `portal.py`, `portal_familias.py`, `certificados.py`
+- **Funcionalidad a migrar**:
+  - Expediente digital de alumnos y profesores (carga de actas, contratos e historial).
+  - Portal de familias (consulta agregada 360° de tareas, calificaciones y comportamiento por parte de tutores autorizados).
+  - Emisión de certificados digitales (con folio único y firma digital Ed25519) y su validador público.
+  - Gestión y validación de tutores (custodia legal compartida, bloqueos de visualización por restricciones judiciales).
+
+#### C — Módulos Operativos Auxiliares (Fase 12, 15, 16, 26, 31)
+- **FastAPI routers**: `imports.py`, `superset.py`, `geo.py`, `menus.py`, `catalogos_sistema.py`, `contactos.py`, `auditoria.py`
+- **Funcionalidad a migrar**:
+  - Procesamiento batch de archivos masivos XLS/CSV (`imports.py` -> implementable con **Spring Batch**).
+  - Aprovisionamiento de tokens e integración embebida de dashboards de Apache Superset (`superset.py`).
+  - Catálogos geográficos SEPOMEX (`geo.py`).
+  - Generación de menús dinámicos por rol (`menus.py`).
+  - CRUD de variables globales del sistema (`catalogos_sistema.py`).
+  - Consulta de logs del trail de auditoría (`auditoria.py`).
+
+### 3. CUs y Gaps Funcionales a Nivel de Negocio (Pendientes en General)
+- **ID-016 / EV-017**: Generación oficial de actas de inicio/cierre de ciclo y actas de calificaciones con formatos de la SEP.
+- **AC-014 / EV-012**: Adecuación curricular y ponderaciones diferenciadas para alumnos con Necesidades Educativas Especiales (NEE).
+- **OA-017**: Integración del detector de plagio en entregas de tareas académicas.
+- **OA-019**: Módulo de retroalimentación de tareas en formato multimedia (audio/video).
+- **EV-014**: Asignación óptima de aulas físicas y horarios para la planeación de evaluaciones parciales y finales.
+- **AD-030**: Tablero de telemetría de recursos del servidor integrado en la UI de administración.
+
+---
+
+## Sesión 2026-06-13 — Migración de Certificados y Learning Paths a Spring Boot BFF
+
+### 🔑 Estado del Agente:
+- **Última Conexión:** 2026-06-13
+- **Estado Cognitivo:** Operacional ✅
+- **ADRs Registrados:** 0001–0006
+
+### 🛠️ Tareas Completadas hoy (2026-06-13):
+- [x] **Migración de Certificados Digitales (Fase 27)**:
+  - Implementado [CertificadosController.java](file:///opt/ades/backend-spring/src/main/java/mx/ades/modules/certificados/CertificadosController.java) en el Spring Boot BFF.
+- [x] **Migración de Learning Paths (Fase 4B)**:
+  - Implementado [LearningPathsController.java](file:///opt/ades/backend-spring/src/main/java/mx/ades/modules/learning_paths/LearningPathsController.java) en el Spring Boot BFF.
+- [x] **Migración de Grade Analytics**:
+  - Implementado [GradeAnalyticsController.java](file:///opt/ades/backend-spring/src/main/java/mx/ades/modules/grade_analytics/GradeAnalyticsController.java) en el Spring Boot BFF.
+- [x] **Migración de Boletas**:
+  - Implementado [BoletasController.java](file:///opt/ades/backend-spring/src/main/java/mx/ades/modules/boletas/BoletasController.java) en el Spring Boot BFF.
+- [x] **Migración de Catálogos Geográficos (SEPOMEX)**:
+  - Implementado [GeoController.java](file:///opt/ades/backend-spring/src/main/java/mx/ades/modules/geo/GeoController.java) en el Spring Boot BFF.
+- [x] **Migración de Menús Dinámicos (Oracle APEX Navigation)**:
+  - Implementado [MenusController.java](file:///opt/ades/backend-spring/src/main/java/mx/ades/modules/menus/MenusController.java) en el Spring Boot BFF, resolviendo la estructura de árbol de menús según el rol del usuario actual.
+- [x] **Migración de Logs de Auditoría (Fase 15)**:
+  - Implementado [AuditoriaController.java](file:///opt/ades/backend-spring/src/main/java/mx/ades/modules/auditoria/AuditoriaController.java) en el Spring Boot BFF, asegurando consulta restringida solo para ADMIN_GLOBAL.
+- [x] **Migración de Contactos Familiares y Expedientes**:
+  - Implementado [ContactosController.java](file:///opt/ades/backend-spring/src/main/java/mx/ades/modules/contactos/ContactosController.java) en el Spring Boot BFF para contactos familiares, expediente médico (lazy init) y expediente de documentos.
+- [x] **Migración de Integración con Apache Superset (Fase 16)**:
+  - Implementado [SupersetController.java](file:///opt/ades/backend-spring/src/main/java/mx/ades/modules/superset/SupersetController.java) para login OIDC e intercambio de guest tokens con RLS dinámico.
+- [x] **Migración de Importación Masiva (Fase 12, 15, 16, 26, 31)**:
+  - Añadida la dependencia de Apache POI en [pom.xml](file:///opt/ades/backend-spring/pom.xml).
+  - Implementado [ImportadorUtil.java](file:///opt/ades/backend-spring/src/main/java/mx/ades/modules/imports/ImportadorUtil.java) para parseo de CSV y Excel (.xlsx).
+  - Implementado [ImportsController.java](file:///opt/ades/backend-spring/src/main/java/mx/ades/modules/imports/ImportsController.java) para las cargas transaccionales por fila con logs de error.
+- [x] **Migración de Cierre de Ciclo (Fase 9)**:
+  - Actualizado [CierreCicloController.java](file:///opt/ades/backend-spring/src/main/java/mx/ades/modules/cierre/CierreCicloController.java) con la obtención de indicadores y redireccionamiento por proxy para la generación de actas en PDF.
+- [x] **Migración de Cumplimiento y Normatividad (Fase 37)**:
+  - Implementado [ComplianceController.java](file:///opt/ades/backend-spring/src/main/java/mx/ades/modules/compliance/ComplianceController.java) para logs de login, KPIs del sistema, catálogo de normativas, retenciones escolares y alertas.
+- [x] **Migración Completa de Reinscripción (Fase 12)**:
+  - Actualizados [ReinscripcionService.java](file:///opt/ades/backend-spring/src/main/java/mx/ades/modules/reinscripcion/ReinscripcionService.java) y [ReinscripcionController.java](file:///opt/ades/backend-spring/src/main/java/mx/ades/modules/reinscripcion/ReinscripcionController.java) con la visualización de estados, ejecución de validaciones y aprobaciones masivas, reportes estadísticos, verificación de adeudos en cuotas y resolución manual individual.
+- [x] **Migración Completa de Salud Avanzada**:
+  - Implementado [SaludAvanzadaController.java](file:///opt/ades/backend-spring/src/main/java/mx/ades/modules/medico/SaludAvanzadaController.java) en el Spring Boot BFF, cubriendo la gestión de medicamentos, actas de incidentes médicos, seguimiento psicosocial, tutorías y proxies seguros para descargas de PDF.
+- [x] **Migración de Evaluación Avanzada (Fase 33) y Rúbricas**:
+  - Implementado [EvaluacionAvanzadaController.java](file:///opt/ades/backend-spring/src/main/java/mx/ades/modules/evaluaciones/EvaluacionAvanzadaController.java) cubriendo Escalas Cualitativas, Actas SEP, Observaciones Pedagógicas, Necesidades Educativas Especiales (NEE), y Asignaciones de Aula/Hora con control de conflictos de solapamiento.
+  - Modificado [RubricaController.java](file:///opt/ades/backend-spring/src/main/java/mx/ades/modules/evaluaciones/RubricaController.java) incorporando endpoints CRUD para criterios y niveles de logro, ordenamiento secuencial, y baja lógica de rúbricas completas.
+  - Creadas las entidades JPA correspondientes (`EscalaEvaluacion`, `ObservacionPedagogica`, `Nee`, `AsignacionAula`, `RubricaCriterio`) y sus respectivos repositorios.
+- [x] **Migración de Licencias y Capacitaciones (Fase 29)**:
+  - Actualizados e implementados [LicenciaPersonalController.java](file:///opt/ades/backend-spring/src/main/java/mx/ades/modules/licencias/LicenciaPersonalController.java) y [CapacitacionDocenteController.java](file:///opt/ades/backend-spring/src/main/java/mx/ades/modules/capacitaciones/CapacitacionDocenteController.java) heredando el control transaccional e inyectando `AdesUserService`.
+  - Soporte de cálculo automático de días laborables hábiles para licencias, validación de estados (`PENDIENTE`), y generación del resumen de horas de capacitación del docente.
+- [x] **Construcción y Despliegue**:
+  - Reconstruida la imagen de `ades-bff` y reiniciado el servicio satisfactoriamente con todos los nuevos controladores compilados.
+
+---
+
+## Sesión 2026-06-14 — Migración de Expedientes Documentales a Spring Boot BFF
+
+### 🔑 Estado del Agente:
+- **Última Conexión:** 2026-06-14
+- **Estado Cognitivo:** Operacional ✅
+- **ADRs Registrados:** 0001–0006
+
+### 🛠️ Tareas Completadas hoy (2026-06-14):
+- [x] **Configuración de Paperless en BFF**:
+  - Añadidas las variables de entorno `paperless.url` y `paperless.api-token` en `application.yml`.
+- [x] **Servicio de Integración Paperless**:
+  - Implementado `PaperlessService.java` para interactuar con la API REST de Paperless-ngx (subida, descarga, eliminación y búsqueda).
+- [x] **Expedientes Digitales e Ingesta Documental**:
+  - Modificado `ExpedienteController.java` para incorporar endpoints de obtención de expediente digital, subida multipart de archivos, descarga de previews, eliminación de documentos, búsqueda full-text, verificación de expedientes y análisis de completitud con IA (NVIDIA NIM).
+- [x] **Portal de Familias y Portal del Alumno**:
+  - Verificada la existencia y correcto funcionamiento de `PortalFamiliasController.java` y `PortalController.java` en el BFF, cubriendo la gestión de tutores, creación de usuarios en Authentik, restricciones de acceso y consultas 360° académicas.
+- [x] **Reconstrucción y Despliegue**:
+  - Reconstruida exitosamente la imagen del BFF y reiniciado el contenedor `ades-bff`. El servicio inició y escuchó en el puerto `8080` sin incidencias.
+  - Verificada la correcta protección por seguridad (Bearer Token) en los nuevos endpoints, arrojando 401 Unauthorized para accesos anónimos.
+- [x] **Enrutamiento Nginx para Cierre de Ciclo**:
+  - Modificado `nginx.conf` removiendo `cierre-ciclo` de la redirección hacia el microservicio en Python (`ades-api`).
+  - Validada y recargada la configuración de Nginx exitosamente.
+  - Comprobado mediante curl que las peticiones a `/api/v1/cierre-ciclo` son ahora resueltas por el backend Spring Boot BFF.
+
+---
+
+## Sesión 2026-06-14 (continuación) — FASE 33: Consolidación de Infraestructura y HA
+
+### 🛠️ Tareas Completadas:
+- [x] **Integración de HashiCorp Vault en Spring Boot**: Creado `VaultInitializer.java` y registrado en `AdesBffApplication.java` para resolver configuraciones dinámicamente.
+- [x] **Limpieza de Secretos en Texto Plano**: Retirados secretos del `docker-compose.yml` para FastAPI y Celery.
+- [x] **Persistencia y Automatización**: Confirmada persistencia de SQLite en `ntfy` y automatización en `superset`.
+- [x] **Celery Flower con Basic Auth**: Configurada la ruta `/flower/` en `nginx.conf` protegida por Basic Auth con archivo `.htpasswd`.
+- [x] **Respaldo y Limpieza de FastAPI**: Respaldado el directorio de endpoints en `backend_api_v1_backup.tar.gz` y removidos los controladores ya migrados a Spring Boot BFF.
+
+### 🚀 Próximos Pasos:
+- [ ] Configurar `ANTHROPIC_API_KEY` en `.env` (o cargarlo en Vault) para recomendaciones IA.
+- [ ] FASE 34 — Integraciones SEP y Documentación ZIP.
+- [ ] FASE 35 — Cierre de Ciclo Escolar e Indicadores de Uso.
+
+
+
+
+
+
+
+

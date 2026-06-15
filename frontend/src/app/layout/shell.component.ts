@@ -28,6 +28,48 @@ import { filter } from 'rxjs/operators';
 const TODO_INSTITUTO: Plantel = { id: '', nombre_plantel: '— Todo el Instituto —', escuela_id: '', is_active: true };
 const TODOS_NIVELES: NivelEducativo = { id: '', nombre_nivel: 'TODOS' as any, autoridad_educativa: '', tipo_ciclo: '', num_periodos_eval: 0 };
 
+const ROUTE_TITLES: Record<string, string> = {
+  'dashboard': 'Dashboard',
+  'alumnos': 'Alumnos',
+  'grupos': 'Grupos',
+  'gradebook': 'Calificaciones',
+  'asistencias': 'Asistencias',
+  'horarios': 'Horarios',
+  'tareas': 'Tareas',
+  'entregas': 'Entregas',
+  'planeacion': 'Planeación',
+  'planes-estudio': 'Planes de Estudio',
+  'materias': 'Materias',
+  'planteles': 'Planteles',
+  'usuarios': 'Usuarios',
+  'admin': 'Administración',
+  'reportes': 'Reportes',
+  'stats': 'Estadísticas',
+  'encuestas': 'Encuestas',
+  'comunicados': 'Comunicados',
+  'avisos': 'Avisos',
+  'badges': 'Reconocimientos',
+  'foros': 'Foros',
+  'learning-paths': 'Rutas de Aprendizaje',
+  'mi-progreso': 'Mi Progreso',
+  'padres': 'Portal de Padres',
+  'medico': 'Expediente Médico',
+  'condiciones-cronicas': 'Condiciones Crónicas',
+  'justificaciones': 'Justificaciones',
+  'movilidad': 'Movilidad',
+  'disponibilidad': 'Disponibilidad',
+  'licencias': 'Licencias',
+  'capacitaciones': 'Capacitaciones',
+  'ponderacion-config': 'Ponderación',
+  'cierre-periodo': 'Cierre de Período',
+  'aulas': 'Aulas',
+  'certificados': 'Certificados',
+  'admision': 'Admisión',
+  'ia': 'Asistente IA',
+  'ayuda': 'Ayuda',
+  'portal': 'Portal Familias',
+};
+
 interface NavItem  { route: string; icon: string; label: string; maxNivel?: number; minNivel?: number; }
 interface NavGroup { section: string; maxNivel?: number; minNivel?: number; items: NavItem[]; }
 
@@ -184,12 +226,15 @@ interface Notif { id: string; titulo: string; cuerpo: string; tipo: string; leid
 
       <!-- Contenido principal -->
       <main class="main-content">
-        <div class="breadcrumb-container" *ngIf="breadcrumbItems.length > 0">
-          <apex-breadcrumb 
-            [items]="breadcrumbItems"
-            [home]="{ label: 'Home', routerLink: '/' }">
-          </apex-breadcrumb>
-        </div>
+        @if (breadcrumbItems.length > 0) {
+          <div class="breadcrumb-container">
+            <apex-breadcrumb
+              [items]="breadcrumbItems"
+              [routeTitles]="routeTitles"
+              [home]="{ label: 'Home', routerLink: '/' }">
+            </apex-breadcrumb>
+          </div>
+        }
         <router-outlet />
       </main>
     </div>
@@ -383,6 +428,7 @@ export class ShellComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
 
   breadcrumbItems: any[] = [];
+  readonly routeTitles = ROUTE_TITLES;
 
   planteles = signal<Plantel[]>([]);
   niveles   = signal<NivelEducativo[]>([]);
@@ -424,6 +470,7 @@ export class ShellComponent implements OnInit, OnDestroy {
     { section: 'Académico', maxNivel: 4, items: [
       { route: '/alumnos',          icon: 'pi-users',        label: 'Alumnos' },
       { route: '/reinscripcion',    icon: 'pi-refresh',      label: 'Reinscripción',       maxNivel: 3 },
+      { route: '/cierre-ciclo',     icon: 'pi-lock',         label: 'Cierre de Ciclo',     maxNivel: 2 },
       { route: '/padres-admin',     icon: 'pi-users',        label: 'Gestión de Padres',   maxNivel: 1 },
       { route: '/profesores',       icon: 'pi-id-card',      label: 'Profesores' },
       { route: '/grupos',           icon: 'pi-building',     label: 'Grupos' },
@@ -442,6 +489,8 @@ export class ShellComponent implements OnInit, OnDestroy {
       { route: '/medico',               icon: 'pi-heart',           label: 'Expediente Médico' },
       { route: '/condiciones-cronicas', icon: 'pi-exclamation-triangle', label: 'Condiciones Crónicas', maxNivel: 3 },
       { route: '/justificaciones',      icon: 'pi-check-circle',    label: 'Justificaciones Faltas', maxNivel: 3 },
+      { route: '/movilidad',            icon: 'pi-arrows-h',        label: 'Movilidad Estudiantil', maxNivel: 3 },
+      { route: '/admision',             icon: 'pi-user-plus',       label: 'Admisión', maxNivel: 3 },
     ]},
     { section: 'Recursos Humanos', maxNivel: 2, items: [
       { route: '/licencias',           icon: 'pi-calendar-times',  label: 'Licencias y Permisos',   maxNivel: 2 },
@@ -452,6 +501,7 @@ export class ShellComponent implements OnInit, OnDestroy {
     ]},
     { section: 'Comunicación', maxNivel: 4, items: [
       { route: '/comunicados', icon: 'pi-envelope',   label: 'Comunicados' },
+      { route: '/foros',       icon: 'pi-comments',   label: 'Foros y Anuncios' },
       { route: '/encuestas',   icon: 'pi-chart-pie',  label: 'Encuestas',  maxNivel: 3 },
     ]},
     { section: 'Gradebook', maxNivel: 4, items: [
@@ -690,16 +740,15 @@ export class ShellComponent implements OnInit, OnDestroy {
 
   private buildBreadcrumbs(): void {
     const urlSegments = this.router.url.split('?')[0].split('/').filter(s => s);
-    
     this.breadcrumbItems = urlSegments.map((segment, index) => {
       const path = '/' + urlSegments.slice(0, index + 1).join('/');
       return {
-        label: this.humanize(segment),
-        routerLink: path
+        label: ROUTE_TITLES[segment] ?? this.humanize(segment),
+        routerLink: index < urlSegments.length - 1 ? path : undefined,
       };
     });
   }
-  
+
   private humanize(text: string): string {
     return text
       .split('-')

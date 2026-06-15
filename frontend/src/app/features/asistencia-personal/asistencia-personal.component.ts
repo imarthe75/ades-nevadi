@@ -2,23 +2,24 @@ import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
-import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
-import { TagModule } from 'primeng/tag';
 import { ToastModule } from 'primeng/toast';
 import { DatePickerModule } from 'primeng/datepicker';
 import { CheckboxModule } from 'primeng/checkbox';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { CardModule } from 'primeng/card';
+import { AutoCompleteModule } from 'primeng/autocomplete';
 import { MessageService } from 'primeng/api';
 import { ApexNotificationService } from 'apex-component-library';
+import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
 
 interface AsistenciaPersonal {
   id: string;
   persona_id: string;
+  nombre_completo?: string;
   fecha: string;
   hora_entrada: string | null;
   hora_salida: string | null;
@@ -49,9 +50,10 @@ interface ReportePersonal {
   selector: 'app-asistencia-personal',
   standalone: true,
   imports: [
-    CommonModule, FormsModule, TableModule, ButtonModule,
-    DialogModule, InputTextModule, SelectModule, TagModule,
+    CommonModule, FormsModule, ButtonModule,
+    DialogModule, InputTextModule, SelectModule,
     ToastModule, DatePickerModule, CheckboxModule, InputNumberModule, CardModule,
+    AutoCompleteModule, InteractiveGridComponent,
   ],
   providers: [MessageService],
   template: `
@@ -60,13 +62,12 @@ interface ReportePersonal {
       <div class="apex-toolbar">
         <h2 class="apex-title">Control de Asistencia del Personal</h2>
         <div class="apex-toolbar-actions">
-          <input pInputText [(ngModel)]="filtroPersonaId" placeholder="UUID persona…" style="width:240px" />
-          <p-calendar [(ngModel)]="filtroFechaInicio" dateFormat="yy-mm-dd" placeholder="Desde" [showIcon]="true" style="width:160px" />
-          <p-calendar [(ngModel)]="filtroFechaFin"    dateFormat="yy-mm-dd" placeholder="Hasta" [showIcon]="true" style="width:160px" />
-          <p-button label="Buscar" icon="pi pi-search" size="small" (onClick)="cargar()" />
+          <input pInputText [(ngModel)]="filtroNombre" (input)="onFiltroNombre()"
+            placeholder="Buscar por nombre…" style="width:220px" />
+          <p-datepicker [(ngModel)]="filtroFechaInicio" dateFormat="yy-mm-dd" placeholder="Desde" [showIcon]="true" style="width:150px" />
+          <p-datepicker [(ngModel)]="filtroFechaFin"    dateFormat="yy-mm-dd" placeholder="Hasta" [showIcon]="true" style="width:150px" />
           <p-button label="Registrar" icon="pi pi-plus" size="small" (onClick)="abrirNuevo()" />
-          <p-button label="Reporte" icon="pi pi-chart-bar" size="small" severity="secondary"
-            (onClick)="verReporte()" [disabled]="!filtroPersonaId" />
+          <p-button label="Reporte" icon="pi pi-chart-bar" size="small" severity="secondary" (onClick)="verReporte()" />
         </div>
       </div>
 
@@ -89,44 +90,12 @@ interface ReportePersonal {
         </div>
       }
 
-      <p-table [value]="registros()" [loading]="cargando()" [paginator]="true" [rows]="20"
-        stripedRows styleClass="p-datatable-sm">
-        <ng-template pTemplate="header">
-          <tr>
-            <th style="width:120px">Fecha</th>
-            <th style="width:110px">Entrada</th>
-            <th style="width:110px">Salida</th>
-            <th style="width:120px">Jornada</th>
-            <th style="width:90px">Retardo</th>
-            <th style="width:90px">Justif.</th>
-            <th>Observaciones</th>
-            <th style="width:100px">Acciones</th>
-          </tr>
-        </ng-template>
-        <ng-template pTemplate="body" let-reg>
-          <tr>
-            <td class="font-medium">{{ reg.fecha }}</td>
-            <td>{{ reg.hora_entrada ?? '—' }}</td>
-            <td>{{ reg.hora_salida ?? '—' }}</td>
-            <td><p-tag [value]="reg.tipo_jornada" [severity]="jornSev(reg.tipo_jornada)" /></td>
-            <td class="text-center">
-              @if (reg.es_retardo) {
-                <span class="text-orange-600 font-semibold">{{ reg.minutos_retardo }} min</span>
-              } @else { <span class="text-gray-400">—</span> }
-            </td>
-            <td class="text-center">
-              <span [class]="reg.justificado ? 'pi pi-check text-green-600' : 'pi pi-times text-red-400'"></span>
-            </td>
-            <td class="text-sm text-gray-600">{{ (reg.observaciones ?? '') | slice:0:60 }}</td>
-            <td>
-              <p-button icon="pi pi-pencil" size="small" [text]="true" (onClick)="editar(reg)" pTooltip="Editar" />
-            </td>
-          </tr>
-        </ng-template>
-        <ng-template pTemplate="emptymessage">
-          <tr><td colspan="8" class="text-center py-4 text-gray-500">Sin registros. Filtre por persona y fechas.</td></tr>
-        </ng-template>
-      </p-table>
+      <app-interactive-grid
+        [data]="registrosFlat()"
+        [columns]="registrosColumns"
+        [loading]="cargando()"
+        (rowSelected)="editar($event)"
+      />
     </div>
 
     <!-- Dialog: Registro -->
@@ -135,12 +104,21 @@ interface ReportePersonal {
       <div class="grid grid-cols-2 gap-3 p-2">
         @if (!editandoId) {
           <div class="col-span-2 flex flex-col gap-1">
-            <label class="text-sm font-medium">ID Persona <span class="text-red-500">*</span></label>
-            <input pInputText [(ngModel)]="form.persona_id" placeholder="UUID de la persona" />
+            <label class="text-sm font-medium">Personal <span class="text-red-500">*</span></label>
+            <p-autocomplete
+              [(ngModel)]="personaSeleccionada"
+              [suggestions]="personaSugerencias()"
+              (completeMethod)="buscarPersona($event)"
+              optionLabel="label"
+              [forceSelection]="true"
+              [delay]="300"
+              placeholder="Escriba nombre del empleado…"
+              style="width:100%"
+            />
           </div>
           <div class="flex flex-col gap-1">
             <label class="text-sm font-medium">Fecha <span class="text-red-500">*</span></label>
-            <p-calendar [(ngModel)]="form.fecha" dateFormat="yy-mm-dd" [showIcon]="true" />
+            <p-datepicker [(ngModel)]="form.fecha" dateFormat="yy-mm-dd" [showIcon]="true" />
           </div>
         }
         <div class="flex flex-col gap-1">
@@ -189,8 +167,21 @@ interface ReportePersonal {
 
     <!-- Dialog: Reporte mensual -->
     <p-dialog header="Generar Reporte Mensual" [(visible)]="dialogReporte"
-      [modal]="true" [style]="{width:'360px'}" [draggable]="false">
+      [modal]="true" [style]="{width:'400px'}" [draggable]="false">
       <div class="flex flex-col gap-3 p-2">
+        <div class="flex flex-col gap-1">
+          <label class="text-sm font-medium">Personal <span class="text-red-500">*</span></label>
+          <p-autocomplete
+            [(ngModel)]="personaReporteSelec"
+            [suggestions]="personaReporteSug()"
+            (completeMethod)="buscarPersonaReporte($event)"
+            optionLabel="label"
+            [forceSelection]="true"
+            [delay]="300"
+            placeholder="Buscar empleado…"
+            style="width:100%"
+          />
+        </div>
         <div class="flex flex-col gap-1">
           <label class="text-sm font-medium">Mes</label>
           <p-select [options]="mesOpts" [(ngModel)]="reporteMes" />
@@ -222,19 +213,45 @@ export class AsistenciaPersonalComponent implements OnInit {
   private notify = inject(ApexNotificationService);
 
   registros      = signal<AsistenciaPersonal[]>([]);
+
+  readonly registrosFlat = computed(() =>
+    this.registros().map(r => ({
+      ...r,
+      hora_entrada_str: r.hora_entrada ?? '—',
+      hora_salida_str:  r.hora_salida ?? '—',
+      retardo_str:      r.es_retardo ? `${r.minutos_retardo} min` : '—',
+      justificado_str:  r.justificado ? 'Sí' : 'No',
+      obs_str:          (r.observaciones ?? '').slice(0, 60),
+    }))
+  );
+  readonly registrosColumns: ColumnConfig[] = [
+    { field: 'nombre_completo', header: 'Personal',  sortable: true, filterable: true },
+    { field: 'fecha',           header: 'Fecha',     sortable: true, width: '110px' },
+    { field: 'hora_entrada_str',header: 'Entrada',   width: '90px' },
+    { field: 'hora_salida_str', header: 'Salida',    width: '90px' },
+    { field: 'tipo_jornada',    header: 'Jornada',   width: '110px' },
+    { field: 'retardo_str',     header: 'Retardo',   width: '85px' },
+    { field: 'justificado_str', header: 'Justif.',   width: '70px' },
+    { field: 'obs_str',         header: 'Observaciones' },
+  ];
   reporte        = signal<ReportePersonal | null>(null);
   cargando       = signal(false);
   guardando      = signal(false);
   cargandoReporte = signal(false);
+  personaSugerencias = signal<{ label: string; value: string }[]>([]);
+  personaSeleccionada: { label: string; value: string } | null = null;
+  personaReporteSug = signal<{ label: string; value: string }[]>([]);
+  personaReporteSelec: { label: string; value: string } | null = null;
 
   dialogForm    = false;
   dialogReporte = false;
   editandoId    = '';
-  filtroPersonaId = '';
+  filtroNombre  = '';
   filtroFechaInicio: Date | null = null;
   filtroFechaFin:    Date | null = null;
   reporteMes  = new Date().getMonth() + 1;
   reporteAnio = new Date().getFullYear();
+  private filtroTimer: ReturnType<typeof setTimeout> | null = null;
 
   form: any = this.resetForm();
 
@@ -254,10 +271,15 @@ export class AsistenciaPersonalComponent implements OnInit {
 
   ngOnInit() {}
 
+  onFiltroNombre() {
+    if (this.filtroTimer) clearTimeout(this.filtroTimer);
+    this.filtroTimer = setTimeout(() => this.cargar(), 400);
+  }
+
   cargar() {
     this.cargando.set(true);
     const params: any = {};
-    if (this.filtroPersonaId) params['persona_id'] = this.filtroPersonaId;
+    if (this.filtroNombre)      params['q']           = this.filtroNombre;
     if (this.filtroFechaInicio) params['fecha_inicio'] = this.toDateStr(this.filtroFechaInicio);
     if (this.filtroFechaFin)    params['fecha_fin']    = this.toDateStr(this.filtroFechaFin);
     this.http.get<AsistenciaPersonal[]>('/api/v1/asistencia-personal', { params }).subscribe({
@@ -266,10 +288,38 @@ export class AsistenciaPersonalComponent implements OnInit {
     });
   }
 
+  buscarPersona(event: { query: string }) {
+    if (!event.query || event.query.length < 2) { this.personaSugerencias.set([]); return; }
+    this.http.get<any>('/api/v1/profesores', { params: { buscar: event.query } }).subscribe({
+      next: res => {
+        const data = res?.data ?? res ?? [];
+        this.personaSugerencias.set(data.map((p: any) => ({
+          label: [p.nombre ?? p.persona?.nombre, p.apellido_paterno ?? p.persona?.apellido_paterno].filter(Boolean).join(' '),
+          value: p.persona_id ?? p.id,
+        })));
+      },
+      error: () => this.personaSugerencias.set([]),
+    });
+  }
+
+  buscarPersonaReporte(event: { query: string }) {
+    if (!event.query || event.query.length < 2) { this.personaReporteSug.set([]); return; }
+    this.http.get<any>('/api/v1/profesores', { params: { buscar: event.query } }).subscribe({
+      next: res => {
+        const data = res?.data ?? res ?? [];
+        this.personaReporteSug.set(data.map((p: any) => ({
+          label: [p.nombre ?? p.persona?.nombre, p.apellido_paterno ?? p.persona?.apellido_paterno].filter(Boolean).join(' '),
+          value: p.persona_id ?? p.id,
+        })));
+      },
+      error: () => this.personaReporteSug.set([]),
+    });
+  }
+
   abrirNuevo() {
     this.editandoId = '';
     this.form = this.resetForm();
-    if (this.filtroPersonaId) this.form.persona_id = this.filtroPersonaId;
+    this.personaSeleccionada = null;
     this.dialogForm = true;
   }
 
@@ -285,11 +335,16 @@ export class AsistenciaPersonalComponent implements OnInit {
   }
 
   guardar() {
+    if (!this.editandoId && !this.personaSeleccionada?.value) {
+      this.notify.warning('Seleccione la persona');
+      return;
+    }
     this.guardando.set(true);
     const req = this.editandoId
       ? this.http.patch(`/api/v1/asistencia-personal/${this.editandoId}`, this.form)
       : this.http.post('/api/v1/asistencia-personal', {
           ...this.form,
+          persona_id: this.personaSeleccionada!.value,
           fecha: this.form.fecha instanceof Date ? this.toDateStr(this.form.fecha) : this.form.fecha,
         });
     req.subscribe({
@@ -303,14 +358,15 @@ export class AsistenciaPersonalComponent implements OnInit {
   }
 
   verReporte() {
-    if (!this.filtroPersonaId) { this.notify.warning('Seleccione una persona'); return; }
+    this.personaReporteSelec = null;
     this.dialogReporte = true;
   }
 
   generarReporte() {
+    if (!this.personaReporteSelec?.value) { this.notify.warning('Seleccione una persona para el reporte'); return; }
     this.cargandoReporte.set(true);
     this.http.get<ReportePersonal>('/api/v1/asistencia-personal/reporte', {
-      params: { persona_id: this.filtroPersonaId, mes: this.reporteMes, anio: this.reporteAnio },
+      params: { persona_id: this.personaReporteSelec.value, mes: this.reporteMes, anio: this.reporteAnio },
     }).subscribe({
       next: r => {
         this.reporte.set(r); this.cargandoReporte.set(false); this.dialogReporte = false;

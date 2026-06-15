@@ -552,7 +552,7 @@ docker compose exec postgres psql -U ades_admin -d ades -c "
 
 ## Progreso y Roadmap
 
-> **Estado actual (Junio 2026):** FASES 1–10 completadas. El sistema está operacional y desplegado en producción. El desarrollo avanzó aproximadamente **18 meses antes del plan original.**
+> **Estado actual (Junio 2026):** FASES 1–31 completadas. El desarrollo de todo el core funcional y de automatización está finalizado e integrado en producción, logrando una cobertura de **78.3% de Casos de Uso (180/230 CUs)** y adelantando la entrega de infraestructura avanzada.
 
 ### Completado ✅
 
@@ -564,7 +564,7 @@ docker compose exec postgres psql -U ades_admin -d ades -c "
 | **Jun 2026** | Seeds completos | 3,483 usuarios, 76,320 calificaciones, 180k asistencias, 9,600 tareas |
 | **Jun 2026** | Portal Padres | Módulo /padres con KPIs, calificaciones y asistencia por alumno |
 | **Jun 2026** | Optimización | Paginación server-side, índices PostgreSQL, debounce en búsquedas |
-| **Jun 2026** | Planes de Estudio | Mapa curricular visual CBU 2024 + NEM, CRUD de materias |
+| **Jun 2026** | Planes de Estudio | Mapa curricular visual CBU 2024 + NEM Primaria y Secundaria, 648 temas de Primaria NEM insertados por grado |
 | **Jun 2026** | FASE 15 — Auditoría | Middleware FastAPI → `ades_audit_log`, tab Auditoría en Admin |
 | **Jun 2026** | FASE 16 — Superset BI | OIDC con Authentik, `custom_sso_security_manager`, guest tokens, componente Angular `/bi` |
 | **Jun 2026** | FASE 17 — AI Chatbot | Flowise (port 3002) + NL→SQL con Claude Haiku, tab "Consulta de datos" en módulo IA |
@@ -574,6 +574,11 @@ docker compose exec postgres psql -U ades_admin -d ades -c "
 | **Jun 2026** | FASE 21 — Stirling-PDF | `ades-stirling-pdf` (port 8081), endpoints fusión/marca-agua/compresión/boletas-grupo |
 | **Jun 2026** | FASE 22 — Grafana+Prometheus | `ades-prometheus` (9090) + `ades-grafana` (3003), métricas FastAPI, dashboard ADES API, /monitor Angular |
 | **Jun 2026** | FASE 23 — n8n Automatización | `ades-n8n` (5678) + BD PostgreSQL, webhooks FastAPI asistencia/calificación/comunicado/cierre-periodo |
+| **Jun 2026** | FASE 27 — Certificación Digital | Firma criptográfica Ed25519, generación de códigos QR de verificación y portal público de autenticación |
+| **Jun 2026** | FASE 28 — Expediente Digital | Gestión Documental con Paperless-ngx, OCR en español, visor PDF interactivo e IA con NVIDIA NIM para expedientes |
+| **Jun 2026** | FASE 29 — MFA & Licencias | Control MFA estricto en Authentik para admins y flujos de aprobación de licencias y capacitaciones docentes |
+| **Jun 2026** | FASE 30 — Operatividad RRHH | Expediente laboral digital, bitácora de asistencia del personal y disponibilidad docente |
+| **Jun 2026** | FASE 31 — Operatividad Avanzada | Justificación de inasistencias y control de condiciones médicas crónicas del alumnado |
 
 ### Pendiente de configuración
 
@@ -583,16 +588,8 @@ docker compose exec postgres psql -U ades_admin -d ades -c "
 | **Jul 2026** | Superset primer arranque | Ejecutar `infrastructure/superset/init.sh`, crear datasource `ades_bi` en UI |
 | **Jul 2026** | Flowise — configurar chatflow | UI en `localhost:3002`, conectar herramienta SQL al backend ADES, copiar UUID al `.env` |
 | **Jul 2026** | Chatbot NL→SQL — habilitar Claude | Agregar `ANTHROPIC_API_KEY` al `.env` y reconstruir imagen |
-| **Q3 2026** | FASE 27 — HashiCorp Vault | Gestión centralizada de secretos, credenciales DB dinámicas, rotación automática, audit trail |
-| **Q3 2026** | FASE 28 — Firma Digital (pyhanko) | Firma PAdES de boletas/certificados con llave institucional + integración futura FIEL/SAT |
-| **Q3 2026** | AI Chatbot (FASE 17) | Flowise + Vanna AI sobre PostgreSQL |
-| **Q3 2026** | Generador de Boletas (FASE 18) | Carbone (microservicio Docker) + plantillas Word |
-| **Q3 2026** | Push notifications (FASE 20) | ntfy · sin Firebase · app móvil gratuita |
-| **Q3 2026** | Procesamiento PDF (FASE 21) | Stirling-PDF + Carbone |
-| **Q3 2026** | Monitoreo (FASE 22) | Grafana + Prometheus |
-| **Q4 2026** | Automatización flujos (FASE 23) | n8n · alertas académicas · batch boletas |
-| **Q4 2026** | Expediente digital (FASE 24) | Paperless-ngx · OCR · MinIO |
-| **Q4 2026** | Lanzamiento operacional completo | — |
+| **Jul 2026** | Firma Digital (pyhanko / FIEL / SAT) | Integración futura de firma avanzada / SAT (e.firma) |
+| **Jul 2026** | Lanzamiento operacional completo | — |
 
 ### Extensiones aprobadas (planificadas)
 

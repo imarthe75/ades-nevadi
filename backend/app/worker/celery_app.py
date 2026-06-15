@@ -21,6 +21,7 @@ celery_app = Celery(
         "app.worker.tasks.boletas",
         "app.worker.tasks.notificaciones",
         "app.worker.tasks.blockchain",
+        "app.worker.tasks.sepomex",
     ],
 )
 
@@ -53,5 +54,10 @@ celery_app.conf.beat_schedule = {
     "refresh-vistas-bi": {
         "task": "app.worker.tasks.notificaciones.refresh_vistas_materializadas",
         "schedule": crontab(minute=5),   # XX:05 de cada hora
+    },
+    # Sincronización semanal de SEPOMEX — Domingos a las 3:00 AM
+    "sync-sepomex-semanal": {
+        "task": "app.worker.tasks.sepomex.sync_sepomex_weekly",
+        "schedule": crontab(hour=3, minute=0, day_of_week=0),
     },
 }

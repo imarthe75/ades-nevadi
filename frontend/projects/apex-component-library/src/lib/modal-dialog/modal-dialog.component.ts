@@ -1,22 +1,80 @@
-import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy, ContentChild, TemplateRef, HostListener, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
+import {
+  Component, Input, Output, EventEmitter, ContentChild, TemplateRef,
+  ChangeDetectionStrategy
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ApexButtonComponent } from '../button/button.component';
+import { DialogModule } from 'primeng/dialog';
+import { ButtonModule } from 'primeng/button';
+
+export type DialogSize = 'sm' | 'md' | 'lg' | 'xl' | 'full';
+
+const SIZE_MAP: Record<DialogSize, string> = {
+  sm:   '420px',
+  md:   '560px',
+  lg:   '780px',
+  xl:   '1000px',
+  full: '95vw',
+};
 
 @Component({
   selector: 'apex-modal-dialog',
-  templateUrl: './modal-dialog.component.html',
-  styleUrls: ['./modal-dialog.component.scss'],
-  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
-  imports: [CommonModule, ApexButtonComponent]
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [CommonModule, DialogModule, ButtonModule],
+  template: `
+    <p-dialog
+      [visible]="visible"
+      (visibleChange)="visibleChange.emit($event)"
+      [header]="title"
+      [modal]="true"
+      [closable]="closable"
+      [draggable]="draggable"
+      [resizable]="resizable"
+      [maximizable]="maximizable"
+      [closeOnEscape]="closeOnEscape"
+      [style]="{ width: width || sizeWidth }"
+      [styleClass]="'apex-dialog ' + (styleClass || '')"
+      (onShow)="onShow.emit()"
+      (onHide)="onHide.emit()">
+
+      <ng-content />
+
+      @if (footerTemplate) {
+        <ng-template pTemplate="footer">
+          <ng-container [ngTemplateOutlet]="footerTemplate" />
+        </ng-template>
+      }
+    </p-dialog>
+  `,
+  styles: [`
+    :host ::ng-deep .apex-dialog .p-dialog-header {
+      background: var(--surface-50);
+      border-bottom: 1px solid var(--surface-200);
+      padding: .75rem 1.25rem;
+      font-weight: 600;
+    }
+    :host ::ng-deep .apex-dialog .p-dialog-content {
+      padding: 1.25rem;
+    }
+    :host ::ng-deep .apex-dialog .p-dialog-footer {
+      padding: .75rem 1.25rem;
+      border-top: 1px solid var(--surface-200);
+      display: flex;
+      justify-content: flex-end;
+      gap: .5rem;
+    }
+  `],
 })
-export class ApexModalDialogComponent implements AfterViewInit {
-  @Input() visible: boolean = false;
-  @Input() title: string = '';
-  @Input() closable: boolean = true;
-  @Input() closeOnEscape: boolean = true;
-  @Input() dismissableMask: boolean = true;
-  @Input() width: string = '500px';
+export class ApexModalDialogComponent {
+  @Input() visible = false;
+  @Input() title = '';
+  @Input() size: DialogSize = 'md';
+  @Input() width?: string;
+  @Input() closable = true;
+  @Input() draggable = true;
+  @Input() resizable = false;
+  @Input() maximizable = false;
+  @Input() closeOnEscape = true;
   @Input() styleClass?: string;
 
   @Output() visibleChange = new EventEmitter<boolean>();
@@ -24,63 +82,6 @@ export class ApexModalDialogComponent implements AfterViewInit {
   @Output() onHide = new EventEmitter<void>();
 
   @ContentChild('footer') footerTemplate?: TemplateRef<any>;
-  @ViewChild('dialogElement') dialogElement!: ElementRef;
 
-  ngAfterViewInit(): void {
-    if (this.visible) {
-      this.focusFirstElement();
-    }
-  }
-
-  @HostListener('document:keydown.escape', ['$event'])
-  onEscape(event: any): void {
-    if (this.visible && this.closeOnEscape && this.closable) {
-      this.close(event);
-    }
-  }
-
-  onMaskClick(event: MouseEvent): void {
-    if (this.dismissableMask && this.closable) {
-      // Only close if clicking exactly on the mask, not inside the dialog
-      if ((event.target as HTMLElement).classList.contains('apex-dialog-mask')) {
-        this.close(event);
-      }
-    }
-  }
-
-  close(event?: Event): void {
-    if (event) {
-      event.preventDefault();
-    }
-    
-    this.visible = false;
-    this.visibleChange.emit(this.visible);
-    this.onHide.emit();
-  }
-
-  show(): void {
-    this.visible = true;
-    this.visibleChange.emit(this.visible);
-    this.onShow.emit();
-    
-    // Use timeout to let DOM update before focusing
-    setTimeout(() => {
-      this.focusFirstElement();
-    });
-  }
-
-  private focusFirstElement(): void {
-    if (!this.dialogElement) return;
-    
-    // Focus the dialog itself or its first focusable element
-    const focusableEls = this.dialogElement.nativeElement.querySelectorAll(
-      'a[href], button, textarea, input[type="text"], input[type="radio"], input[type="checkbox"], select'
-    );
-    
-    if (focusableEls.length > 0) {
-      (focusableEls[0] as HTMLElement).focus();
-    } else {
-      this.dialogElement.nativeElement.focus();
-    }
-  }
+  get sizeWidth(): string { return SIZE_MAP[this.size]; }
 }

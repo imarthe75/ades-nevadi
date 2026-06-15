@@ -1,128 +1,155 @@
-import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy, TemplateRef, ContentChild } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from '@angular/core';
 
 export interface ApexIconListItem {
   id?: string | number;
+  icon: string;
   label: string;
-  icon?: string;
-  description?: string;
+  value?: string | number;
   color?: string;
   disabled?: boolean;
-  data?: any;
 }
 
 @Component({
   selector: 'apex-iconlist',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   template: `
-    <div class="apex-iconlist-container" [ngClass]="layout">
-      <div *ngFor="let item of items" 
-           class="apex-iconlist-item" 
-           [ngClass]="{'is-disabled': item.disabled}"
-           (click)="onItemClick(item)">
-        <ng-container *ngIf="customTemplate; else defaultTemplate">
-          <ng-container *ngTemplateOutlet="customTemplate; context: {$implicit: item}"></ng-container>
-        </ng-container>
-        
-        <ng-template #defaultTemplate>
-          <div class="apex-iconlist-icon-wrapper" [style.background-color]="item.color || 'var(--primary-color)'">
-            <i class="apex-iconlist-icon" [ngClass]="item.icon || 'pi pi-star'"></i>
-          </div>
-          <div class="apex-iconlist-content">
-            <div class="apex-iconlist-label">{{item.label}}</div>
-            <div class="apex-iconlist-desc" *ngIf="item.description">{{item.description}}</div>
-          </div>
-        </ng-template>
-      </div>
+    <div class="apex-iconlist-region">
+      @if (title) {
+        <div class="apex-iconlist-header">
+          <h4 class="apex-iconlist-header-title">{{ title }}</h4>
+        </div>
+      }
+
+      @if (!items?.length) {
+        <div class="apex-iconlist-empty">
+          <span class="pi pi-th-large apex-iconlist-empty-icon"></span>
+          <span>{{ emptyMessage }}</span>
+        </div>
+      } @else {
+        <div class="apex-iconlist-grid">
+          @for (item of items; track item.id ?? item.label) {
+            <div
+              class="apex-iconlist-cell"
+              [class.apex-iconlist-cell--disabled]="item.disabled"
+              (click)="!item.disabled && itemSelect.emit(item)"
+              [attr.aria-disabled]="item.disabled || null"
+              role="button"
+              tabindex="{{ item.disabled ? -1 : 0 }}"
+              (keydown.enter)="!item.disabled && itemSelect.emit(item)">
+
+              <div
+                class="apex-iconlist-icon-bg"
+                [style.background]="item.color ? item.color + '22' : 'var(--primary-50)'">
+                <i [class]="item.icon"
+                   [style.color]="item.color || 'var(--primary-color)'"></i>
+              </div>
+
+              <div class="apex-iconlist-cell-content">
+                <span class="apex-iconlist-cell-label">{{ item.label }}</span>
+                @if (item.value !== undefined && item.value !== null) {
+                  <span class="apex-iconlist-cell-value">{{ item.value }}</span>
+                }
+              </div>
+
+            </div>
+          }
+        </div>
+      }
     </div>
   `,
   styles: [`
-    :host {
-      display: block;
+    :host { display: block; }
+    .apex-iconlist-region {
+      background: var(--surface-card);
+      border: 1px solid var(--surface-border);
+      border-radius: var(--border-radius, 6px);
+      overflow: hidden;
     }
-    .apex-iconlist-container {
+    .apex-iconlist-header {
+      padding: 0.6rem 1rem;
+      background: var(--surface-section);
+      border-bottom: 1px solid var(--surface-border);
+    }
+    .apex-iconlist-header-title {
+      margin: 0;
+      font-size: 0.85rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-color);
+    }
+    .apex-iconlist-empty {
       display: flex;
-      flex-wrap: wrap;
-      gap: 1rem;
-    }
-    .apex-iconlist-container.grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    }
-    .apex-iconlist-container.list {
       flex-direction: column;
-    }
-    .apex-iconlist-item {
-      display: flex;
       align-items: center;
-      padding: 1rem;
-      border-radius: var(--border-radius, 8px);
-      background: var(--surface-card, #ffffff);
-      border: 1px solid var(--surface-border, #e5e7eb);
+      gap: 0.5rem;
+      padding: 2.5rem;
+      color: var(--text-color-secondary);
+      font-size: 0.875rem;
+    }
+    .apex-iconlist-empty-icon { font-size: 2rem; color: var(--surface-300); }
+    .apex-iconlist-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 0;
+    }
+    .apex-iconlist-cell {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 1.25rem 0.75rem;
+      text-align: center;
       cursor: pointer;
-      transition: background-color 0.2s, box-shadow 0.2s;
+      border-right: 1px solid var(--surface-100, #f3f4f6);
+      border-bottom: 1px solid var(--surface-100, #f3f4f6);
+      transition: background 0.15s;
+      outline: none;
     }
-    .apex-iconlist-item:hover:not(.is-disabled) {
-      background: var(--surface-hover, #f3f4f6);
-      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    .apex-iconlist-cell:focus-visible {
+      box-shadow: inset 0 0 0 2px var(--primary-color);
     }
-    .apex-iconlist-item.is-disabled {
-      opacity: 0.6;
+    .apex-iconlist-cell:hover:not(.apex-iconlist-cell--disabled) {
+      background: var(--surface-hover, #f9fafb);
+    }
+    .apex-iconlist-cell--disabled {
+      opacity: 0.45;
       cursor: not-allowed;
     }
-    .apex-iconlist-icon-wrapper {
-      width: 40px;
-      height: 40px;
-      border-radius: 8px;
+    .apex-iconlist-icon-bg {
+      width: 2.75rem;
+      height: 2.75rem;
+      border-radius: 12px;
       display: flex;
       align-items: center;
       justify-content: center;
-      margin-right: 1rem;
-      color: #ffffff;
-      flex-shrink: 0;
     }
-    .apex-iconlist-icon {
-      font-size: 1.2rem;
+    .apex-iconlist-icon-bg i { font-size: 1.2rem; }
+    .apex-iconlist-cell-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.15rem;
     }
-    .apex-iconlist-content {
-      flex-grow: 1;
-      overflow: hidden;
-    }
-    .apex-iconlist-label {
+    .apex-iconlist-cell-label {
+      font-size: 0.78rem;
       font-weight: 600;
-      color: var(--text-color, #1f2937);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      color: var(--text-color);
+      line-height: 1.3;
     }
-    .apex-iconlist-desc {
-      font-size: 0.875rem;
-      color: var(--text-color-secondary, #6b7280);
-      margin-top: 0.25rem;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+    .apex-iconlist-cell-value {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--primary-700, #1d4ed8);
     }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ApexIconListComponent {
-  /** Array of items to display */
   @Input() items: ApexIconListItem[] = [];
+  @Input() title?: string;
+  @Input() emptyMessage: string = 'No items.';
 
-  /** Layout of the icon list */
-  @Input() layout: 'flex' | 'grid' | 'list' = 'flex';
-
-  /** Custom template for items */
-  @ContentChild(TemplateRef) customTemplate!: TemplateRef<any>;
-
-  /** Event emitted when an item is clicked */
-  @Output() itemClick = new EventEmitter<ApexIconListItem>();
-
-  public onItemClick(item: ApexIconListItem): void {
-    if (!item.disabled) {
-      this.itemClick.emit(item);
-    }
-  }
+  @Output() itemSelect = new EventEmitter<ApexIconListItem>();
 }

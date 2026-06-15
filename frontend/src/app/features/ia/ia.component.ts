@@ -5,17 +5,17 @@
  *   1. Chat con el asistente (Claude vía backend)
  *   2. Alertas académicas del grupo/plantel con botón "Escanear grupo"
  */
-import { Component, OnInit, inject, signal, ElementRef, ViewChild, afterNextRender } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, ElementRef, ViewChild, afterNextRender } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { TabsModule } from 'primeng/tabs';
 import { CardModule } from 'primeng/card';
-import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { SelectModule } from 'primeng/select';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
+import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
 
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
@@ -48,8 +48,9 @@ const RIESGO_SEVERITY: Record<string, AlertaSeverity> = {
   standalone: true,
   imports: [
     CommonModule, FormsModule,
-    ButtonModule, InputTextModule, TabsModule, CardModule, TableModule,
+    ButtonModule, InputTextModule, TabsModule, CardModule,
     TagModule, SelectModule, ProgressSpinnerModule,
+    InteractiveGridComponent,
   ],
   template: `
 
@@ -154,47 +155,11 @@ const RIESGO_SEVERITY: Record<string, AlertaSeverity> = {
           />
         </div>
 
-        <p-table
-          [value]="alertas()"
-          [rows]="20"
-          [paginator]="true"
-          styleClass="p-datatable-sm p-datatable-striped"
+        <app-interactive-grid
+          [data]="alertasFlat()"
+          [columns]="alertasColumns"
           [loading]="cargandoAlertas()"
-        >
-          <ng-template pTemplate="header">
-            <tr>
-              <th style="width:130px">Tipo</th>
-              <th style="width:90px;text-align:center">Riesgo</th>
-              <th>Descripción</th>
-              <th style="width:100px">Fecha</th>
-              <th style="width:90px;text-align:center">Estado</th>
-            </tr>
-          </ng-template>
-
-          <ng-template pTemplate="body" let-a>
-            <tr [class.atendida]="a.atendida">
-              <td><small>{{ a.tipo_alerta | titlecase }}</small></td>
-              <td style="text-align:center">
-                <p-tag [value]="a.nivel_riesgo" [severity]="riesgoSeverity(a.nivel_riesgo)" />
-              </td>
-              <td style="font-size:0.82rem">{{ a.descripcion }}</td>
-              <td style="font-size:0.8rem">{{ a.fccreacion | date:'dd/MM/yy HH:mm' }}</td>
-              <td style="text-align:center">
-                @if (a.atendida) {
-                  <p-tag value="Atendida" severity="success" />
-                } @else {
-                  <p-button label="Atender" [size]="'small'" severity="warn" [text]="true" />
-                }
-              </td>
-            </tr>
-          </ng-template>
-
-          <ng-template pTemplate="emptymessage">
-            <tr><td [colSpan]="5" style="text-align:center;padding:2rem;color:#94A3B8">
-              Sin alertas activas. Usa "Escanear grupo" para detectar riesgos.
-            </td></tr>
-          </ng-template>
-        </p-table>
+        />
       </p-tabpanel>
 
       <!-- ── Pestaña Chatbot de Datos (NL→SQL) ── -->
@@ -371,6 +336,21 @@ export class IaComponent implements OnInit {
   grupos   = signal<Grupo[]>([]);
   alertas  = signal<Alerta[]>([]);
   cargandoAlertas = signal(false);
+
+  readonly alertasFlat = computed(() =>
+    this.alertas().map(a => ({
+      ...a,
+      fecha_str:   a.fccreacion ? new Date(a.fccreacion).toLocaleDateString('es-MX') : '—',
+      estado_str:  a.atendida ? 'Atendida' : 'Pendiente',
+    }))
+  );
+  readonly alertasColumns: ColumnConfig[] = [
+    { field: 'tipo_alerta',  header: 'Tipo',        width: '130px' },
+    { field: 'nivel_riesgo', header: 'Riesgo',      width: '90px' },
+    { field: 'descripcion',  header: 'Descripción' },
+    { field: 'fecha_str',    header: 'Fecha',       width: '110px' },
+    { field: 'estado_str',   header: 'Estado',      width: '90px' },
+  ];
   escaneando = signal(false);
   selectedGrupo: Grupo | null = null;
 

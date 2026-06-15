@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Acta de Cierre de Ciclo Escolar</title>
+    <style>
+        @page {
+            size: letter;
+            margin: 3cm 2cm 2.5cm 2cm;
+            @top-center {
+                content: element(header);
+            }
+            @bottom-center {
+                content: element(footer);
+            }
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            color: #1A1A2E;
+            line-height: 1.5;
+            font-size: 11pt;
+        }
+        div.header {
+            position: running(header);
+            border-bottom: 2px solid #C41724;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .header-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .logo-text {
+            font-family: 'Jost', sans-serif;
+            font-size: 18pt;
+            font-weight: bold;
+            color: #C41724;
+        }
+        .sub-logo-text {
+            font-size: 9pt;
+            color: #64748B;
+            text-transform: uppercase;
+        }
+        .document-title {
+            text-align: right;
+            font-size: 14pt;
+            font-weight: bold;
+            color: #1A1A2E;
+        }
+        div.footer {
+            position: running(footer);
+            border-top: 1px solid #E2E8F0;
+            padding-top: 10px;
+            font-size: 8pt;
+            color: #64748B;
+            text-align: center;
+        }
+        h1 {
+            font-family: 'Jost', sans-serif;
+            color: #C41724;
+            font-size: 16pt;
+            text-align: center;
+            margin-top: 0;
+            margin-bottom: 25px;
+        }
+        .declaracion {
+            text-align: justify;
+            margin-bottom: 25px;
+        }
+        .kpi-grid {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+        }
+        .kpi-row {
+            margin-bottom: 10px;
+        }
+        .kpi-card {
+            background-color: #F8FAFC;
+            border-left: 4px solid #C41724;
+            padding: 12px;
+            width: 45%;
+            display: inline-block;
+            vertical-align: top;
+            margin-right: 5%;
+            margin-bottom: 15px;
+            box-sizing: border-box;
+        }
+        .kpi-title {
+            font-size: 8.5pt;
+            color: #64748B;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+        .kpi-value {
+            font-size: 16pt;
+            font-weight: bold;
+            color: #1A1A2E;
+            margin-top: 5px;
+        }
+        .signature-section {
+            margin-top: 60px;
+            width: 100%;
+        }
+        .signature-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .signature-line {
+            width: 45%;
+            text-align: center;
+            font-size: 10pt;
+        }
+        .signature-space {
+            border-bottom: 1px solid #1A1A2E;
+            height: 70px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <table class="header-table">
+            <tr>
+                <td>
+                    <div class="logo-text">{{ institucion }}</div>
+                    <div class="sub-logo-text">Sistema Escolar ADES</div>
+                </td>
+                <td class="document-title">
+                    ACTA FORMAL DE CIERRE<br>
+                    DE CICLO ESCOLAR
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="footer">
+        {{ institucion }} · Generado por {{ usuario_generacion }} el {{ fecha_generacion }}
+    </div>
+
+    <h1>ACTA DE CIERRE DE LABORES ACADÉMICAS</h1>
+
+    <div class="declaracion">
+        En las instalaciones del <strong>{{ institucion }}</strong>, se hace constar el término y clausura formal de las actividades académicas y administrativas correspondientes al ciclo escolar <strong>{{ nombre_ciclo }}</strong> del nivel educativo <strong>{{ nombre_nivel }}</strong>, culminando labores oficiales con fecha <strong>{{ fecha_fin }}</strong>. A continuación, se detallan las métricas académicas de rendimiento y cierre obtenidas en este periodo:
+    </div>
+
+    <div style="width: 100%; margin-bottom: 20px;">
+        <div class="kpi-card">
+            <div class="kpi-title">Matrícula de Cierre (Alumnos Activos)</div>
+            <div class="kpi-value">{{ total_alumnos_activos }} / {{ matricula_total }}</div>
+        </div>
+        <div class="kpi-card" style="margin-right: 0;">
+            <div class="kpi-title">Bajas Totales del Ciclo</div>
+            <div class="kpi-value">{{ total_bajas }} Alumnos</div>
+        </div>
+    </div>
+
+    <div style="width: 100%; margin-bottom: 25px;">
+        <div class="kpi-card">
+            <div class="kpi-title">Tasa de Aprobación de Materias</div>
+            <div class="kpi-value">{{ tasa_aprobacion }}%</div>
+        </div>
+        <div class="kpi-card" style="margin-right: 0;">
+            <div class="kpi-title">Promedio General Académico</div>
+            <div class="kpi-value">{{ promedio_general }}</div>
+        </div>
+    </div>
+
+    <div class="declaracion">
+        Se da por concluido el ciclo de forma satisfactoria para los expedientes del plantel, procediéndose al resguardo definitivo del historial académico en la base de datos inmutable del sistema y a la liberación de los expedientes para promoción escolar.
+    </div>
+
+    <div class="signature-section">
+        <table class="signature-table">
+            <tr>
+                <td class="signature-line">
+                    <div class="signature-space"></div>
+                    <strong>Dirección Académica</strong><br>
+                    {{ institucion }}
+                </td>
+                <td style="width: 10%;"></td>
+                <td class="signature-line">
+                    <div class="signature-space"></div>
+                    <strong>Firma del Director del Plantel</strong><br>
+                    Control Escolar General
+                </td>
+            </tr>
+        </table>
+    </div>
+</body>
+</html>

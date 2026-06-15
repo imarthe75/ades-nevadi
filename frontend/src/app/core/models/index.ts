@@ -48,16 +48,18 @@ export interface Grupo {
   nombre_nivel?: string | null;
   nombre_grado?: string | null;
   numero_grado?: number | null;
+  plantel_nombre?: string | null;
   inscritos?: number;
 }
 
-/** Label completo para dropdowns: "Primaria — 1er Grado / A" */
+/** Label completo para dropdowns: "Metepec — Secundaria 2° / A" */
 export function grupoLabel(g: Grupo | null | undefined): string {
   if (!g) return '';
+  const plantel = g.plantel_nombre ? `${g.plantel_nombre} · ` : '';
   const nivel = g.nombre_nivel ?? '';
   const grado = g.nombre_grado ?? '';
   const grupo = g.nombre_grupo ?? '';
-  return nivel && grado ? `${nivel} — ${grado} / ${grupo}` : grupo;
+  return nivel && grado ? `${plantel}${nivel} — ${grado} / ${grupo}` : grupo;
 }
 
 export interface Persona {
@@ -82,8 +84,10 @@ export interface Estudiante {
   id: string;
   matricula: string;
   plantel_id: string;
+  persona_id?: string;
   fecha_ingreso?: string;
   persona?: Persona;
+  is_active?: boolean;
   // Datos complementarios (tipo_sangre/alergias → ExpedienteMedico)
   nss?: string | null;
   discapacidad?: string | null;
@@ -95,12 +99,15 @@ export interface Estudiante {
   nivel_socioeconomico?: string | null;
   etnia?: string | null;
   lengua_indigena?: string | null;
+  lengua_indigena_id?: string | null;
+  nivel_ingles_id?: string | null;
 }
 
 export interface Profesor {
   id: string;
   numero_empleado: string;
   plantel_id: string;
+  persona_id?: string;
   tipo_contrato?: string;
   persona?: Persona;
   // Datos laborales migración 011

@@ -17,12 +17,15 @@ import asyncio
 import io
 import logging
 import uuid
+from datetime import date
+from jinja2 import Environment, FileSystemLoader
+from pathlib import Path
 
 import httpx
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.orm import selectinload
 
 from app.core.config import settings
@@ -32,6 +35,29 @@ from app.models.personas import Estudiante, Inscripcion
 
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/pdf", tags=["pdf"])
+
+_TEMPLATES_DIR = Path(__file__).parent.parent.parent / "templates" / "actas"
+
+def _get_jinja():
+    if not _TEMPLATES_DIR.exists():
+        _TEMPLATES_DIR.mkdir(parents=True, exist_ok=True)
+    return Environment(loader=FileSystemLoader(str(_TEMPLATES_DIR)), autoescape=True)
+
+async def _obtener_datos_acta(ciclo_id: uuid.UUID, db: AsyncSession):
+    res = await db.execute(
+        text("SELECT * FROM v_indicadores_cierre_ciclo WHERE ciclo_escolar_id = :cid"),
+        {"cid": ciclo_id}
+    )
+    row = res.mappings().first()
+    if not row:
+        raise HTTPException(status_code=404, detail="No se encontraron datos para el ciclo escolar especificado.")
+    
+    res_inst = await db.execute(
+        text("SELECT valor FROM ades_parametros_sistema WHERE clave = 'NOMBRE_INSTITUCION'")
+    )
+    institucion = res_inst.scalar_one_or_none() or "Instituto Nevadi"
+
+    return dict(row), institucion
 
 _STIRLING_BASE = None
 
@@ -252,4 +278,87 @@ async def boletas_grupo_fusionadas(
         iter([result_pdf]),
         media_type="application/pdf",
         headers={"Content-Disposition": f"attachment; filename=boletas_grupo_{grupo_id}.pdf"},
+    )
+
+
+@router.post("/{ciclo_id}/acta-inicio")
+async def acta_inicio(
+    ciclo_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    ades_user: AdesUser = Depends(get_ades_user),
+):
+    """Genera el PDF WeasyPrint del acta de inicio de ciclo escolar."""
+    if ades_user.nivel_acceso > 2:
+        raise HTTPException(status_code=403, detail="Acceso denegado.")
+
+    datos, institucion = await _obtener_datos_acta(ciclo_id, db)
+    
+    ctx = {
+        "institucion": institucion,
+        "nombre_ciclo": datos["nombre_ciclo"],
+        "nombre_nivel": datos["nombre_nivel"],
+        "fecha_inicio": datos["fecha_inicio"].strftime("%d/%m/%Y"),
+        "matricula_total": datos["matricula_total"],
+        "total_docentes": datos["total_docentes"],
+        "fecha_generacion": date.today().strftime("%d/%m/%Y"),
+        "usuario_generacion": ades_user.nombre_usuario,
+    }
+
+    template = _get_jinja().get_template("acta_inicio.html")
+    html_str = template.render(**ctx)
+
+    try:
+        from weasyprint import HTML
+        pdf_bytes = HTML(string=html_str, base_url=str(_TEMPLATES_DIR)).write_pdf()
+    except ImportError:
+        raise HTTPException(status_code=503, detail="WeasyPrint no disponible en el servidor.")
+
+    filename = f"acta_inicio_{datos['nombre_ciclo']}_{datos['nombre_nivel']}.pdf"
+    return StreamingResponse(
+        io.BytesIO(pdf_bytes),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@router.post("/{ciclo_id}/acta-cierre")
+async def acta_cierre(
+    ciclo_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    ades_user: AdesUser = Depends(get_ades_user),
+):
+    """Genera el PDF WeasyPrint del acta de cierre de ciclo escolar."""
+    if ades_user.nivel_acceso > 2:
+        raise HTTPException(status_code=403, detail="Acceso denegado.")
+
+    datos, institucion = await _obtener_datos_acta(ciclo_id, db)
+    
+    ctx = {
+        "institucion": institucion,
+        "nombre_ciclo": datos["nombre_ciclo"],
+        "nombre_nivel": datos["nombre_nivel"],
+        "fecha_fin": datos["fecha_fin"].strftime("%d/%m/%Y"),
+        "matricula_total": datos["matricula_total"],
+        "promedio_general": datos["promedio_general"],
+        "tasa_aprobacion": datos["tasa_aprobacion"],
+        "total_bajas": datos["total_bajas"],
+        "total_alumnos_activos": datos["total_alumnos_activos"],
+        "fecha_generacion": date.today().strftime("%d/%m/%Y"),
+        "usuario_generacion": ades_user.nombre_usuario,
+    }
+
+    template = _get_jinja().get_template("acta_cierre.html")
+    html_str = template.render(**ctx)
+
+    try:
+        from weasyprint import HTML
+        pdf_bytes = HTML(string=html_str, base_url=str(_TEMPLATES_DIR)).write_pdf()
+    except ImportError:
+        raise HTTPException(status_code=503, detail="WeasyPrint no disponible en el servidor.")
+
+    filename = f"acta_cierre_{datos['nombre_ciclo']}_{datos['nombre_nivel']}.pdf"
+    return StreamingResponse(
+        io.BytesIO(pdf_bytes),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )

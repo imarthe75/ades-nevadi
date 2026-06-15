@@ -1,7 +1,6 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
 import { InputTextModule } from 'primeng/inputtext';
@@ -17,6 +16,7 @@ import { ContextService } from '../../core/services/context.service';
 import { ExportService } from '../../core/services/export.service';
 import { ApexNotificationService } from 'apex-component-library';
 import { CierrePeriodoComponent } from './cierre-periodo.component';
+import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
 
 interface Actividad {
   id: string;
@@ -63,14 +63,31 @@ interface GrupoOpt { id: string; nombre_grupo: string; }
 interface MateriaOpt { id: string; nombre_materia: string; }
 interface PeriodoOpt { id: string; nombre_periodo: string; }
 
+interface InsightCobertura {
+  materia_id: string;
+  nombre_materia: string;
+  tipo_materia: string;
+  total_temas: number;
+  temas_impartidos: number;
+  temas_planeados: number;
+  temas_pendientes: number;
+  pct_cobertura: number;
+}
+interface Insights {
+  resumen: { total_temas: number; temas_impartidos: number; pct_cobertura: number; estado: string };
+  cobertura_por_materia: InsightCobertura[];
+  tareas: { total_tareas: number; tareas_con_tema: number; tareas_sin_tema: number; pct_vinculadas: number };
+  calificaciones: { nombre_materia: string; promedio: number; alumnos_evaluados: number; en_riesgo: number }[];
+}
+
 @Component({
   selector: 'app-gradebook',
   standalone: true,
   imports: [
-    CommonModule, FormsModule, TableModule, ButtonModule, SelectModule,
+    CommonModule, FormsModule, ButtonModule, SelectModule,
     InputTextModule, InputNumberModule, TagModule, TooltipModule,
     DialogModule, DrawerModule, TabsModule, ProgressBarModule,
-    CierrePeriodoComponent,
+    CierrePeriodoComponent, InteractiveGridComponent,
   ],
   template: `
 <div class="page-header">
@@ -110,85 +127,22 @@ interface PeriodoOpt { id: string; nombre_periodo: string; }
 <p-tabs value="0">
   <!-- ── TAB 1: Spreadsheet de actividades ── -->
   <p-tabpanel header="Actividades" value="0">
-    <p-table [value]="actividades()" [loading]="cargando()"
-             styleClass="p-datatable-sm" [rows]="50" [paginator]="actividades().length > 50">
-      <ng-template pTemplate="header">
-        <tr>
-          <th>Actividad</th>
-          <th style="width:100px">Tipo</th>
-          <th style="width:130px">Fecha entrega</th>
-          <th style="width:80px" pTooltip="Entregadas/Total">Entregas</th>
-          <th style="width:80px">Calificadas</th>
-          <th style="width:100px"></th>
-        </tr>
-      </ng-template>
-      <ng-template pTemplate="body" let-act>
-        <tr>
-          <td>{{ act.titulo }}<br>
-            <small class="text-muted">{{ act.nombre_materia }}</small></td>
-          <td><p-tag [value]="act.tipo_item" [severity]="tipoSeverity(act.tipo_item)" /></td>
-          <td>{{ act.fecha_entrega | date:'dd/MM/yyyy' }}</td>
-          <td>{{ act.entregadas }}/{{ act.total_alumnos }}
-            <p-progressBar [value]="pctEntregas(act)" [style]="{'height':'4px','margin-top':'4px'}" [showValue]="false" /></td>
-          <td>{{ act.calificadas }}</td>
-          <td>
-            <button pButton icon="pi pi-pencil" text size="small"
-                    pTooltip="Calificar" (click)="abrirCalificacion(act)"></button>
-          </td>
-        </tr>
-      </ng-template>
-      <ng-template pTemplate="emptymessage">
-        <tr><td colspan="6" class="text-center p-4 text-muted">
-          Selecciona un grupo para ver actividades
-        </td></tr>
-      </ng-template>
-    </p-table>
+    <app-interactive-grid
+      [data]="actividadesFlat()"
+      [columns]="actividadesColumns"
+      [loading]="cargando()"
+      (rowSelected)="abrirCalificacion($event)"
+    />
   </p-tabpanel>
 
   <!-- ── TAB 2: Concentrado de calificaciones ── -->
   <p-tabpanel header="Concentrado por período" value="1">
-    <p-table [value]="concentrado()" [loading]="cargandoConc()"
-             styleClass="p-datatable-sm" [rows]="100">
-      <ng-template pTemplate="header">
-        <tr>
-          <th>Alumno</th>
-          <th>Matrícula</th>
-          <th>Materia</th>
-          <th style="width:90px">Calculada</th>
-          <th style="width:90px">Ajuste</th>
-          <th style="width:90px">Final</th>
-          <th style="width:80px">Estado</th>
-          <th style="width:60px"></th>
-        </tr>
-      </ng-template>
-      <ng-template pTemplate="body" let-row>
-        <tr [class.row-riesgo]="row.en_riesgo">
-          <td>{{ row.alumno }}</td>
-          <td>{{ row.numero_matricula }}</td>
-          <td>{{ row.nombre_materia }}</td>
-          <td class="text-center">
-            <span [class]="calClass(row.calificacion_calculada, row.escala_maxima)">
-              {{ row.calificacion_calculada ?? '—' }}
-            </span>
-          </td>
-          <td class="text-center">{{ row.ajuste_manual ?? '—' }}</td>
-          <td class="text-center">
-            <strong [class]="calClass(row.calificacion_final, row.escala_maxima)">
-              {{ row.calificacion_final ?? '—' }}
-            </strong>
-          </td>
-          <td>
-            <p-tag [value]="row.cerrada ? 'Cerrada' : 'Abierta'"
-                   [severity]="row.cerrada ? 'secondary' : 'info'" />
-          </td>
-          <td>
-            <button pButton icon="pi pi-sliders-h" text size="small"
-                    pTooltip="Ajuste manual" (click)="abrirAjuste(row)"
-                    [disabled]="row.cerrada"></button>
-          </td>
-        </tr>
-      </ng-template>
-    </p-table>
+    <app-interactive-grid
+      [data]="concentradoFlat()"
+      [columns]="concentradoColumns"
+      [loading]="cargandoConc()"
+      (rowSelected)="abrirAjuste($event)"
+    />
   </p-tabpanel>
 
   <!-- ── TAB 3: Cobertura curricular ── -->
@@ -209,29 +163,79 @@ interface PeriodoOpt { id: string; nombre_periodo: string; }
         </div>
       </div>
     }
-    <p-table [value]="cobertura()?.temas || []" styleClass="p-datatable-sm" [rows]="100">
-      <ng-template pTemplate="header">
-        <tr>
-          <th>#</th>
-          <th>Tema</th>
-          <th>Materia</th>
-          <th>Actividades</th>
-          <th>Evidencia</th>
-        </tr>
-      </ng-template>
-      <ng-template pTemplate="body" let-t>
-        <tr>
-          <td>{{ t.orden }}</td>
-          <td>{{ t.nombre_tema }}</td>
-          <td>{{ t.nombre_materia }}</td>
-          <td>{{ t.num_actividades }}</td>
-          <td>
-            <p-tag [value]="t.tiene_evidencia ? 'Sí' : 'Sin evidencia'"
-                   [severity]="t.tiene_evidencia ? 'success' : 'warn'" />
-          </td>
-        </tr>
-      </ng-template>
-    </p-table>
+    <app-interactive-grid
+      [data]="coberturaTemasFlat()"
+      [columns]="coberturaTemasColumns"
+    />
+  </p-tabpanel>
+
+  <!-- ── TAB 4: Insights académicos ── -->
+  <p-tabpanel header="Insights académicos" value="3">
+    @if (!grupoSel) {
+      <p class="text-center text-muted mt-4">Selecciona un grupo para ver insights.</p>
+    } @else if (cargandoInsights()) {
+      <p class="text-center text-muted mt-4">Cargando insights…</p>
+    } @else if (insights()) {
+      <!-- KPIs globales -->
+      <div class="kpi-row">
+        <div class="kpi-card" [class.kpi-danger]="insights()!.resumen.estado==='CRITICO'"
+             [class.kpi-warn]="insights()!.resumen.estado==='ALERTA'"
+             [class.kpi-ok]="insights()!.resumen.estado==='OK'">
+          <div class="kpi-value">{{ insights()!.resumen.pct_cobertura }}%</div>
+          <div class="kpi-label">Cobertura curricular</div>
+          <p-tag [value]="insights()!.resumen.estado" [severity]="estadoSev(insights()!.resumen.estado)" />
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-value">{{ insights()!.resumen.temas_impartidos }}/{{ insights()!.resumen.total_temas }}</div>
+          <div class="kpi-label">Temas impartidos</div>
+        </div>
+        <div class="kpi-card" [class.kpi-warn]="insights()!.tareas.pct_vinculadas < 50">
+          <div class="kpi-value">{{ insights()!.tareas.pct_vinculadas }}%</div>
+          <div class="kpi-label">Tareas vinculadas a temario</div>
+          <small class="text-muted">{{ insights()!.tareas.tareas_con_tema }}/{{ insights()!.tareas.total_tareas }}</small>
+        </div>
+      </div>
+
+      <!-- Barra de cobertura por materia -->
+      <h4 class="section-title">Avance del temario por materia</h4>
+      <div class="coverage-list">
+        @for (m of insights()!.cobertura_por_materia; track m.materia_id) {
+          <div class="coverage-row">
+            <div class="coverage-name">
+              <span class="materia-name">{{ m.nombre_materia }}</span>
+              <span class="tipo-badge">{{ tipoLabel(m.tipo_materia) }}</span>
+            </div>
+            <div class="coverage-bar-wrap">
+              <p-progressBar [value]="m.pct_cobertura"
+                             [style]="{'height':'8px'}"
+                             [showValue]="false"
+                             [style.background]="'#e5e7eb'" />
+            </div>
+            <div class="coverage-pct">
+              <strong [class]="pctClass(m.pct_cobertura)">{{ m.pct_cobertura }}%</strong>
+              <small class="text-muted"> ({{ m.temas_impartidos }}/{{ m.total_temas }})</small>
+            </div>
+            <div class="coverage-tags">
+              @if (m.temas_planeados > 0) {
+                <p-tag value="{{ m.temas_planeados }} plan." severity="info" />
+              }
+              @if (m.temas_pendientes > 0) {
+                <p-tag value="{{ m.temas_pendientes }} pend." severity="warn" />
+              }
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- Promedios por materia -->
+      @if (insights()!.calificaciones.length > 0) {
+        <h4 class="section-title mt-4">Promedios por materia</h4>
+        <app-interactive-grid
+          [data]="insightsCalFlat()"
+          [columns]="insightsCalColumns"
+        />
+      }
+    }
   </p-tabpanel>
 </p-tabs>
 
@@ -244,26 +248,11 @@ interface PeriodoOpt { id: string; nombre_periodo: string; }
         <strong>{{ actividadSeleccionada()?.titulo }}</strong><br>
         <small>{{ actividadSeleccionada()?.nombre_materia }} — {{ actividadSeleccionada()?.nombre_periodo }}</small>
       </div>
-      <p-table [value]="entregasActiva()" [loading]="cargandoEntregas()"
-               styleClass="p-datatable-sm">
-        <ng-template pTemplate="header">
-          <tr>
-            <th>Alumno</th>
-            <th>Estado</th>
-            <th style="width:120px">Calificación</th>
-          </tr>
-        </ng-template>
-        <ng-template pTemplate="body" let-e>
-          <tr>
-            <td>{{ e.alumno_nombre }}</td>
-            <td><p-tag [value]="e.estatus_entrega" [severity]="estatusSeverity(e.estatus_entrega)" /></td>
-            <td>
-              <p-inputNumber [(ngModel)]="e._cal" [min]="0" [max]="actividadSeleccionada()?.puntaje_maximo"
-                             [step]="0.1" [useGrouping]="false" styleClass="w-full" inputStyleClass="p-inputtext-sm" />
-            </td>
-          </tr>
-        </ng-template>
-      </p-table>
+      <app-interactive-grid
+        [data]="entregasActiva()"
+        [columns]="entregasColumns"
+        [loading]="cargandoEntregas()"
+      />
       <div class="mt-3 flex gap-2 justify-end">
         <button pButton label="Guardar calificaciones" icon="pi pi-save"
                 (click)="guardarCalificacionMasiva()"></button>
@@ -357,6 +346,21 @@ interface PeriodoOpt { id: string; nombre_periodo: string; }
     .cal-regular   { color:#b45309; font-weight:600; }
     .cal-reprobado { color:#dc2626; font-weight:600; }
     :host ::ng-deep .p-datatable-sm .p-datatable-tbody > tr > td { padding:4px 8px; }
+    .kpi-card.kpi-danger { border-color:#dc2626; }
+    .kpi-card.kpi-warn   { border-color:#f59e0b; }
+    .kpi-card.kpi-ok     { border-color:#16a34a; }
+    .section-title { font-size:.95rem; font-weight:600; margin:1rem 0 .5rem; color:var(--p-text-color); }
+    .coverage-list { display:flex; flex-direction:column; gap:.4rem; }
+    .coverage-row  { display:grid; grid-template-columns:260px 1fr 120px 120px; align-items:center; gap:8px; padding:4px 0; border-bottom:1px solid var(--p-surface-border); }
+    .coverage-name { display:flex; flex-direction:column; }
+    .materia-name  { font-size:.85rem; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .tipo-badge    { font-size:.7rem; color:var(--p-text-muted-color); }
+    .coverage-pct  { text-align:right; font-size:.85rem; white-space:nowrap; }
+    .coverage-tags { display:flex; gap:4px; flex-wrap:wrap; }
+    .pct-ok        { color:#16a34a; font-weight:600; }
+    .pct-warn      { color:#b45309; font-weight:600; }
+    .pct-danger    { color:#dc2626; font-weight:600; }
+    .text-muted    { color:var(--p-text-muted-color); }
   `],
 })
 export class GradebookComponent implements OnInit {
@@ -372,12 +376,14 @@ export class GradebookComponent implements OnInit {
   concentrado = signal<CalPeriodo[]>([]);
   entregasActiva = signal<Entrega[]>([]);
   cobertura = signal<any>(null);
+  insights = signal<Insights | null>(null);
   actividadSeleccionada = signal<Actividad | null>(null);
   rowAjuste = signal<CalPeriodo | null>(null);
 
   cargando = signal(false);
   cargandoConc = signal(false);
   cargandoEntregas = signal(false);
+  cargandoInsights = signal(false);
 
   grupoSel: string | null = null;
   materiaSel: string | null = null;
@@ -396,6 +402,75 @@ export class GradebookComponent implements OnInit {
   readonly grupoNombreSel = computed(() =>
     this.grupos().find(g => g.id === this.grupoSel)?.nombre_grupo ?? ''
   );
+
+  readonly actividadesFlat = computed(() =>
+    this.actividades().map(a => ({
+      ...a,
+      titulo_mat:   `${a.titulo} — ${a.nombre_materia}`,
+      entrega_str:  `${a.entregadas}/${a.total_alumnos}`,
+      fecha_str:    a.fecha_entrega ? new Date(a.fecha_entrega).toLocaleDateString('es-MX') : '—',
+    }))
+  );
+  readonly actividadesColumns: ColumnConfig[] = [
+    { field: 'titulo_mat',  header: 'Actividad' },
+    { field: 'tipo_item',   header: 'Tipo',          width: '100px' },
+    { field: 'fecha_str',   header: 'Fecha entrega', width: '120px' },
+    { field: 'entrega_str', header: 'Entregas',      width: '90px' },
+    { field: 'calificadas', header: 'Calificadas',   width: '100px' },
+  ];
+
+  readonly concentradoFlat = computed(() =>
+    this.concentrado().map(r => ({
+      ...r,
+      cal_calc_str:  r.calificacion_calculada !== null ? String(r.calificacion_calculada) : '—',
+      ajuste_str:    r.ajuste_manual !== null ? String(r.ajuste_manual) : '—',
+      cal_final_str: r.calificacion_final !== null ? String(r.calificacion_final) : '—',
+      estado_str:    r.cerrada ? 'Cerrada' : 'Abierta',
+    }))
+  );
+  readonly concentradoColumns: ColumnConfig[] = [
+    { field: 'alumno',          header: 'Alumno' },
+    { field: 'numero_matricula',header: 'Matrícula',  width: '110px' },
+    { field: 'nombre_materia',  header: 'Materia' },
+    { field: 'cal_calc_str',    header: 'Calculada',  width: '90px' },
+    { field: 'ajuste_str',      header: 'Ajuste',     width: '80px' },
+    { field: 'cal_final_str',   header: 'Final',      width: '80px' },
+    { field: 'estado_str',      header: 'Estado',     width: '80px' },
+  ];
+
+  readonly coberturaTemasFlat = computed(() =>
+    (this.cobertura()?.temas ?? []).map((t: any) => ({
+      ...t,
+      evidencia_str: t.tiene_evidencia ? 'Sí' : 'Sin evidencia',
+    }))
+  );
+  readonly coberturaTemasColumns: ColumnConfig[] = [
+    { field: 'orden',          header: '#',            width: '50px' },
+    { field: 'nombre_tema',    header: 'Tema' },
+    { field: 'nombre_materia', header: 'Materia' },
+    { field: 'num_actividades',header: 'Actividades',  width: '100px' },
+    { field: 'evidencia_str',  header: 'Evidencia',    width: '120px' },
+  ];
+
+  readonly insightsCalFlat = computed(() =>
+    (this.insights()?.calificaciones ?? []).map((r: any) => ({
+      ...r,
+      promedio_str:  r.promedio !== null ? String(r.promedio) : '—',
+      riesgo_str:    r.en_riesgo > 0 ? `${r.en_riesgo} alumnos` : 'Ninguno',
+    }))
+  );
+  readonly insightsCalColumns: ColumnConfig[] = [
+    { field: 'nombre_materia',   header: 'Materia' },
+    { field: 'promedio_str',     header: 'Promedio',     width: '100px' },
+    { field: 'alumnos_evaluados',header: 'Alumnos eval.', width: '120px' },
+    { field: 'riesgo_str',       header: 'En riesgo (<6)', width: '130px' },
+  ];
+
+  readonly entregasColumns: ColumnConfig[] = [
+    { field: 'alumno_nombre',    header: 'Alumno' },
+    { field: 'estatus_entrega',  header: 'Estado',        width: '110px' },
+    { field: 'calificacion_obtenida', header: 'Calificación', width: '120px' },
+  ];
 
   tiposItem = [
     { label: 'Tarea', value: 'tarea' },
@@ -431,6 +506,7 @@ export class GradebookComponent implements OnInit {
       this.periodos.set(r ?? []));
     this.cargarActividades();
     this.cargarCobertura();
+    this.cargarInsights();
   }
 
   cargarActividades() {
@@ -462,6 +538,15 @@ export class GradebookComponent implements OnInit {
     let url = `/gradebook/grupo/${this.grupoSel}/cobertura-curricular`;
     if (this.materiaSel) url += `?materia_id=${this.materiaSel}`;
     this.api.get(url).subscribe((r: any) => this.cobertura.set(r));
+  }
+
+  cargarInsights() {
+    if (!this.grupoSel) return;
+    this.cargandoInsights.set(true);
+    this.api.get(`/planeacion/insights/${this.grupoSel}`).subscribe({
+      next: (r: any) => { this.insights.set(r); this.cargandoInsights.set(false); },
+      error: () => this.cargandoInsights.set(false),
+    });
   }
 
   abrirCalificacion(act: Actividad) {
@@ -590,5 +675,27 @@ export class GradebookComponent implements OnInit {
       PENDIENTE: 'warn', SIN_ENTREGA: 'danger', EXCUSA: 'secondary',
     };
     return map[s] ?? 'secondary';
+  }
+
+  estadoSev(e: string): 'success' | 'warn' | 'danger' | 'secondary' {
+    return e === 'OK' ? 'success' : e === 'ALERTA' ? 'warn' : 'danger';
+  }
+
+  pctClass(pct: number): string {
+    if (pct >= 70) return 'pct-ok';
+    if (pct >= 40) return 'pct-warn';
+    return 'pct-danger';
+  }
+
+  tipoLabel(tipo: string): string {
+    const labels: Record<string, string> = {
+      OFICIAL_SEP_PRIMARIA:   'SEP Primaria',
+      OFICIAL_SEP_SECUNDARIA: 'SEP Secundaria',
+      OFICIAL_UAEMEX_PREP:    'UAEMEX CBU',
+      NEVADI_FORMATIVA:       'Nevadi Formativa',
+      NEVADI_ENRIQUECIMIENTO: 'Nevadi Enriquecimiento',
+      NEVADI_ESPECIALIZADA:   'Nevadi Especializada',
+    };
+    return labels[tipo] ?? tipo;
   }
 }

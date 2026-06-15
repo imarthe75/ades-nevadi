@@ -19,7 +19,6 @@ import { TagModule } from 'primeng/tag';
 import { DialogModule } from 'primeng/dialog';
 import { TabsModule } from 'primeng/tabs';
 import { DividerModule } from 'primeng/divider';
-import { TableModule } from 'primeng/table';
 
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
@@ -81,7 +80,7 @@ interface Franja {
     CommonModule, FormsModule,
     ButtonModule, SelectModule, InputTextModule, InputNumberModule,
     ToggleSwitchModule, TagModule, DialogModule, TabsModule,
-    DividerModule, TableModule,
+    DividerModule,
     InteractiveGridComponent, ImportButtonComponent,
   ],
   template: `
@@ -94,7 +93,7 @@ interface Franja {
         <p-button label="CSV"   icon="pi pi-file"       severity="secondary" [text]="true" (onClick)="exportCSV()" />
         <p-button label="Excel" icon="pi pi-file-excel" severity="secondary" [text]="true" (onClick)="exportXLSX()" />
         @if (puedeGestionar()) {
-          <app-import-button entidad="aulas" [onSuccess]="recargar.bind(this)" />
+          <app-import-button entidad="aulas" [onSuccess]="cargar.bind(this)" />
           <p-button label="Nueva aula" icon="pi pi-plus" (onClick)="abrirNueva()" />
         }
       </div>
@@ -258,25 +257,13 @@ interface Franja {
           <p-tabpanel value="2">
             <!-- Lista de franjas existentes -->
             @if (franjas().length) {
-              <p-table [value]="franjas()" stripedRows="true" styleClass="p-datatable-sm" style="margin-bottom:1rem">
-                <ng-template pTemplate="header">
-                  <tr>
-                    <th>Día</th><th>Inicio</th><th>Fin</th><th>Grupo / Motivo</th><th></th>
-                  </tr>
-                </ng-template>
-                <ng-template pTemplate="body" let-f>
-                  <tr>
-                    <td>{{ diaNombre(f.dia_semana) }}</td>
-                    <td>{{ f.hora_inicio }}</td>
-                    <td>{{ f.hora_fin }}</td>
-                    <td>{{ f.motivo_bloqueo ?? f.nombre_grupo ?? '—' }}</td>
-                    <td>
-                      <p-button icon="pi pi-trash" severity="danger" [text]="true" [rounded]="true"
-                                (onClick)="eliminarFranja(f.id)" [loading]="savingFranja()" />
-                    </td>
-                  </tr>
-                </ng-template>
-              </p-table>
+              <app-interactive-grid
+                [data]="franjasFlat()"
+                [columns]="franjasColumns"
+                [showDelete]="true"
+                (rowDeleted)="eliminarFranja($event.id)"
+                style="margin-bottom:1rem;display:block"
+              />
             } @else {
               <p style="color:var(--text-secondary);font-size:0.85rem;margin-bottom:1rem">Sin franjas asignadas.</p>
             }
@@ -410,6 +397,20 @@ export class AulasComponent implements OnInit {
   // ── Disponibilidad ────────────────────────────────────────────
   franjas          = signal<any[]>([]);
   savingFranja     = signal(false);
+
+  readonly franjasFlat = computed(() =>
+    this.franjas().map(f => ({
+      ...f,
+      dia_str:    this.diaNombre(f.dia_semana),
+      motivo_str: f.motivo_bloqueo ?? f.nombre_grupo ?? '—',
+    }))
+  );
+  readonly franjasColumns: ColumnConfig[] = [
+    { field: 'dia_str',    header: 'Día',           width: '100px' },
+    { field: 'hora_inicio',header: 'Inicio',        width: '90px' },
+    { field: 'hora_fin',   header: 'Fin',           width: '90px' },
+    { field: 'motivo_str', header: 'Grupo / Motivo' },
+  ];
   checkingConflicto = signal(false);
   conflictoDetectado = signal(false);
   conflictoOk       = signal(false);

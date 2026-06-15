@@ -1,8 +1,7 @@
-import { Component, OnInit, signal, inject } from '@angular/core';
+import { Component, OnInit, signal, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
-import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
@@ -13,12 +12,15 @@ import { ToastModule } from 'primeng/toast';
 import { DatePickerModule } from 'primeng/datepicker';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { CardModule } from 'primeng/card';
+import { AutoCompleteModule } from 'primeng/autocomplete';
 import { MessageService } from 'primeng/api';
 import { ApexNotificationService } from 'apex-component-library';
+import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
 
 interface Capacitacion {
   id: string;
   docente_id: string;
+  nombre_docente?: string;
   nombre: string;
   descripcion: string | null;
   institucion: string;
@@ -46,7 +48,6 @@ interface ResumenCapacitaciones {
 }
 
 interface CapacitacionForm {
-  docente_id: string;
   nombre: string;
   descripcion: string;
   institucion: string;
@@ -65,10 +66,11 @@ interface CapacitacionForm {
   standalone: true,
   imports: [
     CommonModule, FormsModule,
-    TableModule, ButtonModule, DialogModule,
+    ButtonModule, DialogModule,
     InputTextModule, SelectModule, TextareaModule,
     TagModule, ToastModule, DatePickerModule,
-    InputNumberModule, CardModule,
+    InputNumberModule, CardModule, AutoCompleteModule,
+    InteractiveGridComponent,
   ],
   providers: [MessageService],
   template: `
@@ -79,36 +81,15 @@ interface CapacitacionForm {
       <div class="apex-toolbar">
         <h2 class="apex-title">Capacitaciones y Certificaciones Docentes</h2>
         <div class="apex-toolbar-actions">
-          <p-select
-            [options]="tipoOpts"
-            [(ngModel)]="filtroTipo"
-            placeholder="Todos los tipos"
-            [showClear]="true"
-            (onChange)="cargar()"
-            style="min-width:160px">
-          </p-select>
-          <p-select
-            [options]="modalidadOpts"
-            [(ngModel)]="filtroModalidad"
-            placeholder="Modalidad"
-            [showClear]="true"
-            (onChange)="cargar()"
-            style="min-width:140px">
-          </p-select>
-          <p-select
-            [options]="validadoOpts"
-            [(ngModel)]="filtroValidado"
-            placeholder="Validación"
-            [showClear]="true"
-            (onChange)="cargar()"
-            style="min-width:130px">
-          </p-select>
-          <p-button
-            label="Registrar Capacitación"
-            icon="pi pi-plus"
-            size="small"
-            (onClick)="abrirNueva()">
-          </p-button>
+          <input pInputText [(ngModel)]="filtroNombre" (input)="onFiltroNombre()"
+            placeholder="Buscar por docente…" style="min-width:200px" />
+          <p-select [options]="tipoOpts" [(ngModel)]="filtroTipo" placeholder="Todos los tipos"
+            [showClear]="true" (onChange)="cargar()" style="min-width:150px" />
+          <p-select [options]="modalidadOpts" [(ngModel)]="filtroModalidad" placeholder="Modalidad"
+            [showClear]="true" (onChange)="cargar()" style="min-width:130px" />
+          <p-select [options]="validadoOpts" [(ngModel)]="filtroValidado" placeholder="Validación"
+            [showClear]="true" (onChange)="cargar()" style="min-width:120px" />
+          <p-button label="Registrar Capacitación" icon="pi pi-plus" size="small" (onClick)="abrirNueva()" />
         </div>
       </div>
 
@@ -131,77 +112,14 @@ interface CapacitacionForm {
       }
 
       <!-- Grid -->
-      <p-table
-        [value]="capacitaciones()"
+      <app-interactive-grid
+        [data]="capacitacionesFlat()"
+        [columns]="capacitacionColumns"
         [loading]="cargando()"
-        [paginator]="true"
-        [rows]="15"
-        [rowsPerPageOptions]="[15,30,50]"
-        stripedRows
-        styleClass="p-datatable-sm">
-
-        <ng-template pTemplate="header">
-          <tr>
-            <th>Nombre</th>
-            <th style="width:180px">Institución</th>
-            <th style="width:120px">Tipo</th>
-            <th style="width:100px">Modalidad</th>
-            <th style="width:110px">Fecha Inicio</th>
-            <th style="width:110px">Fecha Fin</th>
-            <th style="width:80px" pSortableColumn="duracion_hrs">Hrs<p-sortIcon field="duracion_hrs"/></th>
-            <th style="width:100px">Área</th>
-            <th style="width:100px">Validado</th>
-            <th style="width:120px">Acciones</th>
-          </tr>
-        </ng-template>
-
-        <ng-template pTemplate="body" let-cap>
-          <tr>
-            <td>
-              <div class="font-medium text-sm">{{ cap.nombre }}</div>
-              @if (cap.folio_certificado) {
-                <div class="text-xs text-gray-400">Folio: {{ cap.folio_certificado }}</div>
-              }
-            </td>
-            <td class="text-sm">{{ cap.institucion }}</td>
-            <td>{{ tipoLabel(cap.tipo_certificacion) }}</td>
-            <td>
-              <p-tag [value]="cap.modalidad" [severity]="modalidadSeverity(cap.modalidad)" />
-            </td>
-            <td>{{ cap.fecha_inicio }}</td>
-            <td>{{ cap.fecha_fin }}</td>
-            <td class="text-center font-semibold">{{ cap.duracion_hrs }}</td>
-            <td class="text-xs">{{ cap.area_formacion ?? '—' }}</td>
-            <td class="text-center">
-              @if (cap.validado_rh) {
-                <p-tag value="Validado" severity="success" />
-              } @else {
-                <p-tag value="Pendiente" severity="warn" />
-              }
-            </td>
-            <td>
-              <div class="flex gap-1">
-                <p-button icon="pi pi-eye"  size="small" [text]="true" severity="info"
-                  (onClick)="verDetalle(cap)" pTooltip="Ver detalle" />
-                @if (cap.certificado_url) {
-                  <p-button icon="pi pi-file-pdf" size="small" [text]="true" severity="secondary"
-                    (onClick)="verPdf(cap.certificado_url)" pTooltip="Ver certificado" />
-                }
-                @if (!cap.validado_rh) {
-                  <p-button icon="pi pi-verified" size="small" [text]="true" severity="success"
-                    (onClick)="validar(cap)" pTooltip="Validar (RH)" />
-                }
-                <p-button icon="pi pi-trash" size="small" [text]="true" severity="danger"
-                  (onClick)="eliminar(cap)" pTooltip="Eliminar" />
-              </div>
-            </td>
-          </tr>
-        </ng-template>
-
-        <ng-template pTemplate="emptymessage">
-          <tr><td colspan="10" class="text-center py-4 text-gray-500">Sin capacitaciones registradas.</td></tr>
-        </ng-template>
-      </p-table>
+        [showDelete]="true"
+        (rowSelected)="verDetalle($event)"
+        (rowDeleted)="eliminar($event)"
+      />
     </div>
 
     <!-- Dialog: Nueva Capacitación -->
@@ -214,8 +132,17 @@ interface CapacitacionForm {
 
       <div class="grid grid-cols-2 gap-3 p-2">
         <div class="col-span-2 flex flex-col gap-1">
-          <label class="text-sm font-medium">ID Docente <span class="text-red-500">*</span></label>
-          <input pInputText [(ngModel)]="form.docente_id" placeholder="UUID del docente" />
+          <label class="text-sm font-medium">Docente <span class="text-red-500">*</span></label>
+          <p-autocomplete
+            [(ngModel)]="docenteSeleccionado"
+            [suggestions]="docenteSugerencias()"
+            (completeMethod)="buscarDocente($event)"
+            optionLabel="label"
+            [forceSelection]="true"
+            [delay]="300"
+            placeholder="Escriba nombre del docente…"
+            style="width:100%"
+          />
         </div>
 
         <div class="col-span-2 flex flex-col gap-1">
@@ -245,12 +172,12 @@ interface CapacitacionForm {
 
         <div class="flex flex-col gap-1">
           <label class="text-sm font-medium">Fecha Inicio <span class="text-red-500">*</span></label>
-          <p-calendar [(ngModel)]="form.fecha_inicio" dateFormat="yy-mm-dd" [showIcon]="true" />
+          <p-datepicker [(ngModel)]="form.fecha_inicio" dateFormat="yy-mm-dd" [showIcon]="true" />
         </div>
 
         <div class="flex flex-col gap-1">
           <label class="text-sm font-medium">Fecha Fin <span class="text-red-500">*</span></label>
-          <p-calendar [(ngModel)]="form.fecha_fin" dateFormat="yy-mm-dd" [showIcon]="true" />
+          <p-datepicker [(ngModel)]="form.fecha_fin" dateFormat="yy-mm-dd" [showIcon]="true" />
         </div>
 
         <div class="flex flex-col gap-1">
@@ -334,10 +261,33 @@ export class CapacitacionesComponent implements OnInit {
   private notify = inject(ApexNotificationService);
 
   capacitaciones = signal<Capacitacion[]>([]);
+
+  readonly capacitacionColumns: ColumnConfig[] = [
+    { field: 'nombre_docente', header: 'Docente',      sortable: true, filterable: true,  width: '180px' },
+    { field: 'nombreConFolio', header: 'Nombre',       sortable: true, filterable: true },
+    { field: 'institucion',    header: 'Institución',  sortable: true, filterable: true,  width: '160px' },
+    { field: 'tipoLabel',      header: 'Tipo',         sortable: true, filterable: true,  width: '110px' },
+    { field: 'modalidad',      header: 'Modalidad',    sortable: true, filterable: true,  width: '100px' },
+    { field: 'fecha_inicio',   header: 'Inicio',       sortable: true, filterable: false, width: '100px' },
+    { field: 'duracion_hrs',   header: 'Hrs',          sortable: true, filterable: false, width: '70px' },
+    { field: 'validadoLabel',  header: 'Validado',     sortable: true, filterable: true,  width: '90px' },
+  ];
+
+  readonly capacitacionesFlat = computed(() =>
+    this.capacitaciones().map(cap => ({
+      ...cap,
+      nombreConFolio: cap.folio_certificado ? `${cap.nombre} (${cap.folio_certificado})` : cap.nombre,
+      tipoLabel: this.tipoOpts.find(o => o.value === cap.tipo_certificacion)?.label ?? cap.tipo_certificacion,
+      areaFormacion: cap.area_formacion ?? '—',
+      validadoLabel: cap.validado_rh ? 'Validado' : 'Pendiente',
+    }))
+  );
   cargando       = signal(false);
   guardando      = signal(false);
   seleccionada   = signal<Capacitacion | null>(null);
   resumen        = signal<ResumenCapacitaciones | null>(null);
+  docenteSugerencias = signal<{ label: string; value: string }[]>([]);
+  docenteSeleccionado: { label: string; value: string } | null = null;
 
   dialogNueva   = false;
   dialogDetalle = false;
@@ -345,6 +295,9 @@ export class CapacitacionesComponent implements OnInit {
   filtroTipo     = '';
   filtroModalidad = '';
   filtroValidado: boolean | null = null;
+  filtroNombre   = '';
+
+  private filtroTimer: ReturnType<typeof setTimeout> | null = null;
 
   form: CapacitacionForm = this.resetForm();
 
@@ -380,12 +333,18 @@ export class CapacitacionesComponent implements OnInit {
 
   ngOnInit() { this.cargar(); }
 
+  onFiltroNombre() {
+    if (this.filtroTimer) clearTimeout(this.filtroTimer);
+    this.filtroTimer = setTimeout(() => this.cargar(), 400);
+  }
+
   cargar() {
     this.cargando.set(true);
     const params: Record<string, string> = {};
-    if (this.filtroTipo)                   params['tipo']     = this.filtroTipo;
-    if (this.filtroModalidad)              params['modalidad'] = this.filtroModalidad;
-    if (this.filtroValidado !== null)      params['validado'] = String(this.filtroValidado);
+    if (this.filtroTipo)               params['tipo']     = this.filtroTipo;
+    if (this.filtroModalidad)          params['modalidad'] = this.filtroModalidad;
+    if (this.filtroValidado !== null)  params['validado'] = String(this.filtroValidado);
+    if (this.filtroNombre)             params['q']        = this.filtroNombre;
 
     this.http.get<Capacitacion[]>('/api/v1/capacitaciones', { params }).subscribe({
       next: data => { this.capacitaciones.set(data); this.cargando.set(false); },
@@ -393,13 +352,28 @@ export class CapacitacionesComponent implements OnInit {
     });
   }
 
+  buscarDocente(event: { query: string }) {
+    if (!event.query || event.query.length < 2) { this.docenteSugerencias.set([]); return; }
+    this.http.get<any>('/api/v1/profesores', { params: { buscar: event.query } }).subscribe({
+      next: res => {
+        const data = res?.data ?? res ?? [];
+        this.docenteSugerencias.set(data.map((p: any) => ({
+          label: [p.nombre ?? p.persona?.nombre, p.apellido_paterno ?? p.persona?.apellido_paterno, p.apellido_materno ?? p.persona?.apellido_materno].filter(Boolean).join(' '),
+          value: p.id,
+        })));
+      },
+      error: () => this.docenteSugerencias.set([]),
+    });
+  }
+
   abrirNueva() {
     this.form = this.resetForm();
+    this.docenteSeleccionado = null;
     this.dialogNueva = true;
   }
 
   guardar() {
-    if (!this.form.docente_id || !this.form.nombre || !this.form.institucion
+    if (!this.docenteSeleccionado?.value || !this.form.nombre || !this.form.institucion
         || !this.form.tipo_certificacion || !this.form.modalidad
         || !this.form.fecha_inicio || !this.form.fecha_fin || !this.form.duracion_hrs) {
       this.notify.warning('Complete los campos obligatorios');
@@ -407,7 +381,7 @@ export class CapacitacionesComponent implements OnInit {
     }
     this.guardando.set(true);
     const payload = {
-      docente_id:         this.form.docente_id,
+      docente_id:         this.docenteSeleccionado.value,
       nombre:             this.form.nombre,
       descripcion:        this.form.descripcion || null,
       institucion:        this.form.institucion,
@@ -465,7 +439,7 @@ export class CapacitacionesComponent implements OnInit {
 
   private resetForm(): CapacitacionForm {
     return {
-      docente_id: '', nombre: '', descripcion: '', institucion: '',
+      nombre: '', descripcion: '', institucion: '',
       tipo_certificacion: 'CURSO', modalidad: 'PRESENCIAL',
       fecha_inicio: null, fecha_fin: null, duracion_hrs: 0,
       area_formacion: '', folio_certificado: '', certificado_url: '',

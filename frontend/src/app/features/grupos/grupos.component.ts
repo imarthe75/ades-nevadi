@@ -2,12 +2,11 @@
  * FASE 1 & FASE 24 — Grupos (Class Groups) + Interactive Grid APEX-style
  * Manages academic groups with capacity tracking and admin controls.
  */
-import { Component, OnInit, inject, signal, effect } from '@angular/core';
+import { Component, OnInit, inject, signal, effect, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
-import { DialogModule } from 'primeng/dialog';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { SelectModule } from 'primeng/select';
 
@@ -18,15 +17,16 @@ import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/
 import { ImportButtonComponent } from '../../shared/components/import-button/import-button.component';
 import type { Grupo } from '../../core/models';
 import { grupoLabel } from '../../core/models';
-import { ApexNotificationService } from 'apex-component-library';
+import { ApexNotificationService, ApexSearchComponent, ApexModalDialogComponent } from 'apex-component-library';
 
 @Component({
   selector: 'app-grupos',
   standalone: true,
   imports: [
     CommonModule, FormsModule,
-    ButtonModule, InputTextModule, DialogModule, ToggleSwitchModule, SelectModule,
-    InteractiveGridComponent, ImportButtonComponent
+    ButtonModule, InputTextModule, ToggleSwitchModule, SelectModule,
+    InteractiveGridComponent, ImportButtonComponent,
+    ApexSearchComponent, ApexModalDialogComponent,
   ],
   template: `
 
@@ -45,17 +45,26 @@ import { ApexNotificationService } from 'apex-component-library';
       </div>
     </div>
 
+    <!-- Búsqueda rápida -->
+    <apex-search
+      placeholder="Buscar grupo..."
+      [debounce]="300"
+      (valueChange)="busqueda.set($event)"
+    />
+
     <!-- Interactive Grid APEX-style (Spec: spec/modules/fase-24-interactive-grid/) -->
     <app-interactive-grid
-      [data]="gruposDatos()"
+      [data]="gruposFiltrados()"
       [columns]="columnas"
       [loading]="loadingDatos()"
       (rowSelected)="abrirEditarGrupo($event)"
     />
 
     <!-- Diálogo de Alta/Modificación de Grupos para Administradores -->
-    <p-dialog [(visible)]="dlgGrupo" [header]="grupoEdit?.id ? 'Editar grupo' : 'Nuevo grupo'"
-      [modal]="true" [style]="{width:'420px'}">
+    <apex-modal-dialog
+      [(visible)]="dlgGrupo"
+      [title]="grupoEdit?.id ? 'Editar grupo' : 'Nuevo grupo'"
+      size="sm">
       @if (grupoEdit) {
         <div class="form-grid">
           <label>Nombre del Grupo *</label>
@@ -66,20 +75,20 @@ import { ApexNotificationService } from 'apex-component-library';
           <p-select [options]="['MATUTINO','VESPERTINO','NOCTURNO']" [(ngModel)]="grupoEdit.turno" />
           @if (!grupoEdit.id) {
             <label>Nivel / Grado *</label>
-            <p-select [options]="grados()" [(ngModel)]="grupoEdit.grado_id" optionLabel="label" optionValue="id" placeholder="Seleccionar grado" 
- [filter]="true" filterPlaceholder="Buscar..."/>
+            <p-select [options]="grados()" [(ngModel)]="grupoEdit.grado_id" optionLabel="label" optionValue="id" placeholder="Seleccionar grado"
+              [filter]="true" filterPlaceholder="Buscar..."/>
           }
           @if (grupoEdit.id) {
             <label>Estado</label>
             <p-toggleswitch [(ngModel)]="grupoEdit.is_active" />
           }
         </div>
-        <ng-template pTemplate="footer">
-          <p-button label="Cancelar" severity="secondary" [text]="true" (onClick)="dlgGrupo=false" />
-          <p-button label="Guardar" icon="pi pi-save" [loading]="saving()" (onClick)="guardarGrupo()" />
-        </ng-template>
       }
-    </p-dialog>
+      <ng-template #footer>
+        <p-button label="Cancelar" severity="secondary" [text]="true" (onClick)="dlgGrupo=false" />
+        <p-button label="Guardar" icon="pi pi-save" [loading]="saving()" (onClick)="guardarGrupo()" />
+      </ng-template>
+    </apex-modal-dialog>
   `,
   styles: [`
     .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
@@ -97,6 +106,16 @@ export class GruposComponent implements OnInit {
   grupos = signal<Grupo[]>([]);
   gruposDatos = signal<any[]>([]);
   grados = signal<any[]>([]);
+  busqueda = signal('');
+
+  readonly gruposFiltrados = computed(() => {
+    const q = this.busqueda().toLowerCase();
+    if (!q) return this.gruposDatos();
+    return this.gruposDatos().filter(g =>
+      (g.nivel_y_grado ?? '').toLowerCase().includes(q) ||
+      (g.nombre_grupo ?? '').toLowerCase().includes(q)
+    );
+  });
 
   loadingDatos = signal(false);
   dlgGrupo = false;

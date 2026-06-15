@@ -3,10 +3,9 @@
  *
  * Flujo: buscar alumno → ver/editar expediente base → ver incidentes → registrar nuevo incidente.
  */
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { TextareaModule } from 'primeng/textarea';
@@ -15,11 +14,15 @@ import { TagModule } from 'primeng/tag';
 import { DialogModule } from 'primeng/dialog';
 import { DividerModule } from 'primeng/divider';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
+import { TabsModule } from 'primeng/tabs';
+import { SelectModule } from 'primeng/select';
+import { TooltipModule } from 'primeng/tooltip';
 
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
 import type { Estudiante } from '../../core/models';
-import { ApexNotificationService } from 'apex-component-library';
+import { ApexNotificationService, ApexTimelineComponent } from 'apex-component-library';
+import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
 
 interface ExpedienteMedico {
   id: string;
@@ -40,13 +43,28 @@ interface IncidenteMedico {
   notificado_tutor: boolean;
 }
 
+interface Medicamento {
+  id: string;
+  nombre_medicamento: string;
+  dosis: string;
+  frecuencia: string;
+  horario: string | null;
+  via_administracion: string;
+  prescrito_por: string | null;
+  fecha_inicio: string | null;
+  fecha_fin: string | null;
+  observaciones: string | null;
+  is_active: boolean;
+}
+
 @Component({
   selector: 'app-medico',
   standalone: true,
   imports: [
     CommonModule, FormsModule,
-    TableModule, ButtonModule, InputTextModule, TextareaModule, CardModule,
-    TagModule, DialogModule, DividerModule, ToggleSwitchModule,
+    ButtonModule, InputTextModule, TextareaModule, CardModule,
+    TagModule, DialogModule, DividerModule, ToggleSwitchModule, TabsModule,
+    SelectModule, TooltipModule, InteractiveGridComponent, ApexTimelineComponent
   ],
   template: `
 
@@ -71,22 +89,11 @@ interface IncidenteMedico {
 
     <!-- Resultados búsqueda -->
     @if (resultados().length > 0 && !alumnoSeleccionado()) {
-      <p-table [value]="resultados()" styleClass="p-datatable-sm" [rows]="10">
-        <ng-template pTemplate="header">
-          <tr>
-            <th>Matrícula</th><th>Nombre</th><th></th>
-          </tr>
-        </ng-template>
-        <ng-template pTemplate="body" let-a>
-          <tr>
-            <td>{{ a.matricula }}</td>
-            <td>{{ a.persona?.apellido_paterno }} {{ a.persona?.nombre }}</td>
-            <td>
-              <p-button label="Ver expediente" [size]="'small'" (onClick)="seleccionar(a)" />
-            </td>
-          </tr>
-        </ng-template>
-      </p-table>
+      <app-interactive-grid
+        [data]="resultadosFlat()"
+        [columns]="resultadosColumns"
+        (rowSelected)="seleccionar($event)"
+      />
     }
 
     <!-- Expediente del alumno seleccionado -->
@@ -126,8 +133,9 @@ interface IncidenteMedico {
                 <label>Observaciones generales</label>
                 <textarea pTextarea [(ngModel)]="expediente()!.observaciones_generales" rows="2" style="width:100%"></textarea>
               </div>
-              <div style="margin-top:0.75rem">
+              <div class="flex-buttons">
                 <p-button label="Guardar expediente" icon="pi pi-save" [loading]="savingExp()" (onClick)="guardarExpediente()" />
+                <p-button label="Certificado Deportivo" icon="pi pi-file-pdf" severity="warn" (onClick)="descargarCertificado()" />
               </div>
             </div>
           } @else {
@@ -136,43 +144,45 @@ interface IncidenteMedico {
           }
         </p-card>
 
-        <!-- Incidentes -->
-        <p-card>
-          <ng-template pTemplate="title">
-            <div class="card-title-row">
-              <span>Incidentes médicos</span>
-              <p-button label="Registrar incidente" icon="pi pi-plus" [size]="'small'" (onClick)="abrirIncidente()" />
-            </div>
-          </ng-template>
+        <!-- Pestañas de Historial e Medicamentos -->
+        <div>
+          <p-tabs value="0">
+            <p-tablist>
+              <p-tab value="0"><i class="pi pi-exclamation-triangle"></i> Incidentes</p-tab>
+              <p-tab value="1"><i class="pi pi-prescription"></i> Medicamentos Controlados</p-tab>
+            </p-tablist>
+            
+            <p-tabpanels>
+              <p-tabpanel value="0">
+                <div class="tab-header-row">
+                  <h4>Historial de Incidentes</h4>
+                  <p-button label="Registrar Incidente" icon="pi pi-plus" [size]="'small'" (onClick)="abrirIncidente()" />
+                </div>
 
-          <p-table [value]="incidentes()" styleClass="p-datatable-sm" [rows]="10">
-            <ng-template pTemplate="header">
-              <tr>
-                <th style="width:130px">Fecha</th>
-                <th>Descripción</th>
-                <th style="width:90px;text-align:center">Traslado</th>
-                <th style="width:90px;text-align:center">Tutor notif.</th>
-              </tr>
-            </ng-template>
-            <ng-template pTemplate="body" let-inc>
-              <tr>
-                <td>{{ inc.fecha_incidente | date:'dd/MM/yyyy HH:mm' }}</td>
-                <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
-                  {{ inc.descripcion }}
-                </td>
-                <td style="text-align:center">
-                  <p-tag [value]="inc.requirio_traslado ? 'Sí' : 'No'" [severity]="inc.requirio_traslado ? 'danger' : 'success'" />
-                </td>
-                <td style="text-align:center">
-                  <p-tag [value]="inc.notificado_tutor ? 'Sí' : 'Pendiente'" [severity]="inc.notificado_tutor ? 'success' : 'warn'" />
-                </td>
-              </tr>
-            </ng-template>
-            <ng-template pTemplate="emptymessage">
-              <tr><td [colSpan]="4" style="text-align:center;color:#94A3B8;padding:1.5rem">Sin incidentes registrados</td></tr>
-            </ng-template>
-          </p-table>
-        </p-card>
+                <apex-timeline
+                  [value]="incidentesTimeline()"
+                  title="Historial Médico"
+                  [showRelativeTime]="true"
+                  [showActor]="false"
+                />
+              </p-tabpanel>
+
+              <p-tabpanel value="1">
+                <div class="tab-header-row">
+                  <h4>Medicamentos Administrados</h4>
+                  <p-button label="Registrar Medicamento" icon="pi pi-plus" [size]="'small'" (onClick)="abrirMedicamento()" />
+                </div>
+
+                <app-interactive-grid
+                  [data]="medicamentos()"
+                  [columns]="medicamentosColumns"
+                  [showDelete]="true"
+                  (rowDeleted)="suspenderMedicamento($event.id)"
+                />
+              </p-tabpanel>
+            </p-tabpanels>
+          </p-tabs>
+        </div>
 
       </div>
     }
@@ -185,21 +195,61 @@ interface IncidenteMedico {
           <textarea pTextarea [(ngModel)]="incForm.descripcion" rows="3" style="width:100%"></textarea>
         </div>
         <div class="field">
-          <label>Tratamiento aplicado</label>
+          <label>Tratamiento aplicado / Medidas tomadas</label>
           <textarea pTextarea [(ngModel)]="incForm.tratamiento_aplicado" rows="2" style="width:100%"></textarea>
         </div>
         <div class="field-inline">
           <p-toggleSwitch [(ngModel)]="incForm.requirio_traslado" />
-          <label>Requirió traslado</label>
+          <label>Requirió traslado de emergencia</label>
         </div>
         <div class="field-inline">
           <p-toggleSwitch [(ngModel)]="incForm.notificado_tutor" />
-          <label>Tutor notificado</label>
+          <label>Tutor/Familia notificado inmediatamente</label>
         </div>
       </div>
       <ng-template pTemplate="footer">
         <p-button label="Cancelar" severity="secondary" [text]="true" (onClick)="showIncidenteDialog = false" />
-        <p-button label="Guardar" icon="pi pi-save" [loading]="savingInc()" (onClick)="guardarIncidente()" />
+        <p-button label="Guardar y Crear Acta" icon="pi pi-save" [loading]="savingInc()" (onClick)="guardarIncidente()" />
+      </ng-template>
+    </p-dialog>
+
+    <!-- Dialog medicamento -->
+    <p-dialog [(visible)]="showMedicamentoDialog" header="Registrar Medicamento Controlado" [modal]="true" [style]="{width:'460px'}">
+      <div class="form-fields">
+        <div class="field">
+          <label>Nombre del Medicamento *</label>
+          <input pInputText [(ngModel)]="medForm.nombre_medicamento" />
+        </div>
+        <div class="field-row">
+          <div class="field" style="flex:1">
+            <label>Dosis *</label>
+            <input pInputText [(ngModel)]="medForm.dosis" placeholder="Ej: 500mg, 1 tableta" />
+          </div>
+          <div class="field" style="flex:1">
+            <label>Vía *</label>
+            <p-select [options]="vias" [(ngModel)]="medForm.via_administracion" />
+          </div>
+        </div>
+        <div class="field">
+          <label>Frecuencia *</label>
+          <input pInputText [(ngModel)]="medForm.frecuencia" placeholder="Ej: Cada 8 horas" />
+        </div>
+        <div class="field">
+          <label>Horario sugerido</label>
+          <input pInputText [(ngModel)]="medForm.horario" placeholder="Ej: 08:00, 16:00, 24:00" />
+        </div>
+        <div class="field">
+          <label>Prescrito por</label>
+          <input pInputText [(ngModel)]="medForm.prescrito_por" placeholder="Nombre del médico" />
+        </div>
+        <div class="field">
+          <label>Observaciones o indicaciones adicionales</label>
+          <textarea pTextarea [(ngModel)]="medForm.observaciones" rows="2" style="width:100%"></textarea>
+        </div>
+      </div>
+      <ng-template pTemplate="footer">
+        <p-button label="Cancelar" severity="secondary" [text]="true" (onClick)="showMedicamentoDialog = false" />
+        <p-button label="Registrar" icon="pi pi-save" [loading]="savingMed()" (onClick)="guardarMedicamento()" />
       </ng-template>
     </p-dialog>
   `,
@@ -216,6 +266,9 @@ interface IncidenteMedico {
     .form-fields { display: flex; flex-direction: column; gap: 0.75rem; }
     .field-inline { display: flex; align-items: center; gap: 0.5rem; }
     .field-inline label { font-size: 0.85rem; }
+    .flex-buttons { display: flex; gap: 0.75rem; margin-top: 0.75rem; }
+    .tab-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; }
+    .tab-header-row h4 { margin: 0; font-family: 'Jost', sans-serif; }
   `],
 })
 export class MedicoComponent implements OnInit {
@@ -229,10 +282,66 @@ export class MedicoComponent implements OnInit {
   alumnoSeleccionado = signal<Estudiante | null>(null);
   expediente = signal<ExpedienteMedico | null>(null);
   incidentes = signal<IncidenteMedico[]>([]);
+  medicamentos = signal<Medicamento[]>([]);
+  
   savingExp = signal(false);
   savingInc = signal(false);
+  savingMed = signal(false);
+  
   showIncidenteDialog = false;
+  showMedicamentoDialog = false;
+  
   incForm = { descripcion: '', tratamiento_aplicado: '', requirio_traslado: false, notificado_tutor: false };
+  medForm = { nombre_medicamento: '', dosis: '', frecuencia: '', horario: '', via_administracion: 'ORAL', prescrito_por: '', observaciones: '' };
+  
+  readonly vias = ['ORAL', 'TOPICA', 'INHALADA', 'INYECTABLE', 'OFTALMICA', 'OTICA'];
+
+  readonly resultadosFlat = computed(() =>
+    this.resultados().map((a: any) => ({
+      ...a,
+      nombre_str: `${a.persona?.apellido_paterno ?? ''} ${a.persona?.nombre ?? ''}`.trim(),
+    }))
+  );
+  readonly resultadosColumns: ColumnConfig[] = [
+    { field: 'matricula',   header: 'Matrícula', width: '120px' },
+    { field: 'nombre_str',  header: 'Nombre' },
+  ];
+
+  readonly incidentesFlat = computed(() =>
+    this.incidentes().map(inc => ({
+      ...inc,
+      fecha_str:    inc.fecha_incidente ? new Date(inc.fecha_incidente).toLocaleDateString('es-MX') : '—',
+      traslado_str: inc.requirio_traslado ? 'Sí' : 'No',
+    }))
+  );
+  readonly incidentesColumns: ColumnConfig[] = [
+    { field: 'fecha_str',    header: 'Fecha',     width: '110px' },
+    { field: 'descripcion',  header: 'Descripción' },
+    { field: 'traslado_str', header: 'Traslado',  width: '80px' },
+  ];
+
+  readonly incidentesTimeline = computed(() =>
+    this.incidentes().map(inc => ({
+      title: inc.descripcion,
+      date: inc.fecha_incidente
+        ? new Date(inc.fecha_incidente).toLocaleDateString('es-MX')
+        : '—',
+      description: [
+        inc.tratamiento_aplicado ? `Tratamiento: ${inc.tratamiento_aplicado}` : null,
+        inc.requirio_traslado ? 'Requirió traslado de emergencia' : null,
+        inc.notificado_tutor  ? 'Tutor notificado' : null,
+      ].filter(Boolean).join(' · ') || undefined,
+      severity: inc.requirio_traslado ? 'error' : 'warning',
+      icon: inc.requirio_traslado ? 'pi pi-exclamation-triangle' : 'pi pi-heart',
+    }))
+  );
+
+  readonly medicamentosColumns: ColumnConfig[] = [
+    { field: 'nombre_medicamento', header: 'Medicamento' },
+    { field: 'dosis',              header: 'Dosis',       width: '100px' },
+    { field: 'frecuencia',         header: 'Frecuencia',  width: '110px' },
+    { field: 'via_administracion', header: 'Vía',         width: '110px' },
+  ];
 
   ngOnInit(): void {}
 
@@ -249,6 +358,7 @@ export class MedicoComponent implements OnInit {
     this.resultados.set([]);
     this.cargarExpediente(a.id);
     this.cargarIncidentes(a.id);
+    this.cargarMedicamentos(a.id);
   }
 
   private cargarExpediente(id: string): void {
@@ -259,6 +369,11 @@ export class MedicoComponent implements OnInit {
   private cargarIncidentes(id: string): void {
     this.api.get<IncidenteMedico[]>(`/incidentes-medicos/alumno/${id}`)
       .subscribe(r => this.incidentes.set(r));
+  }
+
+  private cargarMedicamentos(id: string): void {
+    this.api.get<Medicamento[]>(`/salud-avanzada/medicamentos/${id}`)
+      .subscribe(r => this.medicamentos.set(r));
   }
 
   crearExpediente(): void {
@@ -290,15 +405,81 @@ export class MedicoComponent implements OnInit {
     const alumno = this.alumnoSeleccionado();
     if (!alumno || !this.incForm.descripcion) return;
     this.savingInc.set(true);
+    
+    // Primero registrar el incidente médico básico
     const payload = { ...this.incForm, estudiante_id: alumno.id };
     this.api.post<IncidenteMedico>('/incidentes-medicos', payload).subscribe({
       next: (r) => {
-        this.incidentes.update(list => [r, ...list]);
-        this.showIncidenteDialog = false;
-        this.savingInc.set(false);
-        this.notify.success('Incidente registrado');
+        // Generar acta formal en el backend (SB-005)
+        const actaPayload = {
+          descripcion_detallada: this.incForm.descripcion,
+          medidas_tomadas: this.incForm.tratamiento_aplicado || 'Primeros auxilios',
+          requirio_traslado: this.incForm.requirio_traslado,
+          notificado_familia: this.incForm.notificado_tutor
+        };
+        
+        this.api.post(`/salud-avanzada/actas-incidente/${r.id}`, actaPayload).subscribe({
+          next: () => {
+            this.incidentes.update(list => [r, ...list]);
+            this.showIncidenteDialog = false;
+            this.savingInc.set(false);
+            this.notify.success('Incidente registrado y Acta formal generada');
+          },
+          error: () => {
+            this.incidentes.update(list => [r, ...list]);
+            this.showIncidenteDialog = false;
+            this.savingInc.set(false);
+            this.notify.warning('Incidente registrado pero falló la generación de acta formal.');
+          }
+        });
       },
       error: () => this.savingInc.set(false),
     });
   }
+
+  abrirMedicamento(): void {
+    this.medForm = { nombre_medicamento: '', dosis: '', frecuencia: '', horario: '', via_administracion: 'ORAL', prescrito_por: '', observaciones: '' };
+    this.showMedicamentoDialog = true;
+  }
+
+  guardarMedicamento(): void {
+    const alumno = this.alumnoSeleccionado();
+    if (!alumno || !this.medForm.nombre_medicamento || !this.medForm.dosis || !this.medForm.frecuencia) {
+      this.notify.warning('Completa todos los campos obligatorios');
+      return;
+    }
+    this.savingMed.set(true);
+    this.api.post<any>(`/salud-avanzada/medicamentos/${alumno.id}`, this.medForm).subscribe({
+      next: () => {
+        this.cargarMedicamentos(alumno.id);
+        this.showMedicamentoDialog = false;
+        this.savingMed.set(false);
+        this.notify.success('Medicamento registrado');
+      },
+      error: () => this.savingMed.set(false),
+    });
+  }
+
+  suspenderMedicamento(medId: string): void {
+    const alumno = this.alumnoSeleccionado();
+    if (!alumno) return;
+    this.api.delete(`/salud-avanzada/medicamentos/${medId}`).subscribe({
+      next: () => {
+        this.cargarMedicamentos(alumno.id);
+        this.notify.success('Medicamento suspendido');
+      },
+      error: () => this.notify.error('Error al suspender medicamento'),
+    });
+  }
+
+  descargarCertificado(): void {
+    const alumno = this.alumnoSeleccionado();
+    if (!alumno) return;
+    window.open(`/api/v1/salud-avanzada/certificado-deportivo/${alumno.id}`, '_blank');
+  }
+
+  descargarActa(incidenteId: string): void {
+    window.open(`/api/v1/salud-avanzada/incidentes/${incidenteId}/acta-pdf`, '_blank');
+  }
 }
+

@@ -29,9 +29,10 @@ import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
 import { ApexNotificationService } from 'apex-component-library';
 import { ImportButtonComponent } from '../../shared/components/import-button/import-button.component';
+import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
 
 interface NivelOpt   { id: string; nombre_nivel: string; }
-interface GradoOpt   { id: string; nombre_grado: string; numero_grado: number; nivel_educativo_id: string; }
+interface GradoOpt   { id: string; nombre_grado: string; numero_grado: number; nivel_educativo_id: string; plantel_id: string; plantel_nombre: string | null; }
 interface Materia {
   id: string;
   nombre_materia: string;
@@ -78,10 +79,11 @@ const NIVEL_ORDER = ['PRIMARIA', 'SECUNDARIA', 'PREPARATORIA'];
   standalone: true,
   imports: [
     CommonModule, FormsModule,
-    TabsModule, TableModule, ButtonModule, TagModule, SelectModule,
+    TabsModule, ButtonModule, TagModule, SelectModule,
     InputNumberModule, InputTextModule, ToggleSwitchModule,
     DialogModule, DrawerModule, TooltipModule,
     ProgressBarModule, MessageModule, ImportButtonComponent,
+    InteractiveGridComponent,
   ],
   template: `
 
@@ -140,6 +142,9 @@ const NIVEL_ORDER = ['PRIMARIA', 'SECUNDARIA', 'PREPARATORIA'];
                   <div class="mapa-head-grado">
                     {{ g.numero_grado }}°<br>
                     <span style="font-size:.68rem;font-weight:400">{{ g.nombre_grado }}</span>
+                    @if (g.plantel_nombre) {
+                      <span style="font-size:.62rem;font-weight:600;color:var(--orange-600);display:block;margin-top:1px">{{ g.plantel_nombre }}</span>
+                    }
                   </div>
                 }
               </div>
@@ -234,52 +239,11 @@ const NIVEL_ORDER = ['PRIMARIA', 'SECUNDARIA', 'PREPARATORIA'];
             }
           </div>
 
-          <p-table [value]="materiasFiltradas()" styleClass="p-datatable-sm p-datatable-striped"
-            [paginator]="true" [rows]="20" [rowsPerPageOptions]="[20,50,100]"
-            [showCurrentPageReport]="true" currentPageReportTemplate="{first}-{last} de {totalRecords}">
-            <ng-template pTemplate="header">
-              <tr>
-                <th>Materia / Campo formativo</th>
-                <th style="width:110px">Clave</th>
-                <th style="width:120px">Nivel</th>
-                <th style="width:75px;text-align:center">Hrs/sem</th>
-                <th style="width:75px;text-align:center">Grados</th>
-                <th style="width:65px;text-align:center">Estado</th>
-                <th style="width:80px"></th>
-              </tr>
-            </ng-template>
-            <ng-template pTemplate="body" let-m>
-              <tr [class.row-inactiva]="!m.is_active">
-                <td>
-                  <span class="mat-link" (click)="abrirDetalle(m)">{{ m.nombre_materia }}</span>
-                </td>
-                <td style="font-family:monospace;font-size:.78rem">{{ m.clave_materia || '—' }}</td>
-                <td>
-                  <p-tag [value]="nivelNombre(m.nivel_educativo_id)"
-                    [severity]="nivelSeverity(m.nivel_educativo_id)" />
-                </td>
-                <td style="text-align:center">{{ m.horas_semana || '—' }}</td>
-                <td style="text-align:center">{{ gradosAsignados(m.id) }}</td>
-                <td style="text-align:center">
-                  <p-tag [value]="m.is_active ? 'Activa' : 'Inactiva'"
-                    [severity]="m.is_active ? 'success' : 'secondary'" />
-                </td>
-                <td>
-                  <div style="display:flex;gap:.2rem">
-                    @if (esAdmin()) {
-                      <p-button icon="pi pi-pencil" [text]="true" [rounded]="true" size="small"
-                        pTooltip="Editar" (onClick)="abrirEditarMateria(m)" />
-                      <p-button icon="pi pi-trash" [text]="true" [rounded]="true" size="small"
-                        severity="danger" pTooltip="Desactivar"
-                        (onClick)="desactivarMateria(m)" />
-                    }
-                    <p-button icon="pi pi-info-circle" [text]="true" [rounded]="true" size="small"
-                      severity="info" pTooltip="Detalle" (onClick)="abrirDetalle(m)" />
-                  </div>
-                </td>
-              </tr>
-            </ng-template>
-          </p-table>
+          <app-interactive-grid
+            [data]="materiasFiltradas()"
+            [columns]="materiasColumns"
+            (rowSelected)="abrirDetalle($event)"
+          />
         </p-tabpanel>
 
         <!-- ════════════════ TEMARIO ════════════════ -->
@@ -310,44 +274,12 @@ const NIVEL_ORDER = ['PRIMARIA', 'SECUNDARIA', 'PREPARATORIA'];
               }
             </div>
 
-            <p-table [value]="temas()" [loading]="loadingTemas()"
-              styleClass="p-datatable-sm p-datatable-striped"
-              [reorderableColumns]="false">
-              <ng-template pTemplate="header">
-                <tr>
-                  <th style="width:50px">Orden</th>
-                  <th>Tema</th>
-                  <th>Descripción</th>
-                  <th style="width:90px;text-align:center">Periodo</th>
-                  @if (esAdmin() || ctx.nivelAcceso() === 4) {
-                    <th style="width:80px"></th>
-                  }
-                </tr>
-              </ng-template>
-              <ng-template pTemplate="body" let-t>
-                <tr>
-                  <td style="text-align:center;font-weight:700;color:var(--primary-color)">{{ t.orden }}</td>
-                  <td>{{ t.nombre_tema }}</td>
-                  <td style="font-size:.8rem;color:var(--text-color-secondary)">{{ t.descripcion || '—' }}</td>
-                  <td style="text-align:center">{{ t.periodo_sugerido ? t.periodo_sugerido + 'P' : '—' }}</td>
-                  @if (esAdmin() || ctx.nivelAcceso() === 4) {
-                    <td>
-                      <div style="display:flex;gap:.2rem">
-                        <p-button icon="pi pi-pencil" [text]="true" [rounded]="true" size="small"
-                          (onClick)="abrirEditarTema(t)" />
-                        <p-button icon="pi pi-trash" [text]="true" [rounded]="true" size="small"
-                          severity="danger" (onClick)="eliminarTema(t)" />
-                      </div>
-                    </td>
-                  }
-                </tr>
-              </ng-template>
-              <ng-template pTemplate="emptymessage">
-                <tr><td [colSpan]="5" style="text-align:center;padding:2rem;color:var(--text-muted)">
-                  Sin temas registrados para este plan. Usa "Agregar tema" para comenzar.
-                </td></tr>
-              </ng-template>
-            </p-table>
+            <app-interactive-grid
+              [data]="temasFlat()"
+              [columns]="temasColumns"
+              [loading]="loadingTemas()"
+              (rowSelected)="abrirEditarTema($event)"
+            />
           } @else {
             <p-message severity="info" text="Selecciona nivel, grado y materia para ver o editar el temario." />
           }
@@ -590,6 +522,28 @@ export class PlanesEstudioComponent implements OnInit {
 
   readonly esAdmin = computed(() => this.ctx.nivelAcceso() <= 1);
 
+  readonly materiasColumns: ColumnConfig[] = [
+    { field: 'nombre_materia',   header: 'Materia / Campo formativo', sortable: true },
+    { field: 'clave_materia',    header: 'Clave',    width: '110px' },
+    { field: 'nivel_educativo_id', header: 'Nivel',  width: '120px' },
+    { field: 'horas_semana',     header: 'Hrs/sem',  width: '75px' },
+    { field: 'is_active',        header: 'Estado',   width: '80px' },
+  ];
+
+  readonly temasFlat = computed(() =>
+    this.temas().map(t => ({
+      ...t,
+      descripcion_str:   t.descripcion ?? '—',
+      periodo_str:       t.periodo_sugerido ? `${t.periodo_sugerido}P` : '—',
+    }))
+  );
+  readonly temasColumns: ColumnConfig[] = [
+    { field: 'orden',           header: 'Orden',    width: '60px', sortable: true },
+    { field: 'nombre_tema',     header: 'Tema',     sortable: true },
+    { field: 'descripcion_str', header: 'Descripción' },
+    { field: 'periodo_str',     header: 'Periodo',  width: '80px' },
+  ];
+
   readonly gradosActuales = computed(() =>
     this.grados()
       .filter(g => g.nivel_educativo_id === this.nivelActivo())
@@ -616,17 +570,32 @@ export class PlanesEstudioComponent implements OnInit {
   readonly nivelesConMaterias = computed(() => this.niveles());
 
   // Cascade: Nivel → Grado → Materia
+  // Grado options with plantel suffix to differentiate same-number grados across planteles
   readonly gradosParaTemario = computed(() =>
     this.grados()
       .filter(g => !this._temarioNivelId() || g.nivel_educativo_id === this._temarioNivelId())
-      .sort((a, b) => a.numero_grado - b.numero_grado)
+      .sort((a, b) => a.numero_grado - b.numero_grado || (a.plantel_nombre ?? '').localeCompare(b.plantel_nombre ?? ''))
+      .map(g => ({
+        ...g,
+        nombre_grado: g.plantel_nombre ? `${g.nombre_grado} — ${g.plantel_nombre}` : g.nombre_grado,
+      }))
   );
 
   readonly materiasParaTemario = computed(() => {
-    const grado = this.grados().find(g => g.id === this._temarioGradoId());
-    const nivelId = grado?.nivel_educativo_id ?? this._temarioNivelId();
-    return this.materias().filter(m => !nivelId || m.nivel_educativo_id === nivelId)
-      .sort((a, b) => a.nombre_materia.localeCompare(b.nombre_materia));
+    const gradoId = this._temarioGradoId();
+    if (gradoId) {
+      // Only show materias that have an active plan entry for this specific grado+ciclo
+      const materiaIdsEnPlan = new Set(
+        this.plan().filter(p => p.grado_id === gradoId && p.is_active).map(p => p.materia_id)
+      );
+      return this.materias()
+        .filter(m => materiaIdsEnPlan.has(m.id))
+        .sort((a, b) => a.nombre_materia.localeCompare(b.nombre_materia));
+    }
+    const nivelId = this._temarioNivelId();
+    return nivelId
+      ? this.materias().filter(m => m.nivel_educativo_id === nivelId).sort((a, b) => a.nombre_materia.localeCompare(b.nombre_materia))
+      : [];
   });
 
   readonly nivelActivoNombre = computed(() =>

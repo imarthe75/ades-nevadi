@@ -3,23 +3,22 @@
  * Admin module para CRUD de contactos familiares y tutores legales
  * Accessible: ADMIN_GLOBAL (nivel_acceso=0), DIRECTOR (nivel_acceso=1)
  */
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { SelectModule } from 'primeng/select';
 import { InputTextModule } from 'primeng/inputtext';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { TooltipModule } from 'primeng/tooltip';
-import { TagModule } from 'primeng/tag';
 import { ConfirmationService } from 'primeng/api';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { CardModule } from 'primeng/card';
 import { ApiService } from '../../core/services/api.service';
 import { ApexNotificationService } from 'apex-component-library';
+import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
 
 interface EstudianteOpt { id: string; nombre_completo: string; matricula?: string; }
 interface ContactoFamiliar {
@@ -47,8 +46,9 @@ interface ParentescoOpt { label: string; value: string; }
   standalone: true,
   imports: [
     CommonModule, FormsModule, ReactiveFormsModule,
-    TableModule, ButtonModule, DialogModule, SelectModule,
-    InputTextModule, InputNumberModule, TooltipModule, TagModule, ConfirmDialogModule, ToggleSwitchModule, CardModule,
+    ButtonModule, DialogModule, SelectModule,
+    InputTextModule, InputNumberModule, TooltipModule, ConfirmDialogModule, ToggleSwitchModule, CardModule,
+    InteractiveGridComponent,
   ],
   providers: [ConfirmationService],
   template: `
@@ -83,54 +83,14 @@ interface ParentescoOpt { label: string; value: string; }
     </div>
 
     <!-- TABLA DE CONTACTOS FAMILIARES -->
-    <p-table [value]="contactos()" [loading]="loading()"
-      [globalFilterFields]="['nombre_completo','parentesco','telefono_principal','email']"
-      [paginator]="true" [rows]="10"
-      styleClass="p-datatable-sm p-datatable-striped">
-      <ng-template pTemplate="header">
-        <tr>
-          <th>Nombre</th>
-          <th>Parentesco</th>
-          <th>Teléfono</th>
-          <th>Email</th>
-          <th style="width:120px;text-align:center">Tutor Legal</th>
-          <th style="width:120px;text-align:center">Emergencia</th>
-          <th style="width:100px;text-align:center">Puede Recoger</th>
-          <th style="width:80px;text-align:center">Acciones</th>
-        </tr>
-      </ng-template>
-      <ng-template pTemplate="body" let-row>
-        <tr>
-          <td><strong>{{ row.nombre_completo }}</strong></td>
-          <td>{{ row.parentesco }}</td>
-          <td><small>{{ row.telefono_principal }}</small></td>
-          <td><small>{{ row.email }}</small></td>
-          <td style="text-align:center">
-            @if (row.es_tutor_legal) { <p-tag value="✓ Sí" severity="success" /> }
-            @else { <p-tag value="✗ No" severity="secondary" /> }
-          </td>
-          <td style="text-align:center">
-            @if (row.es_contacto_emergencia) { <p-tag value="✓ Sí" severity="info" /> }
-            @else { <p-tag value="✗ No" severity="secondary" /> }
-          </td>
-          <td style="text-align:center">
-            @if (row.puede_recoger) { <p-tag value="✓ Sí" severity="success" /> }
-            @else { <p-tag value="✗ No" severity="secondary" /> }
-          </td>
-          <td style="text-align:center">
-            <p-button icon="pi pi-pencil" severity="warn" [text]="true"
-              (onClick)="editarContacto(row)" pTooltip="Editar" />
-            <p-button icon="pi pi-trash" severity="danger" [text]="true"
-              (onClick)="eliminarContacto(row)" pTooltip="Eliminar" />
-          </td>
-        </tr>
-      </ng-template>
-      <ng-template pTemplate="emptymessage">
-        <tr><td [colSpan]="8" style="text-align:center;padding:1.5rem;color:var(--text-muted)">
-          {{ estudianteSeleccionado ? 'No hay contactos familiares registrados' : 'Selecciona un estudiante para ver sus contactos' }}
-        </td></tr>
-      </ng-template>
-    </p-table>
+    <app-interactive-grid
+      [data]="contactosFlat()"
+      [columns]="contactosColumns"
+      [loading]="loading()"
+      [showDelete]="true"
+      (rowSelected)="editarContacto($event)"
+      (rowDeleted)="eliminarContacto($event)"
+    />
 
     <!-- DIÁLOGO FORMULARIO -->
     <p-dialog [visible]="mostrarFormulario()" (visibleChange)="mostrarFormulario.set($event)" [header]="formularioTitulo()"
@@ -280,6 +240,24 @@ export class PadresAdminComponent implements OnInit {
   private fb = inject(FormBuilder);
 
   estudiantes = signal<EstudianteOpt[]>([]);
+
+  readonly contactosFlat = computed(() =>
+    this.contactos().map(c => ({
+      ...c,
+      tutor_str:     c.es_tutor_legal          ? 'Sí' : 'No',
+      emergencia_str: c.es_contacto_emergencia ? 'Sí' : 'No',
+      recoger_str:   c.puede_recoger           ? 'Sí' : 'No',
+    }))
+  );
+  readonly contactosColumns: ColumnConfig[] = [
+    { field: 'nombre_completo',  header: 'Nombre' },
+    { field: 'parentesco',       header: 'Parentesco',    width: '120px' },
+    { field: 'telefono_principal', header: 'Teléfono',    width: '130px' },
+    { field: 'email',            header: 'Email' },
+    { field: 'tutor_str',        header: 'Tutor Legal',   width: '110px' },
+    { field: 'emergencia_str',   header: 'Emergencia',    width: '110px' },
+    { field: 'recoger_str',      header: 'Puede Recoger', width: '120px' },
+  ];
   estudianteSeleccionado: string | null = null;
   contactos = signal<ContactoFamiliar[]>([]);
   loading = signal(false);

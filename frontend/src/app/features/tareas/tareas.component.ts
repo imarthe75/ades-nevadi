@@ -1,7 +1,6 @@
 import { Component, OnInit, inject, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { TableModule } from 'primeng/table';
 import { CardModule } from 'primeng/card';
 import { ButtonModule } from 'primeng/button';
 import { TagModule } from 'primeng/tag';
@@ -10,12 +9,14 @@ import { SelectModule } from 'primeng/select';
 import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
 import { InputNumberModule } from 'primeng/inputnumber';
+import { TableModule } from 'primeng/table';
 
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
 import type { Tarea, Grupo, Materia } from '../../core/models';
 import { grupoLabel } from '../../core/models';
 import { ApexNotificationService } from 'apex-component-library';
+import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
 
 type GrupoConLabel = Grupo & { _label: string };
 
@@ -26,6 +27,7 @@ type GrupoConLabel = Grupo & { _label: string };
     CommonModule, FormsModule,
     TableModule, CardModule, ButtonModule, TagModule, FileUploadModule,
     SelectModule, DialogModule, InputTextModule, InputNumberModule,
+    InteractiveGridComponent,
   ],
   template: `
 
@@ -90,48 +92,12 @@ type GrupoConLabel = Grupo & { _label: string };
 
       <div style="margin-bottom:1rem">
         <h3>Tareas de la Materia</h3>
-        <p-table [value]="tareas()" styleClass="p-datatable-sm">
-          <ng-template pTemplate="header">
-            <tr>
-              <th pSortableColumn="titulo">Tarea <p-sortIcon field="titulo" /></th>
-              <th pSortableColumn="fecha_entrega" style="width:120px">Entrega <p-sortIcon field="fecha_entrega" /></th>
-              <th style="width:100px">Puntaje Máx.</th>
-              <th style="width:120px">Acciones</th>
-            </tr>
-          </ng-template>
-
-          <ng-template pTemplate="body" let-tarea>
-            <tr>
-              <td>{{ tarea.titulo }}</td>
-              <td>{{ tarea.fecha_entrega }}</td>
-              <td style="text-align:center">{{ tarea.puntaje_maximo }}</td>
-              <td>
-                <div style="display:flex;gap:0.25rem">
-                  <p-button
-                    icon="pi pi-search"
-                    [rounded]="true"
-                    [text]="true"
-                    [plain]="true"
-                    pTooltip="Ver entregas"
-                  />
-                  @if (puedeCrear()) {
-                    <p-button
-                      icon="pi pi-pencil"
-                      [rounded]="true"
-                      [text]="true"
-                      pTooltip="Editar"
-                      (onClick)="abrirEdicion(tarea)"
-                    />
-                  }
-                </div>
-              </td>
-            </tr>
-          </ng-template>
-
-          <ng-template pTemplate="emptymessage">
-            <tr><td [colSpan]="4">No hay tareas para esta materia y grupo</td></tr>
-          </ng-template>
-        </p-table>
+        <app-interactive-grid
+          [data]="tareas()"
+          [columns]="tareasColumns"
+          [showDelete]="false"
+          (rowSelected)="abrirEdicion($event)"
+        />
       </div>
 
       <div>
@@ -221,6 +187,13 @@ export class TareasComponent implements OnInit {
   private readonly api = inject(ApiService);
   private readonly ctx = inject(ContextService);
   private readonly notify = inject(ApexNotificationService);
+
+  readonly tareasColumns: ColumnConfig[] = [
+    { field: 'titulo',         header: 'Tarea' },
+    { field: 'fecha_entrega',  header: 'Entrega',      width: '120px' },
+    { field: 'puntaje_maximo', header: 'Puntaje Máx.', width: '110px', type: 'number' },
+    { field: 'origen',         header: 'Origen',       width: '90px' },
+  ];
 
   grupos = signal<GrupoConLabel[]>([]);
   materias = signal<Materia[]>([]);

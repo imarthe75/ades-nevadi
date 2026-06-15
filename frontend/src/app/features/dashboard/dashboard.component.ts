@@ -10,11 +10,12 @@ import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
 import { TooltipModule } from 'primeng/tooltip';
 import { TagModule } from 'primeng/tag';
+import { CheckboxModule } from 'primeng/checkbox';
 
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
 import type { ResumenPlantel, Plantel } from '../../core/models';
-import { ApexNotificationService } from 'apex-component-library';
+import { ApexNotificationService, ApexChartComponent } from 'apex-component-library';
 
 interface NivelStats {
   nivel_educativo_id: string;
@@ -39,6 +40,24 @@ interface DistribucionNivel {
   total_grupos: number;
 }
 
+interface DashboardWidgets {
+  welcome: boolean;
+  kpi: boolean;
+  miPlantel: boolean;
+  planteles: boolean;
+  chart: boolean;
+  quickLinks: boolean;
+}
+
+const DEFAULT_WIDGETS: DashboardWidgets = {
+  welcome: true,
+  kpi: true,
+  miPlantel: true,
+  planteles: true,
+  chart: true,
+  quickLinks: true
+};
+
 const NIVEL_COLOR: Record<string, string> = {
   PRIMARIA: '#22c55e', SECUNDARIA: '#3b82f6', PREPARATORIA: '#a855f7',
 };
@@ -51,77 +70,101 @@ const NIVEL_ICON: Record<string, string> = {
   standalone: true,
   imports: [
     CommonModule, RouterModule, FormsModule, CardModule, SkeletonModule,
-    ButtonModule, DividerModule, DialogModule, InputTextModule, TooltipModule, TagModule
+    ButtonModule, DividerModule, DialogModule, InputTextModule, TooltipModule, TagModule, CheckboxModule,
+    ApexChartComponent
   ],
   template: `
     <div class="dashboard">
-      <!-- ── Bienvenida contextual ── -->
-      <div class="welcome-bar">
-        <div class="welcome-left">
-          <h2>Dashboard</h2>
-          <p class="subtitle">
-            @if (ctx.plantel()) {
-              <i class="pi pi-map-marker"></i> {{ ctx.plantel()!.nombre_plantel }}
-            } @else {
-              <i class="pi pi-building"></i> Instituto Nevadi — Vista global
-            }
-            @if (ctx.ciclo()) {
-              <span class="ciclo-chip">Ciclo {{ ctx.ciclo()!.nombre_ciclo }}</span>
-            }
-          </p>
-        </div>
-        @if (ctx.usuario()) {
-          <div class="user-greeting">
-            <span class="greeting-name">{{ ctx.usuario()!.nombre_completo }}</span>
-            <span class="greeting-rol">{{ ctx.rolLabel() }}</span>
-          </div>
-        }
+      <!-- Barra de control de personalización -->
+      <div class="dashboard-custom-header">
+        <p-button icon="pi pi-cog" [rounded]="true" [text]="true" severity="secondary"
+          pTooltip="Personalizar Dashboard" (onClick)="dlgPersonalizar = true" />
       </div>
+
+      <!-- ── Bienvenida contextual ── -->
+      @if (visibleWidgets().welcome) {
+        <div class="welcome-bar">
+          <div class="welcome-left">
+            <h2>Dashboard</h2>
+            <p class="subtitle">
+              @if (ctx.plantel()) {
+                <i class="pi pi-map-marker"></i> {{ ctx.plantel()!.nombre_plantel }}
+              } @else {
+                <i class="pi pi-building"></i> Instituto Nevadi — Vista global
+              }
+              @if (ctx.ciclo()) {
+                <span class="ciclo-chip">Ciclo {{ ctx.ciclo()!.nombre_ciclo }}</span>
+              }
+            </p>
+          </div>
+          @if (ctx.usuario()) {
+            <div class="user-greeting">
+              <span class="greeting-name">{{ ctx.usuario()!.nombre_completo }}</span>
+              <span class="greeting-rol">{{ ctx.rolLabel() }}</span>
+            </div>
+          }
+        </div>
+      } @else {
+        <!-- Mini cabecera compacta si la bienvenida está desactivada -->
+        <div class="mini-welcome-bar">
+          <span class="mini-title">Dashboard</span>
+        </div>
+      }
 
       <!-- ── KPI Cards ── -->
-      <div class="kpi-cards">
-        <div class="kpi-card" routerLink="/alumnos">
-          <div class="kpi-icon-wrap alumnos"><i class="pi pi-users"></i></div>
-          <div class="kpi-body">
-            @if (loading()) { <p-skeleton width="60px" height="2rem" /> }
-            @else { <span class="kpi-value">{{ resumen()?.total_alumnos ?? 0 | number }}</span> }
-            <span class="kpi-label">Alumnos inscritos</span>
-          </div>
-          <i class="pi pi-chevron-right kpi-arrow"></i>
-        </div>
+      @if (visibleWidgets().kpi) {
+        <div class="kpi-cards">
+          @if ((resumen()?.total_alumnos ?? 0) >= minAlumnosKpi()) {
+            <div class="kpi-card" routerLink="/alumnos">
+              <div class="kpi-icon-wrap alumnos"><i class="pi pi-users"></i></div>
+              <div class="kpi-body">
+                @if (loading()) { <p-skeleton width="60px" height="2rem" /> }
+                @else { <span class="kpi-value">{{ resumen()?.total_alumnos ?? 0 | number }}</span> }
+                <span class="kpi-label">Alumnos inscritos</span>
+              </div>
+              <i class="pi pi-chevron-right kpi-arrow"></i>
+            </div>
+          }
 
-        <div class="kpi-card" routerLink="/profesores">
-          <div class="kpi-icon-wrap profesores"><i class="pi pi-id-card"></i></div>
-          <div class="kpi-body">
-            @if (loading()) { <p-skeleton width="60px" height="2rem" /> }
-            @else { <span class="kpi-value">{{ resumen()?.total_profesores ?? 0 | number }}</span> }
-            <span class="kpi-label">Profesores activos</span>
-          </div>
-          <i class="pi pi-chevron-right kpi-arrow"></i>
-        </div>
+          @if ((resumen()?.total_profesores ?? 0) >= minAlumnosKpi()) {
+            <div class="kpi-card" routerLink="/profesores">
+              <div class="kpi-icon-wrap profesores"><i class="pi pi-id-card"></i></div>
+              <div class="kpi-body">
+                @if (loading()) { <p-skeleton width="60px" height="2rem" /> }
+                @else { <span class="kpi-value">{{ resumen()?.total_profesores ?? 0 | number }}</span> }
+                <span class="kpi-label">Profesores activos</span>
+              </div>
+              <i class="pi pi-chevron-right kpi-arrow"></i>
+            </div>
+          }
 
-        <div class="kpi-card" routerLink="/grupos">
-          <div class="kpi-icon-wrap grupos"><i class="pi pi-book"></i></div>
-          <div class="kpi-body">
-            @if (loading()) { <p-skeleton width="60px" height="2rem" /> }
-            @else { <span class="kpi-value">{{ resumen()?.total_grupos_activos ?? 0 | number }}</span> }
-            <span class="kpi-label">Grupos activos</span>
-          </div>
-          <i class="pi pi-chevron-right kpi-arrow"></i>
-        </div>
+          @if ((resumen()?.total_grupos_activos ?? 0) >= minAlumnosKpi()) {
+            <div class="kpi-card" routerLink="/grupos">
+              <div class="kpi-icon-wrap grupos"><i class="pi pi-book"></i></div>
+              <div class="kpi-body">
+                @if (loading()) { <p-skeleton width="60px" height="2rem" /> }
+                @else { <span class="kpi-value">{{ resumen()?.total_grupos_activos ?? 0 | number }}</span> }
+                <span class="kpi-label">Grupos activos</span>
+              </div>
+              <i class="pi pi-chevron-right kpi-arrow"></i>
+            </div>
+          }
 
-        <div class="kpi-card kpi-highlight">
-          <div class="kpi-icon-wrap clases"><i class="pi pi-calendar"></i></div>
-          <div class="kpi-body">
-            @if (loading()) { <p-skeleton width="60px" height="2rem" /> }
-            @else { <span class="kpi-value">{{ resumen()?.total_clases_hoy ?? 0 | number }}</span> }
-            <span class="kpi-label">Clases hoy</span>
-          </div>
+          @if ((resumen()?.total_clases_hoy ?? 0) >= minAlumnosKpi()) {
+            <div class="kpi-card kpi-highlight">
+              <div class="kpi-icon-wrap clases"><i class="pi pi-calendar"></i></div>
+              <div class="kpi-body">
+                @if (loading()) { <p-skeleton width="60px" height="2rem" /> }
+                @else { <span class="kpi-value">{{ resumen()?.total_clases_hoy ?? 0 | number }}</span> }
+                <span class="kpi-label">Clases hoy</span>
+              </div>
+            </div>
+          }
         </div>
-      </div>
+      }
 
       <!-- ── Mi Plantel (para usuarios con plantel seleccionado que NO son admin global) ── -->
-      @if (!ctx.esAdminGlobal() && ctx.plantel() && resumen()) {
+      @if (visibleWidgets().miPlantel && !ctx.esAdminGlobal() && ctx.plantel() && resumen()) {
         <p-divider styleClass="dash-divider" />
         <h4 class="section-title">Mi Plantel</h4>
         <div class="mi-plantel-card">
@@ -159,9 +202,17 @@ const NIVEL_ICON: Record<string, string> = {
       }
 
       <!-- ── Planteles del Instituto (Administradores Globales — siempre visible) ── -->
-      @if (ctx.esAdminGlobal()) {
+      @if (visibleWidgets().planteles && ctx.esAdminGlobal()) {
         <p-divider styleClass="dash-divider" />
-        <h4 class="section-title">Planteles del Instituto</h4>
+        <div class="section-header-flex">
+          <h4 class="section-title">Planteles del Instituto</h4>
+          <div class="search-filter-wrap">
+            <span class="p-input-icon-left">
+              <i class="pi pi-search" style="left: 0.75rem;"></i>
+              <input pInputText type="text" [(ngModel)]="filtroPlanteles" placeholder="Buscar plantel..." size="small" class="filtro-input" />
+            </span>
+          </div>
+        </div>
         @if (loadingPlanteles()) {
           <div class="cards-grid">
             @for (i of [1, 2, 3]; track i) {
@@ -170,7 +221,7 @@ const NIVEL_ICON: Record<string, string> = {
           </div>
         } @else {
           <div class="cards-grid">
-            @for (p of stats(); track p.id) {
+            @for (p of filteredStats(); track p.id) {
               <div class="plantel-card" [class.activo]="ctx.plantel()?.id === p.id">
                 <div class="card-top">
                   <div class="card-title-row">
@@ -228,53 +279,91 @@ const NIVEL_ICON: Record<string, string> = {
       }
 
       <!-- ── Gráfico: distribución por nivel ── -->
-      @if (distribucion().length > 0) {
+      @if (visibleWidgets().chart && distribucion().length > 0) {
         <p-divider styleClass="dash-divider" />
         <h4 class="section-title">Distribución por nivel educativo</h4>
-        <div class="chart-panel">
-          @for (item of distribucion(); track item.nombre_nivel) {
-            <div class="chart-row">
-              <span class="chart-label">{{ item.nombre_nivel }}</span>
-              <div class="chart-bars">
-                <div class="bar-wrap">
-                  <div class="bar alumnos-bar"
-                    [style.width]="barPct(item.total_alumnos, maxAlumnos()) + '%'"
-                    [title]="item.total_alumnos + ' alumnos'">
-                  </div>
-                  <span class="bar-count">{{ item.total_alumnos }}</span>
-                </div>
-                <div class="bar-wrap">
-                  <div class="bar grupos-bar"
-                    [style.width]="barPct(item.total_grupos, maxGrupos()) + '%'"
-                    [title]="item.total_grupos + ' grupos'">
-                  </div>
-                  <span class="bar-count grupos-count">{{ item.total_grupos }}</span>
-                </div>
-              </div>
-            </div>
-          }
-          <div class="chart-legend">
-            <span class="legend-dot alumnos-dot"></span> Alumnos &nbsp;
-            <span class="legend-dot grupos-dot"></span> Grupos
-          </div>
-        </div>
-      } @else if (loadingChart()) {
+        <apex-chart
+          [barData]="distribucionChartData()"
+          title="Distribución por Nivel"
+          subtitle="Alumnos y grupos activos"
+          height="260px"
+        />
+      } @else if (visibleWidgets().chart && loadingChart()) {
         <p-divider styleClass="dash-divider" />
         <p-skeleton height="120px" />
       }
 
       <!-- ── Accesos rápidos ── -->
-      <p-divider styleClass="dash-divider" />
-      <h4 class="section-title">Accesos rápidos</h4>
-      <div class="quick-links">
-        @for (link of quickLinks; track link.route) {
-          <a [routerLink]="link.route" class="quick-link">
-            <i [class]="'pi ' + link.icon"></i>
-            <span>{{ link.label }}</span>
-          </a>
-        }
-      </div>
+      @if (visibleWidgets().quickLinks) {
+        <p-divider styleClass="dash-divider" />
+        <h4 class="section-title">Accesos rápidos</h4>
+        <div class="quick-links">
+          @for (link of quickLinks; track link.route) {
+            <a [routerLink]="link.route" class="quick-link">
+              <i [class]="'pi ' + link.icon"></i>
+              <span>{{ link.label }}</span>
+            </a>
+          }
+        </div>
+      }
     </div>
+
+    <!-- Diálogo personalizar dashboard -->
+    <p-dialog [(visible)]="dlgPersonalizar" header="Personalizar Vista de Dashboard"
+      [modal]="true" [draggable]="false" [style]="{width:'400px'}">
+      <div class="custom-dialog-body" style="display: flex; flex-direction: column; gap: 1rem; padding: 0.5rem 0;">
+        <p class="dialog-section-desc" style="font-size: 0.85rem; color: var(--text-secondary); margin: 0;">
+          Selecciona las secciones que deseas visualizar:
+        </p>
+        <div class="widget-list" style="display: flex; flex-direction: column; gap: 0.75rem;">
+          <div class="widget-item">
+            <p-checkbox [binary]="true" label="Barra de Bienvenida"
+              [ngModel]="visibleWidgets().welcome"
+              (ngModelChange)="toggleWidget('welcome', $event)" />
+          </div>
+          <div class="widget-item">
+            <p-checkbox [binary]="true" label="Indicadores Clave (KPIs)"
+              [ngModel]="visibleWidgets().kpi"
+              (ngModelChange)="toggleWidget('kpi', $event)" />
+          </div>
+          <div class="widget-item">
+            <p-checkbox [binary]="true" label="Mi Plantel (Resumen Contexto)"
+              [ngModel]="visibleWidgets().miPlantel"
+              (ngModelChange)="toggleWidget('miPlantel', $event)" />
+          </div>
+          @if (ctx.esAdminGlobal()) {
+            <div class="widget-item">
+              <p-checkbox [binary]="true" label="Planteles del Instituto"
+                [ngModel]="visibleWidgets().planteles"
+                (ngModelChange)="toggleWidget('planteles', $event)" />
+            </div>
+          }
+          <div class="widget-item">
+            <p-checkbox [binary]="true" label="Gráfico de Distribución"
+              [ngModel]="visibleWidgets().chart"
+              (ngModelChange)="toggleWidget('chart', $event)" />
+          </div>
+          <div class="widget-item">
+            <p-checkbox [binary]="true" label="Accesos Rápidos"
+              [ngModel]="visibleWidgets().quickLinks"
+              (ngModelChange)="toggleWidget('quickLinks', $event)" />
+          </div>
+        </div>
+
+        <p-divider styleClass="dash-divider" />
+        <p class="dialog-section-desc" style="font-size: 0.85rem; color: var(--text-secondary); margin: 0;">
+          Filtros de visualización por cantidad de alumnos:
+        </p>
+        <div class="form-grid-custom" style="display: flex; flex-direction: column; gap: 0.35rem;">
+          <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);">Valor Mínimo Alumnos en KPIs:</label>
+          <input pInputText type="number" [ngModel]="minAlumnosKpi()" (ngModelChange)="minAlumnosKpi.set($event)" min="0" class="w-full" style="padding: 0.5rem;" />
+        </div>
+      </div>
+      <ng-template pTemplate="footer">
+        <p-button label="Restablecer" severity="secondary" [text]="true" (onClick)="restablecerWidgets()" />
+        <p-button label="Cerrar" icon="pi pi-times" (onClick)="dlgPersonalizar = false" />
+      </ng-template>
+    </p-dialog>
 
     <!-- Diálogo editar plantel -->
     <p-dialog [(visible)]="dlgPlantel" header="Editar plantel"
@@ -294,10 +383,18 @@ const NIVEL_ICON: Record<string, string> = {
     </p-dialog>
   `,
   styles: [`
-    .dashboard { padding: 0.5rem 0; }
+    .dashboard { padding: 0.5rem 0; position: relative; }
+
+    /* Custom Header Control */
+    .dashboard-custom-header {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+      z-index: 10;
+    }
 
     /* Bienvenida */
-    .welcome-bar { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; }
+    .welcome-bar { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; padding-right: 3rem; }
     .welcome-bar h2 { margin: 0 0 0.2rem; color: var(--text-primary); }
     .subtitle { display: flex; align-items: center; gap: 0.4rem; color: var(--text-secondary); font-size: 0.85rem; margin: 0; }
     .subtitle i { font-size: 0.8rem; }
@@ -305,6 +402,19 @@ const NIVEL_ICON: Record<string, string> = {
     .user-greeting { display: flex; flex-direction: column; align-items: flex-end; gap: 0.1rem; }
     .greeting-name { font-size: 0.85rem; font-weight: 600; color: var(--text-primary); }
     .greeting-rol { font-size: 0.72rem; color: var(--text-secondary); }
+
+    /* Mini cabecera compacta */
+    .mini-welcome-bar {
+      margin-bottom: 1.5rem;
+      border-bottom: 1px solid var(--surface-border);
+      padding-bottom: 0.5rem;
+      padding-right: 3rem;
+    }
+    .mini-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
 
     /* KPI cards — clicables tipo APEX */
     .kpi-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 0.75rem; }
@@ -330,22 +440,6 @@ const NIVEL_ICON: Record<string, string> = {
     .kpi-value { display: block; font-size: 1.9rem; font-weight: 800; line-height: 1.1; color: var(--text-primary); }
     .kpi-label { font-size: 0.75rem; color: var(--text-secondary); font-weight: 500; }
     .kpi-arrow { color: var(--text-muted); font-size: 0.8rem; }
-
-    /* CSS bar chart — distribución por nivel */
-    .chart-panel { background: var(--surface-card); border: 1px solid var(--surface-border); border-radius: 10px; padding: 1rem 1.25rem; }
-    .chart-row { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem; }
-    .chart-label { font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); min-width: 110px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .chart-bars { flex: 1; display: flex; flex-direction: column; gap: 0.3rem; }
-    .bar-wrap { display: flex; align-items: center; gap: 0.5rem; }
-    .bar { height: 12px; border-radius: 6px; min-width: 4px; transition: width .4s ease; }
-    .alumnos-bar { background: var(--nevadi-slate-mid, #4A6FA5); opacity: .85; }
-    .grupos-bar  { background: var(--nevadi-sage-mid, #5A7A5A); opacity: .75; }
-    .bar-count { font-size: 0.72rem; color: var(--text-muted); min-width: 28px; }
-    .grupos-count { color: var(--nevadi-sage-mid, #5A7A5A); }
-    .chart-legend { display: flex; align-items: center; gap: 0.25rem; font-size: 0.72rem; color: var(--text-secondary); margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--surface-border); }
-    .legend-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; }
-    .alumnos-dot { background: var(--nevadi-slate-mid, #4A6FA5); }
-    .grupos-dot  { background: var(--nevadi-sage-mid, #5A7A5A); }
 
     /* Mi Plantel card (usuarios no-admin con plantel activo) */
     .mi-plantel-card {
@@ -393,9 +487,24 @@ const NIVEL_ICON: Record<string, string> = {
     .form-grid { display: grid; grid-template-columns: 100px 1fr; gap: .75rem 1rem; align-items: center; padding: .5rem 0; }
     .form-grid label { font-size: .85rem; color: var(--text-color-secondary); font-weight: 600; }
 
+    /* Section Flex Header (for search filtering) */
+    .section-header-flex {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.75rem;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .filtro-input {
+      font-size: 0.82rem;
+      padding: 0.35rem 0.5rem 0.35rem 2rem !important;
+      width: 200px;
+    }
+
     /* Accesos rápidos */
     .dash-divider { margin: 1.25rem 0 1rem !important; }
-    .section-title { margin: 0 0 0.75rem; font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--text-secondary); }
+    .section-title { margin: 0; font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--text-secondary); }
     .quick-links { display: flex; flex-wrap: wrap; gap: 0.5rem; }
     .quick-link {
       display: flex; align-items: center; gap: 0.4rem;
@@ -425,6 +534,12 @@ export class DashboardComponent {
   plantelEdit: { id: string; nombre_plantel: string; clave_ct: string | null } | null = null;
   saving           = signal(false);
 
+  // Personalización del dashboard
+  dlgPersonalizar = false;
+  visibleWidgets = signal<DashboardWidgets>({ ...DEFAULT_WIDGETS });
+  minAlumnosKpi = signal<number>(0);
+  filtroPlanteles = '';
+
   readonly quickLinks = [
     { route: '/calificaciones',  icon: 'pi-star',          label: 'Calificaciones' },
     { route: '/asistencias',     icon: 'pi-check-square',  label: 'Asistencias' },
@@ -436,7 +551,34 @@ export class DashboardComponent {
     { route: '/reportes',        icon: 'pi-file-pdf',      label: 'Reportes' },
   ];
 
+  // Planteles filtrados computados dinámicamente
+  readonly filteredStats = computed(() => {
+    const query = this.filtroPlanteles.toLowerCase().trim();
+    const minVal = this.minAlumnosKpi();
+    return this.stats().filter(s => {
+      const matchSearch = !query ||
+        s.nombre_plantel.toLowerCase().includes(query) ||
+        (s.clave_ct && s.clave_ct.toLowerCase().includes(query));
+      const matchMinAlumnos = s.total_alumnos >= minVal;
+      return matchSearch && matchMinAlumnos;
+    });
+  });
+
   constructor() {
+    // Cargar personalización guardada
+    try {
+      const saved = localStorage.getItem('ades_dashboard_widgets');
+      if (saved) {
+        this.visibleWidgets.set({ ...DEFAULT_WIDGETS, ...JSON.parse(saved) });
+      }
+      const savedMinKpi = localStorage.getItem('ades_dashboard_min_kpi');
+      if (savedMinKpi) {
+        this.minAlumnosKpi.set(parseInt(savedMinKpi, 10) || 0);
+      }
+    } catch (e) {
+      console.warn('Error al cargar preferencias de dashboard desde localStorage:', e);
+    }
+
     effect(() => {
       const plantelId = this.ctx.plantel()?.id;
       const params = plantelId ? { plantel_id: plantelId } : {};
@@ -451,7 +593,7 @@ export class DashboardComponent {
       this.api.get<DistribucionNivel[]>('/stats/distribucion', params).subscribe({
         next: (d) => { this.distribucion.set(d); this.loadingChart.set(false); },
         error: () => { this.distribucion.set([]); this.loadingChart.set(false); },
-      });
+        });
     });
 
     // Load planteles stats if user is global admin
@@ -466,6 +608,22 @@ export class DashboardComponent {
 
   readonly maxAlumnos = computed(() => Math.max(1, ...this.distribucion().map(d => d.total_alumnos)));
   readonly maxGrupos  = computed(() => Math.max(1, ...this.distribucion().map(d => d.total_grupos)));
+
+  readonly distribucionChartData = computed(() => ({
+    labels: this.distribucion().map(d => d.nombre_nivel),
+    datasets: [
+      {
+        label: 'Alumnos',
+        data: this.distribucion().map(d => d.total_alumnos),
+        color: '#3b82f6',
+      },
+      {
+        label: 'Grupos',
+        data: this.distribucion().map(d => d.total_grupos),
+        color: '#10b981',
+      },
+    ],
+  }));
 
   barPct(value: number, max: number): number {
     return max > 0 ? Math.round((value / max) * 100) : 0;
@@ -508,6 +666,28 @@ export class DashboardComponent {
       clave_ct: p.clave_ct ?? undefined,
       escuela_id: '', is_active: true,
     } as Plantel);
+  }
+
+  toggleWidget(key: keyof DashboardWidgets, val: boolean): void {
+    this.visibleWidgets.update(w => {
+      const updated = { ...w, [key]: val };
+      try {
+        localStorage.setItem('ades_dashboard_widgets', JSON.stringify(updated));
+      } catch (e) {
+        console.error('Error guardando widget a localStorage:', e);
+      }
+      return updated;
+    });
+  }
+
+  restablecerWidgets(): void {
+    this.visibleWidgets.set({ ...DEFAULT_WIDGETS });
+    this.minAlumnosKpi.set(0);
+    try {
+      localStorage.removeItem('ades_dashboard_widgets');
+      localStorage.removeItem('ades_dashboard_min_kpi');
+    } catch (e) {}
+    this.notify.info('Restablecido', 'Preferencias de visualización restablecidas');
   }
 
   color(n: string): string { return NIVEL_COLOR[n] ?? '#94a3b8'; }

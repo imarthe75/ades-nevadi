@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Acta de Inicio de Ciclo Escolar</title>
+    <style>
+        @page {
+            size: letter;
+            margin: 3cm 2cm 2.5cm 2cm;
+            @top-center {
+                content: element(header);
+            }
+            @bottom-center {
+                content: element(footer);
+            }
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            color: #1A1A2E;
+            line-height: 1.5;
+            font-size: 11pt;
+        }
+        div.header {
+            position: running(header);
+            border-bottom: 2px solid #C41724;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .header-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .logo-text {
+            font-family: 'Jost', sans-serif;
+            font-size: 18pt;
+            font-weight: bold;
+            color: #C41724;
+        }
+        .sub-logo-text {
+            font-size: 9pt;
+            color: #64748B;
+            text-transform: uppercase;
+        }
+        .document-title {
+            text-align: right;
+            font-size: 14pt;
+            font-weight: bold;
+            color: #1A1A2E;
+        }
+        div.footer {
+            position: running(footer);
+            border-top: 1px solid #E2E8F0;
+            padding-top: 10px;
+            font-size: 8pt;
+            color: #64748B;
+            text-align: center;
+        }
+        h1 {
+            font-family: 'Jost', sans-serif;
+            color: #C41724;
+            font-size: 16pt;
+            text-align: center;
+            margin-top: 0;
+            margin-bottom: 25px;
+        }
+        .declaracion {
+            text-align: justify;
+            margin-bottom: 25px;
+        }
+        .kpi-container {
+            width: 100%;
+            margin-bottom: 30px;
+        }
+        .kpi-card {
+            background-color: #F8FAFC;
+            border-left: 4px solid #C41724;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        .kpi-title {
+            font-size: 9pt;
+            color: #64748B;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+        .kpi-value {
+            font-size: 20pt;
+            font-weight: bold;
+            color: #1A1A2E;
+            margin-top: 5px;
+        }
+        .signature-section {
+            margin-top: 60px;
+            width: 100%;
+        }
+        .signature-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .signature-line {
+            width: 45%;
+            text-align: center;
+            font-size: 10pt;
+        }
+        .signature-space {
+            border-bottom: 1px solid #1A1A2E;
+            height: 70px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <table class="header-table">
+            <tr>
+                <td>
+                    <div class="logo-text">{{ institucion }}</div>
+                    <div class="sub-logo-text">Sistema Escolar ADES</div>
+                </td>
+                <td class="document-title">
+                    ACTA FORMAL DE INICIO<br>
+                    DE CICLO ESCOLAR
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="footer">
+        {{ institucion }} · Generado por {{ usuario_generacion }} el {{ fecha_generacion }}
+    </div>
+
+    <h1>ACTA DE INICIO DE LABORES ACADÉMICAS</h1>
+
+    <div class="declaracion">
+        En las instalaciones del <strong>{{ institucion }}</strong>, se hace constar el inicio formal del ciclo escolar 
+        <strong>{{ nombre_ciclo }}</strong> correspondiente al nivel educativo <strong>{{ nombre_nivel }}</strong>, comenzando actividades el 
+        día <strong>{{ fecha_inicio }}</strong> de conformidad con el calendario escolar institucional y la normatividad educativa vigente. 
+        Se registran a continuación los indicadores clave de apertura para este ciclo de trabajo:
+    </div>
+
+    <div class="kpi-container">
+        <div class="kpi-card">
+            <div class="kpi-title">Matrícula Total de Alumnos Inscritos</div>
+            <div class="kpi-value">{{ matricula_total }} Alumnos</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-title">Docentes Activos Asignados</div>
+            <div class="kpi-value">{{ total_docentes }} Docentes</div>
+        </div>
+    </div>
+
+    <div class="declaracion">
+        Con lo anterior, se declara formalmente inaugurado el periodo escolar de referencia, comprometiéndose la comunidad docente y directiva a velar por el máximo aprovechamiento académico y la formación integral de los estudiantes matriculados.
+    </div>
+
+    <div class="signature-section">
+        <table class="signature-table">
+            <tr>
+                <td class="signature-line">
+                    <div class="signature-space"></div>
+                    <strong>Dirección Académica</strong><br>
+                    {{ institucion }}
+                </td>
+                <td style="width: 10%;"></td>
+                <td class="signature-line">
+                    <div class="signature-space"></div>
+                    <strong>Firma de Conformidad</strong><br>
+                    Representante Legal / Control Escolar
+                </td>
+            </tr>
+        </table>
+    </div>
+</body>
+</html>

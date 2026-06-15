@@ -57,6 +57,7 @@ class Settings(BaseSettings):
     # JWT
     SECRET_KEY: str
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+    DATABASE_ENCRYPTION_KEY: str = ""
 
     # CORS
     ALLOWED_ORIGINS: str = "http://localhost:4200,https://ades.setag.mx"
@@ -89,7 +90,7 @@ class Settings(BaseSettings):
     # OpenAI / NVIDIA NIM (FASE 4 / FASE 27)
     OPENAI_BASE_URL: str = "https://integrate.api.nvidia.com/v1"
     OPENAI_API_KEY: str = ""
-    OPENAI_MODEL: str = "meta/llama-3-71b-instruct"
+    OPENAI_MODEL: str = "meta/llama-3.1-70b-instruct"
     ANTHROPIC_API_KEY: str = ""
 
     # Paperless-ngx — Gestión Documental OCR (FASE 28)

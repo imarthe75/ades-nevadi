@@ -1,11 +1,9 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
 import { CardModule } from 'primeng/card';
-import { TagModule } from 'primeng/tag';
 import { ProgressBarModule } from 'primeng/progressbar';
 import { TooltipModule } from 'primeng/tooltip';
 import { DialogModule } from 'primeng/dialog';
@@ -13,6 +11,7 @@ import { TabsModule } from 'primeng/tabs';
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
 import { ApexNotificationService } from 'apex-component-library';
+import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
 
 interface MateriaSummary {
   materia_id: string;
@@ -44,9 +43,9 @@ interface EntregaHistorial extends EntregaPendiente {
   selector: 'app-mi-progreso',
   standalone: true,
   imports: [
-    CommonModule, FormsModule, TableModule, ButtonModule, SelectModule,
-    CardModule, TagModule, ProgressBarModule, TooltipModule,
-    DialogModule, TabsModule,
+    CommonModule, FormsModule, ButtonModule, SelectModule,
+    CardModule, ProgressBarModule, TooltipModule,
+    DialogModule, TabsModule, InteractiveGridComponent,
   ],
   template: `
 <div class="page-header">
@@ -86,65 +85,20 @@ interface EntregaHistorial extends EntregaPendiente {
 
   <!-- ── TAB 2: Tareas pendientes ── -->
   <p-tabpanel header="Tareas pendientes" value="1">
-    <p-table [value]="pendientes()" [loading]="cargando()" styleClass="p-datatable-sm"
-             [rows]="50" [paginator]="pendientes().length > 50">
-      <ng-template pTemplate="header">
-        <tr>
-          <th>Tarea</th>
-          <th>Materia</th>
-          <th>Tipo</th>
-          <th>Fecha límite</th>
-          <th>Estado</th>
-          <th></th>
-        </tr>
-      </ng-template>
-      <ng-template pTemplate="body" let-t>
-        <tr [class.row-vencida]="t.vencida">
-          <td>{{ t.titulo }}</td>
-          <td>{{ t.nombre_materia }}</td>
-          <td><p-tag [value]="t.tipo_item" severity="info" /></td>
-          <td>
-            <span [class]="t.vencida ? 'text-danger' : ''">
-              {{ t.fecha_limite | date:'dd/MM/yyyy' }}
-            </span>
-          </td>
-          <td><p-tag [value]="t.estatus_entrega" [severity]="estatusSev(t.estatus_entrega)" /></td>
-          <td>
-            <button pButton icon="pi pi-upload" text size="small"
-                    pTooltip="Subir entrega" (click)="abrirSubirEntrega(t)"
-                    [disabled]="t.estatus_entrega === 'CALIFICADA'"></button>
-          </td>
-        </tr>
-      </ng-template>
-    </p-table>
+    <app-interactive-grid
+      [data]="pendientesFlat()"
+      [columns]="pendientesColumns"
+      [loading]="cargando()"
+    />
   </p-tabpanel>
 
   <!-- ── TAB 3: Historial de entregas ── -->
   <p-tabpanel header="Historial" value="2">
-    <p-table [value]="historial()" styleClass="p-datatable-sm" [rows]="100">
-      <ng-template pTemplate="header">
-        <tr>
-          <th>Actividad</th>
-          <th>Materia</th>
-          <th>Entregada</th>
-          <th style="width:90px">Calificación</th>
-          <th>Feedback</th>
-        </tr>
-      </ng-template>
-      <ng-template pTemplate="body" let-e>
-        <tr>
-          <td>{{ e.titulo }}</td>
-          <td>{{ e.nombre_materia }}</td>
-          <td>{{ e.fecha_entrega | date:'dd/MM/yyyy' }}</td>
-          <td class="text-center">
-            <strong [class]="calClass(e.calificacion_obtenida, 10)">
-              {{ e.calificacion_obtenida ?? '—' }}
-            </strong>
-          </td>
-          <td><small class="text-muted">{{ e.comentario_profesor ?? '' }}</small></td>
-        </tr>
-      </ng-template>
-    </p-table>
+    <app-interactive-grid
+      [data]="historialFlat()"
+      [columns]="historialColumns"
+      [loading]="cargando()"
+    />
   </p-tabpanel>
 </p-tabs>
 
@@ -196,6 +150,36 @@ export class MiProgresoComponent implements OnInit {
   pendientes = signal<EntregaPendiente[]>([]);
   historial = signal<EntregaHistorial[]>([]);
   cargando = signal(false);
+
+  readonly pendientesFlat = computed(() =>
+    this.pendientes().map(t => ({
+      ...t,
+      fecha_limite_str: t.fecha_limite ? new Date(t.fecha_limite).toLocaleDateString('es-MX') : '—',
+      estatus_str: t.estatus_entrega,
+    }))
+  );
+  readonly pendientesColumns: ColumnConfig[] = [
+    { field: 'titulo',           header: 'Tarea' },
+    { field: 'nombre_materia',   header: 'Materia' },
+    { field: 'tipo_item',        header: 'Tipo',        width: '90px' },
+    { field: 'fecha_limite_str', header: 'Fecha límite', width: '120px' },
+    { field: 'estatus_str',      header: 'Estado',      width: '110px' },
+  ];
+
+  readonly historialFlat = computed(() =>
+    this.historial().map(e => ({
+      ...e,
+      fecha_entrega_str: e.fecha_entrega ? new Date(e.fecha_entrega).toLocaleDateString('es-MX') : '—',
+      calificacion_str: e.calificacion_obtenida !== null ? String(e.calificacion_obtenida) : '—',
+    }))
+  );
+  readonly historialColumns: ColumnConfig[] = [
+    { field: 'titulo',           header: 'Actividad' },
+    { field: 'nombre_materia',   header: 'Materia' },
+    { field: 'fecha_entrega_str',header: 'Entregada',   width: '110px' },
+    { field: 'calificacion_str', header: 'Calificación', width: '100px' },
+    { field: 'comentario_profesor', header: 'Feedback' },
+  ];
   subiendoArchivo = signal(false);
 
   dialogSubirVisible = false;

@@ -1,94 +1,113 @@
-import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy, ViewChild, ElementRef, forwardRef } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/forms';
+import {
+  Component, Input, Output, EventEmitter, ChangeDetectionStrategy,
+  OnInit, OnDestroy, OnChanges, SimpleChanges
+} from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { InputTextModule } from 'primeng/inputtext';
+import { IconFieldModule } from 'primeng/iconfield';
+import { InputIconModule } from 'primeng/inputicon';
+import { Subject, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
 
 @Component({
   selector: 'apex-search',
-  templateUrl: './search.component.html',
-  styleUrls: ['./search.component.scss'],
-  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
-  imports: [CommonModule, FormsModule],
-  providers: [
-    {
-      provide: NG_VALUE_ACCESSOR,
-      useExisting: forwardRef(() => ApexSearchComponent),
-      multi: true
+  imports: [FormsModule, InputTextModule, IconFieldModule, InputIconModule],
+  template: `
+    <div class="apex-search-wrapper">
+      <p-iconField iconPosition="left" styleClass="apex-search-field">
+        @if (loading) {
+          <p-inputIcon styleClass="pi pi-spin pi-spinner apex-search-icon" />
+        } @else {
+          <p-inputIcon styleClass="pi pi-search apex-search-icon" />
+        }
+        <input
+          pInputText
+          type="text"
+          [ngModel]="value"
+          (ngModelChange)="onInput($event)"
+          [placeholder]="placeholder"
+          class="apex-search-input"
+          autocomplete="off"
+        />
+        @if (value) {
+          <span class="apex-search-clear pi pi-times" (click)="clearSearch()"></span>
+        }
+      </p-iconField>
+    </div>
+  `,
+  styles: [`
+    :host { display: block; }
+    .apex-search-wrapper { position: relative; width: 100%; }
+    :host ::ng-deep .apex-search-field { width: 100%; }
+    :host ::ng-deep .apex-search-field .p-inputtext {
+      width: 100%;
+      padding-left: 2.5rem;
+      padding-right: 2.25rem;
+      height: 2.25rem;
+      font-size: 0.875rem;
+      border-radius: var(--border-radius, 6px);
+      border: 1px solid var(--surface-border);
+      background: var(--surface-0);
+      color: var(--text-color);
+      transition: border-color 0.2s, box-shadow 0.2s;
     }
-  ]
+    :host ::ng-deep .apex-search-field .p-inputtext:focus {
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 2px var(--primary-100, rgba(59,130,246,0.15));
+      outline: none;
+    }
+    .apex-search-icon { color: var(--text-color-secondary); font-size: 0.9rem; }
+    .apex-search-clear {
+      position: absolute;
+      right: 0.65rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-color-secondary);
+      font-size: 0.75rem;
+      cursor: pointer;
+      padding: 0.25rem;
+      border-radius: 50%;
+      transition: color 0.2s;
+    }
+    .apex-search-clear:hover { color: var(--text-color); }
+  `],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class ApexSearchComponent implements ControlValueAccessor {
+export class ApexSearchComponent implements OnInit, OnDestroy {
   @Input() placeholder: string = 'Search...';
-  @Input() disabled: boolean = false;
-  @Input() delay: number = 300;
-  @Input() size: 'small' | 'medium' | 'large' = 'medium';
-  @Input() styleClass?: string;
-  @Input() showClearIcon: boolean = true;
-  
-  @Output() onSearch = new EventEmitter<string>();
-  @Output() onClear = new EventEmitter<void>();
-  
-  @ViewChild('searchInput') searchInput!: ElementRef<HTMLInputElement>;
+  @Input() value: string = '';
+  @Input() debounce: number = 300;
+  @Input() loading: boolean = false;
 
-  value: string = '';
-  isFocused: boolean = false;
-  private debounceTimer: any;
-  
-  onChange = (val: string) => {};
-  onTouched = () => {};
+  @Output() valueChange = new EventEmitter<string>();
+  @Output() search = new EventEmitter<string>();
 
-  writeValue(value: any): void {
-    this.value = value || '';
+  private inputSubject = new Subject<string>();
+  private destroy$ = new Subject<void>();
+
+  ngOnInit(): void {
+    this.inputSubject.pipe(
+      debounceTime(this.debounce),
+      distinctUntilChanged(),
+      takeUntil(this.destroy$)
+    ).subscribe(val => this.search.emit(val));
   }
 
-  registerOnChange(fn: any): void {
-    this.onChange = fn;
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
-  registerOnTouched(fn: any): void {
-    this.onTouched = fn;
-  }
-
-  setDisabledState(isDisabled: boolean): void {
-    this.disabled = isDisabled;
-  }
-
-  handleInput(event: Event): void {
-    const value = (event.target as HTMLInputElement).value;
-    this.value = value;
-    this.onChange(value);
-    
-    if (this.debounceTimer) {
-      clearTimeout(this.debounceTimer);
-    }
-    
-    this.debounceTimer = setTimeout(() => {
-      this.onSearch.emit(this.value);
-    }, this.delay);
-  }
-
-  handleFocus(): void {
-    this.isFocused = true;
-    this.onTouched();
-  }
-
-  handleBlur(): void {
-    this.isFocused = false;
+  onInput(val: string): void {
+    this.value = val;
+    this.valueChange.emit(val);
+    this.inputSubject.next(val);
   }
 
   clearSearch(): void {
-    if (this.disabled) return;
-    
     this.value = '';
-    this.onChange(this.value);
-    this.onSearch.emit(this.value);
-    this.onClear.emit();
-    
-    // Maintain focus on input after clearing
-    setTimeout(() => {
-      if (this.searchInput) {
-        this.searchInput.nativeElement.focus();
-      }
-    });
+    this.valueChange.emit('');
+    this.search.emit('');
+    this.inputSubject.next('');
   }
 }

@@ -1,7 +1,6 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, OnInit, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
 import { InputTextModule } from 'primeng/inputtext';
@@ -10,6 +9,7 @@ import { TagModule } from 'primeng/tag';
 import { DialogModule } from 'primeng/dialog';
 import { ApiService } from '../../core/services/api.service';
 import { ApexNotificationService } from 'apex-component-library';
+import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
 
 interface NivelOpt  { id: string; nombre_nivel: string; escala_maxima: number; }
 interface EsquemaRow { id: string; nombre: string; nombre_nivel: string; materia_id: string | null;
@@ -20,8 +20,9 @@ interface ItemRow    { tipo_item: string; nombre_personalizado: string | null; p
 @Component({
   selector: 'app-ponderacion-config',
   standalone: true,
-  imports: [CommonModule, FormsModule, TableModule, ButtonModule, SelectModule,
-            InputTextModule, InputNumberModule, TagModule, DialogModule],
+  imports: [CommonModule, FormsModule, ButtonModule, SelectModule,
+            InputTextModule, InputNumberModule, TagModule, DialogModule,
+            InteractiveGridComponent],
   template: `
 <div class="page-header">
   <div class="page-title"><i class="pi pi-sliders-h"></i> Configurar Ponderaciones</div>
@@ -37,58 +38,39 @@ interface ItemRow    { tipo_item: string; nombre_personalizado: string | null; p
  [filter]="true" filterPlaceholder="Buscar..."/>
 </div>
 
-<p-table [value]="esquemas()" [loading]="cargando()" styleClass="p-datatable-sm"
-         expandableRows dataKey="id">
-  <ng-template pTemplate="header">
-    <tr>
-      <th style="width:40px"></th>
-      <th>Nombre</th>
-      <th>Nivel</th>
-      <th>Materia específica</th>
-      <th>Vigente desde</th>
-      <th>Estado</th>
-      <th style="width:80px"></th>
-    </tr>
-  </ng-template>
-  <ng-template pTemplate="body" let-esc let-expanded="expanded">
-    <tr>
-      <td><button pButton [icon]="expanded ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"
-                  text size="small" [pRowToggler]="esc"></button></td>
-      <td><strong>{{ esc.nombre }}</strong></td>
-      <td>{{ esc.nombre_nivel }}</td>
-      <td>{{ esc.nombre_materia ?? '— (aplica a todo el nivel)' }}</td>
-      <td>{{ esc.vigente_desde | date:'dd/MM/yyyy' }}</td>
-      <td><p-tag [value]="esc.activo ? 'Activo' : 'Inactivo'"
-                 [severity]="esc.activo ? 'success' : 'secondary'" /></td>
-      <td>
-        <button pButton icon="pi pi-pencil" text size="small" (click)="abrirEditar(esc)"></button>
-        <button pButton icon="pi pi-trash" text size="small" severity="danger"
-                (click)="desactivarEsquema(esc.id)" [disabled]="!esc.activo"></button>
-      </td>
-    </tr>
-  </ng-template>
-  <ng-template pTemplate="rowexpansion" let-esc>
-    <tr>
-      <td colspan="7" style="background:#f9fafb;padding:12px 40px;">
-        <div class="items-grid">
-          @for (it of esc.items; track it.tipo_item; let i = $index) {
-            <div class="item-pill">
-              <span class="item-tipo">{{ it.nombre_personalizado ?? it.tipo_item }}</span>
-              <span class="item-peso" [style.background]="pesoColor(it.peso_porcentaje)">
-                {{ it.peso_porcentaje }}%
-              </span>
-            </div>
-          }
-          <div class="item-pill item-total"
-               [class.suma-ok]="sumaItems(esc) === 100"
-               [class.suma-error]="sumaItems(esc) !== 100">
-            Total: {{ sumaItems(esc) }}%
-          </div>
+<app-interactive-grid
+  [data]="esquemasFlat()"
+  [columns]="esquemaColumns"
+  [loading]="cargando()"
+  [showDelete]="true"
+  (rowSelected)="abrirEditar($event)"
+  (rowDeleted)="desactivarEsquema($event.id)"
+/>
+
+<!-- Panel de ítems del esquema seleccionado -->
+@if (esquemaSeleccionado()) {
+  <div class="items-panel" style="margin-top:1rem; background:#f9fafb; border:1px solid var(--surface-200); border-radius:8px; padding:12px 16px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+      <strong>Ítems de ponderación — {{ esquemaSeleccionado()!.nombre }}</strong>
+      <button pButton icon="pi pi-times" text size="small" (click)="esquemaSeleccionado.set(null)"></button>
+    </div>
+    <div class="items-grid">
+      @for (it of esquemaSeleccionado()!.items; track it.tipo_item) {
+        <div class="item-pill">
+          <span class="item-tipo">{{ it.nombre_personalizado ?? it.tipo_item }}</span>
+          <span class="item-peso" [style.background]="pesoColor(it.peso_porcentaje)">
+            {{ it.peso_porcentaje }}%
+          </span>
         </div>
-      </td>
-    </tr>
-  </ng-template>
-</p-table>
+      }
+      <div class="item-pill item-total"
+           [class.suma-ok]="sumaItems(esquemaSeleccionado()!) === 100"
+           [class.suma-error]="sumaItems(esquemaSeleccionado()!) !== 100">
+        Total: {{ sumaItems(esquemaSeleccionado()!) }}%
+      </div>
+    </div>
+  </div>
+}
 
 <!-- Dialog crear/editar -->
 <p-dialog [(visible)]="dialogVisible" [header]="editandoId ? 'Editar esquema' : 'Nuevo esquema'"
@@ -165,6 +147,24 @@ export class PonderacionConfigComponent implements OnInit {
   nivelFiltro: string | null = null;
   dialogVisible = false;
   editandoId: string | null = null;
+  esquemaSeleccionado = signal<EsquemaRow | null>(null);
+
+  readonly esquemaColumns: ColumnConfig[] = [
+    { field: 'nombre',         header: 'Nombre',             sortable: true, filterable: true },
+    { field: 'nombre_nivel',   header: 'Nivel',              sortable: true, filterable: true, width: '140px' },
+    { field: 'materiaDisplay', header: 'Materia específica', sortable: true, filterable: true },
+    { field: 'vigenteDisplay', header: 'Vigente desde',      sortable: true, filterable: false, width: '120px' },
+    { field: 'activoLabel',    header: 'Estado',             sortable: true, filterable: true,  width: '90px' },
+  ];
+
+  readonly esquemasFlat = computed(() =>
+    this.esquemas().map(esc => ({
+      ...esc,
+      materiaDisplay: esc.nombre_materia ?? '— (aplica a todo el nivel)',
+      vigenteDisplay: esc.vigente_desde ? new Date(esc.vigente_desde).toLocaleDateString('es-MX') : '',
+      activoLabel: esc.activo ? 'Activo' : 'Inactivo',
+    }))
+  );
 
   tiposItem = [
     { label: 'Examen',        value: 'examen' },
@@ -200,12 +200,15 @@ export class PonderacionConfigComponent implements OnInit {
   }
 
   abrirEditar(esc: EsquemaRow) {
-    this.editandoId = esc.id;
+    // Find the original EsquemaRow with full items data
+    const original = this.esquemas().find(e => e.id === esc.id) ?? esc;
+    this.esquemaSeleccionado.set(original);
+    this.editandoId = original.id;
     this.form = {
-      nombre: esc.nombre,
+      nombre: original.nombre,
       nivel_educativo_id: '',  // will be loaded from row
-      vigente_desde: esc.vigente_desde,
-      items: esc.items.map(i => ({ ...i })),
+      vigente_desde: original.vigente_desde,
+      items: original.items.map(i => ({ ...i })),
     };
     // Obtener el nivel_educativo_id del esquema
     this.api.get(`/esquemas-ponderacion?nivel_educativo_id=*`).subscribe(); // noop — usamos lo que ya tenemos

@@ -1,9 +1,9 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, OnInit, signal, computed } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
-import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
+import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
 import { DialogModule } from 'primeng/dialog';
 import { SelectModule } from 'primeng/select';
 import { InputTextModule } from 'primeng/inputtext';
@@ -53,9 +53,10 @@ const TIPOS = [
   standalone: true,
   imports: [
     CommonModule, DatePipe, FormsModule,
-    ButtonModule, TableModule, TagModule, DialogModule,
+    ButtonModule, TagModule, DialogModule,
     SelectModule, InputTextModule, TextareaModule,
     TooltipModule, CheckboxModule, MessageModule,
+    InteractiveGridComponent,
   ],
   template: `
     <div class="page-header">
@@ -83,97 +84,40 @@ const TIPOS = [
       }
     </div>
 
-    <p-table
-      [value]="comunicados()"
+    <app-interactive-grid
+      [data]="comunicadosFlat()"
+      [columns]="comunicadoColumns"
       [loading]="loading()"
-      dataKey="id"
-      [expandedRowKeys]="expandedRows"
-      [paginator]="true" [rows]="15"
-      styleClass="p-datatable-sm p-datatable-striped"
-      filterDisplay="row"
-    >
-      <ng-template pTemplate="header">
-        <tr>
-          <th style="width:2.5rem"></th>
-          <th pSortableColumn="tipo_comunicado">Tipo <p-sortIcon field="tipo_comunicado" /></th>
-          <th pSortableColumn="titulo">Título <p-sortIcon field="titulo" /></th>
-          <th>Plantel</th>
-          <th pSortableColumn="fecha_publicacion">Fecha <p-sortIcon field="fecha_publicacion" /></th>
-          <th>Acuses</th>
-          <th>Acciones</th>
-        </tr>
-      </ng-template>
+      [showDelete]="false"
+      (rowSelected)="onComunicadoSelected($event)"
+    />
 
-      <ng-template pTemplate="body" let-c let-expanded="expanded">
-        <tr [class.comunicado-leido]="c.acusado_por_mi">
-          <td>
-            <p-button
-              [icon]="expanded ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"
-              [text]="true" size="small"
-              (onClick)="toggleExpand(c.id)"
-            />
-          </td>
-          <td>
-            <p-tag [value]="c.tipo_comunicado" [severity]="tipoSev(c.tipo_comunicado)" />
-          </td>
-          <td>
-            <span [class.font-semibold]="!c.acusado_por_mi">{{ c.titulo }}</span>
-            @if (!c.acusado_por_mi && c.requiere_acuse) {
-              <i class="pi pi-exclamation-circle" style="color:var(--orange-400); margin-left:.4rem"
-                 pTooltip="Requiere acuse de recibo"></i>
+    <!-- Detalle del comunicado seleccionado -->
+    @if (comunicadoSeleccionado()) {
+      <div class="comunicado-body" style="margin-top:1rem; border:1px solid var(--surface-200); border-radius:8px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:.5rem .75rem; border-bottom:1px solid var(--surface-200);">
+          <strong>{{ comunicadoSeleccionado()!.titulo }}</strong>
+          <div style="display:flex; gap:.4rem; align-items:center;">
+            @if (!comunicadoSeleccionado()!.acusado_por_mi && comunicadoSeleccionado()!.requiere_acuse) {
+              <p-button icon="pi pi-check" label="Acusar recibo" size="small" severity="success"
+                (onClick)="acusarRecibo(comunicadoSeleccionado()!)" />
             }
-          </td>
-          <td>{{ c.plantel_id ? 'Plantel' : 'Todos' }}</td>
-          <td>{{ c.fecha_publicacion | date:'dd/MM/yyyy' }}</td>
-          <td>
-            <span class="acuse-badge">{{ c.total_acuses }}</span>
-          </td>
-          <td>
-            <div style="display:flex; gap:.25rem;">
-              @if (!c.acusado_por_mi && c.requiere_acuse) {
-                <p-button
-                  icon="pi pi-check"
-                  size="small" [text]="true" severity="success"
-                  pTooltip="Acusar recibo"
-                  (onClick)="acusarRecibo(c)"
-                />
-              }
-              <p-button
-                icon="pi pi-eye"
-                size="small" [text]="true"
-                pTooltip="Ver detalle"
-                (onClick)="toggleExpand(c.id)"
-              />
-            </div>
-          </td>
-        </tr>
-      </ng-template>
-
-      <ng-template pTemplate="rowexpansion" let-c>
-        <tr class="row-expansion">
-          <td colspan="7">
-            <div class="comunicado-body">
-              <pre class="comunicado-contenido">{{ c.contenido }}</pre>
-              <div class="comunicado-meta">
-                <span>Publicado por: <strong>{{ c.creado_por_nombre }}</strong></span>
-                @if (c.fecha_vencimiento) {
-                  <span>Vigente hasta: <strong>{{ c.fecha_vencimiento | date:'dd/MM/yyyy' }}</strong></span>
-                }
-                @if (c.acusado_por_mi) {
-                  <p-tag value="Ya acusé recibo" severity="success" icon="pi pi-check" />
-                }
-              </div>
-            </div>
-          </td>
-        </tr>
-      </ng-template>
-
-      <ng-template pTemplate="emptymessage">
-        <tr><td colspan="7" style="text-align:center; padding:2rem; color:var(--text-color-secondary)">
-          No hay comunicados para los filtros seleccionados.
-        </td></tr>
-      </ng-template>
-    </p-table>
+            <p-button icon="pi pi-times" [text]="true" size="small" severity="secondary"
+              (onClick)="comunicadoSeleccionado.set(null)" />
+          </div>
+        </div>
+        <pre class="comunicado-contenido">{{ comunicadoSeleccionado()!.contenido }}</pre>
+        <div class="comunicado-meta">
+          <span>Publicado por: <strong>{{ comunicadoSeleccionado()!.creado_por_nombre }}</strong></span>
+          @if (comunicadoSeleccionado()!.fecha_vencimiento) {
+            <span>Vigente hasta: <strong>{{ comunicadoSeleccionado()!.fecha_vencimiento | date:'dd/MM/yyyy' }}</strong></span>
+          }
+          @if (comunicadoSeleccionado()!.acusado_por_mi) {
+            <p-tag value="Ya acusé recibo" severity="success" icon="pi pi-check" />
+          }
+        </div>
+      </div>
+    }
 
     <!-- Dialog nuevo comunicado -->
     <p-dialog
@@ -260,8 +204,35 @@ export class ComunicadosComponent implements OnInit {
   loading     = signal(false);
   saving      = signal(false);
   showDialog  = signal(false);
+  comunicadoSeleccionado = signal<Comunicado | null>(null);
+  // expandedRows kept for potential future use but not used with interactive grid
   expandedRows: Record<string, boolean> = {};
   filtroTipo  = '';
+
+  readonly comunicadoColumns: ColumnConfig[] = [
+    { field: 'tipo_comunicado',   header: 'Tipo',   sortable: true, filterable: true, width: '130px' },
+    { field: 'tituloDisplay',     header: 'Título', sortable: true, filterable: true },
+    { field: 'plantelDisplay',    header: 'Plantel',sortable: true, filterable: true, width: '80px' },
+    { field: 'fechaPublicacion',  header: 'Fecha',  sortable: true, filterable: false, width: '100px' },
+    { field: 'total_acuses',      header: 'Acuses', sortable: true, filterable: false, width: '80px' },
+    { field: 'acusadoLabel',      header: 'Acuse',  sortable: true, filterable: true,  width: '80px' },
+  ];
+
+  readonly comunicadosFlat = computed(() =>
+    this.comunicados().map(c => ({
+      ...c,
+      tituloDisplay: c.titulo + (c.requiere_acuse && !c.acusado_por_mi ? ' ⚠' : ''),
+      plantelDisplay: c.plantel_id ? 'Plantel' : 'Todos',
+      fechaPublicacion: c.fecha_publicacion ? new Date(c.fecha_publicacion).toLocaleDateString('es-MX') : '',
+      acusadoLabel: c.acusado_por_mi ? 'Sí' : (c.requiere_acuse ? 'Pendiente' : '—'),
+    }))
+  );
+
+  onComunicadoSelected(row: any): void {
+    // Find the original Comunicado with full data
+    const original = this.comunicados().find(c => c.id === row.id) ?? null;
+    this.comunicadoSeleccionado.set(original);
+  }
 
   tipos = TIPOS;
   tiposConTodos = [{ label: 'Todos', value: '' }, ...TIPOS];

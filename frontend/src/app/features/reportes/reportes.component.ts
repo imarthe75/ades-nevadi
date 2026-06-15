@@ -11,8 +11,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
-import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
+import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
 import { TabsModule } from 'primeng/tabs';
 import { TooltipModule } from 'primeng/tooltip';
 import { FileUploadModule } from 'primeng/fileupload';
@@ -55,9 +55,10 @@ const TIPOS_DOC = [
   standalone: true,
   imports: [
     CommonModule, FormsModule,
-    ButtonModule, SelectModule, TableModule, TagModule,
+    ButtonModule, SelectModule, TagModule,
     TabsModule,
     TooltipModule, FileUploadModule, MessageModule, ProgressSpinnerModule,
+    InteractiveGridComponent,
   ],
   template: `
 
@@ -214,42 +215,13 @@ const TIPOS_DOC = [
 
         <!-- ── Plantillas ── -->
         <p-tabpanel value="plantillas">
-          <p-table [value]="plantillas()" [loading]="cargandoPlantillas()"
-            styleClass="p-datatable-sm p-datatable-striped">
-            <ng-template pTemplate="header">
-              <tr>
-                <th>Nombre</th>
-                <th style="width:150px">Tipo</th>
-                <th style="width:70px">Ext.</th>
-                <th style="width:90px">Tamaño</th>
-                <th style="width:130px">Fecha</th>
-                @if (ctx.nivelAcceso() <= 1) {
-                  <th style="width:60px"></th>
-                }
-              </tr>
-            </ng-template>
-            <ng-template pTemplate="body" let-p>
-              <tr>
-                <td>{{ p.nombre }}</td>
-                <td><p-tag [value]="p.tipo_documento" severity="info" /></td>
-                <td style="font-size:.8rem"><code>{{ p.extension }}</code></td>
-                <td style="font-size:.78rem">{{ (p.tamano_bytes/1024).toFixed(0) }} KB</td>
-                <td style="font-size:.78rem">{{ p.fccreacion | date:'dd/MM/yy HH:mm' }}</td>
-                @if (ctx.nivelAcceso() <= 1) {
-                  <td>
-                    <p-button icon="pi pi-trash" [rounded]="true" [text]="true"
-                      severity="danger" pTooltip="Eliminar"
-                      (onClick)="eliminarPlantilla(p.id)" />
-                  </td>
-                }
-              </tr>
-            </ng-template>
-            <ng-template pTemplate="emptymessage">
-              <tr><td [colSpan]="6" style="text-align:center;padding:2rem;color:var(--text-muted)">
-                Sin plantillas — sube una plantilla DOCX o XLSX en la pestaña "Subir Plantilla"
-              </td></tr>
-            </ng-template>
-          </p-table>
+          <app-interactive-grid
+            [data]="plantillasFlat()"
+            [columns]="plantillaColumns"
+            [loading]="cargandoPlantillas()"
+            [showDelete]="ctx.nivelAcceso() <= 1"
+            (rowDeleted)="eliminarPlantilla($event.id)"
+          />
         </p-tabpanel>
 
         <!-- ── Subir Plantilla (admin) ── -->
@@ -326,6 +298,22 @@ export class ReportesComponent implements OnInit {
   generandoGrupo     = signal(false);
   carboneOnline      = signal(false);
   carboneStatus      = computed(() => this.carboneOnline() ? 'Carbone activo' : 'Carbone sin conexión');
+
+  readonly plantillaColumns: ColumnConfig[] = [
+    { field: 'nombre',          header: 'Nombre',   sortable: true, filterable: true },
+    { field: 'tipo_documento',  header: 'Tipo',     sortable: true, filterable: true, width: '150px' },
+    { field: 'extension',       header: 'Ext.',     sortable: true, filterable: false, width: '70px' },
+    { field: 'tamanoKb',        header: 'Tamaño',   sortable: true, filterable: false, width: '90px' },
+    { field: 'fechaCreacion',   header: 'Fecha',    sortable: true, filterable: false, width: '130px' },
+  ];
+
+  readonly plantillasFlat = computed(() =>
+    this.plantillas().map(p => ({
+      ...p,
+      tamanoKb: `${(p.tamano_bytes / 1024).toFixed(0)} KB`,
+      fechaCreacion: p.fccreacion ? new Date(p.fccreacion).toLocaleDateString('es-MX') : '',
+    }))
+  );
 
   // Plantillas filtradas por tipo BOLETA para generación grupal
   plantillasBoleta = computed(() => this.plantillas().filter(p => p.tipo_documento === 'BOLETA' || p.tipo_documento === 'GENERICO'));

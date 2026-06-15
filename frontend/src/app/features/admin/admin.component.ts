@@ -201,51 +201,12 @@ interface Catalogo {
             <div class="var-grupo-header">
               <i class="pi pi-cog" style="margin-right:.4rem"></i>{{ grupo }}
             </div>
-            <p-table
-              [value]="variablesPorGrupo()[grupo]"
+            <app-interactive-grid
+              [data]="variablesPorGrupoFlat()[grupo] ?? []"
+              [columns]="variablesColumns"
               [loading]="loadingVariables()"
-              styleClass="p-datatable-sm p-datatable-striped"
-              [tableStyle]="{'margin-bottom':'1rem'}">
-              <ng-template pTemplate="header">
-                <tr>
-                  <th style="width:220px">Variable</th>
-                  <th style="width:110px">Tipo</th>
-                  <th>Valor</th>
-                  <th style="width:280px">Descripción</th>
-                  <th style="width:60px"></th>
-                </tr>
-              </ng-template>
-              <ng-template pTemplate="body" let-v>
-                <tr [class]="v.solo_lectura ? 'var-readonly' : ''">
-                  <td><code class="var-nombre">{{ v.nombre }}</code></td>
-                  <td>
-                    <p-tag [value]="v.tipo_valor" [severity]="tipoValorSeverity(v.tipo_valor)" />
-                  </td>
-                  <td>
-                    @if (v.tipo_valor === 'PASSWORD') {
-                      <span class="var-secret">••••••••</span>
-                    } @else if (v.tipo_valor === 'BOOLEANO') {
-                      <p-tag
-                        [value]="v.valor === 'true' ? 'Activo' : 'Inactivo'"
-                        [severity]="v.valor === 'true' ? 'success' : 'secondary'" />
-                    } @else if (v.tipo_valor === 'JSON') {
-                      <code class="var-json">{{ (v.valor ?? '').slice(0, 60) }}{{ (v.valor?.length ?? 0) > 60 ? '…' : '' }}</code>
-                    } @else {
-                      {{ v.valor }}
-                    }
-                  </td>
-                  <td class="var-desc">{{ v.descripcion }}</td>
-                  <td>
-                    @if (!v.solo_lectura) {
-                      <p-button icon="pi pi-pencil" [text]="true" [rounded]="true"
-                        pTooltip="Editar" (onClick)="abrirEditarVariable(v)" />
-                    } @else {
-                      <i class="pi pi-lock var-lock" pTooltip="Solo lectura"></i>
-                    }
-                  </td>
-                </tr>
-              </ng-template>
-            </p-table>
+              (rowSelected)="abrirEditarVariable($event)"
+            />
           }
 
           @if (variables().length === 0 && !loadingVariables()) {
@@ -292,36 +253,12 @@ interface Catalogo {
                   <p-button label="Agregar item" icon="pi pi-plus" size="small"
                     (onClick)="abrirNuevoItem()" />
                 </div>
-                <p-table
-                  [value]="catSeleccionado()!.items"
+                <app-interactive-grid
+                  [data]="catItemsFlat()"
+                  [columns]="catItemsColumns"
                   [loading]="loadingCatalogos()"
-                  styleClass="p-datatable-sm p-datatable-striped"
-                  [paginator]="true" [rows]="20">
-                  <ng-template pTemplate="header">
-                    <tr>
-                      <th style="width:60px">Orden</th>
-                      <th>Valor</th>
-                      <th>Descripción</th>
-                      <th style="width:90px;text-align:center">Estado</th>
-                      <th style="width:70px"></th>
-                    </tr>
-                  </ng-template>
-                  <ng-template pTemplate="body" let-item>
-                    <tr>
-                      <td style="text-align:center">{{ item.orden }}</td>
-                      <td><strong>{{ item.valor }}</strong></td>
-                      <td>{{ item.descripcion }}</td>
-                      <td style="text-align:center">
-                        <p-tag [value]="item.is_active ? 'Activo' : 'Inactivo'"
-                          [severity]="item.is_active ? 'success' : 'secondary'" />
-                      </td>
-                      <td>
-                        <p-button icon="pi pi-pencil" [text]="true" [rounded]="true"
-                          pTooltip="Editar" (onClick)="abrirEditarItem(item)" />
-                      </td>
-                    </tr>
-                  </ng-template>
-                </p-table>
+                  (rowSelected)="abrirEditarItem($event)"
+                />
               } @else {
                 <div class="empty-msg" style="height:100%;display:flex;align-items:center;justify-content:center">
                   <div style="text-align:center">
@@ -809,6 +746,40 @@ export class AdminComponent implements OnInit {
     }
     return map;
   });
+
+  variablesPorGrupoFlat = computed(() => {
+    const src = this.variablesPorGrupo();
+    const result: Record<string, any[]> = {};
+    for (const g of Object.keys(src)) {
+      result[g] = src[g].map(v => ({
+        ...v,
+        valor_str: v.tipo_valor === 'PASSWORD' ? '••••••••'
+          : v.tipo_valor === 'JSON' ? ((v.valor ?? '').slice(0, 60) + ((v.valor?.length ?? 0) > 60 ? '…' : ''))
+          : (v.valor ?? '—'),
+      }));
+    }
+    return result;
+  });
+
+  readonly variablesColumns: ColumnConfig[] = [
+    { field: 'nombre',      header: 'Variable',     width: '220px', sortable: true },
+    { field: 'tipo_valor',  header: 'Tipo',         width: '110px' },
+    { field: 'valor_str',   header: 'Valor' },
+    { field: 'descripcion', header: 'Descripción',  width: '280px' },
+  ];
+
+  readonly catItemsFlat = computed(() =>
+    (this.catSeleccionado()?.items ?? []).map(item => ({
+      ...item,
+      estado_str: item.is_active ? 'Activo' : 'Inactivo',
+    }))
+  );
+  readonly catItemsColumns: ColumnConfig[] = [
+    { field: 'orden',       header: 'Orden',        width: '60px', sortable: true },
+    { field: 'valor',       header: 'Valor',        sortable: true },
+    { field: 'descripcion', header: 'Descripción' },
+    { field: 'estado_str',  header: 'Estado',       width: '90px' },
+  ];
 
   // ── Catálogos Dinámicos ─────────────────────────────────────────────────────
   catalogos        = signal<Catalogo[]>([]);

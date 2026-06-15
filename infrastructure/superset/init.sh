@@ -15,7 +15,7 @@ set -euo pipefail
 SUPERSET_ADMIN_USER="${SUPERSET_ADMIN_USER:-admin}"
 SUPERSET_ADMIN_FIRST="${SUPERSET_ADMIN_FIRST:-Admin}"
 SUPERSET_ADMIN_LAST="${SUPERSET_ADMIN_LAST:-ADES}"
-SUPERSET_ADMIN_EMAIL="${SUPERSET_ADMIN_EMAIL:-admin@institutonevadi.edu.mx}"
+SUPERSET_ADMIN_EMAIL="${SUPERSET_ADMIN_EMAIL:-admin@setag.mx}"
 SUPERSET_ADMIN_PASSWORD="${SUPERSET_ADMIN_PASSWORD:?SUPERSET_ADMIN_PASSWORD requerido}"
 
 echo "=== [1/4] Aplicando migraciones de Superset ==="
@@ -67,7 +67,9 @@ with app.app_context():
         db.session.commit()
         print(f"✅ Datasource 'ADES BI' creado (id={d.id})")
     else:
-        print(f"ℹ️  Datasource 'ADES BI' ya existe (id={existing.id})")
+        existing.sqlalchemy_uri = pg_uri
+        db.session.commit()
+        print(f"ℹ️  Datasource 'ADES BI' actualizado con nueva URI")
 PYEOF
 
 echo ""

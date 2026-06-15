@@ -27,7 +27,7 @@ import { ContextService } from '../../core/services/context.service';
 import { ExportService, ExportColumn } from '../../core/services/export.service';
 import type { Grupo } from '../../core/models';
 import { grupoLabel } from '../../core/models';
-import { ApexNotificationService } from 'apex-component-library';
+import { ApexNotificationService, ApexTimelineComponent } from 'apex-component-library';
 import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
 
 type TagSeverity = 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast';
@@ -81,7 +81,7 @@ interface Compromiso {
     ButtonModule, SelectModule, AutoCompleteModule, TagModule,
     DialogModule, TextareaModule, InputTextModule, ToggleSwitchModule,
     TabsModule, DatePickerModule, DividerModule, CheckboxModule, TableModule,
-    InteractiveGridComponent,
+    InteractiveGridComponent, ApexTimelineComponent,
   ],
   template: `
     <div class="page-header">
@@ -403,23 +403,14 @@ interface Compromiso {
 
             <!-- TAB 3: Seguimientos (SB-014) -->
             <p-tabpanel value="3">
-              <!-- Lista de seguimientos existentes -->
+              <!-- Lista de seguimientos como timeline -->
               @if (detalle()?.seguimientos?.length) {
-                <div class="seguimientos-list">
-                  @for (seg of detalle()!.seguimientos!; track seg.id) {
-                    <div class="seguimiento-card">
-                      <div class="seg-header">
-                        <span class="seg-fecha">{{ seg.fecha_seguimiento }}</span>
-                        <p-tag [value]="seg.avance" [severity]="avanceSeverity(seg.avance)" />
-                        <span class="seg-autor">{{ seg.registrado_por_nombre }}</span>
-                      </div>
-                      <p class="seg-desc">{{ seg.descripcion }}</p>
-                      @if (seg.nuevo_estado_plan) {
-                        <p-tag [value]="'Plan → ' + seg.nuevo_estado_plan" severity="secondary" />
-                      }
-                    </div>
-                  }
-                </div>
+                <apex-timeline
+                  [value]="seguimientosTimeline()"
+                  title="Seguimientos del Plan"
+                  [showRelativeTime]="false"
+                  [showActor]="true"
+                />
                 <p-divider />
               }
               <!-- Formulario nuevo seguimiento -->
@@ -541,6 +532,23 @@ export class ConductaComponent implements OnInit {
     const d = this.detalle();
     if (!d) return 'Detalle';
     return `Reporte — ${d.reporte?.nombre_alumno ?? ''} — ${d.reporte?.fecha_reporte ?? ''}`;
+  });
+
+  readonly seguimientosTimeline = computed(() => {
+    const segs = this.detalle()?.seguimientos ?? [];
+    const avanceSev: Record<string, string> = {
+      SIN_AVANCE: 'error', PARCIAL: 'warning', SATISFACTORIO: 'info', EXCELENTE: 'success',
+    };
+    return segs.map((seg: any) => ({
+      title: seg.avance,
+      date: seg.fecha_seguimiento,
+      actor: seg.registrado_por_nombre,
+      description: [
+        seg.descripcion,
+        seg.nuevo_estado_plan ? `Plan → ${seg.nuevo_estado_plan}` : null,
+      ].filter(Boolean).join(' · '),
+      severity: avanceSev[seg.avance] ?? 'info',
+    }));
   });
 
   // ── RBAC helpers ──────────────────────────────────────────────

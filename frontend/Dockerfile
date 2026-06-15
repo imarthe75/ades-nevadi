@@ -26,7 +26,7 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci --legacy-peer-deps
 COPY . .
-RUN npm run build -- --configuration=production 2>&1 | tail -20
+RUN npm run build -- --configuration=production
 
 # ── Stage: production ────────────────────────────────────────────────────
 FROM nginx:alpine AS production

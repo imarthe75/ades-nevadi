@@ -82,6 +82,14 @@ export const routes: Routes = [
       // ── FASE 31 — Operatividad Avanzada ──────────────────────────────────────
       { path: 'condiciones-cronicas', canActivate: [roleGuard(3)], loadComponent: () => import('./features/condiciones-cronicas/condiciones-cronicas.component').then(m => m.CondicionesCronicasComponent) },
       { path: 'justificaciones',      canActivate: [roleGuard(3)], loadComponent: () => import('./features/justificaciones/justificaciones.component').then(m => m.JustificacionesComponent) },
+      // ── FASE 32 — Movilidad Estudiantil ──────────────────────────────────────
+      { path: 'movilidad', canActivate: [roleGuard(3)], loadComponent: () => import('./features/movilidad/movilidad.component').then(m => m.MovilidadComponent) },
+      // ── FASE 36 — Foros y Anuncios ───────────────────────────────────────────
+      { path: 'foros', loadComponent: () => import('./features/foros/foros.component').then(m => m.ForosComponent) },
+      // ── FASE 35 ──────────────────────────────────────────────────────────
+      { path: 'cierre-ciclo', canActivate: [roleGuard(2)], loadComponent: () => import('./features/cierre-ciclo/cierre-ciclo.component').then(m => m.CierreCicloComponent) },
+      // ── FASE 39 — Admisión ───────────────────────────────────────────────────
+      { path: 'admision', canActivate: [roleGuard(3)], loadComponent: () => import('./features/admision/admision.component').then(m => m.AdmisionComponent) },
     ],
   },
   // ── Pública — verificación de certificados (sin autenticación) ──────────

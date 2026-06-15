@@ -1,18 +1,18 @@
-import { Component, OnInit, signal, inject } from '@angular/core';
+import { Component, OnInit, signal, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
-import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
-import { TagModule } from 'primeng/tag';
 import { ToastModule } from 'primeng/toast';
 import { CheckboxModule } from 'primeng/checkbox';
 import { InputNumberModule } from 'primeng/inputnumber';
+import { AutoCompleteModule } from 'primeng/autocomplete';
 import { MessageService } from 'primeng/api';
 import { ApexNotificationService } from 'apex-component-library';
+import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
 
 interface SlotDisponibilidad {
   id: string;
@@ -40,9 +40,10 @@ interface ResumenDisponibilidad {
   selector: 'app-disponibilidad',
   standalone: true,
   imports: [
-    CommonModule, FormsModule, TableModule, ButtonModule,
-    DialogModule, InputTextModule, SelectModule, TagModule,
+    CommonModule, FormsModule, ButtonModule,
+    DialogModule, InputTextModule, SelectModule,
     ToastModule, CheckboxModule, InputNumberModule,
+    AutoCompleteModule, InteractiveGridComponent,
   ],
   providers: [MessageService],
   template: `
@@ -51,9 +52,18 @@ interface ResumenDisponibilidad {
       <div class="apex-toolbar">
         <h2 class="apex-title">Disponibilidad Docente</h2>
         <div class="apex-toolbar-actions">
-          <input pInputText [(ngModel)]="profesorId" placeholder="UUID del docente…" style="width:260px"
-            (keyup.enter)="cargar()" />
-          <p-button label="Buscar" icon="pi pi-search" size="small" (onClick)="cargar()" />
+          <p-autocomplete
+            [(ngModel)]="docenteSeleccionado"
+            [suggestions]="docenteSugerencias()"
+            (completeMethod)="buscarDocente($event)"
+            (onSelect)="onDocenteSeleccionado($event)"
+            (onClear)="onDocenteLimpiado()"
+            optionLabel="label"
+            [forceSelection]="true"
+            [delay]="300"
+            placeholder="Buscar docente por nombre…"
+            style="width:280px"
+          />
           <p-button label="Configurar disponibilidad" icon="pi pi-calendar-plus" size="small"
             (onClick)="abrirConfigurar()" [disabled]="!profesorId" />
         </div>
@@ -106,32 +116,12 @@ interface ResumenDisponibilidad {
         }
       </div>
 
-      <p-table [value]="slots()" [loading]="cargando()" styleClass="p-datatable-sm" [paginator]="true" [rows]="20">
-        <ng-template pTemplate="header">
-          <tr>
-            <th>Día</th>
-            <th>Hora Inicio</th>
-            <th>Hora Fin</th>
-            <th>Disponible</th>
-            <th>Motivo</th>
-          </tr>
-        </ng-template>
-        <ng-template pTemplate="body" let-slot>
-          <tr>
-            <td class="font-medium">{{ slot.dia_nombre }}</td>
-            <td>{{ slot.hora_inicio | slice:0:5 }}</td>
-            <td>{{ slot.hora_fin | slice:0:5 }}</td>
-            <td>
-              <p-tag [value]="slot.disponible ? 'Disponible' : 'No disponible'"
-                [severity]="slot.disponible ? 'success' : 'danger'" />
-            </td>
-            <td class="text-sm text-gray-600">{{ slot.motivo_no_disponible ?? '—' }}</td>
-          </tr>
-        </ng-template>
-        <ng-template pTemplate="emptymessage">
-          <tr><td colspan="5" class="text-center py-4 text-gray-500">Sin slots registrados. Busque por docente y configure su disponibilidad.</td></tr>
-        </ng-template>
-      </p-table>
+      <app-interactive-grid
+        [data]="slotsFlat()"
+        [columns]="slotsColumns"
+        [loading]="cargando()"
+        [showDelete]="false"
+      />
     </div>
 
     <!-- Dialog: Configurar disponibilidad -->
@@ -207,10 +197,30 @@ export class DisponibilidadComponent implements OnInit {
   private http = inject(HttpClient);
   private notify = inject(ApexNotificationService);
 
+  readonly slotsColumns: ColumnConfig[] = [
+    { field: 'dia_nombre',     header: 'Día',         width: '110px' },
+    { field: 'hora_inicio_str', header: 'Hora Inicio', width: '100px' },
+    { field: 'hora_fin_str',   header: 'Hora Fin',    width: '100px' },
+    { field: 'disponible_str', header: 'Disponible',  width: '120px' },
+    { field: 'motivo_str',     header: 'Motivo' },
+  ];
+
+  readonly slotsFlat = computed(() =>
+    this.slots().map(s => ({
+      ...s,
+      hora_inicio_str: s.hora_inicio.slice(0, 5),
+      hora_fin_str:    s.hora_fin.slice(0, 5),
+      disponible_str:  s.disponible ? 'Disponible' : 'No disponible',
+      motivo_str:      s.motivo_no_disponible ?? '—',
+    }))
+  );
+
   slots    = signal<SlotDisponibilidad[]>([]);
   resumen  = signal<ResumenDisponibilidad | null>(null);
   cargando = signal(false);
   guardando = signal(false);
+  docenteSugerencias = signal<{ label: string; value: string }[]>([]);
+  docenteSeleccionado: { label: string; value: string } | null = null;
 
   dialogConfig = false;
   profesorId   = '';
@@ -225,6 +235,32 @@ export class DisponibilidadComponent implements OnInit {
   ];
 
   ngOnInit() {}
+
+  buscarDocente(event: { query: string }) {
+    if (!event.query || event.query.length < 2) { this.docenteSugerencias.set([]); return; }
+    this.http.get<any>('/api/v1/profesores', { params: { buscar: event.query } }).subscribe({
+      next: res => {
+        const data = res?.data ?? res ?? [];
+        this.docenteSugerencias.set(data.map((p: any) => ({
+          label: [p.nombre ?? p.persona?.nombre, p.apellido_paterno ?? p.persona?.apellido_paterno, p.apellido_materno ?? p.persona?.apellido_materno].filter(Boolean).join(' '),
+          value: p.id,
+        })));
+      },
+      error: () => this.docenteSugerencias.set([]),
+    });
+  }
+
+  onDocenteSeleccionado(event: any) {
+    const item = event?.value ?? event;
+    this.profesorId = item?.value ?? '';
+    if (this.profesorId) this.cargar();
+  }
+
+  onDocenteLimpiado() {
+    this.profesorId = '';
+    this.slots.set([]);
+    this.resumen.set(null);
+  }
 
   cargar() {
     if (!this.profesorId) return;

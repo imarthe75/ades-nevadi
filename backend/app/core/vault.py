@@ -22,6 +22,16 @@ def get_vault_client():
     vault_addr = os.getenv("VAULT_ADDR")
     vault_token = os.getenv("VAULT_TOKEN")
 
+    # Fallback to reading the shared token file if VAULT_TOKEN environment variable is not set
+    if not vault_token:
+        token_path = "/vault/init/root_token.txt"
+        if os.path.exists(token_path):
+            try:
+                with open(token_path, "r") as f:
+                    vault_token = f.read().strip()
+            except Exception as e:
+                logger.error("Error al leer el token compartido desde %s: %s", token_path, str(e))
+
     if not vault_addr or not vault_token:
         logger.warning("VAULT_ADDR o VAULT_TOKEN no configurados. Se usará fallback a variables de entorno.")
         return None

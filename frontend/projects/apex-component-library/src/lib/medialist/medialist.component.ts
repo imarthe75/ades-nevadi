@@ -1,144 +1,194 @@
-import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy, TemplateRef, ContentChild } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from '@angular/core';
 
 export interface ApexMediaListItem {
   id?: string | number;
   title: string;
+  subtitle?: string;
   description?: string;
-  image?: string;
-  avatarIcon?: string;
+  imageUrl?: string;
+  avatar?: string;  // icon class, e.g. 'pi pi-user'
   avatarColor?: string;
   badge?: string;
-  badgeSeverity?: 'success' | 'info' | 'warning' | 'danger';
-  data?: any;
+  badgeSeverity?: 'success' | 'info' | 'warning' | 'danger' | 'secondary';
 }
 
 @Component({
   selector: 'apex-medialist',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   template: `
-    <ul class="apex-medialist">
-      <li *ngFor="let item of items" class="apex-medialist-item" (click)="onItemClick(item)">
-        <ng-container *ngIf="customTemplate; else defaultTemplate">
-          <ng-container *ngTemplateOutlet="customTemplate; context: {$implicit: item}"></ng-container>
-        </ng-container>
-        
-        <ng-template #defaultTemplate>
-          <div class="apex-medialist-media">
-            <img *ngIf="item.image" [src]="item.image" [alt]="item.title" class="apex-medialist-image" />
-            <div *ngIf="!item.image && item.avatarIcon" 
-                 class="apex-medialist-avatar" 
-                 [style.background-color]="item.avatarColor || 'var(--primary-color)'">
-              <i [ngClass]="item.avatarIcon"></i>
-            </div>
-          </div>
-          <div class="apex-medialist-content">
-            <div class="apex-medialist-header">
-              <h4 class="apex-medialist-title">{{item.title}}</h4>
-              <span *ngIf="item.badge" class="apex-medialist-badge" [ngClass]="'badge-' + (item.badgeSeverity || 'info')">
-                {{item.badge}}
-              </span>
-            </div>
-            <p *ngIf="item.description" class="apex-medialist-desc">{{item.description}}</p>
-          </div>
-        </ng-template>
-      </li>
-    </ul>
+    <div class="apex-medialist-region">
+      @if (title) {
+        <div class="apex-medialist-header">
+          <h4 class="apex-medialist-header-title">{{ title }}</h4>
+        </div>
+      }
+
+      @if (!items?.length) {
+        <div class="apex-medialist-empty">
+          <span class="pi pi-images apex-medialist-empty-icon"></span>
+          <span>{{ emptyMessage }}</span>
+        </div>
+      } @else {
+        <ul class="apex-medialist-list" role="list">
+          @for (item of items; track item.id ?? item.title) {
+            <li class="apex-medialist-item" role="listitem" (click)="itemSelect.emit(item)">
+
+              <!-- Media: image or avatar -->
+              <div class="apex-medialist-media">
+                @if (item.imageUrl) {
+                  <img
+                    [src]="item.imageUrl"
+                    [alt]="item.title"
+                    class="apex-medialist-image" />
+                } @else {
+                  <div
+                    class="apex-medialist-avatar"
+                    [style.background]="item.avatarColor || 'var(--primary-100)'">
+                    @if (item.avatar) {
+                      <i [class]="item.avatar"
+                         [style.color]="item.avatarColor ? '#fff' : 'var(--primary-600)'"></i>
+                    } @else {
+                      <i class="pi pi-user"
+                         style="color: var(--primary-600)"></i>
+                    }
+                  </div>
+                }
+              </div>
+
+              <!-- Content -->
+              <div class="apex-medialist-content">
+                <div class="apex-medialist-top">
+                  <span class="apex-medialist-title">{{ item.title }}</span>
+                  @if (item.badge) {
+                    <span class="apex-medialist-badge apex-ml-badge--{{ item.badgeSeverity || 'info' }}">
+                      {{ item.badge }}
+                    </span>
+                  }
+                </div>
+                @if (item.subtitle) {
+                  <span class="apex-medialist-subtitle">{{ item.subtitle }}</span>
+                }
+                @if (item.description) {
+                  <p class="apex-medialist-desc">{{ item.description }}</p>
+                }
+              </div>
+
+            </li>
+          }
+        </ul>
+      }
+    </div>
   `,
   styles: [`
-    :host {
-      display: block;
+    :host { display: block; }
+    .apex-medialist-region {
+      background: var(--surface-card);
+      border: 1px solid var(--surface-border);
+      border-radius: var(--border-radius, 6px);
+      overflow: hidden;
     }
-    .apex-medialist {
-      list-style-type: none;
+    .apex-medialist-header {
+      padding: 0.6rem 1rem;
+      background: var(--surface-section);
+      border-bottom: 1px solid var(--surface-border);
+    }
+    .apex-medialist-header-title {
       margin: 0;
-      padding: 0;
+      font-size: 0.85rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-color);
+    }
+    .apex-medialist-empty {
       display: flex;
       flex-direction: column;
-      gap: 1rem;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 2.5rem;
+      color: var(--text-color-secondary);
+      font-size: 0.875rem;
+    }
+    .apex-medialist-empty-icon { font-size: 2rem; color: var(--surface-300); }
+    .apex-medialist-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
     }
     .apex-medialist-item {
       display: flex;
-      padding: 1rem;
-      border-radius: var(--border-radius, 8px);
-      background: var(--surface-card, #ffffff);
-      border: 1px solid var(--surface-border, #e5e7eb);
+      align-items: center;
+      gap: 1rem;
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid var(--surface-100, #f3f4f6);
       cursor: pointer;
-      transition: background-color 0.2s;
+      transition: background 0.15s;
     }
-    .apex-medialist-item:hover {
-      background: var(--surface-hover, #f3f4f6);
-    }
-    .apex-medialist-media {
-      margin-right: 1rem;
-      flex-shrink: 0;
-    }
+    .apex-medialist-item:last-child { border-bottom: none; }
+    .apex-medialist-item:hover { background: var(--surface-hover, #f9fafb); }
+    .apex-medialist-media { flex-shrink: 0; }
     .apex-medialist-image {
-      width: 64px;
-      height: 64px;
+      width: 48px;
+      height: 48px;
       object-fit: cover;
       border-radius: 8px;
+      border: 1px solid var(--surface-border);
     }
     .apex-medialist-avatar {
-      width: 64px;
-      height: 64px;
+      width: 48px;
+      height: 48px;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #ffffff;
-      font-size: 1.5rem;
+      font-size: 1.25rem;
     }
-    .apex-medialist-content {
-      flex-grow: 1;
+    .apex-medialist-content { flex: 1; min-width: 0; }
+    .apex-medialist-top {
       display: flex;
-      flex-direction: column;
-      justify-content: center;
-    }
-    .apex-medialist-header {
-      display: flex;
-      justify-content: space-between;
       align-items: center;
-      margin-bottom: 0.25rem;
+      gap: 0.5rem;
+      flex-wrap: wrap;
     }
     .apex-medialist-title {
-      margin: 0;
-      font-size: 1.125rem;
+      font-size: 0.875rem;
       font-weight: 600;
-      color: var(--text-color, #1f2937);
+      color: var(--text-color);
+    }
+    .apex-medialist-subtitle {
+      display: block;
+      font-size: 0.78rem;
+      color: var(--text-color-secondary);
+      margin-top: 0.1rem;
     }
     .apex-medialist-desc {
-      margin: 0;
-      font-size: 0.875rem;
-      color: var(--text-color-secondary, #6b7280);
+      margin: 0.2rem 0 0;
+      font-size: 0.8rem;
+      color: var(--text-color-secondary);
       line-height: 1.4;
     }
     .apex-medialist-badge {
-      padding: 0.25rem 0.5rem;
-      border-radius: 4px;
-      font-size: 0.75rem;
+      display: inline-block;
+      padding: 0.1rem 0.5rem;
+      border-radius: 20px;
+      font-size: 0.68rem;
       font-weight: 700;
       text-transform: uppercase;
+      white-space: nowrap;
     }
-    .badge-info { background: #e0f2fe; color: #0284c7; }
-    .badge-success { background: #dcfce3; color: #16a34a; }
-    .badge-warning { background: #fef3c7; color: #d97706; }
-    .badge-danger { background: #fee2e2; color: #dc2626; }
+    .apex-ml-badge--success   { background: #dcfce7; color: #15803d; }
+    .apex-ml-badge--info      { background: #dbeafe; color: #1d4ed8; }
+    .apex-ml-badge--warning   { background: #fef3c7; color: #b45309; }
+    .apex-ml-badge--danger    { background: #fee2e2; color: #b91c1c; }
+    .apex-ml-badge--secondary { background: var(--surface-200); color: var(--text-color-secondary); }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ApexMediaListComponent {
-  /** Array of media items */
   @Input() items: ApexMediaListItem[] = [];
+  @Input() title?: string;
+  @Input() emptyMessage: string = 'No records found.';
 
-  /** Custom template for items */
-  @ContentChild(TemplateRef) customTemplate!: TemplateRef<any>;
-
-  /** Event emitted when an item is clicked */
-  @Output() itemClick = new EventEmitter<ApexMediaListItem>();
-
-  public onItemClick(item: ApexMediaListItem): void {
-    this.itemClick.emit(item);
-  }
+  @Output() itemSelect = new EventEmitter<ApexMediaListItem>();
 }

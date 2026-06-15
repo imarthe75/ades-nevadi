@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -6,7 +6,6 @@ import { ButtonModule } from 'primeng/button';
 import { TagModule } from 'primeng/tag';
 import { TabsModule } from 'primeng/tabs';
 import { TabList, Tab, TabPanels, TabPanel } from 'primeng/tabs';
-import { TableModule } from 'primeng/table';
 import { ProgressBarModule } from 'primeng/progressbar';
 import { TooltipModule } from 'primeng/tooltip';
 import { SkeletonModule } from 'primeng/skeleton';
@@ -14,6 +13,7 @@ import { CardModule } from 'primeng/card';
 import { SelectModule } from 'primeng/select';
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
+import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
 
 interface AlumnoVinculado {
   estudiante_id: string;
@@ -48,7 +48,8 @@ interface CalificacionResumen {
   imports: [
     CommonModule, RouterModule, FormsModule, ButtonModule, TagModule, TooltipModule,
     TabsModule, TabList, Tab, TabPanels, TabPanel,
-    TableModule, ProgressBarModule, SkeletonModule, CardModule, SelectModule,
+    ProgressBarModule, SkeletonModule, CardModule, SelectModule,
+    InteractiveGridComponent,
   ],
   template: `
     <div class="page-header">
@@ -171,36 +172,10 @@ interface CalificacionResumen {
             <p-tabpanels>
               <!-- Calificaciones -->
               <p-tabpanel value="calificaciones">
-                <p-table [value]="calificaciones()" [paginator]="true" [rows]="20"
-                  styleClass="p-datatable-sm p-datatable-striped">
-                  <ng-template pTemplate="header">
-                    <tr>
-                      <th>Materia</th>
-                      <th style="width:140px">Período</th>
-                      <th style="width:100px;text-align:center">Calificación</th>
-                      <th style="width:90px;text-align:center">Estado</th>
-                    </tr>
-                  </ng-template>
-                  <ng-template pTemplate="body" let-c>
-                    <tr>
-                      <td>{{ c.materia }}</td>
-                      <td>{{ c.periodo }}</td>
-                      <td style="text-align:center;font-weight:700"
-                        [style.color]="c.calificacion >= 8 ? '#16a34a' : c.calificacion < 6 ? '#dc2626' : '#d97706'">
-                        {{ c.calificacion | number:'1.1-1' }}
-                      </td>
-                      <td style="text-align:center">
-                        <p-tag [value]="c.es_acreditado ? 'Acredita' : 'No acredita'"
-                          [severity]="c.es_acreditado ? 'success' : 'danger'" />
-                      </td>
-                    </tr>
-                  </ng-template>
-                  <ng-template pTemplate="emptymessage">
-                    <tr><td colspan="4" style="text-align:center;padding:2rem;color:var(--text-muted)">
-                      Sin calificaciones registradas aún
-                    </td></tr>
-                  </ng-template>
-                </p-table>
+                <app-interactive-grid
+                  [data]="calificacionesFlat()"
+                  [columns]="calificacionesColumns"
+                />
               </p-tabpanel>
 
               <!-- Asistencia (placeholder) -->
@@ -228,27 +203,10 @@ interface CalificacionResumen {
                     <p>Sin tareas pendientes. ¡Excelente!</p>
                   </div>
                 } @else {
-                  <p-table [value]="tareasAlumno()" styleClass="p-datatable-sm p-datatable-striped">
-                    <ng-template pTemplate="header">
-                      <tr>
-                        <th>Tarea</th>
-                        <th style="width:110px">Fecha límite</th>
-                        <th style="width:100px;text-align:center">Estado</th>
-                      </tr>
-                    </ng-template>
-                    <ng-template pTemplate="body" let-t>
-                      <tr>
-                        <td>{{ t.titulo }}</td>
-                        <td>{{ t.fecha_limite | date:'dd/MM/yyyy' }}</td>
-                        <td style="text-align:center">
-                          <p-tag
-                            [value]="t.estatus_entrega === 'PENDIENTE' ? 'Pendiente' : 'Entregada'"
-                            [severity]="t.estatus_entrega === 'PENDIENTE' ? (t.vencida ? 'danger' : 'warn') : 'success'"
-                          />
-                        </td>
-                      </tr>
-                    </ng-template>
-                  </p-table>
+                  <app-interactive-grid
+                    [data]="tareasFlat()"
+                    [columns]="tareasColumns"
+                  />
                 }
               </p-tabpanel>
 
@@ -260,25 +218,10 @@ interface CalificacionResumen {
                     <p>Sin reportes de conducta en el ciclo actual.</p>
                   </div>
                 } @else {
-                  <p-table [value]="conductaAlumno()" styleClass="p-datatable-sm p-datatable-striped">
-                    <ng-template pTemplate="header">
-                      <tr>
-                        <th style="width:100px">Fecha</th>
-                        <th style="width:100px">Tipo</th>
-                        <th>Descripción</th>
-                      </tr>
-                    </ng-template>
-                    <ng-template pTemplate="body" let-r>
-                      <tr>
-                        <td>{{ r.fecha_reporte | date:'dd/MM/yyyy' }}</td>
-                        <td>
-                          <p-tag [value]="r.tipo_falta"
-                            [severity]="r.tipo_falta === 'LEVE' ? 'info' : r.tipo_falta === 'GRAVE' ? 'warn' : 'danger'" />
-                        </td>
-                        <td>{{ r.descripcion }}</td>
-                      </tr>
-                    </ng-template>
-                  </p-table>
+                  <app-interactive-grid
+                    [data]="conductaFlat()"
+                    [columns]="conductaColumns"
+                  />
                 }
               </p-tabpanel>
             </p-tabpanels>
@@ -375,6 +318,45 @@ export class PadresComponent implements OnInit {
   loadingDetalle = signal(false);
 
   simulatedAlumno: any = null;
+
+  readonly calificacionesFlat = computed(() =>
+    this.calificaciones().map(c => ({
+      ...c,
+      cal_str:     c.calificacion !== null ? Number(c.calificacion).toFixed(1) : '—',
+      estado_str:  c.es_acreditado ? 'Acredita' : 'No acredita',
+    }))
+  );
+  readonly calificacionesColumns: ColumnConfig[] = [
+    { field: 'materia',    header: 'Materia' },
+    { field: 'periodo',    header: 'Período',      width: '140px' },
+    { field: 'cal_str',    header: 'Calificación', width: '110px' },
+    { field: 'estado_str', header: 'Estado',       width: '110px' },
+  ];
+
+  readonly tareasFlat = computed(() =>
+    this.tareasAlumno().map(t => ({
+      ...t,
+      fecha_str:   t.fecha_limite ? new Date(t.fecha_limite).toLocaleDateString('es-MX') : '—',
+      estado_str:  t.estatus_entrega === 'PENDIENTE' ? 'Pendiente' : 'Entregada',
+    }))
+  );
+  readonly tareasColumns: ColumnConfig[] = [
+    { field: 'titulo',     header: 'Tarea' },
+    { field: 'fecha_str',  header: 'Fecha límite', width: '120px' },
+    { field: 'estado_str', header: 'Estado',       width: '110px' },
+  ];
+
+  readonly conductaFlat = computed(() =>
+    this.conductaAlumno().map(r => ({
+      ...r,
+      fecha_str: r.fecha_reporte ? new Date(r.fecha_reporte).toLocaleDateString('es-MX') : '—',
+    }))
+  );
+  readonly conductaColumns: ColumnConfig[] = [
+    { field: 'fecha_str',  header: 'Fecha',       width: '110px' },
+    { field: 'tipo_falta', header: 'Tipo',        width: '100px' },
+    { field: 'descripcion',header: 'Descripción' },
+  ];
 
   isAdmin(): boolean {
     return this.ctx.nivelAcceso() <= 1;

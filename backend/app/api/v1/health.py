@@ -70,12 +70,12 @@ async def _check_minio() -> dict[str, Any]:
     t0 = time.monotonic()
     try:
         scheme = "https" if settings.MINIO_SECURE else "http"
-        url = f"{scheme}://{settings.MINIO_ENDPOINT}/minio/health/live"
+        url = f"{scheme}://{settings.MINIO_ENDPOINT}/"
         async with httpx.AsyncClient(timeout=4.0) as client:
             resp = await client.get(url)
         latency = round((time.monotonic() - t0) * 1000, 1)
         return {
-            "status": "ok" if resp.status_code == 200 else "degraded",
+            "status": "ok" if resp.status_code < 500 else "degraded",
             "http_status": resp.status_code,
             "latency_ms": latency,
         }

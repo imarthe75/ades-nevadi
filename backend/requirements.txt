@@ -32,6 +32,7 @@ structlog==24.4.0          # logging estructurado
 # Tareas async (Celery — worker separado)
 celery[redis]==5.4.0
 redis==5.2.1               # cliente Valkey-compatible
+flower==2.0.1
 # redbeat no tiene wheels ARM64/Py3.12 — usar celery beat file-based en dev
 
 # Generación de PDF — boletas (FASE 3)

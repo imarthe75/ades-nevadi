@@ -17,6 +17,7 @@ import { ProgressBarModule } from 'primeng/progressbar';
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
 import { ExportService, ExportColumn } from '../../core/services/export.service';
+import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
 
 type TagSeverity = 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' | undefined;
 
@@ -54,6 +55,7 @@ interface AlumnoSugerencia {
     ButtonModule, TableModule, TagModule, DialogModule, SelectModule,
     InputTextModule, TextareaModule, TooltipModule, TabsModule,
     InputNumberModule, AutoCompleteModule, ProgressBarModule,
+    InteractiveGridComponent,
   ],
   template: `
 <div class="page-header">
@@ -290,25 +292,11 @@ interface AlumnoSugerencia {
 <p-dialog [(visible)]="showDetalle" [style]="{width:'640px'}"
           [header]="badgeDetalle()?.nombre || ''" [modal]="true">
   @if (badgeDetalle()) {
-    <p-table [value]="badgeDetalle()!.alumnos || []" [rows]="10" [paginator]="true" size="small">
-      <ng-template pTemplate="header">
-        <tr>
-          <th>Alumno</th><th>Matrícula</th><th>Grupo</th><th>Ciclo</th><th>Fecha</th>
-        </tr>
-      </ng-template>
-      <ng-template pTemplate="body" let-a>
-        <tr>
-          <td>{{ a.nombre_alumno }}</td>
-          <td>{{ a.matricula }}</td>
-          <td>{{ a.grupo }}</td>
-          <td>{{ a.ciclo }}</td>
-          <td>{{ a.fecha_otorgado | date:'dd/MM/yyyy' }}</td>
-        </tr>
-      </ng-template>
-      <ng-template pTemplate="emptymessage">
-        <tr><td colspan="5" style="text-align:center;color:#999">Sin alumnos con esta insignia</td></tr>
-      </ng-template>
-    </p-table>
+    <app-interactive-grid
+      [data]="badgeAlumnosFlat()"
+      [columns]="badgeAlumnosColumns"
+      [showDelete]="false"
+    />
   }
 </p-dialog>
 
@@ -390,6 +378,22 @@ export class BadgesComponent implements OnInit {
   private api     = inject(ApiService);
   private ctx     = inject(ContextService);
   private exporter = inject(ExportService);
+
+  readonly badgeAlumnosColumns: ColumnConfig[] = [
+    { field: 'nombre_alumno', header: 'Alumno' },
+    { field: 'matricula',     header: 'Matrícula', width: '110px' },
+    { field: 'grupo',         header: 'Grupo',     width: '80px' },
+    { field: 'ciclo',         header: 'Ciclo',     width: '120px' },
+    { field: 'fecha_str',     header: 'Fecha',     width: '100px', sortable: false },
+  ];
+
+  readonly badgeAlumnosFlat = computed(() => {
+    const alumnos = this.badgeDetalle()?.alumnos ?? [];
+    return alumnos.map((a: any) => ({
+      ...a,
+      fecha_str: a.fecha_otorgado ? new Date(a.fecha_otorgado).toLocaleDateString('es-MX') : '—',
+    }));
+  });
 
   // ── state ──────────────────────────────────────────────────────────────────
   badges            = signal<Badge[]>([]);

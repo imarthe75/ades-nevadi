@@ -234,6 +234,15 @@ async def get_ades_user(
         privilegios=privilegios_lista,
         todos_roles=todos_roles_db,
     )
+    # Registrar actividad en Valkey para telemetría de sesiones concurrentes (TTL 15 minutos)
+    try:
+        import redis.asyncio as aioredis
+        r = await aioredis.from_url(settings.VALKEY_URL)
+        await r.setex(f"ades:session:{usuario.id}", 900, usuario.nombre_usuario)
+        await r.aclose()
+    except Exception as e:
+        logger.warning("No se pudo registrar sesion en Valkey: %s", e)
+
     # Propagar al request.state para que AuditMiddleware lo use sin re-decodificar JWT
     request.state.ades_user_id = str(usuario.id)
     request.state.ades_user_nombre = usuario.nombre_usuario

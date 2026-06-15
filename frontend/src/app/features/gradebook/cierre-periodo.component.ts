@@ -5,11 +5,11 @@ import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { TagModule } from 'primeng/tag';
 import { StepperModule } from 'primeng/stepper';
-import { TableModule } from 'primeng/table';
 import { ProgressBarModule } from 'primeng/progressbar';
 import { TextareaModule } from 'primeng/textarea';
 import { ApiService } from '../../core/services/api.service';
 import { ApexNotificationService } from 'apex-component-library';
+import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
 
 interface Faltante { alumno: string; materia: string; }
 
@@ -32,7 +32,8 @@ interface ValidacionResult {
   imports: [
     CommonModule, FormsModule,
     DialogModule, ButtonModule, TagModule,
-    StepperModule, TableModule, ProgressBarModule, TextareaModule,
+    StepperModule, ProgressBarModule, TextareaModule,
+    InteractiveGridComponent,
   ],
   template: `
 <p-dialog [(visible)]="visible" (visibleChange)="visibleChange.emit($event)"
@@ -116,14 +117,10 @@ interface ValidacionResult {
           </div>
         </div>
         @if (faltantes().length) {
-          <p-table [value]="faltantes()" styleClass="p-datatable-sm mt-3" [rows]="10" [paginator]="faltantes().length > 10">
-            <ng-template pTemplate="header">
-              <tr><th>Alumno</th><th>Materia sin calificar</th></tr>
-            </ng-template>
-            <ng-template pTemplate="body" let-f>
-              <tr><td>{{ f.alumno }}</td><td>{{ f.materia }}</td></tr>
-            </ng-template>
-          </p-table>
+          <app-interactive-grid
+            [data]="faltantes()"
+            [columns]="faltantesColumns"
+          />
         }
       }
     </div>
@@ -256,6 +253,11 @@ export class CierrePeriodoComponent implements OnChanges {
 
   private api    = inject(ApiService);
   private notify = inject(ApexNotificationService);
+
+  readonly faltantesColumns: ColumnConfig[] = [
+    { field: 'alumno',  header: 'Alumno' },
+    { field: 'materia', header: 'Materia sin calificar' },
+  ];
 
   paso        = signal(1);
   validando   = signal(false);

@@ -7,15 +7,15 @@
  *   - Accesos directos a Flowise, n8n, Superset
  *   - Workflows activos de n8n
  */
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ButtonModule } from 'primeng/button';
 import { TagModule } from 'primeng/tag';
 import { CardModule } from 'primeng/card';
-import { TableModule } from 'primeng/table';
 import { TooltipModule } from 'primeng/tooltip';
 import { ApiService } from '../../core/services/api.service';
+import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
 
 interface ServicioStatus {
   nombre: string;
@@ -37,7 +37,7 @@ interface Workflow {
 @Component({
   selector: 'app-monitor',
   standalone: true,
-  imports: [CommonModule, ButtonModule, TagModule, CardModule, TableModule, TooltipModule],
+  imports: [CommonModule, ButtonModule, TagModule, CardModule, TooltipModule, InteractiveGridComponent],
   template: `
     <div class="page-header">
       <div>
@@ -100,31 +100,12 @@ interface Workflow {
       </a>
     </div>
 
-    <p-table [value]="workflows()" [loading]="loadingWorkflows()"
-      styleClass="p-datatable-sm p-datatable-striped" [rows]="10">
-      <ng-template pTemplate="header">
-        <tr>
-          <th>Nombre del flujo</th>
-          <th style="width:90px;text-align:center">Estado</th>
-          <th style="width:160px">Última modificación</th>
-        </tr>
-      </ng-template>
-      <ng-template pTemplate="body" let-w>
-        <tr>
-          <td>{{ w.name }}</td>
-          <td style="text-align:center">
-            <p-tag [value]="w.active ? 'Activo' : 'Inactivo'"
-              [severity]="w.active ? 'success' : 'secondary'" />
-          </td>
-          <td style="font-size:.78rem;color:var(--text-muted)">{{ w.updatedAt | date:'dd/MM/yy HH:mm' }}</td>
-        </tr>
-      </ng-template>
-      <ng-template pTemplate="emptymessage">
-        <tr><td [colSpan]="3" style="text-align:center;padding:1.5rem;color:var(--text-muted)">
-          Sin workflows — configura flujos en n8n UI (localhost:5678)
-        </td></tr>
-      </ng-template>
-    </p-table>
+    <app-interactive-grid
+      [data]="workflowsFlat()"
+      [columns]="workflowColumns"
+      [loading]="loadingWorkflows()"
+      [showDelete]="false"
+    />
   `,
   styles: [`
     .page-header { display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1rem }
@@ -154,6 +135,20 @@ export class MonitorComponent implements OnInit {
   workflows          = signal<Workflow[]>([]);
   grafanaUrl         = signal<SafeResourceUrl | null>(null);
   loadingWorkflows   = signal(false);
+
+  readonly workflowColumns: ColumnConfig[] = [
+    { field: 'name',           header: 'Nombre del flujo',     sortable: true, filterable: true },
+    { field: 'activoLabel',    header: 'Estado',               sortable: true, filterable: true, width: '100px' },
+    { field: 'ultimaModif',    header: 'Última modificación',  sortable: true, filterable: false, width: '170px' },
+  ];
+
+  readonly workflowsFlat = computed(() =>
+    this.workflows().map(w => ({
+      ...w,
+      activoLabel: w.active ? 'Activo' : 'Inactivo',
+      ultimaModif: w.updatedAt ? new Date(w.updatedAt).toLocaleDateString('es-MX') : '',
+    }))
+  );
 
   readonly grafanaExternalUrl = 'http://localhost:3003';
 

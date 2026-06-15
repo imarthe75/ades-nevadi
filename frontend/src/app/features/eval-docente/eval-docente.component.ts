@@ -12,8 +12,8 @@ import { ButtonModule } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
 import { TabsModule } from 'primeng/tabs';
 import { CardModule } from 'primeng/card';
-import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
+import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
 import { TextareaModule } from 'primeng/textarea';
 import { SliderModule } from 'primeng/slider';
 import { SkeletonModule } from 'primeng/skeleton';
@@ -71,8 +71,9 @@ const TIPO_LABELS: Record<string, string> = {
   standalone: true,
   imports: [
     CommonModule, FormsModule,
-    ButtonModule, SelectModule, TabsModule, CardModule, TableModule,
+    ButtonModule, SelectModule, TabsModule, CardModule,
     TagModule, TextareaModule, SliderModule, SkeletonModule,
+    InteractiveGridComponent,
   ],
   template: `
 
@@ -134,39 +135,11 @@ const TIPO_LABELS: Record<string, string> = {
           </div>
 
           <!-- Historial de evaluaciones -->
-          <p-table [value]="evaluaciones()" [rows]="10" [paginator]="true"
-            styleClass="p-datatable-sm p-datatable-striped" [loading]="loadingEvals()">
-            <ng-template pTemplate="header">
-              <tr>
-                <th>Tipo evaluador</th>
-                <th style="width:130px">Fecha</th>
-                <th style="width:100px;text-align:center">Calificación</th>
-                <th style="width:90px;text-align:center">Estatus</th>
-                <th style="width:90px">Acciones</th>
-              </tr>
-            </ng-template>
-            <ng-template pTemplate="body" let-ev>
-              <tr>
-                <td>{{ tipoLabel(ev.tipo_evaluador) }}</td>
-                <td>{{ ev.fecha_evaluacion | date:'dd/MM/yyyy' }}</td>
-                <td style="text-align:center;font-weight:600">
-                  {{ ev.calificacion_global !== null ? (ev.calificacion_global | number:'1.1-1') : '—' }}
-                </td>
-                <td style="text-align:center">
-                  <p-tag [value]="ev.estatus" [severity]="estatusSev(ev.estatus)" />
-                </td>
-                <td>
-                  @if (ev.estatus === 'BORRADOR') {
-                    <p-button label="Enviar" [size]="'small'" severity="info" [text]="true"
-                      (onClick)="enviarEval(ev.id)" />
-                  }
-                </td>
-              </tr>
-            </ng-template>
-            <ng-template pTemplate="emptymessage">
-              <tr><td [colSpan]="5" style="text-align:center;padding:1.5rem;color:#94A3B8">Sin evaluaciones registradas</td></tr>
-            </ng-template>
-          </p-table>
+          <app-interactive-grid
+            [data]="evaluacionesFlat()"
+            [columns]="evaluacionesColumns"
+            [loading]="loadingEvals()"
+          />
         } @else {
           <div class="empty-state">
             <i class="pi pi-star" style="font-size:2.5rem;color:#CBD5E1"></i>
@@ -378,6 +351,21 @@ export class EvalDocenteComponent implements OnInit {
     { label: 'Coordinador',  value: 'COORDINADOR' },
     { label: 'Par docente',  value: 'PAR' },
     { label: 'Autoevaluación', value: 'AUTO' },
+  ];
+
+  readonly evaluacionesFlat = computed(() =>
+    this.evaluaciones().map(ev => ({
+      ...ev,
+      tipo_str:   this.tipoLabel(ev.tipo_evaluador),
+      fecha_str:  ev.fecha_evaluacion ? new Date(ev.fecha_evaluacion).toLocaleDateString('es-MX') : '—',
+      cal_str:    ev.calificacion_global !== null ? Number(ev.calificacion_global).toFixed(1) : '—',
+    }))
+  );
+  readonly evaluacionesColumns: ColumnConfig[] = [
+    { field: 'tipo_str',  header: 'Tipo evaluador' },
+    { field: 'fecha_str', header: 'Fecha',        width: '120px' },
+    { field: 'cal_str',   header: 'Calificación', width: '110px' },
+    { field: 'estatus',   header: 'Estatus',      width: '100px' },
   ];
 
   promedioGlobal = computed(() => {

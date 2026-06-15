@@ -1,17 +1,18 @@
-import { Component, OnInit, signal, inject } from '@angular/core';
+import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
-import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
-import { TagModule } from 'primeng/tag';
 import { ToastModule } from 'primeng/toast';
 import { TextareaModule } from 'primeng/textarea';
 import { MessageService } from 'primeng/api';
 import { ApexNotificationService } from 'apex-component-library';
+import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
+
+type TagSev = 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast';
 
 interface Justificacion {
   id: string;
@@ -48,8 +49,9 @@ const ESTADOS_OPT = [
   selector: 'app-justificaciones',
   standalone: true,
   imports: [
-    CommonModule, FormsModule, TableModule, ButtonModule, DialogModule,
-    InputTextModule, SelectModule, TagModule, ToastModule, TextareaModule,
+    CommonModule, FormsModule, ButtonModule, DialogModule,
+    InputTextModule, SelectModule, ToastModule, TextareaModule,
+    InteractiveGridComponent,
   ],
   providers: [MessageService],
   template: `
@@ -74,47 +76,13 @@ const ESTADOS_OPT = [
         <span class="stat-chip danger">Rechazadas: <strong>{{ countEstado('RECHAZADA') }}</strong></span>
       </div>
 
-      <p-table [value]="justificaciones()" [loading]="cargando()" styleClass="p-datatable-sm"
-        [paginator]="true" [rows]="20" selectionMode="single"
-        (onRowSelect)="abrirDetalle($event.data)">
-        <ng-template pTemplate="header">
-          <tr>
-            <th>Alumno</th>
-            <th>Fecha Clase</th>
-            <th>Asistencia</th>
-            <th>Tipo</th>
-            <th>Motivo</th>
-            <th>Estado</th>
-            <th style="width:100px">Acciones</th>
-          </tr>
-        </ng-template>
-        <ng-template pTemplate="body" let-j>
-          <tr [pSelectableRow]="j">
-            <td class="font-medium">{{ j.alumno_nombre }}</td>
-            <td>{{ j.fecha_clase | date:'dd/MM/yyyy' }}</td>
-            <td><p-tag [value]="j.estatus_asistencia" [severity]="asistSev(j.estatus_asistencia)" /></td>
-            <td><p-tag [value]="j.tipo_justificacion" severity="info" /></td>
-            <td class="text-sm">{{ j.motivo | slice:0:60 }}{{ j.motivo?.length > 60 ? '…' : '' }}</td>
-            <td><p-tag [value]="j.estado" [severity]="estadoSev(j.estado)" /></td>
-            <td>
-              @if (j.estado === 'PENDIENTE') {
-                <p-button icon="pi pi-check" size="small" [text]="true" severity="success"
-                  pTooltip="Aprobar" (onClick)="resolver(j, 'APROBAR'); $event.stopPropagation()" />
-                <p-button icon="pi pi-times" size="small" [text]="true" severity="danger"
-                  pTooltip="Rechazar" (onClick)="abrirRechazo(j); $event.stopPropagation()" />
-              }
-              @if (j.documento_url) {
-                <a [href]="j.documento_url" target="_blank">
-                  <p-button icon="pi pi-file" size="small" [text]="true" pTooltip="Ver documento" />
-                </a>
-              }
-            </td>
-          </tr>
-        </ng-template>
-        <ng-template pTemplate="emptymessage">
-          <tr><td colspan="7" class="text-center py-4 text-gray-500">Sin justificaciones.</td></tr>
-        </ng-template>
-      </p-table>
+      <app-interactive-grid
+        [data]="justificacionesFlat()"
+        [columns]="justificacionesColumns"
+        [loading]="cargando()"
+        [showDelete]="false"
+        (rowSelected)="abrirDetalle($event)"
+      />
     </div>
 
     <!-- Dialog: Nueva justificación -->
@@ -177,6 +145,23 @@ const ESTADOS_OPT = [
 export class JustificacionesComponent implements OnInit {
   private http = inject(HttpClient);
   private notify = inject(ApexNotificationService);
+
+  readonly justificacionesColumns: ColumnConfig[] = [
+    { field: 'alumno_nombre',    header: 'Alumno' },
+    { field: 'fecha_str',        header: 'Fecha Clase',  width: '110px' },
+    { field: 'estatus_asistencia', header: 'Asistencia', width: '100px' },
+    { field: 'tipo_justificacion', header: 'Tipo',       width: '110px' },
+    { field: 'motivo_str',       header: 'Motivo' },
+    { field: 'estado',           header: 'Estado',       width: '100px' },
+  ];
+
+  readonly justificacionesFlat = computed(() =>
+    this.justificaciones().map(j => ({
+      ...j,
+      fecha_str:  j.fecha_clase ? new Date(j.fecha_clase).toLocaleDateString('es-MX') : '—',
+      motivo_str: j.motivo && j.motivo.length > 60 ? j.motivo.slice(0, 60) + '…' : (j.motivo ?? ''),
+    }))
+  );
 
   justificaciones = signal<Justificacion[]>([]);
   cargando        = signal(false);
@@ -255,11 +240,13 @@ export class JustificacionesComponent implements OnInit {
     return this.justificaciones().filter(j => j.estado === estado).length;
   }
 
-  estadoSev(e: string): string {
-    return { PENDIENTE: 'warn', APROBADA: 'success', RECHAZADA: 'danger' }[e] ?? 'secondary';
+  estadoSev(e: string): TagSev {
+    const m: Record<string, TagSev> = { PENDIENTE: 'warn', APROBADA: 'success', RECHAZADA: 'danger' };
+    return m[e] ?? 'secondary';
   }
 
-  asistSev(e: string): string {
-    return { PRESENTE: 'success', FALTA: 'danger', TARDE: 'warn', TARDANZA: 'warn' }[e] ?? 'secondary';
+  asistSev(e: string): TagSev {
+    const m: Record<string, TagSev> = { PRESENTE: 'success', FALTA: 'danger', TARDE: 'warn', TARDANZA: 'warn' };
+    return m[e] ?? 'secondary';
   }
 }

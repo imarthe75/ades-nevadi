@@ -42,6 +42,7 @@ class GradoOut(AdesResponse):
     nombre_grado: str
     nivel_educativo_id: uuid.UUID
     plantel_id: uuid.UUID
+    plantel_nombre: str | None = None
 
 
 # ── Ciclo Escolar ─────────────────────────────────────────────────────────────
@@ -76,9 +77,10 @@ class GrupoOut(AdesResponse, GrupoBase):
 
 
 class GrupoDetalle(GrupoOut):
-    """Grupo con info de grado y nivel expandida — para selectores en UI."""
+    """Grupo con info de grado, nivel y plantel expandida — para selectores en UI."""
     grado: GradoOut | None = None
-    nombre_grado: str | None = None   # populated from grado.nombre_grado
-    nombre_nivel: str | None = None   # populated from grado.nivel.nombre_nivel
-    numero_grado: int | None = None   # for sorting
-    inscritos: int = 0                # alumnos activos inscritos
+    nombre_grado: str | None = None
+    nombre_nivel: str | None = None
+    numero_grado: int | None = None
+    plantel_nombre: str | None = None  # populated from grado.plantel.nombre_plantel
+    inscritos: int = 0

@@ -316,21 +316,21 @@ const NIVEL_COLORS = ['var(--red-400)', 'var(--yellow-400)', 'var(--teal-400)', 
 })
 export class RubricasComponent implements OnInit {
   private readonly api = inject(ApiService);
-  readonly ctx         = inject(ContextService);
+  readonly ctx = inject(ContextService);
 
-  rubricas  = signal<Rubrica[]>([]);
-  materias  = signal<{ label: string; value: string }[]>([]);
-  niveles   = signal<{ label: string; value: string }[]>([]);
+  rubricas = signal<Rubrica[]>([]);
+  materias = signal<{ label: string; value: string }[]>([]);
+  niveles = signal<{ label: string; value: string }[]>([]);
   criterios = signal<Criterio[]>([]);
-  detalle   = signal<Rubrica | null>(null);
+  detalle = signal<Rubrica | null>(null);
 
   selRubrica: Rubrica | null = null;
   filtroMateriaId = '';
-  showNueva   = false;
+  showNueva = false;
   showCriterio = false;
 
   formNueva = { nombre: '', descripcion: '', materia_id: '', nivel_educativo_id: '' };
-  formCrit  = this.emptyFormCrit();
+  formCrit = this.emptyFormCrit();
 
   ngOnInit(): void {
     this.cargar();
@@ -344,10 +344,10 @@ export class RubricasComponent implements OnInit {
   }
 
   cargarCatalogos(): void {
-    this.api.get<any[]>('/catalogs/materias').subscribe(list => {
+    this.api.get<any[]>('/materias').subscribe(list => {
       this.materias.set(list.map(m => ({ label: m.nombre_materia, value: m.id })));
     });
-    this.api.get<any[]>('/catalogs/niveles-educativos').subscribe(list => {
+    this.api.get<any[]>('/catalogs/niveles').subscribe(list => {
       this.niveles.set(list.map(n => ({ label: n.nombre_nivel, value: n.id })));
     });
   }
@@ -365,9 +365,9 @@ export class RubricasComponent implements OnInit {
   crearRubrica(): void {
     if (!this.formNueva.nombre) return;
     this.api.post('/rubricas', {
-      nombre_rubrica:     this.formNueva.nombre,
-      descripcion:        this.formNueva.descripcion || null,
-      materia_id:         this.formNueva.materia_id || null,
+      nombre_rubrica: this.formNueva.nombre,
+      descripcion: this.formNueva.descripcion || null,
+      materia_id: this.formNueva.materia_id || null,
       nivel_educativo_id: this.formNueva.nivel_educativo_id || null,
     }).subscribe(() => { this.showNueva = false; this.cargar(); });
   }
@@ -379,10 +379,10 @@ export class RubricasComponent implements OnInit {
     const nivelesValidos = this.formCrit.niveles.filter(n => n.etiqueta.trim());
     this.api.post(`/rubricas/${this.selRubrica.id}/criterios`, {
       nombre_criterio: this.formCrit.nombre,
-      descripcion:     this.formCrit.descripcion || null,
-      ponderacion:     this.formCrit.ponderacion,
-      orden:           this.formCrit.orden,
-      niveles_logro:   nivelesValidos.length ? nivelesValidos : null,
+      descripcion: this.formCrit.descripcion || null,
+      ponderacion: this.formCrit.ponderacion,
+      orden: this.formCrit.orden,
+      niveles_logro: nivelesValidos.length ? nivelesValidos : null,
     }).subscribe(() => { this.showCriterio = false; this.seleccionar(this.selRubrica!); });
   }
 
@@ -408,10 +408,10 @@ export class RubricasComponent implements OnInit {
     return {
       nombre: '', descripcion: '', ponderacion: 25.0, orden: 1,
       niveles: [
-        { nivel: 1, etiqueta: 'Inicial',      descripcion: '' },
+        { nivel: 1, etiqueta: 'Inicial', descripcion: '' },
         { nivel: 2, etiqueta: 'En desarrollo', descripcion: '' },
-        { nivel: 3, etiqueta: 'Logrado',       descripcion: '' },
-        { nivel: 4, etiqueta: 'Destacado',     descripcion: '' },
+        { nivel: 3, etiqueta: 'Logrado', descripcion: '' },
+        { nivel: 4, etiqueta: 'Destacado', descripcion: '' },
       ],
     };
   }

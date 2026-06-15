@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Jost:wght@400;600;700;800&family=Inter:wght@400;500&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  @page { size: A4 portrait; margin: 20mm; }
+  body { font-family: 'Inter', Arial, sans-serif; color: #1a1a1a; line-height: 1.6; }
+  .cert-container { border: 5px double #D02030; padding: 10mm; border-radius: 8px; position: relative; min-height: 230mm; display: flex; flex-direction: column; justify-content: space-between; }
+  .header { border-bottom: 2px solid #D02030; padding-bottom: 4mm; text-align: center; margin-bottom: 8mm; }
+  .logo { width: 16mm; height: 16mm; border-radius: 50%; background: #D02030; display: flex; align-items: center; justify-content: center; color: #fff; font-family: 'Jost', sans-serif; font-weight: 800; font-size: 16pt; margin: 0 auto 2mm; }
+  .inst-name { font-family: 'Jost', sans-serif; font-size: 20pt; font-weight: 800; color: #D02030; }
+  .inst-sub { font-size: 8.5pt; color: #555; text-transform: uppercase; letter-spacing: 2px; }
+  .cert-title { font-family: 'Jost', sans-serif; font-size: 18pt; font-weight: 700; text-align: center; margin: 8mm 0; text-transform: uppercase; letter-spacing: 1px; color: #1a1a1a; }
+  .cert-body { font-size: 11pt; text-align: justify; margin-bottom: 12mm; }
+  .student-name { font-family: 'Jost', sans-serif; font-size: 15pt; font-weight: 700; color: #D02030; text-align: center; margin: 4mm 0; border-bottom: 1px solid #ddd; display: inline-block; width: 100%; padding-bottom: 1mm; }
+  .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm; margin-bottom: 8mm; font-size: 10pt; }
+  .info-item { background: #f9f9f9; padding: 3mm; border-radius: 6px; border: 1px solid #eee; }
+  .info-label { font-weight: 600; color: #666; font-size: 8pt; text-transform: uppercase; margin-bottom: 1mm; }
+  .signatures-block { margin-top: 25mm; display: flex; justify-content: space-around; }
+  .sig-line { width: 60mm; border-top: 1px solid #333; text-align: center; padding-top: 2mm; font-size: 9.5pt; }
+  .sig-line span { display: block; font-size: 8pt; color: #777; }
+  .date-block { text-align: right; font-size: 10pt; color: #555; margin-bottom: 8mm; }
+  .slogan { font-size: 8pt; color: #aaa; text-align: center; font-style: italic; margin-top: 10mm; }
+</style>
+</head>
+<body>
+  <div class="cert-container">
+    <div>
+      <div class="header">
+        <div class="logo">N</div>
+        <div class="inst-name">Instituto Nevadi</div>
+        <div class="inst-sub">Servicios Médicos Escolares</div>
+      </div>
+
+      <div class="date-block">
+        <strong>Fecha de Emisión:</strong> {{ fecha_emision }}
+      </div>
+
+      <div class="cert-title">Certificado Médico de Aptitud Física</div>
+
+      <div class="cert-body">
+        <p>El que suscribe, médico responsable del plantel del **Instituto Nevadi**, hace constar que se ha realizado una evaluación física y clínica completa al alumno(a):</p>
+        <div class="student-name">{{ nombre_alumno }}</div>
+        <p>Con base en el historial médico, signos vitales y examen físico general realizado el día de hoy, se determina que el alumno se encuentra clínicamente **SANO** y en condiciones de aptitud física adecuadas para realizar actividades escolares cotidianas, así como deportes y educación física escolar sin limitaciones o contraindicaciones médicas evidentes.</p>
+      </div>
+
+      <div class="info-grid">
+        <div class="info-item">
+          <div class="info-label">Matrícula / Grupo</div>
+          <div>{{ matricula }} — {{ grupo }}</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Tipo de Sangre</div>
+          <div>{{ tipo_sangre or 'No especificado' }}</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Alergias Conocidas</div>
+          <div>{{ alergias or 'Ninguna reportada' }}</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Condiciones Crónicas</div>
+          <div>{{ condiciones_cronicas or 'Ninguna reportada' }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="signatures-block">
+        <div class="sig-line">
+          <strong>{{ especialista or 'Médico Responsable' }}</strong>
+          <span>Cédula Profesional: {{ cedula or 'En trámite' }}</span>
+          <span>Médico Escolar — Instituto Nevadi</span>
+        </div>
+        <div class="sig-line">
+          <strong>Dirección del Plantel</strong>
+          <span>Sello Institucional</span>
+        </div>
+      </div>
+
+      <div class="slogan">EL ÚNICO CAMINO PARA SALIR ADELANTE ES LA EDUCACIÓN.</div>
+    </div>
+  </div>
+</body>
+</html>

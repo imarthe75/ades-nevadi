@@ -1,0 +1,850 @@
+package mx.ades.modules.imports;
+
+import lombok.Builder;
+import lombok.Data;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.support.DefaultTransactionDefinition;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
+import mx.ades.security.AdesUser;
+import mx.ades.security.AdesUserService;
+
+import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
+import java.util.*;
+
+@RestController
+@RequestMapping("/api/v1/imports")
+@RequiredArgsConstructor
+@Slf4j
+public class ImportsController {
+
+    private final AdesUserService userService;
+    private final JdbcTemplate jdbc;
+    private final PlatformTransactionManager transactionManager;
+
+    private static final long MAX_FILE_BYTES = 10 * 1024 * 1024; // 10 MB
+
+    @Data
+    public static class ErrorFila {
+        private final int fila;
+        private final String dato;
+        private final String error;
+    }
+
+    @Data
+    @Builder
+    public static class ImportResult {
+        private String entidad;
+        private int total;
+        private int exitosos;
+        private int errores;
+        private List<ErrorFila> detalleErrores;
+    }
+
+    private static final Map<String, String[]> PLANTILLAS_HEADERS = Map.of(
+            "alumnos", new String[]{"nombre", "apellido_paterno", "apellido_materno", "curp", "genero", "fecha_nacimiento", "fecha_ingreso", "clave_plantel"},
+            "profesores", new String[]{"nombre", "apellido_paterno", "apellido_materno", "curp", "genero", "fecha_nacimiento", "numero_empleado", "tipo_contrato", "clave_plantel"},
+            "materias", new String[]{"nombre_materia", "clave_materia", "nombre_nivel", "horas_semana"},
+            "grupos", new String[]{"nombre_grupo", "turno", "capacidad_maxima", "nombre_grado", "nombre_ciclo"},
+            "aulas", new String[]{"nombre_aula", "tipo_aula", "capacidad_alumnos", "clave_plantel", "tiene_proyector", "tiene_pizarra_digital", "tiene_internet", "observaciones"},
+            "preinscritos_sep", new String[]{"nombre", "apellido_paterno", "apellido_materno", "curp", "fecha_nacimiento", "nivel_solicitado", "grado_solicitado", "clave_plantel", "nombre_ciclo", "nombre_tutor", "telefono_tutor", "email_tutor", "escuela_procedencia", "promedio_procedencia"}
+    );
+
+    private static final Map<String, List<String[]>> PLANTILLAS_EJEMPLOS = Map.of(
+            "alumnos", List.of(new String[][]{{"Juan", "García", "López", "GALJ900101HMCRPN01", "M", "01/01/1990", "15/08/2024", "MET-NVD-001"}}),
+            "profesores", List.of(new String[][]{{"María", "Pérez", "Sánchez", "PESM850315MMCRNR02", "F", "15/03/1985", "EMP-001", "BASE", "MET-NVD-001"}}),
+            "materias", List.of(new String[][]{
+                    {"Matemáticas", "MAT-01", "Primaria", "5"},
+                    {"Español", "ESP-01", "Primaria", "5"}
+            }),
+            "grupos", List.of(new String[][]{
+                    {"1A", "MATUTINO", "35", "Primer Grado", "2024-2025"},
+                    {"2B", "VESPERTINO", "30", "Segundo Grado", "2024-2025"}
+            }),
+            "aulas", List.of(new String[][]{
+                    {"Aula 101", "SALON", "35", "MET-NVD-001", "SI", "NO", "SI", "Planta baja"},
+                    {"Lab Cómputo", "COMPUTO", "25", "TEN-NVD-001", "SI", "SI", "SI", "Planta alta"}
+            }),
+            "preinscritos_sep", List.of(new String[][]{{"Ana Sofia", "Díaz", "Morales", "DIMA150228HMCRRL03", "28/02/2015", "Primaria", "3", "IXT-NVD-001", "2026-2027", "Carlos Díaz", "7221234567", "carlos@gmail.com", "Colegio México", "9.20"}})
+    );
+
+    @GetMapping("/plantillas/{entidad}")
+    public ResponseEntity<byte[]> descargarPlantilla(
+            @PathVariable("entidad") String entidad,
+            @AuthenticationPrincipal Jwt jwt) {
+        userService.resolveUser(jwt);
+
+        if (!PLANTILLAS_HEADERS.containsKey(entidad)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND,
+                    "Plantilla no disponible. Opciones: " + String.join(", ", PLANTILLAS_HEADERS.keySet()));
+        }
+
+        String[] headers = PLANTILLAS_HEADERS.get(entidad);
+        List<String[]> ejemplos = PLANTILLAS_EJEMPLOS.get(entidad);
+
+        StringWriter sw = new StringWriter();
+        try {
+            // Write CSV
+            sw.write(String.join(",", headers) + "\n");
+            for (String[] fila : ejemplos) {
+                sw.write(String.join(",", fila) + "\n");
+            }
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error al generar plantilla");
+        }
+
+        byte[] content = sw.toString().getBytes(StandardCharsets.UTF_8);
+
+        HttpHeaders responseHeaders = new HttpHeaders();
+        responseHeaders.setContentType(new MediaType("text", "csv", StandardCharsets.UTF_8));
+        responseHeaders.setContentDispositionFormData("attachment", "plantilla_" + entidad + ".csv");
+
+        return ResponseEntity.ok()
+                .headers(responseHeaders)
+                .body(content);
+    }
+
+    private void validarArchivo(MultipartFile file) {
+        if (file.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El archivo no contiene datos");
+        }
+        if (file.getSize() > MAX_FILE_BYTES) {
+            throw new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE, "El archivo supera el límite de 10 MB");
+        }
+        String ext = getExtension(file.getOriginalFilename());
+        if (!List.of("csv", "xlsx").contains(ext)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tipo de archivo no permitido: " + file.getContentType());
+        }
+    }
+
+    private String getExtension(String filename) {
+        if (filename == null) return "";
+        int idx = filename.lastIndexOf('.');
+        return idx == -1 ? "" : filename.substring(idx + 1).toLowerCase();
+    }
+
+    private UUID resolverPlantel(String clave, Map<String, UUID> plantelesClave, Map<String, UUID> plantelesNombre) {
+        if (clave == null || clave.isBlank()) {
+            return null;
+        }
+        UUID id = plantelesClave.get(clave);
+        if (id != null) return id;
+
+        id = plantelesNombre.get(clave.toLowerCase());
+        if (id != null) return id;
+
+        try {
+            return UUID.fromString(clave);
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // POST /alumnos
+    // ──────────────────────────────────────────────────────────────────────────
+    @PostMapping("/alumnos")
+    public ResponseEntity<ImportResult> importarAlumnos(
+            @RequestParam("file") MultipartFile file,
+            @AuthenticationPrincipal Jwt jwt) {
+        AdesUser user = userService.resolveUser(jwt);
+        if (user.getNivelAcceso() == null || user.getNivelAcceso() > 2) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo administradores y coordinadores pueden importar alumnos");
+        }
+
+        validarArchivo(file);
+
+        ImportadorUtil.ParsedFile parsed;
+        try {
+            parsed = ImportadorUtil.parseFile(file.getBytes(), file.getOriginalFilename());
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Error al parsear el archivo: " + e.getMessage());
+        }
+
+        if (parsed.getRows().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El archivo no contiene datos");
+        }
+
+        // Caching planteles
+        Map<String, UUID> plantelesClave = new HashMap<>();
+        Map<String, UUID> plantelesNombre = new HashMap<>();
+        jdbc.query("SELECT id, clave_ct, nombre_plantel FROM ades_planteles", rs -> {
+            UUID id = (UUID) rs.getObject("id");
+            String c = rs.getString("clave_ct");
+            String n = rs.getString("nombre_plantel");
+            if (c != null) plantelesClave.put(c, id);
+            if (n != null) plantelesNombre.put(n.toLowerCase(), id);
+        });
+
+        // Estatus id
+        UUID estatusId = null;
+        try {
+            estatusId = jdbc.queryForObject(
+                    "SELECT id FROM ades_estatus WHERE entidad = 'ESTUDIANTE' AND nombre_estatus = 'INSCRITO'",
+                    UUID.class);
+        } catch (Exception e) {
+            log.warn("Estatus INSCRITO para estudiante no encontrado");
+        }
+
+        // Sequence calculation
+        Long seq = jdbc.queryForObject("SELECT COUNT(*) FROM ades_estudiantes", Long.class);
+        if (seq == null) seq = 0L;
+
+        List<ErrorFila> errores = new ArrayList<>();
+        int exitosos = 0;
+
+        for (int i = 0; i < parsed.getRows().size(); i++) {
+            List<String> row = parsed.getRows().get(i);
+            int rowNum = i + 2; // header is row 1
+            String curp = ImportadorUtil.getCol(row, parsed.getHeaders(), "curp").toUpperCase();
+            String nombre = ImportadorUtil.getCol(row, parsed.getHeaders(), "nombre");
+
+            if (curp.isEmpty() || nombre.isEmpty()) {
+                errores.add(new ErrorFila(rowNum, "fila " + rowNum, "'nombre' y 'curp' son obligatorios"));
+                continue;
+            }
+
+            // check duplicate
+            Integer count = jdbc.queryForObject("SELECT COUNT(*) FROM ades_personas WHERE curp = ?", Integer.class, curp);
+            if (count != null && count > 0) {
+                errores.add(new ErrorFila(rowNum, curp, "CURP ya registrada"));
+                continue;
+            }
+
+            String clavePlantel = ImportadorUtil.getCol(row, parsed.getHeaders(), "clave_plantel", "plantel", "clave_ct");
+            UUID plantelId = resolverPlantel(clavePlantel, plantelesClave, plantelesNombre);
+            if (plantelId == null) {
+                errores.add(new ErrorFila(rowNum, curp, "Plantel no encontrado: '" + clavePlantel + "'"));
+                continue;
+            }
+
+            TransactionStatus status = transactionManager.getTransaction(new DefaultTransactionDefinition());
+            try {
+                UUID personaId = UUID.randomUUID();
+                jdbc.update(
+                        "INSERT INTO ades_personas (id, nombre, apellido_paterno, apellido_materno, curp, genero, fecha_nacimiento, usuario_creacion, usuario_modificacion) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        personaId,
+                        nombre,
+                        ImportadorUtil.getCol(row, parsed.getHeaders(), "apellido_paterno"),
+                        ImportadorUtil.getCol(row, parsed.getHeaders(), "apellido_materno"),
+                        curp,
+                        ImportadorUtil.getCol(row, parsed.getHeaders(), "genero"),
+                        ImportadorUtil.parseDate(ImportadorUtil.getCol(row, parsed.getHeaders(), "fecha_nacimiento")),
+                        user.getUsername(),
+                        user.getUsername()
+                );
+
+                seq++;
+                String matricula = String.format("MAT-%06d", seq);
+
+                jdbc.update(
+                        "INSERT INTO ades_estudiantes (id, matricula, persona_id, plantel_id, fecha_ingreso, estatus_id, usuario_creacion, usuario_modificacion) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                        UUID.randomUUID(),
+                        matricula,
+                        personaId,
+                        plantelId,
+                        ImportadorUtil.parseDate(ImportadorUtil.getCol(row, parsed.getHeaders(), "fecha_ingreso")),
+                        estatusId,
+                        user.getUsername(),
+                        user.getUsername()
+                );
+
+                transactionManager.commit(status);
+                exitosos++;
+            } catch (Exception e) {
+                transactionManager.rollback(status);
+                log.error("Error inserting row " + rowNum, e);
+                errores.add(new ErrorFila(rowNum, curp, e.getMessage()));
+                seq--; // decrement sequence back
+            }
+        }
+
+        return ResponseEntity.ok(ImportResult.builder()
+                .entidad("alumnos")
+                .total(parsed.getRows().size())
+                .exitosos(exitosos)
+                .errores(errores.size())
+                .detalleErrores(errores)
+                .build());
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // POST /profesores
+    // ──────────────────────────────────────────────────────────────────────────
+    @PostMapping("/profesores")
+    public ResponseEntity<ImportResult> importarProfesores(
+            @RequestParam("file") MultipartFile file,
+            @AuthenticationPrincipal Jwt jwt) {
+        AdesUser user = userService.resolveUser(jwt);
+        if (user.getNivelAcceso() == null || user.getNivelAcceso() > 2) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo administradores y coordinadores pueden importar profesores");
+        }
+
+        validarArchivo(file);
+
+        ImportadorUtil.ParsedFile parsed;
+        try {
+            parsed = ImportadorUtil.parseFile(file.getBytes(), file.getOriginalFilename());
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Error al parsear el archivo: " + e.getMessage());
+        }
+
+        if (parsed.getRows().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El archivo no contiene datos");
+        }
+
+        // Caching planteles
+        Map<String, UUID> plantelesClave = new HashMap<>();
+        Map<String, UUID> plantelesNombre = new HashMap<>();
+        jdbc.query("SELECT id, clave_ct, nombre_plantel FROM ades_planteles", rs -> {
+            UUID id = (UUID) rs.getObject("id");
+            String c = rs.getString("clave_ct");
+            String n = rs.getString("nombre_plantel");
+            if (c != null) plantelesClave.put(c, id);
+            if (n != null) plantelesNombre.put(n.toLowerCase(), id);
+        });
+
+        // Estatus id
+        UUID estatusId = null;
+        try {
+            estatusId = jdbc.queryForObject(
+                    "SELECT id FROM ades_estatus WHERE entidad = 'PROFESOR' AND nombre_estatus = 'ACTIVO'",
+                    UUID.class);
+        } catch (Exception e) {
+            log.warn("Estatus ACTIVO para profesor no encontrado");
+        }
+
+        List<ErrorFila> errores = new ArrayList<>();
+        int exitosos = 0;
+
+        for (int i = 0; i < parsed.getRows().size(); i++) {
+            List<String> row = parsed.getRows().get(i);
+            int rowNum = i + 2;
+            String curp = ImportadorUtil.getCol(row, parsed.getHeaders(), "curp").toUpperCase();
+            String nombre = ImportadorUtil.getCol(row, parsed.getHeaders(), "nombre");
+            String numEmp = ImportadorUtil.getCol(row, parsed.getHeaders(), "numero_empleado", "num_empleado", "empleado");
+
+            if (curp.isEmpty() || nombre.isEmpty() || numEmp.isEmpty()) {
+                errores.add(new ErrorFila(rowNum, "fila " + rowNum, "'nombre', 'curp' y 'numero_empleado' son obligatorios"));
+                continue;
+            }
+
+            Integer count = jdbc.queryForObject("SELECT COUNT(*) FROM ades_personas WHERE curp = ?", Integer.class, curp);
+            if (count != null && count > 0) {
+                errores.add(new ErrorFila(rowNum, curp, "CURP ya registrada"));
+                continue;
+            }
+
+            String clavePlantel = ImportadorUtil.getCol(row, parsed.getHeaders(), "clave_plantel", "plantel", "clave_ct");
+            UUID plantelId = resolverPlantel(clavePlantel, plantelesClave, plantelesNombre);
+            if (plantelId == null) {
+                errores.add(new ErrorFila(rowNum, curp, "Plantel no encontrado: '" + clavePlantel + "'"));
+                continue;
+            }
+
+            String tipoContrato = ImportadorUtil.getCol(row, parsed.getHeaders(), "tipo_contrato", "contrato");
+            if (tipoContrato.isEmpty()) tipoContrato = "BASE";
+
+            TransactionStatus status = transactionManager.getTransaction(new DefaultTransactionDefinition());
+            try {
+                UUID personaId = UUID.randomUUID();
+                jdbc.update(
+                        "INSERT INTO ades_personas (id, nombre, apellido_paterno, apellido_materno, curp, genero, fecha_nacimiento, usuario_creacion, usuario_modificacion) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        personaId,
+                        nombre,
+                        ImportadorUtil.getCol(row, parsed.getHeaders(), "apellido_paterno"),
+                        ImportadorUtil.getCol(row, parsed.getHeaders(), "apellido_materno"),
+                        curp,
+                        ImportadorUtil.getCol(row, parsed.getHeaders(), "genero"),
+                        ImportadorUtil.parseDate(ImportadorUtil.getCol(row, parsed.getHeaders(), "fecha_nacimiento")),
+                        user.getUsername(),
+                        user.getUsername()
+                );
+
+                jdbc.update(
+                        "INSERT INTO ades_profesores (id, persona_id, plantel_id, numero_empleado, tipo_contrato, estatus_id, usuario_creacion, usuario_modificacion) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                        UUID.randomUUID(),
+                        personaId,
+                        plantelId,
+                        numEmp,
+                        tipoContrato.toUpperCase(),
+                        estatusId,
+                        user.getUsername(),
+                        user.getUsername()
+                );
+
+                transactionManager.commit(status);
+                exitosos++;
+            } catch (Exception e) {
+                transactionManager.rollback(status);
+                log.error("Error inserting professor row " + rowNum, e);
+                errores.add(new ErrorFila(rowNum, curp, e.getMessage()));
+            }
+        }
+
+        return ResponseEntity.ok(ImportResult.builder()
+                .entidad("profesores")
+                .total(parsed.getRows().size())
+                .exitosos(exitosos)
+                .errores(errores.size())
+                .detalleErrores(errores)
+                .build());
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // POST /materias
+    // ──────────────────────────────────────────────────────────────────────────
+    @PostMapping("/materias")
+    public ResponseEntity<ImportResult> importarMaterias(
+            @RequestParam("file") MultipartFile file,
+            @AuthenticationPrincipal Jwt jwt) {
+        AdesUser user = userService.resolveUser(jwt);
+        if (user.getNivelAcceso() == null || user.getNivelAcceso() > 2) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo administradores y coordinadores pueden importar materias");
+        }
+
+        validarArchivo(file);
+
+        ImportadorUtil.ParsedFile parsed;
+        try {
+            parsed = ImportadorUtil.parseFile(file.getBytes(), file.getOriginalFilename());
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Error al parsear el archivo: " + e.getMessage());
+        }
+
+        if (parsed.getRows().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El archivo no contiene datos");
+        }
+
+        // Caching niveles
+        Map<String, UUID> niveles = new HashMap<>();
+        jdbc.query("SELECT id, nombre_nivel FROM ades_niveles_educativos", rs -> {
+            UUID id = (UUID) rs.getObject("id");
+            String n = rs.getString("nombre_nivel");
+            if (n != null) niveles.put(n.toLowerCase(), id);
+        });
+
+        List<ErrorFila> errores = new ArrayList<>();
+        int exitosos = 0;
+
+        for (int i = 0; i < parsed.getRows().size(); i++) {
+            List<String> row = parsed.getRows().get(i);
+            int rowNum = i + 2;
+            String nombreMat = ImportadorUtil.getCol(row, parsed.getHeaders(), "nombre_materia", "materia", "nombre");
+            if (nombreMat.isEmpty()) {
+                errores.add(new ErrorFila(rowNum, "fila " + rowNum, "'nombre_materia' es obligatorio"));
+                continue;
+            }
+
+            String nombreNivel = ImportadorUtil.getCol(row, parsed.getHeaders(), "nombre_nivel", "nivel");
+            UUID nivelId = niveles.get(nombreNivel.toLowerCase());
+            if (nivelId == null) {
+                try {
+                    nivelId = UUID.fromString(nombreNivel);
+                } catch (IllegalArgumentException e) {
+                    errores.add(new ErrorFila(rowNum, nombreMat, "Nivel educativo no encontrado: '" + nombreNivel + "'"));
+                    continue;
+                }
+            }
+
+            TransactionStatus status = transactionManager.getTransaction(new DefaultTransactionDefinition());
+            try {
+                jdbc.update(
+                        "INSERT INTO ades_materias (id, nombre_materia, clave_materia, nivel_educativo_id, horas_semana, usuario_creacion, usuario_modificacion) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                        UUID.randomUUID(),
+                        nombreMat,
+                        ImportadorUtil.getCol(row, parsed.getHeaders(), "clave_materia", "clave"),
+                        nivelId,
+                        ImportadorUtil.parseDouble(ImportadorUtil.getCol(row, parsed.getHeaders(), "horas_semana", "horas")),
+                        user.getUsername(),
+                        user.getUsername()
+                );
+                transactionManager.commit(status);
+                exitosos++;
+            } catch (Exception e) {
+                transactionManager.rollback(status);
+                errores.add(new ErrorFila(rowNum, nombreMat, e.getMessage()));
+            }
+        }
+
+        return ResponseEntity.ok(ImportResult.builder()
+                .entidad("materias")
+                .total(parsed.getRows().size())
+                .exitosos(exitosos)
+                .errores(errores.size())
+                .detalleErrores(errores)
+                .build());
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // POST /grupos
+    // ──────────────────────────────────────────────────────────────────────────
+    @PostMapping("/grupos")
+    public ResponseEntity<ImportResult> importarGrupos(
+            @RequestParam("file") MultipartFile file,
+            @AuthenticationPrincipal Jwt jwt) {
+        AdesUser user = userService.resolveUser(jwt);
+        if (user.getNivelAcceso() == null || user.getNivelAcceso() > 2) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo administradores y coordinadores pueden importar grupos");
+        }
+
+        validarArchivo(file);
+
+        ImportadorUtil.ParsedFile parsed;
+        try {
+            parsed = ImportadorUtil.parseFile(file.getBytes(), file.getOriginalFilename());
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Error al parsear el archivo: " + e.getMessage());
+        }
+
+        if (parsed.getRows().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El archivo no contiene datos");
+        }
+
+        // Caching grados
+        Map<String, UUID> grados = new HashMap<>();
+        jdbc.query("SELECT id, nombre_grado FROM ades_grados", rs -> {
+            UUID id = (UUID) rs.getObject("id");
+            String n = rs.getString("nombre_grado");
+            if (n != null) grados.put(n.toLowerCase(), id);
+        });
+
+        // Caching ciclos
+        Map<String, UUID> ciclos = new HashMap<>();
+        jdbc.query("SELECT id, nombre_ciclo FROM ades_ciclos_escolares", rs -> {
+            UUID id = (UUID) rs.getObject("id");
+            String n = rs.getString("nombre_ciclo");
+            if (n != null) ciclos.put(n.toLowerCase(), id);
+        });
+
+        List<ErrorFila> errores = new ArrayList<>();
+        int exitosos = 0;
+
+        for (int i = 0; i < parsed.getRows().size(); i++) {
+            List<String> row = parsed.getRows().get(i);
+            int rowNum = i + 2;
+            String nombreGrupo = ImportadorUtil.getCol(row, parsed.getHeaders(), "nombre_grupo", "grupo");
+            if (nombreGrupo.isEmpty()) {
+                errores.add(new ErrorFila(rowNum, "fila " + rowNum, "'nombre_grupo' es obligatorio"));
+                continue;
+            }
+
+            String nombreGrado = ImportadorUtil.getCol(row, parsed.getHeaders(), "nombre_grado", "grado");
+            UUID gradoId = grados.get(nombreGrado.toLowerCase());
+            if (gradoId == null) {
+                try {
+                    gradoId = UUID.fromString(nombreGrado);
+                } catch (IllegalArgumentException e) {
+                    errores.add(new ErrorFila(rowNum, nombreGrupo, "Grado no encontrado: '" + nombreGrado + "'"));
+                    continue;
+                }
+            }
+
+            String nombreCiclo = ImportadorUtil.getCol(row, parsed.getHeaders(), "nombre_ciclo", "ciclo", "ciclo_escolar");
+            UUID cicloId = ciclos.get(nombreCiclo.toLowerCase());
+            if (cicloId == null) {
+                try {
+                    cicloId = UUID.fromString(nombreCiclo);
+                } catch (IllegalArgumentException e) {
+                    errores.add(new ErrorFila(rowNum, nombreGrupo, "Ciclo escolar no encontrado: '" + nombreCiclo + "'"));
+                    continue;
+                }
+            }
+
+            String turno = ImportadorUtil.getCol(row, parsed.getHeaders(), "turno");
+            if (turno.isEmpty()) turno = "MATUTINO";
+
+            Integer capacidad = ImportadorUtil.parseInt(ImportadorUtil.getCol(row, parsed.getHeaders(), "capacidad_maxima", "capacidad"));
+            if (capacidad == null) capacidad = 35;
+
+            TransactionStatus status = transactionManager.getTransaction(new DefaultTransactionDefinition());
+            try {
+                jdbc.update(
+                        "INSERT INTO ades_grupos (id, nombre_grupo, grado_id, ciclo_escolar_id, turno, capacidad_maxima, usuario_creacion, usuario_modificacion) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                        UUID.randomUUID(),
+                        nombreGrupo,
+                        gradoId,
+                        cicloId,
+                        turno.toUpperCase(),
+                        capacidad,
+                        user.getUsername(),
+                        user.getUsername()
+                );
+                transactionManager.commit(status);
+                exitosos++;
+            } catch (Exception e) {
+                transactionManager.rollback(status);
+                errores.add(new ErrorFila(rowNum, nombreGrupo, e.getMessage()));
+            }
+        }
+
+        return ResponseEntity.ok(ImportResult.builder()
+                .entidad("grupos")
+                .total(parsed.getRows().size())
+                .exitosos(exitosos)
+                .errores(errores.size())
+                .detalleErrores(errores)
+                .build());
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // POST /aulas
+    // ──────────────────────────────────────────────────────────────────────────
+    @PostMapping("/aulas")
+    public ResponseEntity<ImportResult> importarAulas(
+            @RequestParam("file") MultipartFile file,
+            @AuthenticationPrincipal Jwt jwt) {
+        AdesUser user = userService.resolveUser(jwt);
+        if (user.getNivelAcceso() == null || user.getNivelAcceso() > 3) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo coordinadores o superiores pueden importar aulas");
+        }
+
+        validarArchivo(file);
+
+        ImportadorUtil.ParsedFile parsed;
+        try {
+            parsed = ImportadorUtil.parseFile(file.getBytes(), file.getOriginalFilename());
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Error al parsear el archivo: " + e.getMessage());
+        }
+
+        if (parsed.getRows().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El archivo no contiene datos");
+        }
+
+        // Caching planteles
+        Map<String, UUID> plantelesClave = new HashMap<>();
+        jdbc.query("SELECT id, clave_ct FROM ades_planteles", rs -> {
+            UUID id = (UUID) rs.getObject("id");
+            String c = rs.getString("clave_ct");
+            if (c != null) plantelesClave.put(c.toLowerCase(), id);
+        });
+
+        List<ErrorFila> errores = new ArrayList<>();
+        int exitosos = 0;
+
+        for (int i = 0; i < parsed.getRows().size(); i++) {
+            List<String> row = parsed.getRows().get(i);
+            int rowNum = i + 2;
+            String nombreAula = ImportadorUtil.getCol(row, parsed.getHeaders(), "nombre_aula", "nombre", "aula");
+            if (nombreAula.isEmpty()) {
+                errores.add(new ErrorFila(rowNum, "fila " + rowNum, "'nombre_aula' es obligatorio"));
+                continue;
+            }
+
+            String clavePlantel = ImportadorUtil.getCol(row, parsed.getHeaders(), "clave_plantel", "plantel");
+            UUID plantelId = plantelesClave.get(clavePlantel.toLowerCase());
+
+            String tipoAula = ImportadorUtil.getCol(row, parsed.getHeaders(), "tipo_aula", "tipo");
+            if (tipoAula.isEmpty()) tipoAula = "SALON";
+
+            Integer capacidad = ImportadorUtil.parseInt(ImportadorUtil.getCol(row, parsed.getHeaders(), "capacidad", "capacidad_maxima"));
+            if (capacidad == null) capacidad = 30;
+
+            boolean tieneProyector = parseBoolCol(row, parsed.getHeaders(), "tiene_proyector");
+            boolean tienePizarra = parseBoolCol(row, parsed.getHeaders(), "tiene_pizarra_digital");
+            boolean tieneInternet = parseBoolCol(row, parsed.getHeaders(), "tiene_internet");
+            String observaciones = ImportadorUtil.getCol(row, parsed.getHeaders(), "observaciones", "ubicacion", "ubicacion_fisica");
+            if (observaciones.isEmpty()) observaciones = null;
+
+            TransactionStatus status = transactionManager.getTransaction(new DefaultTransactionDefinition());
+            try {
+                jdbc.update(
+                        "INSERT INTO ades_aulas (id, nombre_aula, tipo_aula, capacidad_alumnos, plantel_id, tiene_proyector, tiene_pizarra_digital, tiene_internet, observaciones, usuario_creacion, usuario_modificacion) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        UUID.randomUUID(),
+                        nombreAula,
+                        tipoAula.toUpperCase(),
+                        capacidad,
+                        plantelId,
+                        tieneProyector,
+                        tienePizarra,
+                        tieneInternet,
+                        observaciones,
+                        user.getUsername(),
+                        user.getUsername()
+                );
+                transactionManager.commit(status);
+                exitosos++;
+            } catch (Exception e) {
+                transactionManager.rollback(status);
+                errores.add(new ErrorFila(rowNum, nombreAula, e.getMessage()));
+            }
+        }
+
+        return ResponseEntity.ok(ImportResult.builder()
+                .entidad("aulas")
+                .total(parsed.getRows().size())
+                .exitosos(exitosos)
+                .errores(errores.size())
+                .detalleErrores(errores)
+                .build());
+    }
+
+    private boolean parseBoolCol(List<String> row, List<String> headers, String colName) {
+        String val = ImportadorUtil.getCol(row, headers, colName).trim().toUpperCase();
+        return List.of("SI", "SÍ", "YES", "TRUE", "1", "S").contains(val);
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // POST /preinscritos-sep
+    // ──────────────────────────────────────────────────────────────────────────
+    @PostMapping("/preinscritos-sep")
+    public ResponseEntity<ImportResult> importarPreinscritosSep(
+            @RequestParam("file") MultipartFile file,
+            @AuthenticationPrincipal Jwt jwt) {
+        AdesUser user = userService.resolveUser(jwt);
+        if (user.getNivelAcceso() == null || user.getNivelAcceso() > 2) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo administradores y coordinadores pueden importar preinscritos de la SEP");
+        }
+
+        validarArchivo(file);
+
+        ImportadorUtil.ParsedFile parsed;
+        try {
+            parsed = ImportadorUtil.parseFile(file.getBytes(), file.getOriginalFilename());
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Error al parsear el archivo: " + e.getMessage());
+        }
+
+        if (parsed.getRows().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El archivo no contiene datos");
+        }
+
+        // Caching planteles
+        Map<String, UUID> plantelesClave = new HashMap<>();
+        Map<String, UUID> plantelesNombre = new HashMap<>();
+        jdbc.query("SELECT id, clave_ct, nombre_plantel FROM ades_planteles", rs -> {
+            UUID id = (UUID) rs.getObject("id");
+            String c = rs.getString("clave_ct");
+            String n = rs.getString("nombre_plantel");
+            if (c != null) plantelesClave.put(c, id);
+            if (n != null) plantelesNombre.put(n.toLowerCase(), id);
+        });
+
+        // Caching ciclos
+        Map<String, UUID> ciclos = new HashMap<>();
+        jdbc.query("SELECT id, nombre_ciclo FROM ades_ciclos_escolares", rs -> {
+            UUID id = (UUID) rs.getObject("id");
+            String n = rs.getString("nombre_ciclo");
+            if (n != null) ciclos.put(n.toLowerCase(), id);
+        });
+
+        List<ErrorFila> errores = new ArrayList<>();
+        int exitosos = 0;
+
+        for (int i = 0; i < parsed.getRows().size(); i++) {
+            List<String> row = parsed.getRows().get(i);
+            int rowNum = i + 2;
+            String curp = ImportadorUtil.getCol(row, parsed.getHeaders(), "curp").toUpperCase();
+            String nombre = ImportadorUtil.getCol(row, parsed.getHeaders(), "nombre");
+            String apellidoP = ImportadorUtil.getCol(row, parsed.getHeaders(), "apellido_paterno", "apellido_p");
+            String apellidoM = ImportadorUtil.getCol(row, parsed.getHeaders(), "apellido_materno", "apellido_m");
+            if (apellidoM.isEmpty()) apellidoM = null;
+            String fechaNac = ImportadorUtil.getCol(row, parsed.getHeaders(), "fecha_nacimiento", "fecha_nac");
+            String nivel = ImportadorUtil.getCol(row, parsed.getHeaders(), "nivel_solicitado", "nivel");
+            String gradoStr = ImportadorUtil.getCol(row, parsed.getHeaders(), "grado_solicitado", "grado");
+            String clavePlantel = ImportadorUtil.getCol(row, parsed.getHeaders(), "clave_plantel", "plantel", "clave_ct");
+            String nombreCiclo = ImportadorUtil.getCol(row, parsed.getHeaders(), "nombre_ciclo", "ciclo", "ciclo_escolar");
+            String tutor = ImportadorUtil.getCol(row, parsed.getHeaders(), "nombre_tutor", "tutor");
+            if (tutor.isEmpty()) tutor = "Tutor Pendiente";
+
+            if (curp.isEmpty() || nombre.isEmpty() || apellidoP.isEmpty() || fechaNac.isEmpty() || nivel.isEmpty() || gradoStr.isEmpty() || nombreCiclo.isEmpty()) {
+                errores.add(new ErrorFila(rowNum, "fila " + rowNum, "Campos obligatorios faltantes (nombre, apellido_p, curp, fecha_nac, nivel, grado, ciclo)"));
+                continue;
+            }
+
+            // check duplicate admission
+            Integer dupAdm = jdbc.queryForObject(
+                    "SELECT COUNT(*) FROM public.ades_solicitudes_admision WHERE curp = ? AND estado NOT IN ('RECHAZADO')",
+                    Integer.class, curp);
+            if (dupAdm != null && dupAdm > 0) {
+                errores.add(new ErrorFila(rowNum, curp, "Ya existe una solicitud de admisión activa para esta CURP"));
+                continue;
+            }
+
+            // check duplicate person
+            Integer dupEst = jdbc.queryForObject("SELECT COUNT(*) FROM public.ades_personas WHERE curp = ?", Integer.class, curp);
+            if (dupEst != null && dupEst > 0) {
+                errores.add(new ErrorFila(rowNum, curp, "CURP ya registrada en el sistema escolar (alumno o usuario activo)"));
+                continue;
+            }
+
+            UUID plantelId = resolverPlantel(clavePlantel, plantelesClave, plantelesNombre);
+            if (plantelId == null) {
+                errores.add(new ErrorFila(rowNum, curp, "Plantel no encontrado: '" + clavePlantel + "'"));
+                continue;
+            }
+
+            UUID cicloId = ciclos.get(nombreCiclo.toLowerCase());
+            if (cicloId == null) {
+                try {
+                    cicloId = UUID.fromString(nombreCiclo);
+                } catch (IllegalArgumentException e) {
+                    errores.add(new ErrorFila(rowNum, curp, "Ciclo escolar no encontrado: '" + nombreCiclo + "'"));
+                    continue;
+                }
+            }
+
+            Integer grado = ImportadorUtil.parseInt(gradoStr);
+            if (grado == null) {
+                errores.add(new ErrorFila(rowNum, curp, "Grado no válido: '" + gradoStr + "'"));
+                continue;
+            }
+
+            TransactionStatus status = transactionManager.getTransaction(new DefaultTransactionDefinition());
+            try {
+                jdbc.update(
+                        "INSERT INTO public.ades_solicitudes_admision " +
+                                "(id, nombre, apellido_paterno, apellido_materno, fecha_nacimiento, curp, " +
+                                "nivel_solicitado, grado_solicitado, plantel_id, ciclo_escolar_id, " +
+                                "nombre_tutor, telefono_tutor, email_tutor, escuela_procedencia, promedio_procedencia, " +
+                                "estado, usuario_creacion, usuario_modificacion) " +
+                                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'PENDIENTE', ?, ?)",
+                        UUID.randomUUID(),
+                        nombre,
+                        apellidoP,
+                        apellidoM,
+                        ImportadorUtil.parseDate(fechaNac),
+                        curp,
+                        nivel,
+                        grado,
+                        plantelId,
+                        cicloId,
+                        tutor,
+                        ImportadorUtil.getCol(row, parsed.getHeaders(), "telefono_tutor", "tel_tutor"),
+                        ImportadorUtil.getCol(row, parsed.getHeaders(), "email_tutor", "correo_tutor"),
+                        ImportadorUtil.getCol(row, parsed.getHeaders(), "escuela_procedencia", "procedencia"),
+                        ImportadorUtil.parseDouble(ImportadorUtil.getCol(row, parsed.getHeaders(), "promedio_procedencia", "promedio")),
+                        user.getUsername(),
+                        user.getUsername()
+                );
+                transactionManager.commit(status);
+                exitosos++;
+            } catch (Exception e) {
+                transactionManager.rollback(status);
+                errores.add(new ErrorFila(rowNum, curp, e.getMessage()));
+            }
+        }
+
+        return ResponseEntity.ok(ImportResult.builder()
+                .entidad("preinscritos_sep")
+                .total(parsed.getRows().size())
+                .exitosos(exitosos)
+                .errores(errores.size())
+                .detalleErrores(errores)
+                .build());
+    }
+}
