@@ -5,5 +5,8 @@ mx/ades/modules/evaluaciones/EvaluacionesDomainTest.class
 mx/ades/modules/asistencias/AsistenciaDomainTest.class
 mx/ades/modules/asistencias/RegistrarAsistenciaMasivaServiceTest.class
 mx/ades/shared/domain/AdesIdTest.class
+mx/ades/modules/gradebook/GradebookDomainTest.class
+mx/ades/modules/alumnos/AlumnoQueryServiceTest.class
+mx/ades/modules/gradebook/GradebookApplicationServiceTest.class
 mx/ades/shared/domain/NivelTipoTest.class
 mx/ades/modules/evaluaciones/TareaApplicationServiceTest.class

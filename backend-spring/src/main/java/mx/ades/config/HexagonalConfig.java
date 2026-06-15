@@ -16,6 +16,13 @@ import mx.ades.modules.evaluaciones.application.service.TareaApplicationService;
 import mx.ades.modules.evaluaciones.domain.port.in.CalificarMasivoUseCase;
 import mx.ades.modules.evaluaciones.domain.port.in.CrearActividadUseCase;
 import mx.ades.modules.evaluaciones.domain.port.out.TareaRepositoryPort;
+import mx.ades.modules.expediente.application.service.ExpedienteApplicationService;
+import mx.ades.modules.expediente.domain.port.in.*;
+import mx.ades.modules.expediente.domain.port.out.*;
+import mx.ades.modules.gradebook.application.service.GradebookApplicationService;
+import mx.ades.modules.gradebook.domain.port.in.AplicarAjusteUseCase;
+import mx.ades.modules.gradebook.domain.port.in.CerrarCalificacionUseCase;
+import mx.ades.modules.gradebook.domain.port.out.CalificacionPeriodoRepositoryPort;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -94,6 +101,57 @@ public class HexagonalConfig {
 
     @Bean
     public CalificarMasivoUseCase calificarMasivo(TareaApplicationService service) {
+        return service;
+    }
+
+    // ── gradebook (FASE 3) ────────────────────────────────────────────────────
+
+    @Bean
+    public GradebookApplicationService gradebookApplicationService(
+            CalificacionPeriodoRepositoryPort calificacionRepository,
+            ApplicationEventPublisher events) {
+        return new GradebookApplicationService(calificacionRepository, events);
+    }
+
+    @Bean
+    public AplicarAjusteUseCase aplicarAjuste(GradebookApplicationService service) {
+        return service;
+    }
+
+    @Bean
+    public CerrarCalificacionUseCase cerrarCalificacion(GradebookApplicationService service) {
+        return service;
+    }
+
+    // ── expediente (FASE 5) ───────────────────────────────────────────────────
+
+    @Bean
+    public ExpedienteApplicationService expedienteApplicationService(
+            BajaRepositoryPort bajaRepo,
+            ExtraordinarioRepositoryPort extraRepo,
+            ConstanciaRepositoryPort constanciaRepo,
+            ExpedienteRepositoryPort expedienteRepo,
+            ApplicationEventPublisher events) {
+        return new ExpedienteApplicationService(bajaRepo, extraRepo, constanciaRepo, expedienteRepo, events);
+    }
+
+    @Bean
+    public RegistrarBajaUseCase registrarBaja(ExpedienteApplicationService service) {
+        return service;
+    }
+
+    @Bean
+    public CalificarExtraordinarioUseCase calificarExtraordinario(ExpedienteApplicationService service) {
+        return service;
+    }
+
+    @Bean
+    public EmitirConstanciaUseCase emitirConstancia(ExpedienteApplicationService service) {
+        return service;
+    }
+
+    @Bean
+    public VerificarExpedienteUseCase verificarExpediente(ExpedienteApplicationService service) {
         return service;
     }
 }
