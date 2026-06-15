@@ -43,6 +43,7 @@ public class PortalAdminController {
 
     @GetMapping("/convocatorias")
     public ResponseEntity<List<Map<String, Object>>> listar(
+            @RequestParam(required = false) String categoria,
             @RequestParam(required = false) String tipo,
             @RequestParam(name = "plantel_id", required = false) UUID plantelId,
             @RequestParam(defaultValue = "0") int skip,
@@ -52,7 +53,8 @@ public class PortalAdminController {
         requireAdmin(user);
 
         StringBuilder sql = new StringBuilder("""
-            SELECT c.id, c.tipo, c.titulo, c.fecha_inicio_postulacion, c.fecha_cierre_postulacion,
+            SELECT c.id, c.categoria, c.tipo, c.titulo,
+                   c.fecha_inicio_postulacion, c.fecha_cierre_postulacion,
                    c.cupo_maximo, c.cupo_actual, c.is_published, c.is_active,
                    p.nombre_plantel,
                    (SELECT COUNT(*) FROM portal.postulaciones po WHERE po.convocatoria_id = c.id AND po.is_active = TRUE) AS total_postulaciones,
@@ -62,6 +64,10 @@ public class PortalAdminController {
             WHERE c.is_active = TRUE
             """);
         List<Object> params = new ArrayList<>();
+        if (categoria != null && !categoria.isBlank()) {
+            sql.append("AND c.categoria = ?::portal.categoria_convocatoria ");
+            params.add(categoria.toUpperCase());
+        }
         if (tipo != null && !tipo.isBlank()) {
             sql.append("AND c.tipo = ?::portal.tipo_convocatoria ");
             params.add(tipo.toUpperCase());
@@ -78,6 +84,7 @@ public class PortalAdminController {
 
     @Data
     public static class ConvocatoriaRequest {
+        private String categoria; // RECURSOS_HUMANOS | OFERTA_EDUCATIVA — inferida del tipo si omitida
         private String tipo;
         private String titulo;
         private String descripcion;
@@ -109,18 +116,26 @@ public class PortalAdminController {
         AdesUser user = userService.resolveUser(jwt);
         requireAdmin(user);
 
+        // Inferir categoría si el frontend no la envía
+        String categoriaResuelta = body.getCategoria() != null && !body.getCategoria().isBlank()
+                ? body.getCategoria().toUpperCase()
+                : jdbc.queryForObject(
+                    "SELECT portal.inferir_categoria(?::portal.tipo_convocatoria)::TEXT",
+                    String.class, body.getTipo().toUpperCase());
+
         UUID id = jdbc.queryForObject("""
             INSERT INTO portal.convocatorias
-              (tipo, titulo, descripcion, requisitos_generales, plantel_id, nivel_educativo_id,
+              (categoria, tipo, titulo, descripcion, requisitos_generales, plantel_id, nivel_educativo_id,
                fecha_inicio_postulacion, fecha_cierre_postulacion,
                cupo_maximo, imagen_url, aviso_privacidad_version,
                is_published, is_active, usuario_creacion)
-            VALUES (?::portal.tipo_convocatoria,?,?,?,?,?,
+            VALUES (?::portal.categoria_convocatoria,?::portal.tipo_convocatoria,?,?,?,?,?,
                     ?::TIMESTAMPTZ,?::TIMESTAMPTZ,
                     ?,?,?,
                     FALSE, TRUE, ?)
             RETURNING id
             """, UUID.class,
+                categoriaResuelta,
                 body.getTipo(), body.getTitulo(), body.getDescripcion(), body.getRequisitosGenerales(),
                 body.getPlantelId(), body.getNivelEducativoId(),
                 body.getFechaInicioPostulacion(), body.getFechaCierrePostulacion(),
@@ -142,14 +157,22 @@ public class PortalAdminController {
         AdesUser user = userService.resolveUser(jwt);
         requireAdmin(user);
 
+        String categoriaActualizada = body.getCategoria() != null && !body.getCategoria().isBlank()
+                ? body.getCategoria().toUpperCase()
+                : jdbc.queryForObject(
+                    "SELECT portal.inferir_categoria(?::portal.tipo_convocatoria)::TEXT",
+                    String.class, body.getTipo().toUpperCase());
+
         int updated = jdbc.update("""
             UPDATE portal.convocatorias SET
+              categoria = ?::portal.categoria_convocatoria,
               tipo = ?::portal.tipo_convocatoria, titulo = ?, descripcion = ?,
               requisitos_generales = ?, plantel_id = ?, nivel_educativo_id = ?,
               fecha_inicio_postulacion = ?::TIMESTAMPTZ, fecha_cierre_postulacion = ?::TIMESTAMPTZ,
               cupo_maximo = ?, imagen_url = ?, usuario_modificacion = ?
             WHERE id = ? AND is_active = TRUE
             """,
+                categoriaActualizada,
                 body.getTipo(), body.getTitulo(), body.getDescripcion(),
                 body.getRequisitosGenerales(), body.getPlantelId(), body.getNivelEducativoId(),
                 body.getFechaInicioPostulacion(), body.getFechaCierrePostulacion(),
@@ -396,19 +419,166 @@ public class PortalAdminController {
                         "SELECT COUNT(*) FROM portal.usuarios WHERE is_active=TRUE", Long.class),
                 "solicitudes_arco_pendientes", jdbc.queryForObject(
                         "SELECT COUNT(*) FROM portal.solicitudes_arco WHERE estado IN ('RECIBIDA','EN_PROCESO')", Long.class),
-                "por_tipo", jdbc.queryForList("""
-                    SELECT c.tipo, COUNT(po.id) AS postulaciones
+                "por_categoria", jdbc.queryForList("""
+                    SELECT c.categoria, COUNT(DISTINCT c.id) AS convocatorias,
+                           COUNT(po.id) AS postulaciones
                     FROM portal.convocatorias c
                     LEFT JOIN portal.postulaciones po ON po.convocatoria_id = c.id AND po.is_active = TRUE
                     WHERE c.is_active = TRUE
-                    GROUP BY c.tipo ORDER BY postulaciones DESC
+                    GROUP BY c.categoria ORDER BY c.categoria
+                    """),
+                "por_tipo", jdbc.queryForList("""
+                    SELECT c.categoria, c.tipo, COUNT(po.id) AS postulaciones
+                    FROM portal.convocatorias c
+                    LEFT JOIN portal.postulaciones po ON po.convocatoria_id = c.id AND po.is_active = TRUE
+                    WHERE c.is_active = TRUE
+                    GROUP BY c.categoria, c.tipo ORDER BY c.categoria, postulaciones DESC
                     """)
         ));
     }
 
     // ─────────────────────────────────────────────────────────
+    // SECCIONES DE CONTENIDO LMS
+    // ─────────────────────────────────────────────────────────
+
+    @Data
+    public static class SeccionRequest {
+        private String tipoSeccion;
+        private String titulo;
+        private String contenido;
+        private Object datos;   // JSONB — Object es serializable por Jackson
+        private Integer orden;
+    }
+
+    @Data
+    public static class ReordenarRequest {
+        private List<UUID> ids; // orden deseado: ids[0] = orden 0, ids[1] = orden 1, ...
+    }
+
+    @GetMapping("/convocatorias/{convId}/secciones")
+    public ResponseEntity<List<Map<String, Object>>> listarSecciones(
+            @PathVariable UUID convId,
+            @AuthenticationPrincipal Jwt jwt) {
+        userService.resolveUser(jwt); // al menos autenticado
+        return ResponseEntity.ok(jdbc.queryForList("""
+            SELECT id, tipo_seccion, titulo, contenido, datos, orden, is_active,
+                   fecha_creacion, fecha_modificacion, usuario_creacion
+            FROM portal.secciones_convocatoria
+            WHERE convocatoria_id = ? AND is_active = TRUE
+            ORDER BY orden, fecha_creacion
+            """, convId));
+    }
+
+    @PostMapping("/convocatorias/{convId}/secciones")
+    public ResponseEntity<Map<String, Object>> crearSeccion(
+            @PathVariable UUID convId,
+            @RequestBody SeccionRequest body,
+            @AuthenticationPrincipal Jwt jwt) {
+        AdesUser user = userService.resolveUser(jwt);
+        requireAdmin(user);
+
+        verifyConvocatoriaExists(convId);
+
+        String datosJson = body.getDatos() != null
+                ? new com.fasterxml.jackson.databind.ObjectMapper().valueToTree(body.getDatos()).toString()
+                : null;
+
+        UUID id = jdbc.queryForObject("""
+            INSERT INTO portal.secciones_convocatoria
+              (convocatoria_id, tipo_seccion, titulo, contenido, datos, orden, usuario_creacion)
+            VALUES (?, ?::portal.tipo_seccion, ?, ?, ?::JSONB,
+                    COALESCE(?, (SELECT COALESCE(MAX(orden),0)+1 FROM portal.secciones_convocatoria
+                                  WHERE convocatoria_id = ?)), ?)
+            RETURNING id
+            """, UUID.class,
+                convId, body.getTipoSeccion().toUpperCase(), body.getTitulo(),
+                body.getContenido(), datosJson,
+                body.getOrden(), convId,
+                user.getUsername());
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("id", id));
+    }
+
+    @PutMapping("/convocatorias/{convId}/secciones/{seccionId}")
+    public ResponseEntity<Void> actualizarSeccion(
+            @PathVariable UUID convId,
+            @PathVariable UUID seccionId,
+            @RequestBody SeccionRequest body,
+            @AuthenticationPrincipal Jwt jwt) {
+        AdesUser user = userService.resolveUser(jwt);
+        requireAdmin(user);
+
+        String datosJson = body.getDatos() != null
+                ? new com.fasterxml.jackson.databind.ObjectMapper().valueToTree(body.getDatos()).toString()
+                : null;
+
+        int upd = jdbc.update("""
+            UPDATE portal.secciones_convocatoria
+            SET tipo_seccion = ?::portal.tipo_seccion,
+                titulo = ?,
+                contenido = ?,
+                datos = ?::JSONB,
+                orden = COALESCE(?, orden),
+                usuario_modificacion = ?
+            WHERE id = ? AND convocatoria_id = ? AND is_active = TRUE
+            """,
+                body.getTipoSeccion().toUpperCase(), body.getTitulo(),
+                body.getContenido(), datosJson,
+                body.getOrden(), user.getUsername(),
+                seccionId, convId);
+
+        if (upd == 0) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Sección no encontrada");
+        return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/convocatorias/{convId}/secciones/reordenar")
+    public ResponseEntity<Void> reordenarSecciones(
+            @PathVariable UUID convId,
+            @RequestBody ReordenarRequest body,
+            @AuthenticationPrincipal Jwt jwt) {
+        AdesUser user = userService.resolveUser(jwt);
+        requireAdmin(user);
+
+        if (body.getIds() == null || body.getIds().isEmpty())
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "ids requeridos");
+
+        for (int i = 0; i < body.getIds().size(); i++) {
+            jdbc.update("""
+                UPDATE portal.secciones_convocatoria
+                SET orden = ?, usuario_modificacion = ?
+                WHERE id = ? AND convocatoria_id = ?
+                """, i, user.getUsername(), body.getIds().get(i), convId);
+        }
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/convocatorias/{convId}/secciones/{seccionId}")
+    public ResponseEntity<Void> eliminarSeccion(
+            @PathVariable UUID convId,
+            @PathVariable UUID seccionId,
+            @AuthenticationPrincipal Jwt jwt) {
+        AdesUser user = userService.resolveUser(jwt);
+        requireAdmin(user);
+
+        jdbc.update("""
+            UPDATE portal.secciones_convocatoria
+            SET is_active = FALSE, usuario_modificacion = ?
+            WHERE id = ? AND convocatoria_id = ?
+            """, user.getUsername(), seccionId, convId);
+        return ResponseEntity.noContent().build();
+    }
+
+    // ─────────────────────────────────────────────────────────
     // Helpers
     // ─────────────────────────────────────────────────────────
+
+    private void verifyConvocatoriaExists(UUID convId) {
+        Integer count = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM portal.convocatorias WHERE id = ? AND is_active = TRUE",
+                Integer.class, convId);
+        if (count == null || count == 0)
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Convocatoria no encontrada");
+    }
 
     private void insertarRequisitos(UUID convId, List<RequisitoRequest> reqs, String usuario) {
         for (RequisitoRequest r : reqs) {

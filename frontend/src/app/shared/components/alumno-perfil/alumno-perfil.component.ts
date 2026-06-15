@@ -200,20 +200,10 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
                 }
               </div>
 
-              <div class="form-section">
-                <h4 class="sec-title">Contacto</h4>
-                <div class="form-row">
-                  <label>Teléfono</label>
-                  <input pInputText [(ngModel)]="form.telefono" maxlength="15" />
-                </div>
-                <div class="form-row">
-                  <label>Email personal</label>
-                  <input pInputText [(ngModel)]="form.email_personal" type="email" />
-                </div>
-              </div>
             </p-tabpanel>
 
             <!-- ── Tab 2: Domicilio y Contactos ─────────────────────────── -->
+            <!-- Teléfono y email se gestionan en la pestaña Domicilio/Contactos (medios de contacto) -->
             <p-tabpanel value="domicilio">
               <app-domicilio [personaId]="alumno?.persona_id ?? alumno?.persona?.id ?? null" />
             </p-tabpanel>

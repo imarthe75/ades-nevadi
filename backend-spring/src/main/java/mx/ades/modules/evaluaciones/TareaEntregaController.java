@@ -1,8 +1,13 @@
 package mx.ades.modules.evaluaciones;
 
 import lombok.RequiredArgsConstructor;
+import mx.ades.modules.evaluaciones.query.TareaQueryService;
+import mx.ades.security.AdesUser;
+import mx.ades.security.AdesUserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -17,6 +22,8 @@ import java.util.UUID;
 public class TareaEntregaController {
 
     private final TareaEntregaService service;
+    private final TareaQueryService   query;
+    private final AdesUserService     userService;
 
     @GetMapping("/alumno/{alumno_id}")
     public ResponseEntity<List<Map<String, Object>>> entregasDelAlumno(
@@ -24,14 +31,14 @@ public class TareaEntregaController {
             @RequestParam(value = "periodo_id", required = false) UUID periodoId,
             @RequestParam(value = "materia_id", required = false) UUID materiaId,
             @RequestParam(value = "solo_pendientes", defaultValue = "false") Boolean soloPendientes) {
-        return ResponseEntity.ok(service.getEntregasDelAlumno(alumnoId, periodoId, materiaId, soloPendientes));
+        return ResponseEntity.ok(query.entregasDelAlumno(alumnoId, periodoId, materiaId, soloPendientes));
     }
 
     @GetMapping("/pendientes/grupo/{grupo_id}")
     public ResponseEntity<List<Map<String, Object>>> pendientesDelGrupo(
             @PathVariable("grupo_id") UUID grupoId,
             @RequestParam(value = "materia_id", required = false) UUID materiaId) {
-        return ResponseEntity.ok(service.getPendientesDelGrupo(grupoId, materiaId));
+        return ResponseEntity.ok(query.pendientesDelGrupo(grupoId, materiaId));
     }
 
     @PostMapping
@@ -40,24 +47,20 @@ public class TareaEntregaController {
             @RequestParam("alumno_id") UUID alumnoId,
             @RequestParam(value = "comentario", required = false) String comentario,
             @RequestParam(value = "archivo", required = false) MultipartFile file) {
-        Map<String, Object> res = service.subirEntrega(tareaId, alumnoId, comentario, file);
-        return ResponseEntity.status(HttpStatus.CREATED).body(res);
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+                service.subirEntrega(tareaId, alumnoId, comentario, file));
     }
 
-    public record CalificarRequest(
-            BigDecimal calificacion,
-            String comentario
-    ) {}
+    public record CalificarRequest(BigDecimal calificacion, String comentario) {
+    }
 
     @PatchMapping("/{entrega_id}/calificar")
     public ResponseEntity<Map<String, Object>> calificarEntrega(
             @PathVariable("entrega_id") UUID entregaId,
-            @RequestBody CalificarRequest body) {
-        String principalSub = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
-        UUID userId = service.getJdbcTemplate().queryForObject(
-                "SELECT id FROM ades_usuarios WHERE oidc_sub = ?", UUID.class, principalSub);
-
-        service.calificarEntrega(entregaId, body.calificacion(), body.comentario(), userId);
+            @RequestBody CalificarRequest body,
+            @AuthenticationPrincipal Jwt jwt) {
+        AdesUser user = userService.resolveUser(jwt);
+        service.calificarEntrega(entregaId, body.calificacion(), body.comentario(), user.getPersonaId());
         return ResponseEntity.ok(Map.of("message", "Calificación registrada"));
     }
 

@@ -35,6 +35,7 @@ public class PortalPublicoController {
 
     @GetMapping("/convocatorias")
     public ResponseEntity<List<Map<String, Object>>> listarConvocatorias(
+            @RequestParam(required = false) String categoria,
             @RequestParam(required = false) String tipo,
             @RequestParam(name = "plantel_id", required = false) UUID plantelId,
             @RequestParam(name = "nivel_id", required = false) UUID nivelId,
@@ -42,7 +43,7 @@ public class PortalPublicoController {
             @RequestParam(defaultValue = "20") int limit) {
 
         StringBuilder sql = new StringBuilder("""
-            SELECT c.id, c.tipo, c.titulo, c.descripcion,
+            SELECT c.id, c.categoria, c.tipo, c.titulo, c.descripcion,
                    c.fecha_inicio_postulacion, c.fecha_cierre_postulacion,
                    c.cupo_maximo, c.cupo_actual, c.imagen_url,
                    p.nombre_plantel,
@@ -56,6 +57,10 @@ public class PortalPublicoController {
             """);
 
         List<Object> params = new ArrayList<>();
+        if (categoria != null && !categoria.isBlank()) {
+            sql.append("AND c.categoria = ?::portal.categoria_convocatoria ");
+            params.add(categoria.toUpperCase());
+        }
         if (tipo != null && !tipo.isBlank()) {
             sql.append("AND c.tipo = ?::portal.tipo_convocatoria ");
             params.add(tipo.toUpperCase());
@@ -78,7 +83,7 @@ public class PortalPublicoController {
     @GetMapping("/convocatorias/{id}")
     public ResponseEntity<Map<String, Object>> detalleConvocatoria(@PathVariable UUID id) {
         List<Map<String, Object>> rows = jdbc.queryForList("""
-            SELECT c.id, c.tipo, c.titulo, c.descripcion, c.requisitos_generales,
+            SELECT c.id, c.categoria, c.tipo, c.titulo, c.descripcion, c.requisitos_generales,
                    c.fecha_inicio_postulacion, c.fecha_cierre_postulacion,
                    c.cupo_maximo, c.cupo_actual, c.imagen_url,
                    c.aviso_privacidad_version,
@@ -100,6 +105,16 @@ public class PortalPublicoController {
             ORDER BY orden, nombre
             """, id);
         conv.put("requisitos_documentos", requisitos);
+
+        // Secciones de contenido LMS (página descriptiva)
+        List<Map<String, Object>> secciones = jdbc.queryForList("""
+            SELECT id, tipo_seccion, titulo, contenido, datos, orden
+            FROM portal.secciones_convocatoria
+            WHERE convocatoria_id = ? AND is_active = TRUE
+            ORDER BY orden, fecha_creacion
+            """, id);
+        conv.put("secciones", secciones);
+
         return ResponseEntity.ok(conv);
     }
 

@@ -1,0 +1,9 @@
+mx/ades/modules/calificaciones/CalificacionApplicationServiceTest.class
+mx/ades/modules/conducta/ConductaDomainTest.class
+mx/ades/modules/calificaciones/CalificacionDomainTest.class
+mx/ades/modules/evaluaciones/EvaluacionesDomainTest.class
+mx/ades/modules/asistencias/AsistenciaDomainTest.class
+mx/ades/modules/asistencias/RegistrarAsistenciaMasivaServiceTest.class
+mx/ades/shared/domain/AdesIdTest.class
+mx/ades/shared/domain/NivelTipoTest.class
+mx/ades/modules/evaluaciones/TareaApplicationServiceTest.class

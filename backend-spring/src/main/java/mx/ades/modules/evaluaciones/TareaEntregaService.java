@@ -17,10 +17,6 @@ public class TareaEntregaService {
     private final MinioService minioService;
     private final JdbcTemplate jdbcTemplate;
 
-    public JdbcTemplate getJdbcTemplate() {
-        return this.jdbcTemplate;
-    }
-
     @Transactional(readOnly = true)
     public List<Map<String, Object>> getEntregasDelAlumno(UUID alumnoId, UUID periodoId, UUID materiaId, Boolean soloPendientes) {
         String query = """

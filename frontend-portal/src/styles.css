@@ -1,0 +1,105 @@
+/* ── PrimeNG v21 — theme via Aura preset in app.config.ts, no legacy CSS imports ── */
+@import "primeicons/primeicons.css";
+
+/* ── Variables Nevadi ── */
+:root {
+  --nvd-primary:       #8B0000;   /* rojo carmesí institucional */
+  --nvd-primary-light: #c0392b;
+  --nvd-accent:        #d4a017;   /* dorado */
+  --nvd-bg:            #f8f9fa;
+  --nvd-surface:       #ffffff;
+  --nvd-border:        #dee2e6;
+  --nvd-text:          #1a1a2e;
+  --nvd-text-muted:    #6c757d;
+
+  --primary-color:     var(--nvd-primary);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Inter', sans-serif;
+  font-size: 15px;
+  background: var(--nvd-bg);
+  color: var(--nvd-text);
+  line-height: 1.6;
+}
+
+h1, h2, h3, h4 {
+  font-family: 'Jost', sans-serif;
+  font-weight: 600;
+  color: var(--nvd-text);
+}
+
+a { color: var(--nvd-primary); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ── Utilidades ── */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+.card {
+  background: var(--nvd-surface);
+  border: 1px solid var(--nvd-border);
+  border-radius: 10px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 4px rgba(0,0,0,.06);
+}
+
+.badge {
+  display: inline-block;
+  padding: .2rem .65rem;
+  border-radius: 20px;
+  font-size: .78rem;
+  font-weight: 600;
+}
+
+.badge-primary   { background: var(--nvd-primary); color: #fff; }
+.badge-success   { background: #198754; color: #fff; }
+.badge-warning   { background: #ffc107; color: #000; }
+.badge-danger    { background: #dc3545; color: #fff; }
+.badge-secondary { background: #6c757d; color: #fff; }
+.badge-info      { background: #0dcaf0; color: #000; }
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: .35rem;
+  margin-bottom: 1rem;
+}
+
+.form-group label {
+  font-size: .85rem;
+  font-weight: 600;
+  color: var(--nvd-text-muted);
+}
+
+.required::after { content: ' *'; color: var(--nvd-primary); }
+
+.p-button.p-button-nvd {
+  background: var(--nvd-primary);
+  border-color: var(--nvd-primary);
+}
+
+.p-button.p-button-nvd:hover {
+  background: var(--nvd-primary-light);
+  border-color: var(--nvd-primary-light);
+}
+
+/* ── Estado badges ── */
+.estado-BORRADOR       { background: #e9ecef; color: #495057; }
+.estado-ENVIADA        { background: #cfe2ff; color: #084298; }
+.estado-EN_REVISION    { background: #fff3cd; color: #664d03; }
+.estado-PRESELECCIONADA{ background: #d1e7dd; color: #0a3622; }
+.estado-ACEPTADA       { background: #198754; color: #fff; }
+.estado-RECHAZADA      { background: #f8d7da; color: #842029; }
+.estado-LISTA_ESPERA   { background: #e2d9f3; color: #41237a; }
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .container { padding: 0 1rem; }
+  .card { padding: 1rem; }
+}

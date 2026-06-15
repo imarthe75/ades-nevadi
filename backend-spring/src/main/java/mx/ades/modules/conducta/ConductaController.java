@@ -2,6 +2,9 @@ package mx.ades.modules.conducta;
 
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import mx.ades.modules.conducta.domain.model.TipoSancion;
+import mx.ades.modules.conducta.domain.port.in.AplicarSancionCommand;
+import mx.ades.modules.conducta.domain.port.in.AplicarSancionUseCase;
 import mx.ades.security.AdesUser;
 import mx.ades.security.AdesUserService;
 import org.springframework.http.HttpStatus;
@@ -26,6 +29,7 @@ public class ConductaController {
     private final SeguimientoPlanRepository seguimientoRepository;
     private final AdesUserService userService;
     private final JdbcTemplate jdbc;
+    private final AplicarSancionUseCase aplicarSancion;
 
     @Data
     public static class ReporteCreateRequest {
@@ -230,45 +234,30 @@ public class ConductaController {
     }
 
     @PostMapping("/{reporteId}/sancion")
-    public ResponseEntity<SancionDisciplinaria> aplicarSancion(
+    public ResponseEntity<Map<String, Object>> aplicarSancion(
             @PathVariable("reporteId") UUID reporteId,
             @RequestBody SancionCreateRequest body,
             @AuthenticationPrincipal Jwt jwt) {
 
         AdesUser user = userService.resolveUser(jwt);
-        if (user.getNivelAcceso() != null && user.getNivelAcceso() > 2) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo DIRECTOR/ADMIN puede aplicar sanciones formales");
-        }
+        int nivelAcceso = user.getNivelAcceso() != null ? user.getNivelAcceso() : 99;
 
-        ReporteConducta rc = repository.findById(reporteId)
-                .filter(ReporteConducta::getIsActive)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Reporte no encontrado"));
+        UUID sancionId = aplicarSancion.ejecutar(new AplicarSancionCommand(
+                reporteId,
+                TipoSancion.valueOf(body.getTipoSancion()),
+                body.getJustificacion(),
+                body.getAutorizadoPorId(),
+                body.getFechaSancion(),
+                body.getFechaFinSancion(),
+                Boolean.TRUE.equals(body.getNotificadoPadres()),
+                body.getFechaNotificacion(),
+                body.getMedioNotificacion(),
+                body.getNotasAdicionales(),
+                nivelAcceso
+        ));
 
-        Optional<SancionDisciplinaria> existing = sancionRepository.findByReporteConductaIdAndIsActiveTrue(reporteId);
-        if (existing.isPresent()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Este reporte ya tiene una sanción aplicada");
-        }
-
-        SancionDisciplinaria sd = new SancionDisciplinaria();
-        sd.setReporteConductaId(reporteId);
-        sd.setEstudianteId(rc.getEstudianteId());
-        sd.setTipoSancion(body.getTipoSancion());
-        sd.setJustificacion(body.getJustificacion());
-        sd.setAutorizadoPorId(body.getAutorizadoPorId());
-        sd.setFechaSancion(body.getFechaSancion() != null ? body.getFechaSancion() : LocalDate.now());
-        sd.setFechaFinSancion(body.getFechaFinSancion());
-        sd.setNotificadoPadres(body.getNotificadoPadres());
-        sd.setFechaNotificacion(body.getFechaNotificacion());
-        sd.setMedioNotificacion(body.getMedioNotificacion());
-        sd.setNotasAdicionales(body.getNotasAdicionales());
-
-        SancionDisciplinaria saved = sancionRepository.save(sd);
-
-        // Update report to require follow-up
-        rc.setRequiereSeguimiento(true);
-        repository.save(rc);
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(Map.of("sancion_id", sancionId, "ok", true));
     }
 
     @PatchMapping("/{reporteId}/sancion/{sancionId}")

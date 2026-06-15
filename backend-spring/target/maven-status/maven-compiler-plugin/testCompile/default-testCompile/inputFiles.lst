@@ -1,0 +1,9 @@
+/app/src/test/java/mx/ades/modules/asistencias/AsistenciaDomainTest.java
+/app/src/test/java/mx/ades/modules/asistencias/RegistrarAsistenciaMasivaServiceTest.java
+/app/src/test/java/mx/ades/modules/calificaciones/CalificacionApplicationServiceTest.java
+/app/src/test/java/mx/ades/modules/calificaciones/CalificacionDomainTest.java
+/app/src/test/java/mx/ades/modules/conducta/ConductaDomainTest.java
+/app/src/test/java/mx/ades/modules/evaluaciones/EvaluacionesDomainTest.java
+/app/src/test/java/mx/ades/modules/evaluaciones/TareaApplicationServiceTest.java
+/app/src/test/java/mx/ades/shared/domain/AdesIdTest.java
+/app/src/test/java/mx/ades/shared/domain/NivelTipoTest.java

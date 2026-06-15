@@ -1,6 +1,8 @@
 package mx.ades.modules.planeacion;
 
 import lombok.RequiredArgsConstructor;
+import mx.ades.modules.planeacion.command.PlaneacionCommandService;
+import mx.ades.modules.planeacion.query.PlaneacionQueryService;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,26 +18,27 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class PlaneacionController {
 
-    private final PlaneacionService planeacionService;
+    private final PlaneacionQueryService   queries;
+    private final PlaneacionCommandService commands;
 
     @GetMapping("/temas")
     public ResponseEntity<List<Map<String, Object>>> temasConEstado(
             @RequestParam("grupo_id") UUID grupoId,
             @RequestParam(value = "materia_id", required = false) UUID materiaId) {
-        return ResponseEntity.ok(planeacionService.getTemasConEstado(grupoId, materiaId));
+        return ResponseEntity.ok(queries.getTemasConEstado(grupoId, materiaId));
     }
 
     @GetMapping("/cobertura/{grupo_id}")
     public ResponseEntity<List<Map<String, Object>>> coberturaGrupo(
             @PathVariable("grupo_id") UUID grupoId) {
-        return ResponseEntity.ok(planeacionService.getCoberturaGrupo(grupoId));
+        return ResponseEntity.ok(queries.getCoberturaGrupo(grupoId));
     }
 
     @GetMapping("/clases")
     public ResponseEntity<List<Map<String, Object>>> listarPlaneacion(
             @RequestParam("grupo_id") UUID grupoId,
             @RequestParam(value = "materia_id", required = false) UUID materiaId) {
-        return ResponseEntity.ok(planeacionService.getListarPlaneacion(grupoId, materiaId));
+        return ResponseEntity.ok(queries.getListarPlaneacion(grupoId, materiaId));
     }
 
     public record PlaneacionCreateRequest(
@@ -49,14 +52,10 @@ public class PlaneacionController {
     @PostMapping("/clases")
     public ResponseEntity<Map<String, Object>> crearPlaneacion(
             @RequestBody PlaneacionCreateRequest body) {
-        Map<String, Object> res = planeacionService.crearPlaneacion(
-                body.grupo_id(),
-                body.tema_id(),
-                body.fecha_planeada(),
-                body.descripcion_actividades(),
-                body.recursos_didacticos()
-        );
-        return ResponseEntity.status(HttpStatus.CREATED).body(res);
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+                commands.crearPlaneacion(body.grupo_id(), body.tema_id(),
+                        body.fecha_planeada(), body.descripcion_actividades(),
+                        body.recursos_didacticos()));
     }
 
     public record CompletarAvanceRequest(
@@ -69,38 +68,35 @@ public class PlaneacionController {
     public ResponseEntity<Map<String, Object>> completarTema(
             @PathVariable("planeacion_id") UUID planeacionId,
             @RequestBody CompletarAvanceRequest body) {
-        Map<String, Object> res = planeacionService.completarTema(
-                planeacionId,
-                body.clase_id(),
-                body.fecha_ejecucion(),
-                body.comentarios_profesor()
-        );
-        return ResponseEntity.ok(res);
+        return ResponseEntity.ok(commands.completarTema(
+                planeacionId, body.clase_id(), body.fecha_ejecucion(),
+                body.comentarios_profesor()));
     }
 
     @DeleteMapping("/clases/{planeacion_id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void eliminarPlaneacion(@PathVariable("planeacion_id") UUID planeacionId) {
-        planeacionService.eliminarPlaneacion(planeacionId);
+        commands.eliminarPlaneacion(planeacionId);
     }
 
     @GetMapping("/alertas-rezago/{ciclo_id}")
     public ResponseEntity<Map<String, Object>> alertasRezago(
             @PathVariable("ciclo_id") UUID cicloId,
             @RequestParam(value = "umbral_pct", defaultValue = "80.0") Double umbralPct) {
-        return ResponseEntity.ok(planeacionService.getAlertasRezago(cicloId, umbralPct));
+        return ResponseEntity.ok(queries.getAlertasRezago(cicloId, umbralPct));
     }
 
     @GetMapping("/semana/{grupo_id}")
     public ResponseEntity<Map<String, Object>> planSemana(
             @PathVariable("grupo_id") UUID grupoId,
-            @RequestParam("fecha_inicio") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaInicio) {
-        return ResponseEntity.ok(planeacionService.getPlanSemana(grupoId, fechaInicio));
+            @RequestParam("fecha_inicio") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            LocalDate fechaInicio) {
+        return ResponseEntity.ok(queries.getPlanSemana(grupoId, fechaInicio));
     }
 
     @GetMapping("/insights/{grupo_id}")
     public ResponseEntity<Map<String, Object>> insightsGrupo(
             @PathVariable("grupo_id") UUID grupoId) {
-        return ResponseEntity.ok(planeacionService.getInsightsGrupo(grupoId));
+        return ResponseEntity.ok(queries.getInsightsGrupo(grupoId));
     }
 }

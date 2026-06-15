@@ -10,14 +10,14 @@
 FROM node:22-alpine AS development
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci --legacy-peer-deps
+RUN npm install --legacy-peer-deps
 EXPOSE 4201
 CMD ["node_modules/.bin/ng", "serve", "--host", "0.0.0.0", "--port", "4201", "--disable-host-check"]
 
 FROM node:22-alpine AS builder
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci --legacy-peer-deps
+RUN npm install --legacy-peer-deps
 COPY . .
 RUN npm run build -- --configuration=production
 

@@ -1,7 +1,12 @@
 package mx.ades.modules.calificaciones;
 
-import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import mx.ades.modules.calificaciones.domain.port.in.CalcularCalificacionPeriodoUseCase;
+import mx.ades.modules.calificaciones.domain.port.in.GuardarCalificacionManualUseCase;
+import mx.ades.modules.calificaciones.domain.port.in.ObtenerBoletaUseCase;
+import mx.ades.modules.calificaciones.infrastructure.inbound.rest.dto.CalcularCalificacionDto;
+import mx.ades.modules.calificaciones.infrastructure.inbound.rest.dto.CalificacionResponseDto;
+import mx.ades.modules.calificaciones.infrastructure.inbound.rest.dto.GuardarCalificacionManualDto;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.*;
@@ -15,31 +20,34 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class CalificacionesController {
 
-    private final CalificacionesService service;
+    private final CalcularCalificacionPeriodoUseCase calcular;
+    private final GuardarCalificacionManualUseCase   guardarManual;
+    private final ObtenerBoletaUseCase               boleta;
     private final JdbcTemplate jdbc;
 
     @PostMapping("/calcular")
-    public ResponseEntity<Void> calcular(@RequestBody CalcularCalificacionRequest request) {
-        service.calcularCalificacionPeriodo(
-                request.getEstudianteId(),
-                request.getInscripcionId(),
-                request.getMateriaId(),
-                request.getPeriodoId()
-        );
+    public ResponseEntity<Void> calcular(@RequestBody CalcularCalificacionDto req) {
+        calcular.ejecutar(req.estudianteId(), req.inscripcionId(), req.materiaId(), req.periodoId());
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/manual")
-    public ResponseEntity<CalificacionesPeriodo> guardarManual(@RequestBody CalificacionesPeriodo calificacion) {
-        CalificacionesPeriodo guardada = service.guardarCalificacionManual(calificacion);
-        return ResponseEntity.ok(guardada);
+    public ResponseEntity<CalificacionResponseDto> guardarManual(
+            @RequestBody GuardarCalificacionManualDto req) {
+        return ResponseEntity.ok(
+                CalificacionResponseDto.from(guardarManual.ejecutar(req.toDomain())));
     }
 
     @GetMapping("/boleta/{estudianteId}")
-    public ResponseEntity<List<CalificacionesPeriodo>> obtenerBoleta(@PathVariable("estudianteId") UUID estudianteId) {
-        return ResponseEntity.ok(service.obtenerBoleta(estudianteId));
+    public ResponseEntity<List<CalificacionResponseDto>> obtenerBoleta(
+            @PathVariable("estudianteId") UUID estudianteId) {
+        return ResponseEntity.ok(
+                boleta.ejecutar(estudianteId).stream()
+                        .map(CalificacionResponseDto::from)
+                        .toList());
     }
 
+    // Catálogo de períodos — lectura simple, queda en controller (TIER 4 intent)
     @GetMapping("/periodos")
     public ResponseEntity<List<Map<String, Object>>> periodos(
             @RequestParam(name = "ciclo_id", required = false) UUID cicloId) {
@@ -56,13 +64,5 @@ public class CalificacionesController {
         }
         sql.append(" ORDER BY numero_periodo");
         return ResponseEntity.ok(jdbc.queryForList(sql.toString(), params));
-    }
-
-    @Data
-    public static class CalcularCalificacionRequest {
-        private UUID estudianteId;
-        private UUID inscripcionId;
-        private UUID materiaId;
-        private UUID periodoId;
     }
 }

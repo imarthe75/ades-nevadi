@@ -453,6 +453,24 @@ services:
       - ades-api
 
   # ---------------------------------------------------------------------------
+  # Portal Público de Convocatorias — portalnvd.setag.mx
+  # Angular 22 SPA servida por nginx estático
+  # ---------------------------------------------------------------------------
+  ades-portal:
+    build:
+      context: ./frontend-portal
+      dockerfile: Dockerfile
+      target: ${PORTAL_BUILD_TARGET:-production}
+    container_name: ades-portal
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:4201:80"
+    networks:
+      - ades-internal
+    depends_on:
+      - ades-bff
+
+  # ---------------------------------------------------------------------------
   # Apache Superset 6.1.0 — BI y dashboards
   # Conectado a PostgreSQL ADES directamente en Fase 1-3
   # En Fase 4 se conecta a ClickHouse vía Cube.js

@@ -1,10 +1,21 @@
 package mx.ades.modules.evaluaciones;
 
 import lombok.RequiredArgsConstructor;
+import mx.ades.modules.evaluaciones.domain.model.ItemCalificacion;
+import mx.ades.modules.evaluaciones.domain.model.TipoItem;
+import mx.ades.modules.evaluaciones.domain.port.in.CalificarMasivoUseCase;
+import mx.ades.modules.evaluaciones.domain.port.in.CrearActividadUseCase;
+import mx.ades.modules.evaluaciones.query.TareaQueryService;
+import mx.ades.security.AdesUser;
+import mx.ades.security.AdesUserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -14,7 +25,10 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class TareaController {
 
-    private final TareaService service;
+    private final CrearActividadUseCase crearActividad;
+    private final CalificarMasivoUseCase calificarMasivo;
+    private final TareaQueryService query;
+    private final AdesUserService userService;
 
     @GetMapping("/grupo/{grupo_id}")
     public ResponseEntity<List<Map<String, Object>>> actividadesDeGrupo(
@@ -22,37 +36,72 @@ public class TareaController {
             @RequestParam(value = "materia_id", required = false) UUID materiaId,
             @RequestParam(value = "periodo_id", required = false) UUID periodoId,
             @RequestParam(value = "tipo_item", required = false) String tipoItem) {
-        return ResponseEntity.ok(service.getActividadesDeGrupo(grupoId, materiaId, periodoId, tipoItem));
+        return ResponseEntity.ok(query.actividadesDeGrupo(grupoId, materiaId, periodoId, tipoItem));
+    }
+
+    public record CrearActividadRequest(
+            String titulo,
+            String descripcion,
+            UUID grupoId,
+            UUID materiaId,
+            UUID temaId,
+            UUID periodoEvaluacionId,
+            String fechaAsignacion,
+            String fechaEntrega,
+            BigDecimal puntajeMaximo,
+            String tipoItem,
+            Boolean permiteEntregaTarde,
+            String instruccionesUrl) {
     }
 
     @PostMapping
-    public ResponseEntity<Map<String, Object>> crearActividad(@RequestBody Tarea tarea) {
-        Map<String, Object> response = service.crearActividad(tarea);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    public ResponseEntity<Map<String, Object>> crearActividad(
+            @RequestBody CrearActividadRequest body,
+            @AuthenticationPrincipal Jwt jwt) {
+        AdesUser user = userService.resolveUser(jwt);
+
+        TipoItem tipo = body.tipoItem() != null
+                ? TipoItem.valueOf(body.tipoItem().toUpperCase())
+                : TipoItem.TAREA;
+
+        CrearActividadUseCase.Result result = crearActividad.ejecutar(
+                new CrearActividadUseCase.Command(
+                        body.titulo(), body.descripcion(),
+                        body.grupoId(), body.materiaId(), body.temaId(),
+                        body.periodoEvaluacionId(),
+                        body.fechaAsignacion() != null ? LocalDate.parse(body.fechaAsignacion()) : LocalDate.now(),
+                        body.fechaEntrega()   != null ? LocalDate.parse(body.fechaEntrega())   : LocalDate.now().plusDays(7),
+                        body.puntajeMaximo(),
+                        tipo,
+                        Boolean.TRUE.equals(body.permiteEntregaTarde()),
+                        body.instruccionesUrl(),
+                        user.getUsername()));
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
+                "id", result.tareaId(),
+                "slots_creados", result.slotsCreados(),
+                "message", "Actividad creada y slots generados"));
     }
 
     @GetMapping("/{actividad_id}/entregas")
     public ResponseEntity<List<Map<String, Object>>> entregasDeActividad(
             @PathVariable("actividad_id") UUID actividadId) {
-        return ResponseEntity.ok(service.getEntregasDeActividad(actividadId));
+        return ResponseEntity.ok(query.entregasDeActividad(actividadId));
     }
 
-    public record CalificarMasivoRequest(
-            List<TareaService.CalificarMasivoItem> items
-    ) {}
+    public record CalificarMasivoRequest(List<ItemCalificacion> items) {
+    }
 
     @PatchMapping("/{actividad_id}/calificar-masivo")
     public ResponseEntity<Map<String, Object>> calificarMasivo(
             @PathVariable("actividad_id") UUID actividadId,
-            @RequestBody CalificarMasivoRequest request) {
-        // Authenticated user ID resolution logic. For simplicity, we query ades_usuarios.id in service but we need oidcSub.
-        // Let's resolve the user from db using Spring context sub inside controller or pass it down.
-        // For local development or mock, we can fetch from SecurityContext or default. Let's do it cleanly:
-        String principalSub = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
-        UUID userId = service.getJdbcTemplate().queryForObject(
-                "SELECT id FROM ades_usuarios WHERE oidc_sub = ?", UUID.class, principalSub);
+            @RequestBody CalificarMasivoRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        AdesUser user = userService.resolveUser(jwt);
 
-        int actualizados = service.calificarMasivo(actividadId, request.items(), userId);
+        int actualizados = calificarMasivo.ejecutar(
+                new CalificarMasivoUseCase.Command(actividadId, request.items(), user.getPersonaId()));
+
         return ResponseEntity.ok(Map.of("actualizados", actualizados));
     }
 }

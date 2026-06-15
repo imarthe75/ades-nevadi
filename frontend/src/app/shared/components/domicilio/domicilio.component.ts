@@ -742,7 +742,9 @@ export class DomicilioComponent implements OnChanges {
   abrirNuevoContacto(): void {
     this.contactoEdit = {
       medio: 'CELULAR', tipo: 'PERSONAL',
-      valor: '', etiqueta: '', es_principal: false, notas: '',
+      valor: '', etiqueta: '',
+      es_principal: this.contactos().length === 0, // auto-principal si es el primero
+      notas: '',
     };
     this.editandoContacto.set(true);
   }
@@ -759,6 +761,36 @@ export class DomicilioComponent implements OnChanges {
 
   guardarContacto(): void {
     if (!this.personaId) return;
+
+    const valor = (this.contactoEdit.valor ?? '').trim();
+    const medio = this.contactoEdit.medio ?? '';
+
+    if (!valor) {
+      this.msg.add({ severity: 'warn', summary: 'Campo requerido', detail: 'Ingresa el valor del medio de contacto' });
+      return;
+    }
+
+    if (medio === 'EMAIL') {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+      if (!emailRegex.test(valor)) {
+        this.msg.add({ severity: 'warn', summary: 'Email inválido', detail: 'Ingresa un correo electrónico válido (ej: nombre@dominio.com)' });
+        return;
+      }
+    } else if (['CELULAR', 'FIJO', 'WHATSAPP'].includes(medio)) {
+      const digitosRegex = /^\d{10}$/;
+      const soloDigitos = valor.replace(/[\s\-\(\)]/g, '');
+      if (!digitosRegex.test(soloDigitos)) {
+        this.msg.add({ severity: 'warn', summary: 'Teléfono inválido', detail: 'El número debe tener exactamente 10 dígitos' });
+        return;
+      }
+      this.contactoEdit.valor = soloDigitos; // normalizar
+    }
+
+    // Auto-principal si es el único registro
+    if (this.contactos().length === 0) {
+      this.contactoEdit.es_principal = true;
+    }
+
     this.savingContacto.set(true);
     const isNew = !this.contactoEdit.id;
     const payload = { ...this.contactoEdit, persona_id: this.personaId };
