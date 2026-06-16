@@ -1,0 +1,122 @@
+# Queries personalizadas para postgres_exporter — ADES
+# Métricas de dominio escolar además de las métricas estándar de PostgreSQL
+
+pg_ades_table_sizes:
+  query: |
+    SELECT relname as table_name,
+           pg_total_relation_size(c.oid) AS size_bytes,
+           n_live_tup AS live_rows,
+           n_dead_tup AS dead_rows
+    FROM pg_class c
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    LEFT JOIN pg_stat_user_tables s ON s.relid = c.oid
+    WHERE n.nspname = 'public' AND c.relkind = 'r'
+    ORDER BY pg_total_relation_size(c.oid) DESC
+    LIMIT 20
+  metrics:
+    - table_name:
+        usage: LABEL
+        description: "Nombre de tabla"
+    - size_bytes:
+        usage: GAUGE
+        description: "Tamaño total de la tabla incluyendo índices (bytes)"
+    - live_rows:
+        usage: GAUGE
+        description: "Filas vivas estimadas"
+    - dead_rows:
+        usage: GAUGE
+        description: "Filas muertas (pendientes de VACUUM)"
+
+pg_ades_connection_states:
+  query: |
+    SELECT state, count(*) AS count
+    FROM pg_stat_activity
+    WHERE datname = 'ades'
+    GROUP BY state
+  metrics:
+    - state:
+        usage: LABEL
+        description: "Estado de la conexión"
+    - count:
+        usage: GAUGE
+        description: "Número de conexiones en este estado"
+
+pg_ades_long_queries:
+  query: |
+    SELECT count(*) AS count,
+           coalesce(max(extract(epoch from (now() - query_start))), 0) AS max_duration_seconds
+    FROM pg_stat_activity
+    WHERE datname = 'ades'
+      AND state = 'active'
+      AND query_start < now() - interval '5 seconds'
+      AND query NOT LIKE '%pg_stat_activity%'
+  metrics:
+    - count:
+        usage: GAUGE
+        description: "Queries activas corriendo > 5s"
+    - max_duration_seconds:
+        usage: GAUGE
+        description: "Duración máxima de query larga (segundos)"
+
+pg_ades_index_usage:
+  query: |
+    SELECT schemaname, tablename,
+           round(100.0 * idx_scan / nullif(seq_scan + idx_scan, 0), 1) AS index_usage_pct,
+           seq_scan, idx_scan
+    FROM pg_stat_user_tables
+    WHERE schemaname = 'public'
+      AND (seq_scan + idx_scan) > 100
+    ORDER BY seq_scan DESC
+    LIMIT 10
+  metrics:
+    - schemaname:
+        usage: LABEL
+        description: Schema
+    - tablename:
+        usage: LABEL
+        description: Tabla
+    - index_usage_pct:
+        usage: GAUGE
+        description: "% de accesos via índice"
+    - seq_scan:
+        usage: COUNTER
+        description: "Sequential scans totales"
+    - idx_scan:
+        usage: COUNTER
+        description: "Index scans totales"
+
+pg_ades_bloat_estimate:
+  query: |
+    SELECT schemaname, tablename,
+           n_dead_tup,
+           n_live_tup,
+           round(100.0 * n_dead_tup / nullif(n_live_tup + n_dead_tup, 0), 1) AS dead_pct
+    FROM pg_stat_user_tables
+    WHERE schemaname = 'public'
+      AND n_dead_tup > 1000
+    ORDER BY dead_pct DESC
+    LIMIT 10
+  metrics:
+    - schemaname:
+        usage: LABEL
+    - tablename:
+        usage: LABEL
+    - n_dead_tup:
+        usage: GAUGE
+        description: "Filas muertas"
+    - n_live_tup:
+        usage: GAUGE
+        description: "Filas vivas"
+    - dead_pct:
+        usage: GAUGE
+        description: "% filas muertas (bloat)"
+
+pg_ades_cache_hit:
+  query: |
+    SELECT sum(heap_blks_hit) / nullif(sum(heap_blks_hit) + sum(heap_blks_read), 0) * 100 AS cache_hit_pct
+    FROM pg_statio_user_tables
+    WHERE schemaname = 'public'
+  metrics:
+    - cache_hit_pct:
+        usage: GAUGE
+        description: "% de lecturas servidas desde cache (shared_buffers)"

@@ -297,6 +297,8 @@ services:
       BASE_URL:            ${BASE_URL:-https://ades.setag.mx}
       VAULT_ADDR:          http://ades-vault:8200
       MINIO_SECURE:        "false"
+      # PgBouncer — asyncpg deshabilita prepared statements vía connect_args en database.py
+      DATABASE_URL:        postgresql+asyncpg://${POSTGRES_USER:-ades_admin}:${POSTGRES_PASSWORD}@ades-pgbouncer:6432/ades
     volumes:
       - ./backend:/app:cached     # hot-reload en desarrollo
       - vault-init:/vault/init:ro
@@ -305,7 +307,7 @@ services:
     networks:
       - ades-internal
     depends_on:
-      postgres:
+      pgbouncer:
         condition: service_healthy
       valkey:
         condition: service_healthy
@@ -333,6 +335,10 @@ services:
     environment:
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://authentik-server:9000/application/o/ades-frontend/jwks/
       VAULT_ADDR:                  http://ades-vault:8200
+      # PgBouncer transaction mode — prepareThreshold=0 deshabilita prepared statements JDBC
+      SPRING_DATASOURCE_URL:       jdbc:postgresql://ades-pgbouncer:6432/ades?prepareThreshold=0
+      SPRING_DATASOURCE_USERNAME:  ${POSTGRES_USER:-ades_admin}
+      SPRING_DATASOURCE_PASSWORD:  ${POSTGRES_PASSWORD}
     volumes:
       - vault-init:/vault/init:ro
       - ./assets:/srv/assets          # imágenes públicas de convocatorias (rw para uploads)
@@ -341,7 +347,7 @@ services:
     networks:
       - ades-internal
     depends_on:
-      postgres:
+      pgbouncer:
         condition: service_healthy
       valkey:
         condition: service_healthy
@@ -671,6 +677,7 @@ services:
       - '--web.enable-lifecycle'
     volumes:
       - ./infrastructure/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./infrastructure/prometheus/rules:/etc/prometheus/rules:ro
       - prometheus-data:/prometheus
     ports:
       - "127.0.0.1:9090:9090"
@@ -835,6 +842,97 @@ services:
       resources:
         limits:
           memory: 1G
+
+  # ---------------------------------------------------------------------------
+  # PgBouncer — connection pooling para PostgreSQL
+  # SPRINT 5: Reduce conexiones directas; transaction mode; puerto 6432
+  # FastAPI y Spring Boot BFF apuntan aquí en lugar de postgres:5432
+  # ---------------------------------------------------------------------------
+  pgbouncer:
+    image: edoburu/pgbouncer:latest
+    container_name: ades-pgbouncer
+    restart: unless-stopped
+    environment:
+      DB_HOST:            ades-postgres
+      DB_PORT:            5432
+      DB_NAME:            ades
+      DB_USER:            ${POSTGRES_USER:-ades_admin}
+      DB_PASSWORD:        ${POSTGRES_PASSWORD}
+      POOL_MODE:          transaction
+      MAX_CLIENT_CONN:    500
+      DEFAULT_POOL_SIZE:  25
+      MIN_POOL_SIZE:      5
+      RESERVE_POOL_SIZE:  5
+      MAX_DB_CONNECTIONS: 80
+      AUTH_TYPE:          md5
+      SERVER_RESET_QUERY: DISCARD ALL
+      IGNORE_STARTUP_PARAMETERS: extra_float_digits,search_path
+      ADMIN_USERS:        ${POSTGRES_USER:-ades_admin}
+    ports:
+      - "127.0.0.1:6432:5432"
+    networks:
+      - ades-internal
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h localhost -p 5432 -U ${POSTGRES_USER:-ades_admin} || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+
+  # ---------------------------------------------------------------------------
+  # postgres_exporter — métricas PostgreSQL para Prometheus
+  # SPRINT 5: expone pg_stat_*, conexiones, tamaño tablas, bloat
+  # Scrapeado por Prometheus en job "postgresql"
+  # ---------------------------------------------------------------------------
+  postgres-exporter:
+    image: quay.io/prometheuscommunity/postgres-exporter:latest
+    container_name: ades-postgres-exporter
+    restart: unless-stopped
+    environment:
+      DATA_SOURCE_NAME: postgresql://${POSTGRES_USER:-ades_admin}:${POSTGRES_PASSWORD}@ades-postgres:5432/ades?sslmode=disable
+      PG_EXPORTER_EXTEND_QUERY_PATH: /etc/postgres_exporter/queries.yml
+    volumes:
+      - ./infrastructure/postgres_exporter/queries.yml:/etc/postgres_exporter/queries.yml:ro
+    ports:
+      - "127.0.0.1:9187:9187"
+    networks:
+      - ades-internal
+    depends_on:
+      postgres:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+
+  # ---------------------------------------------------------------------------
+  # pgbouncer_exporter — métricas PgBouncer para Prometheus
+  # SPRINT 5: pool saturation, wait time, query rates desde SHOW STATS
+  # Scrapeado por Prometheus en job "pgbouncer"
+  # ---------------------------------------------------------------------------
+  pgbouncer-exporter:
+    image: prometheuscommunity/pgbouncer-exporter:latest
+    container_name: ades-pgbouncer-exporter
+    restart: unless-stopped
+    environment:
+      PGBOUNCER_EXPORTER_CONNECTION_STRING: postgres://${POSTGRES_USER:-ades_admin}:${POSTGRES_PASSWORD}@ades-pgbouncer:5432/pgbouncer?sslmode=disable
+    ports:
+      - "127.0.0.1:9127:9127"
+    networks:
+      - ades-internal
+    depends_on:
+      pgbouncer:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 32M
 
   # ---------------------------------------------------------------------------
   # Nginx — reverse proxy y gateway principal

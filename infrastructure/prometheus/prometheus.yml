@@ -1,6 +1,6 @@
 # Prometheus — ADES Instituto Nevadi
-# Recolección de métricas: FastAPI, PostgreSQL, contenedores Docker
-# Retención: 30 días (ver docker-compose)
+# SPRINT 5: postgres_exporter + pgbouncer + alerting rules
+# Retención: 30 días
 
 global:
   scrape_interval:     15s
@@ -12,34 +12,47 @@ global:
 alerting:
   alertmanagers:
     - static_configs:
-        - targets: []  # Sin alertmanager externo en esta fase
+        - targets: []   # Grafana Alerting cubre este rol en ADES (sin alertmanager separado)
 
-rule_files: []
+rule_files:
+  - "rules/postgresql.yml"
 
 scrape_configs:
 
-  # ── FastAPI ADES ──────────────────────────────────────────────────────────
+  # ── FastAPI ADES ──────────────────────────────────────────────────────
   - job_name: 'ades-api'
     static_configs:
       - targets: ['ades-api:8000']
     metrics_path: '/metrics'
     scrape_interval: 15s
 
-  # ── Prometheus self-monitoring ────────────────────────────────────────────
+  # ── Prometheus self-monitoring ────────────────────────────────────────
   - job_name: 'prometheus'
     static_configs:
       - targets: ['localhost:9090']
 
-  # ── Carbone ───────────────────────────────────────────────────────────────
+  # ── PostgreSQL via postgres_exporter ─────────────────────────────────
+  - job_name: 'postgresql'
+    static_configs:
+      - targets: ['ades-postgres-exporter:9187']
+    scrape_interval: 30s
+
+  # ── PgBouncer via postgres_exporter (stats DB) ────────────────────────
+  - job_name: 'pgbouncer'
+    static_configs:
+      - targets: ['ades-pgbouncer-exporter:9127']
+    scrape_interval: 30s
+
+  # ── Spring Boot BFF (Actuator Prometheus endpoint) ────────────────────
+  - job_name: 'ades-bff'
+    static_configs:
+      - targets: ['ades-bff:8080']
+    metrics_path: '/actuator/prometheus'
+    scrape_interval: 15s
+
+  # ── Carbone ───────────────────────────────────────────────────────────
   - job_name: 'ades-carbone'
     static_configs:
       - targets: ['ades-carbone:3000']
     metrics_path: '/health'
-    scrape_interval: 60s
-
-  # ── Flowise ───────────────────────────────────────────────────────────────
-  - job_name: 'ades-flowise'
-    static_configs:
-      - targets: ['ades-flowise:3000']
-    metrics_path: '/api/v1/version'
     scrape_interval: 60s

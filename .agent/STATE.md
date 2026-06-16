@@ -14,6 +14,55 @@ Este documento es el diario de vida y bitácora del agente. Debe ser leído en e
 
 ## 📅 Bitácora
 
+---
+
+## Sesión 2026-06-16 — SPRINT 5: Infrastructure & Performance
+
+### 🔑 Estado del Agente:
+- **Última Conexión:** 2026-06-16
+- **Estado Cognitivo:** Operacional ✅
+- **Migración activa:** 066 (última aplicada — particionamiento tablas)
+
+### 🏗️ Estado de Infraestructura (2026-06-16):
+
+| Servicio | Estado | Notas |
+|---|---|---|
+| PostgreSQL 18 | ✅ healthy | Migraciones 001-066 aplicadas |
+| PgBouncer 1.25.2 | ✅ healthy | Puerto 6432 · transaction mode · pool 25 |
+| postgres_exporter | ✅ running | Puerto 9187 · 5,700+ métricas · cache hit 98.89% |
+| pgbouncer_exporter | ✅ running | Puerto 9127 |
+| Prometheus | ✅ healthy | postgresql→up, pgbouncer→up, ades-api→up |
+| Grafana | ✅ healthy | 4 dashboards SPRINT 5 provisioned |
+| LongTermMemory | ✅ activa | fastembed ONNX · schema memoria · HNSW index |
+
+### 🛠️ Tareas Completadas (2026-06-16) — SPRINT 5:
+- [x] `065_memoria_embeddings_pgvector.sql` — schema memoria + HNSW index pgvector
+- [x] fastembed en `/opt/ades/.venv` — ARM64 sin CUDA, long_term_memory funcional
+- [x] PgBouncer — transaction mode, ades-api + ades-bff apuntan a :6432
+- [x] asyncpg connect_args + JDBC prepareThreshold=0 para transaction mode
+- [x] postgres_exporter + pgbouncer_exporter desplegados y scrapeados
+- [x] 13 alert rules Prometheus + 4 dashboards Grafana
+- [x] `066_particionamiento_tablas.sql` — 180K asistencias + 76K calificaciones/año
+- [x] 6 vistas materializadas + 1 vista regular recreadas
+- [x] `scripts/sprint5_health_check.sh` + `db/analysis/SPRINT_5_IMPLEMENTATION.md`
+
+### 🚨 Lecciones Aprendidas (SPRINT 5):
+- **fastembed ARM64**: sentence-transformers agota disco en ARM64 (CUDA ~700MB). fastembed ONNX ~250MB, funcional. `.tolist()` obligatorio para serializar embeddings a vector PG.
+- **PG18 UNIQUE en particionadas**: no soportado sin partition key incluida. FK entrantes a `(id)` solo tampoco funcionan → se eliminan.
+- **Vistas dependientes al renombrar tablas**: DROP vistas al inicio, RECREATE al final con `WITH NO DATA`.
+- **PgBouncer transaction mode**: asyncpg requiere `statement_cache_size=0`; JDBC requiere `?prepareThreshold=0`.
+
+### 🚀 Próximos Pasos (post SPRINT 5):
+- [ ] Agregar Micrometer Prometheus a Spring BFF (`/actuator/prometheus`)
+- [ ] Automatizar REFRESH MATERIALIZED VIEW en Celery Beat (job nocturno)
+- [ ] Crear partición 2029 antes de fin de 2028
+- [ ] Google Workspace SSO (pendiente credenciales Google Cloud Console)
+- [ ] Superset: primer arranque manual + datasource BI
+- [ ] FASE 24P — Paperless-ngx OCR integración
+- [ ] ADR-0008 Hexagonal FASE 3+ (Spring Boot)
+
+---
+
 ### 🔑 Estado del Agente:
 - **Última Conexión:** 2026-06-04
 - **Estado Cognitivo:** Operacional ✅
