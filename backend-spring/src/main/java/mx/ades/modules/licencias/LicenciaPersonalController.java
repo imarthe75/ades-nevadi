@@ -28,7 +28,7 @@ public class LicenciaPersonalController {
 
     private final AdesUserService            userService;
     private final SolicitarLicenciaUseCase   solicitar;
-    private final ResolverLicenciaUseCase    resolver;
+    private final ResolverLicenciaUseCase    resolverLicencia;
     private final LicenciaApplicationService service;
     private final LicenciaRepositoryPort     repo;
 
@@ -103,7 +103,7 @@ public class LicenciaPersonalController {
         var cmd = new ResolverLicenciaUseCase.Command(
                 id, ResolverLicenciaUseCase.Accion.APROBAR, observaciones,
                 user.getId(), user.getUsername(), nivel);
-        resolver.resolver(cmd);
+        resolverLicencia.resolver(cmd);
         return ResponseEntity.ok(Map.of("ok", true));
     }
 
@@ -117,7 +117,7 @@ public class LicenciaPersonalController {
         var cmd = new ResolverLicenciaUseCase.Command(
                 id, ResolverLicenciaUseCase.Accion.RECHAZAR, motivoRechazo,
                 user.getId(), user.getUsername(), nivel);
-        resolver.resolver(cmd);
+        resolverLicencia.resolver(cmd);
         return ResponseEntity.ok(Map.of("ok", true));
     }
 

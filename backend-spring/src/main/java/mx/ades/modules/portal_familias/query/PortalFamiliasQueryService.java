@@ -19,7 +19,7 @@ public class PortalFamiliasQueryService {
                 "ta.es_responsable_economico, ta.es_contacto_emergencia, " +
                 "ta.nivel_acceso_portal, ta.is_active, " +
                 "p.nombre, p.apellido_paterno, p.apellido_materno, " +
-                "p.telefono_principal, p.email " +
+                "p.telefono, p.email_personal " +
                 "FROM ades_tutores_alumnos ta " +
                 "JOIN ades_personas p ON p.id = ta.persona_id " +
                 "WHERE ta.alumno_id = ? AND ta.is_active = TRUE " +

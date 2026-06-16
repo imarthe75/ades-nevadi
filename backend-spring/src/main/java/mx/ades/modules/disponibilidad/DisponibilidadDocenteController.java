@@ -25,7 +25,7 @@ import java.util.UUID;
 public class DisponibilidadDocenteController {
 
     private final AdesUserService           userService;
-    private final GuardarDisponibilidadUseCase guardar;
+    private final GuardarDisponibilidadUseCase guardarDisponibilidad;
     private final EliminarSlotUseCase       eliminarSlot;
     private final DisponibilidadQueryService query;
 
@@ -71,7 +71,7 @@ public class DisponibilidadDocenteController {
         var cmd = new GuardarDisponibilidadUseCase.Command(
                 profesorId, data.getCicloEscolarId(), slots,
                 data.getHorasSemanaMax(), data.getHorasFrenteGrupo(), user.getUsername());
-        guardar.guardar(cmd);
+        guardarDisponibilidad.guardar(cmd);
         return ResponseEntity.ok(Map.of("detail", slots.size() + " slots guardados para docente " + profesorId));
     }
 

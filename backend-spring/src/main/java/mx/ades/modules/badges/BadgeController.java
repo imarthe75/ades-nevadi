@@ -29,10 +29,10 @@ import java.util.UUID;
 public class BadgeController {
 
     private final AdesUserService         userService;
-    private final CrearBadgeUseCase       crear;
-    private final OtorgarBadgeUseCase     otorgar;
-    private final RevocarBadgeUseCase     revocar;
-    private final AutoEvaluarBadgesUseCase autoEvaluar;
+    private final CrearBadgeUseCase       crearBadge;
+    private final OtorgarBadgeUseCase     otorgarBadge;
+    private final RevocarBadgeUseCase     revocarBadge;
+    private final AutoEvaluarBadgesUseCase autoEvaluarBadges;
     private final BadgeApplicationService service;
     private final BadgeQueryService       query;
 
@@ -74,7 +74,7 @@ public class BadgeController {
                 TipoBadge.of(body.getTipo()),
                 CriterioTipo.of(body.getCriterioTipo()),
                 body.getCriterioMetrica(), valor, body.getPlantelId());
-        UUID id = crear.crear(cmd);
+        UUID id = crearBadge.crear(cmd);
         return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("id", id));
     }
 
@@ -107,7 +107,7 @@ public class BadgeController {
         AdesUser user = userService.resolveUser(jwt);
         var cmd = new OtorgarBadgeUseCase.Command(
                 badgeId, body.getEstudianteId(), body.getCicloId(), body.getMotivo(), user.getId());
-        boolean nuevo = otorgar.otorgar(cmd);
+        boolean nuevo = otorgarBadge.otorgar(cmd);
         return ResponseEntity.ok(nuevo ? Map.of("ok", true) : Map.of("ok", true, "duplicado", true));
     }
 
@@ -116,7 +116,7 @@ public class BadgeController {
             @PathVariable("badgeId") UUID badgeId,
             @PathVariable("estudianteId") UUID estudianteId,
             @RequestParam(value = "ciclo_id", required = false) UUID cicloId) {
-        revocar.revocar(badgeId, estudianteId, cicloId);
+        revocarBadge.revocar(badgeId, estudianteId, cicloId);
         return ResponseEntity.ok(Map.of("ok", true));
     }
 
@@ -125,7 +125,7 @@ public class BadgeController {
             @PathVariable("cicloId") UUID cicloId,
             @AuthenticationPrincipal Jwt jwt) {
         userService.resolveUser(jwt);
-        AutoEvaluarBadgesUseCase.Result result = autoEvaluar.autoEvaluar(cicloId);
+        AutoEvaluarBadgesUseCase.Result result = autoEvaluarBadges.autoEvaluar(cicloId);
         return ResponseEntity.ok(Map.of(
                 "ok", true,
                 "total_otorgados", result.totalOtorgados(),

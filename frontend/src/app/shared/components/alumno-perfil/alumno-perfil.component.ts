@@ -680,6 +680,8 @@ export class AlumnoPerfilComponent implements OnInit, OnChanges {
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['alumno'] && this.alumno) {
+      this.editandoContacto.set(false);
+      this.contactoEdit = {};
       this.initForm();
       this.cargarContactos();
       this.cargarExpedienteMedico();

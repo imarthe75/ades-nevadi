@@ -29,7 +29,7 @@ public class MovilidadController {
     private final AdesUserService userService;
     private final MovilidadQueryService queryService;
     private final RegistrarCambioGrupoUseCase registrarCambioGrupo;
-    private final RegistrarBajaUseCase registrarBaja;
+    private final RegistrarBajaUseCase registrarBajaMovilidad;
     private final MovilidadRepositoryPort movilidadRepository;
 
     // ── Request DTOs ─────────────────────────────────────────────────────────
@@ -108,7 +108,7 @@ public class MovilidadController {
         AdesUser user = userService.resolveUser(jwt);
         requireAcceso(user, TipoMovilidad.TRASLADO);
 
-        var result = registrarBaja.ejecutar(new RegistrarBajaUseCase.Command(
+        var result = registrarBajaMovilidad.ejecutar(new RegistrarBajaUseCase.Command(
                 estudianteId, TipoMovilidad.TRASLADO, body.getMotivo(),
                 null, null,
                 body.getPlantelDestinoNombre(), body.getClaveCtDestino(), null,
@@ -127,7 +127,7 @@ public class MovilidadController {
         AdesUser user = userService.resolveUser(jwt);
         requireAcceso(user, TipoMovilidad.BAJA_TEMPORAL);
 
-        var result = registrarBaja.ejecutar(new RegistrarBajaUseCase.Command(
+        var result = registrarBajaMovilidad.ejecutar(new RegistrarBajaUseCase.Command(
                 estudianteId, TipoMovilidad.BAJA_TEMPORAL, body.getMotivo(),
                 body.getFechaEfectiva(), body.getFechaReingreso(),
                 null, null, body.getObservaciones(),
@@ -149,7 +149,7 @@ public class MovilidadController {
         AdesUser user = userService.resolveUser(jwt);
         requireAcceso(user, TipoMovilidad.BAJA_DEFINITIVA);
 
-        var result = registrarBaja.ejecutar(new RegistrarBajaUseCase.Command(
+        var result = registrarBajaMovilidad.ejecutar(new RegistrarBajaUseCase.Command(
                 estudianteId, TipoMovilidad.BAJA_DEFINITIVA, body.getMotivo(),
                 body.getFechaEfectiva(), null,
                 body.getPlantelDestino(), body.getClaveCtDestino(), body.getObservaciones(),

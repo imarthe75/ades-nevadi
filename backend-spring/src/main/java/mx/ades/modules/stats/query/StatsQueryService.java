@@ -35,7 +35,9 @@ public class StatsQueryService {
                WHERE fecha_clase = CURRENT_DATE)                             AS total_clases_hoy
             """;
 
-        return namedJdbc.queryForMap(sql, new MapSqlParameterSource("plantelId", plantelId));
+        var params = new MapSqlParameterSource();
+        params.addValue("plantelId", plantelId, java.sql.Types.OTHER);
+        return namedJdbc.queryForMap(sql, params);
     }
 
     public List<Map<String, Object>> distribucion(UUID plantelId) {
@@ -55,7 +57,9 @@ public class StatsQueryService {
             ORDER BY n.nombre_nivel
             """;
 
-        return namedJdbc.queryForList(sql, new MapSqlParameterSource("plantelId", plantelId));
+        var params2 = new MapSqlParameterSource();
+        params2.addValue("plantelId", plantelId, java.sql.Types.OTHER);
+        return namedJdbc.queryForList(sql, params2);
     }
 
     public long databaseSizeBytes() {

@@ -28,8 +28,8 @@ import java.util.UUID;
 public class CapacitacionDocenteController {
 
     private final AdesUserService               userService;
-    private final RegistrarCapacitacionUseCase  registrar;
-    private final ValidarCapacitacionUseCase    validar;
+    private final RegistrarCapacitacionUseCase  registrarCapacitacion;
+    private final ValidarCapacitacionUseCase    validarCapacitacion;
     private final CapacitacionApplicationService service;
     private final CapacitacionRepositoryPort    repo;
 
@@ -64,7 +64,7 @@ public class CapacitacionDocenteController {
                 body.getCertificadoUrl(),
                 user.getUsername()
         );
-        UUID id = registrar.registrar(cmd);
+        UUID id = registrarCapacitacion.registrar(cmd);
         return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("id", id));
     }
 
@@ -141,7 +141,7 @@ public class CapacitacionDocenteController {
         int nivel = user.getNivelAcceso() != null ? user.getNivelAcceso() : 5;
         var cmd = new ValidarCapacitacionUseCase.Command(
                 id, user.getId(), user.getUsername(), nivel);
-        validar.validar(cmd);
+        validarCapacitacion.validar(cmd);
         return ResponseEntity.ok(Map.of("ok", true));
     }
 

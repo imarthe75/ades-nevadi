@@ -335,8 +335,7 @@ services:
     environment:
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://authentik-server:9000/application/o/ades-frontend/jwks/
       VAULT_ADDR:                  http://ades-vault:8200
-      # PgBouncer transaction mode — prepareThreshold=0 deshabilita prepared statements JDBC
-      SPRING_DATASOURCE_URL:       jdbc:postgresql://ades-pgbouncer:6432/ades?prepareThreshold=0
+      SPRING_DATASOURCE_URL:       jdbc:postgresql://ades-postgres:5432/ades
       SPRING_DATASOURCE_USERNAME:  ${POSTGRES_USER:-ades_admin}
       SPRING_DATASOURCE_PASSWORD:  ${POSTGRES_PASSWORD}
     volumes:
