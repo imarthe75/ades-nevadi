@@ -1,4 +1,0 @@
--------------------------------------------------------------------------------
-Test set: mx.ades.modules.comunicados.ComunicadoDomainTest
--------------------------------------------------------------------------------
-Tests run: 11, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.080 s -- in mx.ades.modules.comunicados.ComunicadoDomainTest

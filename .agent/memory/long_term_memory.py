@@ -1,29 +1,33 @@
 import json
-import hashlib
+import os
 from datetime import datetime
 from typing import List, Dict, Any, Optional
 import psycopg2
 from psycopg2.extras import RealDictCursor
-from sentence_transformers import SentenceTransformer
-import numpy as np
+from fastembed import TextEmbedding
+
+_DSN_DEFAULT = os.environ.get(
+    "ADES_MEMORIA_DSN",
+    f"postgresql://ades_admin:{os.environ.get('POSTGRES_PASSWORD', 'ades_admin')}@localhost:5432/ades"
+)
 
 class LongTermMemory:
     """
-    Memoria a largo plazo basada en embeddings en PostgreSQL.
+    Memoria a largo plazo basada en embeddings en PostgreSQL (pgvector).
     Persiste lecciones, decisiones y patrones arquitectónicos.
+    Modelo: all-MiniLM-L6-v2 vía fastembed (ONNX, 384 dims, sin CUDA).
     """
-    
-    def __init__(self, dsn: str = "postgresql://user:password@localhost:5432/ades"):
+
+    def __init__(self, dsn: str = _DSN_DEFAULT):
         self.dsn = dsn
-        self.model = SentenceTransformer("all-MiniLM-L6-v2")
-        
+        self.model = TextEmbedding("sentence-transformers/all-MiniLM-L6-v2")
+
     def _connect(self):
-        """Conecta a PostgreSQL."""
         return psycopg2.connect(self.dsn)
-    
+
     def _get_embedding(self, text: str) -> List[float]:
-        """Calcula embedding usando SentenceTransformer."""
-        return self.model.encode(text, convert_to_numpy=True).tolist()
+        """Calcula embedding 384-dim con fastembed (ONNX, CPU). Retorna Python floats nativos."""
+        return next(iter(self.model.embed([text]))).tolist()
     
     def store_leccion(
         self, 
@@ -51,22 +55,22 @@ class LongTermMemory:
             embedding = self._get_embedding(contenido)
             
             sql = """
-            INSERT INTO memoria.embeddings 
+            INSERT INTO memoria.embeddings
             (tipo, contenido, vector, metadata, relevancia_score)
-            VALUES (%s, %s, %s, %s, %s)
+            VALUES (%s, %s, %s::vector, %s, %s)
             RETURNING id;
             """
-            
+
             meta = {
                 "titulo": titulo,
                 "categoria": categoria,
                 **(metadata or {})
             }
-            
+
             cur.execute(sql, (
                 "leccion",
                 contenido,
-                embedding,  # pgvector lo convierte automáticamente
+                str(embedding),  # str([...]) → '[0.1, 0.2, ...]' formato pgvector
                 json.dumps(meta),
                 0.7
             ))
@@ -105,10 +109,10 @@ class LongTermMemory:
             conn = self._connect()
             cur = conn.cursor(cursor_factory=RealDictCursor)
             
-            query_embedding = self._get_embedding(query)
-            
+            query_embedding = str(self._get_embedding(query))
+
             sql = """
-            SELECT 
+            SELECT
                 id,
                 contenido,
                 metadata,
@@ -118,7 +122,7 @@ class LongTermMemory:
             ORDER BY vector <=> %s::vector
             LIMIT %s;
             """
-            
+
             cur.execute(sql, (query_embedding, tipo, query_embedding, limit))
             resultados = cur.fetchall()
             

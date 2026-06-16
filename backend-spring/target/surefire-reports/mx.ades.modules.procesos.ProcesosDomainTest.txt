@@ -1,4 +1,0 @@
--------------------------------------------------------------------------------
-Test set: mx.ades.modules.procesos.ProcesosDomainTest
--------------------------------------------------------------------------------
-Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.013 s -- in mx.ades.modules.procesos.ProcesosDomainTest

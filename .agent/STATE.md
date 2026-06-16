@@ -106,7 +106,7 @@ Este documento es el diario de vida y bitácora del agente. Debe ser leído en e
 - [x] **Endpoint `GET /ai/alertas/resumen`** — conteo de alertas agrupado por tipo/nivel.
 - [x] **LearningPathsComponent** — KPI strip (1297 alertas), botón ✨ en tabla, dialog IA con análisis (resumen, fortalezas, áreas, estrategias, recursos priorizados, frase motivacional).
 - [x] **Fix severity** — `severity="warning"` → `severity="warn"` en certificados.component.ts.
-- [PENDIENTE] `NVIDIA_NIM_API_KEY` en `.env` — necesario para que el endpoint IA funcione (usa NVIDIA NIM, NO Anthropic directo).
+- [x] `OPENAI_API_KEY` en `.env` — ya configurado para conectar con NVIDIA NIM / `integrate.api.nvidia.com`.
 
 ### 🚨 Lecciones Aprendidas (FASE 4B):
 - **`ades_asistencias` no tiene columna `fecha`** — la fecha de la asistencia está en `ades_clases.fecha_clase` via `clase_id`.
@@ -194,7 +194,7 @@ Este documento es el diario de vida y bitácora del agente. Debe ser leído en e
 **Deployments:** ades-api + ades-frontend rebuilded + running
 
 ### 🚀 Próximos Pasos:
-- [ ] Configurar `NVIDIA_NIM_API_KEY` en `.env` para activar recomendaciones IA (NVIDIA NIM).
+- [x] `OPENAI_API_KEY` en `.env` para activar recomendaciones IA (NVIDIA NIM).
 - [ ] FASE 5B — Anclaje Polygon PoS blockchain.
 - [ ] FASE 24P — Paperless-ngx OCR expedientes.
 - [ ] Setup Authentik: cambiar contraseña akadmin, crear app OIDC ades-frontend.
@@ -960,7 +960,7 @@ Actualmente, el backend BFF de Spring Boot ya maneja la mayoría de los módulos
 - [x] **Respaldo y Limpieza de FastAPI**: Respaldado el directorio de endpoints en `backend_api_v1_backup.tar.gz` y removidos los controladores ya migrados a Spring Boot BFF.
 
 ### 🚀 Próximos Pasos:
-- [ ] Configurar `NVIDIA_NIM_API_KEY` en `.env` (o cargarlo en Vault) para recomendaciones IA (NVIDIA NIM).
+- [x] Configurar `OPENAI_API_KEY` en `.env` (o cargarlo en Vault) para recomendaciones IA (NVIDIA NIM).
 - [ ] FASE 34 — Integraciones SEP y Documentación ZIP.
 - [ ] FASE 35 — Cierre de Ciclo Escolar e Indicadores de Uso.
 
@@ -978,7 +978,7 @@ Actualmente, el backend BFF de Spring Boot ya maneja la mayoría de los módulos
 
 | Servicio | Estado | Notas |
 |---|---|---|
-| PostgreSQL 18 + pgvector | ✅ healthy | 90+ tablas, mig 001-063 aplicadas |
+| PostgreSQL 18 + pgvector | ✅ healthy | 150+ tablas, mig 001-065 aplicadas |
 | Valkey 9.1.0 | ✅ healthy | caché semántico activo |
 | Authentik 2026.5.2 | ✅ healthy | OIDC + MFA configurado |
 | SeaweedFS (S3) | ✅ healthy | bucket portal-imagenes (backup imágenes) |
@@ -1073,7 +1073,7 @@ SELECT * FROM auditoria.reporte_cobertura();
 - [ ] **TareaEntregaController hexagonal** — depende de SeaweedFS/S3 integration
 - [ ] **BoletasController hexagonal** — proxy FastAPI puro, evaluar si aplica hexagonal
 - [ ] **Superset** — configurar RLS OIDC, crear dashboards matrícula/asistencias/calificaciones
-- [ ] `NVIDIA_NIM_API_KEY` en `.env` para recomendaciones IA (NVIDIA NIM, NO Anthropic)
+- [x] `OPENAI_API_KEY` en `.env` para recomendaciones IA (NVIDIA NIM, NO Anthropic)
 
 ---
 
@@ -1083,7 +1083,7 @@ SELECT * FROM auditoria.reporte_cobertura();
 - **Última Conexión:** 2026-06-15
 - **Estado Cognitivo:** Operacional ✅
 - **Tests backend-spring:** **346 (0 fallos)** — BUILD SUCCESS
-- **NVIDIA_NIM_API_KEY** actualizado en CLAUDE.md y STATE.md (reemplazado ANTHROPIC_API_KEY)
+- **OPENAI_API_KEY** actualizado en CLAUDE.md y STATE.md (reemplazado ANTHROPIC_API_KEY)
 
 ### ✅ Tareas Completadas
 
@@ -1335,14 +1335,105 @@ SELECT * FROM auditoria.reporte_cobertura();
 - Eliminar `PlatformTransactionManager` manual → Spring AOP maneja transacciones vía @Transactional en WriteService
 - Para operaciones masivas con errores por fila: patrón `try { writeService.insertar(); ok++; } catch (Exception e) { errores.add(...); }`
 
-**Nota técnica:** La tabla `memoria.embeddings` no existe aún en la BD. Pendiente crear schema + pgvector + SentenceTransformer setup para activar memoria semántica.
+**Nota técnica:** La tabla `memoria.embeddings` ya existe en la BD. El schema `memoria` está activo con vector(384), pgvector y HNSW index operativos.
 
 ### 🚀 Próximos Pasos (post-ADR-0008)
 - [ ] Superset RLS OIDC + dashboards matrícula/asistencias/calificaciones
-- [ ] NVIDIA_NIM_API_KEY en `.env` para IA (NO Anthropic)
+- [x] OPENAI_API_KEY en `.env` para IA (NO Anthropic)
 - [ ] Frontend portal-familias: componente Angular 22 para tutores
 - [ ] DB-AUDIT Sprint: índices, constraints, documentación schema
-- [ ] Crear schema `memoria` + tabla `embeddings` pgvector para activar `LongTermMemory`
+- [x] Crear schema `memoria` + tabla `embeddings` pgvector → **completado en sesión 2026-06-16**
+
+---
+
+## Sesión 2026-06-16 — Schema memoria + LongTermMemory pgvector
+
+### 🔑 Estado del Agente:
+- **Última Conexión:** 2026-06-16
+- **Estado Cognitivo:** Operacional ✅
+- **ADRs Registrados:** 0001–0008
+- **Migración activa:** 065 (última aplicada — `065_memoria_embeddings_pgvector.sql`)
+
+### 🏗️ Estado de Infraestructura (2026-06-16):
+
+| Servicio | Estado | Notas |
+|---|---|---|
+| PostgreSQL 18 + pgvector 0.8.2 | ✅ healthy | mig 001-065 aplicadas · schema `memoria` activo |
+| Valkey 9.1.0 | ✅ healthy | |
+| Authentik 2026.5.2 | ✅ healthy | |
+| SeaweedFS (S3) | ✅ healthy | |
+| nginx | ✅ running | |
+| ades-bff (Spring Boot) | ✅ running | 528 tests, 0 fallos |
+| ades-frontend (Angular 22) | ✅ running | |
+
+### ✅ Tareas Completadas (2026-06-16)
+
+**Migración 065 — Schema `memoria` + pgvector:**
+- [x] `db/migrations/065_memoria_embeddings_pgvector.sql` creada y aplicada
+- [x] Schema `memoria` creado en PostgreSQL 18
+- [x] Tabla `memoria.sesiones` — sesiones del agente residente
+- [x] Tabla `memoria.embeddings` — `vector(384)` para `all-MiniLM-L6-v2` (384 dims, no 1536)
+- [x] Tabla `memoria.decisiones` — decisiones arquitectónicas con heurística
+- [x] HNSW index coseno (`m=16, ef_construction=64`) en `memoria.embeddings.vector`
+- [x] Índices btree en `tipo`, `sesion_id`, `agente_id`
+- [x] Trigger `trg_sesiones_updated_at` para mantener `updated_at`
+
+**Fix `long_term_memory.py`:**
+- [x] INSERT: `%s` → `%s::vector` para columna vector
+- [x] INSERT: `embedding` → `str(embedding)` (formato `[0.1, 0.2, ...]` que acepta pgvector)
+- [x] buscar_similar: `_get_embedding(query)` → `str(...)` para el cast `%s::vector`
+- [x] Repositorio limpiado de artefactos rastreados: `backend-spring/target/`, `backend_api_v1_backup.tar.gz`, `docs/ADES_Nevadi_Documentacion_Completa.zip`, `docs/use_case.zip`, `backend/celerybeat-schedule`, `db/migrations/001_initial_schema.sql.bak`.
+
+### 🚨 Lecciones Aprendidas (2026-06-16):
+- **vector(1536) vs vector(384):** El script original usaba dimensión 1536 (OpenAI). `all-MiniLM-L6-v2` genera embeddings de 384 dims → la migración corrige a `vector(384)`.
+- **psycopg2 + pgvector sin adaptador:** Sin el paquete Python `pgvector`, psycopg2 convierte listas Python a arrays PostgreSQL (no a `vector`). La solución es `str(embedding)` con cast explícito `%s::vector` en SQL.
+- **HNSW vs IVFFlat para tablas vacías:** IVFFlat requiere al menos `lists` filas para ser útil. HNSW funciona desde 0 filas y es superior en datasets pequeño-medianos.
+
+### 🚀 Próximos Pasos:
+- [x] Instalar embeddings en entorno Python del agente → **completado con fastembed** (2026-06-16)
+- [ ] Superset RLS OIDC + dashboards matrícula/asistencias/calificaciones
+- [x] OPENAI_API_KEY en `.env` para IA (NO Anthropic)
+- [ ] Frontend portal-familias: componente Angular 22 para tutores
+- [ ] DB-AUDIT Sprint: índices, constraints, documentación schema
+
+---
+
+## Sesión 2026-06-16 (cont.) — fastembed + LongTermMemory activado
+
+### ✅ Tareas Completadas
+
+**Entorno Python del agente:**
+- [x] `python3.12-venv` + `python3-pip` instalados vía apt
+- [x] Virtualenv creado: `/opt/ades/.agent/venv`
+- [x] `fastembed 0.8.0` instalado (ONNX runtime, sin CUDA, ARM64-compatible)
+- [x] `psycopg2-binary`, `redis`, `numpy` instalados
+- [x] `.agent/requirements.txt` creado con dependencias documentadas
+
+**Fixes en `long_term_memory.py`:**
+- [x] `SentenceTransformer` → `fastembed.TextEmbedding` (modelo `sentence-transformers/all-MiniLM-L6-v2`)
+- [x] DSN lee `ADES_MEMORIA_DSN` desde env (fallback con `POSTGRES_PASSWORD`)
+- [x] `_get_embedding()` usa `.tolist()` → Python floats nativos (str() genera `[0.1, 0.2, ...]` sin wrapper `np.float64(...)`)
+
+**Fixes en `semantic_cache.py`:**
+- [x] `SentenceTransformer` → `fastembed.TextEmbedding`
+- [x] `_get_embedding()` retorna ndarray directamente (numpy operations sobre él son válidas)
+- [x] `password=VALKEY_PASSWORD` env var en constructor Redis
+
+**Validación E2E:**
+- [x] `store_leccion()` → INSERT exitoso en `memoria.embeddings` con vector 384-dim
+- [x] `buscar_similar()` → HNSW coseno retorna resultados ordenados por similitud
+- [x] 2 lecciones en `memoria.embeddings` (infraestructura + base_de_datos)
+
+### 🚨 Lecciones Aprendidas (2026-06-16):
+- **fastembed devuelve `np.float64` no `float`:** `list(arr)` produce `[np.float64(0.1), ...]` → `str()` genera formato inválido para pgvector. Usar `.tolist()` en el array numpy para convertir a Python floats nativos antes de `str()`.
+- **ARM64 + torch CUDA:** El wheel de torch para `manylinux_2_17_aarch64` en PyPI incluye NVIDIA CUDA libs (para Jetson). En OCI ARM64 sin GPU, usar `fastembed` (ONNX runtime) que es CUDA-free y 5x más pequeño.
+- **psycopg2 deserializa JSONB automáticamente:** Las columnas JSONB se retornan como `dict` Python, no como `str`. Llamar `json.loads()` sobre el resultado causa `TypeError`.
+
+### Activar el entorno
+```bash
+source /opt/ades/.agent/venv/bin/activate
+ADES_MEMORIA_DSN=postgresql://ades_admin:PASS@localhost:5432/ades python3 .agent/memory/long_term_memory.py
+```
 
 
 

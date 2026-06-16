@@ -1,4 +1,0 @@
--------------------------------------------------------------------------------
-Test set: mx.ades.modules.eval_docente.EvalDocenteDomainTest
--------------------------------------------------------------------------------
-Tests run: 19, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.059 s -- in mx.ades.modules.eval_docente.EvalDocenteDomainTest

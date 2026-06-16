@@ -1,27 +1,32 @@
 import json
 import hashlib
 import datetime
+import os
 from typing import Optional, Dict, Any
 import redis
-from sentence_transformers import SentenceTransformer
 import numpy as np
+from fastembed import TextEmbedding
 
 class SemanticCache:
     """
     Capa de cache semántico sobre Valkey (Redis).
     Evita llamadas redundantes a LLMs comparando similitud coseno.
+    Modelo: all-MiniLM-L6-v2 vía fastembed (ONNX, 384 dims, sin CUDA).
     """
-    
-    def __init__(self, host: str = "localhost", port: int = 6379, ttl_seconds: int = 86400):
-        self.redis_client = redis.Redis(host=host, port=port, decode_responses=True)
-        self.model = SentenceTransformer("all-MiniLM-L6-v2")  # Lightweight
+
+    def __init__(self, host: str = "localhost", port: int = 6379,
+                 ttl_seconds: int = 86400,
+                 password: str | None = os.environ.get("VALKEY_PASSWORD")):
+        self.redis_client = redis.Redis(host=host, port=port,
+                                        password=password, decode_responses=True)
+        self.model = TextEmbedding("sentence-transformers/all-MiniLM-L6-v2")
         self.ttl_seconds = ttl_seconds
         self.prefix = "semantic_cache:"
-        self.threshold = 0.85  # Similitud mínima para considerar un hit
-        
+        self.threshold = 0.85
+
     def _get_embedding(self, text: str) -> np.ndarray:
-        """Calcula embedding de texto."""
-        return self.model.encode(text, convert_to_numpy=True)
+        """Calcula embedding 384-dim con fastembed (ONNX, CPU). Retorna ndarray float64."""
+        return next(iter(self.model.embed([text])))
     
     def _cosine_similarity(self, vec1: np.ndarray, vec2: np.ndarray) -> float:
         """Calcula similitud coseno entre dos vectores."""

@@ -10,16 +10,18 @@
 
 ## ✅ Archivos Disponibles para Descargar
 
-### **Opción 1: Descargar TODO en UN archivo ZIP** (Recomendado)
+### **Opción 1: Generar TODO en un archivo ZIP localmente** (Recomendado)
 ```
-📦 ADES_Nevadi_Documentacion_Completa.zip (58 KB)
-└─ Contiene los 9 documentos Markdown en una sola carpeta
+# Desde la raíz del repositorio
+zip -r ADES_Nevadi_Documentacion_Completa.zip docs/use_case/*.md
 ```
 
 **Cómo usar:**
-1. Descarga el ZIP
-2. Descomprime (click derecho → Extraer)
-3. Abre los archivos `.md` con cualquier editor de texto o visualizador Markdown
+1. Genera el ZIP localmente desde los archivos Markdown.
+2. Descomprime (click derecho → Extraer).
+3. Abre los archivos `.md` con cualquier editor de texto o visualizador Markdown.
+
+> Nota: los archivos ZIP no se mantienen en el repositorio para evitar basura binaria y mantener el historial limpio.
 
 ---
 

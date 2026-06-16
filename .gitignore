@@ -16,6 +16,16 @@ node_modules/
 dist/
 .angular/
 
+# Java build artifacts
+backend-spring/target/
+
+# Generated documents and backups
+backend_api_v1_backup.tar.gz
+docs/ADES_Nevadi_Documentacion_Completa.zip
+docs/use_case.zip
+backend/celerybeat-schedule
+db/migrations/*.bak
+
 # IDEs
 .idea/
 .vscode/

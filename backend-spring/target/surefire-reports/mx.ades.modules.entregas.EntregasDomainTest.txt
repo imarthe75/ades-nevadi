@@ -1,4 +1,0 @@
--------------------------------------------------------------------------------
-Test set: mx.ades.modules.entregas.EntregasDomainTest
--------------------------------------------------------------------------------
-Tests run: 21, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.100 s -- in mx.ades.modules.entregas.EntregasDomainTest

@@ -76,7 +76,7 @@ Estos módulos permanecen en Python por su acoplamiento con librerías de IA/PDF
 
 ## Base de datos
 
-**Estado:** 063 migraciones aplicadas, 90+ tablas, seeds 2026-2027
+**Estado:** 067 migraciones aplicadas, 150+ tablas, seeds 2026-2027
 
 ### Schemas
 - `public` — todas las tablas `ades_*` (core del sistema)

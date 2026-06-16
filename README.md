@@ -39,8 +39,8 @@ Gestiona la operación completa: estructura académica, inscripciones, asignaci�
 | **Calificaciones** | 76,320 |
 | **Asistencias** | 180,000+ |
 | **Tareas** | 9,600 |
-| **Tablas PostgreSQL** | 89 |
-| **Migraciones DDL** | 15 (001–015) |
+| **Tablas PostgreSQL** | 150+ |
+| **Migraciones SQL** | 67 scripts (`001–065` + backfill/seed scripts) |
 | **Roles del sistema** | 18 |
 | **Módulos Angular** | 35+ (lazy-loaded) |
 
@@ -462,7 +462,7 @@ SUPERSET_SECRET_KEY=$(openssl rand -hex 32)
 │
 ├── db/
 │   ├── migrations/
-│   │   └── 001_initial_schema.sql  # DDL: 57 tablas, UUID v7, auditoría
+│   │   └── 001_initial_schema.sql  # DDL inicial: 57 tablas, UUID v7, auditoría (67 scripts SQL totales)
 │   ├── seeds/
 │   │   ├── 001_datos_base.sql      # Planteles, niveles, grados, materias, ciclos
 │   │   ├── 002_grupos_profesores_v4.sql  # 78 grupos, 168 profesores, asignaciones
