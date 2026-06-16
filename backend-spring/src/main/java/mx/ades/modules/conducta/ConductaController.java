@@ -5,11 +5,12 @@ import lombok.RequiredArgsConstructor;
 import mx.ades.modules.conducta.domain.model.TipoSancion;
 import mx.ades.modules.conducta.domain.port.in.AplicarSancionCommand;
 import mx.ades.modules.conducta.domain.port.in.AplicarSancionUseCase;
+import mx.ades.modules.conducta.domain.port.in.CrearPlanMejoraUseCase;
+import mx.ades.modules.conducta.query.ConductaQueryService;
 import mx.ades.security.AdesUser;
 import mx.ades.security.AdesUserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -28,8 +29,9 @@ public class ConductaController {
     private final PlanMejoraRepository planRepository;
     private final SeguimientoPlanRepository seguimientoRepository;
     private final AdesUserService userService;
-    private final JdbcTemplate jdbc;
     private final AplicarSancionUseCase aplicarSancion;
+    private final CrearPlanMejoraUseCase crearPlanMejora;
+    private final ConductaQueryService queryService;
 
     @Data
     public static class ReporteCreateRequest {
@@ -78,6 +80,8 @@ public class ConductaController {
         private String nuevoEstadoPlan;
     }
 
+    // ── Reads (delegados a ConductaQueryService) ─────────────────────────────
+
     @GetMapping
     public ResponseEntity<List<Map<String, Object>>> listar(
             @RequestParam(value = "estudiante_id", required = false) UUID estudianteId,
@@ -87,56 +91,13 @@ public class ConductaController {
             @RequestParam(value = "pagina", defaultValue = "1") int pagina,
             @RequestParam(value = "por_pagina", defaultValue = "20") int porPagina) {
 
-        StringBuilder query = new StringBuilder(
-                "SELECT rc.id, rc.estudiante_id, rc.grupo_id, rc.reportado_por_id, rc.fecha_reporte, " +
-                "rc.tipo_falta, rc.descripcion, rc.medida_aplicada, rc.requiere_seguimiento, " +
-                "p.nombre || ' ' || p.apellido_paterno AS nombre_alumno, " +
-                "u.nombre_usuario AS reportado_por_nombre " +
-                "FROM ades_reportes_conducta rc " +
-                "JOIN ades_estudiantes e ON e.id = rc.estudiante_id " +
-                "JOIN ades_personas p ON p.id = e.persona_id " +
-                "JOIN ades_usuarios u ON u.id = rc.reportado_por_id " +
-                "WHERE rc.is_active = TRUE ");
-
-        List<Object> params = new ArrayList<>();
-
-        if (estudianteId != null) {
-            query.append("AND rc.estudiante_id = ? ");
-            params.add(estudianteId);
-        }
-        if (grupoId != null) {
-            query.append("AND rc.grupo_id = ? ");
-            params.add(grupoId);
-        }
-        if (tipoFalta != null && !tipoFalta.isBlank()) {
-            query.append("AND rc.tipo_falta = ? ");
-            params.add(tipoFalta.toUpperCase());
-        }
-        if (requiereSeguimiento != null) {
-            query.append("AND rc.requiere_seguimiento = ? ");
-            params.add(requiereSeguimiento);
-        }
-
-        int offset = (pagina - 1) * porPagina;
-        query.append("ORDER BY rc.fecha_reporte DESC LIMIT ? OFFSET ?");
-        params.add(porPagina);
-        params.add(offset);
-
-        return ResponseEntity.ok(jdbc.queryForList(query.toString(), params.toArray()));
+        return ResponseEntity.ok(
+                queryService.listar(estudianteId, grupoId, tipoFalta, requiereSeguimiento, pagina, porPagina));
     }
 
     @GetMapping("/alumno/{estudianteId}/historial")
     public ResponseEntity<List<Map<String, Object>>> historial(@PathVariable("estudianteId") UUID estudianteId) {
-        String sql = "SELECT rc.id, rc.fecha_reporte, rc.tipo_falta, rc.descripcion, rc.medida_aplicada, rc.requiere_seguimiento, " +
-                "sd.id AS sancion_id, sd.tipo_sancion, sd.estado AS estado_sancion, sd.fecha_sancion, sd.notificado_padres, " +
-                "pm.id AS plan_id, pm.estado AS estado_plan, pm.fecha_elaboracion, pm.objetivo_general " +
-                "FROM ades_reportes_conducta rc " +
-                "LEFT JOIN ades_sanciones_disciplinarias sd ON sd.reporte_conducta_id = rc.id AND sd.is_active = TRUE " +
-                "LEFT JOIN ades_planes_mejora pm ON pm.reporte_conducta_id = rc.id AND pm.is_active = TRUE " +
-                "WHERE rc.estudiante_id = ? AND rc.is_active = TRUE " +
-                "ORDER BY rc.fecha_reporte DESC";
-
-        return ResponseEntity.ok(jdbc.queryForList(sql, estudianteId));
+        return ResponseEntity.ok(queryService.historial(estudianteId));
     }
 
     @GetMapping("/{id}")
@@ -149,57 +110,12 @@ public class ConductaController {
 
     @GetMapping("/{id}/detalle-completo")
     public ResponseEntity<Map<String, Object>> detalleCompleto(@PathVariable("id") UUID id) {
-        String reporteSql = "SELECT rc.*, p.nombre || ' ' || p.apellido_paterno AS nombre_alumno, est.matricula " +
-                "FROM ades_reportes_conducta rc " +
-                "JOIN ades_estudiantes est ON est.id = rc.estudiante_id " +
-                "JOIN ades_personas p ON p.id = est.persona_id " +
-                "WHERE rc.id = ? AND rc.is_active = TRUE";
-
-        List<Map<String, Object>> reportes = jdbc.queryForList(reporteSql, id);
-        if (reportes.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Reporte no encontrado");
-        }
-        Map<String, Object> rc = reportes.get(0);
-
-        Map<String, Object> sancion = null;
-        String sancionSql = "SELECT sd.*, u.nombre_usuario AS autorizado_por_nombre " +
-                "FROM ades_sanciones_disciplinarias sd " +
-                "JOIN ades_usuarios u ON u.id = sd.autorizado_por_id " +
-                "WHERE sd.reporte_conducta_id = ? AND sd.is_active = TRUE LIMIT 1";
-        List<Map<String, Object>> sanciones = jdbc.queryForList(sancionSql, id);
-        if (!sanciones.isEmpty()) {
-            sancion = sanciones.get(0);
-        }
-
-        Map<String, Object> plan = null;
-        String planSql = "SELECT pm.*, u.nombre_usuario AS elaborado_por_nombre " +
-                "FROM ades_planes_mejora pm " +
-                "JOIN ades_usuarios u ON u.id = pm.elaborado_por_id " +
-                "WHERE pm.reporte_conducta_id = ? AND pm.is_active = TRUE LIMIT 1";
-        List<Map<String, Object>> planes = jdbc.queryForList(planSql, id);
-        if (!planes.isEmpty()) {
-            plan = planes.get(0);
-        }
-
-        List<Map<String, Object>> seguimientos = new ArrayList<>();
-        if (plan != null) {
-            UUID planId = (UUID) plan.get("id");
-            String segSql = "SELECT sp.*, u.nombre_usuario AS registrado_por_nombre " +
-                    "FROM ades_seguimiento_plan sp " +
-                    "JOIN ades_usuarios u ON u.id = sp.registrado_por_id " +
-                    "WHERE sp.plan_mejora_id = ? AND sp.is_active = TRUE " +
-                    "ORDER BY sp.fecha_seguimiento DESC";
-            seguimientos = jdbc.queryForList(segSql, planId);
-        }
-
-        Map<String, Object> response = new HashMap<>();
-        response.put("reporte", rc);
-        response.put("sancion", sancion);
-        response.put("plan_mejora", plan);
-        response.put("seguimientos", seguimientos);
-
-        return ResponseEntity.ok(response);
+        Map<String, Object> result = queryService.detalleCompleto(id);
+        if (result == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Reporte no encontrado");
+        return ResponseEntity.ok(result);
     }
+
+    // ── Writes ────────────────────────────────────────────────────────────────
 
     @PostMapping
     public ResponseEntity<ReporteConducta> crear(@RequestBody ReporteCreateRequest body) {
@@ -212,7 +128,6 @@ public class ConductaController {
         rc.setDescripcion(body.getDescripcion());
         rc.setMedidaAplicada(body.getMedidaAplicada());
         rc.setRequiereSeguimiento(body.getRequiereSeguimiento());
-
         return ResponseEntity.status(HttpStatus.CREATED).body(repository.save(rc));
     }
 
@@ -229,7 +144,6 @@ public class ConductaController {
         if (body.getMedidaAplicada() != null) rc.setMedidaAplicada(body.getMedidaAplicada());
         if (body.getRequiereSeguimiento() != null) rc.setRequiereSeguimiento(body.getRequiereSeguimiento());
         if (body.getTipoFalta() != null) rc.setTipoFalta(body.getTipoFalta());
-
         return ResponseEntity.ok(repository.save(rc));
     }
 
@@ -288,37 +202,28 @@ public class ConductaController {
     }
 
     @PostMapping("/{reporteId}/plan-mejora")
-    public ResponseEntity<PlanMejora> crearPlanMejora(
+    public ResponseEntity<Map<String, Object>> crearPlanMejora(
             @PathVariable("reporteId") UUID reporteId,
             @RequestBody PlanMejoraCreateRequest body,
             @AuthenticationPrincipal Jwt jwt) {
 
         AdesUser user = userService.resolveUser(jwt);
-        if (user.getNivelAcceso() != null && user.getNivelAcceso() > 3) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo COORDINADOR/DIRECTOR/ADMIN puede crear planes de mejora");
-        }
+        requireNivel(user, 3);
 
-        ReporteConducta rc = repository.findById(reporteId)
-                .filter(ReporteConducta::getIsActive)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Reporte no encontrado"));
+        UUID planId = crearPlanMejora.ejecutar(new CrearPlanMejoraUseCase.Command(
+                reporteId,
+                resolveEstudianteId(reporteId),
+                body.getCicloEscolarId(),
+                body.getElaboradoPorId(),
+                body.getObjetivoGeneral(),
+                body.getCompromisosAlumno(),
+                body.getCompromisosPadre(),
+                body.getCompromisosEscuela(),
+                body.getFechaPrimerSeguimiento(),
+                user.getUsername()
+        ));
 
-        Optional<PlanMejora> existing = planRepository.findByReporteConductaIdAndIsActiveTrue(reporteId);
-        if (existing.isPresent()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Este reporte ya tiene un plan de mejora activo");
-        }
-
-        PlanMejora pm = new PlanMejora();
-        pm.setReporteConductaId(reporteId);
-        pm.setEstudianteId(rc.getEstudianteId());
-        pm.setCicloEscolarId(body.getCicloEscolarId());
-        pm.setElaboradoPorId(body.getElaboradoPorId());
-        pm.setObjetivoGeneral(body.getObjetivoGeneral());
-        pm.setCompromisosAlumno(body.getCompromisosAlumno());
-        pm.setCompromisosPadre(body.getCompromisosPadre());
-        pm.setCompromisosEscuela(body.getCompromisosEscuela());
-        pm.setFechaPrimerSeguimiento(body.getFechaPrimerSeguimiento());
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(planRepository.save(pm));
+        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("id", planId, "ok", true));
     }
 
     @PatchMapping("/{reporteId}/plan-mejora/{planId}")
@@ -329,9 +234,7 @@ public class ConductaController {
             @AuthenticationPrincipal Jwt jwt) {
 
         AdesUser user = userService.resolveUser(jwt);
-        if (user.getNivelAcceso() != null && user.getNivelAcceso() > 3) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Sin permiso para actualizar planes de mejora");
-        }
+        requireNivel(user, 3);
 
         PlanMejora pm = planRepository.findById(planId)
                 .filter(p -> p.getReporteConductaId().equals(reporteId) && p.getIsActive())
@@ -362,9 +265,7 @@ public class ConductaController {
             @AuthenticationPrincipal Jwt jwt) {
 
         AdesUser user = userService.resolveUser(jwt);
-        if (user.getNivelAcceso() != null && user.getNivelAcceso() > 3) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Sin permiso para registrar seguimientos");
-        }
+        requireNivel(user, 3);
 
         PlanMejora pm = planRepository.findById(planId)
                 .filter(p -> p.getReporteConductaId().equals(reporteId) && p.getIsActive())
@@ -389,5 +290,21 @@ public class ConductaController {
         }
 
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+    }
+
+    // ── Private helpers ───────────────────────────────────────────────────────
+
+    private void requireNivel(AdesUser user, int maxNivel) {
+        if (user.getNivelAcceso() != null && user.getNivelAcceso() > maxNivel) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Solo COORDINADOR/DIRECTOR/ADMIN puede realizar esta acción");
+        }
+    }
+
+    private UUID resolveEstudianteId(UUID reporteId) {
+        return repository.findById(reporteId)
+                .filter(ReporteConducta::getIsActive)
+                .map(ReporteConducta::getEstudianteId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Reporte no encontrado"));
     }
 }

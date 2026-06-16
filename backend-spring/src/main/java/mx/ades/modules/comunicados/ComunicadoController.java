@@ -3,6 +3,8 @@ package mx.ades.modules.comunicados;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import mx.ades.common.PushService;
+import mx.ades.modules.comunicados.domain.model.Periodicidad;
+import mx.ades.modules.comunicados.query.ComunicadoQueryService;
 import mx.ades.security.AdesUser;
 import mx.ades.security.AdesUserService;
 import org.springframework.http.HttpStatus;
@@ -26,6 +28,7 @@ public class ComunicadoController {
     private final AdesUserService userService;
     private final JdbcTemplate jdbc;
     private final PushService pushService;
+    private final ComunicadoQueryService queryService;
 
     @Data
     public static class ComunicadoCreateRequest {
@@ -41,6 +44,8 @@ public class ComunicadoController {
         private String periodicidad;
     }
 
+    // ── Reads ─────────────────────────────────────────────────────────────────
+
     @GetMapping
     public ResponseEntity<List<Map<String, Object>>> listar(
             @RequestParam(value = "plantel_id", required = false) UUID plantelId,
@@ -51,43 +56,35 @@ public class ComunicadoController {
             @AuthenticationPrincipal Jwt jwt) {
 
         AdesUser user = userService.resolveUser(jwt);
-        UUID uid = user.getId();
-
-        StringBuilder query = new StringBuilder("SELECT c.id, c.titulo, c.contenido, c.tipo_comunicado, " +
-                "c.plantel_id, c.nivel_educativo_id, c.grupo_id, c.requiere_acuse, c.fecha_publicacion, c.fecha_vencimiento, " +
-                "COUNT(a.id) FILTER (WHERE a.id IS NOT NULL) AS total_acuses, " +
-                "BOOL_OR(a.usuario_id = ?) AS acusado_por_mi, " +
-                "u.nombre_usuario AS creado_por_nombre " +
-                "FROM ades_comunicados c " +
-                "LEFT JOIN ades_acuses_comunicado a ON a.comunicado_id = c.id " +
-                "LEFT JOIN ades_usuarios u ON u.id = c.creado_por_id " +
-                "WHERE c.is_active = TRUE ");
-
-        List<Object> params = new ArrayList<>();
-        params.add(uid);
-
-        if (plantelId != null) {
-            query.append("AND (c.plantel_id IS NULL OR c.plantel_id = ?) ");
-            params.add(plantelId);
-        }
-        if (nivelEducativoId != null) {
-            query.append("AND (c.nivel_educativo_id IS NULL OR c.nivel_educativo_id = ?) ");
-            params.add(nivelEducativoId);
-        }
-        if (tipo != null && !tipo.isBlank()) {
-            query.append("AND c.tipo_comunicado = ? ");
-            params.add(tipo);
-        }
-        if (soloVigentes) {
-            query.append("AND (c.fecha_vencimiento IS NULL OR c.fecha_vencimiento > NOW()) ");
-        }
-
-        query.append("GROUP BY c.id, u.nombre_usuario ORDER BY c.fecha_publicacion DESC LIMIT ?");
-        params.add(limit);
-
-        List<Map<String, Object>> rows = jdbc.queryForList(query.toString(), params.toArray());
-        return ResponseEntity.ok(rows);
+        return ResponseEntity.ok(
+                queryService.listar(user.getId(), plantelId, nivelEducativoId, tipo, soloVigentes, limit));
     }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Map<String, Object>> detalle(
+            @PathVariable("id") UUID id,
+            @AuthenticationPrincipal Jwt jwt) {
+
+        AdesUser user = userService.resolveUser(jwt);
+        return ResponseEntity.ok(
+                queryService.detalle(id, user.getId())
+                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Comunicado no encontrado")));
+    }
+
+    @GetMapping("/recurrentes/pendientes")
+    public ResponseEntity<List<Map<String, Object>>> recurrentesPendientes() {
+        return ResponseEntity.ok(queryService.recurrentesPendientes());
+    }
+
+    @GetMapping("/{id}/reporte-lectura")
+    public ResponseEntity<Map<String, Object>> reporteLectura(@PathVariable("id") UUID id) {
+        Comunicado c = repository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Comunicado no encontrado"));
+        return ResponseEntity.ok(queryService.reporteLectura(id, c.getTitulo(),
+                c.getTotalDestinatarios() != null ? c.getTotalDestinatarios() : 0));
+    }
+
+    // ── Writes ────────────────────────────────────────────────────────────────
 
     @PostMapping
     public ResponseEntity<Comunicado> crear(
@@ -114,34 +111,8 @@ public class ComunicadoController {
         }
 
         Comunicado saved = repository.save(c);
-
-        // Async Push Notification Trigger
         triggerPushNotificationAsync(saved);
-
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
-    }
-
-    @GetMapping("/{id}")
-    public ResponseEntity<Map<String, Object>> detalle(
-            @PathVariable("id") UUID id,
-            @AuthenticationPrincipal Jwt jwt) {
-
-        AdesUser user = userService.resolveUser(jwt);
-        UUID uid = user.getId();
-
-        String sql = "SELECT c.*, " +
-                "COUNT(a.id) AS total_acuses, " +
-                "BOOL_OR(a.usuario_id = ?) AS acusado_por_mi " +
-                "FROM ades_comunicados c " +
-                "LEFT JOIN ades_acuses_comunicado a ON a.comunicado_id = c.id " +
-                "WHERE c.id = ? AND c.is_active = TRUE " +
-                "GROUP BY c.id";
-
-        List<Map<String, Object>> rows = jdbc.queryForList(sql, uid, id);
-        if (rows.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Comunicado no encontrado");
-        }
-        return ResponseEntity.ok(rows.get(0));
     }
 
     @PutMapping("/{id}/acusar")
@@ -150,18 +121,16 @@ public class ComunicadoController {
             @AuthenticationPrincipal Jwt jwt) {
 
         AdesUser user = userService.resolveUser(jwt);
-        UUID uid = user.getId();
-
-        Optional<AcuseComunicado> existing = acuseRepository.findByComunicadoIdAndUsuarioId(id, uid);
+        Optional<AcuseComunicado> existing = acuseRepository.findByComunicadoIdAndUsuarioId(id, user.getId());
         if (existing.isEmpty()) {
             AcuseComunicado ac = new AcuseComunicado();
-            ac.setComunicado(repository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Comunicado no encontrado")));
-            ac.setUsuarioId(uid);
+            ac.setComunicado(repository.findById(id)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Comunicado no encontrado")));
+            ac.setUsuarioId(user.getId());
             ac.setFechaAcuse(LocalDateTime.now());
-            ac.setIpOrigen("127.0.0.1"); // Simple local fallback
+            ac.setIpOrigen("127.0.0.1");
             acuseRepository.save(ac);
         }
-
         return ResponseEntity.ok(Map.of("ok", true, "comunicado_id", id));
     }
 
@@ -174,13 +143,6 @@ public class ComunicadoController {
         repository.save(c);
     }
 
-    @GetMapping("/recurrentes/pendientes")
-    public ResponseEntity<List<Map<String, Object>>> recurrentesPendientes() {
-        String sql = "SELECT id, titulo, tipo_comunicado, periodicidad, proximo_envio, fecha_publicacion, plantel_id, nivel_educativo_id " +
-                "FROM ades_comunicados WHERE es_recurrente = TRUE AND is_active = TRUE ORDER BY proximo_envio ASC NULLS LAST";
-        return ResponseEntity.ok(jdbc.queryForList(sql));
-    }
-
     @PostMapping("/{id}/programar-siguiente")
     public ResponseEntity<Map<String, Object>> programarSiguiente(@PathVariable("id") UUID id) {
         Comunicado c = repository.findById(id)
@@ -191,91 +153,47 @@ public class ComunicadoController {
         }
 
         LocalDateTime base = c.getProximoEnvio() != null ? c.getProximoEnvio() : LocalDateTime.now();
-        LocalDateTime siguiente;
-
-        switch (c.getPeriodicidad().toUpperCase()) {
-            case "DIARIA":
-                siguiente = base.plusDays(1);
-                break;
-            case "SEMANAL":
-                siguiente = base.plusWeeks(1);
-                break;
-            case "QUINCENAL":
-                siguiente = base.plusDays(15);
-                break;
-            case "MENSUAL":
-                siguiente = base.plusMonths(1);
-                break;
-            case "TRIMESTRAL":
-                siguiente = base.plusMonths(3);
-                break;
-            default:
-                siguiente = base.plusMonths(1);
-        }
+        LocalDateTime siguiente = Periodicidad.of(c.getPeriodicidad()).calcularSiguiente(base);
 
         c.setProximoEnvio(siguiente);
         repository.save(c);
-
         return ResponseEntity.ok(Map.of("proximo_envio", siguiente.toString(), "periodicidad", c.getPeriodicidad()));
     }
 
-    @GetMapping("/{id}/reporte-lectura")
-    public ResponseEntity<Map<String, Object>> reporteLectura(@PathVariable("id") UUID id) {
-        Comunicado c = repository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Comunicado no encontrado"));
-
-        String acusesSql = "SELECT COUNT(*) AS leidos, COUNT(DISTINCT ac.usuario_id) AS usuarios_distintos " +
-                "FROM ades_acuses_comunicado ac WHERE ac.comunicado_id = ? AND ac.is_active = TRUE";
-        Map<String, Object> acuses = jdbc.queryForMap(acusesSql, id);
-
-        long leidos = ((Number) acuses.get("leidos")).longValue();
-        long total = c.getTotalDestinatarios() != null ? c.getTotalDestinatarios() : 0;
-        double pct = total > 0 ? Math.round(((double) leidos / total * 100.0) * 10.0) / 10.0 : 0.0;
-
-        String detalleSql = "SELECT u.nombre_usuario, ac.fecha_acuse, ac.ip_origen " +
-                "FROM ades_acuses_comunicado ac JOIN ades_usuarios u ON u.id = ac.usuario_id " +
-                "WHERE ac.comunicado_id = ? AND ac.is_active = TRUE ORDER BY ac.fecha_acuse DESC LIMIT 200";
-        List<Map<String, Object>> detalle = jdbc.queryForList(detalleSql, id);
-
-        Map<String, Object> response = new HashMap<>();
-        response.put("comunicado_id", id);
-        response.put("titulo", c.getTitulo());
-        response.put("total_destinatarios", total);
-        response.put("total_leidos", leidos);
-        response.put("pct_lectura", pct);
-        response.put("detalle", detalle);
-
-        return ResponseEntity.ok(response);
-    }
+    // ── Push notification async (mantener sin cambios) ────────────────────────
 
     private void triggerPushNotificationAsync(Comunicado c) {
-        org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor executor = new org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor();
+        org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor executor =
+                new org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor();
         executor.initialize();
         executor.execute(() -> {
             try {
-                List<UUID> recipientIds = new ArrayList<>();
+                List<UUID> recipientIds;
                 if (c.getGrupoId() != null) {
-                    recipientIds = jdbc.queryForList("SELECT DISTINCT u.id FROM ades_usuarios u " +
+                    recipientIds = jdbc.queryForList(
+                            "SELECT DISTINCT u.id FROM ades_usuarios u " +
                             "WHERE u.id IN (SELECT u2.id FROM ades_usuarios u2 JOIN ades_estudiantes est ON est.id = (" +
-                            "SELECT i.estudiante_id FROM ades_inscripciones i WHERE i.grupo_id = ? AND i.is_active = TRUE LIMIT 1))", UUID.class, c.getGrupoId());
+                            "SELECT i.estudiante_id FROM ades_inscripciones i WHERE i.grupo_id = ? AND i.is_active = TRUE LIMIT 1))",
+                            UUID.class, c.getGrupoId());
                 } else if (c.getNivelEducativoId() != null) {
-                    recipientIds = jdbc.queryForList("SELECT DISTINCT u.id FROM ades_usuarios u WHERE u.nivel_educativo_id = ? LIMIT 500", UUID.class, c.getNivelEducativoId());
+                    recipientIds = jdbc.queryForList(
+                            "SELECT DISTINCT u.id FROM ades_usuarios u WHERE u.nivel_educativo_id = ? LIMIT 500",
+                            UUID.class, c.getNivelEducativoId());
                 } else if (c.getPlantelId() != null) {
-                    recipientIds = jdbc.queryForList("SELECT DISTINCT u.id FROM ades_usuarios u WHERE u.plantel_id = ? OR u.nivel_acceso <= 2 LIMIT 500", UUID.class, c.getPlantelId());
+                    recipientIds = jdbc.queryForList(
+                            "SELECT DISTINCT u.id FROM ades_usuarios u WHERE u.plantel_id = ? OR u.nivel_acceso <= 2 LIMIT 500",
+                            UUID.class, c.getPlantelId());
                 } else {
                     recipientIds = jdbc.queryForList("SELECT DISTINCT id FROM ades_usuarios LIMIT 500", UUID.class);
                 }
 
                 String prioridad = "URGENTE".equalsIgnoreCase(c.getTipoComunicado()) ? "high" : "default";
                 pushService.sendBatchAsync(recipientIds,
-                        "URGENTE".equalsIgnoreCase(c.getTipoComunicado()) ? "🚨 Nuevo comunicado" : "Nuevo comunicado",
-                        c.getTitulo(),
-                        prioridad,
+                        "URGENTE".equalsIgnoreCase(c.getTipoComunicado()) ? "Nuevo comunicado urgente" : "Nuevo comunicado",
+                        c.getTitulo(), prioridad,
                         List.of("comunicado", c.getTipoComunicado().toLowerCase()),
                         "https://ades.setag.mx/comunicados");
-            } catch (Exception ex) {
-                // Silently absorb like python code
-            }
+            } catch (Exception ignored) {}
         });
     }
 }

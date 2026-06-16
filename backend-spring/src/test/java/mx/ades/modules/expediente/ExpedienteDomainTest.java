@@ -43,7 +43,7 @@ class ExpedienteDomainTest {
     void tipoBaja_of_invalido_lanza_excepcion() {
         assertThatThrownBy(() -> TipoBaja.of("OTRO"))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("tipo de baja inválido");
+                .hasMessageContaining("tipo_baja inválido");
     }
 
     // ── CalificacionExtra ─────────────────────────────────────────────────────

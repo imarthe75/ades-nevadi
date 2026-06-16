@@ -2,6 +2,7 @@ package mx.ades.modules.movilidad;
 
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import mx.ades.modules.movilidad.query.MovilidadQueryService;
 import mx.ades.security.AdesUser;
 import mx.ades.security.AdesUserService;
 import org.springframework.http.HttpStatus;
@@ -25,6 +26,7 @@ public class MovilidadController {
     private final BajaRepository bajaRepository;
     private final AdesUserService userService;
     private final JdbcTemplate jdbc;
+    private final MovilidadQueryService queryService;
 
     @Data
     public static class CambioGrupoRequest {
@@ -294,20 +296,7 @@ public class MovilidadController {
 
     @GetMapping("/historial/{estudiante_id}")
     public ResponseEntity<Map<String, Object>> historial(@PathVariable("estudiante_id") UUID estudianteId) {
-        String cambiosSql = "SELECT cg.fecha_cambio, cg.motivo, go.nombre_grupo as grupo_origen, gd.nombre_grupo as grupo_destino, " +
-                "'CAMBIO_GRUPO' as tipo " +
-                "FROM ades_cambios_grupo cg JOIN ades_grupos go ON go.id = cg.grupo_origen_id " +
-                "JOIN ades_grupos gd ON gd.id = cg.grupo_destino_id " +
-                "WHERE cg.estudiante_id = ? ORDER BY cg.fecha_cambio DESC";
-
-        String bajasSql = "SELECT tipo_baja, motivo, fecha_efectiva, fecha_reingreso, plantel_destino, observaciones, is_active as activa " +
-                "FROM ades_bajas WHERE estudiante_id = ? ORDER BY fecha_efectiva DESC";
-
-        Map<String, Object> response = new HashMap<>();
-        response.put("cambios_grupo", jdbc.queryForList(cambiosSql, estudianteId));
-        response.put("bajas", jdbc.queryForList(bajasSql, estudianteId));
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(queryService.historial(estudianteId));
     }
 
     @GetMapping("/bajas")
@@ -323,38 +312,7 @@ public class MovilidadController {
         if (user.getNivelAcceso() != null && user.getNivelAcceso() > 3) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado");
         }
-
-        StringBuilder query = new StringBuilder(
-                "SELECT b.id, b.estudiante_id, b.tipo_baja, b.motivo, b.fecha_efectiva, b.fecha_reingreso, " +
-                "b.plantel_destino, b.is_active, e.numero_control, COALESCE(p.nombre_social, p.nombre) || ' ' || p.apellido_paterno as nombre_alumno, " +
-                "g.nombre_grupo, pl.nombre_plantel " +
-                "FROM ades_bajas b " +
-                "JOIN ades_estudiantes e ON e.id = b.estudiante_id " +
-                "JOIN ades_personas p ON p.id = e.persona_id " +
-                "LEFT JOIN ades_inscripciones i ON i.id = b.inscripcion_id " +
-                "LEFT JOIN ades_grupos g ON g.id = i.grupo_id " +
-                "LEFT JOIN ades_planteles pl ON pl.id = g.plantel_id " +
-                "WHERE 1=1 ");
-
-        List<Object> params = new ArrayList<>();
-
-        if (soloActivas) {
-            query.append("AND b.is_active = TRUE ");
-        }
-        if (tipoBaja != null && !tipoBaja.isBlank()) {
-            query.append("AND b.tipo_baja = ? ");
-            params.add(tipoBaja.toUpperCase());
-        }
-        if (plantelId != null) {
-            query.append("AND g.plantel_id = ? ");
-            params.add(plantelId);
-        }
-
-        query.append("ORDER BY b.fecha_efectiva DESC LIMIT ? OFFSET ?");
-        params.add(limit);
-        params.add(skip);
-
-        return ResponseEntity.ok(jdbc.queryForList(query.toString(), params.toArray()));
+        return ResponseEntity.ok(queryService.listarBajas(plantelId, tipoBaja, soloActivas, skip, limit));
     }
 
     @GetMapping("/cambios-grupo")
@@ -366,39 +324,9 @@ public class MovilidadController {
             @AuthenticationPrincipal Jwt jwt) {
 
         AdesUser user = userService.resolveUser(jwt);
-
-        StringBuilder query = new StringBuilder(
-                "SELECT cg.id, cg.fecha_cambio, cg.motivo, " +
-                "COALESCE(p.nombre_social, p.nombre) || ' ' || p.apellido_paterno AS nombre_alumno, " +
-                "e.matricula AS numero_control, cg.estudiante_id, " +
-                "go.nombre_grupo AS grupo_origen, gd.nombre_grupo AS grupo_destino, " +
-                "go.plantel_id " +
-                "FROM ades_cambios_grupo cg " +
-                "JOIN ades_estudiantes e ON e.id = cg.estudiante_id " +
-                "JOIN ades_personas p ON p.id = e.persona_id " +
-                "JOIN ades_grupos go ON go.id = cg.grupo_origen_id " +
-                "JOIN ades_grupos gd ON gd.id = cg.grupo_destino_id " +
-                "WHERE 1=1 ");
-
-        List<Object> params = new ArrayList<>();
-
-        if (estudianteId != null) {
-            query.append("AND cg.estudiante_id = ? ");
-            params.add(estudianteId);
-        }
-        if (plantelId != null) {
-            query.append("AND go.plantel_id = ? ");
-            params.add(plantelId);
-        }
-        if (user.getNivelAcceso() != null && user.getNivelAcceso() > 1 && user.getPlantelId() != null) {
-            query.append("AND go.plantel_id = ? ");
-            params.add(user.getPlantelId());
-        }
-
-        query.append("ORDER BY cg.fecha_cambio DESC LIMIT ? OFFSET ?");
-        params.add(limit);
-        params.add(skip);
-
-        return ResponseEntity.ok(jdbc.queryForList(query.toString(), params.toArray()));
+        UUID plantelFiltroUser = (user.getNivelAcceso() != null && user.getNivelAcceso() > 1)
+                ? user.getPlantelId() : null;
+        return ResponseEntity.ok(
+                queryService.listarCambiosGrupo(estudianteId, plantelId, plantelFiltroUser, skip, limit));
     }
 }

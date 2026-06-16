@@ -2,7 +2,6 @@ package mx.ades.modules.evaluaciones;
 
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -10,12 +9,13 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
+import mx.ades.modules.evaluaciones.domain.model.SlotHorario;
+import mx.ades.modules.evaluaciones.domain.port.in.AsignarAulaHoraUseCase;
+import mx.ades.modules.evaluaciones.query.EvaluacionQueryService;
 import mx.ades.security.AdesUser;
 import mx.ades.security.AdesUserService;
 
 import java.time.LocalDate;
-import java.time.LocalTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -23,7 +23,6 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/evaluacion-avanzada")
 @RequiredArgsConstructor
-@Slf4j
 public class EvaluacionAvanzadaController {
 
     private final AdesUserService userService;
@@ -31,7 +30,10 @@ public class EvaluacionAvanzadaController {
     private final EscalaEvaluacionRepository escalaRepository;
     private final ObservacionPedagogicaRepository observacionRepository;
     private final NeeRepository neeRepository;
-    private final AsignacionAulaRepository asignacionRepository;
+    private final AsignarAulaHoraUseCase asignarAulaHoraUseCase;
+    private final EvaluacionQueryService queryService;
+
+    // ── EV-012: Escalas Cualitativas ──────────────────────────────────────────
 
     @Data
     public static class EscalaCualitativaPayload {
@@ -41,37 +43,6 @@ public class EvaluacionAvanzadaController {
         private String valoresJson;
     }
 
-    @Data
-    public static class ObservacionPedagogicaPayload {
-        private String observacion;
-        private String periodo;
-        private String tipo = "GENERAL";
-    }
-
-    @Data
-    public static class NeePayload {
-        private UUID alumnoId;
-        private String tipoNee;
-        private String descripcion;
-        private String apoyosRequeridos;
-        private String fechaDeteccion;
-        private String profesionalDetecta;
-        private Boolean activa = true;
-    }
-
-    @Data
-    public static class AsignacionAulaHoraPayload {
-        private UUID claseId;
-        private UUID aulaId;
-        private String fecha;
-        private String horaInicio;
-        private String horaFin;
-        private String observaciones;
-    }
-
-    // ──────────────────────────────────────────────────────────────────────────
-    // EV-012: Escalas Cualitativas
-    // ──────────────────────────────────────────────────────────────────────────
     @GetMapping("/escalas-cualitativas")
     public ResponseEntity<List<EscalaEvaluacion>> listarEscalas(
             @RequestParam(value = "nivel_educativo", required = false) String nivelEducativo,
@@ -88,9 +59,7 @@ public class EvaluacionAvanzadaController {
             @RequestBody EscalaCualitativaPayload data,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
-        if (user.getNivelAcceso() == null || user.getNivelAcceso() > 3) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Se requiere nivel Coordinador o superior");
-        }
+        requireNivel(user, 3);
 
         EscalaEvaluacion escala = new EscalaEvaluacion();
         escala.setNombre(data.getNombre());
@@ -99,73 +68,52 @@ public class EvaluacionAvanzadaController {
         escala.setValoresJson(data.getValoresJson());
         escala.setUsuarioCreacion(user.getUsername());
         escala.setUsuarioModificacion(user.getUsername());
-
         escalaRepository.save(escala);
-        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("id", escala.getId().toString(), "message", "Escala creada"));
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(Map.of("id", escala.getId().toString(), "message", "Escala creada"));
     }
 
-    // ──────────────────────────────────────────────────────────────────────────
-    // EV-014: Actas SEP
-    // ──────────────────────────────────────────────────────────────────────────
+    // ── EV-014: Actas SEP ─────────────────────────────────────────────────────
+
     @PostMapping("/actas-sep/{grupo_id}")
     public ResponseEntity<Map<String, Object>> generarActaSep(
             @PathVariable("grupo_id") UUID grupoId,
             @RequestParam("periodo") String periodo,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
-        if (user.getNivelAcceso() == null || user.getNivelAcceso() > 3) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Se requiere nivel Coordinador o superior");
-        }
+        requireNivel(user, 3);
 
-        // Verify group exists and is active
         List<Map<String, Object>> grpList = jdbc.queryForList(
-                "SELECT id, nombre_grupo FROM ades_grupos WHERE id = ? AND is_active = TRUE", grupoId);
-        if (grpList.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Grupo no encontrado");
-        }
-        Map<String, Object> grupo = grpList.get(0);
+            "SELECT id, nombre_grupo FROM ades_grupos WHERE id = ? AND is_active = TRUE", grupoId);
+        if (grpList.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Grupo no encontrado");
 
-        // Fetch consolidated grades
-        String sql = "SELECT p.nombre || ' ' || p.apellido_paterno AS alumno, " +
-                "e.numero_control, m.nombre_materia, " +
-                "COALESCE(c.calificacion_final, 0) as calificacion, " +
-                "COALESCE(c.asistencia_porcentaje, 0) as asistencia " +
-                "FROM ades_inscripciones i " +
-                "JOIN ades_estudiantes e ON e.id = i.estudiante_id " +
-                "JOIN ades_personas p ON p.id = e.persona_id " +
-                "LEFT JOIN ades_calificaciones c ON c.inscripcion_id = i.id " +
-                "LEFT JOIN ades_materias m ON m.id = c.materia_id " +
-                "WHERE i.grupo_id = ? AND i.is_active = TRUE " +
-                "ORDER BY p.apellido_paterno, p.nombre, m.nombre_materia";
-
-        List<Map<String, Object>> registros = jdbc.queryForList(sql, grupoId);
-
+        List<Map<String, Object>> registros = queryService.actasSep(grupoId, periodo);
         long totalAlumnos = registros.stream()
-                .map(r -> r.get("numero_control"))
-                .distinct()
-                .count();
+                .map(r -> r.get("numero_control")).distinct().count();
 
         return ResponseEntity.ok(Map.of(
-                "grupo", grupo,
-                "periodo", periodo,
-                "registros", registros,
-                "total_alumnos", totalAlumnos,
-                "message", "Datos para acta SEP generados. Use /api/v1/carbone para renderizar PDF."
-        ));
+                "grupo", grpList.get(0), "periodo", periodo,
+                "registros", registros, "total_alumnos", totalAlumnos,
+                "message", "Datos para acta SEP generados. Use /api/v1/carbone para renderizar PDF."));
     }
 
-    // ──────────────────────────────────────────────────────────────────────────
-    // EV-017: Observaciones Pedagógicas
-    // ──────────────────────────────────────────────────────────────────────────
+    // ── EV-017: Observaciones Pedagógicas ────────────────────────────────────
+
+    @Data
+    public static class ObservacionPedagogicaPayload {
+        private String observacion;
+        private String periodo;
+        private String tipo = "GENERAL";
+    }
+
     @PostMapping("/observaciones/{alumno_id}")
     public ResponseEntity<Map<String, Object>> guardarObservaciones(
             @PathVariable("alumno_id") UUID alumnoId,
             @RequestBody ObservacionPedagogicaPayload data,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
-        if (user.getNivelAcceso() == null || user.getNivelAcceso() > 4) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado");
-        }
+        requireNivel(user, 4);
 
         ObservacionPedagogica obs = new ObservacionPedagogica();
         obs.setAlumnoId(alumnoId);
@@ -175,8 +123,8 @@ public class EvaluacionAvanzadaController {
         obs.setAutorId(user.getPersonaId());
         obs.setUsuarioCreacion(user.getUsername());
         obs.setUsuarioModificacion(user.getUsername());
-
         observacionRepository.save(obs);
+
         return ResponseEntity.ok(Map.of("message", "Observación pedagógica registrada"));
     }
 
@@ -192,44 +140,27 @@ public class EvaluacionAvanzadaController {
         return ResponseEntity.ok(observacionRepository.findByAlumnoIdOrderByFechaCreacionDesc(alumnoId));
     }
 
-    // ──────────────────────────────────────────────────────────────────────────
-    // EV-024: NEE — Necesidades Educativas Especiales
-    // ──────────────────────────────────────────────────────────────────────────
+    // ── EV-024: NEE ───────────────────────────────────────────────────────────
+
+    @Data
+    public static class NeePayload {
+        private UUID alumnoId;
+        private String tipoNee;
+        private String descripcion;
+        private String apoyosRequeridos;
+        private String fechaDeteccion;
+        private String profesionalDetecta;
+        private Boolean activa = true;
+    }
+
     @GetMapping("/nee")
     public ResponseEntity<List<Map<String, Object>>> listarNee(
             @RequestParam(value = "plantel_id", required = false) UUID plantelId,
             @RequestParam(value = "tipo_nee", required = false) String tipoNee,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
-        if (user.getNivelAcceso() == null || user.getNivelAcceso() > 3) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado");
-        }
-
-        StringBuilder sql = new StringBuilder(
-                "SELECT n.id, n.tipo_nee, n.descripcion, n.apoyos_requeridos, " +
-                "n.fecha_deteccion, n.profesional_detecta, " +
-                "p.nombre || ' ' || p.apellido_paterno as alumno, " +
-                "e.numero_control " +
-                "FROM ades_nee n " +
-                "JOIN ades_estudiantes e ON e.id = n.alumno_id " +
-                "JOIN ades_personas p ON p.id = e.persona_id " +
-                "LEFT JOIN ades_inscripciones i ON i.estudiante_id = e.id AND i.is_active = TRUE " +
-                "LEFT JOIN ades_grupos g ON g.id = i.grupo_id " +
-                "WHERE n.activa = TRUE"
-        );
-        List<Object> params = new ArrayList<>();
-
-        if (tipoNee != null && !tipoNee.isBlank()) {
-            sql.append(" AND n.tipo_nee = ?");
-            params.add(tipoNee);
-        }
-        if (plantelId != null) {
-            sql.append(" AND g.plantel_id = ?");
-            params.add(plantelId);
-        }
-
-        sql.append(" ORDER BY p.apellido_paterno, p.nombre");
-        return ResponseEntity.ok(jdbc.queryForList(sql.toString(), params.toArray()));
+        requireNivel(user, 3);
+        return ResponseEntity.ok(queryService.listarNee(plantelId, tipoNee));
     }
 
     @PostMapping("/nee")
@@ -237,9 +168,7 @@ public class EvaluacionAvanzadaController {
             @RequestBody NeePayload data,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
-        if (user.getNivelAcceso() == null || user.getNivelAcceso() > 3) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado");
-        }
+        requireNivel(user, 3);
 
         Nee nee = new Nee();
         nee.setAlumnoId(data.getAlumnoId());
@@ -251,51 +180,39 @@ public class EvaluacionAvanzadaController {
         nee.setActiva(data.getActiva());
         nee.setUsuarioCreacion(user.getUsername());
         nee.setUsuarioModificacion(user.getUsername());
-
         neeRepository.save(nee);
-        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("id", nee.getId().toString(), "message", "NEE registrada"));
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(Map.of("id", nee.getId().toString(), "message", "NEE registrada"));
     }
 
-    // ──────────────────────────────────────────────────────────────────────────
-    // EV-025: Asignación Aula/Hora
-    // ──────────────────────────────────────────────────────────────────────────
+    // ── EV-025: Asignación Aula/Hora (con detección de conflicto) ────────────
+
+    @Data
+    public static class AsignacionAulaHoraPayload {
+        private UUID claseId;
+        private UUID aulaId;
+        private String fecha;
+        private String horaInicio;
+        private String horaFin;
+        private String observaciones;
+    }
+
     @PostMapping("/asignacion-aula-hora")
     public ResponseEntity<Map<String, Object>> asignarAulaHora(
             @RequestBody AsignacionAulaHoraPayload data,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
-        if (user.getNivelAcceso() == null || user.getNivelAcceso() > 3) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado");
-        }
+        requireNivel(user, 3);
 
-        LocalDate fecha = LocalDate.parse(data.getFecha());
-        LocalTime hi = LocalTime.parse(data.getHoraInicio());
-        LocalTime hf = LocalTime.parse(data.getHoraFin());
+        UUID asignacionId = asignarAulaHoraUseCase.ejecutar(new AsignarAulaHoraUseCase.Command(
+                data.getClaseId(), data.getAulaId(),
+                LocalDate.parse(data.getFecha()),
+                SlotHorario.of(data.getHoraInicio(), data.getHoraFin()),
+                data.getObservaciones(), user.getUsername()));
 
-        // Check classroom scheduling conflicts
-        List<Map<String, Object>> conflict = jdbc.queryForList(
-                "SELECT id FROM ades_asignaciones_aula " +
-                "WHERE aula_id = ? AND fecha = ? " +
-                "AND NOT (hora_fin <= ? OR hora_inicio >= ?) " +
-                "AND is_active = TRUE",
-                data.getAulaId(), fecha, hi, hf);
-
-        if (!conflict.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "El aula ya está ocupada en ese horario");
-        }
-
-        AsignacionAula aa = new AsignacionAula();
-        aa.setClaseId(data.getClaseId());
-        aa.setAulaId(data.getAulaId());
-        aa.setFecha(fecha);
-        aa.setHoraInicio(hi);
-        aa.setHoraFin(hf);
-        aa.setObservaciones(data.getObservaciones());
-        aa.setUsuarioCreacion(user.getUsername());
-        aa.setUsuarioModificacion(user.getUsername());
-
-        asignacionRepository.save(aa);
-        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("message", "Aula asignada para la fecha y hora indicadas"));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(Map.of("id", asignacionId, "message", "Aula asignada para la fecha y hora indicadas"));
     }
 
     @GetMapping("/asignacion-aula-hora")
@@ -304,28 +221,15 @@ public class EvaluacionAvanzadaController {
             @RequestParam(value = "fecha", required = false) String fechaStr,
             @AuthenticationPrincipal Jwt jwt) {
         userService.resolveUser(jwt);
+        LocalDate fecha = fechaStr != null && !fechaStr.isBlank() ? LocalDate.parse(fechaStr) : null;
+        return ResponseEntity.ok(queryService.listarAsignacionesAula(aulaId, fecha));
+    }
 
-        StringBuilder sql = new StringBuilder(
-                "SELECT aa.id, aa.fecha, aa.hora_inicio, aa.hora_fin, aa.observaciones, " +
-                "a.nombre_aula, a.clave_aula, " +
-                "cl.descripcion as clase_desc " +
-                "FROM ades_asignaciones_aula aa " +
-                "JOIN ades_aulas a ON a.id = aa.aula_id " +
-                "LEFT JOIN ades_clases cl ON cl.id = aa.clase_id " +
-                "WHERE aa.is_active = TRUE"
-        );
-        List<Object> params = new ArrayList<>();
+    // ── Private helper ────────────────────────────────────────────────────────
 
-        if (aulaId != null) {
-            sql.append(" AND aa.aula_id = ?");
-            params.add(aulaId);
+    private void requireNivel(AdesUser user, int maxNivel) {
+        if (user.getNivelAcceso() == null || user.getNivelAcceso() > maxNivel) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado");
         }
-        if (fechaStr != null && !fechaStr.isBlank()) {
-            sql.append(" AND aa.fecha = ?");
-            params.add(LocalDate.parse(fechaStr));
-        }
-
-        sql.append(" ORDER BY aa.fecha, aa.hora_inicio");
-        return ResponseEntity.ok(jdbc.queryForList(sql.toString(), params.toArray()));
     }
 }

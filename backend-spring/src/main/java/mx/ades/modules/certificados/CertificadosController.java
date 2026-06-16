@@ -8,6 +8,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.server.ResponseStatusException;
+import mx.ades.modules.certificados.query.CertificadoQueryService;
 import mx.ades.security.AdesUser;
 import mx.ades.security.AdesUserService;
 
@@ -20,6 +21,7 @@ public class CertificadosController {
 
     private final AdesUserService userService;
     private final JdbcTemplate jdbc;
+    private final CertificadoQueryService queryService;
     private final RestClient restClient = RestClient.builder().build();
 
     private static final String API_BASE_URL = "http://ades-api:8000/api/v1/certificados";
@@ -32,35 +34,7 @@ public class CertificadosController {
             @AuthenticationPrincipal Jwt jwt) {
         userService.resolveUser(jwt);
 
-        StringBuilder sql = new StringBuilder(
-                "SELECT c.id, c.folio, c.tipo_certificado, c.nivel_educativo, " +
-                "c.grado_completado, c.promedio_final, " +
-                "c.fecha_emision, c.fecha_vencimiento, c.vigente, " +
-                "c.estado_firma, c.fecha_firma, c.verificable_url, " +
-                "c.blockchain_tx, c.blockchain_status, c.fecha_anclaje, c.blockchain_network, " +
-                "p.nombre || ' ' || p.apellido_paterno || COALESCE(' ' || p.apellido_materno, '') AS nombre_alumno, " +
-                "ce.nombre_ciclo " +
-                "FROM ades_certificados c " +
-                "JOIN ades_estudiantes est ON est.id = c.estudiante_id " +
-                "JOIN ades_personas p ON p.id = est.persona_id " +
-                "JOIN ades_ciclos_escolares ce ON ce.id = c.ciclo_escolar_id " +
-                "WHERE c.is_active = TRUE "
-        );
-
-        List<Object> params = new ArrayList<>();
-        if (estudianteId != null) {
-            sql.append("AND c.estudiante_id = ? ");
-            params.add(estudianteId);
-        }
-        if (tipoCertificado != null && !tipoCertificado.isBlank()) {
-            sql.append("AND c.tipo_certificado = ? ");
-            params.add(tipoCertificado);
-        }
-
-        sql.append("ORDER BY c.fecha_emision DESC LIMIT ?");
-        params.add(limit);
-
-        return ResponseEntity.ok(jdbc.queryForList(sql.toString(), params.toArray()));
+        return ResponseEntity.ok(queryService.listar(estudianteId, tipoCertificado, limit));
     }
 
     @PostMapping("/emitir")

@@ -94,7 +94,7 @@ class ExpedienteApplicationServiceTest {
                 extraId, cal, true, LocalDate.now(), "profesor1"));
 
         verify(extraRepo).calificar(eq(extraId), eq(cal.valor()), eq(true), any());
-        verify(events).publishEvent(any());
+        verify(events).publishEvent(any(Object.class));
     }
 
     @Test

@@ -19,6 +19,17 @@ import mx.ades.modules.evaluaciones.domain.port.out.TareaRepositoryPort;
 import mx.ades.modules.expediente.application.service.ExpedienteApplicationService;
 import mx.ades.modules.expediente.domain.port.in.*;
 import mx.ades.modules.expediente.domain.port.out.*;
+import mx.ades.modules.evaluaciones.application.service.EvaluacionApplicationService;
+import mx.ades.modules.evaluaciones.domain.port.in.AsignarAulaHoraUseCase;
+import mx.ades.modules.evaluaciones.domain.port.in.CalificarEvaluacionMasivoUseCase;
+import mx.ades.modules.evaluaciones.domain.port.out.AsignacionAulaRepositoryPort;
+import mx.ades.modules.evaluaciones.domain.port.out.CalificacionEvaluacionRepositoryPort;
+import mx.ades.modules.conducta.application.service.ConductaApplicationService;
+import mx.ades.modules.conducta.domain.port.in.CrearPlanMejoraUseCase;
+import mx.ades.modules.conducta.domain.port.out.PlanMejoraRepositoryPort;
+import mx.ades.modules.reinscripcion.application.service.ReinscripcionApplicationService;
+import mx.ades.modules.reinscripcion.domain.port.in.ProcesarAccionReinscripcionUseCase;
+import mx.ades.modules.reinscripcion.domain.port.out.ReinscripcionRepositoryPort;
 import mx.ades.modules.gradebook.application.service.GradebookApplicationService;
 import mx.ades.modules.gradebook.domain.port.in.AplicarAjusteUseCase;
 import mx.ades.modules.gradebook.domain.port.in.CerrarCalificacionUseCase;
@@ -152,6 +163,53 @@ public class HexagonalConfig {
 
     @Bean
     public VerificarExpedienteUseCase verificarExpediente(ExpedienteApplicationService service) {
+        return service;
+    }
+
+    // ── reinscripcion (FASE 6) ────────────────────────────────────────────────
+
+    @Bean
+    public ReinscripcionApplicationService reinscripcionApplicationService(
+            ReinscripcionRepositoryPort repo,
+            ApplicationEventPublisher events) {
+        return new ReinscripcionApplicationService(repo, events);
+    }
+
+    @Bean
+    public ProcesarAccionReinscripcionUseCase procesarAccionReinscripcion(
+            ReinscripcionApplicationService service) {
+        return service;
+    }
+
+    // ── conducta (FASE 12) ────────────────────────────────────────────────────
+
+    @Bean
+    public ConductaApplicationService conductaApplicationService(PlanMejoraRepositoryPort planRepo) {
+        return new ConductaApplicationService(planRepo);
+    }
+
+    @Bean
+    public CrearPlanMejoraUseCase crearPlanMejora(ConductaApplicationService service) {
+        return service;
+    }
+
+    // ── evaluaciones TIER 2 (FASE 9-11) ──────────────────────────────────────
+
+    @Bean
+    public EvaluacionApplicationService evaluacionApplicationService(
+            AsignacionAulaRepositoryPort aulaRepo,
+            CalificacionEvaluacionRepositoryPort calificacionRepo,
+            ApplicationEventPublisher events) {
+        return new EvaluacionApplicationService(aulaRepo, calificacionRepo, events);
+    }
+
+    @Bean
+    public AsignarAulaHoraUseCase asignarAulaHora(EvaluacionApplicationService service) {
+        return service;
+    }
+
+    @Bean
+    public CalificarEvaluacionMasivoUseCase calificarEvaluacionMasivo(EvaluacionApplicationService service) {
         return service;
     }
 }

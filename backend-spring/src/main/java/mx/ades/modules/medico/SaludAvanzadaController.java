@@ -3,6 +3,7 @@ package mx.ades.modules.medico;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import mx.ades.modules.medico.query.SaludQueryService;
 import org.springframework.http.*;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -27,6 +28,7 @@ public class SaludAvanzadaController {
 
     private final AdesUserService userService;
     private final JdbcTemplate jdbc;
+    private final SaludQueryService queryService;
     private final RestClient restClient = RestClient.builder().build();
 
     private static final String API_BASE_URL = "http://ades-api:8000/api/v1/salud-avanzada";
@@ -88,19 +90,7 @@ public class SaludAvanzadaController {
             @RequestParam(value = "solo_vigentes", defaultValue = "true") boolean soloVigentes,
             @AuthenticationPrincipal Jwt jwt) {
         userService.resolveUser(jwt);
-
-        StringBuilder sql = new StringBuilder("SELECT id, nombre_medicamento, dosis, frecuencia, horario, via_administracion, prescrito_por, fecha_inicio, fecha_fin, observaciones, is_active FROM ades_medicamentos_alumno WHERE alumno_id = ?");
-        List<Object> params = new ArrayList<>();
-        params.add(alumnoId);
-
-        if (soloVigentes) {
-            sql.append(" AND is_active = TRUE AND (fecha_fin IS NULL OR fecha_fin >= CURRENT_DATE)");
-        }
-
-        sql.append(" ORDER BY fecha_inicio DESC NULLS LAST");
-
-        List<Map<String, Object>> rows = jdbc.queryForList(sql.toString(), params.toArray());
-        return ResponseEntity.ok(rows);
+        return ResponseEntity.ok(queryService.medicamentos(alumnoId, soloVigentes));
     }
 
     @PostMapping("/medicamentos/{alumno_id}")
@@ -194,17 +184,7 @@ public class SaludAvanzadaController {
         if (user.getNivelAcceso() == null || user.getNivelAcceso() > NIVEL_MEDICO) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado");
         }
-
-        List<Map<String, Object>> rows = jdbc.queryForList(
-                "SELECT id, tipo_atencion, motivo, observaciones, estrategias_sugeridas, " +
-                        "requiere_derivacion, derivado_a, proxima_sesion, " +
-                        "fecha_creacion, usuario_creacion as especialista " +
-                        "FROM ades_seguimiento_psicosocial " +
-                        "WHERE alumno_id = ? " +
-                        "ORDER BY fecha_creacion DESC",
-                alumnoId
-        );
-        return ResponseEntity.ok(rows);
+        return ResponseEntity.ok(queryService.psicosocial(alumnoId));
     }
 
     @PostMapping("/psicosocial/{alumno_id}")
@@ -248,32 +228,7 @@ public class SaludAvanzadaController {
         if (user.getNivelAcceso() == null || user.getNivelAcceso() > NIVEL_MEDICO) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado");
         }
-
-        StringBuilder sql = new StringBuilder(
-                "SELECT t.id, t.tipo_tutoria, t.tema, t.descripcion, t.duracion_minutos, t.acuerdos, t.proxima_sesion, t.requiere_seguimiento, " +
-                        "t.fecha_creacion, t.usuario_creacion as tutor, p.nombre || ' ' || p.apellido_paterno as alumno, e.matricula as numero_control " +
-                        "FROM ades_tutorias t " +
-                        "JOIN ades_estudiantes e ON e.id = t.alumno_id " +
-                        "JOIN ades_personas p ON p.id = e.persona_id " +
-                        "WHERE 1=1"
-        );
-        List<Object> params = new ArrayList<>();
-
-        if (alumnoId != null) {
-            sql.append(" AND t.alumno_id = ?");
-            params.add(alumnoId);
-        }
-        if (tipoTutoria != null && !tipoTutoria.isBlank()) {
-            sql.append(" AND t.tipo_tutoria = ?");
-            params.add(tipoTutoria);
-        }
-
-        sql.append(" ORDER BY t.fecha_creacion DESC LIMIT ? OFFSET ?");
-        params.add(limit);
-        params.add(skip);
-
-        List<Map<String, Object>> rows = jdbc.queryForList(sql.toString(), params.toArray());
-        return ResponseEntity.ok(rows);
+        return ResponseEntity.ok(queryService.tutorias(alumnoId, tipoTutoria, skip, limit));
     }
 
     @PostMapping("/tutorias")

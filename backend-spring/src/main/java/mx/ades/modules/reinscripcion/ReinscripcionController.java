@@ -8,6 +8,9 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
+import mx.ades.modules.reinscripcion.domain.model.AccionReinscripcion;
+import mx.ades.modules.reinscripcion.domain.port.in.ProcesarAccionReinscripcionUseCase;
+import mx.ades.modules.reinscripcion.query.ReinscripcionQueryService;
 import mx.ades.security.AdesUser;
 import mx.ades.security.AdesUserService;
 
@@ -22,8 +25,10 @@ public class ReinscripcionController {
 
     private final ReinscripcionService service;
     private final AdesUserService userService;
+    private final ProcesarAccionReinscripcionUseCase procesarAccionUseCase;
+    private final ReinscripcionQueryService queryService;
 
-    private static final int ROLES_ADMIN = 3; // DIRECTOR o superior
+    private static final int NIVEL_ADMIN = 3;
 
     @Data
     public static class ValidarMasivaRequest {
@@ -42,6 +47,8 @@ public class ReinscripcionController {
         private String razonRechazo;
     }
 
+    // ── Queries ───────────────────────────────────────────────────────────────
+
     @GetMapping("/{ciclo_destino_id}/estado")
     public ResponseEntity<Map<String, Object>> estadoReinscripcion(
             @PathVariable("ciclo_destino_id") UUID cicloDestinoId,
@@ -51,8 +58,33 @@ public class ReinscripcionController {
             @RequestParam(value = "por_pagina", defaultValue = "50") int porPagina,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
-        return ResponseEntity.ok(service.getEstado(cicloDestinoId, estado, plantelId, page, porPagina, user));
+        return ResponseEntity.ok(queryService.getEstado(cicloDestinoId, estado, plantelId, page, porPagina, user));
     }
+
+    @GetMapping("/{ciclo_destino_id}/reporte")
+    public ResponseEntity<Map<String, Object>> reporteReinscripcion(
+            @PathVariable("ciclo_destino_id") UUID cicloDestinoId,
+            @AuthenticationPrincipal Jwt jwt) {
+        userService.resolveUser(jwt);
+        return ResponseEntity.ok(queryService.getReporte(cicloDestinoId));
+    }
+
+    @GetMapping("/no-adeudo/{estudiante_id}")
+    public ResponseEntity<Map<String, Object>> verificarNoAdeudo(
+            @PathVariable("estudiante_id") UUID estudianteId,
+            @RequestParam(value = "ciclo_escolar_id", required = false) UUID cicloEscolarId,
+            @AuthenticationPrincipal Jwt jwt) {
+        userService.resolveUser(jwt);
+        return ResponseEntity.ok(queryService.verificarNoAdeudo(estudianteId, cicloEscolarId));
+    }
+
+    @GetMapping("/ciclo/{cicloDestinoId}")
+    public ResponseEntity<List<ReinscripcionCiclo>> listarPorCicloDestino(
+            @PathVariable("cicloDestinoId") UUID cicloDestinoId) {
+        return ResponseEntity.ok(service.listarPorCicloDestino(cicloDestinoId));
+    }
+
+    // ── Commands ──────────────────────────────────────────────────────────────
 
     @PostMapping("/{ciclo_destino_id}/validar-masivo")
     public ResponseEntity<Map<String, Object>> validarMasivo(
@@ -60,11 +92,8 @@ public class ReinscripcionController {
             @RequestParam("ciclo_origen_id") UUID cicloOrigenId,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
-        if (user.getNivelAcceso() == null || user.getNivelAcceso() > ROLES_ADMIN) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo DIRECTOR/ADMIN puede ejecutar reinscripción masiva");
-        }
-
-        String resumen = service.validarReinscripcionMasiva(cicloOrigenId, cicloDestinoId);
+        requireAdmin(user);
+        String resumen = queryService.validarMasiva(cicloOrigenId, cicloDestinoId);
         return ResponseEntity.ok(Map.of("ok", true, "resumen", resumen));
     }
 
@@ -74,20 +103,8 @@ public class ReinscripcionController {
             @RequestParam("ciclo_origen_id") UUID cicloOrigenId,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
-        if (user.getNivelAcceso() == null || user.getNivelAcceso() > ROLES_ADMIN) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo DIRECTOR/ADMIN puede aprobar reinscripción masiva");
-        }
-
-        Map<String, Object> result = service.aprobarMasivo(cicloOrigenId, cicloDestinoId, user.getId());
-        return ResponseEntity.ok(result);
-    }
-
-    @GetMapping("/{ciclo_destino_id}/reporte")
-    public ResponseEntity<Map<String, Object>> reporteReinscripcion(
-            @PathVariable("ciclo_destino_id") UUID cicloDestinoId,
-            @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
-        return ResponseEntity.ok(service.getReporte(cicloDestinoId));
+        requireAdmin(user);
+        return ResponseEntity.ok(queryService.aprobarMasivo(cicloOrigenId, cicloDestinoId, user.getId()));
     }
 
     @PatchMapping("/{registro_id}")
@@ -96,53 +113,44 @@ public class ReinscripcionController {
             @RequestBody AccionIndividualPayload body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
-        if (user.getNivelAcceso() == null || user.getNivelAcceso() > ROLES_ADMIN) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Sin permiso para esta acción");
-        }
+        requireAdmin(user);
 
-        if (body.getAccion() == null || (!"APROBAR".equals(body.getAccion()) && !"RECHAZAR".equals(body.getAccion()))) {
-            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "accion debe ser APROBAR o RECHAZAR");
-        }
+        AccionReinscripcion accion = AccionReinscripcion.of(body.getAccion());
+        ProcesarAccionReinscripcionUseCase.Result result = procesarAccionUseCase.ejecutar(
+                new ProcesarAccionReinscripcionUseCase.Command(
+                        registroId, accion, body.getRazonRechazo(), user.getId()));
 
-        if ("RECHAZAR".equals(body.getAccion()) && (body.getRazonRechazo() == null || body.getRazonRechazo().isBlank())) {
-            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "razon_rechazo es requerida al rechazar");
-        }
-
-        Map<String, Object> result = service.patchIndividual(registroId, body.getAccion(), body.getRazonRechazo(), user.getId());
-        return ResponseEntity.ok(result);
-    }
-
-    @GetMapping("/no-adeudo/{estudiante_id}")
-    public ResponseEntity<Map<String, Object>> verificarNoAdeudo(
-            @PathVariable("estudiante_id") UUID estudianteId,
-            @RequestParam(value = "ciclo_escolar_id", required = false) UUID cicloEscolarId,
-            @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
-        return ResponseEntity.ok(service.verificarNoAdeudo(estudianteId, cicloEscolarId));
-    }
-
-    // Keep old API compatibility
-    @PostMapping("/validar")
-    public ResponseEntity<String> validarMasiva(@RequestBody ValidarMasivaRequest request) {
-        String result = service.validarReinscripcionMasiva(request.getCicloOrigenId(), request.getCicloDestinoId());
-        return ResponseEntity.ok(result);
+        return ResponseEntity.ok(Map.of("id", result.registroId().toString(), "estado", result.estado()));
     }
 
     @PostMapping("/{id}/aprobar")
-    public ResponseEntity<ReinscripcionCiclo> aprobar(@PathVariable("id") UUID id, @AuthenticationPrincipal Jwt jwt) {
+    public ResponseEntity<ReinscripcionCiclo> aprobar(
+            @PathVariable("id") UUID id,
+            @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         ReinscripcionCiclo r = service.aprobarReinscripcion(id, user.getId());
         return ResponseEntity.ok(r);
     }
 
     @PostMapping("/{id}/rechazar")
-    public ResponseEntity<ReinscripcionCiclo> rechazar(@PathVariable("id") UUID id, @RequestBody RechazarRequest request) {
+    public ResponseEntity<ReinscripcionCiclo> rechazar(
+            @PathVariable("id") UUID id,
+            @RequestBody RechazarRequest request) {
         ReinscripcionCiclo r = service.rechazarReinscripcion(id, request.getRazonRechazo());
         return ResponseEntity.ok(r);
     }
 
-    @GetMapping("/ciclo/{cicloDestinoId}")
-    public ResponseEntity<List<ReinscripcionCiclo>> listarPorCicloDestino(@PathVariable("cicloDestinoId") UUID cicloDestinoId) {
-        return ResponseEntity.ok(service.listarPorCicloDestino(cicloDestinoId));
+    @PostMapping("/validar")
+    public ResponseEntity<String> validarMasiva(@RequestBody ValidarMasivaRequest request) {
+        String result = service.validarReinscripcionMasiva(request.getCicloOrigenId(), request.getCicloDestinoId());
+        return ResponseEntity.ok(result);
+    }
+
+    // ── Private helpers ───────────────────────────────────────────────────────
+
+    private void requireAdmin(AdesUser user) {
+        if (user.getNivelAcceso() == null || user.getNivelAcceso() > NIVEL_ADMIN) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo DIRECTOR/ADMIN puede ejecutar esta acción");
+        }
     }
 }
