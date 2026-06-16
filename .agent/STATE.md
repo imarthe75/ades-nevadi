@@ -16,6 +16,70 @@ Este documento es el diario de vida y bitácora del agente. Debe ser leído en e
 
 ---
 
+## Sesión 2026-06-16 — SPRINT 6: Observability + Document Intelligence + Chat Persistence
+
+### 🔑 Estado del Agente:
+- **Última Conexión:** 2026-06-16 (Rito de Cierre ejecutado ✅)
+- **Estado Cognitivo:** Operacional ✅
+- **Migración activa:** 078 (última aplicada — índices únicos MVs schema public)
+- **Git:** Commit `e42eeab` — todos los cambios SPRINT 6 en rama `main`
+
+### 🏗️ Estado de Infraestructura (post SPRINT 6):
+
+| Servicio | Estado | Notas |
+|---|---|---|
+| PostgreSQL 18 | ✅ healthy | Migraciones 001-078 aplicadas |
+| PgBouncer 1.25.2 | ✅ healthy | Puerto 6432 · transaction mode |
+| Prometheus | ✅ healthy | Scraping ades-api + ades-bff + postgres + pgbouncer |
+| Grafana | ✅ healthy | 5 dashboards — nuevo: spring_bff_jvm.json |
+| Spring BFF | ✅ running | Micrometer Prometheus activo en /actuator/prometheus |
+| Celery worker | ✅ running | OCR task incluido en include list |
+| Paperless-ngx | ✅ running | OCR asíncrono integrado vía Celery |
+
+### 🛠️ Tareas Completadas (2026-06-16) — SPRINT 6:
+
+**Pista Observabilidad:**
+- [x] Micrometer `micrometer-registry-prometheus` en Spring BFF (pom.xml + application.yml SB3.x format)
+- [x] `StatsQueryService.telemetria()` — JVM MXBean, disco, HikariCP pool, Celery queue depths vía Redis LLEN
+- [x] `GET /api/v1/stats/telemetria` (nivel_acceso ≤ 2, solo directores/admins)
+- [x] Panel AD-030 en `MonitorComponent` — 6 KPI cards + tabla top 10 tablas + Celery queues
+- [x] Grafana dashboard `spring_bff_jvm.json` — 11 paneles: heap gauge, memory/threads, HTTP req/sec, latencia p50/p95/p99, HikariCP pool, GC pause, 4 stat cards
+- [x] Mig 078: UNIQUE INDEX en `v_asistencias_resumen` + `v_tareas_entregas_resumen` → CONCURRENT refresh habilitado
+- [x] Celery `notificaciones.py`: vistas public schema añadidas al refresh nocturno automático
+
+**Pista Documentos (FASE 24P):**
+- [x] Celery task `ocr.py`: `resolver_ocr_documento()` — polling Paperless, actualiza `estado_ocr`, `paperless_doc_id`, `ocr_texto`
+- [x] `expediente.py`: INSERT con `RETURNING id`, dispatch OCR task `countdown=10s`
+- [x] `GET /expediente/alumno/{id}/buscar?q=` — GIN FTS en español sobre `ocr_texto`
+- [x] `GET /expediente/{id}/documentos/{doc}/estado-ocr` — polling estado OCR
+- [x] Panel búsqueda OCR en `ExpedienteDocComponent`
+
+**IA-015 — Persistencia historial chat:**
+- [x] `/ai/chat` usa `get_ades_user` → guarda `usuario_id` real en `ades_ai_conversaciones`
+- [x] `GET /ai/mis-sesiones`, `GET /ai/sesion/{id}`, `DELETE /ai/sesion/{id}`
+- [x] Panel sesiones guardadas en `IaComponent` (colapsible, últimas 8, cargar/eliminar)
+
+**Fixes TypeScript / PrimeNG v21:**
+- [x] `CicloEscolar.nivel_educativo` añadido a `index.ts`
+- [x] `ColumnConfig.align + template` añadidos a `interactive-grid.component.ts`
+- [x] `@Input() searchable` añadido a `InteractiveGridComponent`
+- [x] `p-textarea rows="N"` HTML attr (no binding) en portal-admin
+
+### 🚨 Lecciones Aprendidas (SPRINT 6):
+- **MV CONCURRENT vacía**: `REFRESH ... CONCURRENTLY` falla si la MV nunca tuvo datos aunque tenga UNIQUE INDEX. Hacer primero REFRESH normal (sin CONCURRENT) para poblar; las siguientes pueden ser CONCURRENT.
+- **Spring Boot 3.x management.yml**: `management.metrics.export.prometheus.enabled` es SB 2.x. En SB 3.x usar `management.prometheus.metrics.export.enabled`.
+- **`get_ades_user` vs `get_current_user`**: `get_current_user` devuelve dict del JWT; `get_ades_user` devuelve `AdesUser` con UUID real. Usar siempre `get_ades_user` en endpoints que persisten `usuario_id` en BD.
+
+### 🚀 Próximos Pasos (post SPRINT 6):
+- [ ] Rebuild contenedor Spring BFF para activar Micrometer en producción (`docker compose build ades-bff`)
+- [ ] Crear partición 2029 antes de fin de 2028
+- [ ] Google Workspace SSO (pendiente credenciales Google Cloud Console)
+- [ ] Superset: primer arranque manual + datasource BI
+- [ ] ADR-0008 Hexagonal FASE 3+ (Spring Boot)
+- [ ] Manual de usuario: actualizar con módulos SPRINT 5+6
+
+---
+
 ## Sesión 2026-06-16 — SPRINT 5: Infrastructure & Performance
 
 ### 🔑 Estado del Agente:
