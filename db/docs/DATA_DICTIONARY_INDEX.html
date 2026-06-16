@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ADES — Data Dictionary & Entity Relationship Diagram</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+        
+        .header h1 { font-size: 2.5em; margin-bottom: 10px; }
+        .header p { font-size: 1.1em; opacity: 0.9; }
+        
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+            padding: 30px 40px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .metric {
+            text-align: center;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .metric-value { font-size: 1.8em; font-weight: bold; color: #667eea; }
+        .metric-label { font-size: 0.85em; color: #6c757d; margin-top: 5px; }
+        
+        .content {
+            padding: 40px;
+        }
+        
+        .section {
+            margin-bottom: 30px;
+        }
+        
+        .section h2 {
+            color: #667eea;
+            font-size: 1.5em;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+        
+        .doc-links {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        
+        .doc-link {
+            background: white;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            padding: 20px;
+            text-decoration: none;
+            color: inherit;
+            transition: all 0.3s ease;
+        }
+        
+        .doc-link:hover {
+            background: #667eea;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.2);
+        }
+        
+        .doc-link h3 { margin-bottom: 10px; font-size: 1.2em; }
+        .doc-link p { font-size: 0.95em; opacity: 0.8; }
+        
+        .stats {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        
+        .stats ul { list-style: none; padding: 0; }
+        .stats li {
+            padding: 8px 0;
+            display: flex;
+            align-items: center;
+        }
+        
+        .stats li:before {
+            content: "✓";
+            color: #28a745;
+            font-weight: bold;
+            margin-right: 10px;
+            font-size: 1.1em;
+        }
+        
+        .footer {
+            background: #f8f9fa;
+            padding: 20px 40px;
+            text-align: center;
+            border-top: 1px solid #e9ecef;
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+        
+        code {
+            background: #f8f9fa;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            color: #e83e8c;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📚 ADES Database Documentation</h1>
+            <p>Sistema de Administración Escolar — Data Dictionary & Entity Relationship Diagram</p>
+        </div>
+        
+        <div class="metrics">
+            <div class="metric">
+                <div class="metric-value">145</div>
+                <div class="metric-label">Tablas Documentadas</div>
+            </div>
+            <div class="metric">
+                <div class="metric-value">2,459</div>
+                <div class="metric-label">Columnas</div>
+            </div>
+            <div class="metric">
+                <div class="metric-value">297</div>
+                <div class="metric-label">Foreign Keys</div>
+            </div>
+            <div class="metric">
+                <div class="metric-value">528</div>
+                <div class="metric-label">Índices</div>
+            </div>
+            <div class="metric">
+                <div class="metric-value">562 MB</div>
+                <div class="metric-label">Tamaño BD</div>
+            </div>
+            <div class="metric">
+                <div class="metric-value">100%</div>
+                <div class="metric-label">Documentación</div>
+            </div>
+        </div>
+        
+        <div class="content">
+            <div class="section">
+                <h2>📖 Documentación Principal</h2>
+                <div class="doc-links">
+                    <a href="DATA_DICTIONARY.csv" class="doc-link">
+                        <h3>📊 Data Dictionary (CSV)</h3>
+                        <p>Exportable para análisis en Excel/Google Sheets — 2,460 líneas con metadata completa de todas las columnas</p>
+                    </a>
+                    <a href="DATA_DICTIONARY.md" class="doc-link">
+                        <h3>📝 Data Dictionary (MD)</h3>
+                        <p>Formato markdown legible — Tabla resumen + descripción detallada de cada columna</p>
+                    </a>
+                    <a href="ER_DIAGRAM.mmd" class="doc-link">
+                        <h3>🔗 Entity Relationship Diagram</h3>
+                        <p>Formato Mermaid — 131 tablas y 297 relaciones. Copiar contenido a mermaid.live para visualizar</p>
+                    </a>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h2>🔍 Análisis y Recomendaciones</h2>
+                <div class="doc-links">
+                    <a href="../analysis/INDEX_RECOMMENDATIONS.md" class="doc-link">
+                        <h3>⚡ Index Optimization</h3>
+                        <p>20 índices no usados (79 MB), 20+ recomendaciones de FK índices, impacto +15-25% performance</p>
+                    </a>
+                    <a href="../analysis/NORMALIZATION_ANALYSIS.md" class="doc-link">
+                        <h3>📐 Normalization Analysis</h3>
+                        <p>Estado 3NF de 145 tablas, denormalización estratégica recomendada, materialized views</p>
+                    </a>
+                    <a href="../../SPRINT_2_EXECUTION_SUMMARY.md" class="doc-link">
+                        <h3>✅ SPRINT 2 Summary</h3>
+                        <p>Resumen ejecutivo de análisis, correcciones aplicadas, próximos pasos SPRINT 3</p>
+                    </a>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h2>🎯 Estado Actual</h2>
+                <div class="stats">
+                    <ul>
+                        <li>100% de tablas con comentarios descriptivos</li>
+                        <li>100% de columnas críticas documentadas</li>
+                        <li>Data Dictionary exportable en 2 formatos (CSV, MD)</li>
+                        <li>E-R Diagram legible (todas las 297 relaciones)</li>
+                        <li>20+ índices no usados identificados y cuantificados</li>
+                        <li>20+ recomendaciones de índices en Foreign Keys</li>
+                        <li>Plan de optimización documentado (15-25% mejora esperada)</li>
+                        <li>Análisis de normalización completado (3NF vs denorm.)</li>
+                        <li>Scripts de optimización preparados para SPRINT 3</li>
+                        <li>Documentación versionada en Git</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h2>📋 Cómo Usar Esta Documentación</h2>
+                <div class="stats">
+                    <strong style="display: block; margin-bottom: 15px;">Para diferentes propósitos:</strong>
+                    <ul>
+                        <li><strong>Auditoría:</strong> Usar CSV (import a Excel/Sheets para análisis)</li>
+                        <li><strong>Documentación:</strong> Usar Markdown (commit a Git, ver en IDE)</li>
+                        <li><strong>Arquitectura:</strong> Copiar ER Diagram a mermaid.live, exportar PNG/SVG</li>
+                        <li><strong>Performance:</strong> Leer INDEX_RECOMMENDATIONS.md para SPRINT 3</li>
+                        <li><strong>Queries:</strong> Usar Data Dictionary para entender foreign keys y relaciones</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h2>🚀 Próximos Pasos (SPRINT 3)</h2>
+                <div class="stats">
+                    <ul>
+                        <li>Eliminar 20 índices no usados (liberar 79 MB)</li>
+                        <li>Crear 20+ índices en Foreign Keys (+30-40% JOINs)</li>
+                        <li>Crear 5 índices compuestos (queries frecuentes)</li>
+                        <li>Ejecutar VACUUM ANALYZE (estadísticas BD)</li>
+                        <li>Crear Materialized Views para reportes</li>
+                        <li>Medir mejora de performance: Query latency -15-25%</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>📅 Generado: 2026-06-16 | SPRINT 2: Database Analysis, Corrections & Documentation</p>
+            <p>Sistema de Administración Escolar (ADES) | Documentación de Integridad de Datos</p>
+        </div>
+    </div>
+</body>
+</html>
