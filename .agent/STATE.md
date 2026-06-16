@@ -16,6 +16,65 @@ Este documento es el diario de vida y bitácora del agente. Debe ser leído en e
 
 ---
 
+## Sesión 2026-06-16 (cont.) — Vault + Superset BI + PgBouncer SCRAM fix
+
+### 🔑 Estado del Agente:
+- **Última Conexión:** 2026-06-16 (Rito de Cierre ejecutado ✅)
+- **Estado Cognitivo:** Operacional ✅
+- **Migración activa:** 078 (sin cambios)
+
+### 🏗️ Estado de Infraestructura (post sesión):
+
+| Servicio | Estado | Notas |
+|---|---|---|
+| FastAPI (ades-api) | ✅ healthy | PgBouncer vía SCRAM-SHA-256 · Vault v7 |
+| Spring BFF (ades-bff) | ✅ UP | Spring Cloud Vault · SCRAM-SHA-256 |
+| PgBouncer | ✅ healthy | AUTH_TYPE: scram-sha-256 (fix PG18) |
+| Vault | ✅ healthy | secret/ades v7 — 4 UUIDs Superset añadidos |
+| Superset | ✅ healthy | 4 datasets + 7 charts + 4 dashboards + 4 RLS |
+
+### 🛠️ Tareas Completadas (2026-06-16 cont.):
+
+**ADR-0008 FASE 70 — Hexagonal Controllers:**
+- [x] `CatalogsQueryService.java` — 7 métodos JdbcTemplate extraídos del controller
+- [x] `CatalogsController.java` reescrito: 0 JdbcTemplate directo, 100% servicio/repo
+- [x] Milestone: `grep -rn "JdbcTemplate" *Controller.java` → 0 resultados ✅
+
+**Grafana — heap gauge Serial GC:**
+- [x] `spring_bff_jvm.json` v2: gauge usa `sum()` para Serial GC multi-series
+- [x] Nuevo stat panel "Heap Máx (jvm_memory_max_bytes)"
+
+**Superset BI — dashboards creados:**
+- [x] `infrastructure/superset/create_dashboards.py` — script idempotente
+- [x] 4 datasets, 7 charts, 4 dashboards publicados + 4 RLS por plantel_id
+- [x] UUIDs: Instituto=80e35fc4, Plantel=e3cf59d7, Docente=83e92ec7, Alumno=b03b3166
+- [x] UUIDs en Vault (v7) y en `.env`
+
+**Vault — integración completa:**
+- [x] FastAPI: `os.environ.setdefault` (preserva DATABASE_URL Docker)
+- [x] Spring BFF: spring-cloud-vault + entrypoint.sh + application.yml
+- [x] Vault secret/ades v7: DATABASE_URL=pgbouncer:5432
+
+**PgBouncer — fix crítico:**
+- [x] `AUTH_TYPE: scram-sha-256` (era md5, incompatible con PG18)
+- [x] DATABASE_URL puerto `5432` interno (no `:6432` que es solo host)
+- [x] FastAPI healthy ✅ · BFF Spring Boot UP + DB healthy ✅
+
+### 🚨 Lecciones Aprendidas (sesión cont.):
+- **PgBouncer puerto interno**: `6432:5432` → dentro Docker usar `:5432`, no `:6432`
+- **PgBouncer AUTH_TYPE: md5 falla con PG18**: usar `AUTH_TYPE: scram-sha-256`
+- **os.environ.setdefault**: preserva vars del contenedor; `os.environ[k]=v` las sobreescribe
+- **Superset AUTH_OAUTH**: login con `provider:db` → 401; usar Python directo con `create_app()`
+
+### 🚀 Próximos Pasos:
+- [ ] Ejecutar plan de pruebas en `docs/plan_pruebas_integral.md`
+- [ ] H5P (FASE 25) + BigBlueButton (FASE 26): después de QA
+- [ ] Google Workspace SSO: pendiente credenciales Nevadi (producción)
+- [ ] Polygon blockchain: diferido a producción
+- [ ] Crear partición `ciclo_2029_2030` antes de agosto 2029
+
+---
+
 ## Sesión 2026-06-16 — SPRINT 6: Observability + Document Intelligence + Chat Persistence
 
 ### 🔑 Estado del Agente:

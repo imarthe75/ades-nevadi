@@ -9,12 +9,14 @@ Bienvenido al Manual de Usuario de **ADES (Administración Escolar Instituto Nev
 2. [Guía de Roles y Permisos](#2-guía-de-roles-y-permisos)
 3. [Módulos Core Académicos](#3-módulos-core-académicos)
 4. [Módulo de Calificaciones y Gradebook](#4-módulo-de-calificaciones-y-gradebook)
-5. [Módulo de Expediente Digital (Fase 28)](#5-módulo-de-expediente-digital-fase-28)
+5. [Módulo de Expediente Digital](#5-módulo-de-expediente-digital)
 6. [Módulo de Certificados Digitales (Fase 27)](#6-módulo-de-certificados-digitales-fase-27)
 7. [Recursos Humanos y Licencias (Fases 29 y 30)](#7-recursos-humanos-y-licencias-fases-29-y-30)
 8. [Operatividad Avanzada y Justificaciones (Fase 31)](#8-operatividad-avanzada-y-justificaciones-fase-31)
-9. [Asistente IA y Consultas en Lenguaje Natural (Fase 4)](#9-asistente-ia-y-consultas-en-lenguaje-natural-fase-4)
-10. [Monitoreo e Infraestructura (Solo Administradores)](#10-monitoreo-e-infraestructura-solo-administradores)
+9. [Asistente IA y Consultas en Lenguaje Natural](#9-asistente-ia-y-consultas-en-lenguaje-natural)
+10. [Colaboración y Personalización de Dashboard (Fase 32)](#10-colaboración-y-personalización-de-dashboard-fase-32)
+11. [Admisiones y Trámites Escolares (Fase 32)](#11-admisiones-y-trámites-escolares-fase-32)
+12. [Monitoreo e Infraestructura (Solo Administradores)](#12-monitoreo-e-infraestructura-solo-administradores)
 
 ---
 
@@ -68,12 +70,13 @@ El sistema se rige por un estricto control de acceso basado en roles (RBAC) con 
 
 ---
 
-## 5. Módulo de Expediente Digital (Fase 28)
+## 5. Módulo de Expediente Digital
 
 Este módulo centraliza los expedientes documentales de los alumnos utilizando **Paperless-ngx** y almacenamiento local compatible con **MinIO S3**:
 
 *   **Completitud del Expediente:** Muestra el listado de documentos obligatorios (CURP, Acta de Nacimiento, Certificado anterior, Comprobante de Domicilio) con su estado actual y barra de progreso.
-*   **Ingesta y OCR:** Los archivos PDF o imágenes cargados pasan por un proceso de reconocimiento óptico de caracteres (OCR) en español. El visor integrado permite inspeccionar los documentos directamente en pantalla.
+*   **Ingesta y OCR asíncrono (Sprint 6 — FASE 24P):** Los archivos PDF o imágenes cargados se envían a Paperless-ngx y el OCR en español se procesa en segundo plano mediante Celery. El panel muestra el estado en tiempo real: `PENDIENTE → PROCESANDO → COMPLETADO`. Una vez terminado, el texto extraído queda indexado para búsqueda de texto completo.
+*   **Búsqueda por contenido:** La barra de búsqueda en el panel de expediente ejecuta una búsqueda de texto completo (`tsvector` en PostgreSQL) sobre el texto OCR de todos los documentos del alumno.
 *   **Validación con IA:** Al presionar **Analizar con IA**, el asistente procesa el texto OCR mediante NVIDIA NIM local para detectar inconsistencias de datos (ej. discrepancia de nombres, vigencia de documentos) e identificar papeles pendientes de entrega.
 
 ---
@@ -108,13 +111,14 @@ Permite automatizar y resguardar los flujos operacionales de los colaboradores d
 
 ---
 
-## 9. Asistente IA, Analítica y Rutas de Aprendizaje (Fase 4 & 32)
+## 9. Asistente IA y Consultas en Lenguaje Natural
 
 *   **Predicción de Abandono (IA-005):** Panel predictivo que calcula el índice de riesgo de deserción del alumno utilizando su historial académico, conducta y récord de asistencia.
 *   **Ajuste Dinámico de Ruta (IA-009 / IA-014):** Asignación y recomendación automática de recursos adicionales (learning paths) adaptados al nivel del estudiante y basados en su rendimiento.
 *   **Análisis Preventivo de Bullying (SB-016 / SB-020):** Escaneo semántico de encuestas escolares para detectar patrones de conducta y palabras clave relacionadas con acoso, alertando a los orientadores en tiempo real.
 *   **Chatbot Pedagógico:** Un asistente disponible en el panel superior que responde consultas de directrices escolares, genera sugerencias de rúbricas para evaluación y provee herramientas de apoyo educativo al docente.
 *   **NL to SQL (Consulta de datos):** Permite escribir preguntas en lenguaje cotidiano en la barra de consulta (ej. *"¿Qué alumnos tienen más de 3 inasistencias en este ciclo?"*). El sistema genera la consulta SQL de manera segura, la ejecuta y presenta el resultado en una tabla.
+*   **Historial de sesiones (IA-015 — Sprint 6):** El asistente IA guarda automáticamente cada conversación en el perfil del usuario. Desde el panel lateral colapsible **"Sesiones guardadas"** se puede: retomar una conversación anterior (cargando todo el contexto), eliminar sesiones individuales, o revisar el historial completo. Las sesiones se asocian al UUID del usuario y persisten entre dispositivos.
 
 ---
 
@@ -138,5 +142,31 @@ Permite automatizar y resguardar los flujos operacionales de los colaboradores d
 ## 12. Monitoreo e Infraestructura (Solo Administradores)
 
 *   **Monitor de Servicios:** Dashboard integrado que muestra el estado de salud de los contenedores Docker locales (PostgreSQL, Valkey, MinIO, ntfy, n8n, Stirling-PDF, Carbone).
-*   **Grafana + Prometheus:** Dashboards interactivos para visualizar tasas de peticiones HTTP por segundo, tiempos de respuesta P95 del backend y errores de red.
 *   **n8n Workflows:** Automatizaciones que programan la generación y envío en lote de boletas escolares al cierre de periodo y envío periódico de notificaciones pendientes.
+
+### 12.1 Observabilidad avanzada (Sprint 5)
+
+Con Sprint 5 se incorporó un stack completo de observabilidad operacional:
+
+*   **PgBouncer (puerto 6432):** Proxy de conexiones que reduce la carga sobre PostgreSQL 18. El pool en modo `transaction` permite que docenas de peticiones concurrentes compartan un número reducido de conexiones reales a la base de datos.
+*   **Dashboard "ADES — PostgreSQL":** Muestra en Grafana las métricas del servidor de base de datos: transacciones por segundo, filas leídas/escritas, deadlocks, tamaño de tablas e índices y sesiones activas. Alimentado por `postgres_exporter` en el puerto `9187`.
+*   **Dashboard "ADES — PgBouncer":** Visualiza el pool de conexiones: conexiones activas vs. idle, peticiones encoladas, tiempo de espera promedio y throughput. Alimentado por `pgbouncer_exporter` en el puerto `9127`.
+*   **Dashboard "ADES — Particiones":** Monitorea el tamaño y actividad de las tablas particionadas por ciclo escolar (2025-2028), útil para planear el archivado de datos al inicio de cada ciclo.
+*   **Dashboard "ADES — Sistema":** KPIs generales de la instancia: uso de CPU, RAM, disco (`/opt/ades/data/`) y red.
+
+### 12.2 Telemetría JVM y HTTP (Sprint 6 — AD-030)
+
+Con Sprint 6 el backend Spring BFF exporta sus métricas internas vía Micrometer hacia Prometheus:
+
+*   **Dashboard "Spring BFF — JVM & HTTP":** Disponible en Grafana con los siguientes paneles:
+    *   **Heap Usage %** — gauge con umbrales visual (verde < 70%, amarillo < 90%, rojo ≥ 90%) calculado sobre la suma de todos los memory pools (compatible con Serial GC / G1 / ZGC).
+    *   **Heap Máx** — valor absoluto en bytes de la memoria heap máxima configurada (`-Xmx`).
+    *   **JVM Memory — Heap vs Non-Heap** — serie temporal con el consumo real de heap y non-heap, más la línea de máximo configurado.
+    *   **JVM Threads** — hilos live, daemon y peak.
+    *   **HTTP Requests/sec** — tasa de peticiones desagregada por código de estado (2xx / 4xx / 5xx).
+    *   **Latencia HTTP p50 / p95 / p99** — percentiles de tiempo de respuesta en segundos.
+    *   **HikariCP Pool** — conexiones activas, idle, pendientes y máximo configurado.
+    *   **GC Pause Time** — tiempo acumulado de pausas del recolector de basura (ms, rate 5m).
+    *   **Stat cards:** 5xx en el último minuto, latencia p95 actual, uptime JVM y requests/sec total.
+
+*   **Panel de Telemetría (AD-030):** Dentro de ADES en la ruta `/admin/telemetria` (requiere nivel de acceso ≤ 2) se pueden consultar en tiempo real: estado de la JVM (heap, threads, disco), profundidad de las colas Celery y conexiones activas al pool JDBC, sin necesidad de abrir Grafana.

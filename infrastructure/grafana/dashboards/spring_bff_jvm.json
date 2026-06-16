@@ -22,17 +22,29 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 0 },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
       "id": 1,
       "options": { "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "showThresholdLabels": false, "showThresholdMarkers": true },
       "title": "JVM Heap Usage %",
       "type": "gauge",
       "targets": [{
         "datasource": { "type": "prometheus", "uid": "prometheus" },
-        "expr": "100 * jvm_memory_used_bytes{area=\"heap\", job=\"ades-bff\"} / jvm_memory_max_bytes{area=\"heap\", job=\"ades-bff\"}",
+        "expr": "100 * sum(jvm_memory_used_bytes{area=\"heap\", job=\"ades-bff\"}) / sum(jvm_memory_max_bytes{area=\"heap\", job=\"ades-bff\"})",
         "legendFormat": "Heap %",
         "refId": "A"
       }]
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "bytes", "color": { "mode": "thresholds" },
+        "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] }
+      }, "overrides": [] },
+      "gridPos": { "h": 2, "w": 6, "x": 0, "y": 4 },
+      "id": 12,
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "orientation": "auto", "textMode": "auto", "colorMode": "value" },
+      "title": "Heap Máx (jvm_memory_max_bytes)",
+      "type": "stat",
+      "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum(jvm_memory_max_bytes{area=\"heap\", job=\"ades-bff\"})", "legendFormat": "Heap Máx", "refId": "A" }]
     },
     {
       "datasource": { "type": "prometheus", "uid": "prometheus" },
@@ -43,9 +55,9 @@
       "title": "JVM Memory — Heap vs Non-Heap",
       "type": "timeseries",
       "targets": [
-        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "jvm_memory_used_bytes{area=\"heap\", job=\"ades-bff\"}", "legendFormat": "Heap Used", "refId": "A" },
-        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "jvm_memory_used_bytes{area=\"nonheap\", job=\"ades-bff\"}", "legendFormat": "Non-Heap Used", "refId": "B" },
-        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "jvm_memory_max_bytes{area=\"heap\", job=\"ades-bff\"}", "legendFormat": "Heap Max", "refId": "C" }
+        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum(jvm_memory_used_bytes{area=\"heap\", job=\"ades-bff\"})", "legendFormat": "Heap Used", "refId": "A" },
+        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum(jvm_memory_used_bytes{area=\"nonheap\", job=\"ades-bff\"})", "legendFormat": "Non-Heap Used", "refId": "B" },
+        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum(jvm_memory_max_bytes{area=\"heap\", job=\"ades-bff\"})", "legendFormat": "Heap Max", "refId": "C" }
       ]
     },
     {
@@ -176,5 +188,5 @@
   "timezone": "America/Mexico_City",
   "title": "Spring BFF — JVM & HTTP",
   "uid": "ades-bff-jvm",
-  "version": 1
+  "version": 2
 }
