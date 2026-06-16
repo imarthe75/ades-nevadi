@@ -1,0 +1,102 @@
+{
+  "__inputs": [],
+  "__requires": [
+    { "type": "grafana", "id": "grafana", "name": "Grafana", "version": "8.0.0" },
+    { "type": "datasource", "id": "prometheus", "name": "Prometheus", "version": "1.0.0" }
+  ],
+  "annotations": { "list": [] },
+  "description": "Infraestructura ADES — Estado de todos los servicios",
+  "editable": true,
+  "graphTooltip": 1,
+  "id": null,
+  "panels": [
+    {
+      "id": 1, "title": "Estado de Servicios",
+      "type": "table", "gridPos": { "h": 8, "w": 24, "x": 0, "y": 0 },
+      "targets": [{ "expr": "up", "legendFormat": "{{ job }} — {{ instance }}", "instant": true }],
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "displayMode": "color-background" },
+          "mappings": [
+            { "type": "value", "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } } }
+          ],
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "red", "value": null }, { "color": "green", "value": 1 }
+          ]}
+        }
+      }
+    },
+    {
+      "id": 2, "title": "Uptime FastAPI",
+      "type": "stat", "gridPos": { "h": 4, "w": 4, "x": 0, "y": 8 },
+      "targets": [{ "expr": "avg_over_time(up{job=\"ades-api\"}[24h]) * 100", "legendFormat": "" }],
+      "fieldConfig": { "defaults": { "unit": "percent",
+        "thresholds": { "mode": "absolute", "steps": [
+          { "color": "red", "value": null }, { "color": "yellow", "value": 99 }, { "color": "green", "value": 99.9 }
+        ]}
+      }}
+    },
+    {
+      "id": 3, "title": "Uptime PostgreSQL",
+      "type": "stat", "gridPos": { "h": 4, "w": 4, "x": 4, "y": 8 },
+      "targets": [{ "expr": "avg_over_time(up{job=\"postgresql\"}[24h]) * 100", "legendFormat": "" }],
+      "fieldConfig": { "defaults": { "unit": "percent",
+        "thresholds": { "mode": "absolute", "steps": [
+          { "color": "red", "value": null }, { "color": "yellow", "value": 99 }, { "color": "green", "value": 99.9 }
+        ]}
+      }}
+    },
+    {
+      "id": 4, "title": "Uptime PgBouncer",
+      "type": "stat", "gridPos": { "h": 4, "w": 4, "x": 8, "y": 8 },
+      "targets": [{ "expr": "avg_over_time(up{job=\"pgbouncer\"}[24h]) * 100", "legendFormat": "" }],
+      "fieldConfig": { "defaults": { "unit": "percent",
+        "thresholds": { "mode": "absolute", "steps": [
+          { "color": "red", "value": null }, { "color": "yellow", "value": 99 }, { "color": "green", "value": 99.9 }
+        ]}
+      }}
+    },
+    {
+      "id": 5, "title": "Uptime BFF",
+      "type": "stat", "gridPos": { "h": 4, "w": 4, "x": 12, "y": 8 },
+      "targets": [{ "expr": "avg_over_time(up{job=\"ades-bff\"}[24h]) * 100", "legendFormat": "" }],
+      "fieldConfig": { "defaults": { "unit": "percent",
+        "thresholds": { "mode": "absolute", "steps": [
+          { "color": "red", "value": null }, { "color": "yellow", "value": 99 }, { "color": "green", "value", 99.9 }
+        ]}
+      }}
+    },
+    {
+      "id": 6, "title": "Disponibilidad Servicios (24h)",
+      "type": "timeseries", "gridPos": { "h": 8, "w": 24, "x": 0, "y": 12 },
+      "targets": [
+        { "expr": "up{job=\"ades-api\"}", "legendFormat": "FastAPI" },
+        { "expr": "up{job=\"postgresql\"}", "legendFormat": "PostgreSQL" },
+        { "expr": "up{job=\"pgbouncer\"}", "legendFormat": "PgBouncer" },
+        { "expr": "up{job=\"ades-bff\"}", "legendFormat": "Spring BFF" },
+        { "expr": "up{job=\"prometheus\"}", "legendFormat": "Prometheus" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "lineWidth": 2 },
+          "min": 0, "max": 1,
+          "mappings": [
+            { "type": "value", "options": { "0": { "text": "DOWN" }, "1": { "text": "UP" } } }
+          ]
+        }
+      }
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 36,
+  "tags": ["infrastructure", "uptime", "ades", "sprint5"],
+  "time": { "from": "now-24h", "to": "now" },
+  "timezone": "America/Mexico_City",
+  "title": "Infrastructure Overview — ADES",
+  "uid": "ades-infra-overview",
+  "version": 1
+}

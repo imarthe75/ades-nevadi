@@ -1,0 +1,158 @@
+groups:
+  - name: postgresql
+    interval: 30s
+    rules:
+
+      # ── Disponibilidad ─────────────────────────────────────────────────
+      - alert: PostgreSQLDown
+        expr: pg_up == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: infra
+        annotations:
+          summary: "PostgreSQL no responde"
+          description: "El exporter de PostgreSQL no puede conectarse. BD posiblemente caída."
+
+      # ── Conexiones ─────────────────────────────────────────────────────
+      - alert: PostgreSQLConnectionsHigh
+        expr: |
+          pg_stat_activity_count{datname="ades"} /
+          pg_settings_max_connections > 0.80
+        for: 5m
+        labels:
+          severity: warning
+          team: infra
+        annotations:
+          summary: "Uso de conexiones PostgreSQL > 80%"
+          description: "{{ $value | humanizePercentage }} de max_connections en uso."
+
+      - alert: PostgreSQLConnectionsCritical
+        expr: |
+          pg_stat_activity_count{datname="ades"} /
+          pg_settings_max_connections > 0.95
+        for: 2m
+        labels:
+          severity: critical
+          team: infra
+        annotations:
+          summary: "Conexiones PostgreSQL casi al límite (>95%)"
+          description: "Riesgo inmediato de rechazo de conexiones."
+
+      # ── Queries lentas ─────────────────────────────────────────────────
+      - alert: LongRunningQuery
+        expr: pg_ades_long_queries_count > 5
+        for: 3m
+        labels:
+          severity: warning
+          team: dev
+        annotations:
+          summary: "{{ $value }} queries corriendo > 5 segundos"
+          description: "Posible bloqueo o falta de índice."
+
+      - alert: VeryLongRunningQuery
+        expr: pg_ades_long_queries_max_duration_seconds > 120
+        for: 1m
+        labels:
+          severity: critical
+          team: dev
+        annotations:
+          summary: "Query corriendo más de 2 minutos"
+          description: "Duración actual: {{ $value }}s. Revisar inmediatamente."
+
+      # ── Cache hit ──────────────────────────────────────────────────────
+      - alert: PostgreSQLLowCacheHit
+        expr: pg_ades_cache_hit_cache_hit_pct < 90
+        for: 10m
+        labels:
+          severity: warning
+          team: infra
+        annotations:
+          summary: "Cache hit ratio < 90% (actual: {{ $value | humanize }}%)"
+          description: "Considerar aumentar shared_buffers o revisar queries de tabla completa."
+
+      # ── Bloat ──────────────────────────────────────────────────────────
+      - alert: TableBloatHigh
+        expr: pg_ades_bloat_estimate_dead_pct > 20
+        for: 30m
+        labels:
+          severity: warning
+          team: infra
+        annotations:
+          summary: "Tabla {{ $labels.tablename }} con > 20% filas muertas"
+          description: "Ejecutar VACUUM ANALYZE en {{ $labels.tablename }}."
+
+      # ── Disco ──────────────────────────────────────────────────────────
+      - alert: PostgreSQLDatabaseSizeLarge
+        expr: pg_database_size_bytes{datname="ades"} > 5e9
+        for: 5m
+        labels:
+          severity: warning
+          team: infra
+        annotations:
+          summary: "BD ades supera 5 GB"
+          description: "Tamaño actual: {{ $value | humanize1024 }}. Revisar archivado."
+
+  - name: pgbouncer
+    interval: 30s
+    rules:
+
+      - alert: PgBouncerDown
+        expr: up{job="pgbouncer"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          team: infra
+        annotations:
+          summary: "PgBouncer no responde"
+          description: "El connection pooler está caído. Apps sin conexión a BD."
+
+      - alert: PgBouncerPoolSaturation
+        expr: |
+          pgbouncer_pools_cl_waiting{database="ades"} > 10
+        for: 5m
+        labels:
+          severity: warning
+          team: infra
+        annotations:
+          summary: "{{ $value }} clientes esperando en pool PgBouncer"
+          description: "Considerar aumentar default_pool_size."
+
+  - name: application
+    interval: 30s
+    rules:
+
+      - alert: AdesAPIDown
+        expr: up{job="ades-api"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          team: dev
+        annotations:
+          summary: "ADES API (FastAPI) no responde"
+          description: "El backend FastAPI no está disponible."
+
+      - alert: AdesAPIHighLatency
+        expr: |
+          histogram_quantile(0.95,
+            rate(http_request_duration_seconds_bucket{job="ades-api"}[5m])
+          ) > 2
+        for: 5m
+        labels:
+          severity: warning
+          team: dev
+        annotations:
+          summary: "P95 latencia API > 2s"
+          description: "Percentil 95: {{ $value }}s. Revisar queries lentas."
+
+      - alert: AdesAPIHighErrorRate
+        expr: |
+          rate(http_requests_total{job="ades-api",status=~"5.."}[5m]) /
+          rate(http_requests_total{job="ades-api"}[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          team: dev
+        annotations:
+          summary: "Tasa de errores 5xx > 5%"
+          description: "Error rate: {{ $value | humanizePercentage }}."
