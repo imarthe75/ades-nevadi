@@ -150,12 +150,12 @@ interface Catalogo {
     <div class="form-col">
       <div class="field">
         <label>Descripción</label>
-        <p-textarea [(ngModel)]="form().descripcion" [rows]="4" autoResize="true"
+        <p-textarea [(ngModel)]="form().descripcion" rows="4" autoResize="true"
           placeholder="Descripción pública de la convocatoria..." />
       </div>
       <div class="field">
         <label>Requisitos generales</label>
-        <p-textarea [(ngModel)]="form().requisitosGenerales" [rows]="3" autoResize="true"
+        <p-textarea [(ngModel)]="form().requisitosGenerales" rows="3" autoResize="true"
           placeholder="Requisitos generales para postularse..." />
       </div>
 

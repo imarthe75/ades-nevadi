@@ -33,6 +33,7 @@ export interface CicloEscolar {
   tipo_ciclo: string;
   es_vigente: boolean;
   nombre_nivel?: string;
+  nivel_educativo?: { nombre_nivel?: string };
   _label?: string;
 }
 

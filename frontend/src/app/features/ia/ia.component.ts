@@ -67,12 +67,45 @@ const RIESGO_SEVERITY: Record<string, AlertaSeverity> = {
       <p-tabpanel value="0" header="Chat con el asistente">
         <div class="chat-layout">
 
-          <!-- Sugerencias rápidas -->
-          <div class="quick-chips">
-            @for (s of sugerencias; track s) {
-              <button class="chip" (click)="usarSugerencia(s)">{{ s }}</button>
+          <!-- Sugerencias rápidas + selector de sesión -->
+          <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin-bottom:.5rem">
+            <div class="quick-chips" style="flex:1;margin-bottom:0">
+              @for (s of sugerencias; track s) {
+                <button class="chip" (click)="usarSugerencia(s)">{{ s }}</button>
+              }
+            </div>
+            @if (sesionesGuardadas().length > 0) {
+              <p-button label="Conversaciones" icon="pi pi-history" size="small"
+                severity="secondary" [outlined]="true"
+                (onClick)="showSesiones.set(!showSesiones())" />
             }
           </div>
+
+          <!-- Panel sesiones guardadas (IA-015) -->
+          @if (showSesiones() && sesionesGuardadas().length > 0) {
+            <div style="background:var(--surface-50);border:1px solid var(--surface-200);border-radius:8px;padding:.75rem;margin-bottom:.75rem">
+              <div style="font-size:.78rem;font-weight:600;color:var(--text-muted);margin-bottom:.5rem;text-transform:uppercase">
+                Conversaciones anteriores
+              </div>
+              @for (ses of sesionesGuardadas(); track ses.sesion_id) {
+                <div style="display:flex;gap:.5rem;align-items:center;padding:.35rem 0;border-bottom:1px solid var(--surface-100)">
+                  <div style="flex:1;min-width:0">
+                    <div style="font-size:.82rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+                      {{ ses.resumen || '(sin texto)' }}
+                    </div>
+                    <div style="font-size:.7rem;color:var(--text-muted)">
+                      {{ ses.total_mensajes }} mensajes · {{ ses.ultimo_mensaje | date:'dd/MM HH:mm' }}
+                    </div>
+                  </div>
+                  <p-button icon="pi pi-arrow-right" size="small" [text]="true"
+                    pTooltip="Cargar esta conversación"
+                    (onClick)="cargarSesion(ses.sesion_id)" />
+                  <p-button icon="pi pi-trash" size="small" [text]="true" severity="danger"
+                    pTooltip="Eliminar" (onClick)="eliminarSesion(ses.sesion_id)" />
+                </div>
+              }
+            </div>
+          }
 
           <!-- Historial de mensajes -->
           <div class="chat-messages" #messagesContainer>
@@ -328,10 +361,12 @@ export class IaComponent implements OnInit {
 
   @ViewChild('messagesContainer') messagesContainer?: ElementRef<HTMLDivElement>;
 
-  mensajes   = signal<Mensaje[]>([]);
-  cargando   = signal(false);
+  mensajes          = signal<Mensaje[]>([]);
+  cargando          = signal(false);
+  sesionesGuardadas = signal<any[]>([]);
+  showSesiones      = signal(false);
   inputMensaje = '';
-  sesionId   = crypto.randomUUID();
+  sesionId: string = crypto.randomUUID();
 
   grupos   = signal<Grupo[]>([]);
   alertas  = signal<Alerta[]>([]);
@@ -384,6 +419,42 @@ export class IaComponent implements OnInit {
         .subscribe(g => this.grupos.set(g));
     }
     this.cargarAlertas();
+    this._cargarSesiones();
+  }
+
+  private _cargarSesiones(): void {
+    this.api.get<any[]>('/ai/mis-sesiones?limite=8').subscribe({
+      next: (items) => this.sesionesGuardadas.set(items || []),
+      error: () => {},
+    });
+  }
+
+  cargarSesion(sesionId: string): void {
+    this.api.get<any>(`/ai/sesion/${sesionId}`).subscribe({
+      next: (data) => {
+        const msgs: Mensaje[] = (data.mensajes || []).map((m: any) => ({
+          rol: m.rol as 'user' | 'assistant',
+          contenido: m.contenido,
+          timestamp: new Date(m.timestamp),
+        }));
+        this.mensajes.set(msgs);
+        this.sesionId = sesionId;
+        this.showSesiones.set(false);
+        setTimeout(() => this._scrollToBottom(), 100);
+      },
+      error: () => this.notify.error('No se pudo cargar la conversación'),
+    });
+  }
+
+  eliminarSesion(sesionId: string): void {
+    this.api.delete(`/ai/sesion/${sesionId}`).subscribe({
+      next: () => {
+        this.sesionesGuardadas.update(s => s.filter(x => x.sesion_id !== sesionId));
+        if (this.sesionId === sesionId) this.limpiarChat();
+        this.notify.success('Conversación eliminada');
+      },
+      error: () => this.notify.error('Error al eliminar conversación'),
+    });
   }
 
   usarSugerencia(s: string): void {
@@ -426,6 +497,8 @@ export class IaComponent implements OnInit {
   limpiarChat(): void {
     this.mensajes.set([]);
     this.sesionId = crypto.randomUUID();
+    this.showSesiones.set(false);
+    this._cargarSesiones();
   }
 
   formatMensaje(texto: string): string {

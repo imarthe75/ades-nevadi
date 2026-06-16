@@ -1,10 +1,10 @@
 /**
- * MonitorComponent — FASE 22 (Grafana + Prometheus) + FASE 23 (n8n).
+ * MonitorComponent — FASE 22 (Grafana + Prometheus) + AD-030 (Telemetría Servidor).
  *
- * Panel de monitoreo del sistema para ADMIN_GLOBAL:
+ * Panel de monitoreo del sistema para ADMIN_GLOBAL / DIRECTOR:
  *   - Estado de todos los servicios
+ *   - Telemetría de recursos: BD, conexiones, disco, JVM, colas Celery
  *   - Iframe de Grafana (dashboard ADES API)
- *   - Accesos directos a Flowise, n8n, Superset
  *   - Workflows activos de n8n
  */
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
@@ -14,6 +14,7 @@ import { ButtonModule } from 'primeng/button';
 import { TagModule } from 'primeng/tag';
 import { CardModule } from 'primeng/card';
 import { TooltipModule } from 'primeng/tooltip';
+import { ProgressBarModule } from 'primeng/progressbar';
 import { ApiService } from '../../core/services/api.service';
 import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
 
@@ -34,15 +35,65 @@ interface Workflow {
   updatedAt?: string;
 }
 
+interface TablaGrande {
+  tabla: string;
+  size_legible: string;
+  size_bytes: number;
+  filas_estimadas: number;
+}
+
+interface Telemetria {
+  base_de_datos: {
+    db_size_bytes: number;
+    db_size_mb: number;
+    db_size_gb: number;
+    total_tablas: number;
+    total_mv: number;
+    total_indices: number;
+    total_filas_estimadas: number;
+  };
+  conexiones: {
+    total_conexiones: number;
+    activas: number;
+    inactivas: number;
+    idle_in_transaction: number;
+    max_conexiones: number;
+    pct_uso: number;
+  };
+  tablas_grandes: TablaGrande[];
+  particiones: {
+    total_particiones: number;
+    tablas_particionadas: number;
+    size_total_mb: number;
+    size_legible: string;
+  };
+  sistema: {
+    jvm_heap_used_mb: number;
+    jvm_heap_max_mb: number;
+    jvm_heap_pct: number;
+    cpu_disponibles: number;
+    carga_sistema: number;
+    disco_total_gb: number;
+    disco_libre_gb: number;
+    disco_usado_gb: number;
+    disco_pct: number;
+    jvm_threads_activos: number;
+    jvm_uptime_min: number;
+  };
+  colas_celery: Record<string, number>;
+  actualizacion: string;
+}
+
 @Component({
   selector: 'app-monitor',
   standalone: true,
-  imports: [CommonModule, ButtonModule, TagModule, CardModule, TooltipModule, InteractiveGridComponent],
+  imports: [CommonModule, ButtonModule, TagModule, CardModule, TooltipModule,
+            ProgressBarModule, InteractiveGridComponent],
   template: `
     <div class="page-header">
       <div>
         <h2>Monitor del Sistema</h2>
-        <p class="subtitle">Estado de servicios · Grafana · n8n Workflows</p>
+        <p class="subtitle">Estado de servicios · Telemetría AD-030 · Grafana · n8n Workflows</p>
       </div>
       <p-button icon="pi pi-refresh" [text]="true" severity="secondary"
         pTooltip="Actualizar estado" (onClick)="cargarEstado()" />
@@ -70,6 +121,111 @@ interface Workflow {
       }
     </div>
 
+    <!-- AD-030 Telemetría del servidor -->
+    @if (telemetria(); as t) {
+      <div class="telemetria-section">
+        <div class="section-header">
+          <h4><i class="pi pi-server" style="margin-right:.4rem"></i>Telemetría del Servidor</h4>
+          <small style="color:var(--text-muted)">
+            Actualizado: {{ t.actualizacion | date:'HH:mm:ss' }}
+          </small>
+        </div>
+
+        <div class="telem-grid">
+
+          <!-- Base de datos -->
+          <div class="telem-card">
+            <div class="telem-title"><i class="pi pi-database"></i> Base de Datos</div>
+            <div class="telem-kpi">{{ t.base_de_datos.db_size_gb }} GB</div>
+            <div class="telem-sub">{{ t.base_de_datos.total_tablas }} tablas ·
+              {{ t.base_de_datos.total_mv }} MVs ·
+              {{ t.base_de_datos.total_indices }} índices</div>
+            <div class="telem-sub">{{ (t.base_de_datos.total_filas_estimadas || 0) | number }} filas estimadas</div>
+          </div>
+
+          <!-- Conexiones -->
+          <div class="telem-card">
+            <div class="telem-title"><i class="pi pi-share-alt"></i> Conexiones PostgreSQL</div>
+            <div class="telem-kpi">{{ t.conexiones.total_conexiones }}
+              <span class="telem-kpi-sub">/ {{ t.conexiones.max_conexiones }}</span>
+            </div>
+            <p-progressBar [value]="t.conexiones.pct_uso"
+              [style]="{'height':'6px','margin':'6px 0'}"
+              [color]="t.conexiones.pct_uso > 80 ? '#ef4444' : t.conexiones.pct_uso > 60 ? '#f59e0b' : '#22c55e'" />
+            <div class="telem-sub">
+              {{ t.conexiones.activas }} activas ·
+              {{ t.conexiones.inactivas }} idle ·
+              {{ t.conexiones.idle_in_transaction }} idle-tx
+            </div>
+          </div>
+
+          <!-- Disco -->
+          <div class="telem-card">
+            <div class="telem-title"><i class="pi pi-hdd"></i> Disco</div>
+            <div class="telem-kpi">{{ t.sistema.disco_usado_gb }} GB
+              <span class="telem-kpi-sub">/ {{ t.sistema.disco_total_gb }} GB</span>
+            </div>
+            <p-progressBar [value]="t.sistema.disco_pct"
+              [style]="{'height':'6px','margin':'6px 0'}"
+              [color]="t.sistema.disco_pct > 85 ? '#ef4444' : t.sistema.disco_pct > 70 ? '#f59e0b' : '#22c55e'" />
+            <div class="telem-sub">{{ t.sistema.disco_libre_gb }} GB libres</div>
+          </div>
+
+          <!-- JVM -->
+          <div class="telem-card">
+            <div class="telem-title"><i class="pi pi-microchip"></i> JVM (Spring BFF)</div>
+            <div class="telem-kpi">{{ t.sistema.jvm_heap_used_mb }} MB
+              <span class="telem-kpi-sub">/ {{ t.sistema.jvm_heap_max_mb }} MB</span>
+            </div>
+            <p-progressBar [value]="t.sistema.jvm_heap_pct"
+              [style]="{'height':'6px','margin':'6px 0'}"
+              [color]="t.sistema.jvm_heap_pct > 85 ? '#ef4444' : t.sistema.jvm_heap_pct > 70 ? '#f59e0b' : '#22c55e'" />
+            <div class="telem-sub">
+              {{ t.sistema.jvm_threads_activos }} threads ·
+              carga CPU: {{ t.sistema.carga_sistema }} ·
+              uptime: {{ t.sistema.jvm_uptime_min }} min
+            </div>
+          </div>
+
+          <!-- Particionamiento -->
+          <div class="telem-card">
+            <div class="telem-title"><i class="pi pi-table"></i> Particionamiento</div>
+            <div class="telem-kpi">{{ t.particiones.total_particiones }}
+              <span style="font-size:.75rem;font-weight:400"> particiones</span>
+            </div>
+            <div class="telem-sub">{{ t.particiones.tablas_particionadas }} tablas particionadas</div>
+            <div class="telem-sub">{{ t.particiones.size_legible }} total en particiones</div>
+          </div>
+
+          <!-- Colas Celery -->
+          <div class="telem-card">
+            <div class="telem-title"><i class="pi pi-inbox"></i> Colas Celery</div>
+            @for (entry of celeryEntries(t); track entry.key) {
+              <div class="cola-row">
+                <span class="cola-nombre">{{ entry.key }}</span>
+                <p-tag [value]="entry.value.toString()"
+                  [severity]="entry.value > 50 ? 'danger' : entry.value > 10 ? 'warn' : 'success'" />
+              </div>
+            }
+          </div>
+
+        </div>
+
+        <!-- Top 10 tablas más grandes -->
+        <div style="margin-top:1rem">
+          <div class="section-header">
+            <h4 style="font-size:.82rem">Top 10 Tablas por Tamaño</h4>
+          </div>
+          <app-interactive-grid
+            [data]="tablasGrandesFlat(t.tablas_grandes)"
+            [columns]="columnasTablas"
+            [loading]="loadingTelemetria()"
+            [showDelete]="false"
+          />
+        </div>
+      </div>
+    }
+
     <!-- Grafana iframe -->
     @if (grafanaUrl()) {
       <div class="grafana-section">
@@ -83,12 +239,6 @@ interface Workflow {
           <iframe [src]="grafanaUrl()!" frameborder="0"
             style="width:100%;height:480px;border:none;border-radius:8px"></iframe>
         </div>
-      </div>
-    } @else {
-      <div style="padding:1.5rem;text-align:center;color:var(--text-muted);background:var(--surface-50);border-radius:8px;margin-top:1rem">
-        <i class="pi pi-chart-line" style="font-size:2rem;display:block;margin-bottom:.5rem"></i>
-        Dashboard Grafana no configurado.<br>
-        <small>Configurar <code>GRAFANA_URL</code> en .env para habilitar el iframe.</small>
       </div>
     }
 
@@ -124,7 +274,17 @@ interface Workflow {
     .section-header h4 { margin:0;font-size:.9rem;font-weight:700 }
     .grafana-section { margin-top:1rem }
     .grafana-wrapper { border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08) }
-    code { background:var(--surface-100);padding:.1rem .3rem;border-radius:3px;font-size:.75rem }
+
+    /* Telemetría AD-030 */
+    .telemetria-section { margin-bottom:1.5rem }
+    .telem-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:.75rem;margin-bottom:1rem }
+    .telem-card { background:var(--surface-0);border:1px solid var(--surface-200);border-radius:10px;padding:1rem }
+    .telem-title { font-size:.75rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.03em;margin-bottom:.5rem;display:flex;align-items:center;gap:.35rem }
+    .telem-kpi { font-size:1.6rem;font-weight:700;color:var(--text-primary);line-height:1.1 }
+    .telem-kpi-sub { font-size:.9rem;font-weight:400;color:var(--text-muted) }
+    .telem-sub { font-size:.72rem;color:var(--text-muted);margin-top:.25rem }
+    .cola-row { display:flex;justify-content:space-between;align-items:center;padding:.2rem 0;border-bottom:1px solid var(--surface-100) }
+    .cola-nombre { font-size:.78rem;font-family:monospace }
   `],
 })
 export class MonitorComponent implements OnInit {
@@ -133,13 +293,21 @@ export class MonitorComponent implements OnInit {
 
   servicios          = signal<ServicioStatus[]>([]);
   workflows          = signal<Workflow[]>([]);
+  telemetria         = signal<Telemetria | null>(null);
   grafanaUrl         = signal<SafeResourceUrl | null>(null);
   loadingWorkflows   = signal(false);
+  loadingTelemetria  = signal(false);
 
   readonly workflowColumns: ColumnConfig[] = [
     { field: 'name',           header: 'Nombre del flujo',     sortable: true, filterable: true },
     { field: 'activoLabel',    header: 'Estado',               sortable: true, filterable: true, width: '100px' },
     { field: 'ultimaModif',    header: 'Última modificación',  sortable: true, filterable: false, width: '170px' },
+  ];
+
+  readonly columnasTablas: ColumnConfig[] = [
+    { field: 'tabla',            header: 'Tabla',          sortable: true,  filterable: true },
+    { field: 'size_legible',     header: 'Tamaño',         sortable: false, filterable: false, width: '100px' },
+    { field: 'filas_str',        header: 'Filas (~)',       sortable: true,  filterable: false, width: '110px' },
   ];
 
   readonly workflowsFlat = computed(() =>
@@ -155,7 +323,6 @@ export class MonitorComponent implements OnInit {
   ngOnInit(): void { this.cargarEstado(); }
 
   cargarEstado(): void {
-    // Verificar todos los servicios — paths relativos (ApiService ya agrega /api/v1)
     const checks: Promise<void>[] = [
       this._checkService('ADES API',       '/health',              'pi-server',     1),
       this._checkService('Superset BI',    '/superset/dashboards', 'pi-chart-pie',  16, 'http://bi.ades.setag.mx'),
@@ -167,15 +334,25 @@ export class MonitorComponent implements OnInit {
     ];
     Promise.all(checks);
 
-    // Grafana iframe — usar subdominio si disponible, sino localhost
     const grafBase = window.location.hostname === 'localhost'
       ? 'http://localhost:3003'
       : 'https://monitor.ades.setag.mx';
     const grafUrl = `${grafBase}/d/ades-api-monitor/ades-api-monitoreo?orgId=1&kiosk=tv&refresh=30s`;
     this.grafanaUrl.set(this.san.bypassSecurityTrustResourceUrl(grafUrl));
 
-    // Workflows de n8n
     this._loadWorkflows();
+    this._loadTelemetria();
+  }
+
+  celeryEntries(t: Telemetria): { key: string; value: number }[] {
+    return Object.entries(t.colas_celery).map(([key, value]) => ({ key, value: value as number }));
+  }
+
+  tablasGrandesFlat(tablas: TablaGrande[]): any[] {
+    return (tablas || []).map(t => ({
+      ...t,
+      filas_str: (t.filas_estimadas || 0).toLocaleString('es-MX'),
+    }));
   }
 
   private async _checkService(
@@ -209,6 +386,17 @@ export class MonitorComponent implements OnInit {
         this.loadingWorkflows.set(false);
       },
       error: () => this.loadingWorkflows.set(false),
+    });
+  }
+
+  private _loadTelemetria(): void {
+    this.loadingTelemetria.set(true);
+    this.api.get<Telemetria>('/stats/telemetria').subscribe({
+      next: data => {
+        this.telemetria.set(data);
+        this.loadingTelemetria.set(false);
+      },
+      error: () => this.loadingTelemetria.set(false),
     });
   }
 }

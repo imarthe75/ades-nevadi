@@ -37,10 +37,17 @@ management:
     web:
       exposure:
         include: health,info,metrics,prometheus
-  metrics:
-    export:
-      prometheus:
+  endpoint:
+    health:
+      show-details: always
+  prometheus:
+    metrics:
+      export:
         enabled: true
+  metrics:
+    tags:
+      application: ades-bff
+      environment: ${ENVIRONMENT:development}
 
 ades:
   bff:
