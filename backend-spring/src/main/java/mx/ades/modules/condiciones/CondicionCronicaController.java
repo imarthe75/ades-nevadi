@@ -24,9 +24,9 @@ import java.util.UUID;
 public class CondicionCronicaController {
 
     private final AdesUserService            userService;
-    private final RegistrarCondicionUseCase  registrar;
-    private final ActualizarCondicionUseCase actualizar;
-    private final EliminarCondicionUseCase   eliminar;
+    private final RegistrarCondicionUseCase  registrarCondicion;
+    private final ActualizarCondicionUseCase actualizarCondicion;
+    private final EliminarCondicionUseCase   eliminarCondicion;
     private final CondicionQueryService      query;
 
     @GetMapping
@@ -57,7 +57,7 @@ public class CondicionCronicaController {
                 body.getTelefonoMedico(),
                 nivel
         );
-        UUID id = registrar.registrar(cmd);
+        UUID id = registrarCondicion.registrar(cmd);
         return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("id", id));
     }
 
@@ -96,7 +96,7 @@ public class CondicionCronicaController {
                 body.getActiva(),
                 nivel
         );
-        actualizar.actualizar(cmd);
+        actualizarCondicion.actualizar(cmd);
         return ResponseEntity.ok(Map.of("ok", true));
     }
 
@@ -107,6 +107,6 @@ public class CondicionCronicaController {
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         int nivel = user.getNivelAcceso() != null ? user.getNivelAcceso() : 5;
-        eliminar.eliminar(id, nivel);
+        eliminarCondicion.eliminar(id, nivel);
     }
 }

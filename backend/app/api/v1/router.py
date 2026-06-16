@@ -9,6 +9,7 @@ from .automations import router as automations_router
 from .webhooks import router as webhooks_router
 from .ia_avanzada import router as ia_avanzada_router
 from .certificados import router as certificados_router
+from .expediente import router as expediente_router
 
 api_router = APIRouter()
 
@@ -22,3 +23,4 @@ api_router.include_router(automations_router)
 api_router.include_router(webhooks_router)
 api_router.include_router(ia_avanzada_router)
 api_router.include_router(certificados_router)
+api_router.include_router(expediente_router)

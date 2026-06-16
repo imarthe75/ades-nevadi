@@ -25,8 +25,8 @@ import java.util.UUID;
 public class JustificacionController {
 
     private final AdesUserService             userService;
-    private final RegistrarJustificacionUseCase registrar;
-    private final ResolverJustificacionUseCase  resolver;
+    private final RegistrarJustificacionUseCase registrarJustificacion;
+    private final ResolverJustificacionUseCase  resolverJustificacion;
     private final JustificacionQueryService     query;
 
     @Data
@@ -65,7 +65,7 @@ public class JustificacionController {
                 body.getDocumentoUrl(),
                 user.getId()
         );
-        UUID id = registrar.registrar(cmd);
+        UUID id = registrarJustificacion.registrar(cmd);
         return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("id", id.toString()));
     }
 
@@ -82,7 +82,7 @@ public class JustificacionController {
                 user.getId(),
                 user.getNivelAcceso()
         );
-        String nuevoEstado = resolver.resolver(cmd);
+        String nuevoEstado = resolverJustificacion.resolver(cmd);
         return ResponseEntity.ok(Map.of("estado", nuevoEstado));
     }
 

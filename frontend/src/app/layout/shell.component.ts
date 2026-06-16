@@ -731,8 +731,8 @@ export class ShellComponent implements OnInit, OnDestroy {
     this.api.get<CicloEscolar[]>('/catalogs/ciclos', params).subscribe(c => {
       const labeled = c.map(x => ({
         ...x,
-        _label: (!this.selectedNivel?.id && x.nombre_nivel)
-          ? `${x.nombre_ciclo} — ${x.nombre_nivel}`
+        _label: (!this.selectedNivel?.id && x.nivel_educativo?.nombre_nivel)
+          ? `${x.nombre_ciclo} — ${x.nivel_educativo?.nombre_nivel}`
           : x.nombre_ciclo,
       }));
       this.ciclos.set(labeled);

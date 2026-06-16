@@ -282,7 +282,7 @@ public class HexagonalConfig {
     }
 
     @Bean
-    public mx.ades.modules.movilidad.domain.port.in.RegistrarBajaUseCase registrarBaja(
+    public mx.ades.modules.movilidad.domain.port.in.RegistrarBajaUseCase registrarBajaMovilidad(
             mx.ades.modules.movilidad.application.service.MovilidadApplicationService service) {
         return service;
     }
@@ -339,7 +339,7 @@ public class HexagonalConfig {
     }
 
     @Bean
-    public mx.ades.modules.licencias.domain.port.in.SolicitarLicenciaUseCase solicitarLicencia(
+    public mx.ades.modules.licencias.domain.port.in.SolicitarLicenciaUseCase solicitar(
             mx.ades.modules.licencias.application.service.LicenciaApplicationService service) {
         return service;
     }
@@ -459,13 +459,13 @@ public class HexagonalConfig {
     }
 
     @Bean
-    public mx.ades.modules.notificaciones.domain.port.in.MarcarLeidaUseCase marcarLeida(
+    public mx.ades.modules.notificaciones.domain.port.in.MarcarLeidaUseCase marcarLeidaUseCase(
             mx.ades.modules.notificaciones.application.service.NotificacionApplicationService service) {
         return service;
     }
 
     @Bean
-    public mx.ades.modules.notificaciones.domain.port.in.MarcarTodasLeidasUseCase marcarTodasLeidas(
+    public mx.ades.modules.notificaciones.domain.port.in.MarcarTodasLeidasUseCase marcarTodasLeidasUseCase(
             mx.ades.modules.notificaciones.application.service.NotificacionApplicationService service) {
         return service;
     }
@@ -478,7 +478,7 @@ public class HexagonalConfig {
     }
 
     @Bean
-    public mx.ades.modules.personal_admin.domain.port.in.RegistrarPersonalAdminUseCase registrarPersonalAdmin(
+    public mx.ades.modules.personal_admin.domain.port.in.RegistrarPersonalAdminUseCase registrarPersonalAdminUseCase(
             mx.ades.modules.personal_admin.application.service.PersonalAdminApplicationService service) {
         return service;
     }
@@ -491,19 +491,19 @@ public class HexagonalConfig {
     }
 
     @Bean
-    public mx.ades.modules.entregas.domain.port.in.SubirEntregaUseCase subirEntrega(
+    public mx.ades.modules.entregas.domain.port.in.SubirEntregaUseCase subirEntregaUseCase(
             mx.ades.modules.entregas.application.service.EntregaApplicationService service) {
         return service;
     }
 
     @Bean
-    public mx.ades.modules.entregas.domain.port.in.CalificarEntregaUseCase calificarEntrega(
+    public mx.ades.modules.entregas.domain.port.in.CalificarEntregaUseCase calificarEntregaUseCase(
             mx.ades.modules.entregas.application.service.EntregaApplicationService service) {
         return service;
     }
 
     @Bean
-    public mx.ades.modules.entregas.domain.port.in.RegistrarExcusaUseCase registrarExcusa(
+    public mx.ades.modules.entregas.domain.port.in.RegistrarExcusaUseCase registrarExcusaUseCase(
             mx.ades.modules.entregas.application.service.EntregaApplicationService service) {
         return service;
     }
@@ -516,13 +516,13 @@ public class HexagonalConfig {
     }
 
     @Bean
-    public mx.ades.modules.esquemas_ponderacion.domain.port.in.CrearEsquemaUseCase crearEsquema(
+    public mx.ades.modules.esquemas_ponderacion.domain.port.in.CrearEsquemaUseCase crearEsquemaUseCase(
             mx.ades.modules.esquemas_ponderacion.application.service.EsquemaApplicationService service) {
         return service;
     }
 
     @Bean
-    public mx.ades.modules.esquemas_ponderacion.domain.port.in.ActualizarEsquemaUseCase actualizarEsquema(
+    public mx.ades.modules.esquemas_ponderacion.domain.port.in.ActualizarEsquemaUseCase actualizarEsquemaUseCase(
             mx.ades.modules.esquemas_ponderacion.application.service.EsquemaApplicationService service) {
         return service;
     }
@@ -535,19 +535,19 @@ public class HexagonalConfig {
     }
 
     @Bean
-    public mx.ades.modules.expediente_laboral.domain.port.in.CrearExpedienteLaboralUseCase crearExpedienteLaboral(
+    public mx.ades.modules.expediente_laboral.domain.port.in.CrearExpedienteLaboralUseCase crearExpedienteLaboralUseCase(
             mx.ades.modules.expediente_laboral.application.service.ExpedienteLaboralApplicationService service) {
         return service;
     }
 
     @Bean
-    public mx.ades.modules.expediente_laboral.domain.port.in.ActualizarExpedienteLaboralUseCase actualizarExpedienteLaboral(
+    public mx.ades.modules.expediente_laboral.domain.port.in.ActualizarExpedienteLaboralUseCase actualizarExpedienteLaboralUseCase(
             mx.ades.modules.expediente_laboral.application.service.ExpedienteLaboralApplicationService service) {
         return service;
     }
 
     @Bean
-    public mx.ades.modules.expediente_laboral.domain.port.in.AgregarDocumentoLaboralUseCase agregarDocumentoLaboral(
+    public mx.ades.modules.expediente_laboral.domain.port.in.AgregarDocumentoLaboralUseCase agregarDocumentoLaboralUseCase(
             mx.ades.modules.expediente_laboral.application.service.ExpedienteLaboralApplicationService service) {
         return service;
     }
@@ -560,19 +560,19 @@ public class HexagonalConfig {
     }
 
     @Bean
-    public mx.ades.modules.eval_docente.domain.port.in.CrearEvaluacionUseCase crearEvaluacion(
+    public mx.ades.modules.eval_docente.domain.port.in.CrearEvaluacionUseCase crearEvaluacionUseCase(
             mx.ades.modules.eval_docente.application.service.EvalDocenteApplicationService service) {
         return service;
     }
 
     @Bean
-    public mx.ades.modules.eval_docente.domain.port.in.GuardarCriteriosUseCase guardarCriterios(
+    public mx.ades.modules.eval_docente.domain.port.in.GuardarCriteriosUseCase guardarCriteriosUseCase(
             mx.ades.modules.eval_docente.application.service.EvalDocenteApplicationService service) {
         return service;
     }
 
     @Bean
-    public mx.ades.modules.eval_docente.domain.port.in.EnviarEvaluacionUseCase enviarEvaluacion(
+    public mx.ades.modules.eval_docente.domain.port.in.EnviarEvaluacionUseCase enviarEvaluacionUseCase(
             mx.ades.modules.eval_docente.application.service.EvalDocenteApplicationService service) {
         return service;
     }
@@ -585,13 +585,13 @@ public class HexagonalConfig {
     }
 
     @Bean
-    public mx.ades.modules.asistencia_personal.domain.port.in.RegistrarAsistenciaUseCase registrarAsistenciaPersonal(
+    public mx.ades.modules.asistencia_personal.domain.port.in.RegistrarAsistenciaUseCase registrarAsistenciaUseCase(
             mx.ades.modules.asistencia_personal.application.service.AsistenciaPersonalApplicationService service) {
         return service;
     }
 
     @Bean
-    public mx.ades.modules.asistencia_personal.domain.port.in.ActualizarAsistenciaUseCase actualizarAsistenciaPersonal(
+    public mx.ades.modules.asistencia_personal.domain.port.in.ActualizarAsistenciaUseCase actualizarAsistenciaUseCase(
             mx.ades.modules.asistencia_personal.application.service.AsistenciaPersonalApplicationService service) {
         return service;
     }
@@ -623,13 +623,13 @@ public class HexagonalConfig {
     }
 
     @Bean
-    public mx.ades.modules.medico.domain.port.in.RegistrarPersonalSaludUseCase registrarPersonalSalud(
+    public mx.ades.modules.medico.domain.port.in.RegistrarPersonalSaludUseCase registrarPersonalSaludUseCase(
             mx.ades.modules.medico.application.service.PersonalSaludApplicationService service) {
         return service;
     }
 
     @Bean
-    public mx.ades.modules.medico.domain.port.in.ActualizarPersonalSaludUseCase actualizarPersonalSalud(
+    public mx.ades.modules.medico.domain.port.in.ActualizarPersonalSaludUseCase actualizarPersonalSaludUseCase(
             mx.ades.modules.medico.application.service.PersonalSaludApplicationService service) {
         return service;
     }
@@ -650,7 +650,7 @@ public class HexagonalConfig {
     }
 
     @Bean
-    public mx.ades.modules.cierre.domain.port.in.CerrarCicloUseCase cerrarCiclo(
+    public mx.ades.modules.cierre.domain.port.in.CerrarCicloUseCase cerrarCicloUseCase(
             mx.ades.modules.cierre.application.service.CierreApplicationService service) {
         return service;
     }
@@ -663,13 +663,13 @@ public class HexagonalConfig {
     }
 
     @Bean
-    public mx.ades.modules.horarios.domain.port.in.CrearHorarioUseCase crearHorario(
+    public mx.ades.modules.horarios.domain.port.in.CrearHorarioUseCase crearHorarioUseCase(
             mx.ades.modules.horarios.application.service.HorarioApplicationService service) {
         return service;
     }
 
     @Bean
-    public mx.ades.modules.horarios.domain.port.in.ActualizarHorarioUseCase actualizarHorario(
+    public mx.ades.modules.horarios.domain.port.in.ActualizarHorarioUseCase actualizarHorarioUseCase(
             mx.ades.modules.horarios.application.service.HorarioApplicationService service) {
         return service;
     }
@@ -682,7 +682,7 @@ public class HexagonalConfig {
     }
 
     @Bean
-    public mx.ades.modules.planes_estudio.domain.port.in.AsignarMateriaUseCase asignarMateria(
+    public mx.ades.modules.planes_estudio.domain.port.in.AsignarMateriaUseCase asignarMateriaUseCase(
             mx.ades.modules.planes_estudio.application.service.PlanEstudioApplicationService service) {
         return service;
     }
@@ -708,13 +708,13 @@ public class HexagonalConfig {
     }
 
     @Bean
-    public mx.ades.modules.contactos.domain.port.in.RegistrarContactoUseCase registrarContacto(
+    public mx.ades.modules.contactos.domain.port.in.RegistrarContactoUseCase registrarContactoUseCase(
             mx.ades.modules.contactos.application.service.ContactosApplicationService service) {
         return service;
     }
 
     @Bean
-    public mx.ades.modules.contactos.domain.port.in.ActualizarContactoUseCase actualizarContacto(
+    public mx.ades.modules.contactos.domain.port.in.ActualizarContactoUseCase actualizarContactoUseCase(
             mx.ades.modules.contactos.application.service.ContactosApplicationService service) {
         return service;
     }
@@ -727,7 +727,7 @@ public class HexagonalConfig {
     }
 
     @Bean
-    public mx.ades.modules.portal_familias.domain.port.in.AgregarTutorUseCase agregarTutor(
+    public mx.ades.modules.portal_familias.domain.port.in.AgregarTutorUseCase agregarTutorUseCase(
             mx.ades.modules.portal_familias.application.service.PortalFamiliasApplicationService service) {
         return service;
     }

@@ -27,8 +27,8 @@ import java.util.UUID;
 public class ComunicadoController {
 
     private final AdesUserService             userService;
-    private final CrearComunicadoUseCase      crear;
-    private final AcusarComunicadoUseCase     acusar;
+    private final CrearComunicadoUseCase      crearComunicado;
+    private final AcusarComunicadoUseCase     acusarComunicado;
     private final ProgramarSiguienteUseCase   programarSiguiente;
     private final ComunicadoApplicationService service;
     private final ComunicadoQueryService       queryService;
@@ -94,7 +94,7 @@ public class ComunicadoController {
                 body.getPlantelId(), body.getNivelEducativoId(), body.getGrupoId(),
                 body.getRequiereAcuse(), body.getFechaVencimiento(),
                 body.getEsRecurrente(), body.getPeriodicidad(), user.getId());
-        UUID id = crear.crear(cmd);
+        UUID id = crearComunicado.crear(cmd);
         return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("id", id));
     }
 
@@ -103,7 +103,7 @@ public class ComunicadoController {
             @PathVariable("id") UUID id,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
-        acusar.acusar(id, user.getId());
+        acusarComunicado.acusar(id, user.getId());
         return ResponseEntity.ok(Map.of("ok", true, "comunicado_id", id));
     }
 
