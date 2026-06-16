@@ -489,7 +489,9 @@ services:
       # OIDC con Authentik (mismo IdP que el resto del sistema)
       OIDC_CLIENT_ID:              ${SUPERSET_OIDC_CLIENT_ID:-superset}
       OIDC_CLIENT_SECRET:          ${SUPERSET_OIDC_CLIENT_SECRET:-}
-      OIDC_ISSUER:                 ${SUPERSET_OIDC_ISSUER:-https://auth.ades.setag.mx/application/o/superset}
+      OIDC_ISSUER:                 ${SUPERSET_OIDC_ISSUER:-https://auth.ades.setag.mx/application/o/superset/}
+      OIDC_DISCOVERY_URL:          ${OIDC_DISCOVERY_URL:-https://auth.ades.setag.mx/application/o/superset/.well-known/openid-configuration}
+      OIDC_SCOPES:                 ${OIDC_SCOPES:-openid email profile}
       # Contraseña del usuario superset_ro (solo lectura a ades_bi)
       SUPERSET_RO_PASSWORD:        ${SUPERSET_RO_PASSWORD:-superset_ro_changeme}
     volumes:
