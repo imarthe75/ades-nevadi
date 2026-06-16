@@ -1,0 +1,150 @@
+Output format is csv.
+schema,table_name,size,column_count,index_count,comment
+public,ades_codigos_postales,197 MB,13,696,"Catálogo SEPOMEX: 158,088 asentamientos (colonias, ejidos, fraccionamientos) de México. Alimenta la cascada CP→Colonia→Municipio→Estado en formularios de domicilio."
+public,ades_asistencias,141 MB,13,696,"Registro de asistencia alumno-clase. estatus_asistencia: PRESENTE, FALTA, TARDE, JUSTIFICADA. El trigger trg_recalcular_desde_asistencia recalcula el componente asistencia en ades_calificaciones_periodo al insertar/actualizar."
+public,ades_calificaciones_periodo,84 MB,25,696,Calificación acumulada del alumno por materia y período de evaluación. La columna calificacion_calculada la llena la función calcular_calificacion_periodo(). El ajuste manual (ajuste_manual) lo aplica el director. La columna es_acreditado se recalcula por trigger.
+public,ades_tareas_entregas,65 MB,19,696,
+public,ades_localidades,46 MB,11,696,
+public,ades_personas,5072 kB,28,696,"Tabla maestra de personas físicas del sistema. Una persona puede ser alumno, profesor, tutor o personal administrativo. Contiene datos de identidad, nacimiento y contacto. Columnas sensibles: curp, rfc, email_personal."
+public,ades_clases,4296 kB,20,696,
+public,ades_tareas,3640 kB,24,696,
+public,ades_usuarios,3360 kB,19,696,"Cuentas de acceso al sistema ADES. Se vinculan con Authentik via oidc_sub. nivel_acceso: 1=Admin Global, 2=Director, 3=Coordinador, 4=Docente, 5=Apoyo/Prefecto. Un usuario puede estar asociado a un plantel_id específico (null=acceso global)."
+public,ades_inscripciones,1064 kB,14,696,Registro de la inscripción de un alumno a un grupo en un ciclo escolar. Una inscripción activa (is_active=TRUE) es el estado actual del alumno. El historial de cambios está en ades_cambios_grupo.
+public,ades_expedientes_medicos,1016 kB,21,696,
+public,ades_disponibilidad_docente,912 kB,15,696,"Disponibilidad de docente por ciclo escolar: días, turno y horas máximas. Base para generación de horarios aSc."
+public,ades_estudiantes,872 kB,27,696,"Datos académicos y escolares específicos del alumno. Hereda identidad de ades_personas via persona_id. Incluye matrícula única por plantel, nivel socioeconómico, datos de beca y procedencia escolar."
+public,ades_usuario_roles,832 kB,7,696,Permite multi-rol. El campo peso determina el rol activo principal (mayor peso = prioridad). Sincronizado JIT con Authentik.
+public,ades_alertas_academicas,792 kB,20,696,"Alertas de riesgo académico generadas automáticamente. tipo_alerta: REPROBACION (promedio<6.0), AUSENTISMO (<80% asistencia), RIESGO_ALTO (IA). El campo ia_analisis contiene el análisis generado por Claude."
+public,ades_temas,792 kB,15,696,
+public,ades_municipios,728 kB,11,696,
+public,ades_contactos_familiares,704 kB,25,696,"Familiares, tutores y contactos de emergencia de un alumno. es_tutor_legal=TRUE identifica a quien tiene custodia legal. telefono_principal y telefono_trabajo validados por constraints. Ordenados por columna prioridad."
+public,ades_horarios,504 kB,21,696,Horario de clases generado por aSc TimeTables (XML import) o capturado manualmente.
+public,ades_materias_plan,408 kB,14,696,Plan de estudios: materias por grado y ciclo escolar. Al insertar aquí un proceso Celery genera las tareas del ciclo.
+public,ades_asignaciones_docentes,312 kB,12,696,Asignación profesor↔materia↔grupo. Aplica a todos los niveles. En primaria el titular cubre todas las materias excepto inglés.
+public,ades_audit_log,200 kB,19,696,Log inmutable de mutaciones del sistema. Cada fila tiene hash MD5 encadenado para detectar alteración directa. NO hacer UPDATE/DELETE. Retención mínima: 5 años (SEP).
+public,ades_reportes_conducta,192 kB,22,696,
+public,ades_certificados,160 kB,30,696,Certificados digitales firmados con Ed25519. Cada certificado tiene folio único verificable en /verificar/:folio. estado_firma: PENDIENTE→FIRMADO. La llave privada NO se almacena en BD — vive en .env (FIRMA_CLAVE_PRIVADA_HEX).
+public,ades_profesores,160 kB,24,696,"Datos laborales y académicos del docente. Hereda identidad de ades_personas via persona_id. Incluye RFC, cédula profesional, materias que puede impartir y carga horaria."
+public,ades_materias,152 kB,18,696,
+public,ades_variables_sistema,136 kB,15,696,"Variables de configuración del sistema, administrables desde el módulo Admin sin necesidad de SSH."
+public,ades_catalogo_items,128 kB,12,696,Items/valores de los catálogos dinámicos.
+public,ades_comunicados,128 kB,23,696,
+public,ades_direcciones,120 kB,24,696,"Domicilios de personas (alumnos, profesores, tutores). Integra catálogo SEPOMEX via codigo_postal_id y localidad_id. Incluye geocodificación opcional (latitud/longitud) via Nominatim."
+public,ades_paises,120 kB,11,696,Catálogo de países.
+public,ades_grupos,120 kB,16,696,"Grupo escolar por nivel/grado/ciclo. capacidad_maxima controla el cupo para cambios de grupo. nombre_grupo = grado + letra (ej: 1A, 2B)."
+public,ades_lenguas_indigenas,112 kB,11,696,Catálogo INALI — 68 agrupaciones lingüísticas indígenas nacionales
+public,ades_calendario_escolar,104 kB,14,696,
+public,ades_aulas,96 kB,25,696,"Aulas y espacios físicos por plantel. Incluye capacidad, equipamiento y estado operativo."
+public,ades_lp_asignaciones,96 kB,17,696,"Asignaciones de Learning Paths a alumnos. ia_recomendacion JSONB contiene el análisis de Claude (fortalezas, áreas mejora, estrategias, recursos priorizados)."
+public,ades_encuestas,80 kB,20,696,"Encuestas y sondeos escolares (satisfacción, diagnóstico, clima)"
+public,ades_notificaciones_sistema,80 kB,7,696,"Notificaciones in-app generadas automáticamente por el sistema: asignación de roles, cambios de grupo, alertas académicas, etc. Complementa el push via ntfy."
+public,ades_rubricas,64 kB,12,696,
+public,ades_niveles_ingles,64 kB,15,696,Marco Común Europeo de Referencia para las Lenguas (CEFR)
+public,ades_areas_academicas,64 kB,11,696,Áreas académicas globales supervisadas por COORDINADOR_AREA (transversal a planteles)
+public,ades_bajas,64 kB,18,696,"Registro de bajas, traslados y deserciones de alumnos. tipo_baja: TEMPORAL (reactivable), DEFINITIVA (permanente), TRASLADO (a otro plantel), DESERCION. Solo DIRECTOR puede autorizar."
+public,ades_catalogos,64 kB,11,696,Cabecera de catálogos dinámicos administrables desde el módulo Admin.
+public,ades_constancias,64 kB,21,696,"Constancias y documentos oficiales emitidos por la escuela: de estudio, de calificaciones, traslado, etc."
+public,ades_encuesta_preguntas,64 kB,14,696,
+public,ades_parametros_sistema,64 kB,16,696,Parámetros configurables del sistema. Modificables por ADMIN_GLOBAL desde la UI.
+public,ades_privilegios,64 kB,12,696,
+public,ades_correos_electronicos,64 kB,12,696,
+public,ades_estatus,64 kB,11,696,Catálogo de estatus por entidad del sistema.
+public,ades_informacion_escuela,64 kB,13,696,
+public,ades_cuotas_concepto,64 kB,13,696,
+public,ades_roles,64 kB,11,696,
+public,ades_badges,64 kB,13,696,Catálogo de insignias/gamificación del sistema
+public,ades_esquemas_ponderacion,64 kB,15,696,
+public,ades_grados,56 kB,13,696,Grados por nivel y plantel. Ixtapan secundaria solo tiene grados 1 y 2.
+public,ades_niveles_educativos,56 kB,20,696,
+public,ades_telefonos,56 kB,12,696,
+public,ades_expediente_documentos,56 kB,17,696,Documentos individuales que conforman el expediente digital del alumno. Cada registro referencia un documento en Paperless-ngx via paperless_doc_id.
+public,ades_ciclos_escolares,56 kB,15,696,Ciclo escolar por nivel educativo y plantel. es_vigente=TRUE identifica el ciclo activo que usan los filtros globales. Solo debe existir un ciclo vigente por nivel+plantel.
+public,ades_cambios_grupo,56 kB,13,696,"Historial de cambios de grupo (movilidad interna). Registra el grupo origen, destino, inscripción modificada y autorización. Solo COORDINADOR+ puede autorizar."
+public,ades_reinscripcion_ciclo,56 kB,21,696,Estado de validación de reinscripción de cada alumno para el siguiente ciclo.
+public,ades_estados,56 kB,11,696,Catálogo de estados/provincias.
+public,ades_items_ponderacion,56 kB,13,696,
+public,ades_badge_otorgados,56 kB,8,696,Registro de insignias otorgadas a alumnos por ciclo escolar
+public,ades_cuotas_pagos,56 kB,23,696,Registro de cobros y pagos escolares por alumno. No es sistema de facturación — solo control interno.
+public,ades_periodos_evaluacion,56 kB,15,696,Períodos de evaluación con apertura/cierre (AC-014)
+public,ades_planteles,56 kB,12,696,"Planteles físicos del Instituto Nevadi: Metepec (Primaria+Secundaria+Preparatoria), Tenancingo (Primaria+Secundaria+Preparatoria), Ixtapan de la Sal (Primaria+Secundaria, Preparatoria proyectada)."
+public,ades_plantel_niveles,56 kB,12,696,Niveles activos por plantel. Tenancingo no tiene PREPARATORIA. Ixtapan solo tiene 1° y 2° de secundaria.
+public,ades_tipos_asentamiento,56 kB,10,696,
+public,ades_licencias_personal,48 kB,20,696,Solicitudes de licencia y permisos de personal docente/administrativo. Flujo: PENDIENTE → APROBADA/RECHAZADA. Incluye sustituto y goce de sueldo.
+public,ades_expediente_docs,48 kB,17,696,Estado de cada documento requerido del expediente por alumno y ciclo.
+public,ades_encuesta_respuestas,48 kB,9,696,
+public,ades_extraordinarias,48 kB,19,696,Exámenes extraordinarios y de regularización. SEP limita a 3 por ciclo en secundaria/preparatoria.
+public,ades_learning_paths,48 kB,12,696,Rutas de refuerzo académico adaptativas — inspiradas en Moodle Learning Plans
+public,ades_rubrica_criterios,48 kB,14,696,
+public,ades_personal_administrativo,48 kB,24,696,"Personal no-docente y no-sanitario: directivos, coordinadores, secretarías, prefectos, apoyo."
+public,ades_llaves_firma,48 kB,16,696,Inventario de llaves públicas de firma del Instituto Nevadi
+public,ades_menus,48 kB,14,696,"Árbol de navegación administrable desde el módulo Admin, sin necesidad de redeploy del frontend."
+public,ades_asistencia_personal,48 kB,19,696,"Registro diario de asistencia del personal docente y administrativo. Captura hora de entrada/salida, retardos y justificaciones."
+public,ades_tutores_alumnos,48 kB,16,696,Vínculos tutor-alumno con permisos de portal (PE-029)
+public,ades_escuelas,48 kB,13,696,Entidad raíz: Instituto Nevadi.
+public,ades_identidad_institucional,48 kB,17,696,"Branding y configuración visual del sistema. Un registro por elemento de identidad.
+   Soporte de scope: plantel_id NULL = aplica a toda la institución.
+   Tipos: NOMBRE_INSTITUCION, COLOR_PRIMARIO, COLOR_SECUNDARIO, LOGO_URL, FAVICON_URL, SLOGAN, FOOTER_TEXTO."
+public,ades_capacitaciones_docente,48 kB,22,696,"Registro de capacitaciones, cursos, talleres y certificaciones del personal docente. Base para reportes de formación continua y cumplimiento SEP/UAEMEX."
+public,ades_expediente_laboral,48 kB,24,696,"Expediente laboral digital del personal. Contiene datos contractuales, IMSS, INFONAVIT, cédula profesional y URLs a documentos en MinIO."
+public,ades_criterios_eval_docente,48 kB,15,696,Catálogo de criterios para evaluación docente. Configurable por nivel educativo.
+public,ades_expedientes_alumno,48 kB,14,696,Expediente digital del alumno por ciclo escolar. Encabezado que agrupa todos los documentos requeridos para la inscripcion y seguimiento escolar. Integrado con Paperless-ngx como motor OCR.
+public,ades_calificaciones_historico,48 kB,12,696,Snapshot inmutable de calificaciones al momento del cierre formal de cada período.
+public,ades_condiciones_cronicas,40 kB,18,696,Condiciones de salud crónicas de alumnos (SB-006/007)
+public,ades_calificaciones_tareas,40 kB,13,696,
+public,ades_evaluacion_docente,40 kB,16,696,Evaluación 360° de un docente por ciclo. Un evaluador puede emitir una por ciclo.
+public,ades_notificaciones,40 kB,17,696,Bandeja de notificaciones internas por usuario
+public,ades_justificaciones_falta,40 kB,16,696,Justificaciones de faltas de alumnos con workflow aprobación (OA-003)
+public,ades_solicitudes_tramites,40 kB,21,696,"Flujo de trámites administrativos: constancias, certificados, bajas, cambios de grupo.
+   Cada trámite tiene ciclo de vida: RECIBIDA→EN_PROCESO→APROBADA→ENTREGADA."
+public,ades_cierre_periodo_log,40 kB,14,696,Registro formal de cada cierre de período por grupo. Inmutable una vez cerrado.
+public,ades_alertas_cumplimiento,40 kB,14,696,Alertas de incumplimiento normativo (AD-030)
+public,ades_disponibilidad_aula,32 kB,14,696,Asignación de grupos a aulas por franja horaria semanal. Permite detectar conflictos de doble uso.
+public,ades_solicitudes_admision,32 kB,29,696,Solicitudes de admisión de nuevos alumnos (PE-003)
+public,ades_persona_contactos,32 kB,17,696,"Medios de contacto estructurados por persona (normalización de ades_personas.telefono y email_personal). medio: CELULAR, FIJO, WHATSAPP, EMAIL, TELEGRAM, FAX, OTRO. Validación de formato por constraints chk_pc_valor_email y chk_pc_valor_telefono."
+public,ades_avance_planificacion,32 kB,13,696,
+public,ades_planes_mejora,32 kB,25,696,"Plan de mejora conductual. Un plan por reporte. Incluye compromisos de alumno, padre y escuela."
+public,ades_asignaciones_aula,32 kB,14,696,Asignación puntual de aula a clase/evento (EV-025)
+public,ades_anuncios,32 kB,15,696,Tablón de anuncios oficial (CO-023)
+public,ades_acuses_comunicado,32 kB,12,696,
+public,ades_archivos,32 kB,15,696,
+public,ades_documentos_tipo,32 kB,12,696,
+public,ades_lp_recursos,32 kB,16,696,Recursos didácticos que conforman un Learning Path
+public,ades_calificaciones_evaluaciones,32 kB,13,696,
+public,ades_ai_conversaciones,32 kB,11,696,Historial de mensajes del asistente pedagógico IA. Cada fila es un mensaje (role: user/assistant). Contexto de la conversación se recupera por sesion_id.
+public,ades_eval_docente_criterios,32 kB,11,696,Calificación por criterio dentro de una evaluación docente.
+public,ades_sanciones_disciplinarias,32 kB,19,696,"Sanciones formales aplicadas a un alumno. Una por reporte, aprobadas por Director."
+public,ades_planeacion_clases,24 kB,13,696,
+public,ades_evaluaciones,24 kB,16,696,
+public,ades_promociones_pendientes,24 kB,18,696,Alumnos cuya reinscripción automática no pudo completarse por falta de grupo destino. Requieren asignación manual.
+public,ades_observaciones_pedagogicas,24 kB,12,696,Observaciones pedagógicas por alumno (EV-017)
+public,ades_seguimiento_plan,24 kB,16,696,Entradas de seguimiento periódico al plan de mejora. Actualiza el avance del plan.
+public,ades_personal_salud,24 kB,23,696,"Personal médico/sanitario del plantel (médico escolar, enfermería)."
+public,ades_reportes_academicos,24 kB,15,696,
+public,ades_medicamentos_alumno,24 kB,18,696,Medicamentos en uso de alumnos (SB-003)
+public,ades_seguimiento_psicosocial,24 kB,15,696,Seguimiento psicosocial por alumno (SB-021)
+public,ades_tutorias,24 kB,15,696,Sesiones de tutoría individual/grupal (SB-022)
+public,ades_mensajes_foro,24 kB,15,696,Mensajes en foros (CO-021)
+public,ades_lp_progreso,24 kB,8,696,Progreso por recurso individual dentro de una asignación
+public,ades_log_autenticacion,24 kB,8,696,Log de autenticaciones Authentik (AD-007)
+public,ades_historico_identidad,24 kB,12,696,
+public,ades_inscripciones_optativas,24 kB,12,696,Inscripción de alumnos a materias optativas/electivas (PE-014)
+public,ades_calendarios_academicos,24 kB,17,696,Calendario académico SEP/UAEMEX por ciclo y nivel (AC-005)
+public,ades_coordinaciones_area,24 kB,12,696,Asignación de coordinadores de área a áreas académicas globales
+public,ades_nee,24 kB,14,696,Necesidades Educativas Especiales (EV-024)
+public,ades_incidentes_medicos,24 kB,16,696,
+public,ades_menu_roles,16 kB,8,696,Asignación de menús a roles. Un menú visible solo si el usuario tiene el rol asignado.
+public,ades_documentos_admision,16 kB,13,696,Documentos del proceso de admisión (PE-006)
+public,ades_evaluaciones_riesgo,16 kB,10,696,Evaluaciones de riesgo de abandono escolar (IA-005)
+public,ades_acuerdos_convivencia,16 kB,12,696,Registro de firma de acuerdo de convivencia (PE-026)
+public,ades_webhooks,16 kB,11,696,Registro de webhooks activos e integraciones salientes (FASE 34).
+public,ades_foros,16 kB,16,696,Foros de discusión por grupo/plantel (CO-020)
+public,ades_webhook_logs,16 kB,15,696,Historico e intentos de envio de eventos via webhooks.
+public,ades_escalas_evaluacion,16 kB,12,696,Escalas de evaluación cualitativa SEP/UAEMEX
+public,ades_tareas_sistema,16 kB,12,696,"Cola de tareas async del sistema (notificaciones, Celery tasks)"
+public,ades_actas_incidente_medico,16 kB,15,696,Actas formales de incidentes médicos (SB-005)
+public,ades_respuestas_foro,16 kB,12,696,Respuestas encadenadas en foros (CO-022)
+public,ades_normatividad,16 kB,17,696,Catálogo de normatividad SEP/UAEMEX/Interna (AD-014)
+public,ades_restricciones_tutor,16 kB,14,696,Restricciones de acceso al portal por tutor (PE-033)
+public,ades_rol_privilegios,16 kB,6,696,
+public,ades_retenciones,16 kB,15,696,Retenciones académicas/administrativas de alumnos (AD-017)
+public,ades_periodos_inscripcion,8192 bytes,13,696,

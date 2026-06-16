@@ -1,0 +1,430 @@
+erDiagram
+    ades_acuerdos_convivencia {}
+    ades_acuses_comunicado {}
+    ades_ai_conversaciones {}
+    ades_alertas_academicas {}
+    ades_alertas_cumplimiento {}
+    ades_anuncios {}
+    ades_archivos {}
+    ades_areas_academicas {}
+    ades_asignaciones_aula {}
+    ades_asignaciones_docentes {}
+    ades_asistencias {}
+    ades_aulas {}
+    ades_avance_planificacion {}
+    ades_badge_otorgados {}
+    ades_badges {}
+    ades_bajas {}
+    ades_calendario_escolar {}
+    ades_calendarios_academicos {}
+    ades_calificaciones_evaluaciones {}
+    ades_calificaciones_historico {}
+    ades_calificaciones_periodo {}
+    ades_calificaciones_tareas {}
+    ades_cambios_grupo {}
+    ades_catalogo_items {}
+    ades_catalogos {}
+    ades_certificados {}
+    ades_ciclos_escolares {}
+    ades_cierre_periodo_log {}
+    ades_clases {}
+    ades_codigos_postales {}
+    ades_comunicados {}
+    ades_condiciones_cronicas {}
+    ades_constancias {}
+    ades_contactos_familiares {}
+    ades_coordinaciones_area {}
+    ades_criterios_eval_docente {}
+    ades_cuotas_concepto {}
+    ades_cuotas_pagos {}
+    ades_direcciones {}
+    ades_disponibilidad_aula {}
+    ades_disponibilidad_docente {}
+    ades_documentos_admision {}
+    ades_documentos_tipo {}
+    ades_encuesta_preguntas {}
+    ades_encuesta_respuestas {}
+    ades_encuestas {}
+    ades_escuelas {}
+    ades_esquemas_ponderacion {}
+    ades_estados {}
+    ades_estatus {}
+    ades_estudiantes {}
+    ades_eval_docente_criterios {}
+    ades_evaluacion_docente {}
+    ades_evaluaciones {}
+    ades_evaluaciones_riesgo {}
+    ades_expediente_docs {}
+    ades_expediente_documentos {}
+    ades_expedientes_alumno {}
+    ades_expedientes_medicos {}
+    ades_extraordinarias {}
+    ades_foros {}
+    ades_grados {}
+    ades_grupos {}
+    ades_historico_identidad {}
+    ades_horarios {}
+    ades_identidad_institucional {}
+    ades_incidentes_medicos {}
+    ades_informacion_escuela {}
+    ades_inscripciones {}
+    ades_inscripciones_optativas {}
+    ades_items_ponderacion {}
+    ades_justificaciones_falta {}
+    ades_learning_paths {}
+    ades_lenguas_indigenas {}
+    ades_llaves_firma {}
+    ades_localidades {}
+    ades_lp_asignaciones {}
+    ades_lp_progreso {}
+    ades_lp_recursos {}
+    ades_materias {}
+    ades_materias_plan {}
+    ades_medicamentos_alumno {}
+    ades_mensajes_foro {}
+    ades_menu_roles {}
+    ades_menus {}
+    ades_municipios {}
+    ades_nee {}
+    ades_niveles_educativos {}
+    ades_niveles_ingles {}
+    ades_notificaciones {}
+    ades_notificaciones_sistema {}
+    ades_observaciones_pedagogicas {}
+    ades_paises {}
+    ades_periodos_evaluacion {}
+    ades_periodos_inscripcion {}
+    ades_persona_contactos {}
+    ades_personal_administrativo {}
+    ades_personal_salud {}
+    ades_personas {}
+    ades_planeacion_clases {}
+    ades_planes_mejora {}
+    ades_plantel_niveles {}
+    ades_planteles {}
+    ades_privilegios {}
+    ades_profesores {}
+    ades_promociones_pendientes {}
+    ades_reinscripcion_ciclo {}
+    ades_reportes_academicos {}
+    ades_reportes_conducta {}
+    ades_respuestas_foro {}
+    ades_restricciones_tutor {}
+    ades_retenciones {}
+    ades_rol_privilegios {}
+    ades_roles {}
+    ades_rubrica_criterios {}
+    ades_rubricas {}
+    ades_sanciones_disciplinarias {}
+    ades_seguimiento_plan {}
+    ades_seguimiento_psicosocial {}
+    ades_solicitudes_admision {}
+    ades_solicitudes_tramites {}
+    ades_tareas {}
+    ades_tareas_entregas {}
+    ades_temas {}
+    ades_tipos_asentamiento {}
+    ades_tutores_alumnos {}
+    ades_tutorias {}
+    ades_usuario_roles {}
+    ades_usuarios {}
+    ades_webhook_logs {}
+    ades_webhooks {}
+
+    ades_acuerdos_convivencia }o--|| ades_estudiantes : "alumno_id→id"
+    ades_acuses_comunicado }o--|| ades_usuarios : "usuario_id→id"
+    ades_acuses_comunicado }o--|| ades_comunicados : "comunicado_id→id"
+    ades_ai_conversaciones }o--|| ades_usuarios : "usuario_id→id"
+    ades_alertas_academicas }o--|| ades_grupos : "grupo_id→id"
+    ades_alertas_academicas }o--|| ades_estudiantes : "estudiante_id→id"
+    ades_alertas_academicas }o--|| ades_usuarios : "atendida_por_id→id"
+    ades_alertas_cumplimiento }o--|| ades_estudiantes : "alumno_id→id"
+    ades_alertas_cumplimiento }o--|| ades_planteles : "plantel_id→id"
+    ades_anuncios }o--|| ades_planteles : "plantel_id→id"
+    ades_asignaciones_aula }o--|| ades_clases : "clase_id→id"
+    ades_asignaciones_aula }o--|| ades_aulas : "aula_id→id"
+    ades_asignaciones_docentes }o--|| ades_ciclos_escolares : "ciclo_escolar_id→id"
+    ades_asignaciones_docentes }o--|| ades_materias : "materia_id→id"
+    ades_asignaciones_docentes }o--|| ades_grupos : "grupo_id→id"
+    ades_asignaciones_docentes }o--|| ades_profesores : "profesor_id→id"
+    ades_asistencias }o--|| ades_estudiantes : "estudiante_id→id"
+    ades_asistencias }o--|| ades_clases : "clase_id→id"
+    ades_asistencias }o--|| ades_justificaciones_falta : "justificacion_id→id"
+    ades_aulas }o--|| ades_planteles : "plantel_id→id"
+    ades_avance_planificacion }o--|| ades_planeacion_clases : "planeacion_clase_id→id"
+    ades_avance_planificacion }o--|| ades_clases : "clase_id→id"
+    ades_badge_otorgados }o--|| ades_ciclos_escolares : "ciclo_id→id"
+    ades_badge_otorgados }o--|| ades_usuarios : "otorgado_por→id"
+    ades_badge_otorgados }o--|| ades_badges : "badge_id→id"
+    ades_badge_otorgados }o--|| ades_estudiantes : "estudiante_id→id"
+    ades_badges }o--|| ades_planteles : "plantel_id→id"
+    ades_bajas }o--|| ades_inscripciones : "inscripcion_id→id"
+    ades_bajas }o--|| ades_usuarios : "autorizado_por_id→id"
+    ades_bajas }o--|| ades_estudiantes : "estudiante_id→id"
+    ades_calendario_escolar }o--|| ades_ciclos_escolares : "ciclo_escolar_id→id"
+    ades_calendario_escolar }o--|| ades_planteles : "plantel_id→id"
+    ades_calendarios_academicos }o--|| ades_ciclos_escolares : "ciclo_escolar_id→id"
+    ades_calendarios_academicos }o--|| ades_planteles : "plantel_id→id"
+    ades_calificaciones_evaluaciones }o--|| ades_evaluaciones : "evaluacion_id→id"
+    ades_calificaciones_evaluaciones }o--|| ades_estudiantes : "estudiante_id→id"
+    ades_calificaciones_historico }o--|| ades_estudiantes : "estudiante_id→id"
+    ades_calificaciones_historico }o--|| ades_calificaciones_periodo : "cal_periodo_id→id"
+    ades_calificaciones_historico }o--|| ades_periodos_evaluacion : "periodo_evaluacion_id→id"
+    ades_calificaciones_historico }o--|| ades_grupos : "grupo_id→id"
+    ades_calificaciones_historico }o--|| ades_materias : "materia_id→id"
+    ades_calificaciones_historico }o--|| ades_cierre_periodo_log : "cierre_id→id"
+    ades_calificaciones_periodo }o--|| ades_usuarios : "cerrado_por→id"
+    ades_calificaciones_periodo }o--|| ades_grupos : "grupo_id→id"
+    ades_calificaciones_periodo }o--|| ades_materias : "materia_id→id"
+    ades_calificaciones_periodo }o--|| ades_estudiantes : "estudiante_id→id"
+    ades_calificaciones_periodo }o--|| ades_periodos_evaluacion : "periodo_evaluacion_id→id"
+    ades_calificaciones_tareas }o--|| ades_rubricas : "rubrica_id→id"
+    ades_calificaciones_tareas }o--|| ades_tareas_entregas : "tarea_entrega_id→id"
+    ades_cambios_grupo }o--|| ades_inscripciones : "inscripcion_id→id"
+    ades_cambios_grupo }o--|| ades_grupos : "grupo_destino_id→id"
+    ades_cambios_grupo }o--|| ades_grupos : "grupo_origen_id→id"
+    ades_cambios_grupo }o--|| ades_estudiantes : "estudiante_id→id"
+    ades_cambios_grupo }o--|| ades_usuarios : "autorizado_por_id→id"
+    ades_catalogo_items }o--|| ades_catalogos : "catalogo_id→id"
+    ades_certificados }o--|| ades_usuarios : "emitido_por_id→id"
+    ades_certificados }o--|| ades_ciclos_escolares : "ciclo_escolar_id→id"
+    ades_certificados }o--|| ades_estudiantes : "estudiante_id→id"
+    ades_certificados }o--|| ades_llaves_firma : "clave_publica_ref→id"
+    ades_ciclos_escolares }o--|| ades_niveles_educativos : "nivel_educativo_id→id"
+    ades_cierre_periodo_log }o--|| ades_periodos_evaluacion : "periodo_evaluacion_id→id"
+    ades_cierre_periodo_log }o--|| ades_ciclos_escolares : "ciclo_escolar_id→id"
+    ades_cierre_periodo_log }o--|| ades_grupos : "grupo_id→id"
+    ades_cierre_periodo_log }o--|| ades_usuarios : "cerrado_por→id"
+    ades_clases }o--|| ades_materias : "materia_id→id"
+    ades_clases }o--|| ades_horarios : "horario_id→id"
+    ades_clases }o--|| ades_grupos : "grupo_id→id"
+    ades_clases }o--|| ades_profesores : "profesor_id→id"
+    ades_codigos_postales }o--|| ades_tipos_asentamiento : "tipo_asentamiento_id→id"
+    ades_codigos_postales }o--|| ades_localidades : "localidad_id→id"
+    ades_codigos_postales }o--|| ades_estados : "estado_id→id"
+    ades_codigos_postales }o--|| ades_municipios : "municipio_id→id"
+    ades_comunicados }o--|| ades_escuelas : "escuela_id→id"
+    ades_comunicados }o--|| ades_niveles_educativos : "nivel_educativo_id→id"
+    ades_comunicados }o--|| ades_grupos : "grupo_id→id"
+    ades_comunicados }o--|| ades_planteles : "plantel_id→id"
+    ades_comunicados }o--|| ades_usuarios : "creado_por_id→id"
+    ades_condiciones_cronicas }o--|| ades_estudiantes : "alumno_id→id"
+    ades_constancias }o--|| ades_estudiantes : "estudiante_id→id"
+    ades_constancias }o--|| ades_ciclos_escolares : "ciclo_escolar_id→id"
+    ades_constancias }o--|| ades_usuarios : "emitida_por_id→id"
+    ades_constancias }o--|| ades_archivos : "archivo_id→id"
+    ades_contactos_familiares }o--|| ades_estudiantes : "estudiante_id→id"
+    ades_contactos_familiares }o--|| ades_personas : "persona_id→id"
+    ades_coordinaciones_area }o--|| ades_usuarios : "usuario_id→id"
+    ades_coordinaciones_area }o--|| ades_areas_academicas : "area_id→id"
+    ades_criterios_eval_docente }o--|| ades_niveles_educativos : "nivel_educativo_id→id"
+    ades_cuotas_concepto }o--|| ades_planteles : "plantel_id→id"
+    ades_cuotas_concepto }o--|| ades_niveles_educativos : "nivel_educativo_id→id"
+    ades_cuotas_pagos }o--|| ades_cuotas_concepto : "concepto_id→id"
+    ades_cuotas_pagos }o--|| ades_estudiantes : "estudiante_id→id"
+    ades_cuotas_pagos }o--|| ades_archivos : "recibo_id→id"
+    ades_cuotas_pagos }o--|| ades_ciclos_escolares : "ciclo_escolar_id→id"
+    ades_cuotas_pagos }o--|| ades_usuarios : "registrado_por_id→id"
+    ades_direcciones }o--|| ades_codigos_postales : "codigo_postal_id→id"
+    ades_direcciones }o--|| ades_localidades : "localidad_id→id"
+    ades_disponibilidad_aula }o--|| ades_aulas : "aula_id→id"
+    ades_disponibilidad_aula }o--|| ades_grupos : "grupo_id→id"
+    ades_disponibilidad_aula }o--|| ades_ciclos_escolares : "ciclo_escolar_id→id"
+    ades_disponibilidad_docente }o--|| ades_ciclos_escolares : "ciclo_escolar_id→id"
+    ades_disponibilidad_docente }o--|| ades_profesores : "profesor_id→id"
+    ades_documentos_admision }o--|| ades_solicitudes_admision : "admision_id→id"
+    ades_documentos_tipo }o--|| ades_niveles_educativos : "nivel_educativo_id→id"
+    ades_encuesta_preguntas }o--|| ades_encuestas : "encuesta_id→id"
+    ades_encuesta_respuestas }o--|| ades_encuesta_preguntas : "pregunta_id→id"
+    ades_encuesta_respuestas }o--|| ades_encuestas : "encuesta_id→id"
+    ades_encuesta_respuestas }o--|| ades_usuarios : "respondido_por_id→id"
+    ades_encuestas }o--|| ades_niveles_educativos : "nivel_educativo_id→id"
+    ades_encuestas }o--|| ades_grupos : "grupo_id→id"
+    ades_encuestas }o--|| ades_planteles : "plantel_id→id"
+    ades_encuestas }o--|| ades_usuarios : "creado_por_id→id"
+    ades_escuelas }o--|| ades_identidad_institucional : "identidad_institucional_logo_id→id"
+    ades_escuelas }o--|| ades_identidad_institucional : "identidad_institucional_slogan_id→id"
+    ades_escuelas }o--|| ades_estatus : "estatus_id→id"
+    ades_esquemas_ponderacion }o--|| ades_niveles_educativos : "nivel_educativo_id→id"
+    ades_esquemas_ponderacion }o--|| ades_usuarios : "creado_por→id"
+    ades_esquemas_ponderacion }o--|| ades_materias : "materia_id→id"
+    ades_estados }o--|| ades_paises : "pais_id→id"
+    ades_estudiantes }o--|| ades_lenguas_indigenas : "lengua_indigena_id→id"
+    ades_estudiantes }o--|| ades_estatus : "estatus_id→id"
+    ades_estudiantes }o--|| ades_planteles : "plantel_id→id"
+    ades_estudiantes }o--|| ades_personas : "persona_id→id"
+    ades_estudiantes }o--|| ades_niveles_ingles : "nivel_ingles_id→id"
+    ades_eval_docente_criterios }o--|| ades_evaluacion_docente : "evaluacion_id→id"
+    ades_eval_docente_criterios }o--|| ades_criterios_eval_docente : "criterio_id→id"
+    ades_evaluacion_docente }o--|| ades_profesores : "profesor_id→id"
+    ades_evaluacion_docente }o--|| ades_ciclos_escolares : "ciclo_escolar_id→id"
+    ades_evaluacion_docente }o--|| ades_usuarios : "evaluador_id→id"
+    ades_evaluaciones }o--|| ades_grupos : "grupo_id→id"
+    ades_evaluaciones }o--|| ades_materias : "materia_id→id"
+    ades_evaluaciones }o--|| ades_periodos_evaluacion : "periodo_evaluacion_id→id"
+    ades_evaluaciones_riesgo }o--|| ades_estudiantes : "alumno_id→id"
+    ades_expediente_docs }o--|| ades_archivos : "archivo_id→id"
+    ades_expediente_docs }o--|| ades_documentos_tipo : "documento_tipo_id→id"
+    ades_expediente_docs }o--|| ades_ciclos_escolares : "ciclo_escolar_id→id"
+    ades_expediente_docs }o--|| ades_estudiantes : "estudiante_id→id"
+    ades_expediente_docs }o--|| ades_usuarios : "verificado_por_id→id"
+    ades_expediente_documentos }o--|| ades_expedientes_alumno : "expediente_id→id"
+    ades_expediente_documentos }o--|| ades_usuarios : "cargado_por→id"
+    ades_expedientes_alumno }o--|| ades_estudiantes : "estudiante_id→id"
+    ades_expedientes_alumno }o--|| ades_ciclos_escolares : "ciclo_escolar_id→id"
+    ades_expedientes_alumno }o--|| ades_usuarios : "revisado_por→id"
+    ades_expedientes_medicos }o--|| ades_estudiantes : "estudiante_id→id"
+    ades_extraordinarias }o--|| ades_grupos : "grupo_id→id"
+    ades_extraordinarias }o--|| ades_materias : "materia_id→id"
+    ades_extraordinarias }o--|| ades_usuarios : "aplicado_por_id→id"
+    ades_extraordinarias }o--|| ades_estudiantes : "estudiante_id→id"
+    ades_extraordinarias }o--|| ades_ciclos_escolares : "ciclo_escolar_id→id"
+    ades_foros }o--|| ades_grupos : "grupo_id→id"
+    ades_foros }o--|| ades_materias : "materia_id→id"
+    ades_foros }o--|| ades_planteles : "plantel_id→id"
+    ades_foros }o--|| ades_personas : "creado_por→id"
+    ades_grados }o--|| ades_niveles_educativos : "nivel_educativo_id→id"
+    ades_grados }o--|| ades_planteles : "plantel_id→id"
+    ades_grados }o--|| ades_estatus : "estatus_id→id"
+    ades_grupos }o--|| ades_ciclos_escolares : "ciclo_escolar_id→id"
+    ades_grupos }o--|| ades_estatus : "estatus_id→id"
+    ades_grupos }o--|| ades_aulas : "aula_id→id"
+    ades_grupos }o--|| ades_profesores : "profesor_titular_id→id"
+    ades_grupos }o--|| ades_grados : "grado_id→id"
+    ades_historico_identidad }o--|| ades_identidad_institucional : "identidad_id→id"
+    ades_horarios }o--|| ades_materias : "materia_id→id"
+    ades_horarios }o--|| ades_ciclos_escolares : "ciclo_escolar_id→id"
+    ades_horarios }o--|| ades_grupos : "grupo_id→id"
+    ades_horarios }o--|| ades_profesores : "profesor_id→id"
+    ades_horarios }o--|| ades_aulas : "aula_id→id"
+    ades_incidentes_medicos }o--|| ades_estudiantes : "estudiante_id→id"
+    ades_incidentes_medicos }o--|| ades_personal_salud : "personal_salud_id→id"
+    ades_informacion_escuela }o--|| ades_escuelas : "escuela_id→id"
+    ades_inscripciones }o--|| ades_estatus : "estatus_id→id"
+    ades_inscripciones }o--|| ades_estudiantes : "estudiante_id→id"
+    ades_inscripciones }o--|| ades_grupos : "grupo_id→id"
+    ades_inscripciones }o--|| ades_ciclos_escolares : "ciclo_escolar_id→id"
+    ades_inscripciones_optativas }o--|| ades_materias : "materia_id→id"
+    ades_inscripciones_optativas }o--|| ades_estudiantes : "estudiante_id→id"
+    ades_inscripciones_optativas }o--|| ades_ciclos_escolares : "ciclo_escolar_id→id"
+    ades_items_ponderacion }o--|| ades_esquemas_ponderacion : "esquema_id→id"
+    ades_justificaciones_falta }o--|| ades_usuarios : "aprobada_por→id"
+    ades_justificaciones_falta }o--|| ades_asistencias : "asistencia_id→id"
+    ades_learning_paths }o--|| ades_niveles_educativos : "nivel_educativo_id→id"
+    ades_learning_paths }o--|| ades_materias : "materia_id→id"
+    ades_llaves_firma }o--|| ades_usuarios : "creada_por_id→id"
+    ades_localidades }o--|| ades_tipos_asentamiento : "tipo_asentamiento_id→id"
+    ades_localidades }o--|| ades_municipios : "municipio_id→id"
+    ades_lp_asignaciones }o--|| ades_estudiantes : "estudiante_id→id"
+    ades_lp_asignaciones }o--|| ades_learning_paths : "path_id→id"
+    ades_lp_asignaciones }o--|| ades_usuarios : "asignado_por→id"
+    ades_lp_progreso }o--|| ades_lp_recursos : "recurso_id→id"
+    ades_lp_progreso }o--|| ades_lp_asignaciones : "asignacion_id→id"
+    ades_lp_recursos }o--|| ades_learning_paths : "path_id→id"
+    ades_materias }o--|| ades_niveles_educativos : "nivel_educativo_id→id"
+    ades_materias_plan }o--|| ades_grados : "grado_id→id"
+    ades_materias_plan }o--|| ades_ciclos_escolares : "ciclo_escolar_id→id"
+    ades_materias_plan }o--|| ades_materias : "materia_id→id"
+    ades_medicamentos_alumno }o--|| ades_estudiantes : "alumno_id→id"
+    ades_mensajes_foro }o--|| ades_mensajes_foro : "mensaje_padre_id→id"
+    ades_mensajes_foro }o--|| ades_personas : "autor_id→id"
+    ades_mensajes_foro }o--|| ades_foros : "foro_id→id"
+    ades_menu_roles }o--|| ades_roles : "rol_id→id"
+    ades_menu_roles }o--|| ades_menus : "menu_id→id"
+    ades_menus }o--|| ades_menus : "parent_id→id"
+    ades_municipios }o--|| ades_estados : "estado_id→id"
+    ades_nee }o--|| ades_estudiantes : "alumno_id→id"
+    ades_notificaciones }o--|| ades_usuarios : "usuario_id→id"
+    ades_notificaciones_sistema }o--|| ades_usuarios : "usuario_id→id"
+    ades_observaciones_pedagogicas }o--|| ades_estudiantes : "alumno_id→id"
+    ades_observaciones_pedagogicas }o--|| ades_personas : "autor_id→id"
+    ades_periodos_evaluacion }o--|| ades_ciclos_escolares : "ciclo_escolar_id→id"
+    ades_periodos_inscripcion }o--|| ades_ciclos_escolares : "ciclo_escolar_id→id"
+    ades_periodos_inscripcion }o--|| ades_planteles : "plantel_id→id"
+    ades_persona_contactos }o--|| ades_personas : "persona_id→id"
+    ades_personal_administrativo }o--|| ades_personas : "persona_id→id"
+    ades_personal_administrativo }o--|| ades_planteles : "plantel_id→id"
+    ades_personal_salud }o--|| ades_personas : "persona_id→id"
+    ades_personal_salud }o--|| ades_planteles : "plantel_id→id"
+    ades_personal_salud }o--|| ades_estatus : "estatus_id→id"
+    ades_planeacion_clases }o--|| ades_temas : "tema_id→id"
+    ades_planeacion_clases }o--|| ades_grupos : "grupo_id→id"
+    ades_planes_mejora }o--|| ades_usuarios : "elaborado_por_id→id"
+    ades_planes_mejora }o--|| ades_ciclos_escolares : "ciclo_escolar_id→id"
+    ades_planes_mejora }o--|| ades_reportes_conducta : "reporte_conducta_id→id"
+    ades_planes_mejora }o--|| ades_estudiantes : "estudiante_id→id"
+    ades_plantel_niveles }o--|| ades_niveles_educativos : "nivel_educativo_id→id"
+    ades_plantel_niveles }o--|| ades_estatus : "estatus_id→id"
+    ades_plantel_niveles }o--|| ades_planteles : "plantel_id→id"
+    ades_planteles }o--|| ades_estatus : "estatus_id→id"
+    ades_planteles }o--|| ades_escuelas : "escuela_id→id"
+    ades_profesores }o--|| ades_planteles : "plantel_id→id"
+    ades_profesores }o--|| ades_estatus : "estatus_id→id"
+    ades_profesores }o--|| ades_personas : "persona_id→id"
+    ades_promociones_pendientes }o--|| ades_ciclos_escolares : "ciclo_origen_id→id"
+    ades_promociones_pendientes }o--|| ades_grupos : "grupo_origen_id→id"
+    ades_promociones_pendientes }o--|| ades_grupos : "grupo_asignado_id→id"
+    ades_promociones_pendientes }o--|| ades_estudiantes : "estudiante_id→id"
+    ades_promociones_pendientes }o--|| ades_ciclos_escolares : "ciclo_destino_id→id"
+    ades_reinscripcion_ciclo }o--|| ades_ciclos_escolares : "ciclo_destino_id→id"
+    ades_reinscripcion_ciclo }o--|| ades_estudiantes : "estudiante_id→id"
+    ades_reinscripcion_ciclo }o--|| ades_usuarios : "aprobado_por→id"
+    ades_reinscripcion_ciclo }o--|| ades_ciclos_escolares : "ciclo_origen_id→id"
+    ades_reinscripcion_ciclo }o--|| ades_grupos : "grupo_destino_id→id"
+    ades_reportes_academicos }o--|| ades_estudiantes : "estudiante_id→id"
+    ades_reportes_academicos }o--|| ades_usuarios : "generado_por_id→id"
+    ades_reportes_academicos }o--|| ades_periodos_evaluacion : "periodo_evaluacion_id→id"
+    ades_reportes_academicos }o--|| ades_ciclos_escolares : "ciclo_escolar_id→id"
+    ades_reportes_conducta }o--|| ades_estatus : "estatus_id→id"
+    ades_reportes_conducta }o--|| ades_estudiantes : "estudiante_id→id"
+    ades_reportes_conducta }o--|| ades_profesores : "reportado_por_id→id"
+    ades_reportes_conducta }o--|| ades_grupos : "grupo_id→id"
+    ades_respuestas_foro }o--|| ades_personas : "autor_id→id"
+    ades_respuestas_foro }o--|| ades_mensajes_foro : "mensaje_id→id"
+    ades_restricciones_tutor }o--|| ades_tutores_alumnos : "tutor_alumno_id→id"
+    ades_retenciones }o--|| ades_personas : "autorizado_por→id"
+    ades_retenciones }o--|| ades_estudiantes : "alumno_id→id"
+    ades_rol_privilegios }o--|| ades_roles : "rol_id→id"
+    ades_rol_privilegios }o--|| ades_privilegios : "privilegio_id→id"
+    ades_rubrica_criterios }o--|| ades_rubricas : "rubrica_id→id"
+    ades_rubricas }o--|| ades_niveles_educativos : "nivel_educativo_id→id"
+    ades_rubricas }o--|| ades_materias : "materia_id→id"
+    ades_sanciones_disciplinarias }o--|| ades_reportes_conducta : "reporte_conducta_id→id"
+    ades_sanciones_disciplinarias }o--|| ades_usuarios : "autorizado_por_id→id"
+    ades_sanciones_disciplinarias }o--|| ades_estudiantes : "estudiante_id→id"
+    ades_seguimiento_plan }o--|| ades_estudiantes : "estudiante_id→id"
+    ades_seguimiento_plan }o--|| ades_planes_mejora : "plan_mejora_id→id"
+    ades_seguimiento_plan }o--|| ades_usuarios : "registrado_por_id→id"
+    ades_seguimiento_psicosocial }o--|| ades_estudiantes : "alumno_id→id"
+    ades_solicitudes_admision }o--|| ades_ciclos_escolares : "ciclo_escolar_id→id"
+    ades_solicitudes_admision }o--|| ades_personas : "resuelto_por→id"
+    ades_solicitudes_admision }o--|| ades_planteles : "plantel_id→id"
+    ades_solicitudes_admision }o--|| ades_grupos : "grupo_asignado_id→id"
+    ades_solicitudes_tramites }o--|| ades_archivos : "archivo_resultado_id→id"
+    ades_solicitudes_tramites }o--|| ades_estudiantes : "estudiante_id→id"
+    ades_solicitudes_tramites }o--|| ades_usuarios : "resuelto_por_id→id"
+    ades_solicitudes_tramites }o--|| ades_usuarios : "asignado_a_id→id"
+    ades_solicitudes_tramites }o--|| ades_usuarios : "usuario_id→id"
+    ades_tareas }o--|| ades_temas : "tema_id→id"
+    ades_tareas }o--|| ades_materias : "materia_id→id"
+    ades_tareas }o--|| ades_planeacion_clases : "plan_trabajo_id→id"
+    ades_tareas }o--|| ades_grupos : "grupo_id→id"
+    ades_tareas }o--|| ades_rubricas : "rubrica_id→id"
+    ades_tareas }o--|| ades_periodos_evaluacion : "periodo_evaluacion_id→id"
+    ades_tareas_entregas }o--|| ades_tareas : "tarea_id→id"
+    ades_tareas_entregas }o--|| ades_estudiantes : "estudiante_id→id"
+    ades_tareas_entregas }o--|| ades_usuarios : "calificado_por→id"
+    ades_temas }o--|| ades_materias : "materia_id→id"
+    ades_temas }o--|| ades_ciclos_escolares : "ciclo_escolar_id→id"
+    ades_temas }o--|| ades_grados : "grado_id→id"
+    ades_tutores_alumnos }o--|| ades_personas : "persona_id→id"
+    ades_tutores_alumnos }o--|| ades_estudiantes : "alumno_id→id"
+    ades_tutorias }o--|| ades_estudiantes : "alumno_id→id"
+    ades_usuario_roles }o--|| ades_roles : "rol_id→id"
+    ades_usuario_roles }o--|| ades_usuarios : "usuario_id→id"
+    ades_usuarios }o--|| ades_planteles : "plantel_id→id"
+    ades_usuarios }o--|| ades_personas : "persona_id→id"
+    ades_usuarios }o--|| ades_niveles_educativos : "nivel_educativo_id→id"
+    ades_usuarios }o--|| ades_roles : "rol_id→id"
+    ades_usuarios }o--|| ades_estatus : "estatus_id→id"
+    ades_webhook_logs }o--|| ades_webhooks : "webhook_id→id"

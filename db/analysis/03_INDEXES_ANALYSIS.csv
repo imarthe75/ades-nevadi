@@ -1,0 +1,530 @@
+Output format is csv.
+schemaname,tablename,indexname,indexdef,index_type
+public,ades_actas_incidente_medico,ades_actas_incidente_medico_pkey,CREATE UNIQUE INDEX ades_actas_incidente_medico_pkey ON public.ades_actas_incidente_medico USING btree (id),PRIMARY_KEY
+public,ades_acuerdos_convivencia,ades_acuerdos_convivencia_pkey,CREATE UNIQUE INDEX ades_acuerdos_convivencia_pkey ON public.ades_acuerdos_convivencia USING btree (id),PRIMARY_KEY
+public,ades_acuses_comunicado,ades_acuses_comunicado_pkey,CREATE UNIQUE INDEX ades_acuses_comunicado_pkey ON public.ades_acuses_comunicado USING btree (id),PRIMARY_KEY
+public,ades_acuses_comunicado,ades_acuses_comunicado_ref_key,CREATE UNIQUE INDEX ades_acuses_comunicado_ref_key ON public.ades_acuses_comunicado USING btree (ref),REGULAR
+public,ades_acuses_comunicado,uq_ades_acuse,"CREATE UNIQUE INDEX uq_ades_acuse ON public.ades_acuses_comunicado USING btree (comunicado_id, usuario_id)",REGULAR
+public,ades_ai_conversaciones,ades_ai_conversaciones_pkey,CREATE UNIQUE INDEX ades_ai_conversaciones_pkey ON public.ades_ai_conversaciones USING btree (id),PRIMARY_KEY
+public,ades_ai_conversaciones,idx_ai_conv_sesion,"CREATE INDEX idx_ai_conv_sesion ON public.ades_ai_conversaciones USING btree (sesion_id, fecha_creacion)",REGULAR
+public,ades_ai_conversaciones,idx_ai_conv_usuario,"CREATE INDEX idx_ai_conv_usuario ON public.ades_ai_conversaciones USING btree (usuario_id, fecha_creacion DESC)",REGULAR
+public,ades_alertas_academicas,ades_alertas_academicas_pkey,CREATE UNIQUE INDEX ades_alertas_academicas_pkey ON public.ades_alertas_academicas USING btree (id),PRIMARY_KEY
+public,ades_alertas_academicas,ades_alertas_academicas_ref_key,CREATE UNIQUE INDEX ades_alertas_academicas_ref_key ON public.ades_alertas_academicas USING btree (ref),REGULAR
+public,ades_alertas_academicas,idx_alertas_ac_atendida_por,CREATE INDEX idx_alertas_ac_atendida_por ON public.ades_alertas_academicas USING btree (atendida_por_id),REGULAR
+public,ades_alertas_academicas,idx_alertas_activas,"CREATE INDEX idx_alertas_activas ON public.ades_alertas_academicas USING btree (estudiante_id, tipo_alerta) WHERE (is_active = true)",REGULAR
+public,ades_alertas_academicas,idx_alertas_estudiante,"CREATE INDEX idx_alertas_estudiante ON public.ades_alertas_academicas USING btree (estudiante_id, fecha_creacion DESC)",REGULAR
+public,ades_alertas_academicas,idx_alertas_grupo,"CREATE INDEX idx_alertas_grupo ON public.ades_alertas_academicas USING btree (grupo_id, atendida)",REGULAR
+public,ades_alertas_academicas,idx_brin_alertas_ts,CREATE INDEX idx_brin_alertas_ts ON public.ades_alertas_academicas USING brin (fecha_creacion),REGULAR
+public,ades_alertas_cumplimiento,ades_alertas_cumplimiento_pkey,CREATE UNIQUE INDEX ades_alertas_cumplimiento_pkey ON public.ades_alertas_cumplimiento USING btree (id),PRIMARY_KEY
+public,ades_alertas_cumplimiento,idx_alertas_cum_alumno,CREATE INDEX idx_alertas_cum_alumno ON public.ades_alertas_cumplimiento USING btree (alumno_id),REGULAR
+public,ades_alertas_cumplimiento,idx_alertas_cum_plantel,CREATE INDEX idx_alertas_cum_plantel ON public.ades_alertas_cumplimiento USING btree (plantel_id),REGULAR
+public,ades_alertas_cumplimiento,idx_alertas_estado,"CREATE INDEX idx_alertas_estado ON public.ades_alertas_cumplimiento USING btree (estado, severidad)",REGULAR
+public,ades_anuncios,ades_anuncios_pkey,CREATE UNIQUE INDEX ades_anuncios_pkey ON public.ades_anuncios USING btree (id),PRIMARY_KEY
+public,ades_anuncios,idx_anuncios_fecha,"CREATE INDEX idx_anuncios_fecha ON public.ades_anuncios USING btree (fecha_inicio, fecha_fin) WHERE is_active",REGULAR
+public,ades_anuncios,idx_anuncios_plantel,CREATE INDEX idx_anuncios_plantel ON public.ades_anuncios USING btree (plantel_id),REGULAR
+public,ades_archivos,ades_archivos_pkey,CREATE UNIQUE INDEX ades_archivos_pkey ON public.ades_archivos USING btree (id),PRIMARY_KEY
+public,ades_archivos,ades_archivos_ref_key,CREATE UNIQUE INDEX ades_archivos_ref_key ON public.ades_archivos USING btree (ref),REGULAR
+public,ades_archivos,idx_ades_archivos_entidad,"CREATE INDEX idx_ades_archivos_entidad ON public.ades_archivos USING btree (entidad_tipo, entidad_id)",REGULAR
+public,ades_areas_academicas,ades_areas_academicas_nombre_key,CREATE UNIQUE INDEX ades_areas_academicas_nombre_key ON public.ades_areas_academicas USING btree (nombre),REGULAR
+public,ades_areas_academicas,ades_areas_academicas_pkey,CREATE UNIQUE INDEX ades_areas_academicas_pkey ON public.ades_areas_academicas USING btree (id),PRIMARY_KEY
+public,ades_areas_academicas,ades_areas_academicas_ref_key,CREATE UNIQUE INDEX ades_areas_academicas_ref_key ON public.ades_areas_academicas USING btree (ref),REGULAR
+public,ades_asignaciones_aula,ades_asignaciones_aula_pkey,CREATE UNIQUE INDEX ades_asignaciones_aula_pkey ON public.ades_asignaciones_aula USING btree (id),PRIMARY_KEY
+public,ades_asignaciones_aula,idx_asig_aula_clase,CREATE INDEX idx_asig_aula_clase ON public.ades_asignaciones_aula USING btree (clase_id),REGULAR
+public,ades_asignaciones_aula,idx_asig_aula_fecha,"CREATE INDEX idx_asig_aula_fecha ON public.ades_asignaciones_aula USING btree (aula_id, fecha) WHERE is_active",REGULAR
+public,ades_asignaciones_docentes,ades_asignaciones_docentes_pkey,CREATE UNIQUE INDEX ades_asignaciones_docentes_pkey ON public.ades_asignaciones_docentes USING btree (id),PRIMARY_KEY
+public,ades_asignaciones_docentes,ades_asignaciones_docentes_ref_key,CREATE UNIQUE INDEX ades_asignaciones_docentes_ref_key ON public.ades_asignaciones_docentes USING btree (ref),REGULAR
+public,ades_asignaciones_docentes,idx_asig_doc_profesor,CREATE INDEX idx_asig_doc_profesor ON public.ades_asignaciones_docentes USING btree (profesor_id),REGULAR
+public,ades_asignaciones_docentes,uq_ades_asignaciones,"CREATE UNIQUE INDEX uq_ades_asignaciones ON public.ades_asignaciones_docentes USING btree (grupo_id, materia_id, ciclo_escolar_id)",REGULAR
+public,ades_asistencia_personal,idx_asist_pers_activa,CREATE INDEX idx_asist_pers_activa ON public.ades_asistencia_personal USING btree (is_active) WHERE (is_active = true),REGULAR
+public,ades_asistencia_personal,idx_asist_pers_fecha,CREATE INDEX idx_asist_pers_fecha ON public.ades_asistencia_personal USING btree (fecha DESC),REGULAR
+public,ades_asistencia_personal,idx_asist_pers_persona,CREATE INDEX idx_asist_pers_persona ON public.ades_asistencia_personal USING btree (persona_id),REGULAR
+public,ades_asistencia_personal,pk_ades_asistencia_personal,CREATE UNIQUE INDEX pk_ades_asistencia_personal ON public.ades_asistencia_personal USING btree (id),REGULAR
+public,ades_asistencia_personal,uq_asistencia_personal_fecha,"CREATE UNIQUE INDEX uq_asistencia_personal_fecha ON public.ades_asistencia_personal USING btree (persona_id, fecha)",REGULAR
+public,ades_asistencias,ades_asistencias_pkey,CREATE UNIQUE INDEX ades_asistencias_pkey ON public.ades_asistencias USING btree (id),PRIMARY_KEY
+public,ades_asistencias,ades_asistencias_ref_key,CREATE UNIQUE INDEX ades_asistencias_ref_key ON public.ades_asistencias USING btree (ref),REGULAR
+public,ades_asistencias,idx_ades_asist_estudiante,CREATE INDEX idx_ades_asist_estudiante ON public.ades_asistencias USING btree (estudiante_id),REGULAR
+public,ades_asistencias,idx_asist_clase,CREATE INDEX idx_asist_clase ON public.ades_asistencias USING btree (clase_id) WHERE (is_active = true),REGULAR
+public,ades_asistencias,idx_asistencias_justificacion,CREATE INDEX idx_asistencias_justificacion ON public.ades_asistencias USING btree (justificacion_id),REGULAR
+public,ades_asistencias,idx_brin_asistencias_ts,CREATE INDEX idx_brin_asistencias_ts ON public.ades_asistencias USING brin (fecha_creacion),REGULAR
+public,ades_asistencias,uq_ades_asistencias,"CREATE UNIQUE INDEX uq_ades_asistencias ON public.ades_asistencias USING btree (clase_id, estudiante_id)",REGULAR
+public,ades_audit_log,ades_audit_log_pkey,CREATE UNIQUE INDEX ades_audit_log_pkey ON public.ades_audit_log USING btree (id),PRIMARY_KEY
+public,ades_audit_log,idx_audit_accion,"CREATE INDEX idx_audit_accion ON public.ades_audit_log USING btree (accion, fecha_creacion DESC)",REGULAR
+public,ades_audit_log,idx_audit_entidad,"CREATE INDEX idx_audit_entidad ON public.ades_audit_log USING btree (entidad, entidad_id, fecha_creacion DESC)",REGULAR
+public,ades_audit_log,idx_audit_fecha,CREATE INDEX idx_audit_fecha ON public.ades_audit_log USING btree (fecha_creacion DESC),REGULAR
+public,ades_audit_log,idx_audit_log_category,CREATE INDEX idx_audit_log_category ON public.ades_audit_log USING btree (event_category),REGULAR
+public,ades_audit_log,idx_audit_log_metadata,CREATE INDEX idx_audit_log_metadata ON public.ades_audit_log USING gin (metadata),REGULAR
+public,ades_audit_log,idx_audit_log_risk,CREATE INDEX idx_audit_log_risk ON public.ades_audit_log USING btree (event_risk_level),REGULAR
+public,ades_audit_log,idx_audit_usuario,"CREATE INDEX idx_audit_usuario ON public.ades_audit_log USING btree (usuario_id, fecha_creacion DESC)",REGULAR
+public,ades_audit_log,idx_brin_audit_log_ts,CREATE INDEX idx_brin_audit_log_ts ON public.ades_audit_log USING brin (fecha_creacion),REGULAR
+public,ades_aulas,ades_aulas_pkey,CREATE UNIQUE INDEX ades_aulas_pkey ON public.ades_aulas USING btree (id),PRIMARY_KEY
+public,ades_aulas,ades_aulas_ref_key,CREATE UNIQUE INDEX ades_aulas_ref_key ON public.ades_aulas USING btree (ref),REGULAR
+public,ades_aulas,idx_aula_plantel_activa,"CREATE INDEX idx_aula_plantel_activa ON public.ades_aulas USING btree (plantel_id, is_active)",REGULAR
+public,ades_aulas,idx_aula_tipo_estado,"CREATE INDEX idx_aula_tipo_estado ON public.ades_aulas USING btree (tipo_aula, estado_aula)",REGULAR
+public,ades_aulas,uq_ades_aulas,"CREATE UNIQUE INDEX uq_ades_aulas ON public.ades_aulas USING btree (nombre_aula, plantel_id)",REGULAR
+public,ades_avance_planificacion,ades_avance_planificacion_pkey,CREATE UNIQUE INDEX ades_avance_planificacion_pkey ON public.ades_avance_planificacion USING btree (id),PRIMARY_KEY
+public,ades_avance_planificacion,ades_avance_planificacion_ref_key,CREATE UNIQUE INDEX ades_avance_planificacion_ref_key ON public.ades_avance_planificacion USING btree (ref),REGULAR
+public,ades_avance_planificacion,idx_avance_plan_clase,CREATE INDEX idx_avance_plan_clase ON public.ades_avance_planificacion USING btree (clase_id),REGULAR
+public,ades_badge_otorgados,ades_badge_otorgados_badge_id_estudiante_id_ciclo_id_key,"CREATE UNIQUE INDEX ades_badge_otorgados_badge_id_estudiante_id_ciclo_id_key ON public.ades_badge_otorgados USING btree (badge_id, estudiante_id, ciclo_id)",REGULAR
+public,ades_badge_otorgados,ades_badge_otorgados_pkey,CREATE UNIQUE INDEX ades_badge_otorgados_pkey ON public.ades_badge_otorgados USING btree (id),PRIMARY_KEY
+public,ades_badge_otorgados,idx_badge_otorg_otorgado_por,CREATE INDEX idx_badge_otorg_otorgado_por ON public.ades_badge_otorgados USING btree (otorgado_por),REGULAR
+public,ades_badge_otorgados,idx_badge_otorgados_badge,CREATE INDEX idx_badge_otorgados_badge ON public.ades_badge_otorgados USING btree (badge_id),REGULAR
+public,ades_badge_otorgados,idx_badge_otorgados_ciclo,CREATE INDEX idx_badge_otorgados_ciclo ON public.ades_badge_otorgados USING btree (ciclo_id),REGULAR
+public,ades_badge_otorgados,idx_badge_otorgados_estudiante,CREATE INDEX idx_badge_otorgados_estudiante ON public.ades_badge_otorgados USING btree (estudiante_id),REGULAR
+public,ades_badges,ades_badges_pkey,CREATE UNIQUE INDEX ades_badges_pkey ON public.ades_badges USING btree (id),PRIMARY_KEY
+public,ades_badges,idx_badges_plantel,CREATE INDEX idx_badges_plantel ON public.ades_badges USING btree (plantel_id),REGULAR
+public,ades_badges,idx_badges_tipo,CREATE INDEX idx_badges_tipo ON public.ades_badges USING btree (tipo),REGULAR
+public,ades_bajas,ades_bajas_pkey,CREATE UNIQUE INDEX ades_bajas_pkey ON public.ades_bajas USING btree (id),PRIMARY_KEY
+public,ades_bajas,ades_bajas_ref_key,CREATE UNIQUE INDEX ades_bajas_ref_key ON public.ades_bajas USING btree (ref),REGULAR
+public,ades_bajas,idx_bajas_activas,"CREATE INDEX idx_bajas_activas ON public.ades_bajas USING btree (estudiante_id, tipo_baja) WHERE (is_active = true)",REGULAR
+public,ades_bajas,idx_bajas_autorizado_por,CREATE INDEX idx_bajas_autorizado_por ON public.ades_bajas USING btree (autorizado_por_id),REGULAR
+public,ades_bajas,idx_bajas_estudiante,CREATE INDEX idx_bajas_estudiante ON public.ades_bajas USING btree (estudiante_id),REGULAR
+public,ades_bajas,idx_bajas_fecha,CREATE INDEX idx_bajas_fecha ON public.ades_bajas USING btree (fecha_efectiva DESC),REGULAR
+public,ades_bajas,idx_bajas_inscripcion,CREATE INDEX idx_bajas_inscripcion ON public.ades_bajas USING btree (inscripcion_id),REGULAR
+public,ades_calendario_escolar,ades_calendario_escolar_pkey,CREATE UNIQUE INDEX ades_calendario_escolar_pkey ON public.ades_calendario_escolar USING btree (id),PRIMARY_KEY
+public,ades_calendario_escolar,ades_calendario_escolar_ref_key,CREATE UNIQUE INDEX ades_calendario_escolar_ref_key ON public.ades_calendario_escolar USING btree (ref),REGULAR
+public,ades_calendario_escolar,idx_ades_cal_ciclo_fecha,"CREATE INDEX idx_ades_cal_ciclo_fecha ON public.ades_calendario_escolar USING btree (ciclo_escolar_id, fecha_evento)",REGULAR
+public,ades_calendarios_academicos,ades_calendarios_academicos_pkey,CREATE UNIQUE INDEX ades_calendarios_academicos_pkey ON public.ades_calendarios_academicos USING btree (id),PRIMARY_KEY
+public,ades_calendarios_academicos,idx_cal_acad_ciclo,"CREATE INDEX idx_cal_acad_ciclo ON public.ades_calendarios_academicos USING btree (ciclo_escolar_id, nivel_educativo)",REGULAR
+public,ades_calificaciones_evaluaciones,ades_calificaciones_evaluaciones_pkey,CREATE UNIQUE INDEX ades_calificaciones_evaluaciones_pkey ON public.ades_calificaciones_evaluaciones USING btree (id),PRIMARY_KEY
+public,ades_calificaciones_evaluaciones,ades_calificaciones_evaluaciones_ref_key,CREATE UNIQUE INDEX ades_calificaciones_evaluaciones_ref_key ON public.ades_calificaciones_evaluaciones USING btree (ref),REGULAR
+public,ades_calificaciones_evaluaciones,uq_ades_cal_eval,"CREATE UNIQUE INDEX uq_ades_cal_eval ON public.ades_calificaciones_evaluaciones USING btree (evaluacion_id, estudiante_id)",REGULAR
+public,ades_calificaciones_historico,ades_calificaciones_historico_pkey,CREATE UNIQUE INDEX ades_calificaciones_historico_pkey ON public.ades_calificaciones_historico USING btree (id),PRIMARY_KEY
+public,ades_calificaciones_historico,idx_cal_hist_cierre,CREATE INDEX idx_cal_hist_cierre ON public.ades_calificaciones_historico USING btree (cierre_id),REGULAR
+public,ades_calificaciones_historico,idx_cal_hist_estudiante,"CREATE INDEX idx_cal_hist_estudiante ON public.ades_calificaciones_historico USING btree (estudiante_id, periodo_evaluacion_id)",REGULAR
+public,ades_calificaciones_historico,idx_cal_hist_grupo,CREATE INDEX idx_cal_hist_grupo ON public.ades_calificaciones_historico USING btree (grupo_id),REGULAR
+public,ades_calificaciones_historico,idx_cal_hist_materia,CREATE INDEX idx_cal_hist_materia ON public.ades_calificaciones_historico USING btree (materia_id),REGULAR
+public,ades_calificaciones_historico,idx_cal_hist_periodo,CREATE INDEX idx_cal_hist_periodo ON public.ades_calificaciones_historico USING btree (cal_periodo_id),REGULAR
+public,ades_calificaciones_periodo,ades_calificaciones_periodo_pkey,CREATE UNIQUE INDEX ades_calificaciones_periodo_pkey ON public.ades_calificaciones_periodo USING btree (id),PRIMARY_KEY
+public,ades_calificaciones_periodo,ades_calificaciones_periodo_ref_key,CREATE UNIQUE INDEX ades_calificaciones_periodo_ref_key ON public.ades_calificaciones_periodo USING btree (ref),REGULAR
+public,ades_calificaciones_periodo,idx_ades_cal_periodo_est,"CREATE INDEX idx_ades_cal_periodo_est ON public.ades_calificaciones_periodo USING btree (estudiante_id, materia_id)",REGULAR
+public,ades_calificaciones_periodo,idx_ades_calificaciones_periodo_estudiante,CREATE INDEX idx_ades_calificaciones_periodo_estudiante ON public.ades_calificaciones_periodo USING btree (estudiante_id),REGULAR
+public,ades_calificaciones_periodo,idx_ades_calificaciones_periodo_grupo,CREATE INDEX idx_ades_calificaciones_periodo_grupo ON public.ades_calificaciones_periodo USING btree (grupo_id),REGULAR
+public,ades_calificaciones_periodo,idx_cal_grupo_mat,"CREATE INDEX idx_cal_grupo_mat ON public.ades_calificaciones_periodo USING btree (grupo_id, materia_id) WHERE (is_active = true)",REGULAR
+public,ades_calificaciones_periodo,idx_cal_per_cerrado_por,CREATE INDEX idx_cal_per_cerrado_por ON public.ades_calificaciones_periodo USING btree (cerrado_por),REGULAR
+public,ades_calificaciones_periodo,idx_cal_periodo_cerrada,"CREATE INDEX idx_cal_periodo_cerrada ON public.ades_calificaciones_periodo USING btree (cerrada, periodo_evaluacion_id)",REGULAR
+public,ades_calificaciones_periodo,idx_cal_periodo_est,"CREATE INDEX idx_cal_periodo_est ON public.ades_calificaciones_periodo USING btree (periodo_evaluacion_id, estudiante_id) WHERE (is_active = true)",REGULAR
+public,ades_calificaciones_periodo,idx_cal_periodo_grupo_periodo,"CREATE INDEX idx_cal_periodo_grupo_periodo ON public.ades_calificaciones_periodo USING btree (grupo_id, periodo_evaluacion_id)",REGULAR
+public,ades_calificaciones_periodo,uq_ades_cal_periodo,"CREATE UNIQUE INDEX uq_ades_cal_periodo ON public.ades_calificaciones_periodo USING btree (estudiante_id, materia_id, periodo_evaluacion_id)",REGULAR
+public,ades_calificaciones_tareas,ades_calificaciones_tareas_pkey,CREATE UNIQUE INDEX ades_calificaciones_tareas_pkey ON public.ades_calificaciones_tareas USING btree (id),PRIMARY_KEY
+public,ades_calificaciones_tareas,ades_calificaciones_tareas_ref_key,CREATE UNIQUE INDEX ades_calificaciones_tareas_ref_key ON public.ades_calificaciones_tareas USING btree (ref),REGULAR
+public,ades_calificaciones_tareas,ades_calificaciones_tareas_tarea_entrega_id_key,CREATE UNIQUE INDEX ades_calificaciones_tareas_tarea_entrega_id_key ON public.ades_calificaciones_tareas USING btree (tarea_entrega_id),REGULAR
+public,ades_calificaciones_tareas,idx_cal_tarea_rubrica,CREATE INDEX idx_cal_tarea_rubrica ON public.ades_calificaciones_tareas USING btree (rubrica_id),REGULAR
+public,ades_cambios_grupo,ades_cambios_grupo_pkey,CREATE UNIQUE INDEX ades_cambios_grupo_pkey ON public.ades_cambios_grupo USING btree (id),PRIMARY_KEY
+public,ades_cambios_grupo,ades_cambios_grupo_ref_key,CREATE UNIQUE INDEX ades_cambios_grupo_ref_key ON public.ades_cambios_grupo USING btree (ref),REGULAR
+public,ades_cambios_grupo,idx_cambios_grupo_autorizado,CREATE INDEX idx_cambios_grupo_autorizado ON public.ades_cambios_grupo USING btree (autorizado_por_id),REGULAR
+public,ades_cambios_grupo,idx_cambios_grupo_destino,CREATE INDEX idx_cambios_grupo_destino ON public.ades_cambios_grupo USING btree (grupo_destino_id),REGULAR
+public,ades_cambios_grupo,idx_cambios_grupo_estudiante,CREATE INDEX idx_cambios_grupo_estudiante ON public.ades_cambios_grupo USING btree (estudiante_id),REGULAR
+public,ades_cambios_grupo,idx_cambios_grupo_inscripcion,CREATE INDEX idx_cambios_grupo_inscripcion ON public.ades_cambios_grupo USING btree (inscripcion_id),REGULAR
+public,ades_cambios_grupo,idx_cambios_grupo_origen,CREATE INDEX idx_cambios_grupo_origen ON public.ades_cambios_grupo USING btree (grupo_origen_id),REGULAR
+public,ades_capacitaciones_docente,idx_capacitaciones_docente_id,CREATE INDEX idx_capacitaciones_docente_id ON public.ades_capacitaciones_docente USING btree (docente_id),REGULAR
+public,ades_capacitaciones_docente,idx_capacitaciones_fecha,CREATE INDEX idx_capacitaciones_fecha ON public.ades_capacitaciones_docente USING btree (fecha_inicio DESC),REGULAR
+public,ades_capacitaciones_docente,idx_capacitaciones_tipo,CREATE INDEX idx_capacitaciones_tipo ON public.ades_capacitaciones_docente USING btree (tipo_certificacion),REGULAR
+public,ades_capacitaciones_docente,idx_capacitaciones_validado,CREATE INDEX idx_capacitaciones_validado ON public.ades_capacitaciones_docente USING btree (validado_rh) WHERE (validado_rh = true),REGULAR
+public,ades_capacitaciones_docente,pk_ades_capacitaciones_docente,CREATE UNIQUE INDEX pk_ades_capacitaciones_docente ON public.ades_capacitaciones_docente USING btree (id),REGULAR
+public,ades_catalogo_items,ades_catalogo_items_pkey,CREATE UNIQUE INDEX ades_catalogo_items_pkey ON public.ades_catalogo_items USING btree (id),PRIMARY_KEY
+public,ades_catalogo_items,ades_catalogo_items_ref_key,CREATE UNIQUE INDEX ades_catalogo_items_ref_key ON public.ades_catalogo_items USING btree (ref),REGULAR
+public,ades_catalogo_items,idx_catalogo_items_activo,"CREATE INDEX idx_catalogo_items_activo ON public.ades_catalogo_items USING btree (catalogo_id, is_active)",REGULAR
+public,ades_catalogo_items,idx_catalogo_items_catalogo,CREATE INDEX idx_catalogo_items_catalogo ON public.ades_catalogo_items USING btree (catalogo_id),REGULAR
+public,ades_catalogo_items,uq_catalogo_valor,"CREATE UNIQUE INDEX uq_catalogo_valor ON public.ades_catalogo_items USING btree (catalogo_id, valor)",REGULAR
+public,ades_catalogos,ades_catalogos_codigo_key,CREATE UNIQUE INDEX ades_catalogos_codigo_key ON public.ades_catalogos USING btree (codigo),REGULAR
+public,ades_catalogos,ades_catalogos_pkey,CREATE UNIQUE INDEX ades_catalogos_pkey ON public.ades_catalogos USING btree (id),PRIMARY_KEY
+public,ades_catalogos,ades_catalogos_ref_key,CREATE UNIQUE INDEX ades_catalogos_ref_key ON public.ades_catalogos USING btree (ref),REGULAR
+public,ades_certificados,ades_certificados_folio_key,CREATE UNIQUE INDEX ades_certificados_folio_key ON public.ades_certificados USING btree (folio),REGULAR
+public,ades_certificados,ades_certificados_pkey,CREATE UNIQUE INDEX ades_certificados_pkey ON public.ades_certificados USING btree (id),PRIMARY_KEY
+public,ades_certificados,ades_certificados_ref_key,CREATE UNIQUE INDEX ades_certificados_ref_key ON public.ades_certificados USING btree (ref),REGULAR
+public,ades_certificados,idx_ades_cert_estado_firma,CREATE INDEX idx_ades_cert_estado_firma ON public.ades_certificados USING btree (estado_firma) WHERE ((estado_firma)::text <> 'FIRMADO'::text),REGULAR
+public,ades_certificados,idx_ades_cert_estudiante,"CREATE INDEX idx_ades_cert_estudiante ON public.ades_certificados USING btree (estudiante_id, tipo_certificado)",REGULAR
+public,ades_certificados,idx_ades_cert_folio,CREATE INDEX idx_ades_cert_folio ON public.ades_certificados USING btree (folio),REGULAR
+public,ades_certificados,idx_certificados_blockchain,CREATE INDEX idx_certificados_blockchain ON public.ades_certificados USING btree (blockchain_status) WHERE (is_active = true),REGULAR
+public,ades_certificados,idx_certificados_ciclo,CREATE INDEX idx_certificados_ciclo ON public.ades_certificados USING btree (ciclo_escolar_id),REGULAR
+public,ades_certificados,idx_certificados_emitido_por,CREATE INDEX idx_certificados_emitido_por ON public.ades_certificados USING btree (emitido_por_id),REGULAR
+public,ades_ciclos_escolares,ades_ciclos_escolares_pkey,CREATE UNIQUE INDEX ades_ciclos_escolares_pkey ON public.ades_ciclos_escolares USING btree (id),PRIMARY_KEY
+public,ades_ciclos_escolares,ades_ciclos_escolares_ref_key,CREATE UNIQUE INDEX ades_ciclos_escolares_ref_key ON public.ades_ciclos_escolares USING btree (ref),REGULAR
+public,ades_ciclos_escolares,uq_ades_ciclos_nombre_nivel,"CREATE UNIQUE INDEX uq_ades_ciclos_nombre_nivel ON public.ades_ciclos_escolares USING btree (nombre_ciclo, nivel_educativo_id)",REGULAR
+public,ades_cierre_periodo_log,ades_cierre_periodo_log_pkey,CREATE UNIQUE INDEX ades_cierre_periodo_log_pkey ON public.ades_cierre_periodo_log USING btree (id),PRIMARY_KEY
+public,ades_cierre_periodo_log,idx_cierre_cerrado_por,CREATE INDEX idx_cierre_cerrado_por ON public.ades_cierre_periodo_log USING btree (cerrado_por),REGULAR
+public,ades_cierre_periodo_log,idx_cierre_ciclo,CREATE INDEX idx_cierre_ciclo ON public.ades_cierre_periodo_log USING btree (ciclo_escolar_id),REGULAR
+public,ades_cierre_periodo_log,idx_cierre_log_periodo_grupo,"CREATE INDEX idx_cierre_log_periodo_grupo ON public.ades_cierre_periodo_log USING btree (periodo_evaluacion_id, grupo_id)",REGULAR
+public,ades_clases,ades_clases_pkey,CREATE UNIQUE INDEX ades_clases_pkey ON public.ades_clases USING btree (id),PRIMARY_KEY
+public,ades_clases,ades_clases_ref_key,CREATE UNIQUE INDEX ades_clases_ref_key ON public.ades_clases USING btree (ref),REGULAR
+public,ades_clases,idx_ades_clases_grupo_fecha,"CREATE INDEX idx_ades_clases_grupo_fecha ON public.ades_clases USING btree (grupo_id, fecha_clase)",REGULAR
+public,ades_clases,idx_clases_grupo,"CREATE INDEX idx_clases_grupo ON public.ades_clases USING btree (grupo_id, fecha_clase DESC) WHERE (is_active = true)",REGULAR
+public,ades_clases,idx_clases_grupo_fecha,"CREATE INDEX idx_clases_grupo_fecha ON public.ades_clases USING btree (grupo_id, fecha_clase) WHERE (is_active = true)",REGULAR
+public,ades_clases,idx_clases_horario,CREATE INDEX idx_clases_horario ON public.ades_clases USING btree (horario_id),REGULAR
+public,ades_clases,idx_clases_materia,CREATE INDEX idx_clases_materia ON public.ades_clases USING btree (materia_id),REGULAR
+public,ades_clases,idx_clases_profesor,CREATE INDEX idx_clases_profesor ON public.ades_clases USING btree (profesor_id),REGULAR
+public,ades_codigos_postales,ades_codigos_postales_pkey,CREATE UNIQUE INDEX ades_codigos_postales_pkey ON public.ades_codigos_postales USING btree (id),PRIMARY_KEY
+public,ades_codigos_postales,ades_codigos_postales_ref_key,CREATE UNIQUE INDEX ades_codigos_postales_ref_key ON public.ades_codigos_postales USING btree (ref),REGULAR
+public,ades_codigos_postales,idx_ades_cp_codigo,CREATE INDEX idx_ades_cp_codigo ON public.ades_codigos_postales USING btree (codigo_postal),REGULAR
+public,ades_codigos_postales,idx_ades_cp_localidad_id,CREATE INDEX idx_ades_cp_localidad_id ON public.ades_codigos_postales USING btree (localidad_id),REGULAR
+public,ades_codigos_postales,idx_cp_estado,CREATE INDEX idx_cp_estado ON public.ades_codigos_postales USING btree (estado_id),REGULAR
+public,ades_codigos_postales,idx_cp_municipio,CREATE INDEX idx_cp_municipio ON public.ades_codigos_postales USING btree (municipio_id),REGULAR
+public,ades_codigos_postales,idx_cp_tipo_asentamiento,CREATE INDEX idx_cp_tipo_asentamiento ON public.ades_codigos_postales USING btree (tipo_asentamiento_id),REGULAR
+public,ades_codigos_postales,ux_ades_cp_cp_localidad,"CREATE UNIQUE INDEX ux_ades_cp_cp_localidad ON public.ades_codigos_postales USING btree (codigo_postal, localidad_id)",REGULAR
+public,ades_comunicados,ades_comunicados_pkey,CREATE UNIQUE INDEX ades_comunicados_pkey ON public.ades_comunicados USING btree (id),PRIMARY_KEY
+public,ades_comunicados,ades_comunicados_ref_key,CREATE UNIQUE INDEX ades_comunicados_ref_key ON public.ades_comunicados USING btree (ref),REGULAR
+public,ades_comunicados,idx_comunicados_activos_plantel,"CREATE INDEX idx_comunicados_activos_plantel ON public.ades_comunicados USING btree (plantel_id, fecha_publicacion DESC) WHERE (is_active = true)",REGULAR
+public,ades_comunicados,idx_comunicados_creado_por,CREATE INDEX idx_comunicados_creado_por ON public.ades_comunicados USING btree (creado_por_id),REGULAR
+public,ades_comunicados,idx_comunicados_grupo,CREATE INDEX idx_comunicados_grupo ON public.ades_comunicados USING btree (grupo_id),REGULAR
+public,ades_comunicados,idx_comunicados_nivel_educativo,CREATE INDEX idx_comunicados_nivel_educativo ON public.ades_comunicados USING btree (nivel_educativo_id),REGULAR
+public,ades_comunicados,idx_comunicados_plantel,CREATE INDEX idx_comunicados_plantel ON public.ades_comunicados USING btree (plantel_id),REGULAR
+public,ades_condiciones_cronicas,ades_condiciones_cronicas_pkey,CREATE UNIQUE INDEX ades_condiciones_cronicas_pkey ON public.ades_condiciones_cronicas USING btree (id),PRIMARY_KEY
+public,ades_condiciones_cronicas,ades_condiciones_cronicas_ref_key,CREATE UNIQUE INDEX ades_condiciones_cronicas_ref_key ON public.ades_condiciones_cronicas USING btree (ref),REGULAR
+public,ades_condiciones_cronicas,idx_cond_alumno,CREATE INDEX idx_cond_alumno ON public.ades_condiciones_cronicas USING btree (alumno_id) WHERE is_active,REGULAR
+public,ades_condiciones_cronicas,idx_cond_tipo,CREATE INDEX idx_cond_tipo ON public.ades_condiciones_cronicas USING btree (tipo_condicion) WHERE activa,REGULAR
+public,ades_constancias,ades_constancias_folio_key,CREATE UNIQUE INDEX ades_constancias_folio_key ON public.ades_constancias USING btree (folio),REGULAR
+public,ades_constancias,ades_constancias_pkey,CREATE UNIQUE INDEX ades_constancias_pkey ON public.ades_constancias USING btree (id),PRIMARY_KEY
+public,ades_constancias,ades_constancias_ref_key,CREATE UNIQUE INDEX ades_constancias_ref_key ON public.ades_constancias USING btree (ref),REGULAR
+public,ades_constancias,idx_constancias_ciclo,CREATE INDEX idx_constancias_ciclo ON public.ades_constancias USING btree (ciclo_escolar_id),REGULAR
+public,ades_constancias,idx_constancias_emitida_por,CREATE INDEX idx_constancias_emitida_por ON public.ades_constancias USING btree (emitida_por_id),REGULAR
+public,ades_constancias,idx_constancias_estudiante,CREATE INDEX idx_constancias_estudiante ON public.ades_constancias USING btree (estudiante_id),REGULAR
+public,ades_constancias,idx_constancias_tipo,"CREATE INDEX idx_constancias_tipo ON public.ades_constancias USING btree (tipo_constancia, fecha_emision DESC)",REGULAR
+public,ades_contactos_familiares,ades_contactos_familiares_pkey,CREATE UNIQUE INDEX ades_contactos_familiares_pkey ON public.ades_contactos_familiares USING btree (id),PRIMARY_KEY
+public,ades_contactos_familiares,ades_contactos_familiares_ref_key,CREATE UNIQUE INDEX ades_contactos_familiares_ref_key ON public.ades_contactos_familiares USING btree (ref),REGULAR
+public,ades_contactos_familiares,idx_ades_contactos_fam_decision,CREATE INDEX idx_ades_contactos_fam_decision ON public.ades_contactos_familiares USING btree (toma_decision_conjunta),REGULAR
+public,ades_contactos_familiares,idx_contactos_fam_estudiante,CREATE INDEX idx_contactos_fam_estudiante ON public.ades_contactos_familiares USING btree (estudiante_id) WHERE (is_active = true),REGULAR
+public,ades_contactos_familiares,idx_contactos_fam_persona,CREATE INDEX idx_contactos_fam_persona ON public.ades_contactos_familiares USING btree (persona_id) WHERE ((is_active = true) AND (es_tutor_legal = true)),REGULAR
+public,ades_coordinaciones_area,ades_coordinaciones_area_pkey,CREATE UNIQUE INDEX ades_coordinaciones_area_pkey ON public.ades_coordinaciones_area USING btree (id),PRIMARY_KEY
+public,ades_coordinaciones_area,ades_coordinaciones_area_usuario_id_area_id_fecha_inicio_key,"CREATE UNIQUE INDEX ades_coordinaciones_area_usuario_id_area_id_fecha_inicio_key ON public.ades_coordinaciones_area USING btree (usuario_id, area_id, fecha_inicio)",REGULAR
+public,ades_correos_electronicos,ades_correos_electronicos_pkey,CREATE UNIQUE INDEX ades_correos_electronicos_pkey ON public.ades_correos_electronicos USING btree (id),PRIMARY_KEY
+public,ades_correos_electronicos,ades_correos_electronicos_ref_key,CREATE UNIQUE INDEX ades_correos_electronicos_ref_key ON public.ades_correos_electronicos USING btree (ref),REGULAR
+public,ades_correos_electronicos,idx_ades_email_entidad,"CREATE INDEX idx_ades_email_entidad ON public.ades_correos_electronicos USING btree (entidad_tipo, entidad_id)",REGULAR
+public,ades_criterios_eval_docente,ades_criterios_eval_docente_pkey,CREATE UNIQUE INDEX ades_criterios_eval_docente_pkey ON public.ades_criterios_eval_docente USING btree (id),PRIMARY_KEY
+public,ades_criterios_eval_docente,ades_criterios_eval_docente_ref_key,CREATE UNIQUE INDEX ades_criterios_eval_docente_ref_key ON public.ades_criterios_eval_docente USING btree (ref),REGULAR
+public,ades_cuotas_concepto,ades_cuotas_concepto_pkey,CREATE UNIQUE INDEX ades_cuotas_concepto_pkey ON public.ades_cuotas_concepto USING btree (id),PRIMARY_KEY
+public,ades_cuotas_concepto,idx_cuotas_concepto_nivel,CREATE INDEX idx_cuotas_concepto_nivel ON public.ades_cuotas_concepto USING btree (nivel_educativo_id),REGULAR
+public,ades_cuotas_concepto,idx_cuotas_concepto_plantel,CREATE INDEX idx_cuotas_concepto_plantel ON public.ades_cuotas_concepto USING btree (plantel_id),REGULAR
+public,ades_cuotas_pagos,ades_cuotas_pagos_pkey,CREATE UNIQUE INDEX ades_cuotas_pagos_pkey ON public.ades_cuotas_pagos USING btree (id),PRIMARY_KEY
+public,ades_cuotas_pagos,ades_cuotas_pagos_ref_key,CREATE UNIQUE INDEX ades_cuotas_pagos_ref_key ON public.ades_cuotas_pagos USING btree (ref),REGULAR
+public,ades_cuotas_pagos,idx_cuotas_pagos_registrado_por,CREATE INDEX idx_cuotas_pagos_registrado_por ON public.ades_cuotas_pagos USING btree (registrado_por_id),REGULAR
+public,ades_cuotas_pagos,idx_pagos_ciclo,"CREATE INDEX idx_pagos_ciclo ON public.ades_cuotas_pagos USING btree (ciclo_escolar_id, concepto_id)",REGULAR
+public,ades_cuotas_pagos,idx_pagos_estatus,"CREATE INDEX idx_pagos_estatus ON public.ades_cuotas_pagos USING btree (estatus, fecha_vencimiento) WHERE ((estatus)::text = ANY ((ARRAY['PENDIENTE'::character varying, 'PARCIAL'::character varying])::text[]))",REGULAR
+public,ades_cuotas_pagos,idx_pagos_estudiante,CREATE INDEX idx_pagos_estudiante ON public.ades_cuotas_pagos USING btree (estudiante_id) WHERE (is_active = true),REGULAR
+public,ades_direcciones,ades_direcciones_pkey,CREATE UNIQUE INDEX ades_direcciones_pkey ON public.ades_direcciones USING btree (id),PRIMARY_KEY
+public,ades_direcciones,ades_direcciones_ref_key,CREATE UNIQUE INDEX ades_direcciones_ref_key ON public.ades_direcciones USING btree (ref),REGULAR
+public,ades_direcciones,idx_ades_dir_entidad,"CREATE INDEX idx_ades_dir_entidad ON public.ades_direcciones USING btree (entidad_tipo, entidad_id)",REGULAR
+public,ades_direcciones,idx_direcciones_cp,CREATE INDEX idx_direcciones_cp ON public.ades_direcciones USING btree (codigo_postal_id),REGULAR
+public,ades_direcciones,idx_direcciones_localidad,CREATE INDEX idx_direcciones_localidad ON public.ades_direcciones USING btree (localidad_id),REGULAR
+public,ades_direcciones,idx_dirs_entidad_tipo_id,"CREATE INDEX idx_dirs_entidad_tipo_id ON public.ades_direcciones USING btree (entidad_tipo, entidad_id) WHERE (is_active = true)",REGULAR
+public,ades_direcciones,idx_dirs_principal_uniq,"CREATE UNIQUE INDEX idx_dirs_principal_uniq ON public.ades_direcciones USING btree (entidad_tipo, entidad_id) WHERE ((es_principal = true) AND (is_active = true))",REGULAR
+public,ades_disponibilidad_aula,ades_disponibilidad_aula_pkey,CREATE UNIQUE INDEX ades_disponibilidad_aula_pkey ON public.ades_disponibilidad_aula USING btree (id),PRIMARY_KEY
+public,ades_disponibilidad_aula,idx_disp_aula_ciclo,CREATE INDEX idx_disp_aula_ciclo ON public.ades_disponibilidad_aula USING btree (ciclo_escolar_id),REGULAR
+public,ades_disponibilidad_aula,idx_disp_aula_dia,"CREATE INDEX idx_disp_aula_dia ON public.ades_disponibilidad_aula USING btree (aula_id, dia_semana, is_active)",REGULAR
+public,ades_disponibilidad_aula,idx_disp_grupo,CREATE INDEX idx_disp_grupo ON public.ades_disponibilidad_aula USING btree (grupo_id),REGULAR
+public,ades_disponibilidad_docente,ades_disponibilidad_docente_pkey,CREATE UNIQUE INDEX ades_disponibilidad_docente_pkey ON public.ades_disponibilidad_docente USING btree (id),PRIMARY_KEY
+public,ades_disponibilidad_docente,ades_disponibilidad_docente_ref_key,CREATE UNIQUE INDEX ades_disponibilidad_docente_ref_key ON public.ades_disponibilidad_docente USING btree (ref),REGULAR
+public,ades_disponibilidad_docente,idx_disp_docente_profesor,CREATE INDEX idx_disp_docente_profesor ON public.ades_disponibilidad_docente USING btree (profesor_id),REGULAR
+public,ades_disponibilidad_docente,idx_dispon_ciclo,CREATE INDEX idx_dispon_ciclo ON public.ades_disponibilidad_docente USING btree (ciclo_escolar_id),REGULAR
+public,ades_documentos_admision,ades_documentos_admision_pkey,CREATE UNIQUE INDEX ades_documentos_admision_pkey ON public.ades_documentos_admision USING btree (id),PRIMARY_KEY
+public,ades_documentos_tipo,ades_documentos_tipo_pkey,CREATE UNIQUE INDEX ades_documentos_tipo_pkey ON public.ades_documentos_tipo USING btree (id),PRIMARY_KEY
+public,ades_encuesta_preguntas,ades_encuesta_preguntas_pkey,CREATE UNIQUE INDEX ades_encuesta_preguntas_pkey ON public.ades_encuesta_preguntas USING btree (id),PRIMARY_KEY
+public,ades_encuesta_preguntas,ades_encuesta_preguntas_ref_key,CREATE UNIQUE INDEX ades_encuesta_preguntas_ref_key ON public.ades_encuesta_preguntas USING btree (ref),REGULAR
+public,ades_encuesta_preguntas,idx_ep_encuesta,"CREATE INDEX idx_ep_encuesta ON public.ades_encuesta_preguntas USING btree (encuesta_id, orden) WHERE (is_active = true)",REGULAR
+public,ades_encuesta_respuestas,ades_encuesta_respuestas_pkey,CREATE UNIQUE INDEX ades_encuesta_respuestas_pkey ON public.ades_encuesta_respuestas USING btree (id),PRIMARY_KEY
+public,ades_encuesta_respuestas,ades_encuesta_respuestas_pregunta_id_sesion_id_key,"CREATE UNIQUE INDEX ades_encuesta_respuestas_pregunta_id_sesion_id_key ON public.ades_encuesta_respuestas USING btree (pregunta_id, sesion_id)",REGULAR
+public,ades_encuesta_respuestas,idx_er_encuesta,CREATE INDEX idx_er_encuesta ON public.ades_encuesta_respuestas USING btree (encuesta_id),REGULAR
+public,ades_encuesta_respuestas,idx_er_pregunta,CREATE INDEX idx_er_pregunta ON public.ades_encuesta_respuestas USING btree (pregunta_id),REGULAR
+public,ades_encuesta_respuestas,idx_er_sesion,CREATE INDEX idx_er_sesion ON public.ades_encuesta_respuestas USING btree (sesion_id),REGULAR
+public,ades_encuestas,ades_encuestas_pkey,CREATE UNIQUE INDEX ades_encuestas_pkey ON public.ades_encuestas USING btree (id),PRIMARY_KEY
+public,ades_encuestas,ades_encuestas_ref_key,CREATE UNIQUE INDEX ades_encuestas_ref_key ON public.ades_encuestas USING btree (ref),REGULAR
+public,ades_encuestas,idx_encuestas_grupo,CREATE INDEX idx_encuestas_grupo ON public.ades_encuestas USING btree (grupo_id),REGULAR
+public,ades_encuestas,idx_encuestas_plantel,CREATE INDEX idx_encuestas_plantel ON public.ades_encuestas USING btree (plantel_id),REGULAR
+public,ades_escalas_evaluacion,ades_escalas_evaluacion_pkey,CREATE UNIQUE INDEX ades_escalas_evaluacion_pkey ON public.ades_escalas_evaluacion USING btree (id),PRIMARY_KEY
+public,ades_escuelas,ades_escuelas_pkey,CREATE UNIQUE INDEX ades_escuelas_pkey ON public.ades_escuelas USING btree (id),PRIMARY_KEY
+public,ades_escuelas,ades_escuelas_ref_key,CREATE UNIQUE INDEX ades_escuelas_ref_key ON public.ades_escuelas USING btree (ref),REGULAR
+public,ades_esquemas_ponderacion,ades_esquemas_ponderacion_pkey,CREATE UNIQUE INDEX ades_esquemas_ponderacion_pkey ON public.ades_esquemas_ponderacion USING btree (id),PRIMARY_KEY
+public,ades_esquemas_ponderacion,ades_esquemas_ponderacion_ref_key,CREATE UNIQUE INDEX ades_esquemas_ponderacion_ref_key ON public.ades_esquemas_ponderacion USING btree (ref),REGULAR
+public,ades_esquemas_ponderacion,idx_esquemas_materia,CREATE INDEX idx_esquemas_materia ON public.ades_esquemas_ponderacion USING btree (materia_id) WHERE (materia_id IS NOT NULL),REGULAR
+public,ades_esquemas_ponderacion,idx_esquemas_nivel,"CREATE INDEX idx_esquemas_nivel ON public.ades_esquemas_ponderacion USING btree (nivel_educativo_id, activo)",REGULAR
+public,ades_estados,ades_estados_pkey,CREATE UNIQUE INDEX ades_estados_pkey ON public.ades_estados USING btree (id),PRIMARY_KEY
+public,ades_estados,ades_estados_ref_key,CREATE UNIQUE INDEX ades_estados_ref_key ON public.ades_estados USING btree (ref),REGULAR
+public,ades_estados,uq_ades_estados_clave_pais,"CREATE UNIQUE INDEX uq_ades_estados_clave_pais ON public.ades_estados USING btree (clave_estado, pais_id)",REGULAR
+public,ades_estatus,ades_estatus_pkey,CREATE UNIQUE INDEX ades_estatus_pkey ON public.ades_estatus USING btree (id),PRIMARY_KEY
+public,ades_estatus,ades_estatus_ref_key,CREATE UNIQUE INDEX ades_estatus_ref_key ON public.ades_estatus USING btree (ref),REGULAR
+public,ades_estatus,uq_ades_estatus_entidad_nombre,"CREATE UNIQUE INDEX uq_ades_estatus_entidad_nombre ON public.ades_estatus USING btree (entidad, nombre_estatus)",REGULAR
+public,ades_estudiantes,ades_estudiantes_folio_sep_key,CREATE UNIQUE INDEX ades_estudiantes_folio_sep_key ON public.ades_estudiantes USING btree (folio_sep),REGULAR
+public,ades_estudiantes,ades_estudiantes_matricula_key,CREATE UNIQUE INDEX ades_estudiantes_matricula_key ON public.ades_estudiantes USING btree (matricula),REGULAR
+public,ades_estudiantes,ades_estudiantes_pkey,CREATE UNIQUE INDEX ades_estudiantes_pkey ON public.ades_estudiantes USING btree (id),PRIMARY_KEY
+public,ades_estudiantes,ades_estudiantes_ref_key,CREATE UNIQUE INDEX ades_estudiantes_ref_key ON public.ades_estudiantes USING btree (ref),REGULAR
+public,ades_estudiantes,idx_ades_est_plantel,CREATE INDEX idx_ades_est_plantel ON public.ades_estudiantes USING btree (plantel_id),REGULAR
+public,ades_estudiantes,idx_ades_estudiantes_folio_sep,CREATE INDEX idx_ades_estudiantes_folio_sep ON public.ades_estudiantes USING btree (folio_sep),REGULAR
+public,ades_estudiantes,idx_ades_estudiantes_tipo,CREATE INDEX idx_ades_estudiantes_tipo ON public.ades_estudiantes USING btree (tipo_alumno),REGULAR
+public,ades_estudiantes,idx_est_lengua_indigena,CREATE INDEX idx_est_lengua_indigena ON public.ades_estudiantes USING btree (lengua_indigena_id) WHERE (lengua_indigena_id IS NOT NULL),REGULAR
+public,ades_estudiantes,idx_est_nivel_ingles,CREATE INDEX idx_est_nivel_ingles ON public.ades_estudiantes USING btree (nivel_ingles_id) WHERE (nivel_ingles_id IS NOT NULL),REGULAR
+public,ades_estudiantes,idx_est_plantel_active,CREATE INDEX idx_est_plantel_active ON public.ades_estudiantes USING btree (plantel_id) WHERE (is_active = true),REGULAR
+public,ades_estudiantes,idx_estudiantes_nss,CREATE INDEX idx_estudiantes_nss ON public.ades_estudiantes USING btree (nss) WHERE (nss IS NOT NULL),REGULAR
+public,ades_eval_docente_criterios,ades_eval_docente_criterios_pkey,CREATE UNIQUE INDEX ades_eval_docente_criterios_pkey ON public.ades_eval_docente_criterios USING btree (id),PRIMARY_KEY
+public,ades_eval_docente_criterios,ades_eval_docente_criterios_ref_key,CREATE UNIQUE INDEX ades_eval_docente_criterios_ref_key ON public.ades_eval_docente_criterios USING btree (ref),REGULAR
+public,ades_eval_docente_criterios,uq_eval_criterio,"CREATE UNIQUE INDEX uq_eval_criterio ON public.ades_eval_docente_criterios USING btree (evaluacion_id, criterio_id)",REGULAR
+public,ades_evaluacion_docente,ades_evaluacion_docente_pkey,CREATE UNIQUE INDEX ades_evaluacion_docente_pkey ON public.ades_evaluacion_docente USING btree (id),PRIMARY_KEY
+public,ades_evaluacion_docente,ades_evaluacion_docente_ref_key,CREATE UNIQUE INDEX ades_evaluacion_docente_ref_key ON public.ades_evaluacion_docente USING btree (ref),REGULAR
+public,ades_evaluacion_docente,idx_eval_docente_evaluador,CREATE INDEX idx_eval_docente_evaluador ON public.ades_evaluacion_docente USING btree (evaluador_id),REGULAR
+public,ades_evaluacion_docente,idx_eval_docente_prof,"CREATE INDEX idx_eval_docente_prof ON public.ades_evaluacion_docente USING btree (profesor_id, ciclo_escolar_id)",REGULAR
+public,ades_evaluaciones,ades_evaluaciones_pkey,CREATE UNIQUE INDEX ades_evaluaciones_pkey ON public.ades_evaluaciones USING btree (id),PRIMARY_KEY
+public,ades_evaluaciones,ades_evaluaciones_ref_key,CREATE UNIQUE INDEX ades_evaluaciones_ref_key ON public.ades_evaluaciones USING btree (ref),REGULAR
+public,ades_evaluaciones_riesgo,ades_evaluaciones_riesgo_pkey,CREATE UNIQUE INDEX ades_evaluaciones_riesgo_pkey ON public.ades_evaluaciones_riesgo USING btree (alumno_id),PRIMARY_KEY
+public,ades_expediente_docs,ades_expediente_docs_estudiante_id_documento_tipo_id_ciclo__key,"CREATE UNIQUE INDEX ades_expediente_docs_estudiante_id_documento_tipo_id_ciclo__key ON public.ades_expediente_docs USING btree (estudiante_id, documento_tipo_id, ciclo_escolar_id)",REGULAR
+public,ades_expediente_docs,ades_expediente_docs_pkey,CREATE UNIQUE INDEX ades_expediente_docs_pkey ON public.ades_expediente_docs USING btree (id),PRIMARY_KEY
+public,ades_expediente_docs,ades_expediente_docs_ref_key,CREATE UNIQUE INDEX ades_expediente_docs_ref_key ON public.ades_expediente_docs USING btree (ref),REGULAR
+public,ades_expediente_docs,idx_expdocs_estudiante,CREATE INDEX idx_expdocs_estudiante ON public.ades_expediente_docs USING btree (estudiante_id) WHERE (is_active = true),REGULAR
+public,ades_expediente_docs,idx_expdocs_pendientes,"CREATE INDEX idx_expdocs_pendientes ON public.ades_expediente_docs USING btree (estatus) WHERE ((estatus)::text = ANY ((ARRAY['PENDIENTE'::character varying, 'INCOMPLETO'::character varying])::text[]))",REGULAR
+public,ades_expediente_documentos,idx_expdoc_expediente_id,CREATE INDEX idx_expdoc_expediente_id ON public.ades_expediente_documentos USING btree (expediente_id),REGULAR
+public,ades_expediente_documentos,idx_expdoc_ocr_texto_gin,"CREATE INDEX idx_expdoc_ocr_texto_gin ON public.ades_expediente_documentos USING gin (to_tsvector('spanish'::regconfig, COALESCE(ocr_texto, ''::text)))",REGULAR
+public,ades_expediente_documentos,idx_expdoc_paperless_doc_id,CREATE INDEX idx_expdoc_paperless_doc_id ON public.ades_expediente_documentos USING btree (paperless_doc_id) WHERE (paperless_doc_id IS NOT NULL),REGULAR
+public,ades_expediente_documentos,idx_expdoc_tipo,CREATE INDEX idx_expdoc_tipo ON public.ades_expediente_documentos USING btree (tipo_documento),REGULAR
+public,ades_expediente_documentos,pk_ades_expediente_documentos,CREATE UNIQUE INDEX pk_ades_expediente_documentos ON public.ades_expediente_documentos USING btree (id),REGULAR
+public,ades_expediente_laboral,ades_expediente_laboral_persona_id_key,CREATE UNIQUE INDEX ades_expediente_laboral_persona_id_key ON public.ades_expediente_laboral USING btree (persona_id),REGULAR
+public,ades_expediente_laboral,idx_exp_laboral_persona,CREATE INDEX idx_exp_laboral_persona ON public.ades_expediente_laboral USING btree (persona_id),REGULAR
+public,ades_expediente_laboral,idx_exp_laboral_unique_curp,CREATE UNIQUE INDEX idx_exp_laboral_unique_curp ON public.ades_expediente_laboral USING btree (curp) WHERE ((curp IS NOT NULL) AND (is_active = true)),REGULAR
+public,ades_expediente_laboral,idx_exp_laboral_unique_rfc,CREATE UNIQUE INDEX idx_exp_laboral_unique_rfc ON public.ades_expediente_laboral USING btree (rfc) WHERE ((rfc IS NOT NULL) AND (is_active = true)),REGULAR
+public,ades_expediente_laboral,pk_ades_expediente_laboral,CREATE UNIQUE INDEX pk_ades_expediente_laboral ON public.ades_expediente_laboral USING btree (id),REGULAR
+public,ades_expedientes_alumno,idx_expedientes_ciclo_id,CREATE INDEX idx_expedientes_ciclo_id ON public.ades_expedientes_alumno USING btree (ciclo_escolar_id),REGULAR
+public,ades_expedientes_alumno,idx_expedientes_estado,CREATE INDEX idx_expedientes_estado ON public.ades_expedientes_alumno USING btree (estado),REGULAR
+public,ades_expedientes_alumno,idx_expedientes_estudiante_id,CREATE INDEX idx_expedientes_estudiante_id ON public.ades_expedientes_alumno USING btree (estudiante_id),REGULAR
+public,ades_expedientes_alumno,pk_ades_expedientes_alumno,CREATE UNIQUE INDEX pk_ades_expedientes_alumno ON public.ades_expedientes_alumno USING btree (id),REGULAR
+public,ades_expedientes_alumno,uq_expediente_alumno_ciclo,"CREATE UNIQUE INDEX uq_expediente_alumno_ciclo ON public.ades_expedientes_alumno USING btree (estudiante_id, ciclo_escolar_id)",REGULAR
+public,ades_expedientes_medicos,ades_expedientes_medicos_estudiante_id_key,CREATE UNIQUE INDEX ades_expedientes_medicos_estudiante_id_key ON public.ades_expedientes_medicos USING btree (estudiante_id),REGULAR
+public,ades_expedientes_medicos,ades_expedientes_medicos_pkey,CREATE UNIQUE INDEX ades_expedientes_medicos_pkey ON public.ades_expedientes_medicos USING btree (id),PRIMARY_KEY
+public,ades_expedientes_medicos,ades_expedientes_medicos_ref_key,CREATE UNIQUE INDEX ades_expedientes_medicos_ref_key ON public.ades_expedientes_medicos USING btree (ref),REGULAR
+public,ades_expedientes_medicos,idx_expediente_medico_estudiante,CREATE UNIQUE INDEX idx_expediente_medico_estudiante ON public.ades_expedientes_medicos USING btree (estudiante_id) WHERE (is_active = true),REGULAR
+public,ades_extraordinarias,ades_extraordinarias_estudiante_id_materia_id_ciclo_escolar_key,"CREATE UNIQUE INDEX ades_extraordinarias_estudiante_id_materia_id_ciclo_escolar_key ON public.ades_extraordinarias USING btree (estudiante_id, materia_id, ciclo_escolar_id, tipo_examen)",REGULAR
+public,ades_extraordinarias,ades_extraordinarias_pkey,CREATE UNIQUE INDEX ades_extraordinarias_pkey ON public.ades_extraordinarias USING btree (id),PRIMARY_KEY
+public,ades_extraordinarias,ades_extraordinarias_ref_key,CREATE UNIQUE INDEX ades_extraordinarias_ref_key ON public.ades_extraordinarias USING btree (ref),REGULAR
+public,ades_extraordinarias,idx_extraordinarias_ciclo,"CREATE INDEX idx_extraordinarias_ciclo ON public.ades_extraordinarias USING btree (ciclo_escolar_id, materia_id)",REGULAR
+public,ades_extraordinarias,idx_extraordinarias_estudiante,CREATE INDEX idx_extraordinarias_estudiante ON public.ades_extraordinarias USING btree (estudiante_id),REGULAR
+public,ades_foros,ades_foros_pkey,CREATE UNIQUE INDEX ades_foros_pkey ON public.ades_foros USING btree (id),PRIMARY_KEY
+public,ades_grados,ades_grados_pkey,CREATE UNIQUE INDEX ades_grados_pkey ON public.ades_grados USING btree (id),PRIMARY_KEY
+public,ades_grados,ades_grados_ref_key,CREATE UNIQUE INDEX ades_grados_ref_key ON public.ades_grados USING btree (ref),REGULAR
+public,ades_grados,uq_ades_grados,"CREATE UNIQUE INDEX uq_ades_grados ON public.ades_grados USING btree (numero_grado, nivel_educativo_id, plantel_id)",REGULAR
+public,ades_grupos,ades_grupos_pkey,CREATE UNIQUE INDEX ades_grupos_pkey ON public.ades_grupos USING btree (id),PRIMARY_KEY
+public,ades_grupos,ades_grupos_ref_key,CREATE UNIQUE INDEX ades_grupos_ref_key ON public.ades_grupos USING btree (ref),REGULAR
+public,ades_grupos,uq_ades_grupos,"CREATE UNIQUE INDEX uq_ades_grupos ON public.ades_grupos USING btree (nombre_grupo, grado_id, ciclo_escolar_id)",REGULAR
+public,ades_historico_identidad,ades_historico_identidad_pkey,CREATE UNIQUE INDEX ades_historico_identidad_pkey ON public.ades_historico_identidad USING btree (id),PRIMARY_KEY
+public,ades_historico_identidad,ades_historico_identidad_ref_key,CREATE UNIQUE INDEX ades_historico_identidad_ref_key ON public.ades_historico_identidad USING btree (ref),REGULAR
+public,ades_horarios,ades_horarios_pkey,CREATE UNIQUE INDEX ades_horarios_pkey ON public.ades_horarios USING btree (id),PRIMARY_KEY
+public,ades_horarios,ades_horarios_ref_key,CREATE UNIQUE INDEX ades_horarios_ref_key ON public.ades_horarios USING btree (ref),REGULAR
+public,ades_horarios,idx_ades_horarios_grupo,"CREATE INDEX idx_ades_horarios_grupo ON public.ades_horarios USING btree (grupo_id, dia_semana)",REGULAR
+public,ades_horarios,idx_ades_horarios_profesor,"CREATE INDEX idx_ades_horarios_profesor ON public.ades_horarios USING btree (profesor_id, dia_semana)",REGULAR
+public,ades_identidad_institucional,ades_identidad_institucional_pkey,CREATE UNIQUE INDEX ades_identidad_institucional_pkey ON public.ades_identidad_institucional USING btree (id),PRIMARY_KEY
+public,ades_identidad_institucional,ades_identidad_institucional_ref_key,CREATE UNIQUE INDEX ades_identidad_institucional_ref_key ON public.ades_identidad_institucional USING btree (ref),REGULAR
+public,ades_incidentes_medicos,ades_incidentes_medicos_pkey,CREATE UNIQUE INDEX ades_incidentes_medicos_pkey ON public.ades_incidentes_medicos USING btree (id),PRIMARY_KEY
+public,ades_incidentes_medicos,ades_incidentes_medicos_ref_key,CREATE UNIQUE INDEX ades_incidentes_medicos_ref_key ON public.ades_incidentes_medicos USING btree (ref),REGULAR
+public,ades_informacion_escuela,ades_informacion_escuela_escuela_id_key,CREATE UNIQUE INDEX ades_informacion_escuela_escuela_id_key ON public.ades_informacion_escuela USING btree (escuela_id),REGULAR
+public,ades_informacion_escuela,ades_informacion_escuela_pkey,CREATE UNIQUE INDEX ades_informacion_escuela_pkey ON public.ades_informacion_escuela USING btree (id),PRIMARY_KEY
+public,ades_informacion_escuela,ades_informacion_escuela_ref_key,CREATE UNIQUE INDEX ades_informacion_escuela_ref_key ON public.ades_informacion_escuela USING btree (ref),REGULAR
+public,ades_inscripciones,ades_inscripciones_pkey,CREATE UNIQUE INDEX ades_inscripciones_pkey ON public.ades_inscripciones USING btree (id),PRIMARY_KEY
+public,ades_inscripciones,ades_inscripciones_ref_key,CREATE UNIQUE INDEX ades_inscripciones_ref_key ON public.ades_inscripciones USING btree (ref),REGULAR
+public,ades_inscripciones,idx_ades_inscr_ciclo,CREATE INDEX idx_ades_inscr_ciclo ON public.ades_inscripciones USING btree (ciclo_escolar_id),REGULAR
+public,ades_inscripciones,idx_ades_inscripciones_estudiante,CREATE INDEX idx_ades_inscripciones_estudiante ON public.ades_inscripciones USING btree (estudiante_id),REGULAR
+public,ades_inscripciones,idx_ades_inscripciones_grupo,CREATE INDEX idx_ades_inscripciones_grupo ON public.ades_inscripciones USING btree (grupo_id),REGULAR
+public,ades_inscripciones,idx_inscr_ciclo_est,"CREATE INDEX idx_inscr_ciclo_est ON public.ades_inscripciones USING btree (ciclo_escolar_id, estudiante_id) WHERE (is_active = true)",REGULAR
+public,ades_inscripciones,idx_inscripciones_activas,"CREATE INDEX idx_inscripciones_activas ON public.ades_inscripciones USING btree (estudiante_id, is_active) WHERE (is_active = true)",REGULAR
+public,ades_inscripciones,uq_ades_inscripciones,"CREATE UNIQUE INDEX uq_ades_inscripciones ON public.ades_inscripciones USING btree (estudiante_id, grupo_id, ciclo_escolar_id)",REGULAR
+public,ades_inscripciones_optativas,ades_inscripciones_optativas_estudiante_id_materia_id_ciclo_key,"CREATE UNIQUE INDEX ades_inscripciones_optativas_estudiante_id_materia_id_ciclo_key ON public.ades_inscripciones_optativas USING btree (estudiante_id, materia_id, ciclo_escolar_id)",REGULAR
+public,ades_inscripciones_optativas,ades_inscripciones_optativas_pkey,CREATE UNIQUE INDEX ades_inscripciones_optativas_pkey ON public.ades_inscripciones_optativas USING btree (id),PRIMARY_KEY
+public,ades_items_ponderacion,ades_items_ponderacion_pkey,CREATE UNIQUE INDEX ades_items_ponderacion_pkey ON public.ades_items_ponderacion USING btree (id),PRIMARY_KEY
+public,ades_items_ponderacion,ades_items_ponderacion_ref_key,CREATE UNIQUE INDEX ades_items_ponderacion_ref_key ON public.ades_items_ponderacion USING btree (ref),REGULAR
+public,ades_items_ponderacion,idx_items_esquema,CREATE INDEX idx_items_esquema ON public.ades_items_ponderacion USING btree (esquema_id),REGULAR
+public,ades_justificaciones_falta,ades_justificaciones_falta_pkey,CREATE UNIQUE INDEX ades_justificaciones_falta_pkey ON public.ades_justificaciones_falta USING btree (id),PRIMARY_KEY
+public,ades_justificaciones_falta,ades_justificaciones_falta_ref_key,CREATE UNIQUE INDEX ades_justificaciones_falta_ref_key ON public.ades_justificaciones_falta USING btree (ref),REGULAR
+public,ades_justificaciones_falta,idx_just_asistencia,CREATE INDEX idx_just_asistencia ON public.ades_justificaciones_falta USING btree (asistencia_id),REGULAR
+public,ades_justificaciones_falta,idx_just_estado,CREATE INDEX idx_just_estado ON public.ades_justificaciones_falta USING btree (estado) WHERE is_active,REGULAR
+public,ades_learning_paths,ades_learning_paths_pkey,CREATE UNIQUE INDEX ades_learning_paths_pkey ON public.ades_learning_paths USING btree (id),PRIMARY_KEY
+public,ades_learning_paths,ades_learning_paths_ref_key,CREATE UNIQUE INDEX ades_learning_paths_ref_key ON public.ades_learning_paths USING btree (ref),REGULAR
+public,ades_lenguas_indigenas,ades_lenguas_indigenas_pkey,CREATE UNIQUE INDEX ades_lenguas_indigenas_pkey ON public.ades_lenguas_indigenas USING btree (id),PRIMARY_KEY
+public,ades_lenguas_indigenas,idx_lengua_agrupacion,CREATE INDEX idx_lengua_agrupacion ON public.ades_lenguas_indigenas USING btree (agrupacion),REGULAR
+public,ades_lenguas_indigenas,idx_lengua_familia,CREATE INDEX idx_lengua_familia ON public.ades_lenguas_indigenas USING btree (familia_linguistica),REGULAR
+public,ades_lenguas_indigenas,uq_lengua_agrupacion,CREATE UNIQUE INDEX uq_lengua_agrupacion ON public.ades_lenguas_indigenas USING btree (agrupacion),REGULAR
+public,ades_licencias_personal,idx_licencias_active,CREATE INDEX idx_licencias_active ON public.ades_licencias_personal USING btree (is_active) WHERE (is_active = true),REGULAR
+public,ades_licencias_personal,idx_licencias_estado,CREATE INDEX idx_licencias_estado ON public.ades_licencias_personal USING btree (estado),REGULAR
+public,ades_licencias_personal,idx_licencias_fechas,"CREATE INDEX idx_licencias_fechas ON public.ades_licencias_personal USING btree (fecha_inicio, fecha_fin)",REGULAR
+public,ades_licencias_personal,idx_licencias_personal_id,CREATE INDEX idx_licencias_personal_id ON public.ades_licencias_personal USING btree (personal_id),REGULAR
+public,ades_licencias_personal,pk_ades_licencias_personal,CREATE UNIQUE INDEX pk_ades_licencias_personal ON public.ades_licencias_personal USING btree (id),REGULAR
+public,ades_llaves_firma,ades_llaves_firma_pkey,CREATE UNIQUE INDEX ades_llaves_firma_pkey ON public.ades_llaves_firma USING btree (id),PRIMARY_KEY
+public,ades_llaves_firma,ades_llaves_firma_ref_key,CREATE UNIQUE INDEX ades_llaves_firma_ref_key ON public.ades_llaves_firma USING btree (ref),REGULAR
+public,ades_localidades,ades_localidades_pkey,CREATE UNIQUE INDEX ades_localidades_pkey ON public.ades_localidades USING btree (id),PRIMARY_KEY
+public,ades_localidades,ades_localidades_ref_key,CREATE UNIQUE INDEX ades_localidades_ref_key ON public.ades_localidades USING btree (ref),REGULAR
+public,ades_localidades,idx_ades_localidades_municipio,CREATE INDEX idx_ades_localidades_municipio ON public.ades_localidades USING btree (municipio_id),REGULAR
+public,ades_localidades,idx_ades_localidades_nombre,CREATE INDEX idx_ades_localidades_nombre ON public.ades_localidades USING gin (nombre_localidad gin_trgm_ops),REGULAR
+public,ades_log_autenticacion,ades_log_autenticacion_pkey,CREATE UNIQUE INDEX ades_log_autenticacion_pkey ON public.ades_log_autenticacion USING btree (id),PRIMARY_KEY
+public,ades_log_autenticacion,idx_log_auth_usuario,"CREATE INDEX idx_log_auth_usuario ON public.ades_log_autenticacion USING btree (usuario_id, fecha_login DESC)",REGULAR
+public,ades_lp_asignaciones,ades_lp_asignaciones_path_id_estudiante_id_key,"CREATE UNIQUE INDEX ades_lp_asignaciones_path_id_estudiante_id_key ON public.ades_lp_asignaciones USING btree (path_id, estudiante_id)",REGULAR
+public,ades_lp_asignaciones,ades_lp_asignaciones_pkey,CREATE UNIQUE INDEX ades_lp_asignaciones_pkey ON public.ades_lp_asignaciones USING btree (id),PRIMARY_KEY
+public,ades_lp_asignaciones,idx_lp_asig_estudiante,"CREATE INDEX idx_lp_asig_estudiante ON public.ades_lp_asignaciones USING btree (estudiante_id, estatus)",REGULAR
+public,ades_lp_asignaciones,idx_lp_asig_ia_gin,CREATE INDEX idx_lp_asig_ia_gin ON public.ades_lp_asignaciones USING gin (ia_recomendacion),REGULAR
+public,ades_lp_asignaciones,idx_lp_asig_path,"CREATE INDEX idx_lp_asig_path ON public.ades_lp_asignaciones USING btree (path_id, estatus)",REGULAR
+public,ades_lp_progreso,ades_lp_progreso_asignacion_id_recurso_id_key,"CREATE UNIQUE INDEX ades_lp_progreso_asignacion_id_recurso_id_key ON public.ades_lp_progreso USING btree (asignacion_id, recurso_id)",REGULAR
+public,ades_lp_progreso,ades_lp_progreso_pkey,CREATE UNIQUE INDEX ades_lp_progreso_pkey ON public.ades_lp_progreso USING btree (id),PRIMARY_KEY
+public,ades_lp_progreso,idx_lp_progreso_asig,CREATE INDEX idx_lp_progreso_asig ON public.ades_lp_progreso USING btree (asignacion_id),REGULAR
+public,ades_lp_recursos,ades_lp_recursos_pkey,CREATE UNIQUE INDEX ades_lp_recursos_pkey ON public.ades_lp_recursos USING btree (id),PRIMARY_KEY
+public,ades_materias,ades_materias_pkey,CREATE UNIQUE INDEX ades_materias_pkey ON public.ades_materias USING btree (id),PRIMARY_KEY
+public,ades_materias,ades_materias_ref_key,CREATE UNIQUE INDEX ades_materias_ref_key ON public.ades_materias USING btree (ref),REGULAR
+public,ades_materias,idx_materias_tipo,CREATE INDEX idx_materias_tipo ON public.ades_materias USING btree (tipo_materia) WHERE (is_active = true),REGULAR
+public,ades_materias,uq_ades_materias_nombre_nivel,"CREATE UNIQUE INDEX uq_ades_materias_nombre_nivel ON public.ades_materias USING btree (nombre_materia, nivel_educativo_id)",REGULAR
+public,ades_materias_plan,ades_materias_plan_pkey,CREATE UNIQUE INDEX ades_materias_plan_pkey ON public.ades_materias_plan USING btree (id),PRIMARY_KEY
+public,ades_materias_plan,ades_materias_plan_ref_key,CREATE UNIQUE INDEX ades_materias_plan_ref_key ON public.ades_materias_plan USING btree (ref),REGULAR
+public,ades_materias_plan,uq_ades_mat_plan,"CREATE UNIQUE INDEX uq_ades_mat_plan ON public.ades_materias_plan USING btree (materia_id, grado_id, ciclo_escolar_id)",REGULAR
+public,ades_medicamentos_alumno,ades_medicamentos_alumno_pkey,CREATE UNIQUE INDEX ades_medicamentos_alumno_pkey ON public.ades_medicamentos_alumno USING btree (id),PRIMARY_KEY
+public,ades_medicamentos_alumno,idx_med_alumno,CREATE INDEX idx_med_alumno ON public.ades_medicamentos_alumno USING btree (alumno_id) WHERE is_active,REGULAR
+public,ades_mensajes_foro,ades_mensajes_foro_pkey,CREATE UNIQUE INDEX ades_mensajes_foro_pkey ON public.ades_mensajes_foro USING btree (id),PRIMARY_KEY
+public,ades_mensajes_foro,idx_msg_foro,CREATE INDEX idx_msg_foro ON public.ades_mensajes_foro USING btree (foro_id) WHERE is_active,REGULAR
+public,ades_menu_roles,ades_menu_roles_pkey,"CREATE UNIQUE INDEX ades_menu_roles_pkey ON public.ades_menu_roles USING btree (menu_id, rol_id)",PRIMARY_KEY
+public,ades_menu_roles,ades_menu_roles_ref_key,CREATE UNIQUE INDEX ades_menu_roles_ref_key ON public.ades_menu_roles USING btree (ref),REGULAR
+public,ades_menus,ades_menus_pkey,CREATE UNIQUE INDEX ades_menus_pkey ON public.ades_menus USING btree (id),PRIMARY_KEY
+public,ades_menus,ades_menus_ref_key,CREATE UNIQUE INDEX ades_menus_ref_key ON public.ades_menus USING btree (ref),REGULAR
+public,ades_municipios,ades_municipios_pkey,CREATE UNIQUE INDEX ades_municipios_pkey ON public.ades_municipios USING btree (id),PRIMARY_KEY
+public,ades_municipios,ades_municipios_ref_key,CREATE UNIQUE INDEX ades_municipios_ref_key ON public.ades_municipios USING btree (ref),REGULAR
+public,ades_municipios,uq_ades_municipios_clave_estado,"CREATE UNIQUE INDEX uq_ades_municipios_clave_estado ON public.ades_municipios USING btree (clave_municipio, estado_id)",REGULAR
+public,ades_nee,ades_nee_pkey,CREATE UNIQUE INDEX ades_nee_pkey ON public.ades_nee USING btree (id),PRIMARY_KEY
+public,ades_nee,idx_nee_alumno,CREATE INDEX idx_nee_alumno ON public.ades_nee USING btree (alumno_id) WHERE activa,REGULAR
+public,ades_niveles_educativos,ades_niveles_educativos_nombre_nivel_key,CREATE UNIQUE INDEX ades_niveles_educativos_nombre_nivel_key ON public.ades_niveles_educativos USING btree (nombre_nivel),REGULAR
+public,ades_niveles_educativos,ades_niveles_educativos_pkey,CREATE UNIQUE INDEX ades_niveles_educativos_pkey ON public.ades_niveles_educativos USING btree (id),PRIMARY_KEY
+public,ades_niveles_educativos,ades_niveles_educativos_ref_key,CREATE UNIQUE INDEX ades_niveles_educativos_ref_key ON public.ades_niveles_educativos USING btree (ref),REGULAR
+public,ades_niveles_ingles,ades_niveles_ingles_pkey,CREATE UNIQUE INDEX ades_niveles_ingles_pkey ON public.ades_niveles_ingles USING btree (id),PRIMARY_KEY
+public,ades_niveles_ingles,idx_nivel_ingles_orden,CREATE INDEX idx_nivel_ingles_orden ON public.ades_niveles_ingles USING btree (orden),REGULAR
+public,ades_niveles_ingles,uq_nivel_cefr,CREATE UNIQUE INDEX uq_nivel_cefr ON public.ades_niveles_ingles USING btree (nivel),REGULAR
+public,ades_normatividad,ades_normatividad_pkey,CREATE UNIQUE INDEX ades_normatividad_pkey ON public.ades_normatividad USING btree (id),PRIMARY_KEY
+public,ades_notificaciones,ades_notificaciones_pkey,CREATE UNIQUE INDEX ades_notificaciones_pkey ON public.ades_notificaciones USING btree (id),PRIMARY_KEY
+public,ades_notificaciones,ades_notificaciones_ref_key,CREATE UNIQUE INDEX ades_notificaciones_ref_key ON public.ades_notificaciones USING btree (ref),REGULAR
+public,ades_notificaciones,idx_ades_notif_usuario,"CREATE INDEX idx_ades_notif_usuario ON public.ades_notificaciones USING btree (usuario_id, leido)",REGULAR
+public,ades_notificaciones,idx_notif_usuario_leido,"CREATE INDEX idx_notif_usuario_leido ON public.ades_notificaciones USING btree (usuario_id, leido)",REGULAR
+public,ades_notificaciones_sistema,ades_notificaciones_sistema_pkey,CREATE UNIQUE INDEX ades_notificaciones_sistema_pkey ON public.ades_notificaciones_sistema USING btree (id),PRIMARY_KEY
+public,ades_notificaciones_sistema,idx_brin_notif_ts,CREATE INDEX idx_brin_notif_ts ON public.ades_notificaciones_sistema USING brin (fecha_creacion),REGULAR
+public,ades_notificaciones_sistema,idx_notif_sistema_fecha,CREATE INDEX idx_notif_sistema_fecha ON public.ades_notificaciones_sistema USING btree (fecha_creacion DESC),REGULAR
+public,ades_notificaciones_sistema,idx_notif_sistema_usuario,"CREATE INDEX idx_notif_sistema_usuario ON public.ades_notificaciones_sistema USING btree (usuario_id, leido)",REGULAR
+public,ades_observaciones_pedagogicas,ades_observaciones_pedagogicas_pkey,CREATE UNIQUE INDEX ades_observaciones_pedagogicas_pkey ON public.ades_observaciones_pedagogicas USING btree (id),PRIMARY_KEY
+public,ades_observaciones_pedagogicas,idx_obs_ped_alumno,CREATE INDEX idx_obs_ped_alumno ON public.ades_observaciones_pedagogicas USING btree (alumno_id),REGULAR
+public,ades_paises,ades_paises_clave_pais_key,CREATE UNIQUE INDEX ades_paises_clave_pais_key ON public.ades_paises USING btree (clave_pais),REGULAR
+public,ades_paises,ades_paises_pkey,CREATE UNIQUE INDEX ades_paises_pkey ON public.ades_paises USING btree (id),PRIMARY_KEY
+public,ades_paises,ades_paises_ref_key,CREATE UNIQUE INDEX ades_paises_ref_key ON public.ades_paises USING btree (ref),REGULAR
+public,ades_parametros_sistema,ades_parametros_sistema_pkey,CREATE UNIQUE INDEX ades_parametros_sistema_pkey ON public.ades_parametros_sistema USING btree (id),PRIMARY_KEY
+public,ades_parametros_sistema,ades_parametros_sistema_ref_key,CREATE UNIQUE INDEX ades_parametros_sistema_ref_key ON public.ades_parametros_sistema USING btree (ref),REGULAR
+public,ades_parametros_sistema,uq_ades_param_clave,CREATE UNIQUE INDEX uq_ades_param_clave ON public.ades_parametros_sistema USING btree (clave),REGULAR
+public,ades_periodos_evaluacion,ades_periodos_evaluacion_pkey,CREATE UNIQUE INDEX ades_periodos_evaluacion_pkey ON public.ades_periodos_evaluacion USING btree (id),PRIMARY_KEY
+public,ades_periodos_evaluacion,ades_periodos_evaluacion_ref_key,CREATE UNIQUE INDEX ades_periodos_evaluacion_ref_key ON public.ades_periodos_evaluacion USING btree (ref),REGULAR
+public,ades_periodos_evaluacion,uq_ades_periodos_eval,"CREATE UNIQUE INDEX uq_ades_periodos_eval ON public.ades_periodos_evaluacion USING btree (numero_periodo, tipo_periodo, ciclo_escolar_id)",REGULAR
+public,ades_periodos_inscripcion,ades_periodos_inscripcion_pkey,CREATE UNIQUE INDEX ades_periodos_inscripcion_pkey ON public.ades_periodos_inscripcion USING btree (id),PRIMARY_KEY
+public,ades_persona_contactos,ades_persona_contactos_pkey,CREATE UNIQUE INDEX ades_persona_contactos_pkey ON public.ades_persona_contactos USING btree (id),PRIMARY_KEY
+public,ades_persona_contactos,idx_pc_medio,"CREATE INDEX idx_pc_medio ON public.ades_persona_contactos USING btree (persona_id, medio) WHERE (is_active = true)",REGULAR
+public,ades_persona_contactos,idx_pc_persona,CREATE INDEX idx_pc_persona ON public.ades_persona_contactos USING btree (persona_id) WHERE (is_active = true),REGULAR
+public,ades_personal_administrativo,ades_personal_administrativo_pkey,CREATE UNIQUE INDEX ades_personal_administrativo_pkey ON public.ades_personal_administrativo USING btree (id),PRIMARY_KEY
+public,ades_personal_administrativo,ades_personal_administrativo_ref_key,CREATE UNIQUE INDEX ades_personal_administrativo_ref_key ON public.ades_personal_administrativo USING btree (ref),REGULAR
+public,ades_personal_administrativo,idx_padm_persona,CREATE INDEX idx_padm_persona ON public.ades_personal_administrativo USING btree (persona_id),REGULAR
+public,ades_personal_administrativo,idx_padm_plantel,CREATE INDEX idx_padm_plantel ON public.ades_personal_administrativo USING btree (plantel_id),REGULAR
+public,ades_personal_administrativo,idx_padm_tipo_rol,CREATE INDEX idx_padm_tipo_rol ON public.ades_personal_administrativo USING btree (tipo_rol),REGULAR
+public,ades_personal_salud,ades_personal_salud_pkey,CREATE UNIQUE INDEX ades_personal_salud_pkey ON public.ades_personal_salud USING btree (id),PRIMARY_KEY
+public,ades_personal_salud,ades_personal_salud_ref_key,CREATE UNIQUE INDEX ades_personal_salud_ref_key ON public.ades_personal_salud USING btree (ref),REGULAR
+public,ades_personas,ades_personas_curp_key,CREATE UNIQUE INDEX ades_personas_curp_key ON public.ades_personas USING btree (curp),REGULAR
+public,ades_personas,ades_personas_pkey,CREATE UNIQUE INDEX ades_personas_pkey ON public.ades_personas USING btree (id),PRIMARY_KEY
+public,ades_personas,ades_personas_ref_key,CREATE UNIQUE INDEX ades_personas_ref_key ON public.ades_personas USING btree (ref),REGULAR
+public,ades_personas,idx_ades_personas_curp,CREATE INDEX idx_ades_personas_curp ON public.ades_personas USING btree (curp),REGULAR
+public,ades_personas,idx_ades_personas_nombre,"CREATE INDEX idx_ades_personas_nombre ON public.ades_personas USING gin (((((((nombre)::text || ' '::text) || (apellido_paterno)::text) || ' '::text) || (COALESCE(apellido_materno, ''::character varying))::text)) gin_trgm_ops)",REGULAR
+public,ades_personas,idx_ades_personas_nombre_social,CREATE INDEX idx_ades_personas_nombre_social ON public.ades_personas USING btree (nombre_social) WHERE (nombre_social IS NOT NULL),REGULAR
+public,ades_personas,idx_per_curp,CREATE INDEX idx_per_curp ON public.ades_personas USING btree (curp),REGULAR
+public,ades_personas,idx_per_nombre_ap,"CREATE INDEX idx_per_nombre_ap ON public.ades_personas USING btree (apellido_paterno, nombre)",REGULAR
+public,ades_personas,idx_personas_curp,CREATE INDEX idx_personas_curp ON public.ades_personas USING btree (curp) WHERE (curp IS NOT NULL),REGULAR
+public,ades_personas,idx_personas_email,CREATE INDEX idx_personas_email ON public.ades_personas USING btree (email_personal) WHERE (email_personal IS NOT NULL),REGULAR
+public,ades_personas,idx_personas_unique_rfc,CREATE UNIQUE INDEX idx_personas_unique_rfc ON public.ades_personas USING btree (rfc) WHERE ((rfc IS NOT NULL) AND (is_active = true)),REGULAR
+public,ades_planeacion_clases,ades_planeacion_clases_pkey,CREATE UNIQUE INDEX ades_planeacion_clases_pkey ON public.ades_planeacion_clases USING btree (id),PRIMARY_KEY
+public,ades_planeacion_clases,ades_planeacion_clases_ref_key,CREATE UNIQUE INDEX ades_planeacion_clases_ref_key ON public.ades_planeacion_clases USING btree (ref),REGULAR
+public,ades_planes_mejora,ades_planes_mejora_pkey,CREATE UNIQUE INDEX ades_planes_mejora_pkey ON public.ades_planes_mejora USING btree (id),PRIMARY_KEY
+public,ades_planes_mejora,idx_plan_mejora_estudiante,"CREATE INDEX idx_plan_mejora_estudiante ON public.ades_planes_mejora USING btree (estudiante_id, fecha_elaboracion DESC)",REGULAR
+public,ades_planes_mejora,uq_plan_reporte,CREATE UNIQUE INDEX uq_plan_reporte ON public.ades_planes_mejora USING btree (reporte_conducta_id),REGULAR
+public,ades_plantel_niveles,ades_plantel_niveles_pkey,CREATE UNIQUE INDEX ades_plantel_niveles_pkey ON public.ades_plantel_niveles USING btree (id),PRIMARY_KEY
+public,ades_plantel_niveles,ades_plantel_niveles_ref_key,CREATE UNIQUE INDEX ades_plantel_niveles_ref_key ON public.ades_plantel_niveles USING btree (ref),REGULAR
+public,ades_plantel_niveles,uq_ades_plantel_nivel,"CREATE UNIQUE INDEX uq_ades_plantel_nivel ON public.ades_plantel_niveles USING btree (plantel_id, nivel_educativo_id)",REGULAR
+public,ades_planteles,ades_planteles_pkey,CREATE UNIQUE INDEX ades_planteles_pkey ON public.ades_planteles USING btree (id),PRIMARY_KEY
+public,ades_planteles,ades_planteles_ref_key,CREATE UNIQUE INDEX ades_planteles_ref_key ON public.ades_planteles USING btree (ref),REGULAR
+public,ades_planteles,uq_ades_planteles_nombre_escuela,"CREATE UNIQUE INDEX uq_ades_planteles_nombre_escuela ON public.ades_planteles USING btree (nombre_plantel, escuela_id)",REGULAR
+public,ades_privilegios,ades_privilegios_codigo_key,CREATE UNIQUE INDEX ades_privilegios_codigo_key ON public.ades_privilegios USING btree (codigo),REGULAR
+public,ades_privilegios,ades_privilegios_pkey,CREATE UNIQUE INDEX ades_privilegios_pkey ON public.ades_privilegios USING btree (id),PRIMARY_KEY
+public,ades_privilegios,ades_privilegios_ref_key,CREATE UNIQUE INDEX ades_privilegios_ref_key ON public.ades_privilegios USING btree (ref),REGULAR
+public,ades_profesores,ades_profesores_numero_empleado_key,CREATE UNIQUE INDEX ades_profesores_numero_empleado_key ON public.ades_profesores USING btree (numero_empleado),REGULAR
+public,ades_profesores,ades_profesores_pkey,CREATE UNIQUE INDEX ades_profesores_pkey ON public.ades_profesores USING btree (id),PRIMARY_KEY
+public,ades_profesores,ades_profesores_ref_key,CREATE UNIQUE INDEX ades_profesores_ref_key ON public.ades_profesores USING btree (ref),REGULAR
+public,ades_profesores,idx_ades_prof_plantel,CREATE INDEX idx_ades_prof_plantel ON public.ades_profesores USING btree (plantel_id),REGULAR
+public,ades_profesores,idx_prof_plantel_active,CREATE INDEX idx_prof_plantel_active ON public.ades_profesores USING btree (plantel_id) WHERE (is_active = true),REGULAR
+public,ades_profesores,idx_profesores_nss,CREATE INDEX idx_profesores_nss ON public.ades_profesores USING btree (nss) WHERE (nss IS NOT NULL),REGULAR
+public,ades_profesores,idx_profesores_rfc,CREATE INDEX idx_profesores_rfc ON public.ades_profesores USING btree (rfc) WHERE (rfc IS NOT NULL),REGULAR
+public,ades_promociones_pendientes,ades_promociones_pendientes_pkey,CREATE UNIQUE INDEX ades_promociones_pendientes_pkey ON public.ades_promociones_pendientes USING btree (id),PRIMARY_KEY
+public,ades_promociones_pendientes,ades_promociones_pendientes_ref_key,CREATE UNIQUE INDEX ades_promociones_pendientes_ref_key ON public.ades_promociones_pendientes USING btree (ref),REGULAR
+public,ades_reinscripcion_ciclo,ades_reinscripcion_ciclo_pkey,CREATE UNIQUE INDEX ades_reinscripcion_ciclo_pkey ON public.ades_reinscripcion_ciclo USING btree (id),PRIMARY_KEY
+public,ades_reinscripcion_ciclo,ades_reinscripcion_ciclo_ref_key,CREATE UNIQUE INDEX ades_reinscripcion_ciclo_ref_key ON public.ades_reinscripcion_ciclo USING btree (ref),REGULAR
+public,ades_reinscripcion_ciclo,idx_reinscr_ciclo_dest,"CREATE INDEX idx_reinscr_ciclo_dest ON public.ades_reinscripcion_ciclo USING btree (ciclo_destino_id, estado)",REGULAR
+public,ades_reinscripcion_ciclo,idx_reinscr_ciclo_orig,CREATE INDEX idx_reinscr_ciclo_orig ON public.ades_reinscripcion_ciclo USING btree (ciclo_origen_id),REGULAR
+public,ades_reinscripcion_ciclo,idx_reinscr_estudiante,CREATE INDEX idx_reinscr_estudiante ON public.ades_reinscripcion_ciclo USING btree (estudiante_id),REGULAR
+public,ades_reinscripcion_ciclo,uq_reinscr_est_dest,"CREATE UNIQUE INDEX uq_reinscr_est_dest ON public.ades_reinscripcion_ciclo USING btree (estudiante_id, ciclo_destino_id)",REGULAR
+public,ades_reportes_academicos,ades_reportes_academicos_pkey,CREATE UNIQUE INDEX ades_reportes_academicos_pkey ON public.ades_reportes_academicos USING btree (id),PRIMARY_KEY
+public,ades_reportes_academicos,ades_reportes_academicos_ref_key,CREATE UNIQUE INDEX ades_reportes_academicos_ref_key ON public.ades_reportes_academicos USING btree (ref),REGULAR
+public,ades_reportes_conducta,ades_reportes_conducta_pkey,CREATE UNIQUE INDEX ades_reportes_conducta_pkey ON public.ades_reportes_conducta USING btree (id),PRIMARY_KEY
+public,ades_reportes_conducta,ades_reportes_conducta_ref_key,CREATE UNIQUE INDEX ades_reportes_conducta_ref_key ON public.ades_reportes_conducta USING btree (ref),REGULAR
+public,ades_reportes_conducta,idx_conducta_activos,CREATE INDEX idx_conducta_activos ON public.ades_reportes_conducta USING btree (estudiante_id) WHERE (is_active = true),REGULAR
+public,ades_respuestas_foro,ades_respuestas_foro_pkey,CREATE UNIQUE INDEX ades_respuestas_foro_pkey ON public.ades_respuestas_foro USING btree (id),PRIMARY_KEY
+public,ades_restricciones_tutor,ades_restricciones_tutor_pkey,CREATE UNIQUE INDEX ades_restricciones_tutor_pkey ON public.ades_restricciones_tutor USING btree (tutor_alumno_id),PRIMARY_KEY
+public,ades_retenciones,ades_retenciones_pkey,CREATE UNIQUE INDEX ades_retenciones_pkey ON public.ades_retenciones USING btree (id),PRIMARY_KEY
+public,ades_rol_privilegios,ades_rol_privilegios_pkey,"CREATE UNIQUE INDEX ades_rol_privilegios_pkey ON public.ades_rol_privilegios USING btree (rol_id, privilegio_id)",PRIMARY_KEY
+public,ades_rol_privilegios,ades_rol_privilegios_ref_key,CREATE UNIQUE INDEX ades_rol_privilegios_ref_key ON public.ades_rol_privilegios USING btree (ref),REGULAR
+public,ades_roles,ades_roles_nombre_rol_key,CREATE UNIQUE INDEX ades_roles_nombre_rol_key ON public.ades_roles USING btree (nombre_rol),REGULAR
+public,ades_roles,ades_roles_pkey,CREATE UNIQUE INDEX ades_roles_pkey ON public.ades_roles USING btree (id),PRIMARY_KEY
+public,ades_roles,ades_roles_ref_key,CREATE UNIQUE INDEX ades_roles_ref_key ON public.ades_roles USING btree (ref),REGULAR
+public,ades_rubrica_criterios,ades_rubrica_criterios_pkey,CREATE UNIQUE INDEX ades_rubrica_criterios_pkey ON public.ades_rubrica_criterios USING btree (id),PRIMARY_KEY
+public,ades_rubrica_criterios,ades_rubrica_criterios_ref_key,CREATE UNIQUE INDEX ades_rubrica_criterios_ref_key ON public.ades_rubrica_criterios USING btree (ref),REGULAR
+public,ades_rubricas,ades_rubricas_pkey,CREATE UNIQUE INDEX ades_rubricas_pkey ON public.ades_rubricas USING btree (id),PRIMARY_KEY
+public,ades_rubricas,ades_rubricas_ref_key,CREATE UNIQUE INDEX ades_rubricas_ref_key ON public.ades_rubricas USING btree (ref),REGULAR
+public,ades_rubricas,idx_ades_rubricas_materia,"CREATE INDEX idx_ades_rubricas_materia ON public.ades_rubricas USING btree (materia_id, nivel_educativo_id) WHERE (is_active = true)",REGULAR
+public,ades_sanciones_disciplinarias,ades_sanciones_disciplinarias_pkey,CREATE UNIQUE INDEX ades_sanciones_disciplinarias_pkey ON public.ades_sanciones_disciplinarias USING btree (id),PRIMARY_KEY
+public,ades_sanciones_disciplinarias,idx_sancion_estudiante,"CREATE INDEX idx_sancion_estudiante ON public.ades_sanciones_disciplinarias USING btree (estudiante_id, fecha_sancion DESC)",REGULAR
+public,ades_sanciones_disciplinarias,idx_sancion_reporte,CREATE INDEX idx_sancion_reporte ON public.ades_sanciones_disciplinarias USING btree (reporte_conducta_id),REGULAR
+public,ades_seguimiento_plan,ades_seguimiento_plan_pkey,CREATE UNIQUE INDEX ades_seguimiento_plan_pkey ON public.ades_seguimiento_plan USING btree (id),PRIMARY_KEY
+public,ades_seguimiento_plan,idx_seguimiento_plan,"CREATE INDEX idx_seguimiento_plan ON public.ades_seguimiento_plan USING btree (plan_mejora_id, fecha_seguimiento DESC)",REGULAR
+public,ades_seguimiento_psicosocial,ades_seguimiento_psicosocial_pkey,CREATE UNIQUE INDEX ades_seguimiento_psicosocial_pkey ON public.ades_seguimiento_psicosocial USING btree (id),PRIMARY_KEY
+public,ades_seguimiento_psicosocial,idx_psicosocial_alumno,CREATE INDEX idx_psicosocial_alumno ON public.ades_seguimiento_psicosocial USING btree (alumno_id),REGULAR
+public,ades_solicitudes_admision,ades_solicitudes_admision_pkey,CREATE UNIQUE INDEX ades_solicitudes_admision_pkey ON public.ades_solicitudes_admision USING btree (id),PRIMARY_KEY
+public,ades_solicitudes_admision,idx_admision_curp,CREATE INDEX idx_admision_curp ON public.ades_solicitudes_admision USING btree (curp),REGULAR
+public,ades_solicitudes_admision,idx_admision_estado,"CREATE INDEX idx_admision_estado ON public.ades_solicitudes_admision USING btree (estado, plantel_id)",REGULAR
+public,ades_solicitudes_tramites,ades_solicitudes_tramites_pkey,CREATE UNIQUE INDEX ades_solicitudes_tramites_pkey ON public.ades_solicitudes_tramites USING btree (id),PRIMARY_KEY
+public,ades_solicitudes_tramites,ades_solicitudes_tramites_ref_key,CREATE UNIQUE INDEX ades_solicitudes_tramites_ref_key ON public.ades_solicitudes_tramites USING btree (ref),REGULAR
+public,ades_solicitudes_tramites,idx_tramites_estatus,"CREATE INDEX idx_tramites_estatus ON public.ades_solicitudes_tramites USING btree (estatus, prioridad, fecha_limite) WHERE ((estatus)::text = ANY ((ARRAY['RECIBIDA'::character varying, 'EN_PROCESO'::character varying])::text[]))",REGULAR
+public,ades_solicitudes_tramites,idx_tramites_usuario,"CREATE INDEX idx_tramites_usuario ON public.ades_solicitudes_tramites USING btree (usuario_id, estatus)",REGULAR
+public,ades_tareas,ades_tareas_pkey,CREATE UNIQUE INDEX ades_tareas_pkey ON public.ades_tareas USING btree (id),PRIMARY_KEY
+public,ades_tareas,ades_tareas_ref_key,CREATE UNIQUE INDEX ades_tareas_ref_key ON public.ades_tareas USING btree (ref),REGULAR
+public,ades_tareas,idx_ades_tareas_fecha,CREATE INDEX idx_ades_tareas_fecha ON public.ades_tareas USING btree (fecha_entrega),REGULAR
+public,ades_tareas,idx_ades_tareas_grupo_materia,"CREATE INDEX idx_ades_tareas_grupo_materia ON public.ades_tareas USING btree (grupo_id, materia_id)",REGULAR
+public,ades_tareas,idx_tareas_grupo,"CREATE INDEX idx_tareas_grupo ON public.ades_tareas USING btree (grupo_id, materia_id) WHERE (is_active = true)",REGULAR
+public,ades_tareas_entregas,ades_tareas_entregas_pkey,CREATE UNIQUE INDEX ades_tareas_entregas_pkey ON public.ades_tareas_entregas USING btree (id),PRIMARY_KEY
+public,ades_tareas_entregas,ades_tareas_entregas_ref_key,CREATE UNIQUE INDEX ades_tareas_entregas_ref_key ON public.ades_tareas_entregas USING btree (ref),REGULAR
+public,ades_tareas_entregas,idx_ades_tareas_entregas_estudiante,CREATE INDEX idx_ades_tareas_entregas_estudiante ON public.ades_tareas_entregas USING btree (estudiante_id),REGULAR
+public,ades_tareas_entregas,idx_entregas_tarea,"CREATE INDEX idx_entregas_tarea ON public.ades_tareas_entregas USING btree (tarea_id, estudiante_id)",REGULAR
+public,ades_tareas_entregas,uq_ades_entregas,"CREATE UNIQUE INDEX uq_ades_entregas ON public.ades_tareas_entregas USING btree (tarea_id, estudiante_id)",REGULAR
+public,ades_tareas_sistema,ades_tareas_sistema_pkey,CREATE UNIQUE INDEX ades_tareas_sistema_pkey ON public.ades_tareas_sistema USING btree (id),PRIMARY_KEY
+public,ades_telefonos,ades_telefonos_pkey,CREATE UNIQUE INDEX ades_telefonos_pkey ON public.ades_telefonos USING btree (id),PRIMARY_KEY
+public,ades_telefonos,ades_telefonos_ref_key,CREATE UNIQUE INDEX ades_telefonos_ref_key ON public.ades_telefonos USING btree (ref),REGULAR
+public,ades_telefonos,idx_ades_tel_entidad,"CREATE INDEX idx_ades_tel_entidad ON public.ades_telefonos USING btree (entidad_tipo, entidad_id)",REGULAR
+public,ades_temas,ades_temas_pkey,CREATE UNIQUE INDEX ades_temas_pkey ON public.ades_temas USING btree (id),PRIMARY_KEY
+public,ades_temas,ades_temas_ref_key,CREATE UNIQUE INDEX ades_temas_ref_key ON public.ades_temas USING btree (ref),REGULAR
+public,ades_temas,idx_ades_temas_materia,CREATE INDEX idx_ades_temas_materia ON public.ades_temas USING btree (materia_id),REGULAR
+public,ades_tipos_asentamiento,ades_tipos_asentamiento_clave_tipo_key,CREATE UNIQUE INDEX ades_tipos_asentamiento_clave_tipo_key ON public.ades_tipos_asentamiento USING btree (clave_tipo),REGULAR
+public,ades_tipos_asentamiento,ades_tipos_asentamiento_pkey,CREATE UNIQUE INDEX ades_tipos_asentamiento_pkey ON public.ades_tipos_asentamiento USING btree (id),PRIMARY_KEY
+public,ades_tipos_asentamiento,ades_tipos_asentamiento_ref_key,CREATE UNIQUE INDEX ades_tipos_asentamiento_ref_key ON public.ades_tipos_asentamiento USING btree (ref),REGULAR
+public,ades_tutores_alumnos,ades_tutores_alumnos_alumno_id_persona_id_key,"CREATE UNIQUE INDEX ades_tutores_alumnos_alumno_id_persona_id_key ON public.ades_tutores_alumnos USING btree (alumno_id, persona_id)",REGULAR
+public,ades_tutores_alumnos,ades_tutores_alumnos_pkey,CREATE UNIQUE INDEX ades_tutores_alumnos_pkey ON public.ades_tutores_alumnos USING btree (id),PRIMARY_KEY
+public,ades_tutorias,ades_tutorias_pkey,CREATE UNIQUE INDEX ades_tutorias_pkey ON public.ades_tutorias USING btree (id),PRIMARY_KEY
+public,ades_tutorias,idx_tutoria_alumno,CREATE INDEX idx_tutoria_alumno ON public.ades_tutorias USING btree (alumno_id),REGULAR
+public,ades_usuario_roles,ades_usuario_roles_pkey,"CREATE UNIQUE INDEX ades_usuario_roles_pkey ON public.ades_usuario_roles USING btree (usuario_id, rol_id)",PRIMARY_KEY
+public,ades_usuario_roles,ades_usuario_roles_ref_key,CREATE UNIQUE INDEX ades_usuario_roles_ref_key ON public.ades_usuario_roles USING btree (ref),REGULAR
+public,ades_usuarios,ades_usuarios_email_institucional_key,CREATE UNIQUE INDEX ades_usuarios_email_institucional_key ON public.ades_usuarios USING btree (email_institucional),REGULAR
+public,ades_usuarios,ades_usuarios_nombre_usuario_key,CREATE UNIQUE INDEX ades_usuarios_nombre_usuario_key ON public.ades_usuarios USING btree (nombre_usuario),REGULAR
+public,ades_usuarios,ades_usuarios_oidc_sub_key,CREATE UNIQUE INDEX ades_usuarios_oidc_sub_key ON public.ades_usuarios USING btree (oidc_sub),REGULAR
+public,ades_usuarios,ades_usuarios_pkey,CREATE UNIQUE INDEX ades_usuarios_pkey ON public.ades_usuarios USING btree (id),PRIMARY_KEY
+public,ades_usuarios,ades_usuarios_ref_key,CREATE UNIQUE INDEX ades_usuarios_ref_key ON public.ades_usuarios USING btree (ref),REGULAR
+public,ades_usuarios,idx_ades_usuarios_nivel_acceso,CREATE INDEX idx_ades_usuarios_nivel_acceso ON public.ades_usuarios USING btree (nivel_acceso),REGULAR
+public,ades_usuarios,idx_usuarios_nivel,CREATE INDEX idx_usuarios_nivel ON public.ades_usuarios USING btree (nivel_educativo_id),REGULAR
+public,ades_usuarios,idx_usuarios_oidc_sub,CREATE INDEX idx_usuarios_oidc_sub ON public.ades_usuarios USING btree (oidc_sub) WHERE (oidc_sub IS NOT NULL),REGULAR
+public,ades_usuarios,idx_usuarios_plantel,CREATE INDEX idx_usuarios_plantel ON public.ades_usuarios USING btree (plantel_id),REGULAR
+public,ades_variables_sistema,ades_variables_sistema_nombre_key,CREATE UNIQUE INDEX ades_variables_sistema_nombre_key ON public.ades_variables_sistema USING btree (nombre),REGULAR
+public,ades_variables_sistema,ades_variables_sistema_pkey,CREATE UNIQUE INDEX ades_variables_sistema_pkey ON public.ades_variables_sistema USING btree (id),PRIMARY_KEY
+public,ades_variables_sistema,ades_variables_sistema_ref_key,CREATE UNIQUE INDEX ades_variables_sistema_ref_key ON public.ades_variables_sistema USING btree (ref),REGULAR
+public,ades_variables_sistema,idx_variables_activo,CREATE INDEX idx_variables_activo ON public.ades_variables_sistema USING btree (is_active),REGULAR
+public,ades_variables_sistema,idx_variables_grupo,CREATE INDEX idx_variables_grupo ON public.ades_variables_sistema USING btree (grupo),REGULAR
+public,ades_webhook_logs,pk_ades_webhook_logs,CREATE UNIQUE INDEX pk_ades_webhook_logs ON public.ades_webhook_logs USING btree (id),REGULAR
+public,ades_webhooks,pk_ades_webhooks,CREATE UNIQUE INDEX pk_ades_webhooks ON public.ades_webhooks USING btree (id),REGULAR
