@@ -16,7 +16,7 @@ from sqlalchemy import select, func, and_
 from pydantic import BaseModel, Field
 
 from app.core.database import get_db
-from app.core.security import get_current_user
+from app.core.security import get_current_user, AdesUser, get_ades_user
 from app.core.config import settings
 from app.models.personas import Estudiante, Persona, Inscripcion
 from app.models.academica import Grupo, CicloEscolar
@@ -70,7 +70,7 @@ class AlertaOut(BaseModel):
 async def chat(
     data: MensajeChat,
     db: AsyncSession = Depends(get_db),
-    _user: dict = Depends(get_current_user),
+    current_user: AdesUser = Depends(get_ades_user),
 ):
     """Envía un mensaje al asistente pedagógico y devuelve la respuesta."""
     try:
@@ -105,34 +105,29 @@ async def chat(
 
     respuesta = response.choices[0].message.content
 
-    # Guardar en historial (best-effort, sin bloquear la respuesta)
+    # Guardar en historial con usuario_id (best-effort)
     try:
         from sqlalchemy import text
+        import json as _json
+        ctx_json = _json.dumps(data.contexto)
+        uid = str(current_user.id)
         await db.execute(
             text("""
-                INSERT INTO ades_ai_conversaciones (sesion_id, rol, contenido, modelo, tokens_entrada, tokens_salida, contexto)
-                VALUES (:sid, 'user', :user_msg, :model, :tin, 0, :ctx::jsonb)
+                INSERT INTO ades_ai_conversaciones
+                  (usuario_id, sesion_id, rol, contenido, modelo, tokens_entrada, tokens_salida, contexto)
+                VALUES (:uid, :sid, 'user', :user_msg, :model, :tin, 0, :ctx::jsonb)
             """),
-            {
-                "sid": data.sesion_id,
-                "user_msg": data.mensaje,
-                "model": settings.OPENAI_MODEL,
-                "tin": response.usage.prompt_tokens,
-                "ctx": str(data.contexto).replace("'", '"')
-            },
+            {"uid": uid, "sid": data.sesion_id, "user_msg": data.mensaje,
+             "model": settings.OPENAI_MODEL, "tin": response.usage.prompt_tokens, "ctx": ctx_json},
         )
         await db.execute(
             text("""
-                INSERT INTO ades_ai_conversaciones (sesion_id, rol, contenido, modelo, tokens_entrada, tokens_salida, contexto)
-                VALUES (:sid, 'assistant', :resp, :model, 0, :tout, :ctx::jsonb)
+                INSERT INTO ades_ai_conversaciones
+                  (usuario_id, sesion_id, rol, contenido, modelo, tokens_entrada, tokens_salida, contexto)
+                VALUES (:uid, :sid, 'assistant', :resp, :model, 0, :tout, :ctx::jsonb)
             """),
-            {
-                "sid": data.sesion_id,
-                "resp": respuesta,
-                "model": settings.OPENAI_MODEL,
-                "tout": response.usage.completion_tokens,
-                "ctx": str(data.contexto).replace("'", '"')
-            },
+            {"uid": uid, "sid": data.sesion_id, "resp": respuesta,
+             "model": settings.OPENAI_MODEL, "tout": response.usage.completion_tokens, "ctx": ctx_json},
         )
         await db.commit()
     except Exception:
@@ -299,3 +294,88 @@ async def scan_alertas_grupo(
 
     await db.commit()
     return {"alertas_generadas": alertas_creadas, "alumnos_analizados": len(inscripciones)}
+
+
+# ── IA-015: Historial de conversaciones persistente ──────────────────────────
+
+@router.get("/mis-sesiones")
+async def mis_sesiones(
+    limite: int = 10,
+    db: AsyncSession = Depends(get_db),
+    current_user: AdesUser = Depends(get_ades_user),
+):
+    """Lista las últimas sesiones de conversación del usuario autenticado."""
+    from sqlalchemy import text
+    rows = (await db.execute(
+        text("""
+            SELECT sesion_id,
+                   MIN(fecha_creacion)                  AS inicio,
+                   MAX(fecha_creacion)                  AS ultimo,
+                   COUNT(*)                             AS total_mensajes,
+                   (ARRAY_AGG(contenido ORDER BY fecha_creacion))[1] AS primer_mensaje
+              FROM ades_ai_conversaciones
+             WHERE usuario_id = :uid AND rol = 'user'
+             GROUP BY sesion_id
+             ORDER BY MAX(fecha_creacion) DESC
+             LIMIT :lim
+        """),
+        {"uid": str(current_user.id), "lim": limite},
+    )).mappings().all()
+
+    return [
+        {
+            "sesion_id": r["sesion_id"],
+            "inicio": str(r["inicio"]),
+            "ultimo_mensaje": str(r["ultimo"]),
+            "total_mensajes": r["total_mensajes"],
+            "resumen": (r["primer_mensaje"] or "")[:120],
+        }
+        for r in rows
+    ]
+
+
+@router.get("/sesion/{sesion_id}")
+async def obtener_sesion(
+    sesion_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: AdesUser = Depends(get_ades_user),
+):
+    """Devuelve todos los mensajes de una sesión del usuario autenticado."""
+    from sqlalchemy import text
+    rows = (await db.execute(
+        text("""
+            SELECT rol, contenido, fecha_creacion, modelo, tokens_entrada, tokens_salida
+              FROM ades_ai_conversaciones
+             WHERE sesion_id = :sid AND usuario_id = :uid
+             ORDER BY fecha_creacion ASC
+        """),
+        {"sid": sesion_id, "uid": str(current_user.id)},
+    )).mappings().all()
+
+    return {
+        "sesion_id": sesion_id,
+        "mensajes": [
+            {
+                "rol": r["rol"],
+                "contenido": r["contenido"],
+                "timestamp": str(r["fecha_creacion"]),
+                "modelo": r["modelo"],
+            }
+            for r in rows
+        ],
+    }
+
+
+@router.delete("/sesion/{sesion_id}", status_code=204)
+async def eliminar_sesion(
+    sesion_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: AdesUser = Depends(get_ades_user),
+):
+    """Elimina todos los mensajes de una sesión del usuario autenticado."""
+    from sqlalchemy import text
+    await db.execute(
+        text("DELETE FROM ades_ai_conversaciones WHERE sesion_id = :sid AND usuario_id = :uid"),
+        {"sid": sesion_id, "uid": str(current_user.id)},
+    )
+    await db.commit()

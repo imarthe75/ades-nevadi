@@ -209,6 +209,9 @@ def refresh_vistas_materializadas() -> dict:
         "ades_bi.mv_riesgo_academico",
         "ades_bi.mv_resumen_plantel",
         "ades_bi.mv_cobertura_curricular",
+        # Schema public — índices únicos en mig 078
+        "public.v_asistencias_resumen",
+        "public.v_tareas_entregas_resumen",
     ]
 
     engine = _get_db_engine()

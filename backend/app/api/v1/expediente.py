@@ -214,11 +214,13 @@ async def subir_documento(
         titulo=f"{tipo_documento}_{alumno_id}",
     )
 
-    await db.execute(
+    # Insertar registro y recuperar su UUID para disparar la tarea OCR
+    res = await db.execute(
         text(
             "INSERT INTO ades_expediente_documentos "
             "(expediente_id, tipo_documento, nombre_archivo, estado_ocr, cargado_por) "
-            "VALUES (:exp_id, :tipo, :nombre, 'PENDIENTE', :user_id)"
+            "VALUES (:exp_id, :tipo, :nombre, 'PENDIENTE', :user_id) "
+            "RETURNING id"
         ),
         {
             "exp_id": str(exp["id"]),
@@ -227,12 +229,90 @@ async def subir_documento(
             "user_id": str(current_user.id),
         },
     )
+    doc_uuid = str(res.scalar_one())
     await db.commit()
+
+    # Disparar tarea OCR en background si Paperless devolvió un task_id
+    if task_id:
+        from app.worker.tasks.ocr import resolver_ocr_documento
+        resolver_ocr_documento.apply_async(
+            args=[doc_uuid, task_id],
+            countdown=10,  # pequeña espera para que Paperless registre la tarea
+        )
 
     return {
         "mensaje": "Documento subido. OCR en proceso.",
+        "doc_id": doc_uuid,
         "task_id": task_id,
         "tipo": tipo_documento,
+    }
+
+
+@router.get("/alumno/{alumno_id}/buscar")
+async def buscar_en_expediente(
+    alumno_id: UUID,
+    q: str,
+    db: AsyncSession = Depends(get_db),
+    _user: AdesUser = Depends(get_ades_user),
+):
+    """Búsqueda full-text en el texto OCR de los documentos del expediente (GIN index)."""
+    if len(q.strip()) < 3:
+        raise HTTPException(status_code=422, detail="La búsqueda debe tener al menos 3 caracteres")
+
+    exp = await _get_or_create_expediente(db, alumno_id)
+    rows = await db.execute(
+        text("""
+            SELECT d.id, d.tipo_documento, d.nombre_archivo, d.estado_ocr,
+                   ts_headline('spanish', d.ocr_texto,
+                               plainto_tsquery('spanish', :q),
+                               'MaxFragments=3,MaxWords=25,MinWords=5') AS fragmento
+              FROM ades_expediente_documentos d
+             WHERE d.expediente_id = :exp_id
+               AND d.estado_ocr = 'PROCESADO'
+               AND to_tsvector('spanish', COALESCE(d.ocr_texto,'')) @@ plainto_tsquery('spanish', :q)
+             ORDER BY d.fecha_carga DESC
+        """),
+        {"exp_id": str(exp["id"]), "q": q},
+    )
+    resultados = [
+        {
+            "doc_id": str(r.id),
+            "tipo": r.tipo_documento,
+            "nombre_archivo": r.nombre_archivo,
+            "estado_ocr": r.estado_ocr,
+            "fragmento": r.fragmento,
+        }
+        for r in rows.fetchall()
+    ]
+    return {"query": q, "total": len(resultados), "resultados": resultados}
+
+
+@router.get("/{expediente_id}/documentos/{doc_id}/estado-ocr")
+async def estado_ocr_documento(
+    expediente_id: UUID,
+    doc_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    _user: AdesUser = Depends(get_ades_user),
+):
+    """Devuelve el estado actual del procesamiento OCR de un documento."""
+    row = await db.execute(
+        text("""
+            SELECT id, estado_ocr, paperless_doc_id,
+                   ocr_texto IS NOT NULL AND ocr_texto <> '' AS tiene_texto
+              FROM ades_expediente_documentos
+             WHERE id = :doc_id AND expediente_id = :exp_id
+        """),
+        {"doc_id": str(doc_id), "exp_id": str(expediente_id)},
+    )
+    doc = row.fetchone()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Documento no encontrado")
+
+    return {
+        "doc_id": str(doc.id),
+        "estado_ocr": doc.estado_ocr,
+        "paperless_doc_id": doc.paperless_doc_id,
+        "tiene_texto_ocr": bool(doc.tiene_texto),
     }
 
 

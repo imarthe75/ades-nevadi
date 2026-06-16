@@ -27,8 +27,10 @@ export interface ColumnConfig {
   filterable?: boolean;
   editable?: boolean;
   width?: string;
+  align?: 'left' | 'center' | 'right';
   type?: 'text' | 'number' | 'date' | 'boolean' | 'select';
   selectOptions?: Array<{ label: string; value: any }>;
+  template?: (row: any) => string;
 }
 
 @Component({
@@ -213,6 +215,7 @@ export class InteractiveGridComponent implements OnChanges {
   @Input() columns: ColumnConfig[] = [];
   @Input() loading = false;
   @Input() showDelete = false;
+  @Input() searchable = true;
   @Output() rowSelected = new EventEmitter<any>();
   @Output() rowDeleted  = new EventEmitter<any>();
 

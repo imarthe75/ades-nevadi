@@ -129,6 +129,44 @@ const TIPOS_DOCUMENTO = [
     }
 
     @if (expediente()) {
+
+      <!-- Búsqueda OCR full-text -->
+      <div class="card" style="margin-bottom:1rem">
+        <div style="display:flex;gap:.75rem;align-items:center">
+          <i class="pi pi-search" style="color:var(--primary-color)"></i>
+          <input pInputText [(ngModel)]="queryOcr" placeholder="Buscar en documentos OCR..."
+            style="flex:1" (keydown.enter)="buscarOcr()" />
+          <p-button label="Buscar" icon="pi pi-search" size="small"
+            [loading]="buscandoOcr()" (onClick)="buscarOcr()" />
+          @if (resultadosOcr().length > 0) {
+            <p-button icon="pi pi-times" severity="secondary" [text]="true"
+              size="small" pTooltip="Limpiar búsqueda" (onClick)="limpiarBusqueda()" />
+          }
+        </div>
+        @if (resultadosOcr().length > 0) {
+          <div style="margin-top:.75rem;border-top:1px solid var(--surface-200);padding-top:.75rem">
+            <div style="font-size:.78rem;color:var(--text-muted);margin-bottom:.5rem">
+              {{ resultadosOcr().length }} resultado(s) para "{{ queryOcr }}"
+            </div>
+            @for (r of resultadosOcr(); track r.doc_id) {
+              <div style="padding:.5rem;background:var(--surface-50);border-radius:6px;margin-bottom:.35rem;font-size:.82rem">
+                <div style="font-weight:600;margin-bottom:.2rem">
+                  <i class="pi pi-file-pdf" style="color:var(--red-400);margin-right:.3rem"></i>
+                  {{ r.tipo }} — {{ r.nombre_archivo || '—' }}
+                </div>
+                <div style="color:var(--text-secondary);line-height:1.5"
+                  [innerHTML]="r.fragmento"></div>
+              </div>
+            }
+          </div>
+        }
+        @if (resultadosOcr().length === 0 && buscandoOcr() === false && queryOcr.length >= 3) {
+          <div style="margin-top:.5rem;font-size:.8rem;color:var(--text-muted)">
+            Sin resultados en los documentos procesados.
+          </div>
+        }
+      </div>
+
       <!-- Panel principal: dos columnas -->
       <div style="display:grid;grid-template-columns:340px 1fr;gap:1rem;align-items:start">
 
@@ -327,6 +365,7 @@ export class ExpedienteDocComponent implements OnInit {
   loading = signal(false);
   loadingIA = signal(false);
   subiendoDoc = signal(false);
+  buscandoOcr = signal(false);
   showSubir = signal(false);
   showAnalisis = signal(false);
 
@@ -336,6 +375,8 @@ export class ExpedienteDocComponent implements OnInit {
   docSeleccionado = signal<Documento | null>(null);
   analisisIA = signal<AnalisisIA | null>(null);
   archivoSeleccionado = signal<File | null>(null);
+  resultadosOcr = signal<any[]>([]);
+  queryOcr = '';
   tipoDocumentoNuevo = '';
   tiposDocumento = TIPOS_DOCUMENTO;
 
@@ -491,5 +532,27 @@ export class ExpedienteDocComponent implements OnInit {
         },
         error: (e) => this.notify.error('Error', e.error?.detail || e.message),
       });
+  }
+
+  buscarOcr() {
+    const alumno = this.alumnoSeleccionado;
+    if (!alumno || this.queryOcr.trim().length < 3) return;
+    this.buscandoOcr.set(true);
+    this.api.get<any>(`/expediente/alumno/${alumno.id}/buscar?q=${encodeURIComponent(this.queryOcr)}`)
+      .subscribe({
+        next: (res) => {
+          this.resultadosOcr.set(res.resultados || []);
+          this.buscandoOcr.set(false);
+        },
+        error: () => {
+          this.buscandoOcr.set(false);
+          this.notify.error('Error en búsqueda OCR');
+        },
+      });
+  }
+
+  limpiarBusqueda() {
+    this.queryOcr = '';
+    this.resultadosOcr.set([]);
   }
 }

@@ -39,18 +39,27 @@ public class StatsController {
 
     @GetMapping("/servidor")
     public Map<String, Object> servidor(@AuthenticationPrincipal Jwt jwt) {
-        Object nivel = jwt.getClaim("nivel_acceso");
-        int nivelAcceso = nivel instanceof Number n ? n.intValue() : 99;
-        if (nivelAcceso > 2) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "Solo directores y administradores pueden ver la telemetría");
-        }
-
+        _requireNivelAcceso(jwt, 2, "Solo directores y administradores pueden ver la telemetría");
         long dbSize = queryService.databaseSizeBytes();
         return Map.of(
                 "database_size_bytes", dbSize,
                 "database_size_mb", dbSize / 1_048_576.0
         );
+    }
+
+    // AD-030 — Telemetría completa: BD, conexiones, disco, JVM, colas Celery
+    @GetMapping("/telemetria")
+    public Map<String, Object> telemetria(@AuthenticationPrincipal Jwt jwt) {
+        _requireNivelAcceso(jwt, 2, "Solo directores y administradores pueden ver la telemetría");
+        return queryService.telemetria();
+    }
+
+    private void _requireNivelAcceso(Jwt jwt, int maxNivel, String mensaje) {
+        Object nivel = jwt.getClaim("nivel_acceso");
+        int nivelAcceso = nivel instanceof Number n ? n.intValue() : 99;
+        if (nivelAcceso > maxNivel) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, mensaje);
+        }
     }
 
     private UUID resolveUUID(String claim, UUID fallback) {

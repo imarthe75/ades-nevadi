@@ -22,6 +22,7 @@ celery_app = Celery(
         "app.worker.tasks.notificaciones",
         "app.worker.tasks.blockchain",
         "app.worker.tasks.sepomex",
+        "app.worker.tasks.ocr",
     ],
 )
 
