@@ -122,4 +122,83 @@ public class ProcesosQueryService {
         sql.append("ORDER BY ca.fecha_inicio");
         return jdbc.queryForList(sql.toString(), params.toArray());
     }
+
+    // ── Reads extracted from ProcesosEscolaresController ─────────────────────
+
+    public List<UUID> fetchCicloPorVigente() {
+        return jdbc.queryForList(
+                "SELECT id FROM public.ades_ciclos_escolares WHERE es_vigente = TRUE ORDER BY fecha_inicio DESC LIMIT 1",
+                UUID.class);
+    }
+
+    public List<UUID> fetchExpedienteId(UUID estudianteId, UUID cicloId) {
+        return jdbc.queryForList(
+                "SELECT id FROM public.ades_expedientes_alumno WHERE estudiante_id = ? AND ciclo_escolar_id = ? AND is_active = TRUE",
+                UUID.class, estudianteId, cicloId);
+    }
+
+    public List<Map<String, Object>> fetchDocumentosExpediente(UUID expedienteId) {
+        return jdbc.queryForList(
+                "SELECT paperless_doc_id, nombre_archivo, tipo_documento FROM public.ades_expediente_documentos " +
+                "WHERE expediente_id = ? AND is_active = TRUE AND paperless_doc_id IS NOT NULL",
+                expedienteId);
+    }
+
+    public List<Map<String, Object>> fetchSolicitudEstado(UUID id) {
+        return jdbc.queryForList(
+                "SELECT estado FROM ades_solicitudes_admision WHERE id = ?", id);
+    }
+
+    public List<Map<String, Object>> fetchSolicitudParaCarta(UUID id) {
+        return jdbc.queryForList(
+                "SELECT nombre, apellido_paterno, apellido_materno, curp, estado, " +
+                "nivel_solicitado, grado_solicitado, nombre_tutor, fecha_solicitud " +
+                "FROM ades_solicitudes_admision WHERE id = ?", id);
+    }
+
+    public List<Map<String, Object>> fetchSolicitudListaEspera(UUID id) {
+        return jdbc.queryForList(
+                "SELECT email_tutor, nombre FROM ades_solicitudes_admision WHERE id = ? AND estado='LISTA_ESPERA'", id);
+    }
+
+    public boolean checkMateriaExists(UUID materiaId) {
+        return !jdbc.queryForList(
+                "SELECT tipo_materia FROM ades_materias WHERE id = ? AND is_active = TRUE", materiaId).isEmpty();
+    }
+
+    public boolean checkDupOptativa(UUID estudianteId, UUID materiaId, UUID cicloId) {
+        return !jdbc.queryForList(
+                "SELECT id FROM ades_inscripciones_optativas " +
+                "WHERE estudiante_id = ? AND materia_id = ? AND ciclo_escolar_id = ? AND is_active = TRUE",
+                estudianteId, materiaId, cicloId).isEmpty();
+    }
+
+    public List<Map<String, Object>> listarBajas() {
+        return jdbc.queryForList(
+                "SELECT b.id, b.estudiante_id, b.tipo_baja, b.motivo, b.fecha_efectiva, " +
+                "p.nombre || ' ' || p.apellido_paterno AS alumno, g.nombre_grupo AS grupo " +
+                "FROM ades_bajas b " +
+                "JOIN ades_estudiantes e ON e.id = b.estudiante_id " +
+                "JOIN ades_personas p ON p.id = e.persona_id " +
+                "LEFT JOIN ades_inscripciones i ON i.id = b.inscripcion_id " +
+                "LEFT JOIN ades_grupos g ON g.id = i.grupo_id " +
+                "ORDER BY b.fecha_creacion DESC");
+    }
+
+    public List<Map<String, Object>> fetchBajaParaReactivar(UUID bajaId) {
+        return jdbc.queryForList(
+                "SELECT estudiante_id, inscripcion_id FROM ades_bajas WHERE id = ?", bajaId);
+    }
+
+    public List<Map<String, Object>> fetchInscripcionGrupo(UUID inscripcionId) {
+        return jdbc.queryForList(
+                "SELECT grupo_id FROM ades_inscripciones WHERE id = ?", inscripcionId);
+    }
+
+    public List<Map<String, Object>> fetchCapacidadGrupo(UUID grupoId) {
+        return jdbc.queryForList(
+                "SELECT capacidad_maxima, " +
+                "(SELECT COUNT(*) FROM ades_inscripciones WHERE grupo_id = ? AND is_active = TRUE) AS inscritos " +
+                "FROM ades_grupos WHERE id = ?", grupoId, grupoId);
+    }
 }

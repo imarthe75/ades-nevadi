@@ -3,9 +3,10 @@ package mx.ades.modules.medico;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import mx.ades.modules.medico.application.service.SaludAvanzadaApplicationService;
+import mx.ades.modules.medico.domain.port.in.*;
 import mx.ades.modules.medico.query.SaludQueryService;
 import org.springframework.http.*;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -15,7 +16,6 @@ import mx.ades.security.AdesUser;
 import mx.ades.security.AdesUserService;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -27,12 +27,11 @@ import java.util.UUID;
 public class SaludAvanzadaController {
 
     private final AdesUserService userService;
-    private final JdbcTemplate jdbc;
     private final SaludQueryService queryService;
+    private final SaludAvanzadaApplicationService saludAvanzadaService;
     private final RestClient restClient = RestClient.builder().build();
 
     private static final String API_BASE_URL = "http://ades-api:8000/api/v1/salud-avanzada";
-    private static final int NIVEL_MEDICO = 3;
 
     @Data
     public static class MedicamentoPayload {
@@ -99,26 +98,16 @@ public class SaludAvanzadaController {
             @RequestBody MedicamentoPayload data,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
-        if (user.getNivelAcceso() == null || user.getNivelAcceso() > NIVEL_MEDICO) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Se requiere nivel Médico/Coordinador o superior");
+        try {
+            UUID id = saludAvanzadaService.registrar(new RegistrarMedicamentoUseCase.Command(
+                alumnoId, data.getNombreMedicamento(), data.getDosis(), data.getFrecuencia(),
+                data.getHorario(), data.getViaAdministracion(), data.getPrescritoPor(),
+                parseDate(data.getFechaInicio()), parseDate(data.getFechaFin()),
+                data.getObservaciones(), user.getNivelAcceso(), user.getUsername()));
+            return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("id", id.toString(), "message", "Medicamento registrado"));
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, e.getMessage());
         }
-
-        UUID id = UUID.randomUUID();
-        LocalDate fi = data.getFechaInicio() != null ? LocalDate.parse(data.getFechaInicio()) : null;
-        LocalDate ff = data.getFechaFin() != null ? LocalDate.parse(data.getFechaFin()) : null;
-
-        jdbc.update(
-                "INSERT INTO ades_medicamentos_alumno " +
-                        "(id, alumno_id, nombre_medicamento, dosis, frecuencia, horario, " +
-                        "via_administracion, prescrito_por, fecha_inicio, fecha_fin, " +
-                        "observaciones, usuario_creacion, usuario_modificacion) " +
-                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                id, alumnoId, data.getNombreMedicamento(), data.getDosis(), data.getFrecuencia(), data.getHorario(),
-                data.getViaAdministracion(), data.getPrescritoPor(), fi, ff,
-                data.getObservaciones(), user.getUsername(), user.getUsername()
-        );
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("id", id.toString(), "message", "Medicamento registrado"));
     }
 
     @DeleteMapping("/medicamentos/{medicamento_id}")
@@ -126,16 +115,13 @@ public class SaludAvanzadaController {
             @PathVariable("medicamento_id") UUID medicamentoId,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
-        if (user.getNivelAcceso() == null || user.getNivelAcceso() > NIVEL_MEDICO) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado");
+        try {
+            saludAvanzadaService.suspender(new SuspenderMedicamentoUseCase.Command(
+                medicamentoId, user.getNivelAcceso(), user.getUsername()));
+            return ResponseEntity.ok(Map.of("message", "Medicamento suspendido"));
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, e.getMessage());
         }
-
-        jdbc.update(
-                "UPDATE ades_medicamentos_alumno SET is_active = FALSE, usuario_modificacion = ? WHERE id = ?",
-                user.getUsername(), medicamentoId
-        );
-
-        return ResponseEntity.ok(Map.of("message", "Medicamento suspendido"));
     }
 
     // ──────────────────────────────────────────────────────────────────────────
@@ -147,30 +133,17 @@ public class SaludAvanzadaController {
             @RequestBody ActaIncidentePayload data,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
-        if (user.getNivelAcceso() == null || user.getNivelAcceso() > NIVEL_MEDICO) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado");
-        }
-
-        // Verify incident exists
-        List<Map<String, Object>> inc = jdbc.queryForList(
-                "SELECT id FROM ades_incidentes_medicos WHERE id = ?", incidenteId);
-        if (inc.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Incidente médico no encontrado");
-        }
-
-        UUID id = UUID.randomUUID();
-        jdbc.update(
-                "INSERT INTO ades_actas_incidente_medico " +
-                        "(id, incidente_id, descripcion_detallada, testigos, medidas_tomadas, " +
-                        "requirio_traslado, hospital_destino, notificado_familia, " +
-                        "firma_responsable, usuario_creacion, usuario_modificacion) " +
-                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                id, incidenteId, data.getDescripcionDetallada(), data.getTestigos(), data.getMedidasTomadas(),
+        try {
+            UUID id = saludAvanzadaService.generar(new GenerarActaIncidenteUseCase.Command(
+                incidenteId, data.getDescripcionDetallada(), data.getTestigos(), data.getMedidasTomadas(),
                 data.getRequirioTraslado(), data.getHospitalDestino(), data.getNotificadoFamilia(),
-                data.getFirmaResponsable(), user.getUsername(), user.getUsername()
-        );
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("id", id.toString(), "message", "Acta de incidente médico generada"));
+                data.getFirmaResponsable(), user.getNivelAcceso(), user.getUsername()));
+            return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("id", id.toString(), "message", "Acta de incidente médico generada"));
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, e.getMessage());
+        } catch (IllegalStateException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+        }
     }
 
     // ──────────────────────────────────────────────────────────────────────────
@@ -181,7 +154,7 @@ public class SaludAvanzadaController {
             @PathVariable("alumno_id") UUID alumnoId,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
-        if (user.getNivelAcceso() == null || user.getNivelAcceso() > NIVEL_MEDICO) {
+        if (user.getNivelAcceso() == null || user.getNivelAcceso() > 3) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado");
         }
         return ResponseEntity.ok(queryService.psicosocial(alumnoId));
@@ -193,25 +166,15 @@ public class SaludAvanzadaController {
             @RequestBody PsicosocialPayload data,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
-        if (user.getNivelAcceso() == null || user.getNivelAcceso() > NIVEL_MEDICO) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado");
+        try {
+            UUID id = saludAvanzadaService.registrar(new RegistrarPsicosocialUseCase.Command(
+                alumnoId, data.getTipoAtencion(), data.getMotivo(), data.getObservaciones(),
+                data.getEstrategiasSugeridas(), data.getRequiereDerivacion(), data.getDerivadoA(),
+                parseDate(data.getProximaSesion()), user.getNivelAcceso(), user.getUsername()));
+            return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("id", id.toString(), "message", "Sesión psicosocial registrada"));
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, e.getMessage());
         }
-
-        UUID id = UUID.randomUUID();
-        LocalDate proxima = data.getProximaSesion() != null ? LocalDate.parse(data.getProximaSesion()) : null;
-
-        jdbc.update(
-                "INSERT INTO ades_seguimiento_psicosocial " +
-                        "(id, alumno_id, tipo_atencion, motivo, observaciones, estrategias_sugeridas, " +
-                        "requiere_derivacion, derivado_a, proxima_sesion, " +
-                        "usuario_creacion, usuario_modificacion) " +
-                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                id, alumnoId, data.getTipoAtencion(), data.getMotivo(), data.getObservaciones(), data.getEstrategiasSugeridas(),
-                data.getRequiereDerivacion(), data.getDerivadoA(), proxima,
-                user.getUsername(), user.getUsername()
-        );
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("id", id.toString(), "message", "Sesión psicosocial registrada"));
     }
 
     // ──────────────────────────────────────────────────────────────────────────
@@ -225,7 +188,7 @@ public class SaludAvanzadaController {
             @RequestParam(value = "limit", defaultValue = "50") int limit,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
-        if (user.getNivelAcceso() == null || user.getNivelAcceso() > NIVEL_MEDICO) {
+        if (user.getNivelAcceso() == null || user.getNivelAcceso() > 3) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado");
         }
         return ResponseEntity.ok(queryService.tutorias(alumnoId, tipoTutoria, skip, limit));
@@ -236,25 +199,15 @@ public class SaludAvanzadaController {
             @RequestBody TutoriaPayload data,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
-        if (user.getNivelAcceso() == null || user.getNivelAcceso() > NIVEL_MEDICO) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado");
+        try {
+            UUID id = saludAvanzadaService.registrar(new RegistrarTutoriaUseCase.Command(
+                data.getAlumnoId(), data.getTipoTutoria(), data.getTema(), data.getDescripcion(),
+                data.getDuracionMinutos(), data.getAcuerdos(), parseDate(data.getProximaSesion()),
+                data.getRequiereSeguimiento(), user.getNivelAcceso(), user.getUsername()));
+            return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("id", id.toString(), "message", "Sesión de tutoría registrada"));
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, e.getMessage());
         }
-
-        UUID id = UUID.randomUUID();
-        LocalDate proxima = data.getProximaSesion() != null ? LocalDate.parse(data.getProximaSesion()) : null;
-
-        jdbc.update(
-                "INSERT INTO ades_tutorias " +
-                        "(id, alumno_id, tipo_tutoria, tema, descripcion, duracion_minutos, " +
-                        "acuerdos, proxima_sesion, requiere_seguimiento, " +
-                        "usuario_creacion, usuario_modificacion) " +
-                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                id, data.getAlumnoId(), data.getTipoTutoria(), data.getTema(), data.getDescripcion(), data.getDuracionMinutos(),
-                data.getAcuerdos(), proxima, data.getRequiereSeguimiento(),
-                user.getUsername(), user.getUsername()
-        );
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("id", id.toString(), "message", "Sesión de tutoría registrada"));
     }
 
     // ──────────────────────────────────────────────────────────────────────────
@@ -266,25 +219,7 @@ public class SaludAvanzadaController {
             @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authHeader,
             @AuthenticationPrincipal Jwt jwt) {
         userService.resolveUser(jwt);
-
-        try {
-            RestClient.RequestHeadersSpec<?> request = restClient.get()
-                    .uri(API_BASE_URL + "/incidentes/" + incidenteId + "/acta-pdf");
-            if (authHeader != null) {
-                request.header(HttpHeaders.AUTHORIZATION, authHeader);
-            }
-
-            ResponseEntity<byte[]> response = request.retrieve().toEntity(byte[].class);
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_PDF);
-            if (response.getHeaders().getFirst(HttpHeaders.CONTENT_DISPOSITION) != null) {
-                headers.set(HttpHeaders.CONTENT_DISPOSITION, response.getHeaders().getFirst(HttpHeaders.CONTENT_DISPOSITION));
-            }
-            return new ResponseEntity<>(response.getBody(), headers, HttpStatus.OK);
-        } catch (Exception e) {
-            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Error al generar acta PDF en microservicio FastAPI: " + e.getMessage());
-        }
+        return proxyToPdf(API_BASE_URL + "/incidentes/" + incidenteId + "/acta-pdf", authHeader);
     }
 
     @GetMapping("/certificado-deportivo/{alumno_id}")
@@ -293,24 +228,25 @@ public class SaludAvanzadaController {
             @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authHeader,
             @AuthenticationPrincipal Jwt jwt) {
         userService.resolveUser(jwt);
+        return proxyToPdf(API_BASE_URL + "/certificado-deportivo/" + alumnoId, authHeader);
+    }
 
+    private ResponseEntity<byte[]> proxyToPdf(String url, String authHeader) {
         try {
-            RestClient.RequestHeadersSpec<?> request = restClient.get()
-                    .uri(API_BASE_URL + "/certificado-deportivo/" + alumnoId);
-            if (authHeader != null) {
-                request.header(HttpHeaders.AUTHORIZATION, authHeader);
-            }
-
+            RestClient.RequestHeadersSpec<?> request = restClient.get().uri(url);
+            if (authHeader != null) request.header(HttpHeaders.AUTHORIZATION, authHeader);
             ResponseEntity<byte[]> response = request.retrieve().toEntity(byte[].class);
-
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_PDF);
-            if (response.getHeaders().getFirst(HttpHeaders.CONTENT_DISPOSITION) != null) {
-                headers.set(HttpHeaders.CONTENT_DISPOSITION, response.getHeaders().getFirst(HttpHeaders.CONTENT_DISPOSITION));
-            }
+            String cd = response.getHeaders().getFirst(HttpHeaders.CONTENT_DISPOSITION);
+            if (cd != null) headers.set(HttpHeaders.CONTENT_DISPOSITION, cd);
             return new ResponseEntity<>(response.getBody(), headers, HttpStatus.OK);
         } catch (Exception e) {
-            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Error al generar certificado deportivo en microservicio FastAPI: " + e.getMessage());
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Error al generar PDF: " + e.getMessage());
         }
+    }
+
+    private LocalDate parseDate(String value) {
+        return value != null ? LocalDate.parse(value) : null;
     }
 }

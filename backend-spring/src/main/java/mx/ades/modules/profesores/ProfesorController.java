@@ -7,13 +7,11 @@ import mx.ades.security.AdesUserService;
 import mx.ades.shared.persona.PersonaUpdateHelper;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.sql.Date;
 import java.util.Map;
 import java.util.UUID;
 
@@ -23,10 +21,10 @@ import java.util.UUID;
 public class ProfesorController {
 
     private final ProfesorRepository repository;
-    private final JdbcTemplate jdbc;
     private final AdesUserService userService;
     private final ProfesorQueryService query;
     private final PersonaUpdateHelper personaHelper;
+    private final ProfesorLaboralesService laboralesService;
 
     @GetMapping
     public ResponseEntity<Map<String, Object>> list(
@@ -56,29 +54,7 @@ public class ProfesorController {
 
         @SuppressWarnings("unchecked")
         Map<String, Object> lab = (Map<String, Object>) body.get("laborales");
-        if (lab != null) {
-            Date fechaIngreso = lab.get("fecha_ingreso_inst") != null
-                    ? Date.valueOf(lab.get("fecha_ingreso_inst").toString().substring(0, 10))
-                    : null;
-            jdbc.update("""
-                UPDATE ades_profesores
-                   SET tipo_contrato       = ?,
-                       rfc                 = ?,
-                       nss                 = ?,
-                       cedula_profesional  = ?,
-                       especialidad        = ?,
-                       nivel_estudios      = ?,
-                       fecha_ingreso_inst  = ?,
-                       clabe               = ?,
-                       banco               = ?,
-                       turno               = ?
-                 WHERE id = ?
-                """,
-                    lab.get("tipo_contrato"), lab.get("rfc"), lab.get("nss"),
-                    lab.get("cedula_profesional"), lab.get("especialidad"), lab.get("nivel_estudios"),
-                    fechaIngreso, lab.get("clabe"), lab.get("banco"), lab.get("turno"),
-                    id);
-        }
+        laboralesService.actualizar(id, lab);
 
         return ResponseEntity.ok(Map.of("updated", true));
     }

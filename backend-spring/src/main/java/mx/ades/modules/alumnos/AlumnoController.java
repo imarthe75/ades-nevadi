@@ -7,7 +7,6 @@ import mx.ades.security.AdesUserService;
 import mx.ades.shared.persona.PersonaUpdateHelper;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -22,10 +21,10 @@ import java.util.UUID;
 public class AlumnoController {
 
     private final EstudianteRepository repository;
-    private final JdbcTemplate jdbc;
     private final AdesUserService userService;
     private final AlumnoQueryService query;
     private final PersonaUpdateHelper personaHelper;
+    private final AlumnoComplementariosService complementariosService;
 
     @GetMapping
     public ResponseEntity<Map<String, Object>> list(
@@ -54,34 +53,7 @@ public class AlumnoController {
 
         @SuppressWarnings("unchecked")
         Map<String, Object> comp = (Map<String, Object>) body.get("complementarios");
-        if (comp != null) {
-            Object lengInd = comp.get("lengua_indigena_id");
-            Object nivIng  = comp.get("nivel_ingles_id");
-            jdbc.update("""
-                UPDATE ades_estudiantes
-                   SET nss                   = ?,
-                       discapacidad          = ?,
-                       escuela_procedencia   = ?,
-                       clave_ct_procedencia  = ?,
-                       promedio_procedencia  = ?,
-                       beca_tipo             = ?,
-                       beca_monto            = ?,
-                       nivel_socioeconomico  = ?,
-                       etnia                 = ?,
-                       lengua_indigena_id    = ?::uuid,
-                       nivel_ingles_id       = ?::uuid
-                 WHERE id = ?
-                """,
-                    comp.get("nss"), comp.get("discapacidad"), comp.get("escuela_procedencia"),
-                    comp.get("clave_ct_procedencia"),
-                    comp.get("promedio_procedencia") != null ? Double.parseDouble(comp.get("promedio_procedencia").toString()) : null,
-                    comp.get("beca_tipo"),
-                    comp.get("beca_monto") != null ? Double.parseDouble(comp.get("beca_monto").toString()) : null,
-                    comp.get("nivel_socioeconomico"), comp.get("etnia"),
-                    lengInd != null ? lengInd.toString() : null,
-                    nivIng  != null ? nivIng.toString()  : null,
-                    id);
-        }
+        complementariosService.actualizar(id, comp);
 
         return ResponseEntity.ok(Map.of("updated", true));
     }

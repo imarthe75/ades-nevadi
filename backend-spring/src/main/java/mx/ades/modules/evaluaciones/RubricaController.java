@@ -2,9 +2,9 @@ package mx.ades.modules.evaluaciones;
 
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import mx.ades.modules.evaluaciones.query.RubricaQueryService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -13,7 +13,6 @@ import mx.ades.security.AdesUser;
 import mx.ades.security.AdesUserService;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -26,7 +25,7 @@ public class RubricaController {
     private final RubricaRepository repository;
     private final RubricaCriterioRepository criterioRepository;
     private final AdesUserService userService;
-    private final JdbcTemplate jdbc;
+    private final RubricaQueryService queryService;
 
     @Data
     public static class CriterioPayload {
@@ -44,36 +43,7 @@ public class RubricaController {
             @RequestParam(name = "limit", defaultValue = "50") int limit,
             @AuthenticationPrincipal Jwt jwt) {
         userService.resolveUser(jwt);
-
-        StringBuilder sql = new StringBuilder(
-                "SELECT r.id, r.nombre_rubrica, r.descripcion, " +
-                "r.materia_id, m.nombre_materia, " +
-                "r.nivel_educativo_id, ne.nombre_nivel, " +
-                "COUNT(rc.id) AS total_criterios, " +
-                "ROUND(COALESCE(SUM(rc.ponderacion), 0), 1) AS ponderacion_total " +
-                "FROM ades_rubricas r " +
-                "LEFT JOIN ades_materias m ON m.id = r.materia_id " +
-                "LEFT JOIN ades_niveles_educativos ne ON ne.id = r.nivel_educativo_id " +
-                "LEFT JOIN ades_rubrica_criterios rc ON rc.rubrica_id = r.id AND rc.is_active = TRUE " +
-                "WHERE r.is_active = TRUE"
-        );
-        List<Object> params = new ArrayList<>();
-
-        if (materiaId != null) {
-            sql.append(" AND r.materia_id = ?");
-            params.add(materiaId);
-        }
-        if (nivelEducativoId != null) {
-            sql.append(" AND r.nivel_educativo_id = ?");
-            params.add(nivelEducativoId);
-        }
-
-        sql.append(" GROUP BY r.id, m.nombre_materia, ne.nombre_nivel ");
-        sql.append(" ORDER BY r.fecha_creacion DESC LIMIT ?");
-        params.add(limit);
-
-        List<Map<String, Object>> rows = jdbc.queryForList(sql.toString(), params.toArray());
-        return ResponseEntity.ok(rows);
+        return ResponseEntity.ok(queryService.listar(materiaId, nivelEducativoId, limit));
     }
 
     @GetMapping("/{id}")
@@ -81,22 +51,8 @@ public class RubricaController {
             @PathVariable("id") UUID id,
             @AuthenticationPrincipal Jwt jwt) {
         userService.resolveUser(jwt);
-
-        List<Map<String, Object>> rList = jdbc.queryForList(
-                "SELECT r.*, m.nombre_materia, ne.nombre_nivel " +
-                "FROM ades_rubricas r " +
-                "LEFT JOIN ades_materias m ON m.id = r.materia_id " +
-                "LEFT JOIN ades_niveles_educativos ne ON ne.id = r.nivel_educativo_id " +
-                "WHERE r.id = ? AND r.is_active = TRUE", id);
-
-        if (rList.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Rúbrica no encontrada");
-        }
-
-        Map<String, Object> rubrica = rList.get(0);
-        List<RubricaCriterio> criterios = criterioRepository.findByRubricaIdAndIsActiveTrueOrderByOrdenAsc(id);
-        rubrica.put("criterios", criterios);
-
+        Map<String, Object> rubrica = queryService.detalle(id);
+        if (rubrica == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Rúbrica no encontrada");
         return ResponseEntity.ok(rubrica);
     }
 
@@ -144,9 +100,6 @@ public class RubricaController {
         return ResponseEntity.noContent().build();
     }
 
-    // ──────────────────────────────────────────────────────────────────────────
-    // Criterios
-    // ──────────────────────────────────────────────────────────────────────────
     @PostMapping("/{rubrica_id}/criterios")
     public ResponseEntity<RubricaCriterio> addCriterio(
             @PathVariable("rubrica_id") UUID rubricaId,

@@ -2,7 +2,6 @@ package mx.ades.modules.certificados;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.*;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -20,7 +19,6 @@ import java.util.*;
 public class CertificadosController {
 
     private final AdesUserService userService;
-    private final JdbcTemplate jdbc;
     private final CertificadoQueryService queryService;
     private final RestClient restClient = RestClient.builder().build();
 

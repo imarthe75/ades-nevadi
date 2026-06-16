@@ -54,6 +54,7 @@ export const routes: Routes = [
       { path: 'badges',          loadComponent: () => import('./features/badges/badges.component').then(m => m.BadgesComponent) },
       // ── FASE 9 ──────────────────────────────────────────────────────────
       { path: 'portal',          loadComponent: () => import('./features/portal/portal.component').then(m => m.PortalComponent) },
+      { path: 'portal-admin',   canActivate: [roleGuard(2)], loadComponent: () => import('./features/portal-admin/portal-admin.component').then(m => m.PortalAdminComponent) },
       { path: 'padres',          loadComponent: () => import('./features/padres/padres.component').then(m => m.PadresComponent) },
       { path: 'planes-estudio',  loadComponent: () => import('./features/planes-estudio/planes-estudio.component').then(m => m.PlanesEstudioComponent) },
       // ── FASE 10 — Gradebook Curricular ──────────────────────────────────

@@ -4,7 +4,6 @@ import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -26,7 +25,6 @@ import java.util.UUID;
 public class EvaluacionAvanzadaController {
 
     private final AdesUserService userService;
-    private final JdbcTemplate jdbc;
     private final EscalaEvaluacionRepository escalaRepository;
     private final ObservacionPedagogicaRepository observacionRepository;
     private final NeeRepository neeRepository;
@@ -84,8 +82,7 @@ public class EvaluacionAvanzadaController {
         AdesUser user = userService.resolveUser(jwt);
         requireNivel(user, 3);
 
-        List<Map<String, Object>> grpList = jdbc.queryForList(
-            "SELECT id, nombre_grupo FROM ades_grupos WHERE id = ? AND is_active = TRUE", grupoId);
+        List<Map<String, Object>> grpList = queryService.fetchGrupo(grupoId);
         if (grpList.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Grupo no encontrado");
 
         List<Map<String, Object>> registros = queryService.actasSep(grupoId, periodo);

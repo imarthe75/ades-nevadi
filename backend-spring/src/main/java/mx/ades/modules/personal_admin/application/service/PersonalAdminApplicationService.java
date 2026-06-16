@@ -1,0 +1,36 @@
+package mx.ades.modules.personal_admin.application.service;
+
+import mx.ades.modules.personal_admin.domain.port.in.RegistrarPersonalAdminUseCase;
+import mx.ades.modules.personal_admin.domain.port.out.PersonalAdminRepositoryPort;
+
+import java.util.Map;
+import java.util.UUID;
+
+public class PersonalAdminApplicationService implements RegistrarPersonalAdminUseCase {
+
+    private final PersonalAdminRepositoryPort repository;
+
+    public PersonalAdminApplicationService(PersonalAdminRepositoryPort repository) {
+        this.repository = repository;
+    }
+
+    @Override
+    public UUID registrar(RegistrarPersonalAdminUseCase.Command cmd) {
+        UUID personaId = repository.createPersona(cmd.persona(), cmd.usuario());
+        return repository.createEmpleado(personaId, cmd.plantelId(), cmd.laborales(), cmd.usuario());
+    }
+
+    public Map<String, Object> actualizar(UUID id, Map<String, Object> persona,
+                                          Map<String, Object> laborales, String usuario) {
+        UUID personaId = repository.findPersonaId(id)
+                .orElseThrow(() -> new IllegalArgumentException("Personal no encontrado: " + id));
+        if (persona != null) repository.updatePersona(personaId, persona, usuario);
+        if (laborales != null) repository.updateEmpleado(id, laborales, usuario);
+        return repository.fetchById(id);
+    }
+
+    public void desactivar(UUID id) {
+        int n = repository.softDelete(id);
+        if (n == 0) throw new IllegalArgumentException("Personal no encontrado: " + id);
+    }
+}

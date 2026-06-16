@@ -157,4 +157,19 @@ public class ExpedienteQueryService {
     public String labelTipo(String tipo) {
         return LABEL_TIPO.getOrDefault(tipo, tipo);
     }
+
+    public List<Map<String, Object>> fetchExtraordinarioById(UUID id) {
+        return jdbc.queryForList("SELECT * FROM ades_extraordinarias WHERE id = ?", id);
+    }
+
+    public List<Map<String, Object>> fetchConstanciaById(UUID id) {
+        return jdbc.queryForList("SELECT * FROM ades_constancias WHERE id = ?", id);
+    }
+
+    public List<Map<String, Object>> fetchDocForDelete(UUID docId, UUID expedienteId) {
+        return jdbc.queryForList(
+            "SELECT paperless_doc_id FROM public.ades_expediente_documentos " +
+            "WHERE id = ? AND expediente_id = ? AND is_active = TRUE",
+            docId, expedienteId);
+    }
 }

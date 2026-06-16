@@ -387,15 +387,18 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
                   </div>
                   <div class="form-row">
                     <label>Teléfono</label>
-                    <input pInputText [(ngModel)]="contactoEdit.telefono" maxlength="15" />
+                    <input pInputText [(ngModel)]="contactoEdit.telefono" maxlength="15"
+                      placeholder="10 dígitos" type="tel" />
                   </div>
                   <div class="form-row">
                     <label>Teléfono alt.</label>
-                    <input pInputText [(ngModel)]="contactoEdit.telefono_alt" maxlength="15" />
+                    <input pInputText [(ngModel)]="contactoEdit.telefono_alt" maxlength="15"
+                      placeholder="10 dígitos" type="tel" />
                   </div>
                   <div class="form-row">
                     <label>Email</label>
-                    <input pInputText [(ngModel)]="contactoEdit.email" type="email" />
+                    <input pInputText [(ngModel)]="contactoEdit.email" type="email"
+                      placeholder="usuario@dominio.com" />
                   </div>
                   <div class="form-row">
                     <label>Ocupación</label>
@@ -906,6 +909,30 @@ export class AlumnoPerfilComponent implements OnInit, OnChanges {
 
   guardarContacto(): void {
     if (!this.alumno?.persona?.id) return;
+
+    const email = (this.contactoEdit.email ?? '').trim();
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+      this.msg.add({ severity: 'warn', summary: 'Email inválido',
+        detail: 'El correo debe contener @ y un dominio válido (ej: nombre@dominio.com)' });
+      return;
+    }
+
+    const tel = (this.contactoEdit.telefono ?? '').replace(/[\s\-\(\)\.]/g, '');
+    if (tel && !/^\d{10}$/.test(tel)) {
+      this.msg.add({ severity: 'warn', summary: 'Teléfono inválido',
+        detail: 'El teléfono debe tener exactamente 10 dígitos' });
+      return;
+    }
+    if (tel) this.contactoEdit.telefono = tel;
+
+    const telAlt = (this.contactoEdit.telefono_alt ?? '').replace(/[\s\-\(\)\.]/g, '');
+    if (telAlt && !/^\d{10}$/.test(telAlt)) {
+      this.msg.add({ severity: 'warn', summary: 'Teléfono alt. inválido',
+        detail: 'El teléfono alternativo debe tener exactamente 10 dígitos' });
+      return;
+    }
+    if (telAlt) this.contactoEdit.telefono_alt = telAlt;
+
     this.savingContacto.set(true);
 
     const isNew = !this.contactoEdit.id;

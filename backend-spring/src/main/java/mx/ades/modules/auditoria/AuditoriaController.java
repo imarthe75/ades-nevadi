@@ -1,9 +1,9 @@
 package mx.ades.modules.auditoria;
 
 import lombok.RequiredArgsConstructor;
+import mx.ades.modules.auditoria.query.AuditoriaQueryService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,7 +22,7 @@ import java.util.*;
 public class AuditoriaController {
 
     private final AdesUserService userService;
-    private final JdbcTemplate jdbc;
+    private final AuditoriaQueryService queryService;
 
     @GetMapping("")
     public ResponseEntity<List<Map<String, Object>>> listarAuditLog(
@@ -32,35 +32,9 @@ public class AuditoriaController {
             @RequestParam(value = "usuario_id", required = false) UUID usuarioId,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
-
         if (user.getNivelAcceso() > 0) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo ADMIN_GLOBAL tiene acceso al registro de auditoría");
         }
-
-        StringBuilder sql = new StringBuilder(
-                "SELECT id, usuario_id, nombre_usuario, ip_origen, accion, entidad, entidad_id, " +
-                "endpoint, metodo_http, codigo_respuesta, duracion_ms, fecha_creacion, row_version " +
-                "FROM ades_audit_log WHERE 1=1 "
-        );
-
-        List<Object> params = new ArrayList<>();
-
-        if (entidad != null && !entidad.isBlank()) {
-            sql.append("AND entidad = ? ");
-            params.add(entidad);
-        }
-        if (accion != null && !accion.isBlank()) {
-            sql.append("AND accion = ? ");
-            params.add(accion);
-        }
-        if (usuarioId != null) {
-            sql.append("AND usuario_id = ? ");
-            params.add(usuarioId);
-        }
-
-        sql.append("ORDER BY fecha_creacion DESC LIMIT ?");
-        params.add(limite);
-
-        return ResponseEntity.ok(jdbc.queryForList(sql.toString(), params.toArray()));
+        return ResponseEntity.ok(queryService.listar(entidad, accion, usuarioId, limite));
     }
 }

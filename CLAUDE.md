@@ -228,7 +228,8 @@ OIDC_CLIENT_SECRET=<pendiente — crear app en Authentik>
 SUPERSET_SECRET_KEY=<en .env>
 SUPERSET_OIDC_CLIENT_SECRET=<pendiente — crear app en Authentik>
 
-ANTHROPIC_API_KEY=<en .env>
+NVIDIA_NIM_API_KEY=<en .env>
+NVIDIA_NIM_BASE_URL=https://integrate.api.nvidia.com/v1
 ENVIRONMENT=development
 ```
 

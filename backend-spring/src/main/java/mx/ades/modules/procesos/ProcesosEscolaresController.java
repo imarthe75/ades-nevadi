@@ -8,7 +8,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -27,11 +26,11 @@ import java.util.*;
 public class ProcesosEscolaresController {
 
     private final AdesUserService userService;
-    private final JdbcTemplate jdbc;
     private final WebhookService webhookService;
     private final mx.ades.common.ZipService zipService;
     private final ProcesarPreinscripcionUseCase procesarPreinscripcion;
     private final ProcesosQueryService queryService;
+    private final ProcesosWriteService writeService;
     private final RestClient restClient = RestClient.builder().build();
 
     @Value("${carbone.url:http://ades-carbone:3000}")
@@ -75,11 +74,7 @@ public class ProcesosEscolaresController {
                 String curp = mx.ades.modules.imports.ImportadorUtil.getCol(row, headers, "curp");
                 if (curp.isBlank()) continue;
 
-                // Validar duplicados de CURP en solicitudes activas
-                List<Map<String, Object>> dup = jdbc.queryForList(
-                        "SELECT id FROM ades_solicitudes_admision WHERE curp = ? AND estado NOT IN ('RECHAZADO')",
-                        curp.trim());
-                if (!dup.isEmpty()) {
+                if (writeService.checkDupCurp(curp)) {
                     omitidos++;
                     continue;
                 }
@@ -96,21 +91,9 @@ public class ProcesosEscolaresController {
 
                 Integer grado = mx.ades.modules.imports.ImportadorUtil.parseInt(gradoStr);
 
-                UUID id = UUID.randomUUID();
-                jdbc.update(
-                        "INSERT INTO ades_solicitudes_admision " +
-                        "(id, nombre, apellido_paterno, apellido_materno, fecha_nacimiento, curp, " +
-                        "nivel_solicitado, grado_solicitado, estado, nombre_tutor, telefono_tutor, email_tutor, " +
-                        "usuario_creacion, usuario_modificacion) " +
-                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'PENDIENTE', ?, ?, ?, ?, ?)",
-                        id, nombre.trim(), primerApellido.trim(),
-                        segundoApellido.isBlank() ? null : segundoApellido.trim(),
-                        mx.ades.modules.imports.ImportadorUtil.parseDate(fechaNac), curp.trim(),
-                        nivel.isBlank() ? "PRIMARIA" : nivel, grado == null ? 1 : grado,
-                        tutor.isBlank() ? "Tutor SEP" : tutor, telTutor.isBlank() ? "5500000000" : telTutor,
-                        emailTutor.isBlank() ? "sep@example.com" : emailTutor,
-                        user.getUsername(), user.getUsername()
-                );
+                writeService.insertarSolicitudSEP(nombre.trim(), primerApellido.trim(),
+                        segundoApellido, fechaNac, curp.trim(), nivel, grado,
+                        tutor, telTutor, emailTutor, user.getUsername());
                 creados++;
             }
 
@@ -133,42 +116,27 @@ public class ProcesosEscolaresController {
 
         UUID cicloRef = cicloId;
         if (cicloRef == null) {
-            List<UUID> ids = jdbc.queryForList(
-                    "SELECT id FROM public.ades_ciclos_escolares WHERE es_vigente = TRUE ORDER BY fecha_inicio DESC LIMIT 1",
-                    UUID.class
-            );
+            List<UUID> ids = queryService.fetchCicloPorVigente();
             if (ids.isEmpty()) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No hay ciclo escolar activo configurado.");
             }
             cicloRef = ids.get(0);
         }
 
-        // Buscar expediente activo
-        List<Map<String, Object>> exps = jdbc.queryForList(
-                "SELECT id FROM public.ades_expedientes_alumno WHERE estudiante_id = ? AND ciclo_escolar_id = ? AND is_active = TRUE",
-                estudianteId, cicloRef
-        );
-        if (exps.isEmpty()) {
+        List<UUID> expIds = queryService.fetchExpedienteId(estudianteId, cicloRef);
+        if (expIds.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Expediente no encontrado.");
         }
-        UUID expedienteId = (UUID) exps.get(0).get("id");
+        UUID expedienteId = expIds.get(0);
 
-        // Buscar documentos
-        List<Map<String, Object>> documentos = jdbc.queryForList(
-                "SELECT paperless_doc_id, nombre_archivo, tipo_documento FROM public.ades_expediente_documentos " +
-                "WHERE expediente_id = ? AND is_active = TRUE AND paperless_doc_id IS NOT NULL",
-                expedienteId
-        );
-
+        List<Map<String, Object>> documentos = queryService.fetchDocumentosExpediente(expedienteId);
         if (documentos.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "El expediente no tiene documentos cargados en Paperless.");
         }
 
         String filename = "expediente_" + estudianteId + ".zip";
-
-        org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody responseBody = outputStream -> {
-            zipService.compressDocuments(documentos, outputStream);
-        };
+        org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody responseBody =
+                outputStream -> zipService.compressDocuments(documentos, outputStream);
 
         return ResponseEntity.ok()
                 .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + filename)
@@ -221,31 +189,20 @@ public class ProcesosEscolaresController {
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
 
-        // Validar CURP del alumno y datos de contacto del tutor
         mx.ades.common.ValidationUtils.validarCURP(body.getCurp());
         mx.ades.common.ValidationUtils.validarEmail(body.getEmailTutor());
         mx.ades.common.ValidationUtils.validarTelefono(body.getTelefonoTutor());
 
-        List<Map<String, Object>> dup = jdbc.queryForList(
-                "SELECT id FROM ades_solicitudes_admision WHERE curp = ? AND estado NOT IN ('RECHAZADO')",
-                body.getCurp().trim());
-        if (!dup.isEmpty()) {
+        if (writeService.checkDupCurp(body.getCurp())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Ya existe una solicitud activa con este CURP");
         }
 
-        UUID id = UUID.randomUUID();
-        jdbc.update(
-                "INSERT INTO ades_solicitudes_admision " +
-                "(id, nombre, apellido_paterno, apellido_materno, fecha_nacimiento, curp, " +
-                "nivel_solicitado, grado_solicitado, plantel_id, nombre_tutor, telefono_tutor, email_tutor, " +
-                "escuela_procedencia, promedio_procedencia, estado, usuario_creacion, usuario_modificacion) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'PENDIENTE', ?, ?)",
-                id, body.getNombre().trim(), body.getApellidoPaterno().trim(),
-                body.getApellidoMaterno() != null ? body.getApellidoMaterno().trim() : null,
-                body.getFechaNacimiento(), body.getCurp().trim(), body.getNivelSolicitado(), body.getGradoSolicitado(),
-                body.getPlantelId(), body.getNombreTutor(), body.getTelefonoTutor(), body.getEmailTutor(),
-                body.getEscuelaProcedencia(), body.getPromedioProcedencia(), user.getUsername(), user.getUsername()
-        );
+        UUID id = writeService.insertarSolicitudManual(
+                body.getNombre(), body.getApellidoPaterno(), body.getApellidoMaterno(),
+                body.getFechaNacimiento(), body.getCurp(), body.getNivelSolicitado(),
+                body.getGradoSolicitado(), body.getPlantelId(),
+                body.getNombreTutor(), body.getTelefonoTutor(), body.getEmailTutor(),
+                body.getEscuelaProcedencia(), body.getPromedioProcedencia(), user.getUsername());
 
         return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
                 "id", id.toString(),
@@ -262,8 +219,7 @@ public class ProcesosEscolaresController {
         AdesUser user = userService.resolveUser(jwt);
         requireAdminOrHigher(user);
 
-        List<Map<String, Object>> sol = jdbc.queryForList(
-                "SELECT estado FROM ades_solicitudes_admision WHERE id = ?", id);
+        List<Map<String, Object>> sol = queryService.fetchSolicitudEstado(id);
         if (sol.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Solicitud no encontrada");
         }
@@ -272,14 +228,8 @@ public class ProcesosEscolaresController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La solicitud ya fue resuelta: " + estado);
         }
 
-        jdbc.update(
-                "UPDATE ades_solicitudes_admision " +
-                "SET estado = ?, motivo_decision = ?, grupo_asignado_id = ?, " +
-                "fecha_resolucion = CURRENT_TIMESTAMP, resuelto_por = ?, usuario_modificacion = ? " +
-                "WHERE id = ?",
-                body.getDecision(), body.getMotivo(), body.getGrupoAsignadoId(),
-                user.getId(), user.getUsername(), id
-        );
+        writeService.actualizarResolucion(id, body.getDecision(), body.getMotivo(),
+                body.getGrupoAsignadoId(), user.getId(), user.getUsername());
 
         return ResponseEntity.ok(Map.of("message", "Solicitud " + body.getDecision().toLowerCase(), "estado", body.getDecision()));
     }
@@ -350,22 +300,14 @@ public class ProcesosEscolaresController {
         AdesUser user = userService.resolveUser(jwt);
         requireSecretariaOrHigher(user);
 
-        List<Map<String, Object>> sol = jdbc.queryForList(
-                "SELECT email_tutor, nombre FROM ades_solicitudes_admision WHERE id = ? AND estado='LISTA_ESPERA'", id);
+        List<Map<String, Object>> sol = queryService.fetchSolicitudListaEspera(id);
         if (sol.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Solicitud en lista de espera no encontrada");
         }
         Map<String, Object> sm = sol.get(0);
 
-        String payload = String.format("{\"admision_id\": \"%s\", \"email\": \"%s\", \"nombre\": \"%s\"}",
-                id, sm.get("email_tutor"), sm.get("nombre"));
-
-        jdbc.update("INSERT INTO ades_tareas_sistema (tipo_tarea, payload_json, estado, usuario_creacion, usuario_modificacion) " +
-                "VALUES ('NOTIFICAR_LISTA_ESPERA', ?::jsonb, 'PENDIENTE', ?, ?)",
-                payload, user.getUsername(), user.getUsername());
-
-        jdbc.update("UPDATE ades_solicitudes_admision SET estado = 'NOTIFICADO', usuario_modificacion = ? WHERE id = ?",
-                user.getUsername(), id);
+        writeService.enqueueNotificacion(id, (String) sm.get("email_tutor"), (String) sm.get("nombre"), user.getUsername());
+        writeService.marcarNotificado(id, user.getUsername());
 
         return ResponseEntity.ok(Map.of("message", "Notificación encolada para envío por correo"));
     }
@@ -394,27 +336,15 @@ public class ProcesosEscolaresController {
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
 
-        List<Map<String, Object>> mat = jdbc.queryForList(
-                "SELECT tipo_materia FROM ades_materias WHERE id = ? AND is_active = TRUE", body.getMateriaId());
-        if (mat.isEmpty()) {
+        if (!queryService.checkMateriaExists(body.getMateriaId())) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Materia no encontrada");
         }
-
-        List<Map<String, Object>> dup = jdbc.queryForList(
-                "SELECT id FROM ades_inscripciones_optativas " +
-                "WHERE estudiante_id = ? AND materia_id = ? AND ciclo_escolar_id = ? AND is_active = TRUE",
-                body.getEstudianteId(), body.getMateriaId(), body.getCicloEscolarId());
-        if (!dup.isEmpty()) {
+        if (queryService.checkDupOptativa(body.getEstudianteId(), body.getMateriaId(), body.getCicloEscolarId())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "El alumno ya está inscrito en esta optativa");
         }
 
-        UUID id = UUID.randomUUID();
-        jdbc.update(
-                "INSERT INTO ades_inscripciones_optativas " +
-                "(id, estudiante_id, materia_id, ciclo_escolar_id, fecha_inscripcion, usuario_creacion, usuario_modificacion) " +
-                "VALUES (?, ?, ?, ?, CURRENT_DATE, ?, ?)",
-                id, body.getEstudianteId(), body.getMateriaId(), body.getCicloEscolarId(), user.getUsername(), user.getUsername()
-        );
+        UUID id = writeService.inscribirOptativa(body.getEstudianteId(), body.getMateriaId(),
+                body.getCicloEscolarId(), user.getUsername());
 
         return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
                 "id", id.toString(),
@@ -427,9 +357,7 @@ public class ProcesosEscolaresController {
             @PathVariable UUID id,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
-        int updated = jdbc.update(
-                "UPDATE ades_inscripciones_optativas SET is_active = FALSE, usuario_modificacion = ? WHERE id = ? AND is_active = TRUE",
-                user.getUsername(), id);
+        int updated = writeService.darBajaOptativa(id, user.getUsername());
         if (updated == 0) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Inscripción no encontrada o ya inactiva");
         }
@@ -452,14 +380,8 @@ public class ProcesosEscolaresController {
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
 
-        UUID id = UUID.randomUUID();
-        jdbc.update(
-                "INSERT INTO ades_acuerdos_convivencia " +
-                "(id, alumno_id, tutor_nombre, tutor_firma_hash, ip_firma, firmado_por_usuario, usuario_creacion, usuario_modificacion) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                id, body.getAlumnoId(), body.getTutorNombre(), body.getTutorFirmaHash(), body.getIpFirma(),
-                user.getUsername(), user.getUsername(), user.getUsername()
-        );
+        UUID id = writeService.registrarAcuerdo(body.getAlumnoId(), body.getTutorNombre(),
+                body.getTutorFirmaHash(), body.getIpFirma(), user.getUsername());
 
         return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
                 "id", id.toString(),
@@ -498,15 +420,9 @@ public class ProcesosEscolaresController {
         AdesUser user = userService.resolveUser(jwt);
         requireAdminOrHigher(user);
 
-        UUID id = UUID.randomUUID();
-        jdbc.update(
-                "INSERT INTO ades_calendarios_academicos " +
-                "(id, nombre, ciclo_escolar_id, nivel_educativo, tipo, fecha_inicio, fecha_fin, descripcion, es_oficial, usuario_creacion, usuario_modificacion) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                id, body.getNombre(), body.getCicloEscolarId(), body.getNivelEducativo(), body.getTipo(),
-                body.getFechaInicio(), body.getFechaFin(), body.getDescripcion(), body.getEsOficial(),
-                user.getUsername(), user.getUsername()
-        );
+        UUID id = writeService.crearEventoCalendario(body.getNombre(), body.getCicloEscolarId(),
+                body.getNivelEducativo(), body.getTipo(), body.getFechaInicio(),
+                body.getFechaFin(), body.getDescripcion(), body.getEsOficial(), user.getUsername());
 
         return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("id", id.toString(), "message", "Evento de calendario registrado"));
     }
@@ -531,16 +447,12 @@ public class ProcesosEscolaresController {
         AdesUser user = userService.resolveUser(jwt);
         requireAdminOrHigher(user);
 
-        UUID id = UUID.randomUUID();
-        jdbc.update(
-                "INSERT INTO ades_periodos_evaluacion " +
-                "(id, ciclo_escolar_id, nombre_periodo, nivel_educativo, tipo_evaluacion, fecha_inicio, fecha_fin, abierto, usuario_creacion, usuario_modificacion) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                id, body.getCicloEscolarId(), body.getNombrePeriodo(), body.getNivelEducativo(), body.getTipoEvaluacion(),
-                body.getFechaInicio(), body.getFechaFin(), body.getAbierto(), user.getUsername(), user.getUsername()
-        );
+        UUID id = writeService.crearPeriodoEvaluacion(body.getCicloEscolarId(), body.getNombrePeriodo(),
+                body.getNivelEducativo(), body.getTipoEvaluacion(), body.getFechaInicio(),
+                body.getFechaFin(), body.getAbierto(), user.getUsername());
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("id", id.toString(), "message", "Período de evaluación " + body.getNombrePeriodo() + " creado"));
+        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("id", id.toString(),
+                "message", "Período de evaluación " + body.getNombrePeriodo() + " creado"));
     }
 
     @PatchMapping("/periodos-evaluacion/{id}/cerrar")
@@ -549,9 +461,7 @@ public class ProcesosEscolaresController {
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         requireAdminOrHigher(user);
-
-        jdbc.update("UPDATE ades_periodos_evaluacion SET abierto = FALSE, usuario_modificacion = ? WHERE id = ?",
-                user.getUsername(), id);
+        writeService.cerrarPeriodo(id, user.getUsername());
         return ResponseEntity.ok(Map.of("message", "Período de evaluación cerrado"));
     }
 
@@ -582,15 +492,8 @@ public class ProcesosEscolaresController {
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         requireSecretariaOrHigher(user);
-
-        jdbc.update(
-                "UPDATE ades_solicitudes_admision " +
-                "SET puntuacion_diagnostico = ?, observaciones_diagnostico = ?, " +
-                "estado = 'DIAGNOSTICO', usuario_modificacion = ? " +
-                "WHERE id = ?",
-                body.getPuntuacionDiagnostico(), body.getObservacionesDiagnostico(), user.getUsername(), id
-        );
-
+        writeService.registrarEvaluacionDiagnostica(id, body.getPuntuacionDiagnostico(),
+                body.getObservacionesDiagnostico(), user.getUsername());
         return ResponseEntity.ok(Map.of("message", "Evaluación diagnóstica registrada", "estado", "DIAGNOSTICO"));
     }
 
@@ -601,12 +504,9 @@ public class ProcesosEscolaresController {
             @PathVariable("id") UUID id,
             @RequestParam("template_id") String templateId,
             @AuthenticationPrincipal Jwt jwt) {
-        AdesUser user = userService.resolveUser(jwt);
+        userService.resolveUser(jwt);
 
-        List<Map<String, Object>> sol = jdbc.queryForList(
-                "SELECT nombre, apellido_paterno, apellido_materno, curp, estado, " +
-                "nivel_solicitado, grado_solicitado, nombre_tutor, fecha_solicitud " +
-                "FROM ades_solicitudes_admision WHERE id = ?", id);
+        List<Map<String, Object>> sol = queryService.fetchSolicitudParaCarta(id);
         if (sol.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Solicitud no encontrada");
         }
@@ -666,17 +566,9 @@ public class ProcesosEscolaresController {
         AdesUser user = userService.resolveUser(jwt);
         requireAdminOrHigher(user);
 
-        UUID id = UUID.randomUUID();
-        jdbc.update(
-                "INSERT INTO ades_bajas " +
-                "(id, estudiante_id, inscripcion_id, tipo_baja, motivo, fecha_efectiva, observaciones, usuario_creacion, usuario_modificacion) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                id, body.getEstudianteId(), body.getInscripcionId(), body.getTipoBaja(), body.getMotivo(),
-                body.getFechaEfectiva(), body.getObservaciones(), user.getUsername(), user.getUsername()
-        );
-
-        jdbc.update("UPDATE ades_estudiantes SET is_active = FALSE, usuario_modificacion = ? WHERE id = ?",
-                user.getUsername(), body.getEstudianteId());
+        UUID id = writeService.registrarBaja(body.getEstudianteId(), body.getInscripcionId(),
+                body.getTipoBaja(), body.getMotivo(), body.getFechaEfectiva(),
+                body.getObservaciones(), user.getUsername());
 
         return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
                 "id", id.toString(),
@@ -689,18 +581,7 @@ public class ProcesosEscolaresController {
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         requireSecretariaOrHigher(user);
-
-        List<Map<String, Object>> rows = jdbc.queryForList(
-                "SELECT b.id, b.estudiante_id, b.tipo_baja, b.motivo, b.fecha_efectiva, " +
-                "p.nombre || ' ' || p.apellido_paterno AS alumno, g.nombre_grupo AS grupo " +
-                "FROM ades_bajas b " +
-                "JOIN ades_estudiantes e ON e.id = b.estudiante_id " +
-                "JOIN ades_personas p ON p.id = e.persona_id " +
-                "LEFT JOIN ades_inscripciones i ON i.id = b.inscripcion_id " +
-                "LEFT JOIN ades_grupos g ON g.id = i.grupo_id " +
-                "ORDER BY b.fecha_creacion DESC"
-        );
-        return ResponseEntity.ok(rows);
+        return ResponseEntity.ok(queryService.listarBajas());
     }
 
     @PostMapping("/bajas/{baja_id}/reactivar")
@@ -710,8 +591,7 @@ public class ProcesosEscolaresController {
         AdesUser user = userService.resolveUser(jwt);
         requireAdminOrHigher(user);
 
-        List<Map<String, Object>> baja = jdbc.queryForList(
-                "SELECT estudiante_id, inscripcion_id FROM ades_bajas WHERE id = ?", bajaId);
+        List<Map<String, Object>> baja = queryService.fetchBajaParaReactivar(bajaId);
         if (baja.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Registro de baja no encontrado");
         }
@@ -719,32 +599,7 @@ public class ProcesosEscolaresController {
         UUID estudianteId = (UUID) bm.get("estudiante_id");
         UUID inscripcionId = (UUID) bm.get("inscripcion_id");
 
-        jdbc.update("UPDATE ades_estudiantes SET is_active = TRUE, usuario_modificacion = ? WHERE id = ?",
-                user.getUsername(), estudianteId);
-
-        if (inscripcionId != null) {
-            List<Map<String, Object>> ins = jdbc.queryForList(
-                    "SELECT grupo_id FROM ades_inscripciones WHERE id = ?", inscripcionId);
-            if (!ins.isEmpty()) {
-                UUID gid = (UUID) ins.get(0).get("grupo_id");
-                List<Map<String, Object>> cap = jdbc.queryForList(
-                        "SELECT capacidad_maxima, " +
-                        "(SELECT COUNT(*) FROM ades_inscripciones WHERE grupo_id = ? AND is_active = TRUE) AS inscritos " +
-                        "FROM ades_grupos WHERE id = ?", gid, gid);
-                if (!cap.isEmpty()) {
-                    int max = ((Number) cap.get(0).get("capacidad_maxima")).intValue();
-                    int cur = ((Number) cap.get(0).get("inscritos")).intValue();
-                    if (cur >= max) {
-                        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El grupo asignado original está lleno. No se puede reactivar la inscripción.");
-                    }
-
-                    jdbc.update("UPDATE ades_inscripciones SET is_active = TRUE, usuario_modificacion = ? WHERE id = ?",
-                            user.getUsername(), inscripcionId);
-                }
-            }
-        }
-
-        jdbc.update("UPDATE ades_bajas SET is_active = FALSE WHERE id = ?", bajaId);
+        writeService.reactivarEstudiante(bajaId, estudianteId, inscripcionId, user.getUsername());
 
         return ResponseEntity.ok(Map.of("ok", true, "message", "Estudiante reactivado con éxito"));
     }

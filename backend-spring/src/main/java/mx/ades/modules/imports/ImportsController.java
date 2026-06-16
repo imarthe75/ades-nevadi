@@ -10,12 +10,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.TransactionStatus;
-import org.springframework.transaction.support.DefaultTransactionDefinition;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
@@ -32,9 +28,8 @@ import java.util.*;
 public class ImportsController {
 
     private final AdesUserService userService;
-    private final JdbcTemplate jdbc;
-    private final PlatformTransactionManager transactionManager;
     private final ImportQueryService importQueryService;
+    private final ImportsWriteService importWrite;
 
     private static final long MAX_FILE_BYTES = 10 * 1024 * 1024; // 10 MB
 
@@ -152,37 +147,17 @@ public class ImportsController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El archivo no contiene datos");
         }
 
-        // Caching planteles
-        Map<String, UUID> plantelesClave = new HashMap<>();
-        Map<String, UUID> plantelesNombre = new HashMap<>();
-        jdbc.query("SELECT id, clave_ct, nombre_plantel FROM ades_planteles", rs -> {
-            UUID id = (UUID) rs.getObject("id");
-            String c = rs.getString("clave_ct");
-            String n = rs.getString("nombre_plantel");
-            if (c != null) plantelesClave.put(c, id);
-            if (n != null) plantelesNombre.put(n.toLowerCase(), id);
-        });
-
-        // Estatus id
-        UUID estatusId = null;
-        try {
-            estatusId = jdbc.queryForObject(
-                    "SELECT id FROM ades_estatus WHERE entidad = 'ESTUDIANTE' AND nombre_estatus = 'INSCRITO'",
-                    UUID.class);
-        } catch (Exception e) {
-            log.warn("Estatus INSCRITO para estudiante no encontrado");
-        }
-
-        // Sequence calculation
-        Long seq = jdbc.queryForObject("SELECT COUNT(*) FROM ades_estudiantes", Long.class);
-        if (seq == null) seq = 0L;
+        Map<String, UUID> plantelesClave = importWrite.loadPlantelesByClave();
+        Map<String, UUID> plantelesNombre = importWrite.loadPlantelesByNombre();
+        UUID estatusId = importWrite.loadEstatusId("ESTUDIANTE", "INSCRITO");
+        long seq = importWrite.countEstudiantes();
 
         List<ErrorFila> errores = new ArrayList<>();
         int exitosos = 0;
 
         for (int i = 0; i < parsed.getRows().size(); i++) {
             List<String> row = parsed.getRows().get(i);
-            int rowNum = i + 2; // header is row 1
+            int rowNum = i + 2;
             String curp = ImportadorUtil.getCol(row, parsed.getHeaders(), "curp").toUpperCase();
             String nombre = ImportadorUtil.getCol(row, parsed.getHeaders(), "nombre");
 
@@ -191,9 +166,7 @@ public class ImportsController {
                 continue;
             }
 
-            // check duplicate
-            Integer count = jdbc.queryForObject("SELECT COUNT(*) FROM ades_personas WHERE curp = ?", Integer.class, curp);
-            if (count != null && count > 0) {
+            if (importWrite.existePersonaCurp(curp)) {
                 errores.add(new ErrorFila(rowNum, curp, "CURP ya registrada"));
                 continue;
             }
@@ -205,44 +178,23 @@ public class ImportsController {
                 continue;
             }
 
-            TransactionStatus status = transactionManager.getTransaction(new DefaultTransactionDefinition());
+            seq++;
+            String matricula = String.format("MAT-%06d", seq);
+
             try {
-                UUID personaId = UUID.randomUUID();
-                jdbc.update(
-                        "INSERT INTO ades_personas (id, nombre, apellido_paterno, apellido_materno, curp, genero, fecha_nacimiento, usuario_creacion, usuario_modificacion) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                        personaId,
+                importWrite.insertarAlumno(
                         nombre,
                         ImportadorUtil.getCol(row, parsed.getHeaders(), "apellido_paterno"),
                         ImportadorUtil.getCol(row, parsed.getHeaders(), "apellido_materno"),
                         curp,
                         ImportadorUtil.getCol(row, parsed.getHeaders(), "genero"),
                         ImportadorUtil.parseDate(ImportadorUtil.getCol(row, parsed.getHeaders(), "fecha_nacimiento")),
-                        user.getUsername(),
-                        user.getUsername()
-                );
-
-                seq++;
-                String matricula = String.format("MAT-%06d", seq);
-
-                jdbc.update(
-                        "INSERT INTO ades_estudiantes (id, matricula, persona_id, plantel_id, fecha_ingreso, estatus_id, usuario_creacion, usuario_modificacion) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                        UUID.randomUUID(),
-                        matricula,
-                        personaId,
-                        plantelId,
-                        ImportadorUtil.parseDate(ImportadorUtil.getCol(row, parsed.getHeaders(), "fecha_ingreso")),
-                        estatusId,
-                        user.getUsername(),
-                        user.getUsername()
-                );
-
-                transactionManager.commit(status);
+                        plantelId, matricula, estatusId, user.getUsername());
                 exitosos++;
             } catch (Exception e) {
-                transactionManager.rollback(status);
-                log.error("Error inserting row " + rowNum, e);
+                log.error("Error inserting alumno row {}", rowNum, e);
                 errores.add(new ErrorFila(rowNum, curp, e.getMessage()));
-                seq--; // decrement sequence back
+                seq--;
             }
         }
 
@@ -278,26 +230,9 @@ public class ImportsController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El archivo no contiene datos");
         }
 
-        // Caching planteles
-        Map<String, UUID> plantelesClave = new HashMap<>();
-        Map<String, UUID> plantelesNombre = new HashMap<>();
-        jdbc.query("SELECT id, clave_ct, nombre_plantel FROM ades_planteles", rs -> {
-            UUID id = (UUID) rs.getObject("id");
-            String c = rs.getString("clave_ct");
-            String n = rs.getString("nombre_plantel");
-            if (c != null) plantelesClave.put(c, id);
-            if (n != null) plantelesNombre.put(n.toLowerCase(), id);
-        });
-
-        // Estatus id
-        UUID estatusId = null;
-        try {
-            estatusId = jdbc.queryForObject(
-                    "SELECT id FROM ades_estatus WHERE entidad = 'PROFESOR' AND nombre_estatus = 'ACTIVO'",
-                    UUID.class);
-        } catch (Exception e) {
-            log.warn("Estatus ACTIVO para profesor no encontrado");
-        }
+        Map<String, UUID> plantelesClave = importWrite.loadPlantelesByClave();
+        Map<String, UUID> plantelesNombre = importWrite.loadPlantelesByNombre();
+        UUID estatusId = importWrite.loadEstatusId("PROFESOR", "ACTIVO");
 
         List<ErrorFila> errores = new ArrayList<>();
         int exitosos = 0;
@@ -314,8 +249,7 @@ public class ImportsController {
                 continue;
             }
 
-            Integer count = jdbc.queryForObject("SELECT COUNT(*) FROM ades_personas WHERE curp = ?", Integer.class, curp);
-            if (count != null && count > 0) {
+            if (importWrite.existePersonaCurp(curp)) {
                 errores.add(new ErrorFila(rowNum, curp, "CURP ya registrada"));
                 continue;
             }
@@ -330,39 +264,18 @@ public class ImportsController {
             String tipoContrato = ImportadorUtil.getCol(row, parsed.getHeaders(), "tipo_contrato", "contrato");
             if (tipoContrato.isEmpty()) tipoContrato = "BASE";
 
-            TransactionStatus status = transactionManager.getTransaction(new DefaultTransactionDefinition());
             try {
-                UUID personaId = UUID.randomUUID();
-                jdbc.update(
-                        "INSERT INTO ades_personas (id, nombre, apellido_paterno, apellido_materno, curp, genero, fecha_nacimiento, usuario_creacion, usuario_modificacion) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                        personaId,
+                importWrite.insertarProfesor(
                         nombre,
                         ImportadorUtil.getCol(row, parsed.getHeaders(), "apellido_paterno"),
                         ImportadorUtil.getCol(row, parsed.getHeaders(), "apellido_materno"),
                         curp,
                         ImportadorUtil.getCol(row, parsed.getHeaders(), "genero"),
                         ImportadorUtil.parseDate(ImportadorUtil.getCol(row, parsed.getHeaders(), "fecha_nacimiento")),
-                        user.getUsername(),
-                        user.getUsername()
-                );
-
-                jdbc.update(
-                        "INSERT INTO ades_profesores (id, persona_id, plantel_id, numero_empleado, tipo_contrato, estatus_id, usuario_creacion, usuario_modificacion) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                        UUID.randomUUID(),
-                        personaId,
-                        plantelId,
-                        numEmp,
-                        tipoContrato.toUpperCase(),
-                        estatusId,
-                        user.getUsername(),
-                        user.getUsername()
-                );
-
-                transactionManager.commit(status);
+                        plantelId, numEmp, tipoContrato, estatusId, user.getUsername());
                 exitosos++;
             } catch (Exception e) {
-                transactionManager.rollback(status);
-                log.error("Error inserting professor row " + rowNum, e);
+                log.error("Error inserting profesor row {}", rowNum, e);
                 errores.add(new ErrorFila(rowNum, curp, e.getMessage()));
             }
         }
@@ -399,13 +312,7 @@ public class ImportsController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El archivo no contiene datos");
         }
 
-        // Caching niveles
-        Map<String, UUID> niveles = new HashMap<>();
-        jdbc.query("SELECT id, nombre_nivel FROM ades_niveles_educativos", rs -> {
-            UUID id = (UUID) rs.getObject("id");
-            String n = rs.getString("nombre_nivel");
-            if (n != null) niveles.put(n.toLowerCase(), id);
-        });
+        Map<String, UUID> niveles = importWrite.loadNiveles();
 
         List<ErrorFila> errores = new ArrayList<>();
         int exitosos = 0;
@@ -430,22 +337,15 @@ public class ImportsController {
                 }
             }
 
-            TransactionStatus status = transactionManager.getTransaction(new DefaultTransactionDefinition());
             try {
-                jdbc.update(
-                        "INSERT INTO ades_materias (id, nombre_materia, clave_materia, nivel_educativo_id, horas_semana, usuario_creacion, usuario_modificacion) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                        UUID.randomUUID(),
+                importWrite.insertarMateria(
                         nombreMat,
                         ImportadorUtil.getCol(row, parsed.getHeaders(), "clave_materia", "clave"),
                         nivelId,
                         ImportadorUtil.parseDouble(ImportadorUtil.getCol(row, parsed.getHeaders(), "horas_semana", "horas")),
-                        user.getUsername(),
-                        user.getUsername()
-                );
-                transactionManager.commit(status);
+                        user.getUsername());
                 exitosos++;
             } catch (Exception e) {
-                transactionManager.rollback(status);
                 errores.add(new ErrorFila(rowNum, nombreMat, e.getMessage()));
             }
         }
@@ -482,21 +382,8 @@ public class ImportsController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El archivo no contiene datos");
         }
 
-        // Caching grados
-        Map<String, UUID> grados = new HashMap<>();
-        jdbc.query("SELECT id, nombre_grado FROM ades_grados", rs -> {
-            UUID id = (UUID) rs.getObject("id");
-            String n = rs.getString("nombre_grado");
-            if (n != null) grados.put(n.toLowerCase(), id);
-        });
-
-        // Caching ciclos
-        Map<String, UUID> ciclos = new HashMap<>();
-        jdbc.query("SELECT id, nombre_ciclo FROM ades_ciclos_escolares", rs -> {
-            UUID id = (UUID) rs.getObject("id");
-            String n = rs.getString("nombre_ciclo");
-            if (n != null) ciclos.put(n.toLowerCase(), id);
-        });
+        Map<String, UUID> grados = importWrite.loadGrados();
+        Map<String, UUID> ciclos = importWrite.loadCiclos();
 
         List<ErrorFila> errores = new ArrayList<>();
         int exitosos = 0;
@@ -538,23 +425,10 @@ public class ImportsController {
             Integer capacidad = ImportadorUtil.parseInt(ImportadorUtil.getCol(row, parsed.getHeaders(), "capacidad_maxima", "capacidad"));
             if (capacidad == null) capacidad = 35;
 
-            TransactionStatus status = transactionManager.getTransaction(new DefaultTransactionDefinition());
             try {
-                jdbc.update(
-                        "INSERT INTO ades_grupos (id, nombre_grupo, grado_id, ciclo_escolar_id, turno, capacidad_maxima, usuario_creacion, usuario_modificacion) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                        UUID.randomUUID(),
-                        nombreGrupo,
-                        gradoId,
-                        cicloId,
-                        turno.toUpperCase(),
-                        capacidad,
-                        user.getUsername(),
-                        user.getUsername()
-                );
-                transactionManager.commit(status);
+                importWrite.insertarGrupo(nombreGrupo, gradoId, cicloId, turno, capacidad, user.getUsername());
                 exitosos++;
             } catch (Exception e) {
-                transactionManager.rollback(status);
                 errores.add(new ErrorFila(rowNum, nombreGrupo, e.getMessage()));
             }
         }
@@ -591,13 +465,7 @@ public class ImportsController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El archivo no contiene datos");
         }
 
-        // Caching planteles
-        Map<String, UUID> plantelesClave = new HashMap<>();
-        jdbc.query("SELECT id, clave_ct FROM ades_planteles", rs -> {
-            UUID id = (UUID) rs.getObject("id");
-            String c = rs.getString("clave_ct");
-            if (c != null) plantelesClave.put(c.toLowerCase(), id);
-        });
+        Map<String, UUID> plantelesClave = importWrite.loadPlantelesByClave();
 
         List<ErrorFila> errores = new ArrayList<>();
         int exitosos = 0;
@@ -626,26 +494,11 @@ public class ImportsController {
             String observaciones = ImportadorUtil.getCol(row, parsed.getHeaders(), "observaciones", "ubicacion", "ubicacion_fisica");
             if (observaciones.isEmpty()) observaciones = null;
 
-            TransactionStatus status = transactionManager.getTransaction(new DefaultTransactionDefinition());
             try {
-                jdbc.update(
-                        "INSERT INTO ades_aulas (id, nombre_aula, tipo_aula, capacidad_alumnos, plantel_id, tiene_proyector, tiene_pizarra_digital, tiene_internet, observaciones, usuario_creacion, usuario_modificacion) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                        UUID.randomUUID(),
-                        nombreAula,
-                        tipoAula.toUpperCase(),
-                        capacidad,
-                        plantelId,
-                        tieneProyector,
-                        tienePizarra,
-                        tieneInternet,
-                        observaciones,
-                        user.getUsername(),
-                        user.getUsername()
-                );
-                transactionManager.commit(status);
+                importWrite.insertarAula(nombreAula, tipoAula, capacidad, plantelId,
+                        tieneProyector, tienePizarra, tieneInternet, observaciones, user.getUsername());
                 exitosos++;
             } catch (Exception e) {
-                transactionManager.rollback(status);
                 errores.add(new ErrorFila(rowNum, nombreAula, e.getMessage()));
             }
         }
@@ -687,24 +540,9 @@ public class ImportsController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El archivo no contiene datos");
         }
 
-        // Caching planteles
-        Map<String, UUID> plantelesClave = new HashMap<>();
-        Map<String, UUID> plantelesNombre = new HashMap<>();
-        jdbc.query("SELECT id, clave_ct, nombre_plantel FROM ades_planteles", rs -> {
-            UUID id = (UUID) rs.getObject("id");
-            String c = rs.getString("clave_ct");
-            String n = rs.getString("nombre_plantel");
-            if (c != null) plantelesClave.put(c, id);
-            if (n != null) plantelesNombre.put(n.toLowerCase(), id);
-        });
-
-        // Caching ciclos
-        Map<String, UUID> ciclos = new HashMap<>();
-        jdbc.query("SELECT id, nombre_ciclo FROM ades_ciclos_escolares", rs -> {
-            UUID id = (UUID) rs.getObject("id");
-            String n = rs.getString("nombre_ciclo");
-            if (n != null) ciclos.put(n.toLowerCase(), id);
-        });
+        Map<String, UUID> plantelesClave = importWrite.loadPlantelesByClave();
+        Map<String, UUID> plantelesNombre = importWrite.loadPlantelesByNombre();
+        Map<String, UUID> ciclos = importWrite.loadCiclos();
 
         List<ErrorFila> errores = new ArrayList<>();
         int exitosos = 0;
@@ -730,18 +568,12 @@ public class ImportsController {
                 continue;
             }
 
-            // check duplicate admission
-            Integer dupAdm = jdbc.queryForObject(
-                    "SELECT COUNT(*) FROM public.ades_solicitudes_admision WHERE curp = ? AND estado NOT IN ('RECHAZADO')",
-                    Integer.class, curp);
-            if (dupAdm != null && dupAdm > 0) {
+            if (importWrite.existeAdmisionActiva(curp)) {
                 errores.add(new ErrorFila(rowNum, curp, "Ya existe una solicitud de admisión activa para esta CURP"));
                 continue;
             }
 
-            // check duplicate person
-            Integer dupEst = jdbc.queryForObject("SELECT COUNT(*) FROM public.ades_personas WHERE curp = ?", Integer.class, curp);
-            if (dupEst != null && dupEst > 0) {
+            if (importWrite.existePersonaCurp(curp)) {
                 errores.add(new ErrorFila(rowNum, curp, "CURP ya registrada en el sistema escolar (alumno o usuario activo)"));
                 continue;
             }
@@ -768,37 +600,18 @@ public class ImportsController {
                 continue;
             }
 
-            TransactionStatus status = transactionManager.getTransaction(new DefaultTransactionDefinition());
             try {
-                jdbc.update(
-                        "INSERT INTO public.ades_solicitudes_admision " +
-                                "(id, nombre, apellido_paterno, apellido_materno, fecha_nacimiento, curp, " +
-                                "nivel_solicitado, grado_solicitado, plantel_id, ciclo_escolar_id, " +
-                                "nombre_tutor, telefono_tutor, email_tutor, escuela_procedencia, promedio_procedencia, " +
-                                "estado, usuario_creacion, usuario_modificacion) " +
-                                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'PENDIENTE', ?, ?)",
-                        UUID.randomUUID(),
-                        nombre,
-                        apellidoP,
-                        apellidoM,
-                        ImportadorUtil.parseDate(fechaNac),
-                        curp,
-                        nivel,
-                        grado,
-                        plantelId,
-                        cicloId,
+                importWrite.insertarPreinscritoSEP(
+                        nombre, apellidoP, apellidoM, curp,
+                        ImportadorUtil.parseDate(fechaNac), nivel, grado, plantelId, cicloId,
                         tutor,
                         ImportadorUtil.getCol(row, parsed.getHeaders(), "telefono_tutor", "tel_tutor"),
                         ImportadorUtil.getCol(row, parsed.getHeaders(), "email_tutor", "correo_tutor"),
                         ImportadorUtil.getCol(row, parsed.getHeaders(), "escuela_procedencia", "procedencia"),
                         ImportadorUtil.parseDouble(ImportadorUtil.getCol(row, parsed.getHeaders(), "promedio_procedencia", "promedio")),
-                        user.getUsername(),
-                        user.getUsername()
-                );
-                transactionManager.commit(status);
+                        user.getUsername());
                 exitosos++;
             } catch (Exception e) {
-                transactionManager.rollback(status);
                 errores.add(new ErrorFila(rowNum, curp, e.getMessage()));
             }
         }

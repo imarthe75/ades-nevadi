@@ -2,12 +2,14 @@ package mx.ades.modules.learning_paths;
 
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import mx.ades.modules.learning_paths.application.service.LearningPathApplicationService;
+import mx.ades.modules.learning_paths.domain.port.in.AsignarPathUseCase;
+import mx.ades.modules.learning_paths.domain.port.in.CrearLearningPathUseCase;
 import mx.ades.modules.learning_paths.domain.port.in.RegistrarProgresoUseCase;
 import mx.ades.modules.learning_paths.query.LearningPathQueryService;
 import mx.ades.security.AdesUser;
 import mx.ades.security.AdesUserService;
 import org.springframework.http.*;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -22,8 +24,10 @@ import java.util.*;
 public class LearningPathsController {
 
     private final AdesUserService userService;
-    private final JdbcTemplate jdbc;
     private final RegistrarProgresoUseCase registrarProgreso;
+    private final CrearLearningPathUseCase crearLearningPath;
+    private final AsignarPathUseCase asignarPath;
+    private final LearningPathApplicationService learningPathService;
     private final LearningPathQueryService queryService;
 
     private final RestClient restClient = RestClient.builder().build();
@@ -61,8 +65,6 @@ public class LearningPathsController {
         private Integer tiempoMin;
         private Double calificacion;
     }
-
-    // ── READS (delegadas a QueryService) ─────────────────────────────────────
 
     @GetMapping("")
     public ResponseEntity<List<Map<String, Object>>> listarPaths(
@@ -102,26 +104,20 @@ public class LearningPathsController {
         return ResponseEntity.ok(asig);
     }
 
-    // ── WRITES ────────────────────────────────────────────────────────────────
-
     @PostMapping("")
     public ResponseEntity<Map<String, Object>> crearPath(
             @RequestBody PathRequest body,
             @AuthenticationPrincipal Jwt jwt) {
         userService.resolveUser(jwt);
-        UUID id = UUID.randomUUID();
-        jdbc.update("""
-                INSERT INTO ades_learning_paths
-                    (id, nombre, descripcion, nivel_educativo_id, materia_id,
-                     criterio_activacion, umbral_activacion, is_active)
-                VALUES (?, ?, ?, ?, ?, ?, ?, TRUE)
-                """, id, body.getNombre(), body.getDescripcion(), body.getNivelEducativoId(),
-                body.getMateriaId(), body.getCriterioActivacion(), body.getUmbralActivacion());
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
-                "id", id, "nombre", body.getNombre(), "descripcion", body.getDescripcion(),
-                "criterio_activacion", body.getCriterioActivacion(),
-                "umbral_activacion", body.getUmbralActivacion(), "is_active", true, "total_recursos", 0));
+        try {
+            var cmd = new CrearLearningPathUseCase.Command(
+                body.getNombre(), body.getDescripcion(), body.getNivelEducativoId(),
+                body.getMateriaId(), body.getCriterioActivacion(), body.getUmbralActivacion()
+            );
+            return ResponseEntity.status(HttpStatus.CREATED).body(crearLearningPath.crear(cmd));
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
+        }
     }
 
     @PostMapping("/{path_id}/recursos")
@@ -130,52 +126,31 @@ public class LearningPathsController {
             @RequestBody RecursoRequest body,
             @AuthenticationPrincipal Jwt jwt) {
         userService.resolveUser(jwt);
-        Integer exists = jdbc.queryForObject(
-                "SELECT COUNT(*) FROM ades_learning_paths WHERE id = ?", Integer.class, pathId);
-        if (exists == null || exists == 0)
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Learning path no encontrado");
-
-        UUID id = UUID.randomUUID();
-        jdbc.update("""
-                INSERT INTO ades_lp_recursos
-                    (id, path_id, orden, tipo, titulo, descripcion, url_recurso, duracion_min, obligatorio)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, id, pathId, body.getOrden(), body.getTipo(), body.getTitulo(),
-                body.getDescripcion(), body.getUrlRecurso(), body.getDuracionMin(), body.getObligatorio());
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
-                "id", id, "orden", body.getOrden(), "tipo", body.getTipo(),
-                "titulo", body.getTitulo(), "url_recurso", body.getUrlRecurso(), "is_active", true));
+        try {
+            return ResponseEntity.status(HttpStatus.CREATED).body(
+                learningPathService.agregarRecurso(pathId, body.getOrden(), body.getTipo(),
+                    body.getTitulo(), body.getDescripcion(), body.getUrlRecurso(),
+                    body.getDuracionMin(), body.getObligatorio())
+            );
+        } catch (IllegalStateException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+        }
     }
 
     @PostMapping("/{path_id}/asignar")
-    public ResponseEntity<Map<String, Object>> asignarPath(
+    public ResponseEntity<Map<String, Object>> asignarPathEndpoint(
             @PathVariable("path_id") UUID pathId,
             @RequestBody AsignacionRequest body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
-        List<Map<String, Object>> pathRows = jdbc.queryForList(
-                "SELECT nombre FROM ades_learning_paths WHERE id = ?", pathId);
-        if (pathRows.isEmpty())
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Learning path no encontrado");
-        String pathNombre = (String) pathRows.get(0).get("nombre");
-
-        UUID id = UUID.randomUUID();
-        jdbc.update("""
-                INSERT INTO ades_lp_asignaciones
-                    (id, path_id, estudiante_id, asignado_por, motivo, estatus, pct_completado, fcinicio)
-                VALUES (?, ?, ?, ?, ?, 'PENDIENTE', 0, NOW())
-                ON CONFLICT (path_id, estudiante_id) DO UPDATE
-                SET estatus = EXCLUDED.estatus, fecha_modificacion = NOW()
-                """, id, pathId, body.getEstudianteId(), user.getId(), body.getMotivo());
-
-        List<Map<String, Object>> rows = jdbc.queryForList("""
-                SELECT id, path_id, estudiante_id, motivo, estatus, pct_completado, fecha_creacion
-                FROM ades_lp_asignaciones WHERE path_id = ? AND estudiante_id = ? LIMIT 1
-                """, pathId, body.getEstudianteId());
-        Map<String, Object> response = new HashMap<>(rows.get(0));
-        response.put("path_nombre", pathNombre);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        try {
+            var cmd = new AsignarPathUseCase.Command(pathId, body.getEstudianteId(), user.getId(), body.getMotivo());
+            return ResponseEntity.status(HttpStatus.CREATED).body(asignarPath.asignar(cmd));
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
+        } catch (IllegalStateException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+        }
     }
 
     @PostMapping("/asignaciones/{asig_id}/progreso/{recurso_id}")
@@ -198,47 +173,12 @@ public class LearningPathsController {
             @PathVariable("grupo_id") UUID grupoId,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
-
-        List<Map<String, Object>> alertas = jdbc.queryForList("""
-                SELECT a.estudiante_id, a.tipo_alerta FROM ades_alertas_academicas a
-                WHERE a.grupo_id = ? AND a.atendida = FALSE
-                """, grupoId);
-        if (alertas.isEmpty())
+        int asignadas = learningPathService.asignarAutomatico(grupoId, user.getId());
+        if (asignadas == 0) {
             return ResponseEntity.ok(Map.of("asignadas", 0, "mensaje", "Sin alertas activas en el grupo"));
-
-        List<Map<String, Object>> paths = jdbc.queryForList("""
-                SELECT id, criterio_activacion FROM ades_learning_paths
-                WHERE criterio_activacion IN ('REPROBACION', 'AUSENTISMO', 'RIESGO_ALTO') AND is_active = TRUE
-                """);
-
-        Map<String, String> tipoACriterio = Map.of(
-                "RIESGO_REPROBACION", "REPROBACION",
-                "AUSENTISMO_CRITICO", "AUSENTISMO");
-        Map<String, UUID> pathPorCriterio = new HashMap<>();
-        for (Map<String, Object> p : paths) {
-            pathPorCriterio.put((String) p.get("criterio_activacion"), (UUID) p.get("id"));
         }
-
-        int asignadas = 0;
-        for (Map<String, Object> alerta : alertas) {
-            String criterio = tipoACriterio.get((String) alerta.get("tipo_alerta"));
-            if (criterio == null) continue;
-            UUID pathId = pathPorCriterio.get(criterio);
-            if (pathId == null) continue;
-            jdbc.update("""
-                    INSERT INTO ades_lp_asignaciones
-                        (id, path_id, estudiante_id, asignado_por, motivo, estatus, pct_completado, fcinicio)
-                    VALUES (?, ?, ?, ?, ?, 'PENDIENTE', 0, NOW())
-                    ON CONFLICT (path_id, estudiante_id) DO NOTHING
-                    """, UUID.randomUUID(), pathId, alerta.get("estudiante_id"),
-                    user.getId(), "AUTO_" + alerta.get("tipo_alerta"));
-            asignadas++;
-        }
-
         return ResponseEntity.ok(Map.of("asignadas", asignadas, "grupo_id", grupoId.toString()));
     }
-
-    // ── FastAPI proxy ─────────────────────────────────────────────────────────
 
     @PostMapping("/asignaciones/{asig_id}/recomendar-ia")
     public ResponseEntity<Map<String, Object>> recomendarIa(

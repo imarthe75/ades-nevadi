@@ -1,11 +1,12 @@
 package mx.ades.modules.notificaciones;
 
 import lombok.RequiredArgsConstructor;
+import mx.ades.modules.notificaciones.domain.port.in.MarcarLeidaUseCase;
+import mx.ades.modules.notificaciones.domain.port.in.MarcarTodasLeidasUseCase;
 import mx.ades.modules.notificaciones.query.NotificacionQueryService;
 import mx.ades.security.AdesUser;
 import mx.ades.security.AdesUserService;
 import org.springframework.http.ResponseEntity;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -18,7 +19,8 @@ import java.util.*;
 public class NotificacionController {
 
     private final AdesUserService userService;
-    private final JdbcTemplate jdbc;
+    private final MarcarLeidaUseCase marcarLeidaUseCase;
+    private final MarcarTodasLeidasUseCase marcarTodasLeidasUseCase;
     private final NotificacionQueryService queryService;
 
     @GetMapping("/mis-notificaciones")
@@ -42,8 +44,7 @@ public class NotificacionController {
             @PathVariable("notifId") UUID notifId,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
-        jdbc.update("UPDATE ades_notificaciones_sistema SET leido = TRUE WHERE id = ? AND usuario_id = ?",
-                notifId, user.getId());
+        marcarLeidaUseCase.marcar(new MarcarLeidaUseCase.Command(notifId, user.getId()));
         return ResponseEntity.ok(Map.of("ok", true));
     }
 
@@ -51,8 +52,7 @@ public class NotificacionController {
     public ResponseEntity<Map<String, Object>> marcarTodasLeidas(
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
-        jdbc.update("UPDATE ades_notificaciones_sistema SET leido = TRUE WHERE usuario_id = ? AND leido = FALSE",
-                user.getId());
+        marcarTodasLeidasUseCase.marcarTodas(new MarcarTodasLeidasUseCase.Command(user.getId()));
         return ResponseEntity.ok(Map.of("ok", true));
     }
 }

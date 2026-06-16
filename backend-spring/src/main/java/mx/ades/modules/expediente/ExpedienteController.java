@@ -7,7 +7,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -32,8 +31,8 @@ import java.util.*;
 public class ExpedienteController {
 
     private final AdesUserService userService;
-    private final JdbcTemplate jdbc;
     private final PaperlessService paperlessSvc;
+    private final ExpedienteWriteService writeService;
     private final RegistrarBajaUseCase registrarBaja;
     private final CalificarExtraordinarioUseCase calificarExtraordinario;
     private final EmitirConstanciaUseCase emitirConstancia;
@@ -136,17 +135,11 @@ public class ExpedienteController {
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
 
-        UUID newId = UUID.randomUUID();
-        jdbc.update(
-            "INSERT INTO ades_extraordinarias " +
-            "(id, estudiante_id, materia_id, ciclo_escolar_id, grupo_id, tipo_examen, " +
-            " calificacion_previa, fecha_examen, calificacion, acredita, observaciones, aplicado_por_id, " +
-            " usuario_creacion, usuario_modificacion) " +
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            newId, estudianteId, body.getMateriaId(), body.getCicloEscolarId(), body.getGrupoId(),
+        UUID newId = writeService.insertExtraordinario(
+            estudianteId, body.getMateriaId(), body.getCicloEscolarId(), body.getGrupoId(),
             body.getTipoExamen(), body.getCalificacionPrevia(), body.getFechaExamen(),
-            body.getCalificacion(), body.getAcredita(), body.getObservaciones(), user.getId(),
-            user.getId().toString(), user.getId().toString());
+            body.getCalificacion(), body.getAcredita(), body.getObservaciones(),
+            user.getId(), user.getId().toString());
 
         return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
                 "id", newId,
@@ -168,8 +161,7 @@ public class ExpedienteController {
                 extraId, CalificacionExtra.of(calificacion), acredita, fechaExamen,
                 user.getId().toString()));
 
-        List<Map<String, Object>> updated = jdbc.queryForList(
-            "SELECT * FROM ades_extraordinarias WHERE id = ?", extraId);
+        List<Map<String, Object>> updated = queryService.fetchExtraordinarioById(extraId);
         return ResponseEntity.ok(updated.get(0));
     }
 
@@ -210,11 +202,8 @@ public class ExpedienteController {
             @AuthenticationPrincipal Jwt jwt) {
         userService.resolveUser(jwt);
 
-        jdbc.update(
-            "UPDATE ades_constancias SET entregada = TRUE, fecha_entrega = ?, usuario_modificacion = 'sistema' WHERE id = ? AND is_active = TRUE",
-            LocalDate.now(), constanciaId);
-
-        List<Map<String, Object>> updated = jdbc.queryForList("SELECT * FROM ades_constancias WHERE id = ?", constanciaId);
+        writeService.marcarConstanciaEntregada(constanciaId);
+        List<Map<String, Object>> updated = queryService.fetchConstanciaById(constanciaId);
         if (updated.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Constancia no encontrada");
         return ResponseEntity.ok(updated.get(0));
     }
@@ -259,12 +248,8 @@ public class ExpedienteController {
             log.error("Error al subir archivo a Paperless: {}", e.getMessage());
         }
 
-        UUID nuevoId = UUID.randomUUID();
-        jdbc.update(
-            "INSERT INTO public.ades_expediente_documentos " +
-            "(id, expediente_id, paperless_doc_id, tipo_documento, nombre_archivo, estado_ocr, cargado_por, fecha_carga, is_active) " +
-            "VALUES (?, ?, NULL, ?, ?, 'PENDIENTE', ?, NOW(), TRUE)",
-            nuevoId, expId, tipoDocumento, archivo.getOriginalFilename(), user.getId().toString());
+        UUID nuevoId = writeService.insertDocumentoExpediente(expId, tipoDocumento,
+                archivo.getOriginalFilename(), user.getId().toString());
 
         String mensaje = paperlessTaskId != null
                 ? "Documento registrado. OCR Paperless en cola (tarea: " + paperlessTaskId + ")."
@@ -310,15 +295,13 @@ public class ExpedienteController {
             @AuthenticationPrincipal Jwt jwt) {
         userService.resolveUser(jwt);
 
-        List<Map<String, Object>> rows = jdbc.queryForList(
-            "SELECT paperless_doc_id FROM public.ades_expediente_documentos WHERE id = ? AND expediente_id = ? AND is_active = TRUE",
-            docId, expedienteId);
+        List<Map<String, Object>> rows = queryService.fetchDocForDelete(docId, expedienteId);
         if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Documento no encontrado.");
 
         Integer paperlessDocId = (Integer) rows.get(0).get("paperless_doc_id");
         if (paperlessDocId != null) paperlessSvc.eliminarDocumento(paperlessDocId);
 
-        jdbc.update("UPDATE public.ades_expediente_documentos SET is_active = FALSE WHERE id = ?", docId);
+        writeService.softDeleteDocumento(docId);
         return ResponseEntity.noContent().build();
     }
 
@@ -434,9 +417,8 @@ public class ExpedienteController {
             }
         }
 
-        jdbc.update(
-            "UPDATE public.ades_expedientes_alumno SET observaciones = ? WHERE id = ?",
-            analisisTexto.substring(0, Math.min(analisisTexto.length(), 500)), expId);
+        writeService.actualizarObservacionesExpediente(expId,
+            analisisTexto.substring(0, Math.min(analisisTexto.length(), 500)));
 
         Map<String, Object> resp = new HashMap<>();
         resp.put("expediente_id", expId);

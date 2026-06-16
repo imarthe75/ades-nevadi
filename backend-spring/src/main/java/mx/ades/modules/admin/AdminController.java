@@ -4,7 +4,6 @@ import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -42,7 +41,7 @@ public class AdminController {
     private final RolRepository rolRepository;
     private final IdentidadInstitucionalRepository marcaRepository;
     private final AdesUserService userService;
-    private final JdbcTemplate jdbc;
+    private final AdminWriteService writeService;
     private final AdminQueryService queryService;
 
     private PermisoAdmin permisoAdmin(AdesUser user) {
@@ -126,10 +125,7 @@ public class AdminController {
         if (body.getEsVigente() != null) {
             ciclo.setEsVigente(body.getEsVigente());
             if (Boolean.TRUE.equals(body.getEsVigente())) {
-                // Solo un ciclo vigente por nivel — invariante de dominio
-                jdbc.update("UPDATE ades_ciclos_escolares SET es_vigente = FALSE " +
-                        "WHERE nivel_educativo_id = ? AND id != ?",
-                        ciclo.getNivelEducativo().getId(), id);
+                writeService.desactivarCiclosAnteriores(ciclo.getNivelEducativo().getId(), id);
             }
         }
 
@@ -212,11 +208,8 @@ public class AdminController {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Ya existe una persona con CURP " + body.getCurp().toUpperCase());
         }
 
-        UUID personaId = UUID.randomUUID();
-        jdbc.update(
-            "INSERT INTO ades_personas (id, nombre, apellido_paterno, apellido_materno, curp, genero, fecha_nacimiento) " +
-            "VALUES (?, ?, ?, ?, ?, ?, ?)",
-            personaId, body.getNombre().trim(), body.getApellidoPaterno().trim(),
+        UUID personaId = writeService.insertPersona(
+            body.getNombre().trim(), body.getApellidoPaterno().trim(),
             body.getApellidoMaterno() != null ? body.getApellidoMaterno().trim() : null,
             body.getCurp().toUpperCase().trim(), body.getGenero(), body.getFechaNacimiento());
 
@@ -229,11 +222,8 @@ public class AdminController {
         }
 
         String email = body.getEmailInstitucional() != null ? body.getEmailInstitucional().trim() : (username + "@nevadi.edu.mx");
-        UUID userId = UUID.randomUUID();
-        jdbc.update(
-            "INSERT INTO ades_usuarios (id, persona_id, nombre_usuario, email_institucional, rol_id, plantel_id, nivel_educativo_id, clave_hash) " +
-            "VALUES (?, ?, ?, ?, ?, ?, ?, 'PENDIENTE_OIDC')",
-            userId, personaId, username, email, body.getRolId(), body.getPlantelId(), body.getNivelEducativoId());
+        UUID userId = writeService.insertUsuario(personaId, username, email,
+            body.getRolId(), body.getPlantelId(), body.getNivelEducativoId());
 
         return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
                 "id", userId, "nombre_usuario", username,
@@ -381,8 +371,6 @@ public class AdminController {
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         permisoAdmin(user);
-        jdbc.queryForList("SELECT id FROM ades_grados WHERE id = ?", grupo.getGradoId());
-        jdbc.queryForList("SELECT id FROM ades_ciclos_escolares WHERE id = ?", grupo.getCicloEscolarId());
         return ResponseEntity.status(HttpStatus.CREATED).body(grupoRepository.save(grupo));
     }
 

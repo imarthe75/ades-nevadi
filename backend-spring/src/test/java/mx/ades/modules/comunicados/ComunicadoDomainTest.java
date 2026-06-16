@@ -1,9 +1,11 @@
 package mx.ades.modules.comunicados;
 
 import mx.ades.modules.comunicados.domain.model.Periodicidad;
+import mx.ades.modules.comunicados.domain.port.in.CrearComunicadoUseCase;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.*;
 
@@ -46,5 +48,43 @@ class ComunicadoDomainTest {
     void of_invalido_devuelve_mensual_como_fallback() {
         assertThat(Periodicidad.of("DESCONOCIDO")).isEqualTo(Periodicidad.MENSUAL);
         assertThat(Periodicidad.of(null)).isEqualTo(Periodicidad.MENSUAL);
+    }
+
+    // ── CrearComunicadoUseCase.Command ────────────────────────────────────────
+
+    @Test
+    void command_crear_sinTitulo_lanzaExcepcion() {
+        assertThatThrownBy(() -> new CrearComunicadoUseCase.Command(
+                null, "Contenido válido", "GENERAL",
+                null, null, null, false, null, false, null, UUID.randomUUID()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("titulo");
+    }
+
+    @Test
+    void command_crear_sinContenido_lanzaExcepcion() {
+        assertThatThrownBy(() -> new CrearComunicadoUseCase.Command(
+                "Título válido", "", "GENERAL",
+                null, null, null, false, null, false, null, UUID.randomUUID()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("contenido");
+    }
+
+    @Test
+    void command_crear_sinCreadoPor_lanzaExcepcion() {
+        assertThatThrownBy(() -> new CrearComunicadoUseCase.Command(
+                "Título", "Contenido", "GENERAL",
+                null, null, null, false, null, false, null, null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("creado_por_id");
+    }
+
+    @Test
+    void command_crear_valido_noLanzaExcepcion() {
+        assertThatCode(() -> new CrearComunicadoUseCase.Command(
+                "Comunicado bienvenida", "Inicio de ciclo escolar 2026-2027", "GENERAL",
+                UUID.randomUUID(), null, null, true,
+                LocalDateTime.of(2026, 8, 31, 0, 0), false, null, UUID.randomUUID()))
+                .doesNotThrowAnyException();
     }
 }

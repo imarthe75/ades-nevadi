@@ -231,7 +231,7 @@ public class HexagonalConfig {
         return service;
     }
 
-    // ── learning_paths (FASE 18) ──────────────────────────────────────────────
+    // ── learning_paths (FASE 18 + FASE 53) ───────────────────────────────────
 
     @Bean
     public LearningPathApplicationService learningPathApplicationService(LearningPathRepositoryPort repo) {
@@ -240,6 +240,18 @@ public class HexagonalConfig {
 
     @Bean
     public RegistrarProgresoUseCase registrarProgreso(LearningPathApplicationService service) {
+        return service;
+    }
+
+    @Bean
+    public mx.ades.modules.learning_paths.domain.port.in.CrearLearningPathUseCase crearLearningPath(
+            LearningPathApplicationService service) {
+        return service;
+    }
+
+    @Bean
+    public mx.ades.modules.learning_paths.domain.port.in.AsignarPathUseCase asignarPath(
+            LearningPathApplicationService service) {
         return service;
     }
 
@@ -253,6 +265,470 @@ public class HexagonalConfig {
     @Bean
     public mx.ades.modules.procesos.domain.port.in.ProcesarPreinscripcionUseCase procesarPreinscripcion(
             mx.ades.modules.procesos.application.service.ProcesosApplicationService service) {
+        return service;
+    }
+
+    // ── movilidad (FASE 21) ───────────────────────────────────────────────────
+    @Bean
+    public mx.ades.modules.movilidad.application.service.MovilidadApplicationService movilidadApplicationService(
+            mx.ades.modules.movilidad.domain.port.out.MovilidadRepositoryPort repo) {
+        return new mx.ades.modules.movilidad.application.service.MovilidadApplicationService(repo);
+    }
+
+    @Bean
+    public mx.ades.modules.movilidad.domain.port.in.RegistrarCambioGrupoUseCase registrarCambioGrupo(
+            mx.ades.modules.movilidad.application.service.MovilidadApplicationService service) {
+        return service;
+    }
+
+    @Bean
+    public mx.ades.modules.movilidad.domain.port.in.RegistrarBajaUseCase registrarBaja(
+            mx.ades.modules.movilidad.application.service.MovilidadApplicationService service) {
+        return service;
+    }
+
+    // ── justificaciones (FASE 22) ─────────────────────────────────────────────
+    @Bean
+    public mx.ades.modules.justificaciones.application.service.JustificacionApplicationService justificacionApplicationService(
+            mx.ades.modules.justificaciones.domain.port.out.JustificacionRepositoryPort repo) {
+        return new mx.ades.modules.justificaciones.application.service.JustificacionApplicationService(repo);
+    }
+
+    @Bean
+    public mx.ades.modules.justificaciones.domain.port.in.RegistrarJustificacionUseCase registrarJustificacion(
+            mx.ades.modules.justificaciones.application.service.JustificacionApplicationService service) {
+        return service;
+    }
+
+    @Bean
+    public mx.ades.modules.justificaciones.domain.port.in.ResolverJustificacionUseCase resolverJustificacion(
+            mx.ades.modules.justificaciones.application.service.JustificacionApplicationService service) {
+        return service;
+    }
+
+    // ── condiciones (FASE 23) ─────────────────────────────────────────────────
+    @Bean
+    public mx.ades.modules.condiciones.application.service.CondicionCronicaApplicationService condicionCronicaApplicationService(
+            mx.ades.modules.condiciones.domain.port.out.CondicionRepositoryPort repo) {
+        return new mx.ades.modules.condiciones.application.service.CondicionCronicaApplicationService(repo);
+    }
+
+    @Bean
+    public mx.ades.modules.condiciones.domain.port.in.RegistrarCondicionUseCase registrarCondicion(
+            mx.ades.modules.condiciones.application.service.CondicionCronicaApplicationService service) {
+        return service;
+    }
+
+    @Bean
+    public mx.ades.modules.condiciones.domain.port.in.ActualizarCondicionUseCase actualizarCondicion(
+            mx.ades.modules.condiciones.application.service.CondicionCronicaApplicationService service) {
+        return service;
+    }
+
+    @Bean
+    public mx.ades.modules.condiciones.domain.port.in.EliminarCondicionUseCase eliminarCondicion(
+            mx.ades.modules.condiciones.application.service.CondicionCronicaApplicationService service) {
+        return service;
+    }
+
+    // ── licencias (FASE 24) ───────────────────────────────────────────────────
+    @Bean
+    public mx.ades.modules.licencias.application.service.LicenciaApplicationService licenciaApplicationService(
+            mx.ades.modules.licencias.domain.port.out.LicenciaRepositoryPort repo) {
+        return new mx.ades.modules.licencias.application.service.LicenciaApplicationService(repo);
+    }
+
+    @Bean
+    public mx.ades.modules.licencias.domain.port.in.SolicitarLicenciaUseCase solicitarLicencia(
+            mx.ades.modules.licencias.application.service.LicenciaApplicationService service) {
+        return service;
+    }
+
+    @Bean
+    public mx.ades.modules.licencias.domain.port.in.ResolverLicenciaUseCase resolverLicencia(
+            mx.ades.modules.licencias.application.service.LicenciaApplicationService service) {
+        return service;
+    }
+
+    // ── compliance (FASE 29) ─────────────────────────────────────────────────
+    @Bean
+    public mx.ades.modules.compliance.application.service.ComplianceApplicationService complianceApplicationService(
+            mx.ades.modules.compliance.domain.port.out.ComplianceRepositoryPort repo) {
+        return new mx.ades.modules.compliance.application.service.ComplianceApplicationService(repo);
+    }
+
+    @Bean
+    public mx.ades.modules.compliance.domain.port.in.RegistrarNormativaUseCase registrarNormativa(
+            mx.ades.modules.compliance.application.service.ComplianceApplicationService service) {
+        return service;
+    }
+
+    @Bean
+    public mx.ades.modules.compliance.domain.port.in.RegistrarRetencionUseCase registrarRetencion(
+            mx.ades.modules.compliance.application.service.ComplianceApplicationService service) {
+        return service;
+    }
+
+    @Bean
+    public mx.ades.modules.compliance.domain.port.in.CrearAlertaUseCase crearAlerta(
+            mx.ades.modules.compliance.application.service.ComplianceApplicationService service) {
+        return service;
+    }
+
+    // ── comunicados (FASE 28) ─────────────────────────────────────────────────
+    @Bean
+    public mx.ades.modules.comunicados.application.service.ComunicadoApplicationService comunicadoApplicationService(
+            mx.ades.modules.comunicados.domain.port.out.ComunicadoRepositoryPort repo,
+            mx.ades.common.PushService pushService) {
+        return new mx.ades.modules.comunicados.application.service.ComunicadoApplicationService(repo, pushService);
+    }
+
+    @Bean
+    public mx.ades.modules.comunicados.domain.port.in.CrearComunicadoUseCase crearComunicado(
+            mx.ades.modules.comunicados.application.service.ComunicadoApplicationService service) {
+        return service;
+    }
+
+    @Bean
+    public mx.ades.modules.comunicados.domain.port.in.AcusarComunicadoUseCase acusarComunicado(
+            mx.ades.modules.comunicados.application.service.ComunicadoApplicationService service) {
+        return service;
+    }
+
+    @Bean
+    public mx.ades.modules.comunicados.domain.port.in.ProgramarSiguienteUseCase programarSiguiente(
+            mx.ades.modules.comunicados.application.service.ComunicadoApplicationService service) {
+        return service;
+    }
+
+    // ── badges (FASE 27) ─────────────────────────────────────────────────────
+    @Bean
+    public mx.ades.modules.badges.application.service.BadgeApplicationService badgeApplicationService(
+            mx.ades.modules.badges.domain.port.out.BadgeRepositoryPort repo) {
+        return new mx.ades.modules.badges.application.service.BadgeApplicationService(repo);
+    }
+
+    @Bean
+    public mx.ades.modules.badges.domain.port.in.CrearBadgeUseCase crearBadge(
+            mx.ades.modules.badges.application.service.BadgeApplicationService service) {
+        return service;
+    }
+
+    @Bean
+    public mx.ades.modules.badges.domain.port.in.OtorgarBadgeUseCase otorgarBadge(
+            mx.ades.modules.badges.application.service.BadgeApplicationService service) {
+        return service;
+    }
+
+    @Bean
+    public mx.ades.modules.badges.domain.port.in.RevocarBadgeUseCase revocarBadge(
+            mx.ades.modules.badges.application.service.BadgeApplicationService service) {
+        return service;
+    }
+
+    @Bean
+    public mx.ades.modules.badges.domain.port.in.AutoEvaluarBadgesUseCase autoEvaluarBadges(
+            mx.ades.modules.badges.application.service.BadgeApplicationService service) {
+        return service;
+    }
+
+    // ── disponibilidad (FASE 26) ──────────────────────────────────────────────
+    @Bean
+    public mx.ades.modules.disponibilidad.application.service.DisponibilidadApplicationService disponibilidadApplicationService(
+            mx.ades.modules.disponibilidad.domain.port.out.DisponibilidadRepositoryPort repo) {
+        return new mx.ades.modules.disponibilidad.application.service.DisponibilidadApplicationService(repo);
+    }
+
+    @Bean
+    public mx.ades.modules.disponibilidad.domain.port.in.GuardarDisponibilidadUseCase guardarDisponibilidad(
+            mx.ades.modules.disponibilidad.application.service.DisponibilidadApplicationService service) {
+        return service;
+    }
+
+    @Bean
+    public mx.ades.modules.disponibilidad.domain.port.in.EliminarSlotUseCase eliminarSlot(
+            mx.ades.modules.disponibilidad.application.service.DisponibilidadApplicationService service) {
+        return service;
+    }
+
+    // ── notificaciones (FASE 36) ─────────────────────────────────────────────
+    @Bean
+    public mx.ades.modules.notificaciones.application.service.NotificacionApplicationService notificacionApplicationService(
+            mx.ades.modules.notificaciones.domain.port.out.NotificacionWriteRepositoryPort repo) {
+        return new mx.ades.modules.notificaciones.application.service.NotificacionApplicationService(repo);
+    }
+
+    @Bean
+    public mx.ades.modules.notificaciones.domain.port.in.MarcarLeidaUseCase marcarLeida(
+            mx.ades.modules.notificaciones.application.service.NotificacionApplicationService service) {
+        return service;
+    }
+
+    @Bean
+    public mx.ades.modules.notificaciones.domain.port.in.MarcarTodasLeidasUseCase marcarTodasLeidas(
+            mx.ades.modules.notificaciones.application.service.NotificacionApplicationService service) {
+        return service;
+    }
+
+    // ── personal_admin (FASE 35) ─────────────────────────────────────────────
+    @Bean
+    public mx.ades.modules.personal_admin.application.service.PersonalAdminApplicationService personalAdminApplicationService(
+            mx.ades.modules.personal_admin.domain.port.out.PersonalAdminRepositoryPort repo) {
+        return new mx.ades.modules.personal_admin.application.service.PersonalAdminApplicationService(repo);
+    }
+
+    @Bean
+    public mx.ades.modules.personal_admin.domain.port.in.RegistrarPersonalAdminUseCase registrarPersonalAdmin(
+            mx.ades.modules.personal_admin.application.service.PersonalAdminApplicationService service) {
+        return service;
+    }
+
+    // ── entregas (FASE 34) ────────────────────────────────────────────────────
+    @Bean
+    public mx.ades.modules.entregas.application.service.EntregaApplicationService entregaApplicationService(
+            mx.ades.modules.entregas.domain.port.out.EntregaRepositoryPort repo) {
+        return new mx.ades.modules.entregas.application.service.EntregaApplicationService(repo);
+    }
+
+    @Bean
+    public mx.ades.modules.entregas.domain.port.in.SubirEntregaUseCase subirEntrega(
+            mx.ades.modules.entregas.application.service.EntregaApplicationService service) {
+        return service;
+    }
+
+    @Bean
+    public mx.ades.modules.entregas.domain.port.in.CalificarEntregaUseCase calificarEntrega(
+            mx.ades.modules.entregas.application.service.EntregaApplicationService service) {
+        return service;
+    }
+
+    @Bean
+    public mx.ades.modules.entregas.domain.port.in.RegistrarExcusaUseCase registrarExcusa(
+            mx.ades.modules.entregas.application.service.EntregaApplicationService service) {
+        return service;
+    }
+
+    // ── esquemas_ponderacion (FASE 33) ───────────────────────────────────────
+    @Bean
+    public mx.ades.modules.esquemas_ponderacion.application.service.EsquemaApplicationService esquemaApplicationService(
+            mx.ades.modules.esquemas_ponderacion.domain.port.out.EsquemaRepositoryPort repo) {
+        return new mx.ades.modules.esquemas_ponderacion.application.service.EsquemaApplicationService(repo);
+    }
+
+    @Bean
+    public mx.ades.modules.esquemas_ponderacion.domain.port.in.CrearEsquemaUseCase crearEsquema(
+            mx.ades.modules.esquemas_ponderacion.application.service.EsquemaApplicationService service) {
+        return service;
+    }
+
+    @Bean
+    public mx.ades.modules.esquemas_ponderacion.domain.port.in.ActualizarEsquemaUseCase actualizarEsquema(
+            mx.ades.modules.esquemas_ponderacion.application.service.EsquemaApplicationService service) {
+        return service;
+    }
+
+    // ── expediente_laboral (FASE 32) ─────────────────────────────────────────
+    @Bean
+    public mx.ades.modules.expediente_laboral.application.service.ExpedienteLaboralApplicationService expedienteLaboralApplicationService(
+            mx.ades.modules.expediente_laboral.domain.port.out.ExpedienteLaboralRepositoryPort repo) {
+        return new mx.ades.modules.expediente_laboral.application.service.ExpedienteLaboralApplicationService(repo);
+    }
+
+    @Bean
+    public mx.ades.modules.expediente_laboral.domain.port.in.CrearExpedienteLaboralUseCase crearExpedienteLaboral(
+            mx.ades.modules.expediente_laboral.application.service.ExpedienteLaboralApplicationService service) {
+        return service;
+    }
+
+    @Bean
+    public mx.ades.modules.expediente_laboral.domain.port.in.ActualizarExpedienteLaboralUseCase actualizarExpedienteLaboral(
+            mx.ades.modules.expediente_laboral.application.service.ExpedienteLaboralApplicationService service) {
+        return service;
+    }
+
+    @Bean
+    public mx.ades.modules.expediente_laboral.domain.port.in.AgregarDocumentoLaboralUseCase agregarDocumentoLaboral(
+            mx.ades.modules.expediente_laboral.application.service.ExpedienteLaboralApplicationService service) {
+        return service;
+    }
+
+    // ── eval_docente (FASE 31) ────────────────────────────────────────────────
+    @Bean
+    public mx.ades.modules.eval_docente.application.service.EvalDocenteApplicationService evalDocenteApplicationService(
+            mx.ades.modules.eval_docente.domain.port.out.EvalDocenteRepositoryPort repo) {
+        return new mx.ades.modules.eval_docente.application.service.EvalDocenteApplicationService(repo);
+    }
+
+    @Bean
+    public mx.ades.modules.eval_docente.domain.port.in.CrearEvaluacionUseCase crearEvaluacion(
+            mx.ades.modules.eval_docente.application.service.EvalDocenteApplicationService service) {
+        return service;
+    }
+
+    @Bean
+    public mx.ades.modules.eval_docente.domain.port.in.GuardarCriteriosUseCase guardarCriterios(
+            mx.ades.modules.eval_docente.application.service.EvalDocenteApplicationService service) {
+        return service;
+    }
+
+    @Bean
+    public mx.ades.modules.eval_docente.domain.port.in.EnviarEvaluacionUseCase enviarEvaluacion(
+            mx.ades.modules.eval_docente.application.service.EvalDocenteApplicationService service) {
+        return service;
+    }
+
+    // ── asistencia personal (FASE 30) ────────────────────────────────────────
+    @Bean
+    public mx.ades.modules.asistencia_personal.application.service.AsistenciaPersonalApplicationService asistenciaPersonalApplicationService(
+            mx.ades.modules.asistencia_personal.domain.port.out.AsistenciaPersonalRepositoryPort repo) {
+        return new mx.ades.modules.asistencia_personal.application.service.AsistenciaPersonalApplicationService(repo);
+    }
+
+    @Bean
+    public mx.ades.modules.asistencia_personal.domain.port.in.RegistrarAsistenciaUseCase registrarAsistenciaPersonal(
+            mx.ades.modules.asistencia_personal.application.service.AsistenciaPersonalApplicationService service) {
+        return service;
+    }
+
+    @Bean
+    public mx.ades.modules.asistencia_personal.domain.port.in.ActualizarAsistenciaUseCase actualizarAsistenciaPersonal(
+            mx.ades.modules.asistencia_personal.application.service.AsistenciaPersonalApplicationService service) {
+        return service;
+    }
+
+    // ── capacitaciones (FASE 25) ──────────────────────────────────────────────
+    @Bean
+    public mx.ades.modules.capacitaciones.application.service.CapacitacionApplicationService capacitacionApplicationService(
+            mx.ades.modules.capacitaciones.domain.port.out.CapacitacionRepositoryPort repo) {
+        return new mx.ades.modules.capacitaciones.application.service.CapacitacionApplicationService(repo);
+    }
+
+    @Bean
+    public mx.ades.modules.capacitaciones.domain.port.in.RegistrarCapacitacionUseCase registrarCapacitacion(
+            mx.ades.modules.capacitaciones.application.service.CapacitacionApplicationService service) {
+        return service;
+    }
+
+    @Bean
+    public mx.ades.modules.capacitaciones.domain.port.in.ValidarCapacitacionUseCase validarCapacitacion(
+            mx.ades.modules.capacitaciones.application.service.CapacitacionApplicationService service) {
+        return service;
+    }
+
+    // ── personal_salud / medico (FASE 37) ────────────────────────────────────
+    @Bean
+    public mx.ades.modules.medico.application.service.PersonalSaludApplicationService personalSaludApplicationService(
+            mx.ades.modules.medico.domain.port.out.PersonalSaludRepositoryPort repo) {
+        return new mx.ades.modules.medico.application.service.PersonalSaludApplicationService(repo);
+    }
+
+    @Bean
+    public mx.ades.modules.medico.domain.port.in.RegistrarPersonalSaludUseCase registrarPersonalSalud(
+            mx.ades.modules.medico.application.service.PersonalSaludApplicationService service) {
+        return service;
+    }
+
+    @Bean
+    public mx.ades.modules.medico.domain.port.in.ActualizarPersonalSaludUseCase actualizarPersonalSalud(
+            mx.ades.modules.medico.application.service.PersonalSaludApplicationService service) {
+        return service;
+    }
+
+    // ── salud_avanzada (FASE 38) ─────────────────────────────────────────────
+    @Bean
+    public mx.ades.modules.medico.application.service.SaludAvanzadaApplicationService saludAvanzadaApplicationService(
+            mx.ades.modules.medico.domain.port.out.SaludAvanzadaRepositoryPort repo) {
+        return new mx.ades.modules.medico.application.service.SaludAvanzadaApplicationService(repo);
+    }
+
+    // ── cierre_ciclo (FASE 41) ────────────────────────────────────────────────
+    @Bean
+    public mx.ades.modules.cierre.application.service.CierreApplicationService cierreApplicationService(
+            mx.ades.modules.cierre.domain.port.out.CierreRepositoryPort repo,
+            mx.ades.modules.cierre.CierreCicloService cierreCicloService) {
+        return new mx.ades.modules.cierre.application.service.CierreApplicationService(repo, cierreCicloService);
+    }
+
+    @Bean
+    public mx.ades.modules.cierre.domain.port.in.CerrarCicloUseCase cerrarCiclo(
+            mx.ades.modules.cierre.application.service.CierreApplicationService service) {
+        return service;
+    }
+
+    // ── horarios (FASE 42) ────────────────────────────────────────────────────
+    @Bean
+    public mx.ades.modules.horarios.application.service.HorarioApplicationService horarioApplicationService(
+            mx.ades.modules.horarios.domain.port.out.HorarioWriteRepositoryPort repo) {
+        return new mx.ades.modules.horarios.application.service.HorarioApplicationService(repo);
+    }
+
+    @Bean
+    public mx.ades.modules.horarios.domain.port.in.CrearHorarioUseCase crearHorario(
+            mx.ades.modules.horarios.application.service.HorarioApplicationService service) {
+        return service;
+    }
+
+    @Bean
+    public mx.ades.modules.horarios.domain.port.in.ActualizarHorarioUseCase actualizarHorario(
+            mx.ades.modules.horarios.application.service.HorarioApplicationService service) {
+        return service;
+    }
+
+    // ── planes_estudio (FASE 44) ──────────────────────────────────────────────
+    @Bean
+    public mx.ades.modules.planes_estudio.application.service.PlanEstudioApplicationService planEstudioApplicationService(
+            mx.ades.modules.planes_estudio.domain.port.out.PlanEstudioRepositoryPort repo) {
+        return new mx.ades.modules.planes_estudio.application.service.PlanEstudioApplicationService(repo);
+    }
+
+    @Bean
+    public mx.ades.modules.planes_estudio.domain.port.in.AsignarMateriaUseCase asignarMateria(
+            mx.ades.modules.planes_estudio.application.service.PlanEstudioApplicationService service) {
+        return service;
+    }
+
+    // ── admin promocion (FASE 58) ─────────────────────────────────────────────
+    @Bean
+    public mx.ades.modules.admin.application.service.PromocionApplicationService promocionApplicationService(
+            mx.ades.modules.admin.domain.port.out.PromocionRepositoryPort repo) {
+        return new mx.ades.modules.admin.application.service.PromocionApplicationService(repo);
+    }
+
+    @Bean
+    public mx.ades.modules.admin.domain.port.in.EvaluarPromocionUseCase evaluarPromocion(
+            mx.ades.modules.admin.application.service.PromocionApplicationService service) {
+        return service;
+    }
+
+    // ── contactos (FASE 52) ───────────────────────────────────────────────────
+    @Bean
+    public mx.ades.modules.contactos.application.service.ContactosApplicationService contactosApplicationService(
+            mx.ades.modules.contactos.domain.port.out.ContactosRepositoryPort repo) {
+        return new mx.ades.modules.contactos.application.service.ContactosApplicationService(repo);
+    }
+
+    @Bean
+    public mx.ades.modules.contactos.domain.port.in.RegistrarContactoUseCase registrarContacto(
+            mx.ades.modules.contactos.application.service.ContactosApplicationService service) {
+        return service;
+    }
+
+    @Bean
+    public mx.ades.modules.contactos.domain.port.in.ActualizarContactoUseCase actualizarContacto(
+            mx.ades.modules.contactos.application.service.ContactosApplicationService service) {
+        return service;
+    }
+
+    // ── portal_familias (FASE 59) ─────────────────────────────────────────────
+    @Bean
+    public mx.ades.modules.portal_familias.application.service.PortalFamiliasApplicationService portalFamiliasApplicationService(
+            mx.ades.modules.portal_familias.domain.port.out.PortalFamiliasRepositoryPort repo) {
+        return new mx.ades.modules.portal_familias.application.service.PortalFamiliasApplicationService(repo);
+    }
+
+    @Bean
+    public mx.ades.modules.portal_familias.domain.port.in.AgregarTutorUseCase agregarTutor(
+            mx.ades.modules.portal_familias.application.service.PortalFamiliasApplicationService service) {
         return service;
     }
 }

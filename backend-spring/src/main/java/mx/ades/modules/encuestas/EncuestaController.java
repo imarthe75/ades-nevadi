@@ -8,7 +8,6 @@ import mx.ades.security.AdesUser;
 import mx.ades.security.AdesUserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -28,7 +27,6 @@ public class EncuestaController {
     private final EncuestaPreguntaRepository preguntaRepository;
     private final EncuestaRespuestaRepository respuestaRepository;
     private final AdesUserService userService;
-    private final JdbcTemplate jdbc;
     private final ResponderEncuestaUseCase responderEncuesta;
     private final EncuestaQueryService queryService;
 

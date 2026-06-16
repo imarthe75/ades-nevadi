@@ -121,4 +121,9 @@ public class EvaluacionQueryService {
             "ORDER BY p.apellido_paterno, p.nombre, m.nombre_materia",
             grupoId);
     }
+
+    public List<Map<String, Object>> fetchGrupo(UUID grupoId) {
+        return jdbc.queryForList(
+            "SELECT id, nombre_grupo FROM ades_grupos WHERE id = ? AND is_active = TRUE", grupoId);
+    }
 }

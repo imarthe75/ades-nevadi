@@ -59,4 +59,20 @@ export class ApiService {
   postBlob(path: string, body: unknown): Observable<Blob> {
     return this.http.post(`${this.base}${path}`, body, { responseType: 'blob' });
   }
+
+  /** GET a ruta absoluta (sin /api/v1 prefix) — para endpoints públicos del portal */
+  getAbs<T>(path: string, params?: Record<string, string | number | boolean | undefined>): Observable<T> {
+    let httpParams = new HttpParams();
+    if (params) {
+      Object.entries(params).forEach(([k, v]) => {
+        if (v !== undefined && v !== null) httpParams = httpParams.set(k, String(v));
+      });
+    }
+    return this.http.get<T>(`${environment.apiUrl}${path}`, { params: httpParams });
+  }
+
+  /** POST multipart/form-data */
+  postForm<T>(path: string, formData: FormData): Observable<T> {
+    return this.http.post<T>(`${this.base}${path}`, formData);
+  }
 }

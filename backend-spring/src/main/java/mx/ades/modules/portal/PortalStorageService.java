@@ -136,10 +136,13 @@ public class PortalStorageService {
 
     private static final Set<String> IMAGE_MIMES = Set.of("image/jpeg", "image/png", "image/webp");
     private static final long MAX_IMAGE_BYTES = 5L * 1024 * 1024; // 5 MB
+    private static final String BUCKET_IMAGENES = "portal-imagenes";
 
     /**
-     * Guarda una imagen de convocatoria en el volumen de assets públicos (servidos por nginx).
-     * Retorna la URL pública para guardar en imagen_url.
+     * Sube imagen de convocatoria con escritura dual:
+     * 1. Filesystem → /srv/assets/convocatorias/ (servido por nginx, URL pública inmutable)
+     * 2. SeaweedFS S3 → bucket portal-imagenes (respaldo, acceso presigned)
+     * Retorna la URL pública nginx para guardar en imagen_url.
      */
     public String subirImagenConvocatoria(UUID convocatoriaId, MultipartFile imagen) {
         if (imagen == null || imagen.isEmpty())
@@ -153,14 +156,42 @@ public class PortalStorageService {
 
         String ext = extensionDe(imagen.getOriginalFilename(), mime);
         String filename = convocatoriaId + "_" + UUID.randomUUID() + "." + ext;
-        Path dir = Path.of(assetsDir);
 
+        byte[] bytes;
+        try {
+            bytes = imagen.getBytes();
+        } catch (IOException e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error leyendo imagen");
+        }
+
+        // 1. Escritura primaria: nginx static (URL pública)
+        Path dir = Path.of(assetsDir);
         try {
             Files.createDirectories(dir);
-            Files.write(dir.resolve(filename), imagen.getBytes());
+            Files.write(dir.resolve(filename), bytes);
         } catch (IOException e) {
-            log.error("Error guardando imagen de convocatoria: {}", e.getMessage(), e);
+            log.error("Error guardando imagen de convocatoria en filesystem: {}", e.getMessage(), e);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error al guardar la imagen");
+        }
+
+        // 2. Respaldo en SeaweedFS S3 (no bloquea si falla)
+        try {
+            if (client != null) {
+                if (!client.bucketExists(BucketExistsArgs.builder().bucket(BUCKET_IMAGENES).build())) {
+                    client.makeBucket(MakeBucketArgs.builder().bucket(BUCKET_IMAGENES).build());
+                }
+                try (java.io.ByteArrayInputStream bais = new java.io.ByteArrayInputStream(bytes)) {
+                    client.putObject(PutObjectArgs.builder()
+                            .bucket(BUCKET_IMAGENES)
+                            .object("convocatorias/" + filename)
+                            .stream(bais, bytes.length, -1)
+                            .contentType(mime)
+                            .build());
+                }
+                log.info("Imagen respaldada en SeaweedFS: {}/{}", BUCKET_IMAGENES, filename);
+            }
+        } catch (Exception e) {
+            log.warn("Respaldo SeaweedFS fallido (no crítico): {}", e.getMessage());
         }
 
         return publicBaseUrl + "/assets/convocatorias/" + filename;

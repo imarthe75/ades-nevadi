@@ -5,7 +5,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -24,7 +23,7 @@ import java.util.*;
 @CrossOrigin(origins = {"https://portalnvd.setag.mx", "http://localhost:4201"})
 public class PortalPublicoController {
 
-    private final JdbcTemplate jdbc;
+    private final PortalPublicoService portalSvc;
     private final PortalJwtService jwtService;
     private final PortalEmailService emailService;
     private final BCryptPasswordEncoder passwordEncoder;
@@ -41,127 +40,34 @@ public class PortalPublicoController {
             @RequestParam(name = "nivel_id", required = false) UUID nivelId,
             @RequestParam(defaultValue = "0") int skip,
             @RequestParam(defaultValue = "20") int limit) {
-
-        StringBuilder sql = new StringBuilder("""
-            SELECT c.id, c.categoria, c.tipo, c.titulo, c.descripcion,
-                   c.fecha_inicio_postulacion, c.fecha_cierre_postulacion,
-                   c.cupo_maximo, c.cupo_actual, c.imagen_url,
-                   p.nombre_plantel,
-                   ne.nombre_nivel
-            FROM portal.convocatorias c
-            LEFT JOIN ades_planteles p ON p.id = c.plantel_id
-            LEFT JOIN ades_niveles_educativos ne ON ne.id = c.nivel_educativo_id
-            WHERE c.is_published = TRUE
-              AND c.is_active = TRUE
-              AND c.fecha_cierre_postulacion >= NOW()
-            """);
-
-        List<Object> params = new ArrayList<>();
-        if (categoria != null && !categoria.isBlank()) {
-            sql.append("AND c.categoria = ?::portal.categoria_convocatoria ");
-            params.add(categoria.toUpperCase());
-        }
-        if (tipo != null && !tipo.isBlank()) {
-            sql.append("AND c.tipo = ?::portal.tipo_convocatoria ");
-            params.add(tipo.toUpperCase());
-        }
-        if (plantelId != null) {
-            sql.append("AND (c.plantel_id = ? OR c.plantel_id IS NULL) ");
-            params.add(plantelId);
-        }
-        if (nivelId != null) {
-            sql.append("AND (c.nivel_educativo_id = ? OR c.nivel_educativo_id IS NULL) ");
-            params.add(nivelId);
-        }
-        sql.append("ORDER BY c.fecha_cierre_postulacion ASC LIMIT ? OFFSET ?");
-        params.add(Math.min(limit, 50));
-        params.add(skip);
-
-        return ResponseEntity.ok(jdbc.queryForList(sql.toString(), params.toArray()));
+        return ResponseEntity.ok(portalSvc.listarConvocatorias(categoria, tipo, plantelId, nivelId, limit, skip));
     }
 
     @GetMapping("/convocatorias/{id}")
     public ResponseEntity<Map<String, Object>> detalleConvocatoria(@PathVariable UUID id) {
-        List<Map<String, Object>> rows = jdbc.queryForList("""
-            SELECT c.id, c.categoria, c.tipo, c.titulo, c.descripcion, c.requisitos_generales,
-                   c.fecha_inicio_postulacion, c.fecha_cierre_postulacion,
-                   c.cupo_maximo, c.cupo_actual, c.imagen_url,
-                   c.aviso_privacidad_version,
-                   p.nombre_plantel, p.id AS plantel_id,
-                   ne.nombre_nivel, ne.id AS nivel_educativo_id
-            FROM portal.convocatorias c
-            LEFT JOIN ades_planteles p ON p.id = c.plantel_id
-            LEFT JOIN ades_niveles_educativos ne ON ne.id = c.nivel_educativo_id
-            WHERE c.id = ? AND c.is_active = TRUE
-            """, id);
-
+        List<Map<String, Object>> rows = portalSvc.detalleConvocatoria(id);
         if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Convocatoria no encontrada");
-
         Map<String, Object> conv = new HashMap<>(rows.get(0));
-        List<Map<String, Object>> requisitos = jdbc.queryForList("""
-            SELECT id, nombre, descripcion, es_obligatorio,
-                   array_to_json(tipos_mime_permitidos)::text AS tipos_mime_permitidos,
-                   tamano_maximo_mb, orden
-            FROM portal.requisitos_documentos
-            WHERE convocatoria_id = ? AND is_active = TRUE
-            ORDER BY orden, nombre
-            """, id);
-        conv.put("requisitos_documentos", requisitos);
-
-        // Secciones de contenido LMS (página descriptiva)
-        List<Map<String, Object>> secciones = jdbc.queryForList("""
-            SELECT id, tipo_seccion, titulo, contenido, datos::text AS datos, orden
-            FROM portal.secciones_convocatoria
-            WHERE convocatoria_id = ? AND is_active = TRUE
-            ORDER BY orden, fecha_creacion
-            """, id);
-        conv.put("secciones", secciones);
-
+        conv.put("requisitos_documentos", portalSvc.requisitosConvocatoria(id));
+        conv.put("secciones", portalSvc.seccionesConvocatoria(id));
         return ResponseEntity.ok(conv);
     }
 
-    /** Catálogo de planteles, niveles educativos y categorías para filtros del portal. */
     @GetMapping("/catalogo")
     public ResponseEntity<Map<String, Object>> catalogo() {
-        List<Map<String, Object>> planteles = jdbc.queryForList("""
-            SELECT DISTINCT p.id, p.nombre_plantel, p.clave_ct
-            FROM ades_planteles p
-            JOIN portal.convocatorias c ON c.plantel_id = p.id
-            WHERE c.is_published = TRUE AND c.is_active = TRUE
-              AND c.fecha_cierre_postulacion >= NOW()
-            ORDER BY p.nombre_plantel
-            """);
-
-        List<Map<String, Object>> niveles = jdbc.queryForList("""
-            SELECT DISTINCT ne.id, ne.nombre_nivel, ne.autoridad_educativa
-            FROM ades_niveles_educativos ne
-            JOIN portal.convocatorias c ON c.nivel_educativo_id = ne.id
-            WHERE c.is_published = TRUE AND c.is_active = TRUE
-              AND c.fecha_cierre_postulacion >= NOW()
-            ORDER BY ne.nombre_nivel
-            """);
-
         var categorias = java.util.Arrays.asList("OFERTA_EDUCATIVA", "RECURSOS_HUMANOS");
         var tipos = java.util.Arrays.asList("INSCRIPCION", "REINSCRIPCION", "BECA",
                 "INTERCAMBIO", "EXTRACURRICULAR", "VACANTE_DOCENTE", "VACANTE_ADMINISTRATIVA");
-
         return ResponseEntity.ok(Map.of(
-                "planteles", planteles,
-                "niveles", niveles,
+                "planteles", portalSvc.catalogo(),
+                "niveles", portalSvc.nivelesEnConvocatorias(),
                 "categorias", categorias,
                 "tipos", tipos));
     }
 
     @GetMapping("/seguimiento/{folio}")
     public ResponseEntity<Map<String, Object>> seguimiento(@PathVariable String folio) {
-        List<Map<String, Object>> rows = jdbc.queryForList("""
-            SELECT po.folio, po.estado, po.fecha_envio, po.fecha_creacion,
-                   c.titulo AS convocatoria_titulo, c.tipo AS convocatoria_tipo
-            FROM portal.postulaciones po
-            JOIN portal.convocatorias c ON c.id = po.convocatoria_id
-            WHERE po.folio = ? AND po.is_active = TRUE
-            """, folio.toUpperCase().trim());
-
+        List<Map<String, Object>> rows = portalSvc.seguimiento(folio);
         if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND,
                 "No se encontró ninguna postulación con el folio indicado");
         return ResponseEntity.ok(rows.get(0));
@@ -198,32 +104,17 @@ public class PortalPublicoController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Debes aceptar el Aviso de Privacidad para registrarte");
         }
-
         String emailNorm = req.getEmail().toLowerCase().trim();
-        boolean existe = Boolean.TRUE.equals(jdbc.queryForObject(
-                "SELECT EXISTS(SELECT 1 FROM portal.usuarios WHERE email = ?)", Boolean.class, emailNorm));
-        if (existe) throw new ResponseStatusException(HttpStatus.CONFLICT,
-                "Ya existe una cuenta con ese correo electrónico");
-
+        if (portalSvc.emailExiste(emailNorm)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Ya existe una cuenta con ese correo electrónico");
+        }
         String hash  = passwordEncoder.encode(req.getPassword());
         String token = UUID.randomUUID().toString().replace("-", "");
-
-        UUID id = jdbc.queryForObject("""
-            INSERT INTO portal.usuarios
-              (email, password_hash, nombre_completo, telefono, fecha_nacimiento,
-               is_email_verified, token_verificacion,
-               consentimiento_privacidad, consentimiento_fecha, consentimiento_version,
-               is_active, usuario_creacion)
-            VALUES (?,?,?,?,?::DATE, FALSE,?,  TRUE,NOW(),?,  TRUE,'portal-registro')
-            RETURNING id
-            """, UUID.class,
-                emailNorm, hash, req.getNombreCompleto().trim(),
-                req.getTelefono(), req.getFechaNacimiento(),
-                token,
+        portalSvc.registrarUsuario(emailNorm, hash, req.getNombreCompleto().trim(),
+                req.getTelefono(), req.getFechaNacimiento(), token,
                 req.getConsentimientoVersion() != null ? req.getConsentimientoVersion() : "1.0");
-
         emailService.enviarVerificacion(emailNorm, req.getNombreCompleto(), token);
-
         return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
                 "mensaje", "Cuenta creada. Revisa tu correo para verificar tu dirección.",
                 "email", emailNorm));
@@ -231,11 +122,7 @@ public class PortalPublicoController {
 
     @PostMapping("/auth/verificar/{token}")
     public ResponseEntity<Map<String, Object>> verificarEmail(@PathVariable String token) {
-        int updated = jdbc.update("""
-            UPDATE portal.usuarios
-            SET is_email_verified = TRUE, token_verificacion = NULL, usuario_modificacion = 'portal-verify'
-            WHERE token_verificacion = ? AND is_active = TRUE
-            """, token);
+        int updated = portalSvc.verificarEmail(token);
         if (updated == 0) throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                 "Token de verificación inválido o ya utilizado");
         return ResponseEntity.ok(Map.of("mensaje", "Correo verificado correctamente. Ya puedes iniciar sesión."));
@@ -253,12 +140,7 @@ public class PortalPublicoController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email y contraseña son requeridos");
         }
         String emailNorm = req.getEmail().toLowerCase().trim();
-
-        List<Map<String, Object>> rows = jdbc.queryForList("""
-            SELECT id, password_hash, nombre_completo, is_email_verified, is_active
-            FROM portal.usuarios WHERE email = ?
-            """, emailNorm);
-
+        List<Map<String, Object>> rows = portalSvc.fetchUserByEmail(emailNorm);
         if (rows.isEmpty() || !Boolean.TRUE.equals(rows.get(0).get("is_active"))) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Credenciales inválidas");
         }
@@ -270,10 +152,8 @@ public class PortalPublicoController {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "Debes verificar tu correo electrónico antes de iniciar sesión");
         }
-
         UUID uid = (UUID) u.get("id");
-        jdbc.update("UPDATE portal.usuarios SET fecha_ultimo_acceso = NOW() WHERE id = ?", uid);
-
+        portalSvc.actualizarUltimoAcceso(uid);
         String token = jwtService.generarToken(uid, emailNorm, (String) u.get("nombre_completo"));
         return ResponseEntity.ok(Map.of(
                 "token", token,
@@ -288,12 +168,7 @@ public class PortalPublicoController {
     public ResponseEntity<Map<String, Object>> recuperar(@RequestBody RecuperarRequest req) {
         String emailNorm = req.getEmail().toLowerCase().trim();
         String token = UUID.randomUUID().toString().replace("-", "");
-        jdbc.update("""
-            UPDATE portal.usuarios
-            SET token_recuperacion = ?, token_expira_en = NOW() + INTERVAL '2 hours',
-                usuario_modificacion = 'portal-recuperar'
-            WHERE email = ? AND is_active = TRUE
-            """, token, emailNorm);
+        portalSvc.solicitarRecuperacion(emailNorm, token);
         emailService.enviarRecuperacionClave(emailNorm, token);
         return ResponseEntity.ok(Map.of("mensaje",
                 "Si el correo existe en nuestro sistema recibirás instrucciones para recuperar tu contraseña."));
@@ -309,12 +184,7 @@ public class PortalPublicoController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "La contraseña debe tener al menos 8 caracteres");
         }
-        int updated = jdbc.update("""
-            UPDATE portal.usuarios
-            SET password_hash = ?, token_recuperacion = NULL, token_expira_en = NULL,
-                usuario_modificacion = 'portal-nueva-clave'
-            WHERE token_recuperacion = ? AND token_expira_en > NOW() AND is_active = TRUE
-            """, passwordEncoder.encode(req.getPassword()), token);
+        int updated = portalSvc.actualizarClave(token, passwordEncoder.encode(req.getPassword()));
         if (updated == 0) throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                 "Token inválido o expirado. Solicita un nuevo enlace de recuperación.");
         return ResponseEntity.ok(Map.of("mensaje", "Contraseña actualizada correctamente."));
@@ -328,7 +198,7 @@ public class PortalPublicoController {
     public static class ArcoRequest {
         private String email;
         private String nombre;
-        private String tipo; // ACCESO | RECTIFICACION | CANCELACION | OPOSICION
+        private String tipo;
         private String descripcion;
     }
 
@@ -338,27 +208,12 @@ public class PortalPublicoController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Todos los campos son obligatorios");
         }
         String emailNorm = req.getEmail().toLowerCase().trim();
-        LocalDate fechaLimite = LocalDate.now().plusDays(28); // ~20 días hábiles
-
-        UUID portalUserId = jdbc.query(
-                "SELECT id FROM portal.usuarios WHERE email = ?",
-                rs -> rs.next() ? rs.getObject("id", UUID.class) : null,
-                emailNorm);
-
+        LocalDate fechaLimite = LocalDate.now().plusDays(28);
+        UUID portalUserId = portalSvc.fetchPortalUserId(emailNorm);
         String folio = "ARCO-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
-
-        jdbc.update("""
-            INSERT INTO portal.solicitudes_arco
-              (usuario_id, email_solicitante, nombre_solicitante, tipo, descripcion,
-               estado, fecha_limite_respuesta, usuario_creacion)
-            VALUES (?,?,?,?::portal.tipo_solicitud_arco,?,  'RECIBIDA',?,  'portal-arco')
-            """,
-                portalUserId, emailNorm, req.getNombre().trim(),
-                req.getTipo().toUpperCase(), req.getDescripcion(),
-                fechaLimite);
-
+        portalSvc.insertarSolicitudArco(portalUserId, emailNorm, req.getNombre().trim(),
+                req.getTipo(), req.getDescripcion(), fechaLimite);
         emailService.enviarAcuseArco(emailNorm, req.getNombre(), req.getTipo(), folio);
-
         return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
                 "mensaje", "Solicitud ARCO recibida. Recibirás respuesta en un máximo de 20 días hábiles.",
                 "fecha_limite", fechaLimite.toString(),

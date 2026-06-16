@@ -1,0 +1,124 @@
+package mx.ades.modules.esquemas_ponderacion.infrastructure.outbound.persistence;
+
+import lombok.RequiredArgsConstructor;
+import mx.ades.modules.esquemas_ponderacion.domain.model.ItemPonderacion;
+import mx.ades.modules.esquemas_ponderacion.domain.port.in.ActualizarEsquemaUseCase;
+import mx.ades.modules.esquemas_ponderacion.domain.port.in.CrearEsquemaUseCase;
+import mx.ades.modules.esquemas_ponderacion.domain.port.out.EsquemaRepositoryPort;
+import org.springframework.http.HttpStatus;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Component;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.math.BigDecimal;
+import java.util.*;
+
+@Component
+@RequiredArgsConstructor
+public class EsquemaPersistenceAdapter implements EsquemaRepositoryPort {
+
+    private final JdbcTemplate jdbc;
+
+    @Override
+    public List<Map<String, Object>> list(UUID nivelEducativoId, UUID materiaId) {
+        StringBuilder sql = new StringBuilder(
+            "SELECT ep.id, ep.nombre, ep.vigente_desde, ep.vigente_hasta, " +
+            "ep.activo, ep.materia_id, ne.nombre_nivel, m.nombre_materia, " +
+            "(SELECT json_agg(json_build_object(" +
+            "  'id', ip.id, 'tipo_item', ip.tipo_item, 'nombre_personalizado', ip.nombre_personalizado, " +
+            "  'peso_porcentaje', ip.peso_porcentaje, 'orden_display', ip.orden_display) " +
+            " ORDER BY ip.orden_display) FROM ades_items_ponderacion ip WHERE ip.esquema_id = ep.id AND ip.is_active = TRUE) AS items " +
+            "FROM ades_esquemas_ponderacion ep " +
+            "JOIN ades_niveles_educativos ne ON ne.id = ep.nivel_educativo_id " +
+            "LEFT JOIN ades_materias m ON m.id = ep.materia_id " +
+            "WHERE ep.is_active = TRUE ");
+        List<Object> params = new ArrayList<>();
+
+        if (nivelEducativoId != null) { sql.append("AND ep.nivel_educativo_id = ? "); params.add(nivelEducativoId); }
+        if (materiaId != null) { sql.append("AND (ep.materia_id = ? OR ep.materia_id IS NULL) "); params.add(materiaId); }
+        sql.append("ORDER BY ne.nombre_nivel, ep.vigente_desde DESC");
+        return jdbc.queryForList(sql.toString(), params.toArray());
+    }
+
+    @Override
+    public Map<String, Object> efectivo(UUID materiaId) {
+        String sql =
+            "SELECT ep.id, ep.nombre, ep.vigente_desde, ep.vigente_hasta, ep.materia_id, " +
+            "ne.nombre_nivel, ne.escala_maxima, ne.minimo_aprobatorio, " +
+            "(SELECT json_agg(json_build_object(" +
+            "  'id', ip.id, 'tipo_item', ip.tipo_item, 'nombre_personalizado', ip.nombre_personalizado, " +
+            "  'peso_porcentaje', ip.peso_porcentaje, 'orden_display', ip.orden_display) " +
+            " ORDER BY ip.orden_display) FROM ades_items_ponderacion ip WHERE ip.esquema_id = ep.id AND ip.is_active = TRUE) AS items " +
+            "FROM ades_esquemas_ponderacion ep " +
+            "JOIN ades_niveles_educativos ne ON ne.id = ep.nivel_educativo_id " +
+            "JOIN ades_materias m ON m.nivel_educativo_id = ne.id " +
+            "WHERE m.id = ? AND ep.activo = TRUE " +
+            "AND (ep.vigente_hasta IS NULL OR ep.vigente_hasta >= CURRENT_DATE) " +
+            "AND ep.vigente_desde <= CURRENT_DATE " +
+            "ORDER BY (ep.materia_id = ?) DESC NULLS LAST, ep.vigente_desde DESC LIMIT 1";
+        List<Map<String, Object>> rows = jdbc.queryForList(sql, materiaId, materiaId);
+        if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No hay esquema de ponderación para esta materia");
+        return rows.get(0);
+    }
+
+    @Override
+    public UUID insertEsquema(CrearEsquemaUseCase.Command cmd) {
+        UUID id = UUID.randomUUID();
+        jdbc.update(
+            "INSERT INTO ades_esquemas_ponderacion " +
+            "(id, nombre, nivel_educativo_id, materia_id, vigente_desde, vigente_hasta, creado_por, activo, usuario_creacion, usuario_modificacion) " +
+            "VALUES (?, ?, ?, ?, ?, ?, ?, TRUE, ?, ?)",
+            id, cmd.nombre(), cmd.nivelEducativoId(), cmd.materiaId(),
+            cmd.vigenteDesde(), cmd.vigenteHasta(), cmd.creadoPorId(), cmd.usuario(), cmd.usuario());
+        return id;
+    }
+
+    @Override
+    public void insertItems(UUID esquemaId, CrearEsquemaUseCase.Command cmd) {
+        for (ItemPonderacion i : cmd.items()) {
+            jdbc.update(
+                "INSERT INTO ades_items_ponderacion " +
+                "(id, esquema_id, tipo_item, nombre_personalizado, peso_porcentaje, orden_display, usuario_creacion, usuario_modificacion) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                UUID.randomUUID(), esquemaId, i.tipoItem(), i.nombrePersonalizado(),
+                BigDecimal.valueOf(i.pesoPorcentaje()), i.ordenDisplay(), cmd.usuario(), cmd.usuario());
+        }
+    }
+
+    @Override
+    public int updateEsquema(ActualizarEsquemaUseCase.Command cmd) {
+        return jdbc.update(
+            "UPDATE ades_esquemas_ponderacion " +
+            "SET nombre = ?, nivel_educativo_id = ?, materia_id = ?, vigente_desde = ?, vigente_hasta = ?, " +
+            "usuario_modificacion = ?, row_version = row_version + 1, fecha_modificacion = CURRENT_TIMESTAMP " +
+            "WHERE id = ? AND is_active = TRUE",
+            cmd.nombre(), cmd.nivelEducativoId(), cmd.materiaId(),
+            cmd.vigenteDesde(), cmd.vigenteHasta(), cmd.usuario(), cmd.esquemaId());
+    }
+
+    @Override
+    public void softDeleteItems(UUID esquemaId) {
+        jdbc.update("UPDATE ades_items_ponderacion SET is_active = FALSE WHERE esquema_id = ?", esquemaId);
+    }
+
+    @Override
+    public void insertItems(UUID esquemaId, ActualizarEsquemaUseCase.Command cmd) {
+        for (ItemPonderacion i : cmd.items()) {
+            jdbc.update(
+                "INSERT INTO ades_items_ponderacion " +
+                "(id, esquema_id, tipo_item, nombre_personalizado, peso_porcentaje, orden_display, usuario_creacion, usuario_modificacion) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                UUID.randomUUID(), esquemaId, i.tipoItem(), i.nombrePersonalizado(),
+                BigDecimal.valueOf(i.pesoPorcentaje()), i.ordenDisplay(), cmd.usuario(), cmd.usuario());
+        }
+    }
+
+    @Override
+    public int desactivar(UUID esquemaId, String usuario) {
+        return jdbc.update(
+            "UPDATE ades_esquemas_ponderacion " +
+            "SET activo = FALSE, is_active = FALSE, usuario_modificacion = ?, fecha_modificacion = CURRENT_TIMESTAMP " +
+            "WHERE id = ?",
+            usuario, esquemaId);
+    }
+}
