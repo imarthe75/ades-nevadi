@@ -74,43 +74,55 @@ def api_request(method, endpoint, data=None, token=None, headers=None):
 # ============================================================================
 
 def change_akadmin_password():
-    """Cambiar contraseña del usuario admin (aka akadmin en Authentik)"""
-    log("TASK 1: Cambiar contraseña admin (akadmin)...", "INFO")
+    """Cambiar contraseña de los usuarios admin y akadmin"""
+    log("TASK 1: Cambiar contraseñas de admin + akadmin...", "INFO")
     
     try:
-        # Obtener usuario admin (en Authentik se llama "admin")
-        log(f"  → Obteniendo usuario admin...", "INFO")
+        # Obtener usuarios
+        log(f"  → Obteniendo usuarios admin/akadmin...", "INFO")
         users = api_request("GET", "core/users/")
         
         if not users.get("results"):
             log("  ✗ No hay usuarios encontrados", "ERROR")
             return False
         
-        # Buscar usuario admin
+        # Buscar usuarios admin y akadmin
         admin_user = next((u for u in users["results"] if u["username"] == "admin"), None)
+        akadmin_user = next((u for u in users["results"] if u["username"] == "akadmin"), None)
+        
         if not admin_user:
             log("  ✗ Usuario admin no encontrado", "ERROR")
             return False
+        if not akadmin_user:
+            log("  ✗ Usuario akadmin no encontrado", "ERROR")
+            return False
         
-        akadmin_id = admin_user["pk"]
-        log(f"  ✓ Usuario admin encontrado (ID: {akadmin_id})", "INFO")
+        log(f"  ✓ Usuario admin encontrado (ID: {admin_user['pk']})", "INFO")
+        log(f"  ✓ Usuario akadmin encontrado (ID: {akadmin_user['pk']})", "INFO")
         
-        # Cambiar contraseña
-        log(f"  → Actualizando contraseña...", "INFO")
-        api_request("PATCH", f"core/users/{akadmin_id}/", {
+        # Cambiar contraseña de admin
+        log(f"  → Actualizando contraseña admin...", "INFO")
+        api_request("PATCH", f"core/users/{admin_user['pk']}/", {
             "password": NEW_AKADMIN_PASSWORD
         })
+        log(f"  ✓ Contraseña admin actualizada", "INFO")
         
-        log(f"  ✓ Contraseña actualizada", "INFO")
-        log(f"  📝 Nueva contraseña: {NEW_AKADMIN_PASSWORD}", "INFO")
+        # Cambiar contraseña de akadmin
+        log(f"  → Actualizando contraseña akadmin...", "INFO")
+        api_request("PATCH", f"core/users/{akadmin_user['pk']}/", {
+            "password": NEW_AKADMIN_PASSWORD
+        })
+        log(f"  ✓ Contraseña akadmin actualizada", "INFO")
+        log(f"  📝 Nueva contraseña (ambos): {NEW_AKADMIN_PASSWORD}", "INFO")
         
-        # Guardar contraseña en .env si no existe
+        # Guardar contraseña en .env
         env_file = "/opt/ades/.env"
         if os.path.exists(env_file):
             with open(env_file, "a") as f:
-                f.write(f"\n# SPRINT 1 — 2026-06-16\n")
+                f.write(f"\n# SPRINT 1 — 2026-06-16 (admin + akadmin)\n")
+                f.write(f"AUTHENTIK_ADMIN_PASSWORD={NEW_AKADMIN_PASSWORD}\n")
                 f.write(f"AUTHENTIK_AKADMIN_PASSWORD={NEW_AKADMIN_PASSWORD}\n")
-            log(f"  ✓ Contraseña guardada en .env", "INFO")
+            log(f"  ✓ Contraseñas guardadas en .env", "INFO")
         
         return True
     
