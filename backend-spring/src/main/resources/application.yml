@@ -8,10 +8,27 @@ spring:
       fail-on-empty-beans: false
   application:
     name: ades-bff
+  config:
+    import: "optional:vault://"
+  cloud:
+    vault:
+      host: ${VAULT_HOST:ades-vault}
+      port: ${VAULT_PORT:8200}
+      scheme: http
+      authentication: TOKEN
+      token: ${VAULT_TOKEN:}
+      kv:
+        enabled: true
+        backend: secret
+        default-context: ades
+        kv-version: 2
+      config:
+        lifecycle:
+          enabled: false
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/ades}
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://ades-pgbouncer:6432/ades}
     username: ${SPRING_DATASOURCE_USERNAME:ades_admin}
-    password: ${SPRING_DATASOURCE_PASSWORD:changeme}
+    password: ${SPRING_DATASOURCE_PASSWORD:${POSTGRES_PASSWORD:changeme}}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:

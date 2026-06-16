@@ -298,7 +298,8 @@ services:
       VAULT_ADDR:          http://ades-vault:8200
       MINIO_SECURE:        "false"
       # PgBouncer — asyncpg deshabilita prepared statements vía connect_args en database.py
-      DATABASE_URL:        postgresql+asyncpg://${POSTGRES_USER:-ades_admin}:${POSTGRES_PASSWORD}@ades-pgbouncer:6432/ades
+      # Puerto 5432 = puerto interno del contenedor pgbouncer (el 6432 es solo el mapeo del host)
+      DATABASE_URL:        postgresql+asyncpg://${POSTGRES_USER:-ades_admin}:${POSTGRES_PASSWORD}@ades-pgbouncer:5432/ades
     volumes:
       - ./backend:/app:cached     # hot-reload en desarrollo
       - vault-init:/vault/init:ro
@@ -863,7 +864,7 @@ services:
       MIN_POOL_SIZE:      5
       RESERVE_POOL_SIZE:  5
       MAX_DB_CONNECTIONS: 80
-      AUTH_TYPE:          md5
+      AUTH_TYPE:          scram-sha-256
       SERVER_RESET_QUERY: DISCARD ALL
       IGNORE_STARTUP_PARAMETERS: extra_float_digits,search_path
       ADMIN_USERS:        ${POSTGRES_USER:-ades_admin}

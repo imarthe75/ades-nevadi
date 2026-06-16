@@ -1,6 +1,8 @@
 import os
 
-# Inject Vault secrets into environment variables before initializing BaseSettings
+# Inject Vault secrets into environment variables before initializing BaseSettings.
+# Use setdefault so Docker container env vars (VAULT_ADDR, DATABASE_URL, etc.)
+# always take precedence over Vault values.
 try:
     from app.core.vault import get_vault_client
     client = get_vault_client()
@@ -13,7 +15,7 @@ try:
             secrets_data = read_response.get("data", {}).get("data", {})
             for k, v in secrets_data.items():
                 if v is not None:
-                    os.environ[k] = str(v)
+                    os.environ.setdefault(k, str(v))
         except Exception:
             pass
 except Exception:
