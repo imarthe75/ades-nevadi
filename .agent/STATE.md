@@ -209,9 +209,9 @@ Este documento es el diario de vida y bitácora del agente. Debe ser leído en e
 - [x] Movilidad estudiantil (CRUD) ✅ 2026-06-15
 
 #### 📋 ADMINISTRATIVO (Manual UI — 1 hora total):
-- [ ] Cambiar contraseña `akadmin` en Authentik UI admin (2 min)
+- [x] Cambiar contraseña `akadmin` en Authentik UI admin ✅ 2026-06-16
 - [x] Crear app OIDC `ades-frontend` en Authentik ✅ (ya configurada)
-- [ ] Crear app OIDC `superset` en Authentik (30 min — OAuth2 Provider + env config)
+- [x] Crear app OIDC `superset` en Authentik ✅ 2026-06-16
 - [ ] Google Workspace SSO en Authentik (30 min — requiere credenciales Google)
 
 #### 🔄 EN DESARROLLO (Próximos sprints):
