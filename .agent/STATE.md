@@ -70,13 +70,19 @@ Este documento es el diario de vida y bitácora del agente. Debe ser leído en e
 - **Spring Boot 3.x management.yml**: `management.metrics.export.prometheus.enabled` es SB 2.x. En SB 3.x usar `management.prometheus.metrics.export.enabled`.
 - **`get_ades_user` vs `get_current_user`**: `get_current_user` devuelve dict del JWT; `get_ades_user` devuelve `AdesUser` con UUID real. Usar siempre `get_ades_user` en endpoints que persisten `usuario_id` en BD.
 
+### 🔧 Fix post-SPRINT 6 (2026-06-16 — Rito de Cierre):
+- [x] `MetricsConfig.java` — JVM metrics vía `@PostConstruct` (Spring Batch eager init workaround)
+- [x] Commit `3cf3e68` — fix aplicado y BFF reconstruido
+- [x] Verificado: 8 series `jvm_memory_used_bytes{job="ades-bff"}` en Prometheus ✅
+- [x] Grafana dashboard `spring_bff_jvm.json` con datos reales ✅
+
 ### 🚀 Próximos Pasos (post SPRINT 6):
-- [ ] Rebuild contenedor Spring BFF para activar Micrometer en producción (`docker compose build ades-bff`)
-- [ ] Crear partición 2029 antes de fin de 2028
-- [ ] Google Workspace SSO (pendiente credenciales Google Cloud Console)
-- [ ] Superset: primer arranque manual + datasource BI
-- [ ] ADR-0008 Hexagonal FASE 3+ (Spring Boot)
+- [ ] Crear partición `ciclo_2029_2030` antes de agosto 2029
+- [ ] Google Workspace SSO (pendiente credenciales Google Cloud Console de Nevadi)
+- [ ] Superset: primer arranque manual + datasource BI + dashboards BI
+- [ ] ADR-0008 Hexagonal Spring Boot FASE 3+ (controllers restantes)
 - [ ] Manual de usuario: actualizar con módulos SPRINT 5+6
+- [ ] Agregar `jvm_memory_max_bytes` al heap gauge del dashboard (actualmente hay `heap/Tenured Gen` en JVM Serial GC, no G1/ZGC)
 
 ---
 
