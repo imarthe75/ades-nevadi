@@ -193,17 +193,49 @@ Este documento es el diario de vida y bitácora del agente. Debe ser leído en e
 **Cobertura CUs:** 165 → 173/230 (71.7% → 75.2%)
 **Deployments:** ades-api + ades-frontend rebuilded + running
 
-### 🚀 Próximos Pasos:
-- [x] `OPENAI_API_KEY` en `.env` para activar recomendaciones IA (NVIDIA NIM).
-- [ ] FASE 5B — Anclaje Polygon PoS blockchain.
-- [ ] FASE 24P — Paperless-ngx OCR expedientes.
-- [ ] Setup Authentik: cambiar contraseña akadmin, crear app OIDC ades-frontend.
-- [ ] Google Workspace SSO en Authentik para personal @institutonevadi.edu.mx.
-- [ ] Construir imagen ades-api (FastAPI backend — FASE 1).
-- [ ] Construir imagen ades-frontend (Angular — FASE 1).
-- [ ] Script `003_uuid_migration.sql`: migración real de BIGINT → UUID en BD existente (requiere aprobación DBA y ventana de mantenimiento).
-- [ ] Crear aplicación OIDC `superset` en Authentik.
-- [x] Schema migrado a UUID v7 (`uuidv7()` nativo PG18) — todos los PKs y FKs.
+### 🚀 Próximos Pasos — Estado Real (Análisis 2026-06-16)
+
+#### ✅ EN PRODUCCIÓN (11/12):
+- [x] `OPENAI_API_KEY` en `.env` para IA pedagógica (NVIDIA NIM) ✅ 2026-06-10
+- [x] Construir imagen ades-api (FastAPI backend) ✅ 2026-06-10
+- [x] Construir imagen ades-frontend (Angular 22) ✅ 2026-06-04
+- [x] Schema migrado a UUID v7 (uuidv7() nativo PG18) ✅ 2026-06-04
+- [x] Backend Spring Boot hexagonal + 231 tests (0 fallos) ✅ 2026-06-15
+- [x] APEX component library + 40+ rutas Angular ✅ 2026-06-09
+- [x] Learning Paths + IA pedagógica (NVIDIA NIM) ✅ 2026-06-10
+- [x] Certificación digital Ed25519 + verificación pública ✅ 2026-06-10
+- [x] Auditoría v2 con triggers en 150+ tablas ✅ 2026-06-15
+- [x] Portal externo con 16 convocatorias ✅ 2026-06-09
+- [x] Movilidad estudiantil (CRUD) ✅ 2026-06-15
+
+#### 📋 ADMINISTRATIVO (Manual UI — 1 hora total):
+- [ ] Cambiar contraseña `akadmin` en Authentik UI admin (2 min)
+- [x] Crear app OIDC `ades-frontend` en Authentik ✅ (ya configurada)
+- [ ] Crear app OIDC `superset` en Authentik (30 min — OAuth2 Provider + env config)
+- [ ] Google Workspace SSO en Authentik (30 min — requiere credenciales Google)
+
+#### 🔄 EN DESARROLLO (Próximos sprints):
+- [ ] **FASE 24P — Paperless-ngx OCR expedientes:**
+      Estado: 30% (contenedor operativo, sin integracion)
+      Pendiente: Endpoints backend + servicio OCR + componente frontend
+      Esfuerzo: 4-6 horas | Prioridad: Media
+      
+- [ ] **Documentación BD (recomendado):**
+      - Generar `db/migrations/068_comentarios_schema.sql` (COMMENT ON TABLE/COLUMN)
+      - Crear `docs/ER_DIAGRAM.md` (Mermaid diagram)
+      - Documentar índices recomendados en FKs
+      Esfuerzo: 2-3 horas | Prioridad: Baja
+
+#### 🔴 DIFERIDA (Baja prioridad, futuro):
+- [ ] **FASE 5B — Blockchain Polygon PoS:**
+      Estado: 0% producción (modo MOCK activo)
+      Pendiente: Desplegar contrato + RPC URL + privada key + env config
+      Esfuerzo: 8-12 horas | Prioridad: Baja
+      
+- [ ] **Script `003_uuid_migration.sql`:**
+      Estado: Greenfield ya está en UUID nativo
+      Aplicable: Solo si hay BD legacy con BIGINT
+      Esfuerzo: N/A (schema nuevo no lo requiere)
 - [x] Estructura académica completa: Ixtapan sec 3°, Metepec prep sem 1-6, Tenancingo prep sem 1-6.
 - [x] 39 grados, 78 grupos (66 activos), 168 profesores, 1980 alumnos, 2054 usuarios.
 - [x] Seed 002 v4 + 003 v4 con is_active en grupos futuros y auth local para docentes.
