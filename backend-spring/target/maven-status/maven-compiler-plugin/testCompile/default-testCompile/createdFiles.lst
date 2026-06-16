@@ -2,6 +2,7 @@ mx/ades/modules/calificaciones/CalificacionDomainTest.class
 mx/ades/modules/evaluaciones/EvaluacionesDomainTest.class
 mx/ades/modules/asistencias/RegistrarAsistenciaMasivaServiceTest.class
 mx/ades/modules/reinscripcion/ReinscripcionDomainTest.class
+mx/ades/modules/procesos/ProcesarPreinscripcionApplicationServiceTest.class
 mx/ades/modules/gradebook/GradebookApplicationServiceTest.class
 mx/ades/modules/evaluaciones/EvaluacionApplicationServiceTest.class
 mx/ades/modules/expediente/ExpedienteDomainTest.class
@@ -13,6 +14,7 @@ mx/ades/modules/expediente/ExpedienteApplicationServiceTest.class
 mx/ades/modules/conducta/ConductaDomainTest.class
 mx/ades/modules/asistencias/AsistenciaDomainTest.class
 mx/ades/shared/domain/AdesIdTest.class
+mx/ades/modules/procesos/ProcesosDomainTest.class
 mx/ades/modules/gradebook/GradebookDomainTest.class
 mx/ades/modules/comunicados/ComunicadoDomainTest.class
 mx/ades/modules/alumnos/AlumnoQueryServiceTest.class

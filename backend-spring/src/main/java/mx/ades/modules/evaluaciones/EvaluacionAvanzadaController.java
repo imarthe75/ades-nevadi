@@ -30,7 +30,7 @@ public class EvaluacionAvanzadaController {
     private final EscalaEvaluacionRepository escalaRepository;
     private final ObservacionPedagogicaRepository observacionRepository;
     private final NeeRepository neeRepository;
-    private final AsignarAulaHoraUseCase asignarAulaHoraUseCase;
+    private final AsignarAulaHoraUseCase asignarAulaHora;
     private final EvaluacionQueryService queryService;
 
     // ── EV-012: Escalas Cualitativas ──────────────────────────────────────────
@@ -205,7 +205,7 @@ public class EvaluacionAvanzadaController {
         AdesUser user = userService.resolveUser(jwt);
         requireNivel(user, 3);
 
-        UUID asignacionId = asignarAulaHoraUseCase.ejecutar(new AsignarAulaHoraUseCase.Command(
+        UUID asignacionId = asignarAulaHora.ejecutar(new AsignarAulaHoraUseCase.Command(
                 data.getClaseId(), data.getAulaId(),
                 LocalDate.parse(data.getFecha()),
                 SlotHorario.of(data.getHoraInicio(), data.getHoraFin()),

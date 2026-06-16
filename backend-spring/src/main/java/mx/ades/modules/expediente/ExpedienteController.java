@@ -34,10 +34,10 @@ public class ExpedienteController {
     private final AdesUserService userService;
     private final JdbcTemplate jdbc;
     private final PaperlessService paperlessSvc;
-    private final RegistrarBajaUseCase registrarBajaUseCase;
-    private final CalificarExtraordinarioUseCase calificarExtraordinarioUseCase;
-    private final EmitirConstanciaUseCase emitirConstanciaUseCase;
-    private final VerificarExpedienteUseCase verificarExpedienteUseCase;
+    private final RegistrarBajaUseCase registrarBaja;
+    private final CalificarExtraordinarioUseCase calificarExtraordinario;
+    private final EmitirConstanciaUseCase emitirConstancia;
+    private final VerificarExpedienteUseCase verificarExpediente;
     private final ExpedienteQueryService queryService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -102,7 +102,7 @@ public class ExpedienteController {
         AdesUser user = userService.resolveUser(jwt);
 
         TipoBaja tipo = TipoBaja.of(body.getTipoBaja());
-        RegistrarBajaUseCase.Result result = registrarBajaUseCase.ejecutar(
+        RegistrarBajaUseCase.Result result = registrarBaja.ejecutar(
                 new RegistrarBajaUseCase.Command(
                         estudianteId, tipo, body.getMotivo(),
                         body.getFechaEfectiva(), body.getFechaReingreso(),
@@ -164,7 +164,7 @@ public class ExpedienteController {
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
 
-        calificarExtraordinarioUseCase.ejecutar(new CalificarExtraordinarioUseCase.Command(
+        calificarExtraordinario.ejecutar(new CalificarExtraordinarioUseCase.Command(
                 extraId, CalificacionExtra.of(calificacion), acredita, fechaExamen,
                 user.getId().toString()));
 
@@ -190,7 +190,7 @@ public class ExpedienteController {
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
 
-        EmitirConstanciaUseCase.Result result = emitirConstanciaUseCase.ejecutar(
+        EmitirConstanciaUseCase.Result result = emitirConstancia.ejecutar(
                 new EmitirConstanciaUseCase.Command(
                         estudianteId, body.getTipoConstancia(), body.getCicloEscolarId(),
                         body.getSolicitadaPor(), body.getProposito(), body.getFechaVencimiento(),
@@ -342,7 +342,7 @@ public class ExpedienteController {
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
 
-        verificarExpedienteUseCase.ejecutar(new VerificarExpedienteUseCase.Command(
+        verificarExpediente.ejecutar(new VerificarExpedienteUseCase.Command(
                 expedienteId, observaciones, user.getNivelAcceso(), user.getId()));
 
         return ResponseEntity.ok(Map.of(

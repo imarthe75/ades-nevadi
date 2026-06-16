@@ -2,6 +2,8 @@ package mx.ades.modules.procesos;
 
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import mx.ades.modules.procesos.domain.port.in.ProcesarPreinscripcionUseCase;
+import mx.ades.modules.procesos.query.ProcesosQueryService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -28,6 +30,8 @@ public class ProcesosEscolaresController {
     private final JdbcTemplate jdbc;
     private final WebhookService webhookService;
     private final mx.ades.common.ZipService zipService;
+    private final ProcesarPreinscripcionUseCase procesarPreinscripcion;
+    private final ProcesosQueryService queryService;
     private final RestClient restClient = RestClient.builder().build();
 
     @Value("${carbone.url:http://ades-carbone:3000}")
@@ -208,36 +212,7 @@ public class ProcesosEscolaresController {
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         requireSecretariaOrHigher(user);
-
-        StringBuilder sql = new StringBuilder(
-                "SELECT id, nombre, apellido_paterno, apellido_materno, curp, " +
-                "nivel_solicitado, grado_solicitado, estado, " +
-                "nombre_tutor, email_tutor, fecha_solicitud, " +
-                "promedio_procedencia, escuela_procedencia " +
-                "FROM ades_solicitudes_admision " +
-                "WHERE 1=1 "
-        );
-
-        List<Object> params = new ArrayList<>();
-        if (plantelId != null) {
-            sql.append("AND plantel_id = ? ");
-            params.add(plantelId);
-        }
-        if (estado != null && !estado.isBlank()) {
-            sql.append("AND estado = ? ");
-            params.add(estado);
-        }
-        if (cicloId != null) {
-            sql.append("AND ciclo_escolar_id = ? ");
-            params.add(cicloId);
-        }
-
-        sql.append("ORDER BY fecha_solicitud DESC LIMIT ? OFFSET ?");
-        params.add(limit);
-        params.add(skip);
-
-        List<Map<String, Object>> rows = jdbc.queryForList(sql.toString(), params.toArray());
-        return ResponseEntity.ok(rows);
+        return ResponseEntity.ok(queryService.listarAdmisiones(plantelId, estado, cicloId, skip, limit));
     }
 
     @PostMapping("/admision")
@@ -315,23 +290,8 @@ public class ProcesosEscolaresController {
     public ResponseEntity<List<Map<String, Object>>> listarDocumentos(
             @RequestParam(value = "admision_id", required = false) UUID admisionId,
             @AuthenticationPrincipal Jwt jwt) {
-        AdesUser user = userService.resolveUser(jwt);
-
-        StringBuilder sql = new StringBuilder(
-                "SELECT id, admision_id, tipo_documento, nombre_archivo, url_documento, " +
-                "estado_validacion, observaciones, fecha_creacion " +
-                "FROM ades_documentos_admision WHERE 1=1 "
-        );
-
-        List<Object> params = new ArrayList<>();
-        if (admisionId != null) {
-            sql.append("AND admision_id = ? ");
-            params.add(admisionId);
-        }
-
-        sql.append("ORDER BY tipo_documento");
-        List<Map<String, Object>> rows = jdbc.queryForList(sql.toString(), params.toArray());
-        return ResponseEntity.ok(rows);
+        userService.resolveUser(jwt);
+        return ResponseEntity.ok(queryService.listarDocumentosAdmision(admisionId));
     }
 
     // ── PE-007: Preinscripción ───────────────────────────────────────────────
@@ -350,66 +310,24 @@ public class ProcesosEscolaresController {
         AdesUser user = userService.resolveUser(jwt);
         requireSecretariaOrHigher(user);
 
-        // Verificar solicitud aceptada
-        List<Map<String, Object>> sol = jdbc.queryForList(
-                "SELECT nombre, apellido_paterno, curp FROM ades_solicitudes_admision WHERE id = ? AND estado = 'ACEPTADO'",
-                body.getAdmisionId());
-        if (sol.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La solicitud debe estar en estado ACEPTADO");
-        }
-        Map<String, Object> s = sol.get(0);
+        var result = procesarPreinscripcion.ejecutar(
+                new ProcesarPreinscripcionUseCase.Command(
+                        body.getAdmisionId(), body.getCicloEscolarId(), body.getGrupoId(), user.getUsername()));
 
-        // Verificar capacidad del grupo
-        List<Map<String, Object>> cap = jdbc.queryForList(
-                "SELECT capacidad_maxima, " +
-                "(SELECT COUNT(*) FROM ades_inscripciones WHERE grupo_id = ? AND is_active) AS inscritos " +
-                "FROM ades_grupos WHERE id = ? AND is_active = TRUE", body.getGrupoId(), body.getGrupoId());
-        if (cap.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Grupo no encontrado");
-        }
-        int max = ((Number) cap.get(0).get("capacidad_maxima")).intValue();
-        int cur = ((Number) cap.get(0).get("inscritos")).intValue();
-        if (cur >= max) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El grupo está lleno");
-        }
-
-        // Crear persona y estudiante
-        UUID personaId = UUID.randomUUID();
-        jdbc.update("INSERT INTO ades_personas (id, nombre, apellido_paterno, curp, usuario_creacion, usuario_modificacion) " +
-                "VALUES (?, ?, ?, ?, ?, ?)",
-                personaId, s.get("nombre"), s.get("apellido_paterno"), s.get("curp"), user.getUsername(), user.getUsername());
-
-        UUID estudianteId = UUID.randomUUID();
-        String matricula = "MAT-" + (100000 + new Random().nextInt(900000));
-        jdbc.update("INSERT INTO ades_estudiantes (id, persona_id, matricula, usuario_creacion, usuario_modificacion) " +
-                "VALUES (?, ?, ?, ?, ?)",
-                estudianteId, personaId, matricula, user.getUsername(), user.getUsername());
-
-        // Inscribir
-        jdbc.update("INSERT INTO ades_inscripciones (id, estudiante_id, grupo_id, ciclo_escolar_id, fecha_inscripcion, usuario_creacion, usuario_modificacion) " +
-                "VALUES (?, ?, ?, ?, CURRENT_DATE, ?, ?)",
-                UUID.randomUUID(), estudianteId, body.getGrupoId(), body.getCicloEscolarId(), user.getUsername(), user.getUsername());
-
-        // Marcar solicitud como inscrito
-        jdbc.update("UPDATE ades_solicitudes_admision SET estado = 'INSCRITO', usuario_modificacion = ? WHERE id = ?",
-                user.getUsername(), body.getAdmisionId());
-
-        // Disparar Webhook
         Map<String, Object> webhookData = new HashMap<>();
-        webhookData.put("estudiante_id", estudianteId.toString());
-        webhookData.put("matricula", matricula);
-        webhookData.put("nombre", s.get("nombre"));
-        webhookData.put("apellido_paterno", s.get("apellido_paterno"));
-        webhookData.put("curp", s.get("curp"));
+        webhookData.put("estudiante_id", result.estudianteId().toString());
+        webhookData.put("matricula", result.matricula());
+        webhookData.put("nombre", result.nombre());
+        webhookData.put("apellido_paterno", result.apellidoPaterno());
+        webhookData.put("curp", result.curp());
         webhookData.put("grupo_id", body.getGrupoId().toString());
         webhookData.put("ciclo_escolar_id", body.getCicloEscolarId().toString());
         webhookData.put("fecha_inscripcion", LocalDate.now().toString());
-
         webhookService.dispatchWebhook("ALUMNO_INSCRITO", webhookData);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
                 "message", "Preinscripción completada",
-                "estudiante_id", estudianteId.toString()
+                "estudiante_id", result.estudianteId().toString()
         ));
     }
 
@@ -422,27 +340,7 @@ public class ProcesosEscolaresController {
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         requireSecretariaOrHigher(user);
-
-        StringBuilder sql = new StringBuilder(
-                "SELECT id, nombre, apellido_paterno, nivel_solicitado, grado_solicitado, " +
-                "nombre_tutor, telefono_tutor, email_tutor, fecha_solicitud " +
-                "FROM ades_solicitudes_admision " +
-                "WHERE estado = 'LISTA_ESPERA' "
-        );
-
-        List<Object> params = new ArrayList<>();
-        if (plantelId != null) {
-            sql.append("AND plantel_id = ? ");
-            params.add(plantelId);
-        }
-        if (nivelSolicitado != null && !nivelSolicitado.isBlank()) {
-            sql.append("AND nivel_solicitado = ? ");
-            params.add(nivelSolicitado);
-        }
-
-        sql.append("ORDER BY fecha_solicitud ASC");
-        List<Map<String, Object>> rows = jdbc.queryForList(sql.toString(), params.toArray());
-        return ResponseEntity.ok(rows);
+        return ResponseEntity.ok(queryService.listaEspera(plantelId, nivelSolicitado));
     }
 
     @PostMapping("/lista-espera/{id}/notificar")
@@ -486,31 +384,8 @@ public class ProcesosEscolaresController {
             @RequestParam(value = "ciclo_id", required = false) UUID cicloId,
             @RequestParam(value = "estudiante_id", required = false) UUID estudianteId,
             @AuthenticationPrincipal Jwt jwt) {
-        AdesUser user = userService.resolveUser(jwt);
-
-        StringBuilder sql = new StringBuilder(
-                "SELECT io.id, io.fecha_inscripcion, m.nombre_materia, m.clave_materia, " +
-                "p.nombre || ' ' || p.apellido_paterno AS alumno, e.matricula " +
-                "FROM ades_inscripciones_optativas io " +
-                "JOIN ades_materias m ON m.id = io.materia_id " +
-                "JOIN ades_estudiantes e ON e.id = io.estudiante_id " +
-                "JOIN ades_personas p ON p.id = e.persona_id " +
-                "WHERE io.is_active = TRUE "
-        );
-
-        List<Object> params = new ArrayList<>();
-        if (cicloId != null) {
-            sql.append("AND io.ciclo_escolar_id = ? ");
-            params.add(cicloId);
-        }
-        if (estudianteId != null) {
-            sql.append("AND io.estudiante_id = ? ");
-            params.add(estudianteId);
-        }
-
-        sql.append("ORDER BY m.nombre_materia");
-        List<Map<String, Object>> rows = jdbc.queryForList(sql.toString(), params.toArray());
-        return ResponseEntity.ok(rows);
+        userService.resolveUser(jwt);
+        return ResponseEntity.ok(queryService.listarOptativas(cicloId, estudianteId));
     }
 
     @PostMapping("/optativas")
@@ -612,31 +487,8 @@ public class ProcesosEscolaresController {
             @RequestParam(value = "nivel_educativo", required = false) String nivelEducativo,
             @RequestParam(value = "tipo", required = false) String tipo,
             @AuthenticationPrincipal Jwt jwt) {
-        AdesUser user = userService.resolveUser(jwt);
-
-        StringBuilder sql = new StringBuilder(
-                "SELECT id, nombre, tipo, nivel_educativo, fecha_inicio, fecha_fin, " +
-                "descripcion, es_oficial, fecha_creacion " +
-                "FROM ades_calendarios_academicos WHERE is_active = TRUE "
-        );
-
-        List<Object> params = new ArrayList<>();
-        if (cicloId != null) {
-            sql.append("AND ciclo_escolar_id = ? ");
-            params.add(cicloId);
-        }
-        if (nivelEducativo != null && !nivelEducativo.isBlank()) {
-            sql.append("AND nivel_educativo = ? ");
-            params.add(nivelEducativo);
-        }
-        if (tipo != null && !tipo.isBlank()) {
-            sql.append("AND tipo = ? ");
-            params.add(tipo);
-        }
-
-        sql.append("ORDER BY fecha_inicio");
-        List<Map<String, Object>> rows = jdbc.queryForList(sql.toString(), params.toArray());
-        return ResponseEntity.ok(rows);
+        userService.resolveUser(jwt);
+        return ResponseEntity.ok(queryService.listarCalendarios(cicloId, nivelEducativo, tipo));
     }
 
     @PostMapping("/calendarios-academicos")
@@ -712,36 +564,7 @@ public class ProcesosEscolaresController {
             @RequestParam(value = "mes", required = false) Integer mes,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
-
-        StringBuilder sql = new StringBuilder(
-                "SELECT ca.id, ca.nombre, ca.tipo, ca.nivel_educativo, " +
-                "ca.fecha_inicio, ca.fecha_fin, ca.descripcion, ca.es_oficial, " +
-                "pl.nombre_plantel " +
-                "FROM ades_calendarios_academicos ca " +
-                "LEFT JOIN ades_planteles pl ON pl.id = ca.plantel_id " +
-                "WHERE ca.is_active = TRUE "
-        );
-
-        List<Object> params = new ArrayList<>();
-        if (cicloId != null) {
-            sql.append("AND ca.ciclo_escolar_id = ? ");
-            params.add(cicloId);
-        }
-        if (plantelId != null) {
-            sql.append("AND (ca.plantel_id = ? OR ca.plantel_id IS NULL) ");
-            params.add(plantelId);
-        } else if (user.getPlantelId() != null) {
-            sql.append("AND (ca.plantel_id = ? OR ca.plantel_id IS NULL) ");
-            params.add(user.getPlantelId());
-        }
-        if (mes != null) {
-            sql.append("AND EXTRACT(MONTH FROM ca.fecha_inicio) = ? ");
-            params.add(mes);
-        }
-
-        sql.append("ORDER BY ca.fecha_inicio");
-        List<Map<String, Object>> rows = jdbc.queryForList(sql.toString(), params.toArray());
-        return ResponseEntity.ok(rows);
+        return ResponseEntity.ok(queryService.calendarioActividades(cicloId, plantelId, user.getPlantelId(), mes));
     }
 
     // ── PE-003: Evaluación Diagnóstica ───────────────────────────────────────

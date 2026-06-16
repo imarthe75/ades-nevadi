@@ -847,6 +847,7 @@ services:
       - /etc/letsencrypt:/etc/letsencrypt:ro    # bind mount — certs en el host
       - certbot-www:/var/www/certbot:ro          # webroot ACME challenge
       - authentik-media:/authentik-media:ro      # archivos media de Authentik (logos, etc.)
+      - ./assets:/srv/assets:ro                   # imágenes estáticas de convocatorias y portal
     ports:
       - "80:80"
       - "443:443"

@@ -18,15 +18,15 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class AsistenciaController {
 
-    private final RegistrarAsistenciaMasivaUseCase registrar;
-    private final ConsultarAsistenciasPorClaseUseCase consultar;
+    private final RegistrarAsistenciaMasivaUseCase registrarAsistenciaMasiva;
+    private final ConsultarAsistenciasPorClaseUseCase consultarAsistenciasPorClase;
 
     @PostMapping("/registrar-lote")
     public ResponseEntity<Void> registrarLote(
             @RequestBody List<RegistrarAsistenciaItemDto> items,
             @AuthenticationPrincipal Jwt jwt) {
         String usuario = jwt != null ? jwt.getClaimAsString("email") : "sistema";
-        registrar.ejecutar(
+        registrarAsistenciaMasiva.ejecutar(
                 items.stream().map(RegistrarAsistenciaItemDto::toCommand).toList(),
                 usuario);
         return ResponseEntity.ok().build();
@@ -36,7 +36,7 @@ public class AsistenciaController {
     public ResponseEntity<List<AsistenciaResponseDto>> listarPorClase(
             @PathVariable("claseId") UUID claseId) {
         return ResponseEntity.ok(
-                consultar.ejecutar(claseId).stream()
+                consultarAsistenciasPorClase.ejecutar(claseId).stream()
                         .map(AsistenciaResponseDto::from)
                         .toList());
     }

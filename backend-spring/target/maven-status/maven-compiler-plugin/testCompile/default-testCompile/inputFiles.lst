@@ -15,6 +15,8 @@
 /app/src/test/java/mx/ades/modules/expediente/ExpedienteDomainTest.java
 /app/src/test/java/mx/ades/modules/gradebook/GradebookApplicationServiceTest.java
 /app/src/test/java/mx/ades/modules/gradebook/GradebookDomainTest.java
+/app/src/test/java/mx/ades/modules/procesos/ProcesarPreinscripcionApplicationServiceTest.java
+/app/src/test/java/mx/ades/modules/procesos/ProcesosDomainTest.java
 /app/src/test/java/mx/ades/modules/reinscripcion/ReinscripcionDomainTest.java
 /app/src/test/java/mx/ades/shared/domain/AdesIdTest.java
 /app/src/test/java/mx/ades/shared/domain/NivelTipoTest.java

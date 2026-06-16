@@ -34,6 +34,12 @@ import mx.ades.modules.gradebook.application.service.GradebookApplicationService
 import mx.ades.modules.gradebook.domain.port.in.AplicarAjusteUseCase;
 import mx.ades.modules.gradebook.domain.port.in.CerrarCalificacionUseCase;
 import mx.ades.modules.gradebook.domain.port.out.CalificacionPeriodoRepositoryPort;
+import mx.ades.modules.encuestas.application.service.EncuestaApplicationService;
+import mx.ades.modules.encuestas.domain.port.in.ResponderEncuestaUseCase;
+import mx.ades.modules.encuestas.domain.port.out.EncuestaRespuestaRepositoryPort;
+import mx.ades.modules.learning_paths.application.service.LearningPathApplicationService;
+import mx.ades.modules.learning_paths.domain.port.in.RegistrarProgresoUseCase;
+import mx.ades.modules.learning_paths.domain.port.out.LearningPathRepositoryPort;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -210,6 +216,43 @@ public class HexagonalConfig {
 
     @Bean
     public CalificarEvaluacionMasivoUseCase calificarEvaluacionMasivo(EvaluacionApplicationService service) {
+        return service;
+    }
+
+    // ── encuestas (FASE 17) ───────────────────────────────────────────────────
+
+    @Bean
+    public EncuestaApplicationService encuestaApplicationService(EncuestaRespuestaRepositoryPort repo) {
+        return new EncuestaApplicationService(repo);
+    }
+
+    @Bean
+    public ResponderEncuestaUseCase responderEncuesta(EncuestaApplicationService service) {
+        return service;
+    }
+
+    // ── learning_paths (FASE 18) ──────────────────────────────────────────────
+
+    @Bean
+    public LearningPathApplicationService learningPathApplicationService(LearningPathRepositoryPort repo) {
+        return new LearningPathApplicationService(repo);
+    }
+
+    @Bean
+    public RegistrarProgresoUseCase registrarProgreso(LearningPathApplicationService service) {
+        return service;
+    }
+
+    // ── procesos (FASE 16) ────────────────────────────────────────────────────
+    @Bean
+    public mx.ades.modules.procesos.application.service.ProcesosApplicationService procesosApplicationService(
+            mx.ades.modules.procesos.domain.port.out.PreinscripcionRepositoryPort repo) {
+        return new mx.ades.modules.procesos.application.service.ProcesosApplicationService(repo);
+    }
+
+    @Bean
+    public mx.ades.modules.procesos.domain.port.in.ProcesarPreinscripcionUseCase procesarPreinscripcion(
+            mx.ades.modules.procesos.application.service.ProcesosApplicationService service) {
         return service;
     }
 }

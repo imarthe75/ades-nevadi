@@ -99,7 +99,9 @@ public class PortalPublicoController {
 
         Map<String, Object> conv = new HashMap<>(rows.get(0));
         List<Map<String, Object>> requisitos = jdbc.queryForList("""
-            SELECT id, nombre, descripcion, es_obligatorio, tipos_mime_permitidos, tamano_maximo_mb, orden
+            SELECT id, nombre, descripcion, es_obligatorio,
+                   array_to_json(tipos_mime_permitidos)::text AS tipos_mime_permitidos,
+                   tamano_maximo_mb, orden
             FROM portal.requisitos_documentos
             WHERE convocatoria_id = ? AND is_active = TRUE
             ORDER BY orden, nombre
@@ -108,7 +110,7 @@ public class PortalPublicoController {
 
         // Secciones de contenido LMS (página descriptiva)
         List<Map<String, Object>> secciones = jdbc.queryForList("""
-            SELECT id, tipo_seccion, titulo, contenido, datos, orden
+            SELECT id, tipo_seccion, titulo, contenido, datos::text AS datos, orden
             FROM portal.secciones_convocatoria
             WHERE convocatoria_id = ? AND is_active = TRUE
             ORDER BY orden, fecha_creacion
@@ -116,6 +118,38 @@ public class PortalPublicoController {
         conv.put("secciones", secciones);
 
         return ResponseEntity.ok(conv);
+    }
+
+    /** Catálogo de planteles, niveles educativos y categorías para filtros del portal. */
+    @GetMapping("/catalogo")
+    public ResponseEntity<Map<String, Object>> catalogo() {
+        List<Map<String, Object>> planteles = jdbc.queryForList("""
+            SELECT DISTINCT p.id, p.nombre_plantel, p.clave_ct
+            FROM ades_planteles p
+            JOIN portal.convocatorias c ON c.plantel_id = p.id
+            WHERE c.is_published = TRUE AND c.is_active = TRUE
+              AND c.fecha_cierre_postulacion >= NOW()
+            ORDER BY p.nombre_plantel
+            """);
+
+        List<Map<String, Object>> niveles = jdbc.queryForList("""
+            SELECT DISTINCT ne.id, ne.nombre_nivel, ne.autoridad_educativa
+            FROM ades_niveles_educativos ne
+            JOIN portal.convocatorias c ON c.nivel_educativo_id = ne.id
+            WHERE c.is_published = TRUE AND c.is_active = TRUE
+              AND c.fecha_cierre_postulacion >= NOW()
+            ORDER BY ne.nombre_nivel
+            """);
+
+        var categorias = java.util.Arrays.asList("OFERTA_EDUCATIVA", "RECURSOS_HUMANOS");
+        var tipos = java.util.Arrays.asList("INSCRIPCION", "REINSCRIPCION", "BECA",
+                "INTERCAMBIO", "EXTRACURRICULAR", "VACANTE_DOCENTE", "VACANTE_ADMINISTRATIVA");
+
+        return ResponseEntity.ok(Map.of(
+                "planteles", planteles,
+                "niveles", niveles,
+                "categorias", categorias,
+                "tipos", tipos));
     }
 
     @GetMapping("/seguimiento/{folio}")

@@ -20,7 +20,7 @@ public class EvaluacionController {
 
     private final EvaluacionRepository repository;
     private final AdesUserService userService;
-    private final CalificarEvaluacionMasivoUseCase calificarMasivoUseCase;
+    private final CalificarEvaluacionMasivoUseCase calificarEvaluacionMasivo;
     private final EvaluacionQueryService queryService;
 
     @GetMapping
@@ -70,7 +70,7 @@ public class EvaluacionController {
                     (String) c.get("comentarios")));
         }
 
-        int updated = calificarMasivoUseCase.ejecutar(
+        int updated = calificarEvaluacionMasivo.ejecutar(
                 new CalificarEvaluacionMasivoUseCase.Command(evalId, entradas, user.getUsername()));
 
         return ResponseEntity.ok(Map.of("updated", updated));

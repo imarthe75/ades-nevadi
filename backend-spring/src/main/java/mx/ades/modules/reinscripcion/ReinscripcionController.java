@@ -25,7 +25,7 @@ public class ReinscripcionController {
 
     private final ReinscripcionService service;
     private final AdesUserService userService;
-    private final ProcesarAccionReinscripcionUseCase procesarAccionUseCase;
+    private final ProcesarAccionReinscripcionUseCase procesarAccionReinscripcion;
     private final ReinscripcionQueryService queryService;
 
     private static final int NIVEL_ADMIN = 3;
@@ -116,7 +116,7 @@ public class ReinscripcionController {
         requireAdmin(user);
 
         AccionReinscripcion accion = AccionReinscripcion.of(body.getAccion());
-        ProcesarAccionReinscripcionUseCase.Result result = procesarAccionUseCase.ejecutar(
+        ProcesarAccionReinscripcionUseCase.Result result = procesarAccionReinscripcion.ejecutar(
                 new ProcesarAccionReinscripcionUseCase.Command(
                         registroId, accion, body.getRazonRechazo(), user.getId()));
 

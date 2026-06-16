@@ -276,6 +276,12 @@
 /app/src/main/java/mx/ades/modules/portal/PortalUsuarioController.java
 /app/src/main/java/mx/ades/modules/portal_familias/PortalFamiliasController.java
 /app/src/main/java/mx/ades/modules/procesos/ProcesosEscolaresController.java
+/app/src/main/java/mx/ades/modules/procesos/application/service/ProcesosApplicationService.java
+/app/src/main/java/mx/ades/modules/procesos/domain/model/EstadoAdmision.java
+/app/src/main/java/mx/ades/modules/procesos/domain/port/in/ProcesarPreinscripcionUseCase.java
+/app/src/main/java/mx/ades/modules/procesos/domain/port/out/PreinscripcionRepositoryPort.java
+/app/src/main/java/mx/ades/modules/procesos/infrastructure/outbound/persistence/ProcesosPersistenceAdapter.java
+/app/src/main/java/mx/ades/modules/procesos/query/ProcesosQueryService.java
 /app/src/main/java/mx/ades/modules/profesores/Profesor.java
 /app/src/main/java/mx/ades/modules/profesores/ProfesorController.java
 /app/src/main/java/mx/ades/modules/profesores/ProfesorRepository.java

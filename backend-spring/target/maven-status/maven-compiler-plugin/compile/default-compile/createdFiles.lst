@@ -66,7 +66,9 @@ mx/ades/modules/expediente/domain/port/out/BajaRepositoryPort.class
 mx/ades/modules/sistema/CatalogosSistemaController.class
 mx/ades/modules/compliance/ComplianceController$RetencionPayload.class
 mx/ades/modules/gradebook/ActividadesController$ActividadIn.class
+mx/ades/modules/procesos/application/service/ProcesosApplicationService.class
 mx/ades/modules/aulas/Aula.class
+mx/ades/modules/procesos/domain/port/in/ProcesarPreinscripcionUseCase.class
 mx/ades/modules/learning_paths/LearningPathsController$RecursoRequest.class
 mx/ades/shared/domain/AuditInfo.class
 mx/ades/modules/evaluaciones/EvaluacionAvanzadaController$ObservacionPedagogicaPayload.class
@@ -115,6 +117,7 @@ mx/ades/modules/foros/Anuncio.class
 mx/ades/config/AuditSessionInterceptor.class
 mx/ades/modules/expediente/domain/model/TipoDocumentoExpediente.class
 mx/ades/modules/sistema/VariableSistema.class
+mx/ades/modules/procesos/infrastructure/outbound/persistence/ProcesosPersistenceAdapter.class
 mx/ades/modules/gradebook/query/GradebookQueryService.class
 mx/ades/modules/admin/AdminController$GrupoAdminUpdate.class
 mx/ades/modules/badges/BadgeController$BadgeCreateRequest.class
@@ -140,6 +143,7 @@ mx/ades/shared/domain/PlantelId.class
 mx/ades/modules/portal/PortalAdminController$RequisitoRequest.class
 mx/ades/modules/portal/PortalStorageService.class
 mx/ades/modules/comunicados/ComunicadoController.class
+mx/ades/modules/procesos/domain/port/out/PreinscripcionRepositoryPort$GrupoCapacidad.class
 mx/ades/modules/evaluaciones/TareaEntregaService.class
 mx/ades/modules/calificaciones/infrastructure/outbound/persistence/CalificacionEntity.class
 mx/ades/modules/portal/PortalUsuarioController$NuevaPostulacionRequest.class
@@ -199,6 +203,7 @@ mx/ades/modules/conducta/PlanMejoraRepository.class
 mx/ades/modules/medico/SaludAvanzadaController.class
 mx/ades/modules/procesos/ProcesosEscolaresController$OptativaRequest.class
 mx/ades/modules/imports/ImportsController$ImportResult$ImportResultBuilder.class
+mx/ades/modules/procesos/domain/port/in/ProcesarPreinscripcionUseCase$Command.class
 mx/ades/modules/movilidad/MovilidadController$TrasladoRequest.class
 mx/ades/modules/evaluaciones/MinioService.class
 mx/ades/common/WebhookService.class
@@ -227,6 +232,7 @@ mx/ades/modules/eval_docente/EvalDocenteController$CriterioCalificacion.class
 mx/ades/modules/evaluaciones/domain/port/out/TareaRepositoryPort.class
 mx/ades/modules/procesos/ProcesosEscolaresController$PreinscripcionRequest.class
 mx/ades/modules/evaluaciones/infrastructure/outbound/persistence/TareaPersistenceAdapter.class
+mx/ades/modules/procesos/domain/port/in/ProcesarPreinscripcionUseCase$PreinscripcionResult.class
 mx/ades/modules/reinscripcion/ReinscripcionController$ValidarMasivaRequest.class
 mx/ades/modules/evaluaciones/domain/event/ActividadCreadaEvent.class
 mx/ades/modules/movilidad/MovilidadController$BajaRequest.class
@@ -333,6 +339,7 @@ mx/ades/modules/gradebook/domain/model/CalificacionEstado.class
 mx/ades/config/HexagonalConfig.class
 mx/ades/modules/direcciones/DireccionesController.class
 mx/ades/modules/capacitaciones/CapacitacionDocenteRepository.class
+mx/ades/modules/procesos/domain/port/out/PreinscripcionRepositoryPort$AdmisionData.class
 mx/ades/modules/comunicados/domain/model/Periodicidad$1.class
 mx/ades/modules/movilidad/MovilidadController$ReactivarRequest.class
 mx/ades/modules/admin/AdminController$MarcaItemUpdate.class
@@ -367,6 +374,7 @@ mx/ades/modules/learning_paths/LearningPathsController$AsignacionRequest.class
 mx/ades/modules/notificaciones/query/NotificacionQueryService.class
 mx/ades/modules/evaluaciones/domain/model/ItemCalificacion.class
 mx/ades/modules/sistema/VariableSistemaRepository.class
+mx/ades/modules/procesos/domain/port/out/PreinscripcionRepositoryPort.class
 mx/ades/common/StringListConverter.class
 mx/ades/modules/superset/SupersetController$GuestTokenResponse.class
 mx/ades/modules/calificaciones/domain/event/CalificacionCerradaEvent.class
@@ -383,6 +391,7 @@ mx/ades/modules/asistencias/infrastructure/outbound/persistence/AsistenciaPersis
 mx/ades/modules/reinscripcion/application/service/ReinscripcionApplicationService.class
 mx/ades/controller/UserController.class
 mx/ades/modules/calificaciones/infrastructure/inbound/rest/dto/GuardarCalificacionManualDto.class
+mx/ades/modules/procesos/query/ProcesosQueryService.class
 mx/ades/modules/reinscripcion/ReinscripcionCiclo.class
 mx/ades/modules/comunicados/domain/model/Periodicidad$4.class
 mx/ades/modules/horarios/query/HorarioQueryService.class
@@ -455,3 +464,4 @@ mx/ades/modules/comunicados/AcuseComunicadoRepository.class
 mx/ades/modules/disponibilidad/DisponibilidadDocente.class
 mx/ades/modules/evaluaciones/EscalaEvaluacion.class
 mx/ades/modules/expediente/domain/event/ExtraordinarioCalificadoEvent.class
+mx/ades/modules/procesos/domain/model/EstadoAdmision.class

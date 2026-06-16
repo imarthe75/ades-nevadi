@@ -20,14 +20,14 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class CalificacionesController {
 
-    private final CalcularCalificacionPeriodoUseCase calcular;
-    private final GuardarCalificacionManualUseCase   guardarManual;
-    private final ObtenerBoletaUseCase               boleta;
+    private final CalcularCalificacionPeriodoUseCase calcularCalificacionPeriodo;
+    private final GuardarCalificacionManualUseCase   guardarCalificacionManual;
+    private final ObtenerBoletaUseCase               obtenerBoleta;
     private final JdbcTemplate jdbc;
 
     @PostMapping("/calcular")
     public ResponseEntity<Void> calcular(@RequestBody CalcularCalificacionDto req) {
-        calcular.ejecutar(req.estudianteId(), req.inscripcionId(), req.materiaId(), req.periodoId());
+        calcularCalificacionPeriodo.ejecutar(req.estudianteId(), req.inscripcionId(), req.materiaId(), req.periodoId());
         return ResponseEntity.ok().build();
     }
 
@@ -35,14 +35,14 @@ public class CalificacionesController {
     public ResponseEntity<CalificacionResponseDto> guardarManual(
             @RequestBody GuardarCalificacionManualDto req) {
         return ResponseEntity.ok(
-                CalificacionResponseDto.from(guardarManual.ejecutar(req.toDomain())));
+                CalificacionResponseDto.from(guardarCalificacionManual.ejecutar(req.toDomain())));
     }
 
     @GetMapping("/boleta/{estudianteId}")
-    public ResponseEntity<List<CalificacionResponseDto>> obtenerBoleta(
+    public ResponseEntity<List<CalificacionResponseDto>> boleta(
             @PathVariable("estudianteId") UUID estudianteId) {
         return ResponseEntity.ok(
-                boleta.ejecutar(estudianteId).stream()
+                obtenerBoleta.ejecutar(estudianteId).stream()
                         .map(CalificacionResponseDto::from)
                         .toList());
     }
