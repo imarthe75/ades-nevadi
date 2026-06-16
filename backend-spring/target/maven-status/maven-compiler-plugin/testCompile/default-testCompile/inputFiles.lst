@@ -7,6 +7,7 @@
 /app/src/test/java/mx/ades/modules/comunicados/ComunicadoDomainTest.java
 /app/src/test/java/mx/ades/modules/conducta/ConductaApplicationServiceTest.java
 /app/src/test/java/mx/ades/modules/conducta/ConductaDomainTest.java
+/app/src/test/java/mx/ades/modules/encuestas/EncuestasDomainTest.java
 /app/src/test/java/mx/ades/modules/evaluaciones/EvaluacionApplicationServiceTest.java
 /app/src/test/java/mx/ades/modules/evaluaciones/EvaluacionTier2DomainTest.java
 /app/src/test/java/mx/ades/modules/evaluaciones/EvaluacionesDomainTest.java
@@ -15,6 +16,8 @@
 /app/src/test/java/mx/ades/modules/expediente/ExpedienteDomainTest.java
 /app/src/test/java/mx/ades/modules/gradebook/GradebookApplicationServiceTest.java
 /app/src/test/java/mx/ades/modules/gradebook/GradebookDomainTest.java
+/app/src/test/java/mx/ades/modules/imports/ImportsDomainTest.java
+/app/src/test/java/mx/ades/modules/learning_paths/LearningPathsDomainTest.java
 /app/src/test/java/mx/ades/modules/procesos/ProcesarPreinscripcionApplicationServiceTest.java
 /app/src/test/java/mx/ades/modules/procesos/ProcesosDomainTest.java
 /app/src/test/java/mx/ades/modules/reinscripcion/ReinscripcionDomainTest.java

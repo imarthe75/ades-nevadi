@@ -6,11 +6,13 @@ import lombok.extern.slf4j.Slf4j;
 import mx.ades.security.AdesUser;
 import mx.ades.security.AdesUserService;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.*;
@@ -200,6 +202,22 @@ public class PortalAdminController {
             """, user.getUsername(), id);
         if (upd == 0) throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         return ResponseEntity.ok(Map.of("ok", true));
+    }
+
+    @PostMapping(value = "/convocatorias/{id}/imagen", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Map<String, Object>> subirImagen(
+            @PathVariable UUID id,
+            @RequestParam("imagen") MultipartFile imagen,
+            @AuthenticationPrincipal Jwt jwt) {
+        AdesUser user = userService.resolveUser(jwt);
+        requireAdmin(user);
+        verifyConvocatoriaExists(id);
+
+        String url = storage.subirImagenConvocatoria(id, imagen);
+        jdbc.update("UPDATE portal.convocatorias SET imagen_url = ?, usuario_modificacion = ? WHERE id = ?",
+                url, user.getUsername(), id);
+        log.info("Imagen de convocatoria {} actualizada: {}", id, url);
+        return ResponseEntity.ok(Map.of("imagen_url", url));
     }
 
     @DeleteMapping("/convocatorias/{id}")

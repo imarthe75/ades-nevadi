@@ -1,3 +1,4 @@
+mx/ades/modules/learning_paths/domain/port/out/LearningPathRepositoryPort.class
 mx/ades/modules/calificaciones/application/service/CalificacionApplicationService.class
 mx/ades/modules/asistencias/domain/port/out/AsistenciaRepositoryPort.class
 mx/ades/modules/conducta/application/service/AplicarSancionService.class
@@ -14,6 +15,7 @@ mx/ades/modules/gradebook/EsquemasPonderacionController$EsquemaIn.class
 mx/ades/modules/movilidad/BajaRepository.class
 mx/ades/modules/expediente/domain/port/in/EmitirConstanciaUseCase$Command.class
 mx/ades/modules/evaluaciones/domain/port/in/AsignarAulaHoraUseCase$Command.class
+mx/ades/modules/encuestas/domain/port/out/EncuestaRespuestaRepositoryPort$EncuestaEstado.class
 mx/ades/modules/conducta/SeguimientoPlanRepository.class
 mx/ades/modules/padres/query/PadresQueryService.class
 mx/ades/modules/expediente/domain/port/in/RegistrarBajaUseCase.class
@@ -26,9 +28,11 @@ mx/ades/modules/sistema/CatalogosSistemaController$ItemRequest.class
 mx/ades/modules/justificaciones/JustificacionController$JustificacionCreate.class
 mx/ades/modules/evaluaciones/domain/port/in/CalificarEvaluacionMasivoUseCase$Command.class
 mx/ades/modules/evaluaciones/RubricaRepository.class
+mx/ades/modules/encuestas/query/EncuestaQueryService.class
 mx/ades/modules/alumnos/Estudiante.class
 mx/ades/modules/calificaciones/domain/port/in/CalcularCalificacionPeriodoUseCase.class
 mx/ades/modules/reinscripcion/ReinscripcionController$RechazarRequest.class
+mx/ades/modules/learning_paths/domain/port/in/RegistrarProgresoUseCase.class
 mx/ades/modules/profesores/ProfesorController.class
 mx/ades/modules/badges/Badge.class
 mx/ades/modules/gradebook/GradebookController.class
@@ -42,6 +46,7 @@ mx/ades/modules/asistencia_personal/AsistenciaPersonalController$AsistenciaCreat
 mx/ades/modules/portal/PortalUsuarioController.class
 mx/ades/shared/infrastructure/AdesBaseMapper.class
 mx/ades/modules/portal/PortalPublicoController.class
+mx/ades/modules/learning_paths/query/LearningPathQueryService.class
 mx/ades/modules/evaluaciones/domain/port/in/CalificarMasivoUseCase.class
 mx/ades/modules/calificaciones/infrastructure/outbound/persistence/CalificacionJpaRepository.class
 mx/ades/modules/personal_admin/PersonalAdminController.class
@@ -58,11 +63,13 @@ mx/ades/modules/planteles/PlantelController.class
 mx/ades/modules/conducta/ReporteConducta.class
 mx/ades/modules/encuestas/EncuestaController$RespuestaItem.class
 mx/ades/modules/asistencias/infrastructure/inbound/rest/dto/RegistrarAsistenciaItemDto.class
+mx/ades/modules/encuestas/domain/model/TipoRespuesta.class
 mx/ades/modules/imports/ImportsController$ErrorFila.class
 mx/ades/modules/asistencias/ClaseService.class
 mx/ades/modules/conducta/SancionDisciplinaria.class
 mx/ades/modules/asistencias/domain/port/in/RegistrarAsistenciaMasivaUseCase.class
 mx/ades/modules/expediente/domain/port/out/BajaRepositoryPort.class
+mx/ades/modules/learning_paths/domain/port/in/RegistrarProgresoUseCase$Command.class
 mx/ades/modules/sistema/CatalogosSistemaController.class
 mx/ades/modules/compliance/ComplianceController$RetencionPayload.class
 mx/ades/modules/gradebook/ActividadesController$ActividadIn.class
@@ -89,6 +96,7 @@ mx/ades/modules/procesos/ProcesosEscolaresController$PeriodoEvaluacionRequest.cl
 mx/ades/modules/gradebook/EntregasController$CalificarIn.class
 mx/ades/modules/medico/SaludAvanzadaController$TutoriaPayload.class
 mx/ades/modules/learning_paths/LearningPathsController$PathRequest.class
+mx/ades/modules/imports/domain/model/TipoEntidadImport.class
 mx/ades/modules/disponibilidad/DisponibilidadDocenteController.class
 mx/ades/modules/evaluaciones/infrastructure/outbound/persistence/EvaluacionPersistenceAdapter.class
 mx/ades/modules/menus/MenusController$MenuNode.class
@@ -111,6 +119,7 @@ mx/ades/modules/evaluaciones/query/TareaQueryService.class
 mx/ades/controller/CatalogsController.class
 mx/ades/modules/conducta/ConductaController$ReporteCreateRequest.class
 mx/ades/modules/imports/ImportadorUtil$ParsedFile.class
+mx/ades/modules/learning_paths/domain/model/EstatusAsignacion.class
 mx/ades/modules/boletas/BoletasController.class
 mx/ades/modules/cierre/CierreCicloController$CierreCicloRequest.class
 mx/ades/modules/foros/Anuncio.class
@@ -145,6 +154,7 @@ mx/ades/modules/portal/PortalStorageService.class
 mx/ades/modules/comunicados/ComunicadoController.class
 mx/ades/modules/procesos/domain/port/out/PreinscripcionRepositoryPort$GrupoCapacidad.class
 mx/ades/modules/evaluaciones/TareaEntregaService.class
+mx/ades/modules/learning_paths/infrastructure/outbound/persistence/LearningPathPersistenceAdapter.class
 mx/ades/modules/calificaciones/infrastructure/outbound/persistence/CalificacionEntity.class
 mx/ades/modules/portal/PortalUsuarioController$NuevaPostulacionRequest.class
 mx/ades/modules/reinscripcion/query/ReinscripcionQueryService.class
@@ -290,8 +300,10 @@ mx/ades/modules/encuestas/EncuestaRespuestaRepository.class
 mx/ades/modules/sistema/CatalogosSistemaController$VariableRequest.class
 mx/ades/modules/asistencias/domain/model/Asistencia.class
 mx/ades/modules/comunicados/domain/model/Periodicidad$3.class
+mx/ades/modules/encuestas/domain/port/in/ResponderEncuestaUseCase.class
 mx/ades/modules/medico/MedicoController.class
 mx/ades/modules/contactos/ContactosController$ExpedienteMedicoPayload.class
+mx/ades/modules/imports/query/ImportQueryService$PlantillaInfo.class
 mx/ades/modules/gradebook/domain/event/AjusteAplicadoEvent.class
 mx/ades/modules/evaluaciones/EscalaEvaluacionRepository.class
 mx/ades/modules/evaluaciones/domain/port/in/CalificarEvaluacionMasivoUseCase$EntradaCalificacion.class
@@ -310,6 +322,7 @@ mx/ades/modules/conducta/infrastructure/outbound/persistence/ConductaPlanPersist
 mx/ades/modules/sistema/CatalogosSistemaController$CatalogoRequest.class
 mx/ades/modules/medico/ExpedienteMedicoRepository.class
 mx/ades/modules/gradebook/domain/port/in/AplicarAjusteUseCase$Command.class
+mx/ades/modules/learning_paths/domain/port/in/RegistrarProgresoUseCase$Result.class
 mx/ades/modules/planeacion/query/PlaneacionQueryService.class
 mx/ades/modules/badges/BadgeController$OtorgarRequest.class
 mx/ades/modules/conducta/domain/port/in/CrearPlanMejoraUseCase.class
@@ -328,10 +341,12 @@ mx/ades/modules/evaluaciones/TareaController$CrearActividadRequest.class
 mx/ades/modules/badges/BadgeOtorgadoRepository.class
 mx/ades/modules/sistema/CatalogoRepository.class
 mx/ades/modules/evaluaciones/TareaEntregaController$CalificarRequest.class
+mx/ades/modules/encuestas/domain/port/out/EncuestaRespuestaRepositoryPort.class
 mx/ades/modules/expediente/ExpedienteLaboralController$ExpedientePatch.class
 mx/ades/modules/condiciones/CondicionCronica.class
 mx/ades/modules/evaluaciones/domain/model/SlotHorario.class
 mx/ades/modules/asistencia_personal/AsistenciaPersonalController$AsistenciaPatch.class
+mx/ades/modules/encuestas/domain/port/in/ResponderEncuestaUseCase$Command.class
 mx/ades/modules/imports/ImportadorUtil.class
 mx/ades/modules/conducta/domain/port/out/SancionRepositoryPort.class
 mx/ades/modules/evaluaciones/RubricaController.class
@@ -373,6 +388,7 @@ mx/ades/modules/evaluaciones/domain/model/TipoItem.class
 mx/ades/modules/learning_paths/LearningPathsController$AsignacionRequest.class
 mx/ades/modules/notificaciones/query/NotificacionQueryService.class
 mx/ades/modules/evaluaciones/domain/model/ItemCalificacion.class
+mx/ades/modules/encuestas/domain/port/out/EncuestaRespuestaRepositoryPort$RespuestaData.class
 mx/ades/modules/sistema/VariableSistemaRepository.class
 mx/ades/modules/procesos/domain/port/out/PreinscripcionRepositoryPort.class
 mx/ades/common/StringListConverter.class
@@ -389,6 +405,7 @@ mx/ades/modules/comunicados/domain/model/Periodicidad$5.class
 mx/ades/modules/evaluaciones/AsignacionAulaRepository.class
 mx/ades/modules/asistencias/infrastructure/outbound/persistence/AsistenciaPersistenceAdapter.class
 mx/ades/modules/reinscripcion/application/service/ReinscripcionApplicationService.class
+mx/ades/modules/encuestas/domain/port/in/ResponderEncuestaUseCase$Result.class
 mx/ades/controller/UserController.class
 mx/ades/modules/calificaciones/infrastructure/inbound/rest/dto/GuardarCalificacionManualDto.class
 mx/ades/modules/procesos/query/ProcesosQueryService.class
@@ -402,12 +419,15 @@ mx/ades/modules/asistencias/ClaseController.class
 mx/ades/modules/expediente/ExpedienteController.class
 mx/ades/modules/movilidad/query/MovilidadQueryService.class
 mx/ades/config/EventConfig.class
+mx/ades/modules/encuestas/application/service/EncuestaApplicationService.class
 mx/ades/security/AdesUser.class
 mx/ades/modules/admin/AdminController$UsuarioUpdateRequest.class
 mx/ades/modules/foros/MensajeForo.class
 mx/ades/modules/evaluaciones/application/service/EvaluacionApplicationService.class
 mx/ades/modules/conducta/domain/port/in/AplicarSancionUseCase.class
+mx/ades/modules/learning_paths/application/service/LearningPathApplicationService.class
 mx/ades/modules/evaluaciones/EvaluacionAvanzadaController$AsignacionAulaHoraPayload.class
+mx/ades/modules/learning_paths/domain/port/out/LearningPathRepositoryPort$ProgresoStats.class
 mx/ades/modules/expediente/domain/port/out/ConstanciaRepositoryPort.class
 mx/ades/modules/reinscripcion/domain/event/ReinscripcionProcesadaEvent.class
 mx/ades/modules/reinscripcion/domain/port/in/ProcesarAccionReinscripcionUseCase.class
@@ -422,6 +442,7 @@ mx/ades/modules/conducta/ConductaController$SeguimientoRequest.class
 mx/ades/modules/asistencias/application/service/RegistrarAsistenciaMasivaService.class
 mx/ades/config/SecurityConfig.class
 mx/ades/modules/gradebook/domain/port/in/AplicarAjusteUseCase.class
+mx/ades/modules/encuestas/infrastructure/outbound/persistence/EncuestaPersistenceAdapter.class
 mx/ades/modules/expediente/PaperlessService$1.class
 mx/ades/modules/expediente/PaperlessService.class
 mx/ades/controller/HealthController.class
@@ -435,6 +456,7 @@ mx/ades/modules/evaluaciones/infrastructure/outbound/persistence/TareaJpaReposit
 mx/ades/modules/sistema/Catalogo.class
 mx/ades/modules/expediente/domain/port/in/RegistrarBajaUseCase$Command.class
 mx/ades/modules/procesos/ProcesosEscolaresController.class
+mx/ades/modules/encuestas/domain/port/in/ResponderEncuestaUseCase$RespuestaItem.class
 mx/ades/modules/materias/MateriaRepository.class
 mx/ades/shared/domain/CicloEscolarId.class
 mx/ades/security/AdesUserService.class
@@ -463,5 +485,7 @@ mx/ades/modules/expediente/query/ExpedienteQueryService.class
 mx/ades/modules/comunicados/AcuseComunicadoRepository.class
 mx/ades/modules/disponibilidad/DisponibilidadDocente.class
 mx/ades/modules/evaluaciones/EscalaEvaluacion.class
+mx/ades/modules/imports/query/ImportQueryService.class
 mx/ades/modules/expediente/domain/event/ExtraordinarioCalificadoEvent.class
 mx/ades/modules/procesos/domain/model/EstadoAdmision.class
+mx/ades/modules/imports/query/ImportQueryService$1.class

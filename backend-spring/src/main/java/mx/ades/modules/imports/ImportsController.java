@@ -4,6 +4,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import mx.ades.modules.imports.domain.model.TipoEntidadImport;
+import mx.ades.modules.imports.query.ImportQueryService;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -20,9 +22,7 @@ import org.springframework.web.server.ResponseStatusException;
 import mx.ades.security.AdesUser;
 import mx.ades.security.AdesUserService;
 
-import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
-import java.time.LocalDate;
 import java.util.*;
 
 @RestController
@@ -34,6 +34,7 @@ public class ImportsController {
     private final AdesUserService userService;
     private final JdbcTemplate jdbc;
     private final PlatformTransactionManager transactionManager;
+    private final ImportQueryService importQueryService;
 
     private static final long MAX_FILE_BYTES = 10 * 1024 * 1024; // 10 MB
 
@@ -54,67 +55,42 @@ public class ImportsController {
         private List<ErrorFila> detalleErrores;
     }
 
-    private static final Map<String, String[]> PLANTILLAS_HEADERS = Map.of(
-            "alumnos", new String[]{"nombre", "apellido_paterno", "apellido_materno", "curp", "genero", "fecha_nacimiento", "fecha_ingreso", "clave_plantel"},
-            "profesores", new String[]{"nombre", "apellido_paterno", "apellido_materno", "curp", "genero", "fecha_nacimiento", "numero_empleado", "tipo_contrato", "clave_plantel"},
-            "materias", new String[]{"nombre_materia", "clave_materia", "nombre_nivel", "horas_semana"},
-            "grupos", new String[]{"nombre_grupo", "turno", "capacidad_maxima", "nombre_grado", "nombre_ciclo"},
-            "aulas", new String[]{"nombre_aula", "tipo_aula", "capacidad_alumnos", "clave_plantel", "tiene_proyector", "tiene_pizarra_digital", "tiene_internet", "observaciones"},
-            "preinscritos_sep", new String[]{"nombre", "apellido_paterno", "apellido_materno", "curp", "fecha_nacimiento", "nivel_solicitado", "grado_solicitado", "clave_plantel", "nombre_ciclo", "nombre_tutor", "telefono_tutor", "email_tutor", "escuela_procedencia", "promedio_procedencia"}
-    );
-
-    private static final Map<String, List<String[]>> PLANTILLAS_EJEMPLOS = Map.of(
-            "alumnos", List.of(new String[][]{{"Juan", "García", "López", "GALJ900101HMCRPN01", "M", "01/01/1990", "15/08/2024", "MET-NVD-001"}}),
-            "profesores", List.of(new String[][]{{"María", "Pérez", "Sánchez", "PESM850315MMCRNR02", "F", "15/03/1985", "EMP-001", "BASE", "MET-NVD-001"}}),
-            "materias", List.of(new String[][]{
-                    {"Matemáticas", "MAT-01", "Primaria", "5"},
-                    {"Español", "ESP-01", "Primaria", "5"}
-            }),
-            "grupos", List.of(new String[][]{
-                    {"1A", "MATUTINO", "35", "Primer Grado", "2024-2025"},
-                    {"2B", "VESPERTINO", "30", "Segundo Grado", "2024-2025"}
-            }),
-            "aulas", List.of(new String[][]{
-                    {"Aula 101", "SALON", "35", "MET-NVD-001", "SI", "NO", "SI", "Planta baja"},
-                    {"Lab Cómputo", "COMPUTO", "25", "TEN-NVD-001", "SI", "SI", "SI", "Planta alta"}
-            }),
-            "preinscritos_sep", List.of(new String[][]{{"Ana Sofia", "Díaz", "Morales", "DIMA150228HMCRRL03", "28/02/2015", "Primaria", "3", "IXT-NVD-001", "2026-2027", "Carlos Díaz", "7221234567", "carlos@gmail.com", "Colegio México", "9.20"}})
-    );
-
     @GetMapping("/plantillas/{entidad}")
     public ResponseEntity<byte[]> descargarPlantilla(
             @PathVariable("entidad") String entidad,
             @AuthenticationPrincipal Jwt jwt) {
         userService.resolveUser(jwt);
 
-        if (!PLANTILLAS_HEADERS.containsKey(entidad)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND,
-                    "Plantilla no disponible. Opciones: " + String.join(", ", PLANTILLAS_HEADERS.keySet()));
-        }
-
-        String[] headers = PLANTILLAS_HEADERS.get(entidad);
-        List<String[]> ejemplos = PLANTILLAS_EJEMPLOS.get(entidad);
-
-        StringWriter sw = new StringWriter();
+        ImportQueryService.PlantillaInfo info;
         try {
-            // Write CSV
-            sw.write(String.join(",", headers) + "\n");
-            for (String[] fila : ejemplos) {
-                sw.write(String.join(",", fila) + "\n");
-            }
-        } catch (Exception e) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error al generar plantilla");
+            info = importQueryService.obtenerPlantilla(entidad);
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }
 
-        byte[] content = sw.toString().getBytes(StandardCharsets.UTF_8);
+        String csv = info.encabezado() + "\n" + info.filaDemostracion() + "\n";
+        byte[] content = csv.getBytes(StandardCharsets.UTF_8);
 
         HttpHeaders responseHeaders = new HttpHeaders();
         responseHeaders.setContentType(new MediaType("text", "csv", StandardCharsets.UTF_8));
-        responseHeaders.setContentDispositionFormData("attachment", "plantilla_" + entidad + ".csv");
+        responseHeaders.setContentDispositionFormData("attachment", info.nombreArchivo());
 
-        return ResponseEntity.ok()
-                .headers(responseHeaders)
-                .body(content);
+        return ResponseEntity.ok().headers(responseHeaders).body(content);
+    }
+
+    @GetMapping("/entidades")
+    public ResponseEntity<List<Map<String, Object>>> listarEntidades(@AuthenticationPrincipal Jwt jwt) {
+        userService.resolveUser(jwt);
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (TipoEntidadImport t : importQueryService.listarEntidades()) {
+            result.add(Map.of(
+                    "clave", t.clave(),
+                    "campos_obligatorios", t.camposObligatorios(),
+                    "requiere_plantel", t.requierePlantel(),
+                    "tiene_validacion_curp", t.tieneValidacionCurp()
+            ));
+        }
+        return ResponseEntity.ok(result);
     }
 
     private void validarArchivo(MultipartFile file) {
@@ -161,9 +137,7 @@ public class ImportsController {
             @RequestParam("file") MultipartFile file,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
-        if (user.getNivelAcceso() == null || user.getNivelAcceso() > 2) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo administradores y coordinadores pueden importar alumnos");
-        }
+        requireAcceso(user, TipoEntidadImport.ALUMNOS);
 
         validarArchivo(file);
 
@@ -289,9 +263,7 @@ public class ImportsController {
             @RequestParam("file") MultipartFile file,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
-        if (user.getNivelAcceso() == null || user.getNivelAcceso() > 2) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo administradores y coordinadores pueden importar profesores");
-        }
+        requireAcceso(user, TipoEntidadImport.PROFESORES);
 
         validarArchivo(file);
 
@@ -412,9 +384,7 @@ public class ImportsController {
             @RequestParam("file") MultipartFile file,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
-        if (user.getNivelAcceso() == null || user.getNivelAcceso() > 2) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo administradores y coordinadores pueden importar materias");
-        }
+        requireAcceso(user, TipoEntidadImport.MATERIAS);
 
         validarArchivo(file);
 
@@ -497,9 +467,7 @@ public class ImportsController {
             @RequestParam("file") MultipartFile file,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
-        if (user.getNivelAcceso() == null || user.getNivelAcceso() > 2) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo administradores y coordinadores pueden importar grupos");
-        }
+        requireAcceso(user, TipoEntidadImport.GRUPOS);
 
         validarArchivo(file);
 
@@ -608,9 +576,7 @@ public class ImportsController {
             @RequestParam("file") MultipartFile file,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
-        if (user.getNivelAcceso() == null || user.getNivelAcceso() > 3) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo coordinadores o superiores pueden importar aulas");
-        }
+        requireAcceso(user, TipoEntidadImport.AULAS);
 
         validarArchivo(file);
 
@@ -706,9 +672,7 @@ public class ImportsController {
             @RequestParam("file") MultipartFile file,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
-        if (user.getNivelAcceso() == null || user.getNivelAcceso() > 2) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo administradores y coordinadores pueden importar preinscritos de la SEP");
-        }
+        requireAcceso(user, TipoEntidadImport.PREINSCRITOS_SEP);
 
         validarArchivo(file);
 
@@ -846,5 +810,14 @@ public class ImportsController {
                 .errores(errores.size())
                 .detalleErrores(errores)
                 .build());
+    }
+
+    // ── helpers ───────────────────────────────────────────────────────────────
+
+    private void requireAcceso(AdesUser user, TipoEntidadImport tipo) {
+        if (user.getNivelAcceso() == null || !tipo.permitePara(user.getNivelAcceso())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Permisos insuficientes para importar " + tipo.clave());
+        }
     }
 }

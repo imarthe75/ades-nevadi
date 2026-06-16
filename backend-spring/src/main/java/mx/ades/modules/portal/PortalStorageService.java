@@ -10,7 +10,10 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import jakarta.annotation.PostConstruct;
+import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.util.HexFormat;
 import java.util.Set;
@@ -49,6 +52,12 @@ public class PortalStorageService {
 
     @Value("${portal.minio.bucket:portal-convocatorias}")
     private String bucket;
+
+    @Value("${portal.assets.dir:/srv/assets/convocatorias}")
+    private String assetsDir;
+
+    @Value("${portal.public.base-url:https://ades.setag.mx}")
+    private String publicBaseUrl;
 
     private MinioClient client;
 
@@ -123,6 +132,38 @@ public class PortalStorageService {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
                     "Error generando URL de descarga");
         }
+    }
+
+    private static final Set<String> IMAGE_MIMES = Set.of("image/jpeg", "image/png", "image/webp");
+    private static final long MAX_IMAGE_BYTES = 5L * 1024 * 1024; // 5 MB
+
+    /**
+     * Guarda una imagen de convocatoria en el volumen de assets públicos (servidos por nginx).
+     * Retorna la URL pública para guardar en imagen_url.
+     */
+    public String subirImagenConvocatoria(UUID convocatoriaId, MultipartFile imagen) {
+        if (imagen == null || imagen.isEmpty())
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Imagen vacía");
+        if (imagen.getSize() > MAX_IMAGE_BYTES)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La imagen supera el límite de 5 MB");
+        String mime = imagen.getContentType();
+        if (mime == null || !IMAGE_MIMES.contains(mime))
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Formato no permitido. Use JPG, PNG o WebP");
+
+        String ext = extensionDe(imagen.getOriginalFilename(), mime);
+        String filename = convocatoriaId + "_" + UUID.randomUUID() + "." + ext;
+        Path dir = Path.of(assetsDir);
+
+        try {
+            Files.createDirectories(dir);
+            Files.write(dir.resolve(filename), imagen.getBytes());
+        } catch (IOException e) {
+            log.error("Error guardando imagen de convocatoria: {}", e.getMessage(), e);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error al guardar la imagen");
+        }
+
+        return publicBaseUrl + "/assets/convocatorias/" + filename;
     }
 
     /** Elimina un archivo del bucket. */

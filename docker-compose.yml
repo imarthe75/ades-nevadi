@@ -335,6 +335,7 @@ services:
       VAULT_ADDR:                  http://ades-vault:8200
     volumes:
       - vault-init:/vault/init:ro
+      - ./assets:/srv/assets          # imágenes públicas de convocatorias (rw para uploads)
     ports:
       - "127.0.0.1:8080:8080"
     networks:
