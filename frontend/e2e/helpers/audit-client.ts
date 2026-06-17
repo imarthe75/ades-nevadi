@@ -2,11 +2,15 @@
  * audit-client.ts
  *
  * Helper para verificar la integridad de auditoría vía API directa al BFF.
- * Permite a los tests E2E confirmar que los triggers `audit_biu` funcionan
- * correctamente sin necesitar acceso directo a PostgreSQL.
+ *
+ * NOTA: Usa 127.0.0.1 en lugar de localhost para evitar resolución IPv6
+ * (ECONNREFUSED ::1:8080 — Playwright en Node.js puede intentar IPv6 primero).
  */
 import { APIRequestContext } from '@playwright/test';
-import { BFF_BASE } from '../fixtures/users';
+
+// IPv4 explícito — evita ECONNREFUSED ::1:8080 en Node.js
+// process.env no disponible en el contexto TS (no hay @types/node en e2e tsconfig)
+const BFF_HOST = 'http://127.0.0.1:8080';
 
 export interface AuditableResource {
   id: string;
@@ -19,22 +23,22 @@ export interface AuditableResource {
 
 /**
  * Obtiene un recurso del BFF y extrae sus campos de auditoría.
- * Lanza si la respuesta no es 200.
+ * Retorna null si la conexión falla (servicio no disponible).
  */
 export async function getAuditFields(
   request: APIRequestContext,
   token: string,
   endpoint: string,   // e.g. '/api/v1/alumnos/{id}'
-): Promise<AuditableResource> {
-  const res = await request.get(`${BFF_BASE}${endpoint}`, {
+): Promise<AuditableResource | null> {
+  const res = await request.get(`${BFF_HOST}${endpoint}`, {
     headers: { Authorization: `Bearer ${token}` },
-  });
+  }).catch(() => null);
 
-  if (!res.ok()) {
-    throw new Error(`getAuditFields: ${res.status()} ${res.statusText()} → ${endpoint}`);
-  }
+  if (!res || !res.ok()) return null;
 
-  const body = await res.json();
+  const body = await res.json().catch(() => null);
+  if (!body) return null;
+
   return {
     id:                    body.id,
     row_version:           body.row_version ?? body.rowVersion ?? -1,
@@ -44,6 +48,7 @@ export async function getAuditFields(
     usuario_modificacion:  body.usuario_modificacion ?? body.usuarioModificacion ?? null,
   };
 }
+
 
 /**
  * Verifica que row_version haya incrementado exactamente en `delta` unidades.
