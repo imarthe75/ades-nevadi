@@ -40,10 +40,13 @@ async function initH5P() {
         new H5P.fsImplementations.JsonStorage(configPath)
     ).load();
 
+    // Las URLs deben ser públicas (el player se carga en el browser del usuario)
+    // nginx proxea /h5p/ → este servicio, así que los paths relativos funcionan
     config.baseUrl = '/h5p';
     config.librariesUrl = '/h5p/libraries';
     config.coreUrl = '/h5p/core';
     config.editorLibraryUrl = '/h5p/editor';
+    config.contentFilesUrlPath = '/h5p/content';
 
     const libraryStorage   = new H5P.fsImplementations.FileLibraryStorage(dirs.libraries);
     const contentStorage   = new H5P.fsImplementations.FileContentStorage(dirs.content);
@@ -93,11 +96,12 @@ app.use('/h5p/libraries', express.static(dirs.libraries));
 // Health
 // ---------------------------------------------------------------------------
 app.get('/health', (req, res) => res.json({ status: 'ok', service: 'ades-h5p' }));
+app.get('/h5p/health', (req, res) => res.json({ status: 'ok', service: 'ades-h5p' }));
 
 // ---------------------------------------------------------------------------
 // Listar contenidos
 // ---------------------------------------------------------------------------
-app.get('/api/contenidos', async (req, res) => {
+app.get('/h5p/api/contenidos', async (req, res) => {
     try {
         const ids = await h5pEditor.contentManager.listContent();
         const list = await Promise.all(ids.map(async id => {
@@ -118,7 +122,7 @@ app.get('/api/contenidos', async (req, res) => {
 // ---------------------------------------------------------------------------
 // Subir paquete .h5p
 // ---------------------------------------------------------------------------
-app.post('/api/upload', async (req, res) => {
+app.post('/h5p/api/upload', async (req, res) => {
     if (!req.files || !req.files.h5p_file) {
         return res.status(400).json({ error: 'Campo h5p_file requerido' });
     }
@@ -144,7 +148,7 @@ app.post('/api/upload', async (req, res) => {
 // ---------------------------------------------------------------------------
 // Obtener HTML del player para embedding
 // ---------------------------------------------------------------------------
-app.get('/api/player/:contentId', async (req, res) => {
+app.get('/h5p/api/player/:contentId', async (req, res) => {
     try {
         const user = { id: req.query.usuario_id || 'alumno', name: req.query.usuario_nombre || 'Alumno', type: 'local', email: '' };
         const playerModel = await h5pPlayer.render(req.params.contentId, undefined, 'es', user);
@@ -159,7 +163,7 @@ app.get('/api/player/:contentId', async (req, res) => {
 // ---------------------------------------------------------------------------
 // Metadatos de un contenido
 // ---------------------------------------------------------------------------
-app.get('/api/contenidos/:contentId', async (req, res) => {
+app.get('/h5p/api/contenidos/:contentId', async (req, res) => {
     try {
         const meta = await h5pEditor.contentManager.getContentMetadata(req.params.contentId);
         res.json({ id: req.params.contentId, titulo: meta.title, library: meta.mainLibrary, metadatos: meta });
@@ -171,7 +175,7 @@ app.get('/api/contenidos/:contentId', async (req, res) => {
 // ---------------------------------------------------------------------------
 // Eliminar contenido
 // ---------------------------------------------------------------------------
-app.delete('/api/contenidos/:contentId', async (req, res) => {
+app.delete('/h5p/api/contenidos/:contentId', async (req, res) => {
     try {
         const user = { id: 'admin', name: 'Admin', type: 'local', email: '' };
         await h5pEditor.deleteContent(req.params.contentId, user);
@@ -184,7 +188,7 @@ app.delete('/api/contenidos/:contentId', async (req, res) => {
 // ---------------------------------------------------------------------------
 // Recibir resultado xAPI (postMessage desde el player iframe)
 // ---------------------------------------------------------------------------
-app.post('/api/xapi/:contentId', async (req, res) => {
+app.post('/h5p/api/xapi/:contentId', async (req, res) => {
     const { contentId } = req.params;
     const { statement, usuario_id, asignacion_id } = req.body;
     try {
