@@ -1,6 +1,7 @@
 package mx.ades.modules.alumnos;
 
 import lombok.RequiredArgsConstructor;
+import mx.ades.modules.alumnos.Estudiante;
 import mx.ades.modules.alumnos.domain.port.in.ActualizarAlumnoUseCase;
 import mx.ades.modules.alumnos.domain.port.in.CrearAlumnoUseCase;
 import mx.ades.modules.alumnos.domain.port.out.AlumnoRepositoryPort;
@@ -62,6 +63,22 @@ public class AlumnoController {
     public ResponseEntity<Map<String, Object>> patch(
             @PathVariable UUID id,
             @RequestBody Map<String, Object> body) {
+
+        // Optimistic locking: si el cliente envía rowVersion, verificar antes de modificar
+        Object rv = body.get("rowVersion");
+        if (rv != null) {
+            Integer clientVersion = rv instanceof Number n ? n.intValue() : null;
+            if (clientVersion != null) {
+                Estudiante current = repositoryPort.findById(id)
+                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Alumno no encontrado"));
+                if (!clientVersion.equals(current.getRowVersion())) {
+                    throw new ResponseStatusException(HttpStatus.CONFLICT,
+                        "El registro fue modificado. Versión enviada: " + clientVersion +
+                        ", actual: " + current.getRowVersion() + ". Recarga y vuelve a intentarlo.");
+                }
+            }
+        }
+
         @SuppressWarnings("unchecked")
         Map<String, Object> per  = (Map<String, Object>) body.get("persona");
         @SuppressWarnings("unchecked")
