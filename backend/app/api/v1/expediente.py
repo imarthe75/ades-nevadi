@@ -15,6 +15,8 @@ import json
 import logging
 from uuid import UUID
 
+import magic
+
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import Response
 from pydantic import BaseModel
@@ -201,16 +203,35 @@ async def subir_documento(
     if tipo_documento not in TIPO_LABELS:
         raise HTTPException(status_code=422, detail=f"tipo_documento inválido: {tipo_documento}")
 
+    MIME_PERMITIDOS = {
+        "application/pdf",
+        "image/jpeg",
+        "image/png",
+        "image/webp",
+        "image/tiff",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    }
+
     contenido = await archivo.read()
     if len(contenido) > 10 * 1024 * 1024:
         raise HTTPException(status_code=413, detail="Archivo excede 10 MB")
+
+    # Verificar MIME real por magic bytes — no confiar en Content-Type del cliente
+    mime_real = magic.from_buffer(contenido, mime=True)
+    if mime_real not in MIME_PERMITIDOS:
+        raise HTTPException(
+            status_code=415,
+            detail=f"Tipo de archivo no permitido: {mime_real}. "
+                   f"Se aceptan: PDF, JPEG, PNG, WEBP, TIFF, DOC, DOCX.",
+        )
 
     exp = await _get_or_create_expediente(db, alumno_id)
 
     task_id = await pl.subir_documento(
         nombre=archivo.filename or f"{tipo_documento}.pdf",
         contenido=contenido,
-        tipo_mime=archivo.content_type or "application/pdf",
+        tipo_mime=mime_real,  # usar el MIME verificado, no el declarado por el cliente
         titulo=f"{tipo_documento}_{alumno_id}",
     )
 

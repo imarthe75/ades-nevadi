@@ -219,7 +219,7 @@ public class PortalAdminService {
             JOIN portal.usuarios u ON u.id = po.usuario_id
             JOIN portal.convocatorias c ON c.id = po.convocatoria_id
             WHERE po.is_active = TRUE
-              AND (? IS NULL OR po.convocatoria_id = ?)
+              AND (?::uuid IS NULL OR po.convocatoria_id = ?)
             ORDER BY c.titulo, po.estado, u.nombre_completo
             """, convocatoriaId, convocatoriaId);
     }

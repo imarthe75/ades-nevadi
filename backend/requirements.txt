@@ -54,3 +54,4 @@ hvac==2.3.0
 # Monitoreo — Prometheus métricas (FASE 22)
 prometheus-fastapi-instrumentator==7.1.0
 prometheus-client==0.21.1
+python-magic>=0.4.27
