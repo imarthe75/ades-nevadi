@@ -10,6 +10,7 @@ import { TagModule }       from 'primeng/tag';
 import { TooltipModule }   from 'primeng/tooltip';
 import { ProgressBarModule } from 'primeng/progressbar';
 import { environment }    from '../../../../environments/environment';
+import { ContextService } from '../../../core/services/context.service';
 
 export interface ImportResult {
   entidad: string;
@@ -27,7 +28,8 @@ export interface ImportResult {
     TableModule, TagModule, TooltipModule, ProgressBarModule,
   ],
   template: `
-    <!-- Botones de acción -->
+    <!-- Botones de acción — solo visible para coordinador y superiores (nivel_acceso <= 3) -->
+    @if (puedeImportar()) {
     <div class="import-actions">
       <p-button
         icon="pi pi-upload"
@@ -51,6 +53,7 @@ export interface ImportResult {
         tooltipPosition="top"
       />
     </div>
+    }
 
     <!-- Input oculto -->
     <input
@@ -146,12 +149,16 @@ export interface ImportResult {
 })
 export class ImportButtonComponent {
   private readonly http = inject(HttpClient);
+  private readonly ctx  = inject(ContextService);
 
   /** Entidad a importar: 'alumnos' | 'profesores' | 'materias' | 'grupos' */
   entidad = input.required<string>();
 
   /** Callback invocado cuando hay registros exitosos, para refrescar la lista padre */
   onSuccess = input<() => void>(() => {});
+
+  /** Solo coordinador (nivel 3) o superior puede importar */
+  readonly puedeImportar = computed(() => this.ctx.nivelAcceso() <= 3);
 
   accept = '.csv,.xlsx,.xls';
 

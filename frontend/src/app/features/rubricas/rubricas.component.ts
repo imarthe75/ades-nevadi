@@ -114,7 +114,7 @@ const NIVEL_COLORS = ['var(--red-400)', 'var(--yellow-400)', 'var(--teal-400)', 
             </div>
             <div class="page-actions">
               <p-button icon="pi pi-trash" severity="danger" [text]="true"
-                        pTooltip="Eliminar rúbrica" (onClick)="eliminarRubrica()" />
+                        ariaLabel="Eliminar rúbrica" pTooltip="Eliminar rúbrica" (onClick)="eliminarRubrica()" />
             </div>
           </div>
 
@@ -133,7 +133,7 @@ const NIVEL_COLORS = ['var(--red-400)', 'var(--yellow-400)', 'var(--teal-400)', 
                   <div class="criterio-meta">
                     <span class="pond-badge">{{ c.ponderacion | number:'1.0-1' }}%</span>
                     <p-button icon="pi pi-trash" size="small" severity="danger" [text]="true"
-                              (onClick)="eliminarCriterio(c)" />
+                              ariaLabel="Eliminar criterio" (onClick)="eliminarCriterio(c)" />
                   </div>
                 </div>
 

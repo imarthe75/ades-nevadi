@@ -65,8 +65,8 @@ const RIESGO_SEV: Record<string, TagSeverity> = { ALTO: 'danger', MEDIO: 'warn',
       <div class="page-actions">
         <p-button icon="pi pi-download" label="CSV"   severity="secondary" [text]="true" (onClick)="exportRiesgoCSV()" />
         <p-button icon="pi pi-file-excel" label="Excel" severity="secondary" [text]="true" (onClick)="exportRiesgoXLSX()" />
-        <p-button icon="pi pi-refresh" icon="pi pi-refresh" severity="secondary" [text]="true"
-                  pTooltip="Datos de vistas materializadas — actualizadas cada hora"
+        <p-button icon="pi pi-refresh" severity="secondary" [text]="true"
+                  ariaLabel="Actualizar datos" pTooltip="Datos de vistas materializadas — actualizadas cada hora"
                   (onClick)="cargarTodo()" />
       </div>
     </div>

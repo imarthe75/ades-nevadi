@@ -98,10 +98,10 @@ const RIESGO_SEVERITY: Record<string, AlertaSeverity> = {
                     </div>
                   </div>
                   <p-button icon="pi pi-arrow-right" size="small" [text]="true"
-                    pTooltip="Cargar esta conversación"
+                    ariaLabel="Cargar esta conversación" pTooltip="Cargar esta conversación"
                     (onClick)="cargarSesion(ses.sesion_id)" />
                   <p-button icon="pi pi-trash" size="small" [text]="true" severity="danger"
-                    pTooltip="Eliminar" (onClick)="eliminarSesion(ses.sesion_id)" />
+                    ariaLabel="Eliminar conversación" pTooltip="Eliminar" (onClick)="eliminarSesion(ses.sesion_id)" />
                 </div>
               }
             </div>

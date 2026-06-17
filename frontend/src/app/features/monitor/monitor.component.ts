@@ -96,7 +96,7 @@ interface Telemetria {
         <p class="subtitle">Estado de servicios · Telemetría AD-030 · Grafana · n8n Workflows</p>
       </div>
       <p-button icon="pi pi-refresh" [text]="true" severity="secondary"
-        pTooltip="Actualizar estado" (onClick)="cargarEstado()" />
+        ariaLabel="Actualizar estado" pTooltip="Actualizar estado" (onClick)="cargarEstado()" />
     </div>
 
     <!-- Grid de servicios -->

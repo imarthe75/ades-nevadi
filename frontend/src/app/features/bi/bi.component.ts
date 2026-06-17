@@ -30,9 +30,9 @@ type DashKey = 'instituto' | 'plantel' | 'docente' | 'alumno';
       <div style="display:flex;gap:.5rem;align-items:center">
         @if (!cargando() && !error()) {
           <p-button icon="pi pi-refresh" [text]="true" severity="secondary"
-            pTooltip="Refrescar dashboard" (onClick)="cargar()" />
+            ariaLabel="Refrescar dashboard" pTooltip="Refrescar dashboard" (onClick)="cargar()" />
           <p-button icon="pi pi-external-link" [text]="true" severity="secondary"
-            pTooltip="Abrir en Superset" (onClick)="abrirSuperset()" />
+            ariaLabel="Abrir en Superset" pTooltip="Abrir en Superset" (onClick)="abrirSuperset()" />
         }
       </div>
     </div>
