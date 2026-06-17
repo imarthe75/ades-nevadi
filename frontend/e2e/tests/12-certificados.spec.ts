@@ -212,7 +212,7 @@ test.describe('D. Integridad criptográfica via BFF', () => {
       let tok = '';
       for (const k of keys) { tok = sessionStorage.getItem(k) ?? ''; if (tok) break; }
 
-      const res = await fetch('http://127.0.0.1:8080/api/v1/certificados', {
+      const res = await fetch('/api/v1/certificados', {
         headers: { Authorization: `Bearer ${tok}` },
       }).catch(() => null);
       if (!res?.ok) return null;
@@ -244,7 +244,7 @@ test.describe('D. Integridad criptográfica via BFF', () => {
       let tok = '';
       for (const k of keys) { tok = sessionStorage.getItem(k) ?? ''; if (tok) break; }
 
-      const res = await fetch('http://127.0.0.1:8080/api/v1/certificados', {
+      const res = await fetch('/api/v1/certificados', {
         headers: { Authorization: `Bearer ${tok}` },
       }).catch(() => null);
       if (!res?.ok) return null;

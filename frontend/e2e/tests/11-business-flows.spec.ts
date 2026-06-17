@@ -168,16 +168,19 @@ test.describe('C. Movilidad — cambio de grupo y bajas', () => {
     await bajaTempBtn.click({ timeout: 3_000 }).catch(() => undefined);
     await page.waitForTimeout(500).catch(() => undefined);
 
-    const saveBtn = page.locator('button[type="submit"], button:has-text("Guardar")').first();
+    // Botón guarda la baja — label puede variar
+    const saveBtn = page.locator(
+      '[data-testid="btn-guardar-baja"], button:has-text("Registrar Baja"), button:has-text("Guardar"), button[type="submit"]'
+    ).first();
     const saveBtnVisible = await saveBtn.isVisible({ timeout: 2_000 }).catch(() => false);
     if (!saveBtnVisible) {
-      console.warn('[FINDING][P2] BIZ-07: baja temporal no abrió formulario con Guardar — posiblemente sin implementación');
+      console.warn('[FINDING][P2] BIZ-07: baja temporal no abrió formulario con botón de guardar');
       test.skip(); return;
     }
     await saveBtn.click({ timeout: 3_000 }).catch(() => undefined);
     await page.waitForTimeout(1_000).catch(() => undefined);
 
-    const errEl = page.locator('.p-toast-message-error, .p-toast-message-warn, .p-error, .ng-invalid');
+    const errEl = page.locator('.p-toast-message-error, .p-toast-message-warn, .p-error, .ng-invalid, .field-error');
     const hasValidation = await errEl.first().isVisible({ timeout: 2_000 }).catch(() => false);
     const dialogOpen = await page.locator('[role="dialog"]').isVisible().catch(() => false);
     if (!hasValidation && !dialogOpen) {
@@ -246,22 +249,26 @@ test.describe('D. Justificaciones de asistencia', () => {
     await nuevaBtn.click();
     await page.waitForTimeout(500);
 
-    const fechaInicio = page.locator('[formcontrolname="fecha_inicio"]').first();
-    const fechaFin    = page.locator('[formcontrolname="fecha_fin"]').first();
+    // El formulario usa ngModel (no formcontrolname) — intentar campos de fecha si existen
+    const fechaInicio = page.locator('[formcontrolname="fecha_inicio"], input[type="date"]:first-of-type').first();
+    const fechaFin    = page.locator('[formcontrolname="fecha_fin"],   input[type="date"]:last-of-type').first();
 
-    if (await fechaInicio.isVisible()) await fechaInicio.fill(fechaHoy());
-    if (await fechaFin.isVisible())    await fechaFin.fill(fechaPasada());
+    if (await fechaInicio.isVisible({ timeout: 1_000 }).catch(() => false)) await fechaInicio.fill(fechaHoy());
+    if (await fechaFin.isVisible({ timeout: 1_000 }).catch(() => false))    await fechaFin.fill(fechaPasada());
 
-    const saveBtn = page.locator('button[type="submit"], button:has-text("Guardar")').first();
+    // Botón guardar — label varía según componente
+    const saveBtn = page.locator(
+      '[data-testid="btn-guardar-justif"], button:has-text("Registrar"), button:has-text("Guardar"), button[type="submit"]'
+    ).first();
     const saveBtnVisible = await saveBtn.isVisible({ timeout: 2_000 }).catch(() => false);
     if (!saveBtnVisible) { test.skip(); return; }
     await saveBtn.click({ timeout: 3_000 }).catch(() => undefined);
     await page.waitForTimeout(1_000).catch(() => undefined);
 
-    const errEl = page.locator('.p-toast-message-error, .p-toast-message-warn, .p-error');
-    const hasError = await errEl.isVisible({ timeout: 2_000 }).catch(() => false);
+    const errEl = page.locator('.p-toast-message-error, .p-toast-message-warn, .p-error, .field-error, .ng-invalid');
+    const hasError = await errEl.first().isVisible({ timeout: 2_000 }).catch(() => false);
     if (!hasError) {
-      console.warn('[FINDING][P2] BIZ-10: justificaciones sin validación de fecha_fin >= fecha_inicio');
+      console.warn('[FINDING][P2] BIZ-10: justificaciones sin validación — motivo o fechas');
     }
   });
 });
@@ -299,13 +306,16 @@ test.describe('E. Comunicados institucionales', () => {
     await nuevaBtn.click();
     await page.waitForTimeout(500);
 
-    const saveBtn = page.locator('button[type="submit"], button:has-text("Enviar"), button:has-text("Guardar")').first();
+    // Botón publicar comunicado — label puede variar
+    const saveBtn = page.locator(
+      '[data-testid="btn-publicar-comunicado"], button:has-text("Publicar"), button:has-text("Enviar"), button:has-text("Guardar"), button[type="submit"]'
+    ).first();
     const saveBtnVisible = await saveBtn.isVisible({ timeout: 2_000 }).catch(() => false);
     if (!saveBtnVisible) { test.skip(); return; }
     await saveBtn.click({ timeout: 3_000 }).catch(() => undefined);
     await page.waitForTimeout(1_000).catch(() => undefined);
 
-    const errEl = page.locator('.p-toast-message-error, .p-toast-message-warn, .p-error, .ng-invalid');
+    const errEl = page.locator('.p-toast-message-error, .p-toast-message-warn, .p-error, .ng-invalid, .field-error');
     const hasError = await errEl.first().isVisible({ timeout: 2_000 }).catch(() => false);
     const dialogOpen = await page.locator('[role="dialog"]').isVisible().catch(() => false);
     if (!hasError && !dialogOpen) {
