@@ -95,6 +95,10 @@ class Settings(BaseSettings):
     OPENAI_MODEL: str = "meta/llama-3.1-70b-instruct"
     ANTHROPIC_API_KEY: str = ""
 
+    # BigBlueButton — Videoconferencias Institucionales (FASE 26)
+    BBB_SERVER_URL: str = ""          # e.g. https://bbb.institutonevadi.edu.mx/bigbluebutton
+    BBB_SHARED_SECRET: str = ""       # Shared secret del servidor BBB
+
     # Paperless-ngx — Gestión Documental OCR (FASE 28)
     PAPERLESS_URL: str = "http://ades-paperless:8000"
     PAPERLESS_API_TOKEN: str = ""       # Se inyecta desde Vault (path: secret/ades -> PAPERLESS_API_TOKEN)

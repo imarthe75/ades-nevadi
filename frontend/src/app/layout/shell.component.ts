@@ -51,6 +51,8 @@ const ROUTE_TITLES: Record<string, string> = {
   'badges': 'Reconocimientos',
   'foros': 'Foros',
   'learning-paths': 'Rutas de Aprendizaje',
+  'h5p': 'Contenido H5P',
+  'videoconferencias': 'Videoconferencias BBB',
   'mi-progreso': 'Mi Progreso',
   'padres': 'Portal de Padres',
   'medico': 'Expediente Médico',
@@ -515,9 +517,10 @@ export class ShellComponent implements OnInit, OnDestroy {
       { route: '/asistencia-personal', icon: 'pi-clock',           label: 'Asistencia Personal',     maxNivel: 2 },
     ]},
     { section: 'Comunicación', maxNivel: 4, items: [
-      { route: '/comunicados', icon: 'pi-envelope',   label: 'Comunicados' },
-      { route: '/foros',       icon: 'pi-comments',   label: 'Foros y Anuncios' },
-      { route: '/encuestas',   icon: 'pi-chart-pie',  label: 'Encuestas',  maxNivel: 3 },
+      { route: '/comunicados',       icon: 'pi-envelope',      label: 'Comunicados' },
+      { route: '/foros',             icon: 'pi-comments',      label: 'Foros y Anuncios' },
+      { route: '/encuestas',         icon: 'pi-chart-pie',     label: 'Encuestas',         maxNivel: 3 },
+      { route: '/videoconferencias', icon: 'pi-video',         label: 'Videoconferencias' },
     ]},
     { section: 'Gradebook', maxNivel: 4, items: [
       { route: '/gradebook',         icon: 'pi-book',       label: 'Gradebook' },
@@ -525,9 +528,10 @@ export class ShellComponent implements OnInit, OnDestroy {
       { route: '/ponderacion-config', icon: 'pi-sliders-h', label: 'Ponderaciones', maxNivel: 3 },
     ]},
     { section: 'Recursos', maxNivel: 4, items: [
-      { route: '/rubricas', icon: 'pi-table',   label: 'Rúbricas' },
-      { route: '/badges',   icon: 'pi-star-fill', label: 'Insignias' },
-      { route: '/portal',   icon: 'pi-id-card',  label: 'Portal Alumno' },
+      { route: '/rubricas', icon: 'pi-table',      label: 'Rúbricas' },
+      { route: '/badges',   icon: 'pi-star-fill',  label: 'Insignias' },
+      { route: '/portal',   icon: 'pi-id-card',    label: 'Portal Alumno' },
+      { route: '/h5p',      icon: 'pi-th-large',   label: 'Contenido H5P' },
     ]},
     { section: 'Convocatorias', maxNivel: 2, items: [
       { route: '/portal-admin', icon: 'pi-megaphone', label: 'Gestión Convocatorias', maxNivel: 2 },

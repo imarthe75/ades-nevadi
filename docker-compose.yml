@@ -50,6 +50,7 @@ volumes:
   certbot-www:     # /var/www/certbot — webroot para ACME challenge
   vault-data:
   vault-init:
+  h5p-data:       # contenido H5P: librerías, paquetes, archivos temporales
 
 # =============================================================================
 # SERVICIOS — FASE 1: INFRAESTRUCTURA BASE
@@ -297,6 +298,9 @@ services:
       BASE_URL:            ${BASE_URL:-https://ades.setag.mx}
       VAULT_ADDR:          http://ades-vault:8200
       MINIO_SECURE:        "false"
+      # BigBlueButton — Videoconferencias (FASE 26)
+      BBB_SERVER_URL:      ${BBB_SERVER_URL:-}
+      BBB_SHARED_SECRET:   ${BBB_SHARED_SECRET:-}
       # PgBouncer — asyncpg deshabilita prepared statements vía connect_args en database.py
       # Puerto 5432 = puerto interno del contenedor pgbouncer (el 6432 es solo el mapeo del host)
       DATABASE_URL:        postgresql+asyncpg://${POSTGRES_USER:-ades_admin}:${POSTGRES_PASSWORD}@ades-pgbouncer:5432/ades
@@ -842,6 +846,39 @@ services:
       resources:
         limits:
           memory: 1G
+
+  # ---------------------------------------------------------------------------
+  # H5P Service — Contenido Educativo Interactivo
+  # FASE 25: Editor y player H5P, xAPI tracking, integración con ades_tareas
+  # ---------------------------------------------------------------------------
+  h5p:
+    build:
+      context: ./infrastructure/h5p
+      dockerfile: Dockerfile
+    image: ades-h5p:latest
+    container_name: ades-h5p
+    restart: unless-stopped
+    environment:
+      PORT: "8091"
+      H5P_DATA_DIR: /data
+      ADES_API_URL: http://ades-api:8000
+      NODE_ENV: production
+    volumes:
+      - h5p-data:/data
+    ports:
+      - "127.0.0.1:8091:8091"
+    networks:
+      - ades-internal
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8091/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
 
   # ---------------------------------------------------------------------------
   # PgBouncer — connection pooling para PostgreSQL

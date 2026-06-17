@@ -1,0 +1,17 @@
+{
+  "name": "ades-h5p-server",
+  "version": "1.0.0",
+  "description": "H5P content service for ADES Nevadi",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@lumieducation/h5p-server": "^9.3.3",
+    "axios": "^1.7.2",
+    "express": "^4.19.2",
+    "express-fileupload": "^1.5.0",
+    "fs-extra": "^11.2.0",
+    "uuid": "^10.0.0"
+  }
+}

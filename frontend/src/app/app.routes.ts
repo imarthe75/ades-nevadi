@@ -95,6 +95,10 @@ export const routes: Routes = [
       { path: 'admision', canActivate: [roleGuard(3)], loadComponent: () => import('./features/admision/admision.component').then(m => m.AdmisionComponent) },
       // ── Sprint D — Optativas ─────────────────────────────────────────────────
       { path: 'optativas', canActivate: [roleGuard(3)], loadComponent: () => import('./features/optativas/optativas.component').then(m => m.OptativasComponent) },
+      // ── FASE 25 — H5P Contenido Educativo Interactivo ────────────────────────
+      { path: 'h5p', canActivate: [roleGuard(5)], loadComponent: () => import('./features/h5p/h5p.component').then(m => m.H5pComponent) },
+      // ── FASE 26 — BigBlueButton Videoconferencias ─────────────────────────────
+      { path: 'videoconferencias', canActivate: [roleGuard(5)], loadComponent: () => import('./features/bbb/bbb.component').then(m => m.BbbComponent) },
     ],
   },
   // ── Pública — verificación de certificados (sin autenticación) ──────────
