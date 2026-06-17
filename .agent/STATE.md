@@ -55,13 +55,22 @@ Este documento es el diario de vida y bitácora del agente. Debe ser leído en e
 - **`login(user)` ignoraba el parámetro**: siempre cargaba token cacheado; fix: sobreescribir `nivel_acceso`/`rol`
 - **AUD-04**: endpoint sin auth devuelve 401, no 404/405 → aceptar [401,403,404,405]
 
-### 🚀 Próximos Pasos:
-- [ ] Suite 16 — Cierre de ciclo (ya existe como untracked)
-- [ ] REVOKE DELETE en `auditoria.log_auditoria` → mig 079
-- [ ] CanActivate guards en `/licencias`, `/expediente-laboral`, `/personal-admin`
-- [ ] Validación frontend: motivo baja temporal, fechas justificaciones, título comunicados
+### 🚀 Próximos Pasos (actualizados post-sesión 2):
+- [x] Suite 16 — Cierre de ciclo: 10 passed / 1 skipped ✅
+- [x] Mig 079 aplicada: triggers duplicados 0, columnas auditoría añadidas ✅
+- [x] Mig 080 aplicada: ades_app role no-superusuario, Hallazgo A resuelto ✅
+- [x] Route guards: /comunicados, /evaluaciones, /planeacion, /rubricas, /encuestas, /badges, /learning-paths, /bi ✅
+- [ ] Validación frontend [P2]: motivo baja temporal, fechas justificaciones, título comunicados
 - [ ] Fixes A11Y [P1]: aria-label en botones icon-only + landmarks en shell
+- [ ] Migrar POSTGRES_USER=ades_admin → ades_app en .env (requiere decisión manual)
 - [ ] Google Workspace SSO (pendiente credenciales Nevadi)
+
+### 📊 Estado QA Final (2026-06-17 sesión 2):
+- **Suites 10-16**: 83 passed / 16 skipped / 0 failed (99 tests totales)
+- **Mig 079+080**: aplicadas ✅
+- **Hallazgo A**: ades_app no puede DELETE log_auditoria ✅
+- **Hallazgo B**: triggers duplicados eliminados ✅
+- **Route guards**: 8 rutas nuevas protegidas ✅
 
 ---
 
