@@ -1,0 +1,117 @@
+{
+  "config": {
+    "argv": [
+      "/home/ubuntu/.nvm/versions/node/v24.16.0/bin/node",
+      "/opt/ades/frontend/node_modules/.bin/playwright",
+      "test"
+    ],
+    "configFile": "/opt/ades/frontend/playwright.config.ts",
+    "rootDir": "/opt/ades/frontend/e2e/tests",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {},
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/opt/ades/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "/opt/ades/frontend/e2e/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "/opt/ades/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "firefox",
+        "name": "firefox",
+        "testDir": "/opt/ades/frontend/e2e/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "/opt/ades/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "mobile-chrome",
+        "name": "mobile-chrome",
+        "testDir": "/opt/ades/frontend/e2e/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 45000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "html",
+        {
+          "outputFolder": "e2e/reports/html",
+          "open": "never"
+        }
+      ],
+      [
+        "json",
+        {
+          "outputFile": "e2e/reports/results.json"
+        }
+      ],
+      [
+        "list",
+        null
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.61.0",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [],
+  "errors": [
+    {
+      "message": "Error: duplicate test title \"D. Verificación pública — inputs extremos › CER-D | folio extremo en /verificar: \"<script>alert(1)</script>\"\", first declared in 05-certificados.spec.ts:151",
+      "location": {
+        "file": "/opt/ades/frontend/e2e/tests/05-certificados.spec.ts",
+        "line": 151,
+        "column": 9
+      },
+      "snippet": "\u001b[90m   at \u001b[39m05-certificados.spec.ts:151\n\n\u001b[0m \u001b[90m 149 |\u001b[39m\n \u001b[90m 150 |\u001b[39m   \u001b[36mfor\u001b[39m (\u001b[36mconst\u001b[39m folio \u001b[36mof\u001b[39m extremeFolios) {\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 151 |\u001b[39m     test(\u001b[32m`CER-D | folio extremo en /verificar: \"${folio.slice(0, 30)}\"`\u001b[39m\u001b[33m,\u001b[39m \u001b[36masync\u001b[39m ({ page }) \u001b[33m=>\u001b[39m {\n \u001b[90m     |\u001b[39m         \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 152 |\u001b[39m       page\u001b[33m.\u001b[39mon(\u001b[32m'dialog'\u001b[39m\u001b[33m,\u001b[39m d \u001b[33m=>\u001b[39m d\u001b[33m.\u001b[39mdismiss())\u001b[33m;\u001b[39m\n \u001b[90m 153 |\u001b[39m       \u001b[90m// La ruta pública acepta el folio como parámetro\u001b[39m\n \u001b[90m 154 |\u001b[39m       \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mgoto(\u001b[32m`/verificar/${encodeURIComponent(folio)}`\u001b[39m)\u001b[33m;\u001b[39m\u001b[0m"
+    }
+  ],
+  "stats": {
+    "startTime": "2026-06-16T23:01:07.367Z",
+    "duration": 648.179,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

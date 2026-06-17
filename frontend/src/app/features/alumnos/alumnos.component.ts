@@ -243,9 +243,12 @@ export class AlumnosComponent implements OnInit {
       },
       error: (e) => {
         this.loading.set(false);
-        const detail = e.error?.detail;
+        const detail = e.error?.detail ?? e.error?.message;
+        const status = e.status;
         const msg = Array.isArray(detail) ? detail.map((d: any) => d.msg || d).join('; ')
                   : typeof detail === 'string' ? detail
+                  : status === 409 ? 'Ya existe un alumno con esa CURP'
+                  : status === 422 ? (e.error?.error || 'Datos inválidos')
                   : 'Error al crear alumno';
         this.notify.error('Error', msg);
       },
