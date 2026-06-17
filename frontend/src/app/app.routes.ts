@@ -39,19 +39,19 @@ export const routes: Routes = [
       { path: 'medico',         canActivate: [roleGuard(3)], loadComponent: () => import('./features/medico/medico.component').then(m => m.MedicoComponent) },
       // ── FASE 4 ──────────────────────────────────────────────────────────
       { path: 'eval-docente',   canActivate: [roleGuard(3)], loadComponent: () => import('./features/eval-docente/eval-docente.component').then(m => m.EvalDocenteComponent) },
-      { path: 'learning-paths', loadComponent: () => import('./features/learning-paths/learning-paths.component').then(m => m.LearningPathsComponent) },
+      { path: 'learning-paths', canActivate: [roleGuard(4)], loadComponent: () => import('./features/learning-paths/learning-paths.component').then(m => m.LearningPathsComponent) },
       { path: 'ia',             canActivate: [roleGuard(3)], loadComponent: () => import('./features/ia/ia.component').then(m => m.IaComponent) },
       // ── FASE 5 ──────────────────────────────────────────────────────────
-      { path: 'comunicados',     loadComponent: () => import('./features/comunicados/comunicados.component').then(m => m.ComunicadosComponent) },
+      { path: 'comunicados',     canActivate: [roleGuard(4)], loadComponent: () => import('./features/comunicados/comunicados.component').then(m => m.ComunicadosComponent) },
       { path: 'grade-analytics', canActivate: [roleGuard(3)], loadComponent: () => import('./features/grade-analytics/grade-analytics.component').then(m => m.GradeAnalyticsComponent) },
       // ── FASE 6 ──────────────────────────────────────────────────────────
-      { path: 'evaluaciones',    loadComponent: () => import('./features/evaluaciones/evaluaciones.component').then(m => m.EvaluacionesComponent) },
-      { path: 'planeacion',      loadComponent: () => import('./features/planeacion/planeacion.component').then(m => m.PlaneacionComponent) },
-      { path: 'rubricas',        loadComponent: () => import('./features/rubricas/rubricas.component').then(m => m.RubricasComponent) },
+      { path: 'evaluaciones',    canActivate: [roleGuard(4)], loadComponent: () => import('./features/evaluaciones/evaluaciones.component').then(m => m.EvaluacionesComponent) },
+      { path: 'planeacion',      canActivate: [roleGuard(4)], loadComponent: () => import('./features/planeacion/planeacion.component').then(m => m.PlaneacionComponent) },
+      { path: 'rubricas',        canActivate: [roleGuard(4)], loadComponent: () => import('./features/rubricas/rubricas.component').then(m => m.RubricasComponent) },
       // ── FASE 7 ──────────────────────────────────────────────────────────
-      { path: 'encuestas',       loadComponent: () => import('./features/encuestas/encuestas.component').then(m => m.EncuestasComponent) },
+      { path: 'encuestas',       canActivate: [roleGuard(4)], loadComponent: () => import('./features/encuestas/encuestas.component').then(m => m.EncuestasComponent) },
       // ── FASE 8 ──────────────────────────────────────────────────────────
-      { path: 'badges',          loadComponent: () => import('./features/badges/badges.component').then(m => m.BadgesComponent) },
+      { path: 'badges',          canActivate: [roleGuard(4)], loadComponent: () => import('./features/badges/badges.component').then(m => m.BadgesComponent) },
       // ── FASE 9 ──────────────────────────────────────────────────────────
       { path: 'portal',          loadComponent: () => import('./features/portal/portal.component').then(m => m.PortalComponent) },
       { path: 'portal-admin',   canActivate: [roleGuard(2)], loadComponent: () => import('./features/portal-admin/portal-admin.component').then(m => m.PortalAdminComponent) },
@@ -62,7 +62,7 @@ export const routes: Routes = [
       { path: 'mi-progreso',      loadComponent: () => import('./features/mi-progreso/mi-progreso.component').then(m => m.MiProgresoComponent) },
       { path: 'ponderacion-config', canActivate: [roleGuard(3)], loadComponent: () => import('./features/ponderacion-config/ponderacion-config.component').then(m => m.PonderacionConfigComponent) },
       // ── FASE 16 — BI Dashboards Superset ────────────────────────────────
-      { path: 'bi', loadComponent: () => import('./features/bi/bi.component').then(m => m.BiComponent) },
+      { path: 'bi', canActivate: [roleGuard(3)], loadComponent: () => import('./features/bi/bi.component').then(m => m.BiComponent) },
       // ── FASE 18 — Generador de Reportes (Carbone) ───────────────────────
       { path: 'reportes', canActivate: [roleGuard(3)], loadComponent: () => import('./features/reportes/reportes.component').then(m => m.ReportesComponent) },
       // ── FASE 22 — Monitor del sistema (Grafana + Prometheus) ─────────────
