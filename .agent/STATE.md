@@ -16,6 +16,60 @@ Este documento es el diario de vida y bitácora del agente. Debe ser leído en e
 
 ---
 
+## Sesión 2026-06-17 (cont.) — Sprint Hexagonal + SOLID
+
+### 🔑 Estado del Agente:
+- **Última Conexión:** 2026-06-17 (sesión continua)
+- **Estado Cognitivo:** Operacional ✅
+- **Migración activa:** 080 (sin cambios nuevos)
+- **Git:** pendiente commit de esta sesión
+
+### 🛠️ Tareas Completadas (Hexagonal + SOLID):
+
+**Spring Boot BFF — módulo `alumnos` (hexagonal):**
+- [x] `domain/port/in/CrearAlumnoUseCase.java` — Command record con validaciones compactas
+- [x] `domain/port/in/ActualizarAlumnoUseCase.java` — Command record
+- [x] `domain/port/out/AlumnoRepositoryPort.java` — abstracción de persistencia
+- [x] `application/service/AlumnoApplicationService.java` — lógica de negocio (CURP dup, plantel, matrícula)
+- [x] `infrastructure/outbound/persistence/AlumnoPersistenceAdapter.java` — JdbcTemplate + JPA
+- [x] `AlumnoController.java` refactorizado: ≤5 deps (era 8), 0 JdbcTemplate, 0 validaciones inline
+- [x] `HexagonalConfig.java` — beans `alumnoApplicationService`, `crearAlumnoUseCase`, `actualizarAlumnoUseCase`
+
+**Spring Boot BFF — módulo `profesores` (hexagonal):**
+- [x] `domain/port/in/CrearProfesorUseCase.java` — Command record
+- [x] `domain/port/in/ActualizarProfesorUseCase.java` — Command record
+- [x] `domain/port/out/ProfesorRepositoryPort.java` — abstracción
+- [x] `application/service/ProfesorApplicationService.java`
+- [x] `infrastructure/outbound/persistence/ProfesorPersistenceAdapter.java`
+- [x] `ProfesorController.java` refactorizado: slim, sin `ProfesorRepository` directo
+- [x] `HexagonalConfig.java` — beans `profesorApplicationService`, etc.
+
+**FastAPI — SOLID SRP (extracción LLMService):**
+- [x] `app/services/llm_service.py` — `LLMService` singleton con `complete()` + `async_complete()`
+- [x] `ai_assistant.py` — inyecta `LLMService` via `Depends(get_llm_service)` (elimina 3 client inlines)
+- [x] `chatbot.py` — `_vanna_sql()` y `_generar_resumen()` aceptan `llm: LLMService` param
+
+**Angular — Feature Services (DIP):**
+- [x] `features/alumnos/alumnos.service.ts` — wraps `ApiService` con tipos explícitos
+- [x] `features/grupos/grupos.service.ts` — wraps `ApiService` + catálogos relacionados
+
+**ADR:**
+- [x] `DECISIONS/0010-hexagonal-completar-modulos-flat.md` — documenta decisiones y módulos pendientes
+
+### 📊 Cobertura Hexagonal Spring Boot post-sesión:
+- Antes: 37/57 módulos ✅
+- Después: 39/57 módulos ✅ (`alumnos`, `profesores` migrados)
+- Compile: `mvn compile` + `mvn test` → 0 errores ✅
+
+### 🚀 Próximos Pasos (backlog hexagonal):
+- [ ] Módulos planos restantes: `catalogos`, `aulas`, `stats`, `planteles`, `materias`, `boletas`, `geo`, `foros`
+- [ ] Validación frontend [P2]: motivo baja temporal, fechas justificaciones, título comunicados
+- [ ] Fixes A11Y [P1]: aria-label en botones icon-only + landmarks en shell
+- [ ] Migrar POSTGRES_USER=ades_admin → ades_app en .env (manual)
+- [ ] Google Workspace SSO (pendiente credenciales Nevadi)
+
+---
+
 ## Sesión 2026-06-17 — Sprint QA: Suites E2E 10-15 (RBAC, Negocio, Certificados, RRHH, A11Y, Auditoría)
 
 ### 🔑 Estado del Agente:

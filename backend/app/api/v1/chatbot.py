@@ -36,6 +36,7 @@ from app.core.config import settings
 from app.core.database import get_db
 from app.core.security import AdesUser, get_ades_user
 from app.schemas.base import AdesSchema
+from app.services.llm_service import LLMService, get_llm_service
 
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/chatbot", tags=["chatbot"])
@@ -141,25 +142,20 @@ async def _flowise_chat(pregunta: str, sesion_id: str, override_config: dict) ->
 
 # ── NL→SQL con Vanna AI ───────────────────────────────────────────────────────
 
-async def _vanna_sql(pregunta: str, rls_ctx: dict, db: AsyncSession) -> tuple[str, list[dict]]:
+async def _vanna_sql(pregunta: str, rls_ctx: dict, db: AsyncSession, llm: LLMService) -> tuple[str, list[dict]]:
     """
     Genera SQL desde lenguaje natural usando el LLM de NVIDIA NIM (Llama-3) + schema ADES.
     Aplica RLS según el contexto del usuario.
     Devuelve (sql_generado, filas_resultado).
     """
-    # Construir el prompt de sistema con el schema relevante y el RLS
     system_prompt = _build_sql_system_prompt(rls_ctx)
 
-    from openai import AsyncOpenAI
-    client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY, base_url=settings.OPENAI_BASE_URL)
-
-    response = await client.chat.completions.create(
-        model=settings.OPENAI_MODEL,
-        max_tokens=1024,
+    response = await llm.async_complete(
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": f"Genera el SQL para responder: {pregunta}\n\nDevuelve SOLO el SQL, sin explicaciones ni markdown."}
         ],
+        max_tokens=1024,
     )
 
     sql = response.choices[0].message.content.strip()
@@ -249,19 +245,13 @@ Reglas SQL:
     return schema_summary
 
 
-async def _generar_resumen(pregunta: str, sql: str, filas: list[dict]) -> str:
+async def _generar_resumen(pregunta: str, sql: str, filas: list[dict], llm: LLMService) -> str:
     """Genera un resumen en lenguaje natural de los resultados SQL."""
     if not filas:
         return "No se encontraron datos para tu consulta."
 
-    resumen_datos = str(filas[:5])  # primeras 5 filas para el contexto
-
-    from openai import AsyncOpenAI
-    client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY, base_url=settings.OPENAI_BASE_URL)
-
-    response = await client.chat.completions.create(
-        model=settings.OPENAI_MODEL,
-        max_tokens=512,
+    resumen_datos = str(filas[:5])
+    response = await llm.async_complete(
         messages=[{
             "role": "user",
             "content": (
@@ -273,6 +263,7 @@ async def _generar_resumen(pregunta: str, sql: str, filas: list[dict]) -> str:
                 "como si fueras un asistente escolar. No menciones el SQL."
             )
         }],
+        max_tokens=512,
     )
     return response.choices[0].message.content.strip()
 
@@ -284,6 +275,7 @@ async def enviar_mensaje(
     body: MensajeIn,
     db: AsyncSession = Depends(get_db),
     ades_user: AdesUser = Depends(get_ades_user),
+    llm: LLMService = Depends(get_llm_service),
 ) -> MensajeOut:
     """
     Endpoint principal del chatbot.
@@ -312,8 +304,8 @@ async def enviar_mensaje(
 
     # Modo directo: NL→SQL + resumen NVIDIA NIM
     try:
-        sql, filas = await _vanna_sql(body.pregunta, rls_ctx, db)
-        resumen = await _generar_resumen(body.pregunta, sql, filas)
+        sql, filas = await _vanna_sql(body.pregunta, rls_ctx, db, llm)
+        resumen = await _generar_resumen(body.pregunta, sql, filas, llm)
         return MensajeOut(
             respuesta=resumen,
             sql_generado=sql,
@@ -336,14 +328,15 @@ async def ejecutar_sql_natural(
     body: SqlQueryIn,
     db: AsyncSession = Depends(get_db),
     ades_user: AdesUser = Depends(get_ades_user),
+    llm: LLMService = Depends(get_llm_service),
 ) -> dict:
     """
     Genera y ejecuta SQL desde lenguaje natural con RLS.
     Usado como herramienta interna de Flowise.
     """
     rls_ctx = _build_rls_context(ades_user)
-    sql, filas = await _vanna_sql(body.pregunta, rls_ctx, db)
-    resumen = await _generar_resumen(body.pregunta, sql, filas)
+    sql, filas = await _vanna_sql(body.pregunta, rls_ctx, db, llm)
+    resumen = await _generar_resumen(body.pregunta, sql, filas, llm)
     return {
         "pregunta":    body.pregunta,
         "sql":         sql,

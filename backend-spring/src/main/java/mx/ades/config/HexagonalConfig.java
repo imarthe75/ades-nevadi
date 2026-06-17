@@ -731,4 +731,51 @@ public class HexagonalConfig {
             mx.ades.modules.portal_familias.application.service.PortalFamiliasApplicationService service) {
         return service;
     }
+
+    // ── alumnos (hexagonal) ───────────────────────────────────────────────────
+    @Bean
+    public mx.ades.modules.alumnos.application.service.AlumnoApplicationService alumnoApplicationService(
+            mx.ades.modules.alumnos.domain.port.out.AlumnoRepositoryPort repositoryPort,
+            mx.ades.modules.admin.AdminWriteService adminWrite,
+            mx.ades.shared.persona.PersonaUpdateHelper personaHelper,
+            mx.ades.modules.alumnos.AlumnoComplementariosService complementariosService,
+            mx.ades.modules.alumnos.query.AlumnoQueryService queryService) {
+        return new mx.ades.modules.alumnos.application.service.AlumnoApplicationService(
+                repositoryPort, adminWrite, personaHelper, complementariosService, queryService);
+    }
+
+    @Bean
+    public mx.ades.modules.alumnos.domain.port.in.CrearAlumnoUseCase crearAlumnoUseCase(
+            mx.ades.modules.alumnos.application.service.AlumnoApplicationService service) {
+        return service;
+    }
+
+    @Bean
+    public mx.ades.modules.alumnos.domain.port.in.ActualizarAlumnoUseCase actualizarAlumnoUseCase(
+            mx.ades.modules.alumnos.application.service.AlumnoApplicationService service) {
+        return service;
+    }
+
+    // ── profesores (hexagonal) ────────────────────────────────────────────────
+    @Bean
+    public mx.ades.modules.profesores.application.service.ProfesorApplicationService profesorApplicationService(
+            mx.ades.modules.profesores.domain.port.out.ProfesorRepositoryPort repositoryPort,
+            mx.ades.shared.persona.PersonaUpdateHelper personaHelper,
+            mx.ades.modules.profesores.ProfesorLaboralesService laboralesService,
+            mx.ades.modules.profesores.query.ProfesorQueryService queryService) {
+        return new mx.ades.modules.profesores.application.service.ProfesorApplicationService(
+                repositoryPort, personaHelper, laboralesService, queryService);
+    }
+
+    @Bean
+    public mx.ades.modules.profesores.domain.port.in.CrearProfesorUseCase crearProfesorUseCase(
+            mx.ades.modules.profesores.application.service.ProfesorApplicationService service) {
+        return service;
+    }
+
+    @Bean
+    public mx.ades.modules.profesores.domain.port.in.ActualizarProfesorUseCase actualizarProfesorUseCase(
+            mx.ades.modules.profesores.application.service.ProfesorApplicationService service) {
+        return service;
+    }
 }
