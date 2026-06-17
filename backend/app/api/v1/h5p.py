@@ -172,7 +172,7 @@ async def subir_h5p(
     file_bytes = await h5p_file.read()
     async with httpx.AsyncClient(timeout=60.0) as client:
         r = await client.post(
-            f"{H5P_SERVICE_URL}/api/upload",
+            f"{H5P_SERVICE_URL}/h5p/api/upload",
             data={"usuario_id": str(user.persona_id), "usuario_nombre": user.nombre},
             files={"h5p_file": (h5p_file.filename, file_bytes, "application/zip")},
         )
@@ -224,7 +224,7 @@ async def eliminar_contenido(
 
     # Eliminar del servicio H5P
     try:
-        await _h5p_delete(f"/api/contenidos/{r.h5p_content_id}")
+        await _h5p_delete(f"/h5p/api/contenidos/{r.h5p_content_id}")
     except Exception:
         pass  # Si el servicio no lo encuentra, continuar
 
@@ -249,11 +249,14 @@ async def player_url(
     r = row.fetchone()
     if not r:
         raise HTTPException(404, "Contenido H5P no encontrado")
-    player_url = (
-        f"{H5P_SERVICE_URL}/api/player/{r.h5p_content_id}"
+    # URL pública a través de nginx → /h5p/ → ades-h5p:8091
+    # (no la URL interna Docker, que el browser no puede alcanzar)
+    public_base = settings.BASE_URL.rstrip("/")
+    public_player = (
+        f"{public_base}/h5p/api/player/{r.h5p_content_id}"
         f"?usuario_id={user.persona_id}&usuario_nombre={user.nombre}"
     )
-    return {"player_url": player_url, "h5p_content_id": r.h5p_content_id}
+    return {"player_url": public_player, "h5p_content_id": r.h5p_content_id}
 
 
 # ──────────────────────────────────────────────────────────────────────────────
