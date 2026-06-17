@@ -149,15 +149,27 @@ interface CambioGrupo {
         </div>
         <div class="field">
           <label>Motivo *</label>
-          <textarea pTextarea [(ngModel)]="bajaTemporalForm.motivo" rows="3" style="width:100%"></textarea>
+          <textarea pTextarea [(ngModel)]="bajaTemporalForm.motivo" rows="3" style="width:100%"
+            [class.p-invalid]="btIntento() && !bajaTemporalForm.motivo.trim()"></textarea>
+          @if (btIntento() && !bajaTemporalForm.motivo.trim()) {
+            <small class="field-error">El motivo es obligatorio</small>
+          }
         </div>
         <div class="field">
           <label>Fecha Efectiva *</label>
-          <p-datepicker [(ngModel)]="bajaTemporalForm.fechaEfectiva" [showIcon]="true" dateFormat="dd/mm/yy" [style]="{width:'100%'}" />
+          <p-datepicker [(ngModel)]="bajaTemporalForm.fechaEfectiva" [showIcon]="true" dateFormat="dd/mm/yy" [style]="{width:'100%'}"
+            [class.p-invalid]="btIntento() && !bajaTemporalForm.fechaEfectiva" />
+          @if (btIntento() && !bajaTemporalForm.fechaEfectiva) {
+            <small class="field-error">La fecha efectiva es obligatoria</small>
+          }
         </div>
         <div class="field">
           <label>Fecha Estimada de Reingreso</label>
-          <p-datepicker [(ngModel)]="bajaTemporalForm.fechaReingreso" [showIcon]="true" dateFormat="dd/mm/yy" [style]="{width:'100%'}" />
+          <p-datepicker [(ngModel)]="bajaTemporalForm.fechaReingreso" [showIcon]="true" dateFormat="dd/mm/yy" [style]="{width:'100%'}"
+            [class.p-invalid]="reingresoAnteriorAEfectiva" />
+          @if (reingresoAnteriorAEfectiva) {
+            <small class="field-error">Debe ser igual o posterior a la fecha efectiva</small>
+          }
         </div>
         <div class="field">
           <label>Observaciones</label>
@@ -298,6 +310,7 @@ interface CambioGrupo {
     .dlg-grid { display: flex; flex-direction: column; gap: .75rem; padding: .25rem 0; }
     .field { display: flex; flex-direction: column; gap: .25rem; }
     .field label { font-size: .85rem; font-weight: 500; color: var(--text-color-secondary); }
+    .field-error { color: var(--red-600, #dc2626); font-size: .78rem; }
     .alumno-label { margin: 0; font-size: .9rem; }
   `],
 })
@@ -321,6 +334,15 @@ export class MovilidadComponent implements OnInit {
   dlgTraslado      = false;
   dlgReactivar     = false;
   reactivandoBaja: Baja | null = null;
+
+  /** Indica que el usuario intentó guardar — activa errores inline */
+  btIntento = signal(false);
+
+  get reingresoAnteriorAEfectiva(): boolean {
+    const ef = this.bajaTemporalForm.fechaEfectiva;
+    const re = this.bajaTemporalForm.fechaReingreso;
+    return !!ef && !!re && re < ef;
+  }
 
   readonly alumnosLov = computed(() =>
     this.alumnos().map(a => ({
@@ -457,6 +479,7 @@ export class MovilidadComponent implements OnInit {
 
   abrirBajaTemporal(): void {
     this.bajaTemporalForm = { estudianteId: '', motivo: '', fechaEfectiva: null, fechaReingreso: null, observaciones: '' };
+    this.btIntento.set(false);
     this.dlgBajaTemporal = true;
   }
 
@@ -474,8 +497,13 @@ export class MovilidadComponent implements OnInit {
   }
 
   guardarBajaTemporal(): void {
-    if (!this.bajaTemporalForm.estudianteId || !this.bajaTemporalForm.motivo || !this.bajaTemporalForm.fechaEfectiva) {
+    this.btIntento.set(true);
+    if (!this.bajaTemporalForm.estudianteId || !this.bajaTemporalForm.motivo.trim() || !this.bajaTemporalForm.fechaEfectiva) {
       this.notify.warning('Campos requeridos', 'Alumno, motivo y fecha efectiva son obligatorios');
+      return;
+    }
+    if (this.reingresoAnteriorAEfectiva) {
+      this.notify.warning('Fecha inválida', 'La fecha de reingreso debe ser igual o posterior a la fecha efectiva');
       return;
     }
     this.guardando.set(true);

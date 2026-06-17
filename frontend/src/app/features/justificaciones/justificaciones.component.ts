@@ -101,7 +101,11 @@ const ESTADOS_OPT = [
         <div class="flex flex-col gap-1">
           <label class="text-sm font-medium">Motivo *</label>
           <textarea pTextarea [(ngModel)]="nuevaForm.motivo" rows="3"
-            placeholder="Descripción del motivo…" style="width:100%"></textarea>
+            placeholder="Descripción del motivo…" style="width:100%"
+            [class.p-invalid]="jIntento && !nuevaForm.motivo.trim()"></textarea>
+          @if (jIntento && !nuevaForm.motivo.trim()) {
+            <small style="color:#dc2626;font-size:.78rem">El motivo es obligatorio</small>
+          }
         </div>
         <div class="flex flex-col gap-1">
           <label class="text-sm font-medium">URL del Documento de Soporte</label>
@@ -171,6 +175,7 @@ export class JustificacionesComponent implements OnInit {
   dialogRechazo = false;
   filtroEstudianteId = '';
   filtroEstado = '';
+  jIntento = false;
   motivoRechazo = '';
   rechazandoId: string | null = null;
 
@@ -194,11 +199,13 @@ export class JustificacionesComponent implements OnInit {
 
   abrirNueva() {
     this.nuevaForm = { asistencia_id: '', tipo_justificacion: 'MEDICA', motivo: '', documento_url: '' };
+    this.jIntento = false;
     this.dialogNueva = true;
   }
 
   guardarNueva() {
-    if (!this.nuevaForm.asistencia_id || !this.nuevaForm.motivo) {
+    this.jIntento = true;
+    if (!this.nuevaForm.asistencia_id || !this.nuevaForm.motivo.trim()) {
       this.notify.warning('Asistencia y motivo son obligatorios');
       return;
     }
