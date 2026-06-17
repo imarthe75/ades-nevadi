@@ -19,19 +19,38 @@ async function globalSetup() {
   if (existsSync(TOKEN_FILE) && existsSync(USER_FILE)) {
     const existing = readFileSync(TOKEN_FILE, 'utf-8').trim();
     if (existing.startsWith('ey') && existing.length > 100) {
-      console.log(`[global-setup] Token + perfil reutilizados (${existing.length} chars)\n`);
-      return;
+      try {
+        const payload = JSON.parse(Buffer.from(existing.split('.')[1], 'base64').toString());
+        const margin = 5 * 60; // 5 min de margen
+        if (payload.exp && payload.exp > Math.floor(Date.now() / 1000) + margin) {
+          console.log(`[global-setup] Token + perfil reutilizados (${existing.length} chars)\n`);
+          return;
+        }
+        console.log('[global-setup] Token expirado — regenerando…');
+      } catch { /* fallthrough to regenerate */ }
     }
   }
 
   console.log('\n[global-setup] Obteniendo JWT de Authentik…');
 
-  // Comando que obtiene el JWT más reciente válido para el cliente ades-frontend
+  // Genera un JWT fresh vía IDToken.new() con mock request (exp = 365 días)
   const pyCode = [
-    "from authentik.providers.oauth2.models import AccessToken",
+    "from authentik.providers.oauth2.models import AccessToken, OAuth2Provider",
+    "from authentik.providers.oauth2.id_token import IDToken",
+    "from authentik.core.models import User",
     "from django.utils import timezone",
-    "t = AccessToken.objects.filter(provider__client_id='ades-frontend', expires__gt=timezone.now()).order_by('-expires').first()",
-    "print(t.token if t else '')",
+    "from datetime import timedelta",
+    "from unittest.mock import MagicMock",
+    "import secrets",
+    "provider = OAuth2Provider.objects.get(client_id='ades-frontend')",
+    "user = User.objects.get(username='akadmin')",
+    "at = AccessToken(provider=provider, user=user, expires=timezone.now()+timedelta(days=365), auth_time=timezone.now(), token=secrets.token_hex(32))",
+    "at.scope = ['openid','email','profile']",
+    "at.save()",
+    "req = MagicMock()",
+    "req.build_absolute_uri.return_value = 'http://authentik-server:9000/application/o/ades-frontend/'",
+    "id_tok = IDToken.new(provider=provider, token=at, request=req)",
+    "print(id_tok.to_jwt(provider))",
   ].join('; ');
 
   let token = '';

@@ -194,6 +194,7 @@ async def listar_certificados(
             c.grado_completado, c.promedio_final,
             c.fecha_emision, c.fecha_vencimiento, c.vigente,
             c.estado_firma, c.fecha_firma, c.verificable_url,
+            c.hash_sha256, c.firma_ed25519,
             c.blockchain_tx, c.blockchain_status, c.fecha_anclaje, c.blockchain_network,
             p.nombre || ' ' || p.apellido_paterno
                 || COALESCE(' ' || p.apellido_materno, '') AS nombre_alumno,
