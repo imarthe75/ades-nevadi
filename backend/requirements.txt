@@ -19,6 +19,7 @@ pydantic[email]
 # Autenticación OIDC/JWT
 python-jose[cryptography]==3.3.0
 httpx==0.28.1          # introspección JWKS de Authentik
+xmltodict>=0.13.0      # parseo XML→dict para API BBB
 
 # MinIO (almacenamiento S3)
 minio==7.2.15
