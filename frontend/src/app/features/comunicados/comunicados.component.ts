@@ -130,7 +130,11 @@ const TIPOS = [
       <div class="form-grid">
         <div class="form-field full">
           <label>Título *</label>
-          <input pInputText [(ngModel)]="form.titulo" placeholder="Título del comunicado" style="width:100%" />
+          <input pInputText [(ngModel)]="form.titulo" placeholder="Título del comunicado" style="width:100%"
+            [class.p-invalid]="cIntento() && !form.titulo.trim()" />
+          @if (cIntento() && !form.titulo.trim()) {
+            <small class="field-error">El título es obligatorio</small>
+          }
         </div>
         <div class="form-field">
           <label>Tipo</label>
@@ -146,7 +150,11 @@ const TIPOS = [
           <label>Contenido *</label>
           <textarea pTextarea [(ngModel)]="form.contenido"
                     rows="6" style="width:100%; resize:vertical"
-                    placeholder="Texto del comunicado..."></textarea>
+                    placeholder="Texto del comunicado..."
+                    [class.p-invalid]="cIntento() && !form.contenido.trim()"></textarea>
+          @if (cIntento() && !form.contenido.trim()) {
+            <small class="field-error">El contenido es obligatorio</small>
+          }
         </div>
         <div class="form-field full" style="display:flex; align-items:center; gap:.5rem;">
           <p-checkbox [(ngModel)]="form.requiere_acuse" [binary]="true" inputId="acuse" />
@@ -193,6 +201,7 @@ const TIPOS = [
     .form-field  { display:flex; flex-direction:column; gap:.3rem; font-size:.875rem; }
     .form-field.full { grid-column: 1 / -1; }
     label { font-weight:500; font-size:.82rem; }
+    .field-error { color: var(--red-600, #dc2626); font-size: .78rem; }
   `],
 })
 export class ComunicadosComponent implements OnInit {
@@ -204,6 +213,7 @@ export class ComunicadosComponent implements OnInit {
   loading     = signal(false);
   saving      = signal(false);
   showDialog  = signal(false);
+  cIntento    = signal(false);
   comunicadoSeleccionado = signal<Comunicado | null>(null);
   // expandedRows kept for potential future use but not used with interactive grid
   expandedRows: Record<string, boolean> = {};
@@ -277,9 +287,10 @@ export class ComunicadosComponent implements OnInit {
     });
   }
 
-  abrirNuevo(): void { this.form = this.emptyForm(); this.showDialog.set(true); }
+  abrirNuevo(): void { this.form = this.emptyForm(); this.cIntento.set(false); this.showDialog.set(true); }
 
   publicar(): void {
+    this.cIntento.set(true);
     if (!this.form.titulo.trim() || !this.form.contenido.trim()) return;
     this.saving.set(true);
     const plantel = this.ctx.plantel();
