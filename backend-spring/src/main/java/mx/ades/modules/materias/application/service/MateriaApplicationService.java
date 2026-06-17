@@ -1,5 +1,6 @@
 package mx.ades.modules.materias.application.service;
 
+import org.springframework.stereotype.Service;
 import mx.ades.modules.materias.Materia;
 import mx.ades.modules.materias.domain.port.in.ActualizarMateriaUseCase;
 import mx.ades.modules.materias.domain.port.in.CrearMateriaUseCase;
@@ -9,6 +10,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Map;
 
+@Service
 public class MateriaApplicationService implements CrearMateriaUseCase, ActualizarMateriaUseCase {
 
     private final MateriaRepositoryPort repositoryPort;

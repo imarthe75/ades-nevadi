@@ -1,5 +1,6 @@
 package mx.ades.modules.alumnos.application.service;
 
+import org.springframework.stereotype.Service;
 import mx.ades.modules.admin.AdminWriteService;
 import mx.ades.modules.alumnos.AlumnoComplementariosService;
 import mx.ades.modules.alumnos.Estudiante;
@@ -15,6 +16,7 @@ import java.time.LocalDate;
 import java.util.Map;
 import java.util.UUID;
 
+@Service
 public class AlumnoApplicationService implements CrearAlumnoUseCase, ActualizarAlumnoUseCase {
 
     private final AlumnoRepositoryPort         repositoryPort;

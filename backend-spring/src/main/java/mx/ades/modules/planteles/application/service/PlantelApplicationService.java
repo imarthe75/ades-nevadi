@@ -1,5 +1,6 @@
 package mx.ades.modules.planteles.application.service;
 
+import org.springframework.stereotype.Service;
 import mx.ades.modules.planteles.Plantel;
 import mx.ades.modules.planteles.domain.port.in.ActualizarPlantelUseCase;
 import mx.ades.modules.planteles.domain.port.in.CrearPlantelUseCase;
@@ -9,6 +10,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Map;
 
+@Service
 public class PlantelApplicationService implements CrearPlantelUseCase, ActualizarPlantelUseCase {
 
     private final PlantelRepositoryPort repositoryPort;

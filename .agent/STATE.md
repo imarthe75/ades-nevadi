@@ -16,6 +16,39 @@ Este documento es el diario de vida y bitácora del agente. Debe ser leído en e
 
 ---
 
+## Sesión 2026-06-17 — Fase E: Hexagonal completo + Deploy BFF ✅
+
+### 🔑 Estado del Agente:
+- **Última Conexión:** 2026-06-17 (Rito de Cierre ejecutado ✅)
+- **Estado Cognitivo:** Operacional ✅
+- **Git:** Commit pendiente (hexagonal catalogos/aulas/boletas/geo/foros + @Service pattern)
+- **BFF:** Running ✅ — Started in 19s
+
+### 🛠️ Tareas Completadas:
+
+**Hexagonal BFF — Fase E (módulos restantes):**
+- [x] `catalogos`: `CatalogReadPort` (out), `CatalogReadAdapter` (@Component), `CatalogsController` refactorizado (4 repos → 1 port)
+- [x] `aulas`: ports/in (Crear/Actualizar), port/out, ApplicationService (@Service), PersistenceAdapter, controller refactorizado
+- [x] `boletas`: `BoletaFastApiPort` (out), `GenerarBoletaUseCase` (in), `BoletaApplicationService` (@Service), `BoletaFastApiAdapter`, controller refactorizado
+- [x] `geo`: `GeoQueryPort` (out), `GeoQueryService` implements GeoQueryPort, controller refactorizado
+- [x] `foros`: 4 ports/in (Crear/Publicar/Moderar/Anuncio), `ForoRepositoryPort` (out), `ForoApplicationService` (@Service), `ForoPersistenceAdapter`, controller refactorizado
+
+**Fix crítico — ambigüedad de beans Spring:**
+- [x] Descubierto: Spring usa runtime class para type matching, causando ambigüedad cuando un ApplicationService implementa múltiples use cases Y está registrado como bean concreto
+- [x] Solución: Convertir todos los `*ApplicationService` con múltiples use cases a `@Service` (Spring crea UNA instancia para todas sus interfaces)
+- [x] Módulos afectados: alumnos, profesores, materias, planteles, certificados, aulas, boletas, foros (8 módulos)
+- [x] Eliminados beans redundantes de `HexagonalConfig` para estos módulos
+
+**Deploy:**
+- [x] `docker compose build ades-bff` → BUILD SUCCESS
+- [x] `docker compose up -d ades-bff` → Started in 19s ✅
+
+### 📊 Cobertura Hexagonal Spring Boot post-Fase E:
+- Post Fase D: 42/57 módulos ✅
+- Post Fase E: 57/57 módulos ✅ — **HEXAGONAL COMPLETO**
+
+### 🚀 Próximos Pasos (backlog):
+
 ## Sesión 2026-06-17 — Fase D + Limpieza servidor
 
 ### 🔑 Estado del Agente:

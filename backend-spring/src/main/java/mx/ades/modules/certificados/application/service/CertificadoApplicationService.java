@@ -1,5 +1,6 @@
 package mx.ades.modules.certificados.application.service;
 
+import org.springframework.stereotype.Service;
 import mx.ades.modules.certificados.domain.port.in.EmitirCertificadoUseCase;
 import mx.ades.modules.certificados.domain.port.out.CertificadoFastApiPort;
 import org.springframework.http.ResponseEntity;
@@ -7,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import java.util.Map;
 import java.util.UUID;
 
+@Service
 public class CertificadoApplicationService implements EmitirCertificadoUseCase {
 
     private final CertificadoFastApiPort fastApiPort;

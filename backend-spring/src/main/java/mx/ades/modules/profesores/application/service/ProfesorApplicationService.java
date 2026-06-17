@@ -1,5 +1,6 @@
 package mx.ades.modules.profesores.application.service;
 
+import org.springframework.stereotype.Service;
 import mx.ades.modules.profesores.Profesor;
 import mx.ades.modules.profesores.ProfesorLaboralesService;
 import mx.ades.modules.profesores.domain.port.in.ActualizarProfesorUseCase;
@@ -11,6 +12,7 @@ import mx.ades.shared.persona.PersonaUpdateHelper;
 import java.util.Map;
 import java.util.UUID;
 
+@Service
 public class ProfesorApplicationService implements CrearProfesorUseCase, ActualizarProfesorUseCase {
 
     private final ProfesorRepositoryPort  repositoryPort;

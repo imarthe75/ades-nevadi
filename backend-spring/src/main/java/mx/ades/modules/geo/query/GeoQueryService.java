@@ -1,6 +1,7 @@
 package mx.ades.modules.geo.query;
 
 import lombok.RequiredArgsConstructor;
+import mx.ades.modules.geo.domain.port.out.GeoQueryPort;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
@@ -10,7 +11,7 @@ import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
-public class GeoQueryService {
+public class GeoQueryService implements GeoQueryPort {
 
     private final JdbcTemplate jdbc;
 
