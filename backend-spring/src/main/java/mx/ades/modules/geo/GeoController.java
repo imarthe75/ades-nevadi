@@ -1,7 +1,7 @@
 package mx.ades.modules.geo;
 
 import lombok.RequiredArgsConstructor;
-import mx.ades.modules.geo.query.GeoQueryService;
+import mx.ades.modules.geo.domain.port.out.GeoQueryPort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -12,7 +12,7 @@ import java.util.*;
 @RequiredArgsConstructor
 public class GeoController {
 
-    private final GeoQueryService queryService;
+    private final GeoQueryPort queryService;
 
     @GetMapping("/estados")
     public ResponseEntity<List<Map<String, Object>>> listarEstados() {

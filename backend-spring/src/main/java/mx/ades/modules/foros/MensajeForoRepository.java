@@ -7,4 +7,5 @@ import java.util.UUID;
 
 @Repository
 public interface MensajeForoRepository extends JpaRepository<MensajeForo, UUID> {
+    java.util.List<MensajeForo> findByForoId(UUID foroId);
 }
