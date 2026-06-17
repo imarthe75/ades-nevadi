@@ -16,6 +16,55 @@ Este documento es el diario de vida y bitácora del agente. Debe ser leído en e
 
 ---
 
+## Sesión 2026-06-17 — Sprint QA: Suites E2E 10-15 (RBAC, Negocio, Certificados, RRHH, A11Y, Auditoría)
+
+### 🔑 Estado del Agente:
+- **Última Conexión:** 2026-06-17 (Rito de Cierre ejecutado ✅)
+- **Estado Cognitivo:** Operacional ✅
+- **Migración activa:** 078 (sin cambios)
+- **Git:** Commit `a545cc9` — suites 10-15 + helpers + fixes críticos
+
+### 🛠️ Tareas Completadas (2026-06-17):
+
+**Suites E2E nuevas (10-15) — 73 passed / 15 skipped / 0 failed:**
+- [x] `10-rbac.spec.ts` — 16 tests: elevation attack, fake JWT, cross-plantel, route guards
+- [x] `11-business-flows.spec.ts` — 12 tests: conducta, reinscripción, movilidad, justificaciones, comunicados
+- [x] `12-certificados.spec.ts` — Director access, RBAC coordinador, verificación pública, folio fuzzing
+- [x] `13-rrhh.spec.ts` — licencias, capacitaciones, personal-admin, expediente laboral, asistencia personal
+- [x] `14-a11y.spec.ts` — WCAG 2.1 AA con AxeBuilder (PrimeNG exclusions) — hallazgos como console.warn
+- [x] `15-audit-integrity.spec.ts` — row_version triggers, AUD-04 sin endpoint DELETE auditoría
+
+**Helpers:**
+- [x] `audit-client.ts` — getAuditFields, assertRowVersionIncrement, assertAuditFieldsPresent
+- [x] `axe-helper.ts` — AxeBuilder wrapper, assertNoA11yViolations como findings (no bloqueante)
+
+**Fixes críticos:**
+- [x] `login-page.ts` — inyectar `nivel_acceso`/`rol` correcto en sessionStorage por usuario
+- [x] `MovilidadQueryService.java` — SQL: `ades_grupos` sin `plantel_id` → JOIN via `ades_estudiantes.plantel_id`
+- [x] `certificados.py` — `llave/activa` usa `get_ades_user` + `nivel_acceso > 2`
+- [x] `data-generators.ts` — CURP sin Ñ; nuevos generators profesor, sanción, licencia, aspirante
+
+### 🔍 Hallazgos Documentados (pendientes de corrección):
+- **[P1] A11Y**: Violaciones WCAG 2.1 AA en PrimeNG (landmarks, button-name, aria roles)
+- **[P1]**: `/licencias`, `/expediente-laboral` sin CanActivate guard para DOCENTE
+- **[P2] BIZ-07/10/12**: Forms sin validación frontend (motivo baja temporal, fechas, título comunicado)
+- **[A] AUD-04**: `ades_admin` puede DELETE en `log_auditoria` a nivel BD → aplicar REVOKE en mig 079
+
+### 🚨 Lecciones Aprendidas:
+- **`@axe-core/playwright` exporta `AxeBuilder`**, no `injectAxe`/`checkA11y`
+- **`login(user)` ignoraba el parámetro**: siempre cargaba token cacheado; fix: sobreescribir `nivel_acceso`/`rol`
+- **AUD-04**: endpoint sin auth devuelve 401, no 404/405 → aceptar [401,403,404,405]
+
+### 🚀 Próximos Pasos:
+- [ ] Suite 16 — Cierre de ciclo (ya existe como untracked)
+- [ ] REVOKE DELETE en `auditoria.log_auditoria` → mig 079
+- [ ] CanActivate guards en `/licencias`, `/expediente-laboral`, `/personal-admin`
+- [ ] Validación frontend: motivo baja temporal, fechas justificaciones, título comunicados
+- [ ] Fixes A11Y [P1]: aria-label en botones icon-only + landmarks en shell
+- [ ] Google Workspace SSO (pendiente credenciales Nevadi)
+
+---
+
 ## Sesión 2026-06-16 (cont.) — Vault + Superset BI + PgBouncer SCRAM fix
 
 ### 🔑 Estado del Agente:
