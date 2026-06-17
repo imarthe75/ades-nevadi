@@ -103,7 +103,7 @@ const TIPOS = [
                 (onClick)="acusarRecibo(comunicadoSeleccionado()!)" />
             }
             <p-button icon="pi pi-times" [text]="true" size="small" severity="secondary"
-              (onClick)="comunicadoSeleccionado.set(null)" />
+              ariaLabel="Cerrar comunicado" (onClick)="comunicadoSeleccionado.set(null)" />
           </div>
         </div>
         <pre class="comunicado-contenido">{{ comunicadoSeleccionado()!.contenido }}</pre>

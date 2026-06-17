@@ -101,10 +101,11 @@ interface AlumnoSugerencia {
               <i class="pi pi-users"></i> {{ b.total_otorgados }} alumnos
             </span>
             <div style="display:flex;gap:.25rem">
-              <p-button icon="pi pi-eye" [text]="true" size="small" pTooltip="Ver alumnos"
+              <p-button icon="pi pi-eye" [text]="true" size="small"
+                        ariaLabel="Ver alumnos con este badge" pTooltip="Ver alumnos"
                         (onClick)="verBadge(b)" />
               <p-button icon="pi pi-trash" [text]="true" size="small" severity="danger"
-                        pTooltip="Eliminar" (onClick)="eliminar(b)" />
+                        ariaLabel="Eliminar badge" pTooltip="Eliminar" (onClick)="eliminar(b)" />
             </div>
           </div>
         </div>

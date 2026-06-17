@@ -97,7 +97,7 @@ interface Catalogo {
   <p-select [options]="opcionesEstado" [(ngModel)]="filtroPublicado" placeholder="Estado"
     optionLabel="label" optionValue="value" [showClear]="true"
     (onChange)="cargar()" style="min-width:160px" />
-  <p-button icon="pi pi-refresh" severity="secondary" [text]="true" (onClick)="cargar()" pTooltip="Actualizar" />
+  <p-button icon="pi pi-refresh" severity="secondary" [text]="true" ariaLabel="Actualizar lista" (onClick)="cargar()" pTooltip="Actualizar" />
 </div>
 
 <!-- ── Grid ─────────────────────────────────────────────────────────────── -->
@@ -165,7 +165,7 @@ interface Catalogo {
         <div class="imagen-preview" *ngIf="form().imagenUrl">
           <img [src]="form().imagenUrl" alt="Portada" style="max-height:120px; border-radius:6px; border:1px solid #ddd" />
           <p-button icon="pi pi-trash" severity="danger" [text]="true" size="small"
-            (onClick)="form().imagenUrl = null" pTooltip="Quitar imagen" />
+            ariaLabel="Quitar imagen" (onClick)="form().imagenUrl = null" pTooltip="Quitar imagen" />
         </div>
         <div class="imagen-upload" *ngIf="!form().imagenUrl || editando()?.id">
           <input #fileInput type="file" accept="image/jpeg,image/png,image/webp" style="display:none"
@@ -186,7 +186,7 @@ interface Catalogo {
       <span class="req-num">{{ i + 1 }}</span>
       <input pInputText [(ngModel)]="r.nombre" placeholder="Nombre del documento" style="flex:1" />
       <p-checkbox [(ngModel)]="r.esObligatorio" [binary]="true" label="Obligatorio" />
-      <p-button icon="pi pi-trash" severity="danger" [text]="true" size="small" (onClick)="eliminarRequisito(i)" />
+      <p-button icon="pi pi-trash" severity="danger" [text]="true" size="small" ariaLabel="Eliminar requisito" (onClick)="eliminarRequisito(i)" />
     </div>
     <p-button label="+ Agregar requisito" icon="pi pi-plus" severity="secondary" [text]="true"
       size="small" (onClick)="agregarRequisito()" />

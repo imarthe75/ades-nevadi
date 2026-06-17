@@ -86,7 +86,7 @@ interface ReportePersonal {
             </span>
             <span class="rep-lbl">Asistencia</span>
           </div>
-          <p-button icon="pi pi-times" [text]="true" size="small" (onClick)="reporte.set(null)" class="ml-auto" />
+          <p-button icon="pi pi-times" [text]="true" size="small" ariaLabel="Cerrar reporte" (onClick)="reporte.set(null)" class="ml-auto" />
         </div>
       }
 

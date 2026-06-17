@@ -201,7 +201,7 @@ const TIPO_ICON: Record<string, string> = {
 
             [filter]="true" filterPlaceholder="Buscar..."/>
             <p-button icon="pi pi-refresh" [text]="true" size="small"
-              pTooltip="Actualizar" (onClick)="cargarAsignaciones()" />
+              ariaLabel="Actualizar asignaciones" pTooltip="Actualizar" (onClick)="cargarAsignaciones()" />
             <p-button icon="pi pi-file" label="Exportar CSV" [text]="true" size="small"
               (onClick)="exportCSV()" />
             <p-button icon="pi pi-file-excel" label="Excel" [text]="true" size="small"

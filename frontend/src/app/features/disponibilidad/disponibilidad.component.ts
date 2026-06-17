@@ -150,7 +150,7 @@ interface ResumenDisponibilidad {
                   <input pInputText [(ngModel)]="slot.hora_fin" placeholder="09:00" class="hora-input" />
                   <p-checkbox [(ngModel)]="slot.disponible" [binary]="true" pTooltip="Disponible" />
                   <p-button icon="pi pi-times" size="small" [text]="true" severity="danger"
-                    (onClick)="removeSlot(dia.num, slot._idx)" />
+                    ariaLabel="Eliminar horario" (onClick)="removeSlot(dia.num, slot._idx)" />
                 </div>
               }
               <p-button icon="pi pi-plus" [label]="'Agregar slot'" size="small" [text]="true"

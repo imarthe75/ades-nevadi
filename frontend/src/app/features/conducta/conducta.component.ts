@@ -363,7 +363,7 @@ interface Compromiso {
                     <div *ngFor="let c of planForm.compromisos_alumno; let i = index" class="compromiso-row">
                       <input pInputText [(ngModel)]="c.texto" placeholder="Compromiso..." style="flex:1" />
                       <input pInputText [(ngModel)]="c.plazo_dias" type="number" placeholder="Días" style="width:70px" />
-                      <p-button icon="pi pi-trash" severity="danger" [text]="true" (onClick)="eliminarCompromiso('alumno', i)" />
+                      <p-button icon="pi pi-trash" severity="danger" [text]="true" ariaLabel="Eliminar compromiso del alumno" (onClick)="eliminarCompromiso('alumno', i)" />
                     </div>
                     <p-button icon="pi pi-plus" label="Agregar compromiso alumno" severity="secondary" [text]="true"
                               (onClick)="agregarCompromiso('alumno')" [style]="{ 'align-self': 'flex-start' }" />
@@ -371,7 +371,7 @@ interface Compromiso {
                     <p-divider align="left"><span style="font-size:0.8rem;font-weight:600">Compromisos del padre</span></p-divider>
                     <div *ngFor="let c of planForm.compromisos_padre; let i = index" class="compromiso-row">
                       <input pInputText [(ngModel)]="c.texto" placeholder="Compromiso..." style="flex:1" />
-                      <p-button icon="pi pi-trash" severity="danger" [text]="true" (onClick)="eliminarCompromiso('padre', i)" />
+                      <p-button icon="pi pi-trash" severity="danger" [text]="true" ariaLabel="Eliminar compromiso del padre" (onClick)="eliminarCompromiso('padre', i)" />
                     </div>
                     <p-button icon="pi pi-plus" label="Agregar compromiso padre" severity="secondary" [text]="true"
                               (onClick)="agregarCompromiso('padre')" [style]="{ 'align-self': 'flex-start' }" />
@@ -379,7 +379,7 @@ interface Compromiso {
                     <p-divider align="left"><span style="font-size:0.8rem;font-weight:600">Compromisos de la escuela</span></p-divider>
                     <div *ngFor="let c of planForm.compromisos_escuela; let i = index" class="compromiso-row">
                       <input pInputText [(ngModel)]="c.texto" placeholder="Compromiso..." style="flex:1" />
-                      <p-button icon="pi pi-trash" severity="danger" [text]="true" (onClick)="eliminarCompromiso('escuela', i)" />
+                      <p-button icon="pi pi-trash" severity="danger" [text]="true" ariaLabel="Eliminar compromiso de la escuela" (onClick)="eliminarCompromiso('escuela', i)" />
                     </div>
                     <p-button icon="pi pi-plus" label="Agregar compromiso escuela" severity="secondary" [text]="true"
                               (onClick)="agregarCompromiso('escuela')" [style]="{ 'align-self': 'flex-start' }" />

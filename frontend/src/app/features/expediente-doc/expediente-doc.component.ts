@@ -140,7 +140,7 @@ const TIPOS_DOCUMENTO = [
             [loading]="buscandoOcr()" (onClick)="buscarOcr()" />
           @if (resultadosOcr().length > 0) {
             <p-button icon="pi pi-times" severity="secondary" [text]="true"
-              size="small" pTooltip="Limpiar búsqueda" (onClick)="limpiarBusqueda()" />
+              size="small" ariaLabel="Limpiar búsqueda" pTooltip="Limpiar búsqueda" (onClick)="limpiarBusqueda()" />
           }
         </div>
         @if (resultadosOcr().length > 0) {
@@ -253,7 +253,7 @@ const TIPOS_DOCUMENTO = [
                 </span>
               </div>
               <p-button icon="pi pi-trash" severity="danger" [outlined]="true" size="small"
-                pTooltip="Eliminar documento"
+                ariaLabel="Eliminar documento" pTooltip="Eliminar documento"
                 (onClick)="eliminarDoc(docSeleccionado()!)" />
             </div>
 

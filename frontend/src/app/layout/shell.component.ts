@@ -86,6 +86,7 @@ interface Notif { id: string; titulo: string; cuerpo: string; tipo: string; leid
     PopoverModule, BadgeModule, TagModule, ApexComponentsModule
   ],
   template: `
+    <div role="status" aria-live="polite" aria-atomic="true" class="sr-only"></div>
     <apex-toast-container position="top-right" />
 
     <!-- ── Topbar institucional ── -->
@@ -146,22 +147,25 @@ interface Notif { id: string; titulo: string; cuerpo: string; tipo: string; leid
 
       <ng-template pTemplate="end">
         <!-- Campanita de notificaciones -->
-        <div class="notif-bell" (click)="toggleNotifPanel($event)">
-          <i class="pi pi-bell topbar-icon"></i>
+        <button class="notif-bell" (click)="toggleNotifPanel($event)"
+                aria-label="Notificaciones" aria-haspopup="true" type="button">
+          <i class="pi pi-bell topbar-icon" aria-hidden="true"></i>
           @if (notifCount() > 0) {
             <span class="notif-badge">{{ notifCount() > 99 ? '99+' : notifCount() }}</span>
           }
-        </div>
+        </button>
 
         <!-- Avatar usuario -->
-        <div class="user-avatar-btn" (click)="toggleUserMenu($event)" pTooltip="Cuenta" tooltipPosition="bottom">
-          <div class="user-avatar-circle">{{ userInitial() }}</div>
+        <button class="user-avatar-btn" (click)="toggleUserMenu($event)"
+                [attr.aria-label]="'Cuenta de ' + (ctx.usuario()?.nombre_completo ?? 'usuario')"
+                aria-haspopup="true" type="button" pTooltip="Cuenta" tooltipPosition="bottom">
+          <div class="user-avatar-circle" aria-hidden="true">{{ userInitial() }}</div>
           <div class="user-info">
             <span class="user-name">{{ ctx.usuario()?.nombre_completo }}</span>
             <span class="user-rol">{{ ctx.rolLabel() }}</span>
           </div>
-          <i class="pi pi-chevron-down" style="font-size:.6rem;color:rgba(255,255,255,.55);margin-left:.2rem"></i>
-        </div>
+          <i class="pi pi-chevron-down" aria-hidden="true" style="font-size:.6rem;color:rgba(255,255,255,.55);margin-left:.2rem"></i>
+        </button>
       </ng-template>
     </p-toolbar>
 
@@ -210,7 +214,7 @@ interface Notif { id: string; titulo: string; cuerpo: string; tipo: string; leid
     <!-- ── Layout principal ── -->
     <div class="app-layout">
       <!-- Nav lateral — dinámico por rol -->
-      <nav class="sidenav">
+      <nav class="sidenav" aria-label="Navegación principal">
         @for (group of navGroupsVisible(); track group.section) {
           <div class="sidenav-section">{{ group.section }}</div>
           <ul>
@@ -266,15 +270,22 @@ interface Notif { id: string; titulo: string; cuerpo: string; tipo: string; leid
       font-weight: 800; font-size: 1rem; color: #fff;
     }
     .brand-title   { color: #fff; font-weight: 700; font-size: 1rem; line-height: 1.1; display: block; }
-    .brand-subtitle { color: var(--topbar-text-muted); font-size: 0.7rem; display: block; }
+    /* rgba(255,255,255,.9) sobre #D02030 → ratio 4.57:1 — cumple WCAG AA */
+    .brand-subtitle { color: rgba(255,255,255,.9); font-size: 0.7rem; display: block; }
 
     .topbar-divider { width: 1px; height: 28px; background: rgba(255,255,255,.2); margin: 0 0.75rem; }
 
     /* User avatar menu */
+    /* Accesibilidad: sr-only para live regions */
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
+    .notif-bell {
+      background: none; border: none; padding: 0; cursor: pointer;
+    }
     .user-avatar-btn {
       display: flex; align-items: center; gap: .5rem; cursor: pointer;
       padding: .25rem .5rem; border-radius: 8px;
-      transition: background .15s;
+      transition: background .15s; background: none; border: none;
     }
     .user-avatar-btn:hover { background: rgba(255,255,255,.12); }
     .user-avatar-circle {
@@ -285,7 +296,7 @@ interface Notif { id: string; titulo: string; cuerpo: string; tipo: string; leid
     }
     .user-info { display: flex; flex-direction: column; align-items: flex-end; }
     .user-name { color: rgba(255,255,255,.9); font-size: 0.82rem; line-height: 1.2; }
-    .user-rol  { color: var(--topbar-text-muted); font-size: 0.7rem; }
+    .user-rol  { color: rgba(255,255,255,.9); font-size: 0.7rem; }
 
     /* User menu popover */
     :host ::ng-deep p-popover.user-menu-panel .p-popover { min-width: 220px; padding: 0; }

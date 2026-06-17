@@ -148,7 +148,7 @@ const TIPOS_PREG = [
                 <span style="font-size:.8rem; color:var(--text-color-secondary)">Activa</span>
                 <p-toggleswitch [(ngModel)]="selEncuesta.activa" (onChange)="toggleActiva()" />
                 <p-button icon="pi pi-trash" severity="danger" [text]="true" size="small"
-                          pTooltip="Eliminar encuesta" (onClick)="eliminarEncuesta()" />
+                          ariaLabel="Eliminar encuesta" pTooltip="Eliminar encuesta" (onClick)="eliminarEncuesta()" />
               </div>
             </div>
             <div class="detail-tags">
@@ -188,7 +188,7 @@ const TIPOS_PREG = [
                     </div>
                   </div>
                   <p-button icon="pi pi-trash" size="small" severity="danger" [text]="true"
-                            (onClick)="eliminarPregunta(p)" />
+                            ariaLabel="Eliminar pregunta" (onClick)="eliminarPregunta(p)" />
                 </div>
               }
             </div>

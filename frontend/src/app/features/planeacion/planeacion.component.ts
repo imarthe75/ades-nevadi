@@ -156,11 +156,11 @@ const ESTADO_SEV: Record<string, TagSeverity> = {
                 <div class="tema-actions">
                   @if (t.estado === 'PENDIENTE') {
                     <p-button icon="pi pi-calendar-plus" size="small" [text]="true"
-                              pTooltip="Planear tema" (onClick)="abrirPlanear(t)" />
+                              ariaLabel="Planear tema" pTooltip="Planear tema" (onClick)="abrirPlanear(t)" />
                   }
                   @if (t.estado === 'PLANEADO') {
                     <p-button icon="pi pi-check-circle" size="small" severity="success" [text]="true"
-                              pTooltip="Marcar impartido" (onClick)="marcarImpartido(t)" />
+                              ariaLabel="Marcar como impartido" pTooltip="Marcar impartido" (onClick)="marcarImpartido(t)" />
                   }
                   @if (t.estado === 'IMPARTIDO') {
                     <i class="pi pi-check-circle" style="color:var(--green-500); font-size:.85rem"></i>
