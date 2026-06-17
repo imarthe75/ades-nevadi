@@ -147,6 +147,7 @@ interface PlantelOpt { id: string; nombre_plantel: string; }
           <button pButton label="Aprobar" icon="pi pi-check" severity="success"
                   (click)="accionIndividual('APROBAR')"></button>
           <button pButton label="Rechazar" icon="pi pi-times" severity="danger"
+                  data-testid="btn-rechazar"
                   (click)="mostrarRazonRechazo = true"></button>
         </div>
         @if (mostrarRazonRechazo) {
@@ -157,6 +158,7 @@ interface PlantelOpt { id: string; nombre_plantel: string; }
                       style="width:100%;resize:vertical;margin-top:4px"></textarea>
             <button pButton label="Confirmar rechazo" severity="danger" icon="pi pi-times"
                     class="mt-2" [disabled]="!razonRechazo"
+                    data-testid="btn-confirmar-rechazo"
                     (click)="accionIndividual('RECHAZAR')"></button>
           </div>
         }

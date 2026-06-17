@@ -129,6 +129,11 @@ interface AlumnoOpt { id: string; label: string; }
             }
           </td>
           <td class="acciones-cell">
+            <p-button icon="pi pi-file-pdf" [text]="true" severity="secondary" size="small"
+              pTooltip="Descargar PDF"
+              attr.data-testid="btn-descargar-pdf"
+              [loading]="descargando() === c.id"
+              (onClick)="descargarPdf(c)" />
             @if (c.verificable_url) {
               <p-button icon="pi pi-external-link" [text]="true" severity="info" size="small"
                 pTooltip="Verificar en línea" (onClick)="abrirVerificar(c.folio)" />
@@ -324,6 +329,7 @@ export class CertificadosComponent implements OnInit {
   showLlaves   = signal(false);
   emitiendo    = signal(false);
   firmando     = signal<string | null>(null);
+  descargando  = signal<string | null>(null);
   generandoLlave = signal(false);
   llaveActiva  = signal<any>(null);
   nuevaLlave   = signal<any>(null);
@@ -465,6 +471,32 @@ export class CertificadosComponent implements OnInit {
       error: (e) => {
         this.notify.error('Error', e.error?.detail ?? 'No se pudo firmar');
         this.firmando.set(null);
+      },
+    });
+  }
+
+  descargarPdf(cert: Certificado): void {
+    this.descargando.set(cert.id);
+    const ciclo = this.ctx.ciclo();
+    this.api.postBlob('/certificados/emitir', {
+      estudiante_id:    cert.id,
+      tipo_certificado: cert.tipo_certificado,
+      ciclo_escolar_id: ciclo?.id,
+      grado_completado: cert.grado_completado,
+      promedio_final:   cert.promedio_final,
+    }).subscribe({
+      next: (blob: Blob) => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `certificado-${cert.folio}.pdf`;
+        a.click();
+        URL.revokeObjectURL(url);
+        this.descargando.set(null);
+      },
+      error: () => {
+        this.notify.warning('Sin PDF', 'El PDF no está disponible para re-descarga en este entorno');
+        this.descargando.set(null);
       },
     });
   }
