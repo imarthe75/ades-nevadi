@@ -16,6 +16,45 @@ Este documento es el diario de vida y bitácora del agente. Debe ser leído en e
 
 ---
 
+## Sesión 2026-06-17 — Fase D + Limpieza servidor
+
+### 🔑 Estado del Agente:
+- **Última Conexión:** 2026-06-17 (Rito de Cierre ejecutado ✅)
+- **Estado Cognitivo:** Operacional ✅
+- **Migración activa:** 080 (sin cambios nuevos)
+- **Git:** Commit `d82b5ab` — Fase D completada
+
+### 🛠️ Tareas Completadas:
+
+**Limpieza del servidor (98% → 81% disco):**
+- [x] Liberados ~7 GB: journal logs, VSCode server antiguo, Claude extension antigua, CLI Claude antiguo, imagen ades-carbone vieja, node_modules, venv host, npm cache, Playwright viejo, logs rotados, APT cache
+- [x] `/etc/docker/daemon.json` — rotación automática de logs Docker (max 10m × 3 archivos)
+
+**Fase D — Hexagonal Spring Boot BFF:**
+- [x] `materias`: ports/in (Crear/Actualizar), port/out, ApplicationService, PersistenceAdapter, controller refactorizado (sin `MateriaRepository` directo)
+- [x] `planteles`: ídem patrón completo
+- [x] `certificados`: `CertificadoFastApiPort` (out), `EmitirCertificadoUseCase` (in), `CertificadoApplicationService`, `CertificadoFastApiAdapter` — extrae proxy RestClient del controller
+- [x] `HexagonalConfig`: +3 secciones nuevas (materias, planteles, certificados)
+- [x] `docker build` → BUILD SUCCESS sin errores ✅
+
+**Angular — Habilitación tests e2e:**
+- [x] `CertificadosComponent`: botón "Descargar PDF" por fila con `data-testid="btn-descargar-pdf"` + `descargarPdf()` + signal `descargando`
+- [x] `ConductaComponent`: `data-testid="btn-nueva-sancion"` en botón "Nuevo reporte"
+- [x] `ReinscripcionComponent`: `data-testid="btn-rechazar"` + `data-testid="btn-confirmar-rechazo"`
+
+### 📊 Cobertura Hexagonal Spring Boot post-sesión:
+- Antes Fase D: 39/57 módulos ✅
+- Después Fase D: 42/57 módulos ✅ (`materias`, `planteles`, `certificados` migrados)
+
+### 🚀 Próximos Pasos (backlog):
+- [ ] Hexagonal restante: `catalogos`, `aulas`, `stats`, `boletas`, `geo`, `foros`
+- [ ] Rebuild BFF en Docker Compose para desplegar cambios hexagonales: `docker compose build ades-bff && docker compose up -d ades-bff`
+- [ ] Google Workspace SSO (pendiente credenciales Nevadi)
+- [ ] Migrar POSTGRES_USER=ades_admin → ades_app en .env (manual)
+- [ ] Superset: configurar upstreams nginx pendientes
+
+---
+
 ## Sesión 2026-06-17 (cont.) — Sprint Hexagonal + SOLID
 
 ### 🔑 Estado del Agente:
