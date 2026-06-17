@@ -45,14 +45,20 @@ test.describe('A. Ciclo completo de conducta', () => {
 
     if (!await assertPageLoaded(page, '/conducta')) { test.skip(); return; }
 
-    const nuevaBtn = page.locator('button:has-text("Nueva"), [data-testid="btn-nueva-sancion"]').first();
+    // p-button host lleva data-testid; el inner <button> tiene el texto
+    const nuevaBtn = page.locator(
+      'p-button[data-testid="btn-nueva-sancion"] button, button:has-text("Nuevo reporte"), button:has-text("Nueva")'
+    ).first();
     if (!await nuevaBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
       test.skip(); return;
     }
     await nuevaBtn.click();
     await page.waitForTimeout(500);
 
-    const saveBtn = page.locator('button[type="submit"], button:has-text("Guardar")').first();
+    // El dialog de nuevo reporte tiene un botón Guardar
+    const saveBtn = page.locator(
+      '[data-testid="btn-guardar-reporte"], button:has-text("Guardar reporte"), button:has-text("Guardar"), button[type="submit"]'
+    ).first();
     await saveBtn.click().catch(() => undefined);
     await page.waitForTimeout(1_500);
 

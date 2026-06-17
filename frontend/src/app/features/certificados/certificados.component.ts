@@ -131,7 +131,7 @@ interface AlumnoOpt { id: string; label: string; }
           <td class="acciones-cell">
             <p-button icon="pi pi-file-pdf" [text]="true" severity="secondary" size="small"
               pTooltip="Descargar PDF"
-              attr.data-testid="btn-descargar-pdf"
+              data-testid="btn-descargar-pdf"
               [loading]="descargando() === c.id"
               (onClick)="descargarPdf(c)" />
             @if (c.verificable_url) {

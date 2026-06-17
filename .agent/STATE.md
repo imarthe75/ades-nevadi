@@ -49,6 +49,72 @@ Este documento es el diario de vida y bitácora del agente. Debe ser leído en e
 
 ### 🚀 Próximos Pasos (backlog):
 
+---
+
+## Sesión 2026-06-17 — QA Phases A+B+C + Suite 17 Advanced Security ✅
+
+### 🔑 Estado del Agente:
+- **Última Conexión:** 2026-06-17 (análisis completo realizado)
+- **Estado Cognitivo:** Operacional ✅
+- **Git:** `b5d9e68` — Suite 17 committed
+- **BFF:** Running con 3 bugs activos (ver abajo)
+
+### 🛠️ Tareas Completadas:
+
+**QA Phases A/B/C (commits f7a19c6, e145314, 25fef23):**
+- [x] Phase A: A11Y WCAG AA — shell div→button, aria-labels, contrast rgba(.9), 15 componentes
+- [x] Phase B: Validaciones inline — movilidad (motivo+fechas), comunicados (título), justificaciones (motivo)
+- [x] Phase C: Fixtures e2e — token JWT refresh con expiración, IDToken.new()+MagicMock, selectores BIZ-07/10/12, CER-E2E-08/09
+
+**Suite 17 — Advanced Security & Integrity (commit b5d9e68):**
+- [x] ADV-01: double-submit a nivel API (contador POSTs durante 10 clicks)
+- [x] ADV-02/03: fechas imposibles (año 1026, 2099) — vía API y UI
+- [x] ADV-04: MIME type disguise (.exe→.jpg) → FINDING documentado si backend acepta
+- [x] ADV-05/05b: XSS persistido en chatbot + buscador → Angular sanitización
+- [x] ADV-06: optimistic locking — PATCH contacto con rowVersion stale → 409
+- [x] ADV-07: Gremlins.js v2 monkey testing — 100 eventos aleatorios
+- [x] ADV-08: estado menú PrimeNG — 1 ítem activo por ruta
+- [x] gremlins.js v2.2.0 instalado como devDependency
+
+### 🐛 Bugs Activos (BFF — descubiertos en análisis post-Fase E):
+
+**CRÍTICO — BFF Runtime SQL Errors:**
+1. `column ne.clave_nivel does not exist` — `ades_niveles_educativos` no tiene esa columna. El BFF busca `ne.clave_nivel, ne.max_grados` que no existen. Columna real: `nombre_nivel` solamente. Afecta: endpoints de niveles por plantel (learning paths, admin).
+2. `could not determine data type of parameter $1` — JdbcTemplate envía `?` sin cast en queries UUID. Afecta: learning paths y alumnos-path queries.
+3. `mv_resumen_plantel` y `mv_riesgo_academico` — MVs en `ades_bi` schema con `ispopulated=false`. Dashboard "Mi Plantel" y alertas riesgo retornan 500.
+4. `Superset login failed` — SupersetController no puede autenticar a Superset (posible client_secret expirado en Authentik).
+
+### 🔐 Hallazgos de Seguridad Documentados (tests ADV-04/06):
+- `expediente.py:213` usa `archivo.content_type` del header HTTP sin verificar magic bytes reales → MIME type spoofing posible
+- `check_row_version()` existe en `backend/app/core/optimistic_locking.py` pero no está conectado a ningún endpoint mutante
+
+### 🚀 Próximos Pasos (backlog ordenado):
+
+**Prioridad 1 — Bugs en producción:**
+- [ ] Fix `clave_nivel` → usar `nombre_nivel` en BFF SQL (1 línea, 1 archivo Java)
+- [ ] Fix cast UUID en JdbcTemplate (`?::uuid` o cast explícito)
+- [ ] `REFRESH MATERIALIZED VIEW ades_bi.mv_resumen_plantel CONCURRENTLY;` (y mv_riesgo_academico)
+- [ ] Diagnosticar Superset login en Authentik (client_secret o app config)
+
+**Prioridad 2 — Seguridad:**
+- [ ] Agregar `python-magic` en `expediente.py` para verificar MIME real
+- [ ] Conectar `check_row_version()` en PATCH de contactos y alumnos (BFF Java)
+
+**Prioridad 3 — QA pendiente:**
+- [ ] BIZ-01/BIZ-04: seeds de conducta + reinscripción para que tests no hagan skip
+- [ ] CER-E2E-10: crear certificado firmado en QA para test de descarga PDF
+
+**Prioridad 4 — Infraestructura:**
+- [ ] Superset dashboards: `bash infrastructure/superset/init.sh` + UUIDs en `.env`
+- [ ] Google Workspace SSO — en espera de credenciales OAuth2 del cliente
+
+**Prioridad 5 — Pospuesto:**
+- [ ] HashiCorp Vault (FASE 27 seguridad)
+- [ ] Blockchain Polygon PoS (FASE 5B)
+- [ ] `POSTGRES_USER ades_admin → ades_app` (requiere ventana de mantenimiento)
+
+---
+
 ## Sesión 2026-06-17 — Fase D + Limpieza servidor
 
 ### 🔑 Estado del Agente:
