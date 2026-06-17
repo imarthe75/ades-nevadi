@@ -49,10 +49,26 @@ export class LoginPage extends BasePage {
    * Login by injecting a real Authentik JWT into sessionStorage.
    * Uses evaluate() (not addInitScript) so the token does NOT persist across
    * subsequent navigations — this allows proper logout simulation in tests.
+   *
+   * If `user` is provided, the injected ades_usuario profile overrides
+   * nivel_acceso and rol so frontend RBAC (menu visibility, guards) behaves
+   * as that role. The API still receives the cached admin token — API-level
+   * enforcement tests must account for this shared-token limitation.
    */
-  async login(_user?: TestUser) {
-    const token = readToken();
-    const user  = readUser();
+  async login(user?: TestUser) {
+    const token      = readToken();
+    const cachedUser = readUser() as Record<string, unknown>;
+
+    // Build the injected profile: override rol+nivel_acceso if a specific user is given
+    const injectUser = user
+      ? {
+          ...cachedUser,
+          rol:           user.rol,
+          nivel_acceso:  user.nivelAcceso,
+          nombre_completo: `Test ${user.rol}`,
+        }
+      : cachedUser;
+
     // Navegar a /login para establecer el origen (permite sessionStorage en ese origin)
     await this.page.goto('/login', { waitUntil: 'domcontentloaded' });
     // Inyectar token + perfil de usuario en sessionStorage
@@ -60,7 +76,7 @@ export class LoginPage extends BasePage {
     await this.page.evaluate(([tok, usr]: [string, object]) => {
       sessionStorage.setItem('ades_token',   tok);
       sessionStorage.setItem('ades_usuario', JSON.stringify(usr));
-    }, [token, user] as [string, object]);
+    }, [token, injectUser] as [string, object]);
     // Navegar al dashboard — Angular re-inicializa y los guards pasan
     await this.page.goto('/dashboard');
     await this.page.waitForURL(/\/(dashboard|alumnos|grupos|calificaciones)/, { timeout: 15_000 });

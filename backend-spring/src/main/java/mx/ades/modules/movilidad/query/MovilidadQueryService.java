@@ -37,7 +37,7 @@ public class MovilidadQueryService {
                                                    boolean soloActivas, int skip, int limit) {
         StringBuilder q = new StringBuilder(
                 "SELECT b.id, b.estudiante_id, b.tipo_baja, b.motivo, b.fecha_efectiva, b.fecha_reingreso, " +
-                "b.plantel_destino, b.is_active, e.numero_control, " +
+                "b.plantel_destino, b.is_active, e.matricula AS numero_control, " +
                 "COALESCE(p.nombre_social, p.nombre) || ' ' || p.apellido_paterno AS nombre_alumno, " +
                 "g.nombre_grupo, pl.nombre_plantel " +
                 "FROM ades_bajas b " +
@@ -45,13 +45,13 @@ public class MovilidadQueryService {
                 "JOIN ades_personas p ON p.id = e.persona_id " +
                 "LEFT JOIN ades_inscripciones i ON i.id = b.inscripcion_id " +
                 "LEFT JOIN ades_grupos g ON g.id = i.grupo_id " +
-                "LEFT JOIN ades_planteles pl ON pl.id = g.plantel_id " +
+                "LEFT JOIN ades_planteles pl ON pl.id = e.plantel_id " +
                 "WHERE 1=1 ");
 
         List<Object> params = new ArrayList<>();
         if (soloActivas) q.append("AND b.is_active = TRUE ");
         if (tipoBaja != null && !tipoBaja.isBlank()) { q.append("AND b.tipo_baja = ? "); params.add(tipoBaja.toUpperCase()); }
-        if (plantelId != null) { q.append("AND g.plantel_id = ? "); params.add(plantelId); }
+        if (plantelId != null) { q.append("AND e.plantel_id = ? "); params.add(plantelId); }
 
         q.append("ORDER BY b.fecha_efectiva DESC LIMIT ? OFFSET ?");
         params.add(limit);
@@ -67,7 +67,7 @@ public class MovilidadQueryService {
                 "COALESCE(p.nombre_social, p.nombre) || ' ' || p.apellido_paterno AS nombre_alumno, " +
                 "e.matricula AS numero_control, cg.estudiante_id, " +
                 "go.nombre_grupo AS grupo_origen, gd.nombre_grupo AS grupo_destino, " +
-                "go.plantel_id " +
+                "e.plantel_id " +
                 "FROM ades_cambios_grupo cg " +
                 "JOIN ades_estudiantes e ON e.id = cg.estudiante_id " +
                 "JOIN ades_personas p ON p.id = e.persona_id " +
@@ -77,8 +77,8 @@ public class MovilidadQueryService {
 
         List<Object> params = new ArrayList<>();
         if (estudianteId != null) { q.append("AND cg.estudiante_id = ? "); params.add(estudianteId); }
-        if (plantelId != null) { q.append("AND go.plantel_id = ? "); params.add(plantelId); }
-        if (plantelIdFiltroUser != null) { q.append("AND go.plantel_id = ? "); params.add(plantelIdFiltroUser); }
+        if (plantelId != null) { q.append("AND e.plantel_id = ? "); params.add(plantelId); }
+        if (plantelIdFiltroUser != null) { q.append("AND e.plantel_id = ? "); params.add(plantelIdFiltroUser); }
 
         q.append("ORDER BY cg.fecha_cambio DESC LIMIT ? OFFSET ?");
         params.add(limit);

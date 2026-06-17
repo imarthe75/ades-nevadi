@@ -26,7 +26,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.security import get_current_user
+from app.core.security import get_current_user, get_ades_user, AdesUser
 from app.services.firma_digital import (
     calcular_hash,
     firmar,
@@ -362,6 +362,16 @@ async def verificar_certificado_publico(
     Endpoint público — verifica autenticidad por folio.
     No requiere autenticación. Valida firma Ed25519 si está disponible.
     """
+    # Sanitizar folio: solo alfanuméricos, guiones y guiones bajos
+    import re
+    folio_clean = re.sub(r"[^A-Za-z0-9\-_]", "", folio)
+    if not folio_clean:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Folio inválido.",
+        )
+    folio = folio_clean
+
     row = await db.execute(text("""
         SELECT
             c.id, c.folio, c.tipo_certificado, c.nivel_educativo,
@@ -511,11 +521,11 @@ async def registrar_llave(
 @router.get("/llave/activa")
 async def obtener_llave_activa(
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    ades_user: AdesUser = Depends(get_ades_user),
 ):
-    """Información de la llave de firma activa (ADMIN)."""
-    if current_user.get("nivel_acceso", 99) > 1:
-        raise HTTPException(status_code=403, detail="Solo administradores")
+    """Información de la llave de firma activa (Director o superior)."""
+    if ades_user.nivel_acceso > 2:
+        raise HTTPException(status_code=403, detail="Acceso restringido a Director o superior")
     row = await db.execute(text("""
         SELECT id, nombre, descripcion, algoritmo, clave_publica_b64,
                fecha_activacion, fecha_expiracion, activa
