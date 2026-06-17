@@ -1,10 +1,12 @@
 package mx.ades.modules.profesores;
 
 import lombok.RequiredArgsConstructor;
+import mx.ades.modules.profesores.domain.port.in.ActualizarProfesorUseCase;
+import mx.ades.modules.profesores.domain.port.in.CrearProfesorUseCase;
+import mx.ades.modules.profesores.domain.port.out.ProfesorRepositoryPort;
 import mx.ades.modules.profesores.query.ProfesorQueryService;
 import mx.ades.security.AdesUser;
 import mx.ades.security.AdesUserService;
-import mx.ades.shared.persona.PersonaUpdateHelper;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -20,11 +22,11 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class ProfesorController {
 
-    private final ProfesorRepository repository;
-    private final AdesUserService userService;
-    private final ProfesorQueryService query;
-    private final PersonaUpdateHelper personaHelper;
-    private final ProfesorLaboralesService laboralesService;
+    private final AdesUserService          userService;
+    private final ProfesorQueryService     query;
+    private final CrearProfesorUseCase     crear;
+    private final ActualizarProfesorUseCase actualizar;
+    private final ProfesorRepositoryPort   repositoryPort;
 
     @GetMapping
     public ResponseEntity<Map<String, Object>> list(
@@ -41,32 +43,33 @@ public class ProfesorController {
         return ResponseEntity.ok(query.obtener(id));
     }
 
+    @PostMapping
+    public ResponseEntity<Profesor> create(@RequestBody Profesor req) {
+        var cmd = new CrearProfesorUseCase.Command(
+                req.getPersonaId(),
+                req.getPlantelId(),
+                req.getNumeroEmpleado(),
+                req.getTipoContrato());
+        return ResponseEntity.status(HttpStatus.CREATED).body(crear.crear(cmd));
+    }
+
     @PatchMapping("/{id}")
     public ResponseEntity<Map<String, Object>> patch(
             @PathVariable UUID id,
             @RequestBody Map<String, Object> body) {
-
-        UUID personaId = query.resolverPersonaId(id);
-
         @SuppressWarnings("unchecked")
         Map<String, Object> per = (Map<String, Object>) body.get("persona");
-        personaHelper.actualizarBasico(personaId, per);
-
         @SuppressWarnings("unchecked")
         Map<String, Object> lab = (Map<String, Object>) body.get("laborales");
-        laboralesService.actualizar(id, lab);
-
-        return ResponseEntity.ok(Map.of("updated", true));
-    }
-
-    @PostMapping
-    public ResponseEntity<Profesor> create(@RequestBody Profesor prof) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(repository.save(prof));
+        return ResponseEntity.ok(actualizar.actualizar(
+                new ActualizarProfesorUseCase.Command(id, per, lab)));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Profesor> update(@PathVariable UUID id, @RequestBody Profesor update) {
-        Profesor prof = repository.findById(id)
+    public ResponseEntity<Profesor> update(
+            @PathVariable UUID id,
+            @RequestBody Profesor update) {
+        Profesor prof = repositoryPort.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Profesor no encontrado"));
         prof.setNumeroEmpleado(update.getNumeroEmpleado());
         prof.setPersonaId(update.getPersonaId());
@@ -74,6 +77,6 @@ public class ProfesorController {
         prof.setEstatusId(update.getEstatusId());
         prof.setTipoContrato(update.getTipoContrato());
         prof.setIsActive(update.getIsActive());
-        return ResponseEntity.ok(repository.save(prof));
+        return ResponseEntity.ok(repositoryPort.save(prof));
     }
 }

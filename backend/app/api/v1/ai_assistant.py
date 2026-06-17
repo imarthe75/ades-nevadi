@@ -21,6 +21,7 @@ from app.core.config import settings
 from app.models.personas import Estudiante, Persona, Inscripcion
 from app.models.academica import Grupo, CicloEscolar
 from app.models.operacion import CalificacionPeriodo, Asistencia, PeriodoEvaluacion
+from app.services.llm_service import LLMService, get_llm_service
 
 router = APIRouter(prefix="/ai", tags=["ia-asistente"])
 
@@ -71,18 +72,9 @@ async def chat(
     data: MensajeChat,
     db: AsyncSession = Depends(get_db),
     current_user: AdesUser = Depends(get_ades_user),
+    llm: LLMService = Depends(get_llm_service),
 ):
     """Envía un mensaje al asistente pedagógico y devuelve la respuesta."""
-    try:
-        from openai import OpenAI
-    except ImportError:
-        raise HTTPException(status_code=503, detail="Cliente OpenAI no disponible")
-
-    if not settings.OPENAI_API_KEY:
-        raise HTTPException(status_code=503, detail="OPENAI_API_KEY no configurada")
-
-    client = OpenAI(api_key=settings.OPENAI_API_KEY, base_url=settings.OPENAI_BASE_URL)
-
     # Construir historial de mensajes
     messages = [{"role": "system", "content": SYSTEM_PROMPT}]
 
@@ -97,11 +89,7 @@ async def chat(
             messages.append({"role": h["role"], "content": h["content"]})
     messages.append({"role": "user", "content": data.mensaje})
 
-    response = client.chat.completions.create(
-        model=settings.OPENAI_MODEL,
-        max_tokens=1024,
-        messages=messages,
-    )
+    response = llm.complete(messages=messages)
 
     respuesta = response.choices[0].message.content
 
@@ -118,7 +106,7 @@ async def chat(
                 VALUES (:uid, :sid, 'user', :user_msg, :model, :tin, 0, :ctx::jsonb)
             """),
             {"uid": uid, "sid": data.sesion_id, "user_msg": data.mensaje,
-             "model": settings.OPENAI_MODEL, "tin": response.usage.prompt_tokens, "ctx": ctx_json},
+             "model": llm.default_model, "tin": response.usage.prompt_tokens, "ctx": ctx_json},
         )
         await db.execute(
             text("""
@@ -127,7 +115,7 @@ async def chat(
                 VALUES (:uid, :sid, 'assistant', :resp, :model, 0, :tout, :ctx::jsonb)
             """),
             {"uid": uid, "sid": data.sesion_id, "resp": respuesta,
-             "model": settings.OPENAI_MODEL, "tout": response.usage.completion_tokens, "ctx": ctx_json},
+             "model": llm.default_model, "tout": response.usage.completion_tokens, "ctx": ctx_json},
         )
         await db.commit()
     except Exception:
