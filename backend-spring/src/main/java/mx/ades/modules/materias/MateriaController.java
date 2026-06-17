@@ -1,6 +1,9 @@
 package mx.ades.modules.materias;
 
 import lombok.RequiredArgsConstructor;
+import mx.ades.modules.materias.domain.port.in.ActualizarMateriaUseCase;
+import mx.ades.modules.materias.domain.port.in.CrearMateriaUseCase;
+import mx.ades.modules.materias.domain.port.out.MateriaRepositoryPort;
 import mx.ades.modules.materias.query.MateriaQueryService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,7 +19,9 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class MateriaController {
 
-    private final MateriaRepository repository;
+    private final CrearMateriaUseCase crearUseCase;
+    private final ActualizarMateriaUseCase actualizarUseCase;
+    private final MateriaRepositoryPort repositoryPort;
     private final MateriaQueryService queryService;
 
     @GetMapping
@@ -30,28 +35,33 @@ public class MateriaController {
 
     @GetMapping("/{id}")
     public ResponseEntity<Materia> get(@PathVariable("id") UUID id) {
-        Materia mat = repository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Materia no encontrada"));
-        return ResponseEntity.ok(mat);
+        return ResponseEntity.ok(repositoryPort.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Materia no encontrada")));
     }
 
     @PostMapping
-    public ResponseEntity<Materia> create(@RequestBody Materia mat) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(repository.save(mat));
+    public ResponseEntity<Map<String, Object>> create(@RequestBody Map<String, Object> body) {
+        CrearMateriaUseCase.Command cmd = new CrearMateriaUseCase.Command(
+                (String) body.get("nombre_materia"),
+                (String) body.get("clave_materia"),
+                body.get("nivel_educativo_id") != null ? UUID.fromString(body.get("nivel_educativo_id").toString()) : null,
+                body.get("horas_semana") != null ? new java.math.BigDecimal(body.get("horas_semana").toString()) : null,
+                body.get("es_ingles") != null ? Boolean.valueOf(body.get("es_ingles").toString()) : false
+        );
+        return ResponseEntity.status(HttpStatus.CREATED).body(crearUseCase.crear(cmd));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Materia> update(@PathVariable("id") UUID id, @RequestBody Materia update) {
-        Materia mat = repository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Materia no encontrada"));
-
-        mat.setNombreMateria(update.getNombreMateria());
-        mat.setClaveMateria(update.getClaveMateria());
-        mat.setNivelEducativoId(update.getNivelEducativoId());
-        mat.setHorasSemana(update.getHorasSemana());
-        mat.setEsIngles(update.getEsIngles());
-        mat.setIsActive(update.getIsActive());
-
-        return ResponseEntity.ok(repository.save(mat));
+    public ResponseEntity<Map<String, Object>> update(@PathVariable("id") UUID id, @RequestBody Map<String, Object> body) {
+        ActualizarMateriaUseCase.Command cmd = new ActualizarMateriaUseCase.Command(
+                id,
+                (String) body.get("nombre_materia"),
+                (String) body.get("clave_materia"),
+                body.get("nivel_educativo_id") != null ? UUID.fromString(body.get("nivel_educativo_id").toString()) : null,
+                body.get("horas_semana") != null ? new java.math.BigDecimal(body.get("horas_semana").toString()) : null,
+                body.get("es_ingles") != null ? Boolean.valueOf(body.get("es_ingles").toString()) : null,
+                body.get("is_active") != null ? Boolean.valueOf(body.get("is_active").toString()) : null
+        );
+        return ResponseEntity.ok(actualizarUseCase.actualizar(cmd));
     }
 }

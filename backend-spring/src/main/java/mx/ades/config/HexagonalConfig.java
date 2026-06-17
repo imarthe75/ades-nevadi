@@ -778,4 +778,58 @@ public class HexagonalConfig {
             mx.ades.modules.profesores.application.service.ProfesorApplicationService service) {
         return service;
     }
+
+    // ── materias (hexagonal) ──────────────────────────────────────────────────
+
+    @Bean
+    public mx.ades.modules.materias.application.service.MateriaApplicationService materiaApplicationService(
+            mx.ades.modules.materias.domain.port.out.MateriaRepositoryPort repositoryPort) {
+        return new mx.ades.modules.materias.application.service.MateriaApplicationService(repositoryPort);
+    }
+
+    @Bean
+    public mx.ades.modules.materias.domain.port.in.CrearMateriaUseCase crearMateriaUseCase(
+            mx.ades.modules.materias.application.service.MateriaApplicationService service) {
+        return service;
+    }
+
+    @Bean
+    public mx.ades.modules.materias.domain.port.in.ActualizarMateriaUseCase actualizarMateriaUseCase(
+            mx.ades.modules.materias.application.service.MateriaApplicationService service) {
+        return service;
+    }
+
+    // ── planteles (hexagonal) ─────────────────────────────────────────────────
+
+    @Bean
+    public mx.ades.modules.planteles.application.service.PlantelApplicationService plantelApplicationService(
+            mx.ades.modules.planteles.domain.port.out.PlantelRepositoryPort repositoryPort) {
+        return new mx.ades.modules.planteles.application.service.PlantelApplicationService(repositoryPort);
+    }
+
+    @Bean
+    public mx.ades.modules.planteles.domain.port.in.CrearPlantelUseCase crearPlantelUseCase(
+            mx.ades.modules.planteles.application.service.PlantelApplicationService service) {
+        return service;
+    }
+
+    @Bean
+    public mx.ades.modules.planteles.domain.port.in.ActualizarPlantelUseCase actualizarPlantelUseCase(
+            mx.ades.modules.planteles.application.service.PlantelApplicationService service) {
+        return service;
+    }
+
+    // ── certificados (hexagonal) ──────────────────────────────────────────────
+
+    @Bean
+    public mx.ades.modules.certificados.application.service.CertificadoApplicationService certificadoApplicationService(
+            mx.ades.modules.certificados.domain.port.out.CertificadoFastApiPort fastApiPort) {
+        return new mx.ades.modules.certificados.application.service.CertificadoApplicationService(fastApiPort);
+    }
+
+    @Bean
+    public mx.ades.modules.certificados.domain.port.in.EmitirCertificadoUseCase emitirCertificadoUseCase(
+            mx.ades.modules.certificados.application.service.CertificadoApplicationService service) {
+        return service;
+    }
 }

@@ -92,7 +92,7 @@ interface Compromiso {
       <div style="display:flex;gap:0.5rem">
         <p-button label="CSV"   icon="pi pi-file"       severity="secondary" [text]="true" (onClick)="exportCSV()"  />
         <p-button label="Excel" icon="pi pi-file-excel" severity="secondary" [text]="true" (onClick)="exportXLSX()" />
-        <p-button label="Nuevo reporte" icon="pi pi-plus" (onClick)="abrirNuevoReporte()" />
+        <p-button label="Nuevo reporte" icon="pi pi-plus" data-testid="btn-nueva-sancion" (onClick)="abrirNuevoReporte()" />
       </div>
     </div>
 
