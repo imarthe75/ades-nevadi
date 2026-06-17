@@ -173,6 +173,7 @@ public class AdminController {
         private UUID plantelId;
         private UUID nivelEducativoId;
         private Boolean isActive;
+        private Integer rowVersion; // Optimistic locking — enviar la versión leída
     }
 
     @GetMapping("/usuarios")
@@ -242,6 +243,13 @@ public class AdminController {
 
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
+
+        // Optimistic locking: rechazar si el cliente envió versión y no coincide
+        if (body.getRowVersion() != null && !body.getRowVersion().equals(usuario.getRowVersion())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                "El registro fue modificado por otro usuario. Recarga y vuelve a intentarlo. " +
+                "(versión enviada: " + body.getRowVersion() + ", actual: " + usuario.getRowVersion() + ")");
+        }
 
         if (!permiso.puedeEditarOtrosPlantelUsuarios() && user.getPlantelId() != null
                 && !user.getPlantelId().equals(usuario.getPlantelId())) {
