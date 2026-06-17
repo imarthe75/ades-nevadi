@@ -25,8 +25,8 @@ public class LearningPathQueryService {
                        COUNT(r.id) AS total_recursos
                 FROM ades_learning_paths lp
                 LEFT JOIN ades_lp_recursos r ON r.path_id = lp.id AND r.is_active = TRUE
-                WHERE (? IS NULL OR lp.is_active = ?)
-                  AND (? IS NULL OR lp.criterio_activacion = ?)
+                WHERE (?::boolean IS NULL OR lp.is_active = ?)
+                  AND (?::text IS NULL OR lp.criterio_activacion = ?)
                 GROUP BY lp.id
                 ORDER BY lp.nombre
                 """, activos, activos, criterio, criterio);
@@ -55,8 +55,8 @@ public class LearningPathQueryService {
                        a.estudiante_id, a.motivo, a.estatus, a.pct_completado, a.fecha_creacion
                 FROM ades_lp_asignaciones a
                 JOIN ades_learning_paths lp ON lp.id = a.path_id
-                WHERE (? IS NULL OR a.estudiante_id = ?)
-                  AND (? IS NULL OR a.estatus = ?)
+                WHERE (?::uuid IS NULL OR a.estudiante_id = ?)
+                  AND (?::text IS NULL OR a.estatus = ?)
                 ORDER BY a.fecha_creacion DESC
                 """, estudianteId, estudianteId, estatus, estatus);
     }

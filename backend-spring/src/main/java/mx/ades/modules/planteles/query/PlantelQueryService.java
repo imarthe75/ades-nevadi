@@ -59,7 +59,8 @@ public class PlantelQueryService {
 
     public List<Map<String, Object>> nivelesPorPlantel(UUID plantelId) {
         return jdbc.queryForList(
-            "SELECT DISTINCT ne.id, ne.nombre_nivel, ne.clave_nivel, ne.max_grados " +
+            "SELECT DISTINCT ne.id, ne.nombre_nivel, ne.autoridad_educativa, " +
+            "ne.tipo_ciclo, ne.num_periodos_eval, ne.escala_maxima, ne.minimo_aprobatorio " +
             "FROM ades_niveles_educativos ne " +
             "JOIN ades_grados gr ON gr.nivel_educativo_id = ne.id " +
             "WHERE gr.plantel_id = ? AND gr.is_active = TRUE AND ne.is_active = TRUE " +
