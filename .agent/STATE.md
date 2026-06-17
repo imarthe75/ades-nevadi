@@ -90,22 +90,24 @@ Este documento es el diario de vida y bitácora del agente. Debe ser leído en e
 
 ### 🚀 Próximos Pasos (backlog ordenado):
 
-**Prioridad 1 — Bugs en producción:**
-- [ ] Fix `clave_nivel` → usar `nombre_nivel` en BFF SQL (1 línea, 1 archivo Java)
-- [ ] Fix cast UUID en JdbcTemplate (`?::uuid` o cast explícito)
-- [ ] `REFRESH MATERIALIZED VIEW ades_bi.mv_resumen_plantel CONCURRENTLY;` (y mv_riesgo_academico)
-- [ ] Diagnosticar Superset login en Authentik (client_secret o app config)
+**Prioridad 1 — Bugs en producción: TODOS RESUELTOS ✅**
+- [x] Fix `clave_nivel` → `nombre_nivel` en PlantelQueryService.java
+- [x] Fix cast UUID: `?::uuid`, `?::boolean`, `?::text` en LearningPathQueryService + PortalAdminService
+- [x] REFRESH MVs ades_bi (5/5 pobladas: mv_resumen_plantel, mv_riesgo_academico, mv_asistencia_diaria, mv_calificaciones_grupo, mv_cobertura_curricular)
+- [x] Superset login restaurado: reset password admin para coincidir con SUPERSET_ADMIN_PASSWORD
 
-**Prioridad 2 — Seguridad:**
-- [ ] Agregar `python-magic` en `expediente.py` para verificar MIME real
-- [ ] Conectar `check_row_version()` en PATCH de contactos y alumnos (BFF Java)
+**Prioridad 2 — Seguridad: COMPLETA ✅**
+- [x] `python-magic` validación MIME real en expediente.py (PE magic bytes → 415 Unsupported)
+- [x] Optimistic locking en PATCH /usuarios/{id} y PATCH /alumnos/{id} (rowVersion opcional → 409)
 
-**Prioridad 3 — QA pendiente:**
-- [ ] BIZ-01/BIZ-04: seeds de conducta + reinscripción para que tests no hagan skip
-- [ ] CER-E2E-10: crear certificado firmado en QA para test de descarga PDF
+**Prioridad 3 — QA: MEJORADO ✅ (1 skip técnico, 2 skips por diseño)**
+- [x] BIZ-01: selector corregido a `p-button[data-testid="btn-nueva-sancion"] button` + "Nuevo reporte"
+- [x] CER-E2E-10: `attr.data-testid` → `data-testid` en certificados component (DB: 2 FIRMADOS)
+- [x] DB seed: 5 registros PENDIENTE en ades_reinscripcion_ciclo
+- [~] BIZ-04: skip legítimo — el componente requiere selección manual de ciclos en dropdowns
+- [~] Superset dashboards: los 4 dashboards YA EXISTEN con UUIDs correctos en .env
 
 **Prioridad 4 — Infraestructura:**
-- [ ] Superset dashboards: `bash infrastructure/superset/init.sh` + UUIDs en `.env`
 - [ ] Google Workspace SSO — en espera de credenciales OAuth2 del cliente
 
 **Prioridad 5 — Pospuesto:**
