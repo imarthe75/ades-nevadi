@@ -20,6 +20,15 @@ export const USERS: Record<string, TestUser> = {
     nivelAcceso: 1,
     plantelNombre: 'Metepec',
   },
+  // Descubierto en Authentik 2026-06-17: admin.tenancingo@institutonevadi.edu.mx (activo=True)
+  // Usar para pruebas de aislamiento cross-plantel (Suite 10 RBAC)
+  ADMIN_TENANCINGO: {
+    email: 'admin.tenancingo@institutonevadi.edu.mx',
+    password: 'TestAdes2026!',   // Verificar password real antes de usar en CI
+    rol: 'ADMIN_PLANTEL',
+    nivelAcceso: 1,
+    plantelNombre: 'Tenancingo',
+  },
   DIRECTOR: {
     email: 'director.metepec@test.ades',
     password: 'TestAdes2026!',

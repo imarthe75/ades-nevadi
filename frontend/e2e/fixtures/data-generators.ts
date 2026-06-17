@@ -4,7 +4,7 @@ faker.seed(20260616);
 
 // ── CURP generation ─────────────────────────────────────────────────────────
 
-const CONSONANTES = 'BCDFGHJKLMNÑPQRSTVWXYZ';
+const CONSONANTES = 'BCDFGHJKLMNPQRSTVWXYZ';
 const VOCALES     = 'AEIOU';
 
 function letra(set: string) {
@@ -159,6 +159,89 @@ export function ponderacionConSumaIncorrecta() {
     { tipo_item: 'examen', peso_porcentaje: 70 },
     { tipo_item: 'tarea',  peso_porcentaje: 20 },
   ]; // suma = 90, no 100
+}
+
+// ── Profesor ─────────────────────────────────────────────────────────────────
+
+export function profesorValido() {
+  const { nombre, apellido_paterno, apellido_materno } = nombreCompleto();
+  return {
+    rfc:              rfcValido(),
+    numero_empleado:  String(faker.number.int({ min: 10000, max: 99999 })),
+    nombre,
+    apellido_paterno,
+    apellido_materno,
+    email:            emailValido(),
+    telefono:         faker.phone.number({ style: 'national' }),
+  };
+}
+
+// ── Sanción disciplinaria ────────────────────────────────────────────────────
+
+export const TIPOS_SANCION = ['LLAMADA_ATENCION', 'SUSPENSION_1DIA', 'SUSPENSION_3DIAS', 'CONDICIONAL'] as const;
+
+export function sancionValida() {
+  return {
+    tipo:        faker.helpers.arrayElement(TIPOS_SANCION),
+    descripcion: faker.lorem.sentences(2),     // >20 chars garantizado
+    fecha:       fechaHoy(),
+  };
+}
+
+export function sancionSinDescripcion() {
+  return {
+    tipo:        TIPOS_SANCION[0],
+    descripcion: '',
+    fecha:       fechaHoy(),
+  };
+}
+
+// ── Licencia RRHH ────────────────────────────────────────────────────────────
+
+export const TIPOS_LICENCIA = ['MEDICA', 'PERSONAL', 'MATERNIDAD', 'PATERNIDAD'] as const;
+
+export function licenciaValida() {
+  const inicio = new Date();
+  const fin    = new Date(inicio);
+  fin.setDate(fin.getDate() + faker.number.int({ min: 1, max: 10 }));
+  return {
+    tipo:         faker.helpers.arrayElement(TIPOS_LICENCIA),
+    fecha_inicio: inicio.toISOString().split('T')[0],
+    fecha_fin:    fin.toISOString().split('T')[0],
+    motivo:       faker.lorem.sentence(),
+  };
+}
+
+export function licenciaFechasInvertidas() {
+  const inicio = new Date();
+  const fin    = new Date(inicio);
+  fin.setDate(fin.getDate() - faker.number.int({ min: 1, max: 5 }));  // fin ANTES de inicio
+  return {
+    tipo:         TIPOS_LICENCIA[0],
+    fecha_inicio: inicio.toISOString().split('T')[0],
+    fecha_fin:    fin.toISOString().split('T')[0],
+    motivo:       'Fechas invertidas para test',
+  };
+}
+
+// ── Aspirante a admisión ─────────────────────────────────────────────────────
+
+export const ESTADOS_ADMISION = ['PREINSCRITO', 'EN_PROCESO', 'ACEPTADO', 'RECHAZADO'] as const;
+
+export function aspiranteValido() {
+  const { nombre, apellido_paterno, apellido_materno } = nombreCompleto();
+  return {
+    curp:             curpValido(),
+    nombre,
+    apellido_paterno,
+    apellido_materno,
+    fecha_nacimiento: faker.date
+      .between({ from: '2008-01-01', to: '2014-12-31' })
+      .toISOString()
+      .split('T')[0],
+    email_tutor: emailValido(),
+    nivel_educativo: faker.helpers.arrayElement(['PRIMARIA', 'SECUNDARIA', 'PREPARATORIA']),
+  };
 }
 
 // ── Re-exportar faker con seed determinista ──────────────────────────────────
