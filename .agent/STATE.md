@@ -70,6 +70,50 @@ Este documento es el diario de vida y bitácora del agente. Debe ser leído en e
 
 ---
 
+## Sesión 2026-06-17 (cierre) — Sprint A11Y + Validaciones + QA Fase C
+
+### 🔑 Estado del Agente:
+- **Última Conexión:** 2026-06-17 (Rito de Cierre ejecutado ✅)
+- **Estado Cognitivo:** Operacional ✅
+- **Migración activa:** 078 (sin cambios)
+- **Git:** Commits `f7a19c6`, `e145314`, `25fef23`
+
+### 🛠️ Tareas Completadas (2026-06-17 — sesión cierre):
+
+**Fase A — A11Y P1 fixes (commit `f7a19c6`):**
+- [x] Shell: notif-bell y avatar-btn div→button semánticos, aria-label, aria-haspopup
+- [x] Shell: aria-live region para toast (sr-only), nav aria-label, contraste WCAG AA (4.57:1)
+- [x] 15 componentes: ariaLabel en todos los p-button icon-only
+- [x] grade-analytics: bug icon duplicado corregido
+- [x] ImportButton: puedeImportar() oculta a DOCENTE (nivel_acceso > 3)
+
+**Fase B — Validaciones inline P2 (commit `e145314`):**
+- [x] Movilidad: btIntento signal + motivo/fechaEfectiva con `p-invalid` + `.field-error`
+- [x] Movilidad: getter `reingresoAnteriorAEfectiva` valida fechaReingreso >= fechaEfectiva
+- [x] Comunicados: cIntento signal, error inline en título y contenido
+- [x] Justificaciones: jIntento flag, error inline en motivo vacío
+
+**Fase C — Fixtures QA (commit `25fef23`):**
+- [x] global-setup.ts: verifica JWT exp antes de reutilizar; regenera via IDToken.new() con mock
+- [x] BIZ-07: selector 'Registrar Baja' en lugar de 'Guardar'
+- [x] BIZ-10: selector 'Registrar' + sin dependencia de [formcontrolname]
+- [x] BIZ-12: selector 'Publicar' en lugar de 'Guardar/Enviar'
+- [x] CER-E2E-08/09: URL relativa /api/v1/certificados via Angular proxy
+- [x] certificados.py: hash_sha256 + firma_ed25519 en SELECT del listado
+
+### 📊 Resultados E2E post-sprint:
+- Suite 11: 5 skips → 2 skips (BIZ-07, BIZ-10, BIZ-12 pasan)
+- Suite 12: 3 skips → 1 skip (CER-E2E-08, CER-E2E-09 pasan)
+
+### 🚀 Próximos Pasos:
+- [ ] Fase D: hexagonal para `certificados`, `auditoria`, `materias`, `planteles`
+- [ ] Solucionar CER-E2E-10 (descarga PDF — botón no visible en lista actual)
+- [ ] Solucionar BIZ-01, BIZ-04 (conducta/reinscripción sin botón accesible para test)
+- [ ] Google Workspace SSO (pendiente credenciales Nevadi)
+- [ ] Migrar POSTGRES_USER=ades_admin → ades_app en .env (manual)
+
+---
+
 ## Sesión 2026-06-17 — Sprint QA: Suites E2E 10-15 (RBAC, Negocio, Certificados, RRHH, A11Y, Auditoría)
 
 ### 🔑 Estado del Agente:
