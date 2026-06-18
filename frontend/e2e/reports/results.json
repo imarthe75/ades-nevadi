@@ -3,27 +3,33 @@
     "argv": [
       "/home/ubuntu/.nvm/versions/node/v24.16.0/bin/node",
       "/opt/ades/frontend/node_modules/.bin/playwright",
-      "test"
+      "test",
+      "--grep",
+      "ALU-02|CAOS-15"
     ],
     "configFile": "/opt/ades/frontend/playwright.config.ts",
     "rootDir": "/opt/ades/frontend/e2e/tests",
     "failOnFlakyTests": false,
     "forbidOnly": false,
     "fullyParallel": false,
-    "globalSetup": null,
+    "globalSetup": "/opt/ades/frontend/e2e/global-setup.ts",
     "globalTeardown": null,
     "globalTimeout": 0,
     "grep": {},
     "grepInvert": null,
     "maxFailures": 0,
-    "metadata": {},
+    "metadata": {
+      "actualWorkers": 1
+    },
     "preserveOutput": "always",
     "projects": [
       {
         "outputDir": "/opt/ades/frontend/test-results",
         "repeatEach": 1,
         "retries": 0,
-        "metadata": {},
+        "metadata": {
+          "actualWorkers": 1
+        },
         "id": "chromium",
         "name": "chromium",
         "testDir": "/opt/ades/frontend/e2e/tests",
@@ -31,35 +37,7 @@
         "testMatch": [
           "**/*.@(spec|test).?(c|m)[jt]s?(x)"
         ],
-        "timeout": 45000
-      },
-      {
-        "outputDir": "/opt/ades/frontend/test-results",
-        "repeatEach": 1,
-        "retries": 0,
-        "metadata": {},
-        "id": "firefox",
-        "name": "firefox",
-        "testDir": "/opt/ades/frontend/e2e/tests",
-        "testIgnore": [],
-        "testMatch": [
-          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
-        ],
-        "timeout": 45000
-      },
-      {
-        "outputDir": "/opt/ades/frontend/test-results",
-        "repeatEach": 1,
-        "retries": 0,
-        "metadata": {},
-        "id": "mobile-chrome",
-        "name": "mobile-chrome",
-        "testDir": "/opt/ades/frontend/e2e/tests",
-        "testIgnore": [],
-        "testMatch": [
-          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
-        ],
-        "timeout": 45000
+        "timeout": 30000
       }
     ],
     "quiet": false,
@@ -94,24 +72,179 @@
     "workers": 1,
     "webServer": null
   },
-  "suites": [],
-  "errors": [
+  "suites": [
     {
-      "message": "Error: duplicate test title \"D. Verificación pública — inputs extremos › CER-D | folio extremo en /verificar: \"<script>alert(1)</script>\"\", first declared in 05-certificados.spec.ts:151",
-      "location": {
-        "file": "/opt/ades/frontend/e2e/tests/05-certificados.spec.ts",
-        "line": 151,
-        "column": 9
-      },
-      "snippet": "\u001b[90m   at \u001b[39m05-certificados.spec.ts:151\n\n\u001b[0m \u001b[90m 149 |\u001b[39m\n \u001b[90m 150 |\u001b[39m   \u001b[36mfor\u001b[39m (\u001b[36mconst\u001b[39m folio \u001b[36mof\u001b[39m extremeFolios) {\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 151 |\u001b[39m     test(\u001b[32m`CER-D | folio extremo en /verificar: \"${folio.slice(0, 30)}\"`\u001b[39m\u001b[33m,\u001b[39m \u001b[36masync\u001b[39m ({ page }) \u001b[33m=>\u001b[39m {\n \u001b[90m     |\u001b[39m         \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 152 |\u001b[39m       page\u001b[33m.\u001b[39mon(\u001b[32m'dialog'\u001b[39m\u001b[33m,\u001b[39m d \u001b[33m=>\u001b[39m d\u001b[33m.\u001b[39mdismiss())\u001b[33m;\u001b[39m\n \u001b[90m 153 |\u001b[39m       \u001b[90m// La ruta pública acepta el folio como parámetro\u001b[39m\n \u001b[90m 154 |\u001b[39m       \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mgoto(\u001b[32m`/verificar/${encodeURIComponent(folio)}`\u001b[39m)\u001b[33m;\u001b[39m\u001b[0m"
+      "title": "02-alumnos.spec.ts",
+      "file": "02-alumnos.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "A. Flujo feliz",
+          "file": "02-alumnos.spec.ts",
+          "line": 30,
+          "column": 6,
+          "specs": [
+            {
+              "title": "ALU-02 | crear alumno con datos válidos",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "timedOut",
+                      "duration": 30117,
+                      "error": {
+                        "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m",
+                        "stack": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                      },
+                      "errors": [
+                        {
+                          "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                        },
+                        {
+                          "location": {
+                            "file": "/opt/ades/frontend/e2e/page-objects/alumnos-page.ts",
+                            "column": 23,
+                            "line": 40
+                          },
+                          "message": "Error: locator.click: Test timeout of 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button:has-text(\"Nuevo alumno\"), button:has-text(\"Nuevo\"), [data-testid=\"btn-nuevo\"]')\u001b[22m\n\n\n   at ../page-objects/alumnos-page.ts:40\n\n  38 |\n  39 |   async openNewForm() {\n> 40 |     await this.newBtn.click();\n     |                       ^\n  41 |     // Esperar a que el dialog de apex-modal-dialog aparezca\n  42 |     await expect(this.page.locator('.apex-dialog, [role=\"dialog\"]')).toBeVisible({ timeout: 5_000 });\n  43 |     await this.page.waitForTimeout(300); // pequeña pausa para animación del dialog\n    at AlumnosPage.openNewForm (/opt/ades/frontend/e2e/page-objects/alumnos-page.ts:40:23)\n    at /opt/ades/frontend/e2e/tests/02-alumnos.spec.ts:41:14"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-06-18T13:50:37.274Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/opt/ades/frontend/test-results/02-alumnos-A-Flujo-feliz-A-cc28b-ar-alumno-con-datos-válidos-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/opt/ades/frontend/test-results/02-alumnos-A-Flujo-feliz-A-cc28b-ar-alumno-con-datos-válidos-chromium/error-context.md"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "ee2d24fd2c65dcd13bda-2bb12f9efe3832fc6848",
+              "file": "02-alumnos.spec.ts",
+              "line": 38,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "06-chaos.spec.ts",
+      "file": "06-chaos.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Red y timing",
+          "file": "06-chaos.spec.ts",
+          "line": 177,
+          "column": 6,
+          "specs": [
+            {
+              "title": "CAOS-15 | click en guardar durante request pendiente — debounce",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 13433,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m5\u001b[39m\nReceived:   \u001b[31m5\u001b[39m",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m5\u001b[39m\nReceived:   \u001b[31m5\u001b[39m\n    at /opt/ades/frontend/e2e/tests/06-chaos.spec.ts:248:26",
+                        "location": {
+                          "file": "/opt/ades/frontend/e2e/tests/06-chaos.spec.ts",
+                          "column": 26,
+                          "line": 248
+                        },
+                        "snippet": "  246 |     // Con debounce/disable-after-click, no deben enviarse 5 requests completas.\n  247 |     // Si no hay debounce, el BFF recibe múltiples POSTs — aún así la app no debe crashear.\n> 248 |     expect(requestCount).toBeLessThan(5); // al menos algo de protección\n      |                          ^\n  249 |     await expect(page).not.toHaveURL(/error/);\n  250 |   });\n  251 | });"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/opt/ades/frontend/e2e/tests/06-chaos.spec.ts",
+                            "column": 26,
+                            "line": 248
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m5\u001b[39m\nReceived:   \u001b[31m5\u001b[39m\n\n  246 |     // Con debounce/disable-after-click, no deben enviarse 5 requests completas.\n  247 |     // Si no hay debounce, el BFF recibe múltiples POSTs — aún así la app no debe crashear.\n> 248 |     expect(requestCount).toBeLessThan(5); // al menos algo de protección\n      |                          ^\n  249 |     await expect(page).not.toHaveURL(/error/);\n  250 |   });\n  251 | });\n    at /opt/ades/frontend/e2e/tests/06-chaos.spec.ts:248:26"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-06-18T13:51:08.445Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/opt/ades/frontend/test-results/06-chaos-Red-y-timing-CAOS-c3f1f-equest-pendiente-—-debounce-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/opt/ades/frontend/test-results/06-chaos-Red-y-timing-CAOS-c3f1f-equest-pendiente-—-debounce-chromium/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/opt/ades/frontend/e2e/tests/06-chaos.spec.ts",
+                        "column": 26,
+                        "line": 248
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "41849fad210c96b7937b-f4523c0ba8db71d8b19e",
+              "file": "06-chaos.spec.ts",
+              "line": 226,
+              "column": 7
+            }
+          ]
+        }
+      ]
     }
   ],
+  "errors": [],
   "stats": {
-    "startTime": "2026-06-16T23:01:07.367Z",
-    "duration": 648.179,
+    "startTime": "2026-06-18T13:50:35.410Z",
+    "duration": 46701.248,
     "expected": 0,
     "skipped": 0,
-    "unexpected": 0,
+    "unexpected": 2,
     "flaky": 0
   }
 }

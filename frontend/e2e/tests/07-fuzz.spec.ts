@@ -74,8 +74,17 @@ test.describe('Fuzz: formulario de alumnos', () => {
           results.error++; // timeout/locator = no crash, solo fallo de test
         }
         // Intentar recuperar el estado antes del siguiente ciclo
-        await page.keyboard.press('Escape').catch(() => undefined);
-        await page.waitForTimeout(300);
+        try {
+          await page.keyboard.press('Escape').catch(() => undefined);
+          await page.waitForTimeout(300);
+        } catch (innerE) {
+          // Si el page está cerrado, detener el loop
+          if ((innerE as Error)?.message?.includes('closed')) {
+            console.error(`[FUZZ-01] Page closed at iteration ${i}, stopping`);
+            results.crash++;
+            break;
+          }
+        }
       }
     }
 

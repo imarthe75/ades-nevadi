@@ -153,7 +153,7 @@ test.describe('B. Cross-plantel — aislamiento de datos', () => {
       headers: { Authorization: `Bearer ${token}` },
     });
     // 200 OK con datos del propio plantel o 401 si el token no está en storage
-    expect([200, 401]).toContain(res.status());
+    expect([200, 401].includes(res.status())).toBe(true);
     if (res.ok()) {
       const body = await res.json();
       const alumnos = Array.isArray(body) ? body : (body.items ?? body.data ?? []);

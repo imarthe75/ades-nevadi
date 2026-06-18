@@ -130,7 +130,7 @@ test.describe('B. Fechas imposibles — validación backend', () => {
       );
     } else {
       // 400, 409 (CURP dup), 422 son respuestas correctas de rechazo
-      expect([400, 409, 422, 403]).toContain(status);
+      expect([400, 409, 422, 403].includes(status)).toBe(true);
     }
   });
 
@@ -147,7 +147,7 @@ test.describe('B. Fechas imposibles — validación backend', () => {
         'falta validación de fecha futura en ades_personas'
       );
     } else {
-      expect([400, 409, 422, 403]).toContain(status);
+      expect([400, 409, 422, 403].includes(status)).toBe(true);
     }
   });
 

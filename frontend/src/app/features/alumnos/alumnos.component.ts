@@ -7,6 +7,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
+import { ToastModule } from 'primeng/toast';
+import { debounceTime, throttleTime, Subject } from 'rxjs';
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
 import { ExportService } from '../../core/services/export.service';
@@ -22,11 +24,13 @@ import { ApexNotificationService, ApexSearchComponent, ApexModalDialogComponent 
   standalone: true,
   imports: [
     CommonModule, FormsModule,
-    ButtonModule, InputTextModule,
+    ButtonModule, InputTextModule, ToastModule,
     InteractiveGridComponent, ImportButtonComponent, AlumnoPerfilComponent, HelpButtonComponent,
     ApexSearchComponent, ApexModalDialogComponent,
   ],
   template: `
+    <!-- Toast notifications -->
+    <p-toast />
 
     <!-- Drawer de perfil completo -->
     <app-alumno-perfil
@@ -70,8 +74,7 @@ import { ApexNotificationService, ApexSearchComponent, ApexModalDialogComponent 
       [visible]="showDialog()"
       (visibleChange)="showDialog.set($event)"
       title="Nuevo Alumno"
-      size="sm"
-      [focusTrap]="false">
+      size="sm">
       <div style="display:flex;flex-direction:column;gap:1rem">
         <div>
           <label class="dlg-lbl">Nombre(s) *</label>
@@ -92,7 +95,7 @@ import { ApexNotificationService, ApexSearchComponent, ApexModalDialogComponent 
         <p class="dlg-note">Una vez creado podrás completar el expediente completo desde el perfil.</p>
       </div>
       <ng-template #footer>
-        <p-button label="Crear alumno" (onClick)="crearAlumno()" [loading]="loading()" />
+        <p-button label="Crear alumno" (onClick)="crearAlumno()" [loading]="loading()" [disabled]="loading()" />
       </ng-template>
     </apex-modal-dialog>
   `,
@@ -108,6 +111,7 @@ export class AlumnosComponent implements OnInit {
   private readonly ctx = inject(ContextService);
   private readonly notify = inject(ApexNotificationService);
   private readonly exp = inject(ExportService);
+  private readonly crearAlumnoSubject = new Subject<void>();
 
   alumnos = signal<Estudiante[]>([]);
   alumnosDatos = signal<any[]>([]);
@@ -151,7 +155,15 @@ export class AlumnosComponent implements OnInit {
     { field: 'nss', header: 'NSS' },
   ];
 
-  ngOnInit(): void { this.cargarAlumnos(); }
+  ngOnInit(): void {
+    this.cargarAlumnos();
+    // Throttle submissions to max one every 500ms to prevent duplicate requests
+    this.crearAlumnoSubject.pipe(
+      throttleTime(500, undefined, { leading: true, trailing: false })
+    ).subscribe(() => {
+      this.performCrearAlumno();
+    });
+  }
 
   cargarAlumnos(): void {
     const params: Record<string, any> = {
@@ -216,15 +228,29 @@ export class AlumnosComponent implements OnInit {
   exportXLSX(): void { this.exp.toXLSX(this.alumnosDatos(), this.exportCols, 'Alumnos', 'alumnos'); }
 
   crearAlumno(): void {
+    // Guard: prevent multiple submissions - check before emitting to subject
+    if (this.loading()) {
+      return;
+    }
+    // Emit to throttled subject — max one per 500ms
+    this.crearAlumnoSubject.next();
+  }
+
+  private performCrearAlumno(): void {
+    // Set loading IMMEDIATELY to block any subsequent calls from crearAlumno()
+    // This must happen synchronously before any async operations
+    this.loading.set(true);
+
     if (!this.form.nombre || !this.form.apellido_paterno || !this.form.curp) {
+      this.loading.set(false);
       this.notify.warning('Campos requeridos', 'Nombre, apellido paterno y CURP son obligatorios');
       return;
     }
     if (this.form.curp.length !== 18) {
+      this.loading.set(false);
       this.notify.warning('CURP inválida', 'La CURP debe tener exactamente 18 caracteres');
       return;
     }
-    this.loading.set(true);
     const payload = {
       persona: {
         nombre: this.form.nombre,
