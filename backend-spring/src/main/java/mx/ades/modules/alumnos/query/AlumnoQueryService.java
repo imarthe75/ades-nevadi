@@ -18,7 +18,11 @@ public class AlumnoQueryService {
 
     @Transactional(readOnly = true)
     public Map<String, Object> listar(UUID plantelId) {
-        StringBuilder sql = new StringBuilder("""
+        if (plantelId == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "plantel_id es obligatorio");
+        }
+
+        String sql = """
             SELECT e.id, e.matricula, e.nss, e.fecha_ingreso, e.is_active, e.tipo_alumno,
                    e.plantel_id, e.persona_id,
                    COALESCE(p.nombre_social, p.nombre) AS nombre,
@@ -26,13 +30,11 @@ public class AlumnoQueryService {
             FROM ades_estudiantes e
             JOIN ades_personas p ON p.id = e.persona_id
             WHERE e.is_active = TRUE
-            """);
+            AND e.plantel_id = ?
+            ORDER BY p.apellido_paterno, p.nombre
+            """;
 
-        List<Object> params = new ArrayList<>();
-        if (plantelId != null) { sql.append("AND e.plantel_id = ? "); params.add(plantelId); }
-        sql.append("ORDER BY p.apellido_paterno, p.nombre");
-
-        List<Map<String, Object>> data = jdbc.query(sql.toString(), (rs, i) -> {
+        List<Map<String, Object>> data = jdbc.query(sql, (rs, i) -> {
             Map<String, Object> persona = new LinkedHashMap<>();
             persona.put("nombre",           rs.getString("nombre"));
             persona.put("apellido_paterno", rs.getString("apellido_paterno"));
@@ -50,7 +52,7 @@ public class AlumnoQueryService {
             row.put("persona_id",   rs.getObject("persona_id", UUID.class));
             row.put("persona",      persona);
             return row;
-        }, params.toArray());
+        }, plantelId);
 
         return Map.of("data", data, "total", data.size());
     }
