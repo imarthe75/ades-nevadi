@@ -1,6 +1,6 @@
 from __future__ import annotations
 import uuid
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 from pydantic import Field, field_validator
 from .base import AdesSchema, AdesResponse
@@ -27,6 +27,19 @@ class PersonaBase(AdesSchema):
     @classmethod
     def curp_uppercase(cls, v: str) -> str:
         return v.upper()
+
+    @field_validator("fecha_nacimiento")
+    @classmethod
+    def validate_fecha_nacimiento(cls, v: date | None) -> date | None:
+        if v is None:
+            return v
+        current_year = datetime.now().year
+        min_year = 1900
+        if not (min_year <= v.year <= current_year):
+            raise ValueError(
+                f"Fecha de nacimiento inválida: año {v.year} debe estar entre {min_year} y {current_year}"
+            )
+        return v
 
 
 class PersonaCreate(PersonaBase):

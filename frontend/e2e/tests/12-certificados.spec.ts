@@ -269,25 +269,52 @@ test.describe('D. Integridad criptográfica via BFF', () => {
 test.describe('E. Descarga de PDF de certificado', () => {
   test('CER-E2E-10 | botón descargar PDF lanza download con mime correcto', async ({ page }) => {
     await new LoginPage(page).login(USERS.DIRECTOR);
-    await page.goto('/certificados', { waitUntil: 'domcontentloaded' });
-    await page.waitForTimeout(3_000);
+    await page.goto('/certificados', { waitUntil: 'networkidle' });
 
-    const downloadBtn = page.locator(
-      '[data-testid="btn-descargar-pdf"], button:has-text("PDF"), button:has-text("Descargar")'
+    // Esperar tabla de certificados
+    await page.waitForSelector('p-table tbody tr, table tbody tr', { timeout: 5_000 });
+
+    const filas = await page.locator('tbody tr').count();
+    if (filas === 0) {
+      console.log('⚠️  No hay certificados — test skipped');
+      test.skip();
+      return;
+    }
+
+    // Buscar botón descargar en primera fila
+    const primeraCelda = page.locator('tbody tr').first();
+    const downloadBtn = await primeraCelda.locator(
+      '[data-testid="btn-descargar-pdf"], button:has-text("Descargar"), button:has-text("PDF"), [aria-label*="escargar"]'
     ).first();
 
-    if (!await downloadBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
-      test.skip(); return;
+    if (!await downloadBtn.isVisible({ timeout: 2_000 }).catch(() => false)) {
+      console.log('⚠️  Botón descargar no visible — test skipped');
+      test.skip();
+      return;
     }
 
-    const [download] = await Promise.all([
-      page.waitForEvent('download', { timeout: 10_000 }).catch(() => null),
-      downloadBtn.click(),
-    ]);
+    // Interceptar descarga
+    const downloadPromise = page.waitForEvent('download');
+    await downloadBtn.click();
 
-    if (download) {
-      const filename = download.suggestedFilename();
-      expect(filename).toMatch(/\.(pdf)$/i);
-    }
+    // Esperar descarga
+    const download = await downloadPromise;
+
+    // Verificar nombre archivo
+    const filename = download.suggestedFilename();
+    expect(filename).toMatch(/\.pdf$/i);
+
+    // Verificar tamaño > 1KB
+    const path = await download.path();
+    const fs = require('fs');
+    const stats = fs.statSync(path);
+    expect(stats.size).toBeGreaterThan(1024);
+
+    // Verificar header PDF
+    const buffer = fs.readFileSync(path);
+    const header = buffer.toString('utf8', 0, 5);
+    expect(header).toBe('%PDF-');
+
+    console.log(`✅ CER-E2E-10 PASSED — ${filename} (${stats.size} bytes)`);
   });
 });

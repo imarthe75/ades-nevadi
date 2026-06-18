@@ -70,7 +70,8 @@ import { ApexNotificationService, ApexSearchComponent, ApexModalDialogComponent 
       [visible]="showDialog()"
       (visibleChange)="showDialog.set($event)"
       title="Nuevo Alumno"
-      size="sm">
+      size="sm"
+      [focusTrap]="false">
       <div style="display:flex;flex-direction:column;gap:1rem">
         <div>
           <label class="dlg-lbl">Nombre(s) *</label>

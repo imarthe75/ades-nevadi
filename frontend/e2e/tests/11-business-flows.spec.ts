@@ -98,29 +98,60 @@ test.describe('B. Reinscripción de alumnos', () => {
   test('BIZ-04 | rechazar reinscripción sin razón → error de validación', async ({ page }) => {
     const apiResponses = attachApiMonitor(page);
     await new LoginPage(page).login(USERS.COORDINADOR);
-    await page.goto('/reinscripcion', { waitUntil: 'domcontentloaded' });
-    await page.waitForTimeout(2_000);
+    await page.goto('/reinscripcion', { waitUntil: 'networkidle' });
 
     if (!await assertPageLoaded(page, '/reinscripcion')) { test.skip(); return; }
 
-    const rechazarBtn = page.locator('button:has-text("Rechazar"), [data-testid="btn-rechazar"]').first();
-    if (!await rechazarBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
+    // Esperar tabla de reinscripciones
+    await page.waitForSelector('p-table tbody tr, table tbody tr', { timeout: 5_000 });
+
+    const filas = await page.locator('tbody tr').count();
+    if (filas === 0) {
+      test.skip(); return;
+    }
+
+    // Buscar botón Rechazar directamente en la tabla (puede estar en fila expandible)
+    let rechazarBtn = page.locator('[data-testid="btn-rechazar"]').first();
+
+    // Si no está visible en tabla, intentar abrir dialog de la fila
+    if (!await rechazarBtn.isVisible({ timeout: 1_000 }).catch(() => false)) {
+      const primeraFila = page.locator('tbody tr').first();
+      await primeraFila.click();
+      await page.waitForTimeout(1_000);
+      rechazarBtn = page.locator('[data-testid="btn-rechazar"]').first();
+    }
+    if (!await rechazarBtn.isVisible({ timeout: 2_000 }).catch(() => false)) {
       test.skip(); return;
     }
 
     await rechazarBtn.click();
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(300);
 
-    const confirmarBtn = page.locator(
-      'button:has-text("Confirmar"), button:has-text("Aceptar"), [data-testid="btn-confirmar-rechazo"]'
-    ).first();
-    await confirmarBtn.click().catch(() => undefined);
-    await page.waitForTimeout(1_500);
+    // Textarea razón debe aparecer
+    const textareaRazon = page.locator('[data-testid="textarea-razon-rechazo"], textarea[placeholder*="razón"]').first();
+    await expect(textareaRazon).toBeVisible();
 
-    const errEl = page.locator('.p-toast-message-error, .p-toast-message-warn, .p-error');
-    const hasError = await errEl.isVisible({ timeout: 4_000 }).catch(() => false);
-    const dialogOpen = await page.locator('[role="dialog"]').isVisible().catch(() => false);
-    expect(hasError || dialogOpen).toBe(true);
+    // Botón confirmar debe estar DISABLED
+    const btnConfirmar = page.locator('[data-testid="btn-confirmar-rechazo"]').first();
+    const isDisabled = await btnConfirmar.isDisabled();
+    expect(isDisabled).toBe(true);
+
+    // Llenar razón
+    await textareaRazon.fill('Adeudo de cuotas por regularizar');
+
+    // Botón debe habilitarse
+    await expect(btnConfirmar).toBeEnabled();
+
+    // Click confirmar
+    await btnConfirmar.click();
+    await page.waitForTimeout(1_000);
+
+    const patchResponses = apiResponses().filter(r => r.request.method === 'PATCH');
+    const rechazaResponse = patchResponses.find(r => r.url.includes('/reinscripcion'));
+
+    if (rechazaResponse) {
+      expect(rechazaResponse.status).toBeLessThan(400);
+    }
 
     assertNoServerErrors(apiResponses());
   });
