@@ -1,6 +1,7 @@
 package mx.ades.modules.alumnos.query;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -57,16 +58,15 @@ public class AlumnoQueryService {
         return Map.of("data", data, "total", data.size());
     }
 
+    @Cacheable(value = "alumnos", key = "#id")
     @Transactional(readOnly = true)
     public Map<String, Object> obtener(UUID id) {
         List<Map<String, Object>> rows = jdbc.queryForList("""
-            SELECT e.*,
+            SELECT e.id, e.matricula, e.nss, e.fecha_ingreso, e.is_active, e.tipo_alumno,
+                   e.plantel_id, e.persona_id, e.row_version,
                    p.nombre, p.apellido_paterno, p.apellido_materno, p.curp, p.rfc,
-                   p.genero, p.nombre_social, p.genero_autopercibido, p.pronombres,
-                   p.datos_sensibles_restringidos, p.fecha_nacimiento,
-                   p.telefono, p.email_personal, p.estado_civil,
-                   p.pais_nacimiento, p.municipio_nacimiento, p.estado_nacimiento,
-                   p.nacionalidad, p.foto_url
+                   p.genero, p.nombre_social, p.fecha_nacimiento,
+                   p.telefono, p.email_personal, p.estado_civil, p.nacionalidad, p.foto_url
             FROM ades_estudiantes e
             JOIN ades_personas p ON p.id = e.persona_id
             WHERE e.id = ?
