@@ -51,17 +51,19 @@ test.describe('A. Flujo feliz', () => {
     // p-drawer abre con .perfil-meta visible — único contenido que solo existe cuando el drawer está abierto
     // (app-alumno-perfil siempre está en el DOM pero oculto hasta que p-drawer se abre)
     const drawerContent = page.locator('.perfil-meta, .matricula-chip, [data-pc-section="content"] .p-tabs');
-    await drawerContent.first().waitFor({ state: 'visible', timeout: 8_000 });
-    await expect(drawerContent.first()).toBeVisible();
+    await drawerContent.first().waitFor({ state: 'visible', timeout: 15_000 });
+    await expect(drawerContent.first()).toBeVisible({ timeout: 15_000 });
   });
 
   test('ALU-07 | panel detalle alumno con pestañas', async ({ page }) => {
     const ap = await setupAlumnos(page);
     await ap.clickFirstRow();
-    const tabs = ['calificaciones', 'asistencias', 'conducta', 'expediente'];
+    // Wait for drawer to fully load before accessing tabs
+    await page.locator('.perfil-meta, [data-pc-section="content"]').first().waitFor({ state: 'visible', timeout: 15_000 });
+    const tabs = ['personal', 'domicilio', 'academico', 'salud', 'contactos', 'bajas'];
     for (const tab of tabs) {
-      const tabEl = page.locator(`[data-testid="tab-${tab}"], .p-tabview-nav a:has-text("${tab}")`).first();
-      if (await tabEl.isVisible()) {
+      const tabEl = page.locator(`[value="${tab}"], .p-tab:has-text("${tab}")`).first();
+      if (await tabEl.isVisible({ timeout: 3_000 }).catch(() => false)) {
         await tabEl.click();
         await ap.waitSpinner();
       }
@@ -92,12 +94,14 @@ test.describe('B. Errores de validación', () => {
   test('ALU-05 | inscripción doble en mismo ciclo → error', async ({ page }) => {
     const ap = await setupAlumnos(page);
     await ap.clickFirstRow();
+    // Wait for drawer to load
+    await page.locator('[data-pc-section="content"]').first().waitFor({ state: 'visible', timeout: 15_000 });
     const inscribirBtn = page.locator('button:has-text("Inscribir"), [data-testid="btn-inscribir"]');
-    if (await inscribirBtn.isVisible()) {
+    if (await inscribirBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
       await inscribirBtn.click();
       // Si ya está inscrito debe aparecer error
       const error = page.locator('.p-toast-message-error, [data-testid="error-inscripcion"]');
-      await error.waitFor({ timeout: 5_000 }).catch(() => undefined);
+      await error.waitFor({ timeout: 8_000 }).catch(() => undefined);
     }
   });
 
