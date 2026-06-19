@@ -17,15 +17,16 @@ from uuid import UUID
 
 import magic
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, Request, status
 from fastapi.responses import Response
 from pydantic import BaseModel
-from sqlalchemy import text
+from sqlalchemy import text, select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.security import AdesUser, get_ades_user
+from app.core.ratelimit import limiter, LIMITS
 from app.services import paperless as pl
 
 log = logging.getLogger(__name__)
@@ -89,6 +90,89 @@ async def _get_or_create_expediente(db: AsyncSession, estudiante_id: UUID) -> di
     return dict(exp._mapping)
 
 
+async def _check_expediente_access(
+    db: AsyncSession,
+    ades_user: AdesUser,
+    estudiante_id: UUID,
+) -> bool:
+    """
+    ✅ IDOR FIX: Validar que ades_user tiene acceso a expediente del estudiante.
+
+    Permisos por rol:
+    - ADMIN_GLOBAL (plantel_id=None): Acceso a todo
+    - ADMIN_PLANTEL: Solo estudiantes de su plantel
+    - MAESTRO: Solo estudiantes de sus grupos
+    - ESTUDIANTE: Solo su propio expediente
+    - PADRE: Solo expedientes de sus hijos
+
+    Returns: True si acceso permitido, False si denegado
+    """
+
+    # ADMIN GLOBAL: acceso a todo
+    if ades_user.plantel_id is None and ades_user.rol == "ADMIN":
+        return True
+
+    # Obtener datos del estudiante
+    est_row = await db.execute(
+        text("SELECT plantel_id FROM ades_alumnos WHERE id = :est_id LIMIT 1"),
+        {"est_id": str(estudiante_id)},
+    )
+    est = est_row.fetchone()
+
+    if not est:
+        return False  # Estudiante no existe
+
+    # ADMIN DE PLANTEL: acceso si estudiante está en su plantel
+    if ades_user.plantel_id is not None and ades_user.rol == "ADMIN":
+        return est[0] == ades_user.plantel_id
+
+    # MAESTRO: acceso si es maestro de un grupo que contiene al estudiante
+    if ades_user.rol == "MAESTRO":
+        stmt = await db.execute(
+            text("""
+                SELECT 1 FROM ades_grupo_maestro gm
+                INNER JOIN ades_alumnos a ON gm.grupo_id = a.grupo_id
+                WHERE gm.maestro_id = :maestro_id
+                  AND a.id = :est_id
+                LIMIT 1
+            """),
+            {"maestro_id": str(ades_user.persona_id), "est_id": str(estudiante_id)},
+        )
+        return stmt.fetchone() is not None
+
+    # ESTUDIANTE: acceso solo a su propio expediente
+    if ades_user.rol == "ESTUDIANTE":
+        est_persona_row = await db.execute(
+            text("SELECT persona_id FROM ades_alumnos WHERE id = :est_id LIMIT 1"),
+            {"est_id": str(estudiante_id)},
+        )
+        est_persona = est_persona_row.fetchone()
+        return est_persona and est_persona[0] == ades_user.persona_id
+
+    # PADRE: acceso a expedientes de sus hijos
+    if ades_user.rol == "PADRE":
+        est_persona_row = await db.execute(
+            text("SELECT persona_id FROM ades_alumnos WHERE id = :est_id LIMIT 1"),
+            {"est_id": str(estudiante_id)},
+        )
+        est_persona = est_persona_row.fetchone()
+        if not est_persona:
+            return False
+
+        stmt = await db.execute(
+            text("""
+                SELECT 1 FROM ades_tutor_relacion
+                WHERE padre_id = :padre_id AND hijo_id = :hijo_id
+                LIMIT 1
+            """),
+            {"padre_id": str(ades_user.persona_id), "hijo_id": str(est_persona[0])},
+        )
+        return stmt.fetchone() is not None
+
+    # Por defecto: denegar acceso
+    return False
+
+
 # ── schemas ────────────────────────────────────────────────────────────────────
 
 class DocumentoOut(BaseModel):
@@ -135,11 +219,31 @@ class AnalisisIAOut(BaseModel):
 # ── endpoints ──────────────────────────────────────────────────────────────────
 
 @router.get("/alumno/{estudiante_id}", response_model=ExpedienteOut)
+@limiter.limit(LIMITS["read"])
 async def get_expediente(
+    request: Request,
     estudiante_id: UUID,
     db: AsyncSession = Depends(get_db),
-    _user: AdesUser = Depends(get_ades_user),
+    ades_user: AdesUser = Depends(get_ades_user),
 ):
+    """
+    GET expediente de un alumno.
+
+    ✅ Validación IDOR:
+    - Admin global: ve expedientes de todos
+    - Admin de plantel: ve expedientes de su plantel
+    - Maestro: ve expedientes de alumnos de sus grupos
+    - Alumno: ve solo su propio expediente
+    - Padre: ve expedientes de sus hijos
+    """
+
+    # ✅ IDOR CHECK: Verificar que usuario tiene acceso a este expediente
+    if not await _check_expediente_access(db, ades_user, estudiante_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tienes acceso a este expediente",
+        )
+
     exp = await _get_or_create_expediente(db, estudiante_id)
 
     docs_result = await db.execute(
@@ -193,13 +297,24 @@ async def get_expediente(
 
 
 @router.post("/alumno/{alumno_id}/documentos")
+@limiter.limit(LIMITS["upload"])
 async def subir_documento(
+    request: Request,
     alumno_id: UUID,
     archivo: UploadFile = File(...),
     tipo_documento: str = Form(default="OTRO"),
     db: AsyncSession = Depends(get_db),
-    current_user: AdesUser = Depends(get_ades_user),
+    ades_user: AdesUser = Depends(get_ades_user),
 ):
+    """Subir documento al expediente del alumno (con validación IDOR)."""
+
+    # ✅ IDOR CHECK: Validar acceso antes de subir
+    if not await _check_expediente_access(db, ades_user, alumno_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tienes acceso al expediente de este alumno",
+        )
+
     if tipo_documento not in TIPO_LABELS:
         raise HTTPException(status_code=422, detail=f"tipo_documento inválido: {tipo_documento}")
 
@@ -247,7 +362,7 @@ async def subir_documento(
             "exp_id": str(exp["id"]),
             "tipo": tipo_documento,
             "nombre": archivo.filename,
-            "user_id": str(current_user.id),
+            "user_id": str(ades_user.id),
         },
     )
     doc_uuid = str(res.scalar_one())
@@ -270,13 +385,23 @@ async def subir_documento(
 
 
 @router.get("/alumno/{alumno_id}/buscar")
+@limiter.limit(LIMITS["read"])
 async def buscar_en_expediente(
+    request: Request,
     alumno_id: UUID,
     q: str,
     db: AsyncSession = Depends(get_db),
-    _user: AdesUser = Depends(get_ades_user),
+    ades_user: AdesUser = Depends(get_ades_user),
 ):
     """Búsqueda full-text en el texto OCR de los documentos del expediente (GIN index)."""
+
+    # ✅ IDOR CHECK: Validar acceso
+    if not await _check_expediente_access(db, ades_user, alumno_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tienes acceso al expediente de este alumno",
+        )
+
     if len(q.strip()) < 3:
         raise HTTPException(status_code=422, detail="La búsqueda debe tener al menos 3 caracteres")
 
@@ -309,11 +434,13 @@ async def buscar_en_expediente(
 
 
 @router.get("/{expediente_id}/documentos/{doc_id}/estado-ocr")
+@limiter.limit(LIMITS["read"])
 async def estado_ocr_documento(
+    request: Request,
     expediente_id: UUID,
     doc_id: UUID,
     db: AsyncSession = Depends(get_db),
-    _user: AdesUser = Depends(get_ades_user),
+    ades_user: AdesUser = Depends(get_ades_user),
 ):
     """Devuelve el estado actual del procesamiento OCR de un documento."""
     row = await db.execute(
@@ -338,12 +465,32 @@ async def estado_ocr_documento(
 
 
 @router.delete("/{expediente_id}/documentos/{doc_id}", status_code=204)
+@limiter.limit(LIMITS["write"])
 async def eliminar_documento(
+    request: Request,
     expediente_id: UUID,
     doc_id: UUID,
     db: AsyncSession = Depends(get_db),
-    _user: AdesUser = Depends(get_ades_user),
+    ades_user: AdesUser = Depends(get_ades_user),
 ):
+    """Eliminar documento del expediente (con validación IDOR)."""
+
+    # Obtener el expediente para validar acceso
+    exp_row = await db.execute(
+        text("SELECT estudiante_id FROM ades_expedientes_alumno WHERE id = :exp_id"),
+        {"exp_id": str(expediente_id)},
+    )
+    exp = exp_row.fetchone()
+    if not exp:
+        raise HTTPException(status_code=404, detail="Expediente no encontrado")
+
+    # ✅ IDOR CHECK: Validar acceso al expediente
+    if not await _check_expediente_access(db, ades_user, exp[0]):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tienes acceso a este expediente",
+        )
+
     row = await db.execute(
         text(
             "SELECT id, paperless_doc_id FROM ades_expediente_documentos "
@@ -366,12 +513,32 @@ async def eliminar_documento(
 
 
 @router.get("/alumno/{expediente_id}/documentos/{doc_id}/preview")
+@limiter.limit(LIMITS["read"])
 async def preview_documento(
+    request: Request,
     expediente_id: UUID,
     doc_id: UUID,
     db: AsyncSession = Depends(get_db),
-    _user: AdesUser = Depends(get_ades_user),
+    ades_user: AdesUser = Depends(get_ades_user),
 ):
+    """Preview de documento (con validación IDOR)."""
+
+    # Obtener el expediente para validar acceso
+    exp_row = await db.execute(
+        text("SELECT estudiante_id FROM ades_expedientes_alumno WHERE id = :exp_id"),
+        {"exp_id": str(expediente_id)},
+    )
+    exp = exp_row.fetchone()
+    if not exp:
+        raise HTTPException(status_code=404, detail="Expediente no encontrado")
+
+    # ✅ IDOR CHECK: Validar acceso
+    if not await _check_expediente_access(db, ades_user, exp[0]):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tienes acceso a este expediente",
+        )
+
     row = await db.execute(
         text(
             "SELECT paperless_doc_id FROM ades_expediente_documentos "
@@ -391,11 +558,22 @@ async def preview_documento(
 
 
 @router.post("/alumno/{alumno_id}/analizar-ia", response_model=AnalisisIAOut)
+@limiter.limit(LIMITS["write"])
 async def analizar_expediente_ia(
+    request: Request,
     alumno_id: UUID,
     db: AsyncSession = Depends(get_db),
-    _user: AdesUser = Depends(get_ades_user),
+    ades_user: AdesUser = Depends(get_ades_user),
 ):
+    """Análisis IA del expediente (con validación IDOR)."""
+
+    # ✅ IDOR CHECK: Validar acceso
+    if not await _check_expediente_access(db, ades_user, alumno_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tienes acceso al expediente de este alumno",
+        )
+
     exp = await _get_or_create_expediente(db, alumno_id)
 
     docs_result = await db.execute(
