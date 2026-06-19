@@ -19,10 +19,6 @@ public class AlumnoQueryService {
 
     @Transactional(readOnly = true)
     public Map<String, Object> listar(UUID plantelId) {
-        if (plantelId == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "plantel_id es obligatorio");
-        }
-
         String sql = """
             SELECT e.id, e.matricula, e.nss, e.fecha_ingreso, e.is_active, e.tipo_alumno,
                    e.plantel_id, e.persona_id,
@@ -31,29 +27,56 @@ public class AlumnoQueryService {
             FROM ades_estudiantes e
             JOIN ades_personas p ON p.id = e.persona_id
             WHERE e.is_active = TRUE
-            AND e.plantel_id = ?
-            ORDER BY p.apellido_paterno, p.nombre
             """;
 
-        List<Map<String, Object>> data = jdbc.query(sql, (rs, i) -> {
-            Map<String, Object> persona = new LinkedHashMap<>();
-            persona.put("nombre",           rs.getString("nombre"));
-            persona.put("apellido_paterno", rs.getString("apellido_paterno"));
-            persona.put("apellido_materno", rs.getString("apellido_materno"));
-            persona.put("curp",             rs.getString("curp"));
+        if (plantelId != null) {
+            sql += "AND e.plantel_id = ?\n";
+        }
 
-            Map<String, Object> row = new LinkedHashMap<>();
-            row.put("id",           rs.getObject("id",        UUID.class));
-            row.put("matricula",    rs.getString("matricula"));
-            row.put("nss",          rs.getString("nss"));
-            row.put("fecha_ingreso",rs.getObject("fecha_ingreso"));
-            row.put("is_active",    rs.getBoolean("is_active"));
-            row.put("tipo_alumno",  rs.getString("tipo_alumno"));
-            row.put("plantel_id",   rs.getObject("plantel_id", UUID.class));
-            row.put("persona_id",   rs.getObject("persona_id", UUID.class));
-            row.put("persona",      persona);
-            return row;
-        }, plantelId);
+        sql += "ORDER BY p.apellido_paterno, p.nombre";
+
+        List<Map<String, Object>> data;
+        if (plantelId != null) {
+            data = jdbc.query(sql, (rs, i) -> {
+                Map<String, Object> persona = new LinkedHashMap<>();
+                persona.put("nombre",           rs.getString("nombre"));
+                persona.put("apellido_paterno", rs.getString("apellido_paterno"));
+                persona.put("apellido_materno", rs.getString("apellido_materno"));
+                persona.put("curp",             rs.getString("curp"));
+
+                Map<String, Object> row = new LinkedHashMap<>();
+                row.put("id",           rs.getObject("id",        UUID.class));
+                row.put("matricula",    rs.getString("matricula"));
+                row.put("nss",          rs.getString("nss"));
+                row.put("fecha_ingreso",rs.getObject("fecha_ingreso"));
+                row.put("is_active",    rs.getBoolean("is_active"));
+                row.put("tipo_alumno",  rs.getString("tipo_alumno"));
+                row.put("plantel_id",   rs.getObject("plantel_id", UUID.class));
+                row.put("persona_id",   rs.getObject("persona_id", UUID.class));
+                row.put("persona",      persona);
+                return row;
+            }, plantelId);
+        } else {
+            data = jdbc.query(sql, (rs, i) -> {
+                Map<String, Object> persona = new LinkedHashMap<>();
+                persona.put("nombre",           rs.getString("nombre"));
+                persona.put("apellido_paterno", rs.getString("apellido_paterno"));
+                persona.put("apellido_materno", rs.getString("apellido_materno"));
+                persona.put("curp",             rs.getString("curp"));
+
+                Map<String, Object> row = new LinkedHashMap<>();
+                row.put("id",           rs.getObject("id",        UUID.class));
+                row.put("matricula",    rs.getString("matricula"));
+                row.put("nss",          rs.getString("nss"));
+                row.put("fecha_ingreso",rs.getObject("fecha_ingreso"));
+                row.put("is_active",    rs.getBoolean("is_active"));
+                row.put("tipo_alumno",  rs.getString("tipo_alumno"));
+                row.put("plantel_id",   rs.getObject("plantel_id", UUID.class));
+                row.put("persona_id",   rs.getObject("persona_id", UUID.class));
+                row.put("persona",      persona);
+                return row;
+            });
+        }
 
         return Map.of("data", data, "total", data.size());
     }
