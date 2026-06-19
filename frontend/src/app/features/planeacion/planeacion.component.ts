@@ -129,7 +129,7 @@ const ESTADO_SEV: Record<string, TagSeverity> = {
       @for (mat of materiasConTemas(); track mat.materia_id) {
         <div class="materia-section">
           <div class="materia-header">
-            <h4>{{ mat.nombre_materia }}</h4>
+            <h3>{{ mat.nombre_materia }}</h3>
             <div class="materia-stats">
               <span class="stat-chip green">{{ mat.impartidos }} impartidos</span>
               <span class="stat-chip blue">{{ mat.planeados }} planeados</span>

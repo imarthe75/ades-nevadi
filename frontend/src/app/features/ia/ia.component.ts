@@ -147,6 +147,7 @@ const RIESGO_SEVERITY: Record<string, AlertaSeverity> = {
               [loading]="cargando()"
               (onClick)="enviar()"
               [disabled]="!inputMensaje.trim()"
+              ariaLabel="Enviar mensaje al asistente"
               pTooltip="Enviar"
             />
             <p-button
@@ -154,6 +155,7 @@ const RIESGO_SEVERITY: Record<string, AlertaSeverity> = {
               severity="secondary"
               [text]="true"
               (onClick)="limpiarChat()"
+              ariaLabel="Iniciar una nueva conversación"
               pTooltip="Nueva conversación"
             />
           </div>

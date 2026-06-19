@@ -267,7 +267,7 @@ const NIVEL_ORDER = ['PRIMARIA', 'SECUNDARIA', 'PREPARATORIA'];
 
           @if (temarioPlanId()) {
             <div class="temario-header">
-              <h4>Temario — {{ temarioTituloActual() }}</h4>
+              <h3>Temario — {{ temarioTituloActual() }}</h3>
               @if (esAdmin() || ctx.nivelAcceso() === 4) {
                 <p-button label="Agregar tema" icon="pi pi-plus" size="small"
                   (onClick)="abrirNuevoTema()" />
@@ -369,7 +369,7 @@ const NIVEL_ORDER = ['PRIMARIA', 'SECUNDARIA', 'PREPARATORIA'];
           </div>
         }
 
-        <h4 class="det-section">Asignaciones en plan vigente</h4>
+        <h3 class="det-section">Asignaciones en plan vigente</h3>
         @if (planDeMateria().length > 0) {
           @for (p of planDeMateria(); track p.id) {
             <div class="asig-row">
@@ -383,7 +383,7 @@ const NIVEL_ORDER = ['PRIMARIA', 'SECUNDARIA', 'PREPARATORIA'];
           <p style="color:var(--text-muted);font-size:.83rem">Sin asignaciones en el ciclo vigente.</p>
         }
 
-        <h4 class="det-section">Tipos de actividades típicas</h4>
+        <h3 class="det-section">Tipos de actividades típicas</h3>
         <div class="actividades-list">
           @for (a of actividadesTipicas(materiaDetalle()!); track a) {
             <span class="act-chip">{{ a }}</span>

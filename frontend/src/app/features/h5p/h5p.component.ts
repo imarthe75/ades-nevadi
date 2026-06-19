@@ -118,11 +118,14 @@ type TabKey = 'biblioteca' | 'mis-resultados';
             <td>{{ c.fecha_creacion | date:'dd/MM/yy' }}</td>
             <td>
               <p-button icon="pi pi-play" severity="success" [text]="true" size="small"
+                        ariaLabel="Abrir el contenido H5P en el reproductor"
                         pTooltip="Abrir Player" (onClick)="abrirPlayer(c)" />
               @if (esDocente()) {
                 <p-button icon="pi pi-share-alt" [text]="true" size="small"
+                          ariaLabel="Asignar este contenido a un grupo de estudiantes"
                           pTooltip="Asignar a grupo" (onClick)="abrirAsignar(c)" />
                 <p-button icon="pi pi-trash" severity="danger" [text]="true" size="small"
+                          ariaLabel="Eliminar este contenido H5P"
                           pTooltip="Eliminar" (onClick)="confirmarEliminar(c)" />
               }
             </td>

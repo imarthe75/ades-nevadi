@@ -142,7 +142,7 @@ interface ResumenDisponibilidad {
         <div class="slots-editor">
           @for (dia of dias; track dia.num) {
             <div class="dia-section">
-              <h4 class="dia-titulo">{{ dia.nombre }}</h4>
+              <h3 class="dia-titulo">{{ dia.nombre }}</h3>
               @for (slot of nuevosSlotsForDia(dia.num); track slot._idx) {
                 <div class="slot-row">
                   <input pInputText [(ngModel)]="slot.hora_inicio" placeholder="08:00" class="hora-input" />
@@ -150,10 +150,11 @@ interface ResumenDisponibilidad {
                   <input pInputText [(ngModel)]="slot.hora_fin" placeholder="09:00" class="hora-input" />
                   <p-checkbox [(ngModel)]="slot.disponible" [binary]="true" pTooltip="Disponible" />
                   <p-button icon="pi pi-times" size="small" [text]="true" severity="danger"
-                    ariaLabel="Eliminar horario" (onClick)="removeSlot(dia.num, slot._idx)" />
+                    ariaLabel="Eliminar este horario de disponibilidad" (onClick)="removeSlot(dia.num, slot._idx)" />
                 </div>
               }
               <p-button icon="pi pi-plus" [label]="'Agregar slot'" size="small" [text]="true"
+                ariaLabel="Agregar nuevo horario de disponibilidad para este día"
                 (onClick)="addSlot(dia.num)" class="mt-1" />
             </div>
           }

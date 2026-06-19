@@ -107,7 +107,7 @@ const NIVELES = [
           </div>
 
           <div class="flex flex-col gap-2 border-b pb-3">
-            <h4 class="font-semibold text-primary m-0">Evaluación Diagnóstica</h4>
+            <h3 class="font-semibold text-primary m-0">Evaluación Diagnóstica</h3>
             <div class="flex items-center gap-3">
               <label class="text-sm font-medium w-24">Puntuación:</label>
               <p-inputnumber [(ngModel)]="evalScore" [min]="0" [max]="100" [showButtons]="true" [style]="{width: '120px'}" />
@@ -122,7 +122,7 @@ const NIVELES = [
           </div>
 
           <div class="flex flex-col gap-2">
-            <h4 class="font-semibold text-primary m-0">Carta de Aceptación / Rechazo</h4>
+            <h3 class="font-semibold text-primary m-0">Carta de Aceptación / Rechazo</h3>
             <div class="flex items-center gap-2">
               <input pInputText [(ngModel)]="cartaTemplateId" placeholder="ID Plantilla Carbone" class="w-full text-sm" />
               <p-button label="Descargar PDF" icon="pi pi-file-pdf" severity="danger" size="small" (onClick)="descargarCarta()" />

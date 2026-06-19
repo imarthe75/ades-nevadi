@@ -150,20 +150,25 @@ const ESTADO_SEV: Record<string, string> = {
             <td>
               @if (r.estado !== 'CANCELADA' && r.estado !== 'FINALIZADA') {
                 <p-button icon="pi pi-video" severity="success" [text]="true" size="small"
+                          ariaLabel="Unirse a la reunión como asistente"
                           pTooltip="Unirse como Asistente" (onClick)="unirse(r, 'asistente')" />
                 @if (puedeCrear()) {
                   <p-button icon="pi pi-crown" severity="warn" [text]="true" size="small"
+                            ariaLabel="Unirse a la reunión como moderador"
                             pTooltip="Unirse como Moderador" (onClick)="unirse(r, 'moderador')" />
                 }
               }
               <p-button icon="pi pi-list" [text]="true" size="small"
+                        ariaLabel="Ver grabaciones de esta reunión"
                         pTooltip="Ver grabaciones" (onClick)="verGrabaciones(r)" />
               @if (puedeCrear() && r.estado === 'EN_CURSO') {
                 <p-button icon="pi pi-stop-circle" severity="danger" [text]="true" size="small"
+                          ariaLabel="Terminar la reunión"
                           pTooltip="Terminar reunión" (onClick)="terminarReunion(r)" />
               }
               @if (esCoordi() && r.estado === 'PROGRAMADA') {
                 <p-button icon="pi pi-ban" severity="danger" [text]="true" size="small"
+                          ariaLabel="Cancelar la reunión"
                           pTooltip="Cancelar" (onClick)="cancelarReunion(r)" />
               }
             </td>

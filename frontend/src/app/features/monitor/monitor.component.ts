@@ -125,7 +125,7 @@ interface Telemetria {
     @if (telemetria(); as t) {
       <div class="telemetria-section">
         <div class="section-header">
-          <h4><i class="pi pi-server" style="margin-right:.4rem"></i>Telemetría del Servidor</h4>
+          <h3><i class="pi pi-server" style="margin-right:.4rem"></i>Telemetría del Servidor</h3>
           <small style="color:var(--text-muted)">
             Actualizado: {{ t.actualizacion | date:'HH:mm:ss' }}
           </small>
@@ -214,7 +214,7 @@ interface Telemetria {
         <!-- Top 10 tablas más grandes -->
         <div style="margin-top:1rem">
           <div class="section-header">
-            <h4 style="font-size:.82rem">Top 10 Tablas por Tamaño</h4>
+            <h3 style="font-size:.82rem">Top 10 Tablas por Tamaño</h3>
           </div>
           <app-interactive-grid
             [data]="tablasGrandesFlat(t.tablas_grandes)"
@@ -230,7 +230,7 @@ interface Telemetria {
     @if (grafanaUrl()) {
       <div class="grafana-section">
         <div class="section-header">
-          <h4>Dashboard ADES API</h4>
+          <h3>Dashboard ADES API</h3>
           <a [href]="grafanaExternalUrl" target="_blank">
             <p-button label="Abrir Grafana" icon="pi pi-external-link" size="small" severity="secondary" [text]="true" />
           </a>
@@ -244,7 +244,7 @@ interface Telemetria {
 
     <!-- Workflows n8n -->
     <div class="section-header" style="margin-top:1.5rem">
-      <h4>Flujos de Automatización (n8n)</h4>
+      <h3>Flujos de Automatización (n8n)</h3>
       <a href="http://localhost:5678" target="_blank">
         <p-button label="Abrir n8n" icon="pi pi-external-link" size="small" severity="secondary" [text]="true" />
       </a>

@@ -246,7 +246,7 @@ interface Compromiso {
                 <p-divider />
                 <!-- Actualizar estado/notificación -->
                 <div style="display:flex;flex-direction:column;gap:0.75rem">
-                  <h4 style="margin:0;font-size:0.9rem;color:var(--text-secondary)">Actualizar estado</h4>
+                  <h3 style="margin:0;font-size:0.9rem;color:var(--text-secondary)">Actualizar estado</h3>
                   <div class="field-row">
                     <label>Estado</label>
                     <p-select [options]="estadosSancion" [(ngModel)]="sancionUpdate.estado"
@@ -271,7 +271,7 @@ interface Compromiso {
               @else {
                 @if (puedeAplicarSancion()) {
                   <div style="display:flex;flex-direction:column;gap:0.75rem">
-                    <h4 style="margin:0;font-size:0.9rem">Aplicar sanción formal</h4>
+                    <h3 style="margin:0;font-size:0.9rem">Aplicar sanción formal</h3>
                     <div class="field">
                       <label>Tipo de sanción *</label>
                       <p-select [options]="sancionOpts" [(ngModel)]="sancionForm.tipo_sancion"
@@ -332,7 +332,7 @@ interface Compromiso {
                 <p-divider />
                 <!-- Actualizar firmas/estado -->
                 <div style="display:flex;flex-direction:column;gap:0.75rem">
-                  <h4 style="margin:0;font-size:0.9rem;color:var(--text-secondary)">Actualizar plan</h4>
+                  <h3 style="margin:0;font-size:0.9rem;color:var(--text-secondary)">Actualizar plan</h3>
                   <div class="firmas-row">
                     <label><p-checkbox [(ngModel)]="planUpdate.firmado_alumno" [binary]="true" />
                       Firmado por alumno</label>
@@ -353,7 +353,7 @@ interface Compromiso {
               @else {
                 @if (puedeGestionarPlan()) {
                   <div style="display:flex;flex-direction:column;gap:0.75rem">
-                    <h4 style="margin:0;font-size:0.9rem">Crear Plan de Mejora Conductual</h4>
+                    <h3 style="margin:0;font-size:0.9rem">Crear Plan de Mejora Conductual</h3>
                     <div class="field">
                       <label>Objetivo general * (mín. 20 caracteres)</label>
                       <textarea pTextarea [(ngModel)]="planForm.objetivo_general" rows="3"
@@ -416,7 +416,7 @@ interface Compromiso {
               <!-- Formulario nuevo seguimiento -->
               @if (puedeGestionarPlan()) {
                 <div style="display:flex;flex-direction:column;gap:0.75rem">
-                  <h4 style="margin:0;font-size:0.9rem">Registrar seguimiento</h4>
+                  <h3 style="margin:0;font-size:0.9rem">Registrar seguimiento</h3>
                   <div class="field-row">
                     <label>Fecha</label>
                     <p-datepicker [(ngModel)]="segForm.fecha_seguimiento" dateFormat="yy-mm-dd"
