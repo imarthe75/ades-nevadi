@@ -27,7 +27,7 @@ networks:
       config:
         - subnet: 172.30.0.0/24
   aura-network:
-    external: true   # red compartida con superset-stack-docker / Aura Suite
+    #external: true   # red compartida con superset-stack-docker / Aura Suite
     # Si no existe aún: docker network create aura-network
 
 volumes:
