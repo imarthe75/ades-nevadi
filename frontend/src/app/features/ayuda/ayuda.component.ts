@@ -327,7 +327,7 @@ const GUIAS_ROL = [
 
     @if (busqueda.trim()) {
       <div class="search-results">
-        <h4>Resultados para "{{ busqueda }}"  <button class="clear-btn" (click)="limpiarBusqueda()">✕ Limpiar</button></h4>
+        <h3>Resultados para "{{ busqueda }}"  <button class="clear-btn" (click)="limpiarBusqueda()">✕ Limpiar</button></h3>
         @if (resultadosBusqueda().length === 0) {
           <p style="color:var(--text-muted);font-size:.85rem">Sin resultados. Prueba con términos más generales.</p>
         }
@@ -431,7 +431,7 @@ const GUIAS_ROL = [
             />
 
             <div class="arch-note">
-              <h4><i class="pi pi-lock" style="margin-right:.4rem"></i>Modelo de seguridad de la arquitectura</h4>
+              <h3><i class="pi pi-lock" style="margin-right:.4rem"></i>Modelo de seguridad de la arquitectura</h3>
               <p>Todos los servicios internos (Carbone, Stirling-PDF, n8n, Prometheus, Flowise) <strong>no tienen acceso directo desde internet</strong>. FastAPI actúa como único proxy, validando JWT antes de reenviar peticiones.</p>
               <p>Servicios con acceso externo: <strong>ntfy</strong> (notify.ades.setag.mx — notificaciones móviles) y <strong>Grafana</strong> (monitor.ades.setag.mx — solo admin, restricción por IP recomendada).</p>
               <p>Los datos del Instituto <strong>nunca salen del servidor propio</strong> — sin dependencia de servicios cloud externos.</p>
@@ -442,7 +442,7 @@ const GUIAS_ROL = [
           <p-tabpanel value="seguridad">
             <div class="sec-grid">
               <div class="sec-card">
-                <h4><i class="pi pi-lock"></i> Autenticación</h4>
+                <h3><i class="pi pi-lock"></i> Autenticación</h3>
                 <ul>
                   <li><strong>OIDC con Authentik:</strong> Protocolo estándar OpenID Connect.</li>
                   <li><strong>Personal docente:</strong> Google Workspace SSO (@institutonevadi.edu.mx) cuando esté configurado.</li>
@@ -451,7 +451,7 @@ const GUIAS_ROL = [
                 </ul>
               </div>
               <div class="sec-card">
-                <h4><i class="pi pi-shield"></i> Control de Acceso (RBAC)</h4>
+                <h3><i class="pi pi-shield"></i> Control de Acceso (RBAC)</h3>
                 <ul>
                   <li>18 roles en 6 niveles (0=ADMIN_GLOBAL a 5=ALUMNO/PADRE)</li>
                   <li>Cada endpoint valida el nivel antes de devolver datos</li>
@@ -460,7 +460,7 @@ const GUIAS_ROL = [
                 </ul>
               </div>
               <div class="sec-card">
-                <h4><i class="pi pi-history"></i> Auditoría Completa</h4>
+                <h3><i class="pi pi-history"></i> Auditoría Completa</h3>
                 <ul>
                   <li>Todas las mutaciones (POST/PUT/PATCH/DELETE) quedan registradas</li>
                   <li>Se registra: usuario, IP origen, endpoint, método, código respuesta, duración</li>
@@ -469,7 +469,7 @@ const GUIAS_ROL = [
                 </ul>
               </div>
               <div class="sec-card">
-                <h4><i class="pi pi-database"></i> Datos y Privacidad</h4>
+                <h3><i class="pi pi-database"></i> Datos y Privacidad</h3>
                 <ul>
                   <li>Infraestructura 100% auto-hospedada — datos no salen del servidor del Instituto</li>
                   <li>Datos médicos: acceso restringido a personal autorizado</li>
@@ -478,7 +478,7 @@ const GUIAS_ROL = [
                 </ul>
               </div>
               <div class="sec-card">
-                <h4><i class="pi pi-key"></i> Buenas Prácticas</h4>
+                <h3><i class="pi pi-key"></i> Buenas Prácticas</h3>
                 <ul>
                   <li>Usar contraseñas únicas y no compartir credenciales</li>
                   <li>Cerrar sesión en equipos compartidos</li>
@@ -488,7 +488,7 @@ const GUIAS_ROL = [
                 </ul>
               </div>
               <div class="sec-card">
-                <h4><i class="pi pi-file-check"></i> Firma Digital — Próximamente (FASE 28)</h4>
+                <h3><i class="pi pi-file-check"></i> Firma Digital — Próximamente (FASE 28)</h3>
                 <ul>
                   <li><strong>Nivel 1 (Integridad):</strong> Boletas y certificados firmados con llave del Instituto. Verificables con cualquier lector PDF. Estándar PAdES.</li>
                   <li><strong>Nivel 2 (Legal):</strong> Integración con FIEL/e.firm SAT para validez oficial ante SEP/UAEMEX.</li>
@@ -502,7 +502,7 @@ const GUIAS_ROL = [
           <p-tabpanel value="faq">
             <p class="section-desc">Respuestas a las dudas más frecuentes sobre el uso del sistema.</p>
             @for (cat of categoriasFAQ(); track cat) {
-              <h4 class="faq-cat">{{ cat }}</h4>
+              <h3 class="faq-cat">{{ cat }}</h3>
               <p-accordion [multiple]="true">
                 @for (faq of faqsPorCategoria(cat); track faq.pregunta) {
                   <p-accordion-panel>

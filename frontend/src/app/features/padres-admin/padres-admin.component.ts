@@ -175,7 +175,7 @@ const NIVELES_ACCESO_PORTAL = [
       <form [formGroup]="form">
         <div class="form-grid">
           <div class="form-section">
-            <h4>Datos Personales</h4>
+            <h3>Datos Personales</h3>
             <div class="field">
               <label>Nombre Completo *</label>
               <input pInputText formControlName="nombre_completo" placeholder="Ej: Juan García Pérez" style="width:100%" />
@@ -195,7 +195,7 @@ const NIVELES_ACCESO_PORTAL = [
           </div>
 
           <div class="form-section">
-            <h4>Relación con el Alumno</h4>
+            <h3>Relación con el Alumno</h3>
             <div class="field">
               <label>Parentesco *</label>
               <p-select formControlName="parentesco" [options]="parentescos()" optionLabel="label" optionValue="value"
@@ -213,7 +213,7 @@ const NIVELES_ACCESO_PORTAL = [
           </div>
 
           <div class="form-section">
-            <h4>Permisos y Responsabilidades</h4>
+            <h3>Permisos y Responsabilidades</h3>
             <div class="field-toggle">
               <label>Tutor Legal</label>
               <p-toggleSwitch formControlName="es_tutor_legal" />

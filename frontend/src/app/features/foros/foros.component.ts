@@ -150,7 +150,7 @@ interface Anuncio {
               <p-tag [value]="foro.tipo" [severity]="tipoSev(foro.tipo)" />
               @if (foro.es_moderado) { <p-tag value="Moderado" severity="warn" /> }
             </div>
-            <h4 class="foro-card-title">{{ foro.nombre }}</h4>
+            <h3 class="foro-card-title">{{ foro.nombre }}</h3>
             <p class="foro-card-desc">{{ foro.descripcion || 'Sin descripción' }}</p>
             <div class="foro-card-footer">
               <span class="text-sm text-gray-500">

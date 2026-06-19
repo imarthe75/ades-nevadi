@@ -166,7 +166,7 @@ const NIVEL_ICON: Record<string, string> = {
       <!-- ── Mi Plantel (para usuarios con plantel seleccionado que NO son admin global) ── -->
       @if (visibleWidgets().miPlantel && !ctx.esAdminGlobal() && ctx.plantel() && resumen()) {
         <p-divider styleClass="dash-divider" />
-        <h4 class="section-title">Mi Plantel</h4>
+        <h3 class="section-title">Mi Plantel</h3>
         <div class="mi-plantel-card">
           <div class="card-title-row">
             <div class="avatar">{{ ctx.plantel()!.nombre_plantel[0] }}</div>
@@ -205,7 +205,7 @@ const NIVEL_ICON: Record<string, string> = {
       @if (visibleWidgets().planteles && ctx.esAdminGlobal()) {
         <p-divider styleClass="dash-divider" />
         <div class="section-header-flex">
-          <h4 class="section-title">Planteles del Instituto</h4>
+          <h3 class="section-title">Planteles del Instituto</h3>
           <div class="search-filter-wrap">
             <span class="p-input-icon-left">
               <i class="pi pi-search" style="left: 0.75rem;"></i>
@@ -281,7 +281,7 @@ const NIVEL_ICON: Record<string, string> = {
       <!-- ── Gráfico: distribución por nivel ── -->
       @if (visibleWidgets().chart && distribucion().length > 0) {
         <p-divider styleClass="dash-divider" />
-        <h4 class="section-title">Distribución por nivel educativo</h4>
+        <h3 class="section-title">Distribución por nivel educativo</h3>
         <apex-chart
           [barData]="distribucionChartData()"
           title="Distribución por Nivel"
@@ -296,7 +296,7 @@ const NIVEL_ICON: Record<string, string> = {
       <!-- ── Accesos rápidos ── -->
       @if (visibleWidgets().quickLinks) {
         <p-divider styleClass="dash-divider" />
-        <h4 class="section-title">Accesos rápidos</h4>
+        <h3 class="section-title">Accesos rápidos</h3>
         <div class="quick-links">
           @for (link of quickLinks; track link.route) {
             <a [routerLink]="link.route" class="quick-link">

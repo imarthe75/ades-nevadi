@@ -155,7 +155,7 @@ interface Medicamento {
             <p-tabpanels>
               <p-tabpanel value="0">
                 <div class="tab-header-row">
-                  <h4>Historial de Incidentes</h4>
+                  <h3>Historial de Incidentes</h3>
                   <p-button label="Registrar Incidente" icon="pi pi-plus" [size]="'small'" (onClick)="abrirIncidente()" />
                 </div>
 
@@ -169,7 +169,7 @@ interface Medicamento {
 
               <p-tabpanel value="1">
                 <div class="tab-header-row">
-                  <h4>Medicamentos Administrados</h4>
+                  <h3>Medicamentos Administrados</h3>
                   <p-button label="Registrar Medicamento" icon="pi pi-plus" [size]="'small'" (onClick)="abrirMedicamento()" />
                 </div>
 

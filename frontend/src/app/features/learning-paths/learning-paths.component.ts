@@ -230,7 +230,7 @@ const TIPO_ICON: Record<string, string> = {
         <div class="path-detail">
           <p>{{ pathSeleccionado()!.descripcion }}</p>
           <p-divider />
-          <h4>Recursos ({{ recursos().length }})</h4>
+          <h3>Recursos ({{ recursos().length }})</h3>
           @for (rec of recursos(); track rec.id) {
             <div class="recurso-row">
               <i [class]="'pi ' + tipoIcon(rec.tipo)" class="recurso-icon"></i>

@@ -47,13 +47,16 @@ export interface ColumnConfig {
       <div class="grid-toolbar">
         <div class="toolbar-left">
           <p-button icon="pi pi-th-large" [text]="true" severity="secondary"
+            ariaLabel="Mostrar u ocultar columnas de la tabla"
             pTooltip="Mostrar/ocultar columnas"
             (onClick)="mostrarColumnChooser.set(true)" />
           <p-button icon="pi pi-download" [text]="true" severity="secondary"
+            ariaLabel="Descargar datos como archivo CSV"
             pTooltip="Descargar CSV"
             (onClick)="exportToCSV()" />
           @if (filtrosActivos.size > 0) {
             <p-button icon="pi pi-filter-slash" [text]="true" severity="secondary"
+              ariaLabel="Limpiar todos los filtros activos"
               pTooltip="Limpiar filtros"
               (onClick)="limpiarFiltros()" />
           }
@@ -118,10 +121,12 @@ export interface ColumnConfig {
             }
             <td class="acciones-cell" (click)="$event.stopPropagation()">
               <p-button icon="pi pi-pencil" severity="secondary" [text]="true" size="small"
+                ariaLabel="Editar este registro"
                 pTooltip="Editar" tooltipPosition="top"
                 (onClick)="rowSelected.emit(rowData)" />
               @if (showDelete) {
                 <p-button icon="pi pi-trash" severity="danger" [text]="true" size="small"
+                  ariaLabel="Eliminar este registro"
                   pTooltip="Eliminar" tooltipPosition="top"
                   (onClick)="rowDeleted.emit(rowData)" />
               }
@@ -159,6 +164,7 @@ export interface ColumnConfig {
       </ul>
       <ng-template pTemplate="footer">
         <p-button label="Cerrar" icon="pi pi-check"
+          ariaLabel="Cerrar el selector de columnas"
           (onClick)="mostrarColumnChooser.set(false)" />
       </ng-template>
     </p-dialog>
