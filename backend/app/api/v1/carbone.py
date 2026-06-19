@@ -18,15 +18,16 @@ import logging
 from typing import Literal
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.orm import selectinload
 
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.security import AdesUser, get_ades_user
+from app.core.ratelimit import limiter, LIMITS
 from app.models.personas import Estudiante, Persona, Inscripcion
 from app.models.academica import CicloEscolar, Grupo, Grado, Plantel, NivelEducativo, PlantelNivel
 from app.models.operacion import PeriodoEvaluacion, CalificacionPeriodo
@@ -53,6 +54,64 @@ class PlantillaOut(AdesSchema):
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
+async def _check_student_access(db: AsyncSession, ades_user: AdesUser, estudiante_id: uuid.UUID) -> bool:
+    """
+    ✅ IDOR FIX: Validar que ades_user tiene acceso al estudiante.
+
+    Permisos por rol:
+    - ADMIN_GLOBAL (plantel_id=None): Acceso a todo
+    - ADMIN_PLANTEL: Solo estudiantes de su plantel
+    - MAESTRO: Solo estudiantes de sus grupos
+    - ESTUDIANTE: Solo a sí mismo
+    - PADRE: Solo a sus hijos
+    """
+
+    # ADMIN GLOBAL: acceso a todo
+    if ades_user.plantel_id is None and ades_user.rol == "ADMIN":
+        return True
+
+    # Obtener datos del estudiante
+    est = await db.get(Estudiante, estudiante_id)
+    if not est:
+        return False
+
+    # ADMIN DE PLANTEL: acceso si estudiante está en su plantel
+    if ades_user.plantel_id is not None and ades_user.rol == "ADMIN":
+        return est.plantel_id == ades_user.plantel_id
+
+    # MAESTRO: acceso si es maestro de un grupo que contiene al estudiante
+    if ades_user.rol == "MAESTRO":
+        stmt = await db.execute(
+            text("""
+                SELECT 1 FROM ades_grupo_maestro gm
+                INNER JOIN ades_alumnos a ON gm.grupo_id = a.grupo_id
+                WHERE gm.maestro_id = :maestro_id
+                  AND a.id = :est_id
+                LIMIT 1
+            """),
+            {"maestro_id": str(ades_user.persona_id), "est_id": str(estudiante_id)},
+        )
+        return stmt.fetchone() is not None
+
+    # ESTUDIANTE: acceso solo a sí mismo
+    if ades_user.rol == "ESTUDIANTE":
+        return est.persona_id == ades_user.persona_id
+
+    # PADRE: acceso a sus hijos
+    if ades_user.rol == "PADRE":
+        stmt = await db.execute(
+            text("""
+                SELECT 1 FROM ades_tutor_relacion
+                WHERE padre_id = :padre_id AND hijo_id = :hijo_id
+                LIMIT 1
+            """),
+            {"padre_id": str(ades_user.persona_id), "hijo_id": str(est.persona_id)},
+        )
+        return stmt.fetchone() is not None
+
+    return False
+
 
 async def _carbone_get(path: str) -> dict | list:
     async with httpx.AsyncClient(timeout=10) as client:
@@ -218,7 +277,9 @@ async def _build_boleta_data(estudiante_id: uuid.UUID, periodo: int | None, db: 
 
 
 @router.post("/boleta/{estudiante_id}")
+@limiter.limit(LIMITS["write"])
 async def generar_boleta(
+    request: Request,
     estudiante_id: uuid.UUID,
     template_id: str,
     periodo: int | None = None,
@@ -228,7 +289,17 @@ async def generar_boleta(
     """
     Genera la boleta oficial de un estudiante usando la plantilla indicada.
     Devuelve un PDF listo para descarga.
+
+    ✅ Validación IDOR: El usuario solo puede generar boletas de estudiantes
+    a los que tiene acceso (su grupo, su plantel, etc.)
     """
+    # ✅ IDOR CHECK: Verificar acceso al estudiante
+    if not await _check_student_access(db, ades_user, estudiante_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tienes acceso a este estudiante",
+        )
+
     _disponible()
     data = await _build_boleta_data(estudiante_id, periodo, db)
     pdf_bytes = await _carbone_render(template_id, data)
@@ -242,13 +313,27 @@ async def generar_boleta(
 
 
 @router.post("/constancia/{estudiante_id}")
+@limiter.limit(LIMITS["write"])
 async def generar_constancia(
+    request: Request,
     estudiante_id: uuid.UUID,
     template_id: str,
     db: AsyncSession = Depends(get_db),
     ades_user: AdesUser = Depends(get_ades_user),
 ):
-    """Genera una constancia de estudios o calificaciones."""
+    """
+    Genera una constancia de estudios o calificaciones.
+
+    ✅ Validación IDOR: El usuario solo puede generar constancias de estudiantes
+    a los que tiene acceso.
+    """
+    # ✅ IDOR CHECK: Verificar acceso al estudiante
+    if not await _check_student_access(db, ades_user, estudiante_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tienes acceso a este estudiante",
+        )
+
     _disponible()
     data = await _build_boleta_data(estudiante_id, None, db)
     data["tipo_documento"] = "CONSTANCIA DE ESTUDIOS"

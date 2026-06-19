@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy import text
@@ -27,6 +27,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.security import get_current_user, get_ades_user, AdesUser
+from app.core.ratelimit import limiter, LIMITS
 from app.services.firma_digital import (
     calcular_hash,
     firmar,
@@ -211,22 +212,47 @@ async def listar_certificados(
 
 
 @router.post("/emitir")
+@limiter.limit(LIMITS["write"])
 async def emitir_certificado(
+    request: Request,
     body: CertificadoCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    ades_user: AdesUser = Depends(get_ades_user),
 ):
-    """Emite, firma y genera PDF con QR de verificación."""
+    """
+    Emite, firma y genera PDF con QR de verificación.
+
+    ✅ Validación IDOR:
+    - Solo ADMIN_GLOBAL o ADMIN_PLANTEL o DIRECTOR pueden emitir
+    - El estudiante debe pertenecer al plantel del usuario (si es admin de plantel)
+    """
+
+    # ✅ RBAC CHECK: Solo administradores pueden emitir
+    if ades_user.nivel_acceso > 2:  # 0-2 = admin global, admin plantel, director
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tienes permiso para emitir certificados",
+        )
+
+    # ✅ IDOR CHECK: Si no es admin global, verificar plantel del estudiante
+    if ades_user.plantel_id is not None:
+        est_plantel_row = await db.execute(
+            text("SELECT plantel_id FROM ades_estudiantes WHERE id = :est_id LIMIT 1"),
+            {"est_id": str(body.estudiante_id)},
+        )
+        est_plantel = est_plantel_row.scalar()
+        if not est_plantel or est_plantel != ades_user.plantel_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="El estudiante no pertenece a tu plantel",
+            )
+
     datos = await _get_datos_alumno(db, str(body.estudiante_id), str(body.ciclo_escolar_id))
     if not datos.get("nombre_alumno"):
         raise HTTPException(status_code=404, detail="Alumno no encontrado")
 
-    jwt_sub = current_user.get("sub", "")
-    uid_row = await db.execute(
-        text("SELECT id FROM ades_usuarios WHERE oidc_sub = :sub"),
-        {"sub": jwt_sub}
-    )
-    uid = uid_row.scalar()
+    # Usar el ID del usuario actual (ades_user) como quien emitió
+    uid = ades_user.id
 
     promedio = body.promedio_final or datos.get("promedio_calculado")
     cert_row = await db.execute(text("""
@@ -248,7 +274,7 @@ async def emitir_certificado(
         "promedio":    promedio,
         "fecha_venc":  body.fecha_vencimiento,
         "datos":       json.dumps(body.datos_adicionales) if body.datos_adicionales else None,
-        "emitido_por": str(uid) if uid else None,
+        "emitido_por": str(uid),
     })
     await db.commit()
     cert = dict(cert_row.mappings().first())
@@ -311,15 +337,24 @@ async def emitir_certificado(
 
 
 @router.post("/{cert_id}/firmar")
+@limiter.limit(LIMITS["write"])
 async def firmar_certificado(
+    request: Request,
     cert_id: UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    ades_user: AdesUser = Depends(get_ades_user),
 ):
-    """Firma un certificado ya emitido. Solo ADMIN_GLOBAL o ADMIN_PLANTEL."""
-    nivel = current_user.get("nivel_acceso", 99)
-    if nivel > 1:
-        raise HTTPException(status_code=403, detail="Solo administradores pueden firmar certificados")
+    """
+    Firma un certificado ya emitido. Solo ADMIN_GLOBAL o ADMIN_PLANTEL o DIRECTOR.
+
+    ✅ RBAC validation
+    """
+    # ✅ RBAC CHECK: Solo administradores
+    if ades_user.nivel_acceso > 2:  # 0-2 = admin global, admin plantel, director
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Solo administradores pueden firmar certificados",
+        )
 
     row = await db.execute(text("""
         SELECT id, folio, tipo_certificado, nivel_educativo, grado_completado,
@@ -468,12 +503,22 @@ async def verificar_certificado_publico(
 # ── Gestión de llaves (ADMIN_GLOBAL) ─────────────────────────────────────────
 
 @router.post("/llave/generar")
+@limiter.limit("1/day")  # ✅ Rate limit: máximo 1 por día (prevenir DOS)
 async def generar_llave(
-    current_user: dict = Depends(get_current_user),
+    request: Request,
+    ades_user: AdesUser = Depends(get_ades_user),
 ):
-    """Genera un nuevo par Ed25519. La llave privada se muestra UNA SOLA VEZ."""
-    if current_user.get("nivel_acceso", 99) > 0:
-        raise HTTPException(status_code=403, detail="Solo ADMIN_GLOBAL")
+    """
+    Genera un nuevo par Ed25519. La llave privada se muestra UNA SOLA VEZ.
+
+    ✅ RBAC: Solo ADMIN_GLOBAL
+    ✅ Rate limit: 1 por día (previene DOS)
+    """
+    if ades_user.nivel_acceso > 0:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Solo ADMIN_GLOBAL puede generar llaves"
+        )
     par = generar_nuevo_par_de_llaves()
     return {
         "aviso": "Copia FIRMA_CLAVE_PRIVADA_HEX al .env AHORA. No se almacena en BD.",
@@ -484,20 +529,25 @@ async def generar_llave(
 
 
 @router.post("/llave/registrar")
+@limiter.limit(LIMITS["write"])
 async def registrar_llave(
+    request: Request,
     body: LlavePublicaCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    ades_user: AdesUser = Depends(get_ades_user),
 ):
-    """Registra la llave pública activa en BD. Desactiva la anterior."""
-    if current_user.get("nivel_acceso", 99) > 0:
-        raise HTTPException(status_code=403, detail="Solo ADMIN_GLOBAL")
+    """
+    Registra la llave pública activa en BD. Desactiva la anterior.
 
-    jwt_sub = current_user.get("sub", "")
-    uid_row = await db.execute(
-        text("SELECT id FROM ades_usuarios WHERE oidc_sub = :sub"), {"sub": jwt_sub}
-    )
-    uid = uid_row.scalar()
+    ✅ RBAC: Solo ADMIN_GLOBAL
+    """
+    if ades_user.nivel_acceso > 0:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Solo ADMIN_GLOBAL puede registrar llaves"
+        )
+
+    uid = ades_user.id
 
     # Desactivar llaves anteriores
     await db.execute(text(
@@ -513,7 +563,7 @@ async def registrar_llave(
         "nombre": body.nombre,
         "desc":   body.descripcion,
         "pub":    body.clave_publica_b64,
-        "uid":    str(uid) if uid else None,
+        "uid":    str(uid),
     })
     await db.commit()
     return dict(new_row.mappings().first())
