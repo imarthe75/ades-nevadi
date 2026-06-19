@@ -1,0 +1,80 @@
+# .pre-commit-config.yaml
+# Pre-commit hooks — Ejecuta ANTES de cada commit local
+# Setup: pip install pre-commit && pre-commit install
+
+default_language_version:
+  python: python3.12
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+      - id: detect-private-key
+        args: ['--allow-multiple-files']
+      - id: check-ast
+      - id: check-json
+      - id: check-yaml
+      - id: check-xml
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: ['--maxkb=1000']
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: mixed-line-ending
+
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.5
+    hooks:
+      - id: bandit
+        args: ['-r', 'backend/app/', '-c', '.bandit']
+        stages: [commit]
+
+  - repo: https://github.com/PyCQA/flake8
+    rev: 6.0.0
+    hooks:
+      - id: flake8
+        args: ['--max-line-length=120', '--extend-ignore=E203,W503']
+        types: [python]
+
+  - repo: https://github.com/psf/black
+    rev: 23.7.0
+    hooks:
+      - id: black
+        language_version: python3.12
+        args: ['--line-length=120']
+        types: [python]
+
+  - repo: https://github.com/PyCQA/isort
+    rev: 5.12.0
+    hooks:
+      - id: isort
+        args: ['--profile', 'black', '--line-length', '120']
+        types: [python]
+
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.4.0
+    hooks:
+      - id: detect-secrets
+        args: ['--baseline', '.secrets.baseline']
+        types: [python]
+
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.28.0
+    hooks:
+      - id: yamllint
+        args: ['-d', '{extends: default, rules: {line-length: {max: 120}}}']
+        types: [yaml]
+
+fail_fast: false
+exclude: |
+  (?x)^(
+      venv/|
+      __pycache__/|
+      \.eggs/|
+      node_modules/|
+      dist/|
+      build/
+  )
+
+stages: [commit, push]
