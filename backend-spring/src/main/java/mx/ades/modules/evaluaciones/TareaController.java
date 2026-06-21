@@ -39,6 +39,27 @@ public class TareaController {
         return ResponseEntity.ok(query.actividadesDeGrupo(grupoId, materiaId, periodoId, tipoItem));
     }
 
+    /** GET /tareas?grupo_id=...&materia_id=... — alias con query params (formato usado por el frontend) */
+    @GetMapping
+    public ResponseEntity<List<Map<String, Object>>> listar(
+            @RequestParam(value = "grupo_id", required = false) UUID grupoId,
+            @RequestParam(value = "materia_id", required = false) UUID materiaId,
+            @RequestParam(value = "periodo_id", required = false) UUID periodoId,
+            @RequestParam(value = "tipo_item", required = false) String tipoItem) {
+        return ResponseEntity.ok(query.actividadesDeGrupo(grupoId, materiaId, periodoId, tipoItem));
+    }
+
+    /** PATCH /tareas/{id} — actualiza campos editables de la tarea */
+    @PatchMapping("/{actividad_id}")
+    public ResponseEntity<Map<String, Object>> actualizar(
+            @PathVariable("actividad_id") UUID actividadId,
+            @RequestBody Map<String, Object> body,
+            @AuthenticationPrincipal Jwt jwt) {
+        userService.resolveUser(jwt);
+        // Delegar al query service para actualizar campos simples
+        return ResponseEntity.ok(query.actualizarTarea(actividadId, body));
+    }
+
     public record CrearActividadRequest(
             String titulo,
             String descripcion,
