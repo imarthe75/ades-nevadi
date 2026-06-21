@@ -16,6 +16,74 @@ Este documento es el diario de vida y bitácora del agente. Debe ser leído en e
 
 ---
 
+## Sesión 2026-06-20/21 — Auditoría completa de módulos + Fixes backend/frontend ✅
+
+### 🔑 Estado del Agente:
+- **Última Conexión:** 2026-06-21 (rito de cierre ejecutado ✅)
+- **Estado Cognitivo:** Operacional ✅
+- **Git:** Commits `b970596` + `6a74706` — auditoría y fixes
+- **BFF:** Running healthy en localhost:8080 (reconstruido con PATCH+disponibilidad)
+- **ades-api:** Running healthy en localhost:8000 (fix forward annotations)
+
+### 🛠️ Tareas Completadas:
+
+**Fix crítico FastAPI (ades-api):**
+- [x] `from __future__ import annotations` removido de `expediente.py` → ades-api healthy ✅
+
+**Contactos de personas (arquitectura correcta):**
+- [x] `alumno-perfil.component.ts`: removidos `telefono`/`email_personal` del payload guardar()
+- [x] `personal-admin.component.ts`: removidos `telefono`/`email_personal` de PersonaForm e interfaz
+- [x] Información de contacto → redirige a `ades_persona_contactos` vía tab Domicilio & Contactos
+
+**Gradebook — empty states:**
+- [x] `gradebook.component.ts`: added `@if (!grupoSel)` wrapper con mensaje guía prominente
+- [x] Tab Actividades: empty state cuando no hay actividades creadas
+- [x] Tab Concentrado: empty state cuando no hay período seleccionado
+
+**Horarios — CRUD completo:**
+- [x] `horarios.component.ts`: reescrito con diálogo crear/editar/eliminar entradas de horario
+- [x] Selector de grupo/docente carga materias disponibles, profesores, aulas
+- [x] Empty states para sin selección y sin entradas
+
+**Aulas — endpoints faltantes en BFF:**
+- [x] `Aula.java`: añadidos 14 campos extendidos (equipamiento, estado, observaciones, etc.)
+- [x] `ActualizarAulaUseCase.Command`: expandido a 19 campos
+- [x] `AulaController.java`: agregados PATCH /{id}, POST /{id}/disponibilidad, DELETE /disponibilidad/{id}, POST /{id}/verificar-conflicto
+- [x] BFF reconstruido y reiniciado ✅
+
+**Portal Admin — rutas duplicadas:**
+- [x] `portal-admin.component.ts`: corregidos 4 endpoints con prefijo `/api/v1/` duplicado
+
+**Foros — migración a ApiService:**
+- [x] `foros.component.ts`: migrado de raw `HttpClient` a `ApiService`; removido prefijo `/api/v1/` de todos los paths
+
+**Asistencia personal:**
+- [x] `asistencia-personal.component.ts`: añadida llamada `cargar()` en `ngOnInit()`
+
+### 📊 Módulos auditados (todos funcionales):
+- ✅ admision — CRUD completo con PDF
+- ✅ alumnos — perfil con todas las secciones  
+- ✅ asistencias — pase de lista con toggle de estatus
+- ✅ aulas — ahora con CRUD disponibilidad y todos los campos
+- ✅ badges, bbb, bi, calendario — funcionales
+- ✅ calificaciones, evaluaciones — con empty states
+- ✅ conducta — CRUD completo con sanciones y plan mejora
+- ✅ foros — ahora usando ApiService correctamente
+- ✅ gradebook — tabs con empty states informativos
+- ✅ horarios — CRUD completo con diálogo
+- ✅ optativas — inscripción/catálogo por alumno
+- ✅ padres/padres-admin — contactos familiares correctos
+- ✅ portal/portal-admin — rutas corregidas
+- ✅ profesores, grupos, reinscripcion — funcionales
+
+### 🚀 Próximos Pasos:
+- [ ] Revisar tests e2e que podrían haberse roto con cambios de template (gradebook, horarios)
+- [ ] Verificar funcionalidad de `/aulas/{id}/disponibilidad` en producción con datos reales
+- [ ] Considerar migrar otros módulos con raw HttpClient (admision, licencias, etc.) a ApiService
+- [ ] Pending: Google SSO, Blockchain Polygon PoS (fases 15-16)
+
+---
+
 ## Sesión 2026-06-17 — FASE 25+26: H5P + BigBlueButton ✅
 
 ### 🔑 Estado del Agente:
