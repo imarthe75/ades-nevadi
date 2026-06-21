@@ -1,7 +1,7 @@
 import { Component, OnInit, signal, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
+import { ApiService } from '../../core/services/api.service';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
@@ -348,7 +348,7 @@ interface Anuncio {
   `],
 })
 export class ForosComponent implements OnInit {
-  private http = inject(HttpClient);
+  private http = inject(ApiService);
   private notify = inject(ApexNotificationService);
   readonly ctx = inject(ContextService);
 
@@ -408,7 +408,7 @@ export class ForosComponent implements OnInit {
 
   cargarForos() {
     this.cargandoForos.set(true);
-    this.http.get<Foro[]>('/api/v1/foros').subscribe({
+    this.http.get<Foro[]>('/foros').subscribe({
       next: d => { this.foros.set(d); this.cargandoForos.set(false); },
       error: () => { this.cargandoForos.set(false); this.notify.error('Error al cargar foros'); },
     });
@@ -416,7 +416,7 @@ export class ForosComponent implements OnInit {
 
   cargarAnuncios() {
     this.cargandoAnuncios.set(true);
-    this.http.get<Anuncio[]>('/api/v1/foros/anuncios', { params: { solo_vigentes: true } }).subscribe({
+    this.http.get<Anuncio[]>('/foros/anuncios', { solo_vigentes: true }).subscribe({
       next: d => { this.anuncios.set(d); this.cargandoAnuncios.set(false); },
       error: () => { this.cargandoAnuncios.set(false); },
     });
@@ -425,7 +425,7 @@ export class ForosComponent implements OnInit {
   cargarMaterias() {
     const pl = this.ctx.plantel();
     if (pl) {
-      this.http.get<any[]>('/api/v1/materias', { params: { plantel_id: pl.id } }).subscribe(m => this.materias.set(m));
+      this.http.get<any[]>('/materias', { plantel_id: pl.id }).subscribe(m => this.materias.set(m));
     }
   }
 
@@ -433,7 +433,7 @@ export class ForosComponent implements OnInit {
     this.foroActivo.set(foro);
     this.mensajes.set([]);
     this.dlgMensajes = true;
-    this.http.get<MensajeForo[]>(`/api/v1/foros/${foro.id}/mensajes`).subscribe({
+    this.http.get<MensajeForo[]>(`/foros/${foro.id}/mensajes`).subscribe({
       next: d => this.mensajes.set(d),
       error: () => this.notify.error('Error al cargar mensajes'),
     });
@@ -455,7 +455,7 @@ export class ForosComponent implements OnInit {
       ...this.foroForm,
       plantel_id: pl ? pl.id : null
     };
-    this.http.post('/api/v1/foros', payload).subscribe({
+    this.http.post('/foros', payload).subscribe({
       next: () => {
         this.guardando.set(false);
         this.dlgForo = false;
@@ -482,7 +482,7 @@ export class ForosComponent implements OnInit {
   cargarRespuestas(msgId: string) {
     const foro = this.foroActivo();
     if (!foro) return;
-    this.http.get<RespuestaForo[]>(`/api/v1/foros/${foro.id}/mensajes/${msgId}/respuestas`).subscribe({
+    this.http.get<RespuestaForo[]>(`/foros/${foro.id}/mensajes/${msgId}/respuestas`).subscribe({
       next: r => this.respuestas.set(r),
       error: () => this.notify.error('Error al cargar respuestas')
     });
@@ -500,7 +500,7 @@ export class ForosComponent implements OnInit {
     const foro = this.foroActivo();
     if (!msg || !foro || !this.nuevaRespuestaTexto.trim()) return;
     this.guardando.set(true);
-    this.http.post(`/api/v1/foros/${foro.id}/mensajes/${msg.id}/responder`, {
+    this.http.post(`/foros/${foro.id}/mensajes/${msg.id}/responder`, {
       contenido: this.nuevaRespuestaTexto
     }).subscribe({
       next: () => {
@@ -516,7 +516,7 @@ export class ForosComponent implements OnInit {
   }
 
   moderar(mensajeId: string, estado: string) {
-    this.http.patch(`/api/v1/foros/mensajes/${mensajeId}/moderar`, {}, { params: { estado } }).subscribe({
+    this.http.patch(`/foros/mensajes/${mensajeId}/moderar?estado=${encodeURIComponent(estado)}`, {}).subscribe({
       next: () => {
         this.notify.success(`Mensaje moderado: ${estado}`);
         if (this.foroActivo()) this.abrirForo(this.foroActivo()!);
@@ -531,7 +531,7 @@ export class ForosComponent implements OnInit {
       return;
     }
     this.guardando.set(true);
-    this.http.post(`/api/v1/foros/${this.foroActivo()!.id}/mensajes`, {
+    this.http.post(`/foros/${this.foroActivo()!.id}/mensajes`, {
       asunto: this.nuevoMsgAsunto,
       contenido: this.nuevoMsgContenido,
     }).subscribe({
@@ -553,7 +553,7 @@ export class ForosComponent implements OnInit {
     }
     this.guardando.set(true);
     const pl = this.ctx.plantel();
-    this.http.post('/api/v1/foros/anuncios', {
+    this.http.post('/foros/anuncios', {
       titulo: this.anuncioForm.titulo,
       contenido: this.anuncioForm.contenido,
       fecha_inicio: this.anuncioForm.fechaInicio,
