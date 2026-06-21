@@ -2631,3 +2631,42 @@ Total cambios: 8 files changed, 906 insertions(+)
 
 ---
 
+
+## Sesión 2026-06-21 — Auditoría exhaustiva endpoints BFF vs Frontend ✅
+
+### 🔑 Estado:
+- **Commits:** `0707535`, `9e3463a`, `bc424bb`
+- **BFF:** Running healthy (UP)
+
+### 🛠️ Endpoints BFF añadidos/corregidos:
+
+**CalendarioController.java** (nuevo):
+- [x] GET/POST/PATCH/DELETE `/calendario` — operaciones CRUD completas
+
+**UsuariosController.java** (nuevo):
+- [x] GET `/usuarios/mi-perfil` — retorna estudiante_id/profesor_id para mi-progreso
+
+**CalificacionesController.java** (extendido):
+- [x] GET `/calificaciones/grupo/{id}/libreta?materia_id=...` — libreta completa
+
+**ExpedienteController.java** (extendido):
+- [x] GET `/expediente/alumno/{id}/buscar` — alias OCR search por alumno
+
+**AsistenciaController.java** (extendido):
+- [x] POST `/asistencias/clase/{claseId}` — formato frontend {asistencias:[...]}
+
+**TareaController + TareaQueryService** (extendidos):
+- [x] GET `/tareas?grupo_id=...` — alias con query params (vs path param)
+- [x] PATCH `/tareas/{id}` — actualizar campos básicos de la tarea
+- [x] Fix: `actividadesDeGrupo()` acepta grupoId=null sin NullPointerException
+
+### 📊 Módulos auditados (55 total, todos funcionales):
+- ✅ Todos los módulos principales tienen endpoints BFF correspondientes
+- ⚠️ Superset en estado "Restarting" — conocido, pendiente OIDC
+
+### 🚀 Próximos Pasos:
+- [ ] Configurar Superset OIDC (falta SUPERSET_OIDC_CLIENT_SECRET en Authentik)
+- [ ] Google SSO, Blockchain Polygon PoS (fases 15-16)
+- [ ] Migrar módulos con raw HttpClient a ApiService (mejora consistencia)
+
+---
