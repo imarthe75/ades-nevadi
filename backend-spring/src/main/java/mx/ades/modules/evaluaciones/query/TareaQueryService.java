@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -42,14 +43,14 @@ public class TareaQueryService {
                     FROM ades_tareas_entregas te
                    WHERE te.tarea_id = t.id
               ) te_stats ON TRUE
-             WHERE t.grupo_id = ?::uuid AND t.is_active = TRUE
+             WHERE t.is_active = TRUE
             """);
 
         List<Object> params = new ArrayList<>();
-        params.add(grupoId.toString());
+        if (grupoId   != null) { sql.append(" AND t.grupo_id = ?::uuid"); params.add(grupoId.toString()); }
         if (materiaId != null) { sql.append(" AND t.materia_id = ?::uuid"); params.add(materiaId.toString()); }
-        if (periodoId  != null) { sql.append(" AND t.periodo_evaluacion_id = ?::uuid"); params.add(periodoId.toString()); }
-        if (tipoItem   != null && !tipoItem.isBlank()) { sql.append(" AND t.tipo_item = ?"); params.add(tipoItem); }
+        if (periodoId != null) { sql.append(" AND t.periodo_evaluacion_id = ?::uuid"); params.add(periodoId.toString()); }
+        if (tipoItem  != null && !tipoItem.isBlank()) { sql.append(" AND t.tipo_item = ?"); params.add(tipoItem); }
         sql.append(" ORDER BY t.fecha_entrega, t.tipo_item");
 
         return jdbc.queryForList(sql.toString(), params.toArray());
@@ -97,6 +98,25 @@ public class TareaQueryService {
         sql.append(" ORDER BY t.fecha_entrega DESC");
 
         return jdbc.queryForList(sql.toString(), params.toArray());
+    }
+
+    @Transactional
+    public Map<String, Object> actualizarTarea(UUID actividadId, Map<String, Object> body) {
+        List<String> sets = new ArrayList<>();
+        List<Object> params = new ArrayList<>();
+        if (body.containsKey("titulo"))         { sets.add("titulo = ?");          params.add(body.get("titulo")); }
+        if (body.containsKey("descripcion"))    { sets.add("descripcion = ?");      params.add(body.get("descripcion")); }
+        if (body.containsKey("fecha_entrega"))  { sets.add("fecha_entrega = ?::date"); params.add(body.get("fecha_entrega")); }
+        if (body.containsKey("puntaje_maximo")) { sets.add("puntaje_maximo = ?");   params.add(body.get("puntaje_maximo")); }
+        if (body.containsKey("permite_entrega_tarde")) { sets.add("permite_entrega_tarde = ?"); params.add(body.get("permite_entrega_tarde")); }
+        if (!sets.isEmpty()) {
+            params.add(actividadId.toString());
+            jdbc.update("UPDATE ades_tareas SET " + String.join(", ", sets) + " WHERE id = ?::uuid", params.toArray());
+        }
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("id", actividadId);
+        result.put("updated", true);
+        return result;
     }
 
     @Transactional(readOnly = true)
