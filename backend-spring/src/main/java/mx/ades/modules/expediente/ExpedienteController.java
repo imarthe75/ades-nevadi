@@ -318,6 +318,21 @@ public class ExpedienteController {
         return ResponseEntity.ok(paperlessSvc.buscarDocumentos(q, page, pageSize));
     }
 
+    /** GET /expediente/alumno/{estudiante_id}/buscar — busca OCR en los docs del alumno */
+    @GetMapping("/expediente/alumno/{estudiante_id}/buscar")
+    public ResponseEntity<Map<String, Object>> buscarDocumentosAlumno(
+            @PathVariable("estudiante_id") UUID estudianteId,
+            @RequestParam(value = "q", defaultValue = "") String q,
+            @RequestParam(value = "page", defaultValue = "1") int page,
+            @RequestParam(value = "page_size", defaultValue = "25") int pageSize,
+            @AuthenticationPrincipal Jwt jwt) {
+        userService.resolveUser(jwt);
+        if (!paperlessSvc.hasToken()) {
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Paperless-ngx no configurado.");
+        }
+        return ResponseEntity.ok(paperlessSvc.buscarDocumentos(q, page, pageSize));
+    }
+
     @PostMapping("/expediente/{expediente_id}/verificar")
     public ResponseEntity<Map<String, Object>> verificarExpediente(
             @PathVariable("expediente_id") UUID expedienteId,
