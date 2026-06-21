@@ -705,8 +705,7 @@ export class AlumnoPerfilComponent implements OnInit, OnChanges {
       genero_autopercibido: (p as any).genero_autopercibido ?? null,
       pronombres: (p as any).pronombres ?? '',
       fecha_nacimiento: (p as any).fecha_nacimiento ? new Date((p as any).fecha_nacimiento) : null,
-      telefono: (p as any).telefono ?? '',
-      email_personal: (p as any).email_personal ?? '',
+
       estado_civil: (p as any).estado_civil ?? null,
       pais_nacimiento: (p as any).pais_nacimiento ?? 'México',
       municipio_nacimiento: (p as any).municipio_nacimiento ?? '',
@@ -853,8 +852,7 @@ export class AlumnoPerfilComponent implements OnInit, OnChanges {
         genero_autopercibido: this.form.genero_autopercibido || null,
         pronombres: this.form.pronombres || null,
         fecha_nacimiento: this.form.fecha_nacimiento ? this.formatDate(this.form.fecha_nacimiento) : null,
-        telefono: this.form.telefono || null,
-        email_personal: this.form.email_personal || null,
+
         estado_civil: this.form.estado_civil,
         pais_nacimiento: this.form.pais_nacimiento || 'México',
         municipio_nacimiento: this.form.municipio_nacimiento || null,

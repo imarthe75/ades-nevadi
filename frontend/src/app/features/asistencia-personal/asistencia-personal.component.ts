@@ -269,7 +269,7 @@ export class AsistenciaPersonalComponent implements OnInit {
     {label:'Septiembre',value:9},{label:'Octubre',value:10},{label:'Noviembre',value:11},{label:'Diciembre',value:12},
   ];
 
-  ngOnInit() {}
+  ngOnInit() { this.cargar(); }
 
   onFiltroNombre() {
     if (this.filtroTimer) clearTimeout(this.filtroTimer);

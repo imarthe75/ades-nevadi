@@ -344,7 +344,7 @@ export class PortalAdminComponent implements OnInit {
     const params: any = { limit: 100 };
     if (this.filtroTipo)      params['tipo']        = this.filtroTipo;
     if (this.filtroPlantelId) params['plantel_id']  = this.filtroPlantelId;
-    this.api.get<Convocatoria[]>('/api/v1/portal/admin/convocatorias', params)
+    this.api.get<Convocatoria[]>('/portal/admin/convocatorias', params)
       .subscribe({ next: d => { this.convocatorias.set(d ?? []); this.cargando.set(false); },
                   error: ()  => this.cargando.set(false) });
   }
@@ -355,7 +355,7 @@ export class PortalAdminComponent implements OnInit {
   }
 
   cargarEstadisticas() {
-    this.api.get<any>('/api/v1/portal/admin/estadisticas')
+    this.api.get<any>('/portal/admin/estadisticas')
       .subscribe({ next: d => this.estadisticas.set(d ?? {}) });
   }
 
@@ -416,7 +416,7 @@ export class PortalAdminComponent implements OnInit {
     const id = this.editando()?.id;
     const req = id
       ? this.api.put(`/api/v1/portal/admin/convocatorias/${id}`, body)
-      : this.api.post<any>('/api/v1/portal/admin/convocatorias', body);
+      : this.api.post<any>('/portal/admin/convocatorias', body);
 
     req.subscribe({
       next: () => { this.guardando.set(false); this.cerrarDialog(); this.cargar(); this.cargarEstadisticas(); },
@@ -464,7 +464,7 @@ export class PortalAdminComponent implements OnInit {
     this.convSeleccionada.set(c);
     this.cargandoPost.set(true);
     this.postulacionesVisible = true;
-    this.api.get<any[]>('/api/v1/portal/admin/postulaciones', { convocatoria_id: c.id, limit: 200 })
+    this.api.get<any[]>('/portal/admin/postulaciones', { convocatoria_id: c.id, limit: 200 })
       .subscribe({ next: d => { this.postulaciones.set(d ?? []); this.cargandoPost.set(false); },
                   error: ()  => this.cargandoPost.set(false) });
   }

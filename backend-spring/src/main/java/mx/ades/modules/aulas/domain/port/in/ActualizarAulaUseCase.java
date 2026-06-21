@@ -11,7 +11,21 @@ public interface ActualizarAulaUseCase {
             UUID plantelId,
             String tipoAula,
             Integer capacidadAlumnos,
-            Boolean isActive
+            Boolean isActive,
+            // campos extendidos
+            String claveAula,
+            Short piso,
+            String edificio,
+            Short capacidadMaxima,
+            Boolean tieneProyector,
+            Boolean tienePizarraDigital,
+            Boolean tienePizarron,
+            Boolean tieneAireAcondicionado,
+            Boolean tieneVentiladores,
+            Boolean tieneInternet,
+            Short numComputadoras,
+            String estadoAula,
+            String observaciones
     ) {
         public Command {
             if (aulaId == null)
