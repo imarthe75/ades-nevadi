@@ -11,6 +11,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -39,5 +40,28 @@ public class AsistenciaController {
                 consultarAsistenciasPorClase.ejecutar(claseId).stream()
                         .map(AsistenciaResponseDto::from)
                         .toList());
+    }
+
+    /** POST /api/v1/asistencias/clase/{claseId} — frontend sends { asistencias: [{estudiante_id, estatus_asistencia}] } */
+    @PostMapping("/clase/{claseId}")
+    public ResponseEntity<Void> registrarPorClase(
+            @PathVariable("claseId") UUID claseId,
+            @RequestBody Map<String, Object> body,
+            @AuthenticationPrincipal Jwt jwt) {
+        String usuario = jwt != null ? jwt.getClaimAsString("email") : "sistema";
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> lista = (List<Map<String, Object>>) body.get("asistencias");
+        if (lista == null) return ResponseEntity.ok().build();
+        List<RegistrarAsistenciaItemDto> items = lista.stream()
+            .map(a -> new RegistrarAsistenciaItemDto(
+                claseId,
+                UUID.fromString(a.get("estudiante_id").toString()),
+                a.get("estatus_asistencia") != null ? a.get("estatus_asistencia").toString() : "AUSENTE",
+                null))
+            .toList();
+        registrarAsistenciaMasiva.ejecutar(
+            items.stream().map(RegistrarAsistenciaItemDto::toCommand).toList(),
+            usuario);
+        return ResponseEntity.ok().build();
     }
 }
