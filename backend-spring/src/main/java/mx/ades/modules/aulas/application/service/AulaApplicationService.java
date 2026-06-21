@@ -37,10 +37,24 @@ public class AulaApplicationService implements CrearAulaUseCase, ActualizarAulaU
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Aula no encontrada"));
 
         a.setNombreAula(cmd.nombreAula().trim());
-        if (cmd.plantelId() != null)    a.setPlantelId(cmd.plantelId());
-        if (cmd.tipoAula() != null)     a.setTipoAula(cmd.tipoAula());
-        if (cmd.capacidadAlumnos() != null) a.setCapacidadAlumnos(cmd.capacidadAlumnos());
-        if (cmd.isActive() != null)     a.setIsActive(cmd.isActive());
+        if (cmd.plantelId() != null)         a.setPlantelId(cmd.plantelId());
+        if (cmd.tipoAula() != null)          a.setTipoAula(cmd.tipoAula());
+        if (cmd.capacidadAlumnos() != null)  a.setCapacidadAlumnos(cmd.capacidadAlumnos());
+        if (cmd.isActive() != null)          a.setIsActive(cmd.isActive());
+        // campos extendidos
+        if (cmd.claveAula() != null)         a.setClaveAula(cmd.claveAula());
+        if (cmd.piso() != null)              a.setPiso(cmd.piso());
+        if (cmd.edificio() != null)          a.setEdificio(cmd.edificio());
+        if (cmd.capacidadMaxima() != null)   a.setCapacidadMaxima(cmd.capacidadMaxima());
+        if (cmd.tieneProyector() != null)    a.setTieneProyector(cmd.tieneProyector());
+        if (cmd.tienePizarraDigital() != null) a.setTienePizarraDigital(cmd.tienePizarraDigital());
+        if (cmd.tienePizarron() != null)     a.setTienePizarron(cmd.tienePizarron());
+        if (cmd.tieneAireAcondicionado() != null) a.setTieneAireAcondicionado(cmd.tieneAireAcondicionado());
+        if (cmd.tieneVentiladores() != null) a.setTieneVentiladores(cmd.tieneVentiladores());
+        if (cmd.tieneInternet() != null)     a.setTieneInternet(cmd.tieneInternet());
+        if (cmd.numComputadoras() != null)   a.setNumComputadoras(cmd.numComputadoras());
+        if (cmd.estadoAula() != null)        a.setEstadoAula(cmd.estadoAula());
+        if (cmd.observaciones() != null)     a.setObservaciones(cmd.observaciones());
         repositoryPort.save(a);
         return Map.of("updated", true);
     }

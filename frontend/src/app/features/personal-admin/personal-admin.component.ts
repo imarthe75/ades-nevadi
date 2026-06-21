@@ -65,8 +65,6 @@ interface PersonaForm {
   curp: string;
   genero: string;
   fecha_nacimiento: string;
-  telefono: string;
-  email_personal: string;
   estado_civil: string;
   pais_nacimiento: string;
   nacionalidad: string;
@@ -117,7 +115,7 @@ const TURNOS    = ['MATUTINO','VESPERTINO','MIXTO'].map(v => ({ label: v, value:
 
 function emptyPersona(): PersonaForm {
   return { nombre:'', apellido_paterno:'', apellido_materno:'', curp:'',
-           genero:'', fecha_nacimiento:'', telefono:'', email_personal:'',
+           genero:'', fecha_nacimiento:'',
            estado_civil:'', pais_nacimiento:'México', nacionalidad:'Mexicana' };
 }
 
@@ -170,13 +168,12 @@ function enrichRows(rows: EmpleadoRow[]): EmpleadoRow[] {
           <div><label class="dlg-lbl">Género</label>
             <p-select [options]="generoOpts" [(ngModel)]="formPersona.genero"
               optionLabel="label" optionValue="value" style="width:100%" [showClear]="true" placeholder="Género…" /></div>
-          <div><label class="dlg-lbl">Teléfono</label>
-            <input pInputText [(ngModel)]="formPersona.telefono" style="width:100%" /></div>
+          <div><label class="dlg-lbl">Fecha de nacimiento</label>
+            <input pInputText [(ngModel)]="formPersona.fecha_nacimiento" type="date" style="width:100%" /></div>
         </div>
-        <div class="dlg-row">
-          <div style="grid-column:span 2"><label class="dlg-lbl">Email personal</label>
-            <input pInputText [(ngModel)]="formPersona.email_personal" style="width:100%" /></div>
-        </div>
+        <p style="font-size:.78rem;color:var(--text-secondary);margin:0 0 .5rem">
+          Teléfono y email se agregan desde el perfil en la sección <em>Domicilio y Contactos</em>.
+        </p>
 
         <div class="dlg-section-title">Datos laborales</div>
         @if (!modoSalud()) {
@@ -288,8 +285,7 @@ function enrichRows(rows: EmpleadoRow[]): EmpleadoRow[] {
           <div class="perfil-row"><span class="perfil-lbl">Turno</span><span>{{ sel.turno || '—' }}</span></div>
           <div class="perfil-row"><span class="perfil-lbl">Fecha ingreso</span>
             <span>{{ sel.fecha_ingreso_inst ? (sel.fecha_ingreso_inst | date:'dd/MM/yyyy') : '—' }}</span></div>
-          <div class="perfil-row"><span class="perfil-lbl">Teléfono</span><span>{{ sel.telefono || '—' }}</span></div>
-          <div class="perfil-row"><span class="perfil-lbl">Email</span><span>{{ sel.email_personal || '—' }}</span></div>
+
           <div class="perfil-row"><span class="perfil-lbl">RFC</span><span>{{ sel.rfc || '—' }}</span></div>
           <div class="perfil-row"><span class="perfil-lbl">NSS</span><span>{{ sel.nss || '—' }}</span></div>
         </div>
@@ -367,7 +363,6 @@ export class PersonalAdminComponent implements OnInit {
     { field: 'numero_empleado',  header: 'Núm. Empleado',  sortable: true },
     { field: 'tipo_contrato',    header: 'Contrato',       sortable: true },
     { field: 'turno',            header: 'Turno',          sortable: true },
-    { field: 'email_personal',   header: 'Email',          sortable: false },
   ];
 
   columnasSalud: ColumnConfig[] = [
@@ -378,7 +373,6 @@ export class PersonalAdminComponent implements OnInit {
     { field: 'numero_empleado',    header: 'Núm. Empleado',  sortable: true },
     { field: 'tipo_contrato',      header: 'Contrato',       sortable: true },
     { field: 'turno',              header: 'Turno',          sortable: true },
-    { field: 'telefono',           header: 'Teléfono',       sortable: false },
   ];
 
   ngOnInit(): void {

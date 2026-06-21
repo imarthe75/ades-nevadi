@@ -9,8 +9,6 @@ FASE 28 — Gestión Documental
   POST   /expediente/alumno/{alumno_id}/analizar-ia                    — análisis IA del expediente
   POST   /expediente/{expediente_id}/verificar                         — verificar (Director/Admin)
 """
-from __future__ import annotations
-
 import json
 import logging
 from uuid import UUID
@@ -296,7 +294,7 @@ async def get_expediente(
     )
 
 
-@router.post("/alumno/{alumno_id}/documentos")
+@router.post("/alumno/{alumno_id}/documentos", response_model=None)
 @limiter.limit(LIMITS["upload"])
 async def subir_documento(
     request: Request,

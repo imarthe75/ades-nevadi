@@ -124,25 +124,49 @@ interface Insights {
  [filter]="true" filterPlaceholder="Buscar..."/>
 </div>
 
+@if (!grupoSel) {
+  <div class="empty-state">
+    <i class="pi pi-book" style="font-size:2.5rem;color:#CBD5E1"></i>
+    <h3 style="margin:.5rem 0 .25rem;color:#475569">Selecciona un grupo</h3>
+    <p style="color:#94A3B8;max-width:320px;text-align:center">
+      Elige el grupo en el filtro de arriba para ver las actividades, calificaciones y cobertura curricular.
+    </p>
+  </div>
+} @else {
 <p-tabs value="0">
   <!-- ── TAB 1: Spreadsheet de actividades ── -->
   <p-tabpanel header="Actividades" value="0">
-    <app-interactive-grid
-      [data]="actividadesFlat()"
-      [columns]="actividadesColumns"
-      [loading]="cargando()"
-      (rowSelected)="abrirCalificacion($event)"
-    />
+    @if (actividadesFlat().length === 0 && !cargando()) {
+      <div class="empty-state" style="padding:3rem">
+        <i class="pi pi-inbox" style="font-size:2rem;color:#CBD5E1"></i>
+        <p style="color:#94A3B8">No hay actividades registradas para este grupo.
+          Usa "Nueva actividad" para crear la primera.</p>
+      </div>
+    } @else {
+      <app-interactive-grid
+        [data]="actividadesFlat()"
+        [columns]="actividadesColumns"
+        [loading]="cargando()"
+        (rowSelected)="abrirCalificacion($event)"
+      />
+    }
   </p-tabpanel>
 
   <!-- ── TAB 2: Concentrado de calificaciones ── -->
   <p-tabpanel header="Concentrado por período" value="1">
-    <app-interactive-grid
-      [data]="concentradoFlat()"
-      [columns]="concentradoColumns"
-      [loading]="cargandoConc()"
-      (rowSelected)="abrirAjuste($event)"
-    />
+    @if (!periodoSel) {
+      <div class="empty-state" style="padding:3rem">
+        <i class="pi pi-calendar" style="font-size:2rem;color:#CBD5E1"></i>
+        <p style="color:#94A3B8">Selecciona un período de evaluación para ver el concentrado.</p>
+      </div>
+    } @else {
+      <app-interactive-grid
+        [data]="concentradoFlat()"
+        [columns]="concentradoColumns"
+        [loading]="cargandoConc()"
+        (rowSelected)="abrirAjuste($event)"
+      />
+    }
   </p-tabpanel>
 
   <!-- ── TAB 3: Cobertura curricular ── -->
@@ -238,6 +262,7 @@ interface Insights {
     }
   </p-tabpanel>
 </p-tabs>
+} <!-- end @else grupoSel -->
 
 <!-- ── Drawer: calificar actividad ── -->
 <p-drawer [(visible)]="drawerCalifVisible" header="Calificar actividad"
@@ -361,6 +386,11 @@ interface Insights {
     .pct-warn      { color:#b45309; font-weight:600; }
     .pct-danger    { color:#dc2626; font-weight:600; }
     .text-muted    { color:var(--p-text-muted-color); }
+    .empty-state { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:.75rem; padding:5rem 2rem; }
+    .empty-state p { margin:0; font-size:.88rem; }
+    .page-title { font-size:1.35rem; font-weight:700; font-family:'Jost',sans-serif; display:flex; align-items:center; gap:.5rem; }
+    .page-actions { display:flex; gap:.5rem; align-items:center; flex-wrap:wrap; }
+    .page-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1rem; }
   `],
 })
 export class GradebookComponent implements OnInit {
