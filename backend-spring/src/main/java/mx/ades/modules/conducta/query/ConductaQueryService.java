@@ -16,6 +16,12 @@ public class ConductaQueryService {
 
     public List<Map<String, Object>> listar(UUID estudianteId, UUID grupoId, String tipoFalta,
                                              Boolean requiereSeguimiento, int pagina, int porPagina) {
+        return listar(null, null, null, grupoId, estudianteId, tipoFalta, requiereSeguimiento, pagina, porPagina);
+    }
+
+    public List<Map<String, Object>> listar(UUID plantelId, UUID nivelId, UUID gradoId, UUID grupoId,
+                                             UUID estudianteId, String tipoFalta, Boolean requiereSeguimiento,
+                                             int pagina, int porPagina) {
         StringBuilder q = new StringBuilder(
                 "SELECT rc.id, rc.estudiante_id, rc.grupo_id, rc.reportado_por_id, rc.fecha_reporte, " +
                 "rc.tipo_falta, rc.descripcion, rc.medida_aplicada, rc.requiere_seguimiento, " +
@@ -25,11 +31,30 @@ public class ConductaQueryService {
                 "JOIN ades_estudiantes e ON e.id = rc.estudiante_id " +
                 "JOIN ades_personas p ON p.id = e.persona_id " +
                 "JOIN ades_usuarios u ON u.id = rc.reportado_por_id " +
+                "LEFT JOIN ades_grupos g ON g.id = rc.grupo_id " +
+                "LEFT JOIN ades_grados gr ON gr.id = g.grado_id " +
                 "WHERE rc.is_active = TRUE ");
 
         List<Object> params = new ArrayList<>();
         if (estudianteId != null) { q.append("AND rc.estudiante_id = ? "); params.add(estudianteId); }
-        if (grupoId != null) { q.append("AND rc.grupo_id = ? "); params.add(grupoId); }
+
+        if (grupoId != null) {
+            q.append("AND rc.grupo_id = ? ");
+            params.add(grupoId);
+        } else if (gradoId != null) {
+            q.append("AND g.grado_id = ? ");
+            params.add(gradoId);
+        } else if (nivelId != null) {
+            q.append("AND gr.nivel_educativo_id = ? ");
+            params.add(nivelId);
+        }
+
+        if (plantelId != null) {
+            q.append("AND (gr.plantel_id = ? OR e.plantel_id = ?) ");
+            params.add(plantelId);
+            params.add(plantelId);
+        }
+
         if (tipoFalta != null && !tipoFalta.isBlank()) { q.append("AND rc.tipo_falta = ? "); params.add(tipoFalta.toUpperCase()); }
         if (requiereSeguimiento != null) { q.append("AND rc.requiere_seguimiento = ? "); params.add(requiereSeguimiento); }
 
