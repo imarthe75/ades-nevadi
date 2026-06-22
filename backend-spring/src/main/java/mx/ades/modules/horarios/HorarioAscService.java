@@ -184,7 +184,11 @@ public class HorarioAscService {
     public record ImportResult(int total, int exitosos, int errores, int eliminados,
                                List<String> detalleErrores) {}
 
-    @Transactional
+    /**
+     * No es {@code @Transactional} a propósito: cada card se inserta con autocommit
+     * independiente (igual que los demás importadores) para que un renglón inválido
+     * no aborte toda la transacción (PostgreSQL 25P02). Reporta éxitos/errores por card.
+     */
     public ImportResult importarXml(byte[] contenido, UUID cicloId, UUID plantelId,
                                     boolean reemplazar, String usuario) {
         Document doc;
