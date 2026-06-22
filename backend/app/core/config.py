@@ -95,19 +95,6 @@ class Settings(BaseSettings):
     OPENAI_MODEL: str = "meta/llama-3.1-70b-instruct"
     ANTHROPIC_API_KEY: str = ""
 
-    # Centinela-AI Compliance (GitLab + Gemini + scanners)
-    GITLAB_BASE_URL: str = "http://gitlab.local"
-    GITLAB_API_TOKEN: str = ""
-    GITLAB_READ_TOKEN: str = ""
-    GITLAB_WEBHOOK_SECRET: str = ""
-
-    GEMINI_API_KEY: str = ""
-    GEMINI_MODEL: str = "gemini-1.5-flash"
-
-    COMPLIANCE_TRIVY_CMD: str = "trivy fs --quiet --format json {path}"
-    COMPLIANCE_TRUFFLEHOG_CMD: str = "trufflehog filesystem --json {path}"
-    COMPLIANCE_MEDUSA_CMD: str = "semgrep --config auto --json {path}"
-
     # BigBlueButton — Videoconferencias Institucionales (FASE 26)
     BBB_SERVER_URL: str = ""          # e.g. https://bbb.institutonevadi.edu.mx/bigbluebutton
     BBB_SHARED_SECRET: str = ""       # Shared secret del servidor BBB
