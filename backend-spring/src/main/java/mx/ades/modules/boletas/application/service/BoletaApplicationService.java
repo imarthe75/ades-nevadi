@@ -31,4 +31,9 @@ public class BoletaApplicationService implements GenerarBoletaUseCase {
     public ResponseEntity<Map<String, Object>> estadoTarea(String taskId, String authHeader) {
         return fastApiPort.estadoTarea(taskId, authHeader);
     }
+
+    @Override
+    public ResponseEntity<byte[]> generarUaemex(UUID estudianteId, UUID cicloId, String authHeader) {
+        return fastApiPort.generarUaemex(estudianteId, cicloId, authHeader);
+    }
 }

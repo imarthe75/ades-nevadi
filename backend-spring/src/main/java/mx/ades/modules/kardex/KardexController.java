@@ -11,6 +11,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -24,6 +25,34 @@ public class KardexController {
 
     private final AdesUserService    userService;
     private final KardexQueryService query;
+
+    /** Grupos UAEMEX vigentes — para el cascading LOV del kardex. */
+    @GetMapping("/grupos")
+    public ResponseEntity<List<Map<String, Object>>> grupos(
+            @RequestParam(value = "plantel_id", required = false) UUID plantelId,
+            @AuthenticationPrincipal Jwt jwt) {
+        AdesUser user = userService.resolveUser(jwt);
+        if (user.getNivelAcceso() != null && user.getNivelAcceso() > 3) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado");
+        }
+        UUID scope = plantelId;
+        if (scope == null && user.getNivelAcceso() != null && user.getNivelAcceso() > 1) {
+            scope = user.getPlantelId();
+        }
+        return ResponseEntity.ok(query.gruposUaemex(scope));
+    }
+
+    /** Alumnos del grupo — para el cascading LOV del kardex. */
+    @GetMapping("/grupos/{grupo_id}/alumnos")
+    public ResponseEntity<List<Map<String, Object>>> alumnosGrupo(
+            @PathVariable("grupo_id") UUID grupoId,
+            @AuthenticationPrincipal Jwt jwt) {
+        AdesUser user = userService.resolveUser(jwt);
+        if (user.getNivelAcceso() != null && user.getNivelAcceso() > 3) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado");
+        }
+        return ResponseEntity.ok(query.alumnosGrupo(grupoId));
+    }
 
     @GetMapping("/{estudiante_id}")
     public ResponseEntity<Map<String, Object>> kardex(

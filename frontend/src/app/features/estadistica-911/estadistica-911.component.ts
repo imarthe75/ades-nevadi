@@ -18,6 +18,10 @@ interface MatrizRow {
   alumnos: number;
 }
 interface GrupoRow { nivel: string; grado: number; grupos: number; }
+interface DiscapacidadRow {
+  nivel: string; grado: number;
+  tipo_discapacidad: string; sexo: string; alumnos: number;
+}
 
 interface Celda { hNI: number; hRep: number; mNI: number; mRep: number; }
 interface FilaEdad { edad: string; celdas: Celda[]; total: number; }
@@ -116,6 +120,40 @@ const BUCKETS: Record<string, { base: number; tope: number }> = {
         </div>
       }
 
+      <!-- IX — Alumnado con discapacidad -->
+      @if (discapacidadRows().length > 0) {
+        <div class="bloque">
+          <div class="bloque-head">
+            <h3>Sección IX — Alumnado con discapacidad</h3>
+            <p-button label="Exportar Excel" icon="pi pi-file-excel" size="small" severity="success"
+              [outlined]="true" (onClick)="exportarDiscapacidad()" />
+          </div>
+          <div class="tabla-scroll">
+            <table class="t911">
+              <thead>
+                <tr>
+                  <th>Nivel</th><th>Grado</th>
+                  <th>Tipo de discapacidad</th>
+                  <th>Hombres</th><th>Mujeres</th><th>Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (r of discapacidadRows(); track r.key) {
+                  <tr>
+                    <td>{{ r.nivel }}</td>
+                    <td>{{ r.grado }}°</td>
+                    <td class="edad">{{ r.tipo }}</td>
+                    <td>{{ r.hombres || '' }}</td>
+                    <td>{{ r.mujeres || '' }}</td>
+                    <td class="tot">{{ r.total }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      }
+
       @if (!cargando() && niveles().length === 0) {
         <p class="text-center text-gray-500 py-6">Sin datos para los filtros seleccionados.</p>
       }
@@ -150,8 +188,9 @@ export class Estadistica911Component implements OnInit {
 
   cicloId = '';
   cargando = signal(false);
-  private matriz = signal<MatrizRow[]>([]);
-  private grupos = signal<GrupoRow[]>([]);
+  private matriz       = signal<MatrizRow[]>([]);
+  private grupos       = signal<GrupoRow[]>([]);
+  private discapacidad = signal<DiscapacidadRow[]>([]);
 
   ngOnInit() { this.cargar(); }
 
@@ -163,6 +202,7 @@ export class Estadistica911Component implements OnInit {
       next: d => {
         this.matriz.set(d.matricula_por_grado_sexo_ingreso_edad ?? []);
         this.grupos.set(d.grupos_por_grado ?? []);
+        this.discapacidad.set(d.discapacidad_por_grado_sexo ?? []);
         this.cargando.set(false);
       },
       error: e => { this.cargando.set(false); this.notify.error(e.error?.message ?? 'Error al generar el reporte 911'); },
@@ -229,6 +269,32 @@ export class Estadistica911Component implements OnInit {
       return { nivel, grados, filas, totalGrado, granTotal, grupos, totalGrupos };
     });
   });
+
+  readonly discapacidadRows = computed(() => {
+    const rows = this.discapacidad();
+    const keys = [...new Set(rows.map(r => `${r.nivel}|${r.grado}|${r.tipo_discapacidad}`))].sort();
+    return keys.map(key => {
+      const [nivel, grado, tipo] = key.split('|');
+      const hRow = rows.find(r => r.nivel === nivel && String(r.grado) === grado && r.tipo_discapacidad === tipo && r.sexo === 'M');
+      const mRow = rows.find(r => r.nivel === nivel && String(r.grado) === grado && r.tipo_discapacidad === tipo && r.sexo === 'F');
+      const hombres = hRow?.alumnos ?? 0;
+      const mujeres = mRow?.alumnos ?? 0;
+      return { key, nivel, grado: Number(grado), tipo: tipo.replace('DISCAPACIDAD_', '').replace(/_/g, ' '), hombres, mujeres, total: hombres + mujeres };
+    });
+  });
+
+  exportarDiscapacidad() {
+    const columns: ExportColumn[] = [
+      { field: 'nivel',   header: 'Nivel' },
+      { field: 'grado',   header: 'Grado' },
+      { field: 'tipo',    header: 'Tipo de discapacidad' },
+      { field: 'hombres', header: 'Hombres' },
+      { field: 'mujeres', header: 'Mujeres' },
+      { field: 'total',   header: 'Total' },
+    ];
+    this.exporter.toXLSX(this.discapacidadRows(), columns, '911 Sección IX', '911_discapacidad');
+    this.notify.success('Exportado Sección IX discapacidad');
+  }
 
   exportar(n: NivelMatriz) {
     const columns: ExportColumn[] = [{ field: 'edad', header: 'Edad' }];

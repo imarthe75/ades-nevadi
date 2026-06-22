@@ -16,31 +16,46 @@ Este documento es el diario de vida y bitácora del agente. Debe ser leído en e
 
 ---
 
-## Sesión 2026-06-22 (continuación) — UAEMEX docs + Centinela-AI scanners ✅
+## Sesión 2026-06-22 — Cascada Plantel→Nivel→Grado→Grupo + Boleta UAEMEX + 911 Sección IX ✅
 
 ### 🔑 Estado del Agente:
 - **Última Conexión:** 2026-06-22
 - **Estado Cognitivo:** Operacional ✅
-- **ades-api:** Running healthy ✅ (reconstruido con Trivy+TruffleHog+Semgrep)
+- **ades-bff:** Running healthy — rebuilt con nuevos endpoints ✅
+- **ades-api:** Running healthy ✅
+- **ades-frontend:** Running — rebuilt con cascadas ✅
 
 ### 🛠️ Tareas Completadas:
 
-**Acta de Evaluación UAEMEX (`mx.ades.modules.acta`):**
-- [x] `ActaQueryService.java`: gruposUaemex(), materiasGrupo(), periodosGrupo(), acta() por grupo×materia
-- [x] `ActaController.java`: 4 endpoints GET `/api/v1/reportes/acta` (roleGuard ≤ 3)
-- [x] `acta-evaluacion.component.ts`: LOVs cascading grupo→materia; cabecera oficial; tabla alumnos con ord/extra/definitiva; firmas; export Excel; `window.print()` con CSS `@media print`
-- [x] Ruta `acta-evaluacion` (roleGuard 3); menú "Acta Evaluación UAEMEX"
-- [x] Build Angular OK (22.8s, 0 errores)
+**Cascada Plantel → Nivel → Grado → Grupo (en todos los módulos pendientes):**
+- [x] `calificaciones.component.ts`: reemplazó effect() con cascada local completa (4 selects); loadPlanteles/loadNiveles/loadGrados; computed isPlantelDisabled/isNivelDisabled
+- [x] `gradebook.component.ts`: añadidos plantelSel/nivelSel/gradoSel + 3 p-select antes del grupo; cascade handlers
+- [x] `evaluaciones.component.ts`: cascada Nivel→Grado→Grupo en dialog "Nueva evaluación"; _nivelId/_gradoId en emptyForm(); payload sin _nivelId/_gradoId
+- [x] `kardex.component.ts`: reescrito completo — Plantel→Semestre→Grupo→Alumno cascade client-side (= mismo patrón que acta-evaluacion); botón "Constancia PDF" llama /api/v1/boletas/uaemex/{id}
 
-**Corrección — Centinela-AI NO pertenece a este proyecto:**
-- [x] Revertidos cambios en `backend/Dockerfile` y `backend/requirements.txt`
-- [x] `ades-api` reconstruido limpio (309 MB, sin scanners)
+**Backend — Kardex grupos y alumnos:**
+- [x] `KardexQueryService.java`: gruposUaemex(plantelId) + alumnosGrupo(grupoId)
+- [x] `KardexController.java`: GET /api/v1/reportes/kardex/grupos + GET /grupos/{id}/alumnos (roleGuard nivelAcceso ≤ 3, scoping plantel)
+
+**Boleta UAEMEX PDF (constancia de calificaciones preparatoria):**
+- [x] `backend/app/api/v1/boletas.py`: nuevo router — GET /boletas/{id} (NEM), GET /boletas/uaemex/{id}, POST /boletas/grupo/{id}/batch, GET /boletas/tarea/{id}
+- [x] `backend/app/templates/boletas/boleta_uaemex.html`: template weasyprint — cabecera, ficha alumno, tabla ord/extra/definitiva, resumen, firmas
+- [x] BFF `BoletaFastApiAdapter` + `BoletaFastApiPort` + `BoletaApplicationService` + `BoletasController`: proxy GET /api/v1/boletas/uaemex/{id}
+- [x] `router.py`: boletas_router registrado
+- [x] PDF verificado: NEM=21157 bytes, UAEMEX=17117 bytes, ambos inician con %PDF-
+
+**Sección IX del Formato 911 SEP — Discapacidad:**
+- [x] `Estadistica911QueryService.java`: discapacidadPorGrado() — tipo_condicion LIKE 'DISCAPACIDAD_%' desde ades_condiciones_cronicas
+- [x] `Estadistica911Controller.java`: discapacidad_por_grado_sexo en response
+- [x] `estadistica-911.component.ts`: DiscapacidadRow interface; discapacidad signal; discapacidadRows computed; tabla Sección IX con exportarDiscapacidad()
+
+**Tests automatizados boletas:**
+- [x] `backend/app/tests/test_boleta.py`: 7 tests — template exists, NEM PDF válido, CURP presente, campos NEM, UAEMEX PDF válido, escala RGEMS. Todos pasaron ✅
 
 ### 🚀 Próximos Pasos:
-- [ ] Boleta UAEMEX PDF (constancia de calificaciones prepa — FastAPI/weasyprint, patrón boleta NEM)
-- [ ] Sección 9 del 911 SEP (discapacidad por grado×sexo desde `ades_condiciones_cronicas`)
-- [ ] Verificar e2e tests (pueden haberse roto con cambios de templates gradebook/horarios)
+- [ ] Verificar e2e tests (pueden haberse roto con cambios de cascada en calificaciones/gradebook/evaluaciones)
 - [ ] Google SSO (esperando credenciales OAuth2 del plantel)
+- [ ] NEM Fase 3: evaluación cualitativa 1°-2° primaria (pendiente definición institucional de descriptores)
 
 ---
 

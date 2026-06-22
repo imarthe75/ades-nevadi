@@ -41,12 +41,15 @@ public class Estadistica911Controller {
         List<Map<String, Object>> matriz  = query.matriz(plantel, cicloId);
         List<Map<String, Object>> grupos  = query.gruposPorGrado(plantel, cicloId);
 
-        return Map.of(
-                "nota", "Cifras de inicio de cursos para transcribir a la plataforma oficial f911 (SEP). " +
-                        "Edad cumplida al 31 de diciembre del año de inicio del ciclo.",
-                "matricula_por_grado_sexo_ingreso_edad", matriz,  // IV.1
-                "grupos_por_grado", grupos                        // IV.2
-        );
+        List<Map<String, Object>> discapacidad = query.discapacidadPorGrado(plantel, cicloId);
+
+        Map<String, Object> result = new java.util.LinkedHashMap<>();
+        result.put("nota", "Cifras de inicio de cursos para transcribir a la plataforma oficial f911 (SEP). " +
+                "Edad cumplida al 31 de diciembre del año de inicio del ciclo.");
+        result.put("matricula_por_grado_sexo_ingreso_edad", matriz);  // IV.1
+        result.put("grupos_por_grado", grupos);                        // IV.2
+        result.put("discapacidad_por_grado_sexo", discapacidad);       // IX
+        return result;
     }
 
     private int nivel(AdesUser u) {

@@ -1,22 +1,25 @@
-import { Component, signal, inject } from '@angular/core';
+import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { ButtonModule } from 'primeng/button';
-import { InputTextModule } from 'primeng/inputtext';
+import { SelectModule } from 'primeng/select';
 import { ToastModule } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
 import { ApexNotificationService } from 'apex-component-library';
+import { ContextService } from '../../core/services/context.service';
 import { ExportService, ExportColumn } from '../../core/services/export.service';
 
+interface GrupoRaw {
+  id: string; nombre_grupo: string;
+  semestre: string; numero_grado: number;
+  nivel: string; plantel: string; plantel_id: string; ciclo: string;
+}
+interface AlumnoOpt { value: string; label: string; }
 interface MateriaKardex {
-  materia: string;
-  clave: string | null;
-  ordinario: number | null;
-  extraordinario: number | null;
-  definitiva: number | null;
-  acreditada: boolean;
-  inasistencias: number;
+  materia: string; clave: string | null;
+  ordinario: number | null; extraordinario: number | null;
+  definitiva: number | null; acreditada: boolean; inasistencias: number;
 }
 interface Kardex {
   alumno: {
@@ -34,7 +37,7 @@ interface Kardex {
 @Component({
   selector: 'app-kardex',
   standalone: true,
-  imports: [CommonModule, FormsModule, ButtonModule, InputTextModule, ToastModule],
+  imports: [CommonModule, FormsModule, ButtonModule, SelectModule, ToastModule],
   providers: [MessageService],
   template: `
     <p-toast />
@@ -42,14 +45,39 @@ interface Kardex {
       <div class="apex-toolbar">
         <h2 class="apex-title">Kardex / Historial Académico — UAEMEX</h2>
         <div class="apex-toolbar-actions">
-          <input pInputText [(ngModel)]="estudianteId" placeholder="UUID del estudiante…"
-            style="width:280px" (keyup.enter)="cargar()" />
-          <input pInputText [(ngModel)]="cicloId" placeholder="UUID ciclo (opcional)…" style="width:220px" />
+
+          <!-- Plantel -->
+          <p-select [options]="plantelesOpts()" optionLabel="label" optionValue="value"
+            placeholder="Plantel…" [(ngModel)]="plantelSel"
+            [disabled]="isPlantelDisabled()"
+            (ngModelChange)="onPlantelChange()" style="min-width:160px" />
+
+          <!-- Semestre -->
+          <p-select [options]="semestresOpts()" optionLabel="label" optionValue="value"
+            placeholder="Semestre…" [(ngModel)]="semestreSel"
+            (ngModelChange)="onSemestreChange()"
+            [disabled]="!plantelSel" style="min-width:140px" />
+
+          <!-- Grupo -->
+          <p-select [options]="gruposOpts()" optionLabel="label" optionValue="value"
+            placeholder="Grupo…" [(ngModel)]="grupoSel"
+            (ngModelChange)="onGrupoChange($event)"
+            [disabled]="!semestreSel" style="min-width:110px" />
+
+          <!-- Alumno -->
+          <p-select [options]="alumnosOpts()" optionLabel="label" optionValue="value"
+            placeholder="Alumno…" [(ngModel)]="alumnoSel"
+            [disabled]="!grupoSel" [filter]="true" filterBy="label"
+            style="min-width:240px" />
+
           <p-button label="Consultar" icon="pi pi-search" size="small" (onClick)="cargar()"
-            [loading]="cargando()" [disabled]="!estudianteId" />
+            [loading]="cargando()" [disabled]="!alumnoSel" />
+
           @if (data()?.alumno) {
             <p-button label="Excel" icon="pi pi-file-excel" size="small" severity="success"
               [outlined]="true" (onClick)="exportar()" />
+            <p-button label="Constancia PDF" icon="pi pi-file-pdf" size="small" severity="danger"
+              [outlined]="true" [loading]="descargando()" (onClick)="descargarPdf()" />
           }
         </div>
       </div>
@@ -109,16 +137,17 @@ interface Kardex {
 
         <p class="nota">{{ data()!.escala }}. Definitiva = ordinario si ≥ 6.0; en caso
           contrario, la calificación de examen extraordinario.</p>
+
       } @else if (!cargando()) {
         <p class="text-center text-gray-500 py-6">
-          Introduce el UUID de un estudiante de preparatoria (UAEMEX) y consulta su kardex.
+          Selecciona plantel, semestre, grupo y alumno para consultar el kardex.
         </p>
       }
     </div>
   `,
   styles: [`
     .apex-page { padding: 1rem; }
-    .apex-toolbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; flex-wrap:wrap; gap:.5rem; }
+    .apex-toolbar { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:1rem; flex-wrap:wrap; gap:.5rem; }
     .apex-title { margin:0; font-size:1.25rem; font-weight:600; }
     .apex-toolbar-actions { display:flex; gap:.5rem; align-items:center; flex-wrap:wrap; }
     .ficha { display:grid; grid-template-columns:repeat(3,1fr); gap:.5rem 1rem; background:var(--surface-100);
@@ -137,31 +166,118 @@ interface Kardex {
     .nota { font-size:.78rem; color:var(--text-color-secondary); margin-top:.6rem; }
   `],
 })
-export class KardexComponent {
-  private http = inject(HttpClient);
-  private notify = inject(ApexNotificationService);
+export class KardexComponent implements OnInit {
+  private http     = inject(HttpClient);
+  private notify   = inject(ApexNotificationService);
   private exporter = inject(ExportService);
+  private ctx      = inject(ContextService);
 
-  estudianteId = '';
-  cicloId = '';
-  cargando = signal(false);
-  data = signal<Kardex | null>(null);
+  // ── Cascada: Plantel → Semestre → Grupo → Alumno ────────────────────────
+  private _grupos  = signal<GrupoRaw[]>([]);
+  private _alumnos = signal<AlumnoOpt[]>([]);
+
+  plantelSel  = '';
+  semestreSel = '';
+  grupoSel    = '';
+  alumnoSel   = '';
+
+  cargando     = signal(false);
+  descargando  = signal(false);
+  data         = signal<Kardex | null>(null);
+
+  readonly isPlantelDisabled = computed(() => (this.ctx.nivelAcceso() ?? 0) > 2);
+
+  // Client-side derived options (single API call for grupos)
+  plantelesOpts = computed(() => {
+    const seen = new Set<string>();
+    return this._grupos()
+      .filter(g => { const ok = !seen.has(g.plantel); seen.add(g.plantel); return ok; })
+      .map(g => ({ value: g.plantel, label: g.plantel }));
+  });
+
+  semestresOpts = computed(() => {
+    const seen = new Set<string>();
+    return this._grupos()
+      .filter(g => g.plantel === this.plantelSel)
+      .filter(g => { const ok = !seen.has(g.semestre); seen.add(g.semestre); return ok; })
+      .sort((a, b) => a.numero_grado - b.numero_grado)
+      .map(g => ({ value: g.semestre, label: g.semestre }));
+  });
+
+  gruposOpts = computed(() =>
+    this._grupos()
+      .filter(g => g.plantel === this.plantelSel && g.semestre === this.semestreSel)
+      .map(g => ({ value: g.id, label: `Grupo ${g.nombre_grupo}` }))
+  );
+
+  alumnosOpts = computed(() => this._alumnos());
+
+  ngOnInit() {
+    this.http.get<GrupoRaw[]>('/api/v1/reportes/kardex/grupos').subscribe({
+      next: g => {
+        this._grupos.set(g);
+        const ctxPlantel = this.ctx.plantel();
+        if (ctxPlantel) this.plantelSel = ctxPlantel.nombre_plantel ?? '';
+      },
+      error: () => this.notify.error('No se pudieron cargar los grupos UAEMEX'),
+    });
+  }
+
+  onPlantelChange() {
+    this.semestreSel = ''; this.grupoSel = ''; this.alumnoSel = '';
+    this._alumnos.set([]); this.data.set(null);
+  }
+
+  onSemestreChange() {
+    this.grupoSel = ''; this.alumnoSel = '';
+    this._alumnos.set([]); this.data.set(null);
+  }
+
+  onGrupoChange(grupoId: string) {
+    this.alumnoSel = ''; this._alumnos.set([]); this.data.set(null);
+    if (!grupoId) return;
+    this.http.get<any[]>(`/api/v1/reportes/kardex/grupos/${grupoId}/alumnos`).subscribe({
+      next: list => this._alumnos.set(list.map(a => ({
+        value: a['id'], label: `${a['nombre']} (${a['matricula'] ?? '—'})`,
+      }))),
+      error: () => this.notify.error('No se pudieron cargar los alumnos del grupo'),
+    });
+  }
 
   fmt(v: number | null): string {
     return v === null || v === undefined ? '—' : Number(v).toFixed(1);
   }
 
   cargar() {
-    if (!this.estudianteId.trim()) return;
+    if (!this.alumnoSel) return;
     this.cargando.set(true);
     this.data.set(null);
-    const params: any = {};
-    if (this.cicloId.trim()) params.ciclo_id = this.cicloId.trim();
-    this.http.get<Kardex>(`/api/v1/reportes/kardex/${this.estudianteId.trim()}`, { params }).subscribe({
+    this.http.get<Kardex>(`/api/v1/reportes/kardex/${this.alumnoSel}`).subscribe({
       next: d => { this.data.set(d); this.cargando.set(false); },
       error: e => {
         this.cargando.set(false);
         this.notify.error(e.error?.message ?? e.error?.detail ?? 'No se encontró kardex UAEMEX');
+      },
+    });
+  }
+
+  descargarPdf() {
+    if (!this.alumnoSel) return;
+    this.descargando.set(true);
+    this.http.get(`/api/v1/boletas/uaemex/${this.alumnoSel}`, { responseType: 'blob' }).subscribe({
+      next: blob => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const k = this.data();
+        a.href = url;
+        a.download = `constancia_uaemex_${k?.alumno?.matricula ?? this.alumnoSel}.pdf`;
+        a.click();
+        URL.revokeObjectURL(url);
+        this.descargando.set(false);
+      },
+      error: () => {
+        this.notify.error('No se pudo descargar la constancia UAEMEX');
+        this.descargando.set(false);
       },
     });
   }
@@ -179,11 +295,9 @@ export class KardexComponent {
       { field: 'inasistencias', header: 'Inasistencias' },
     ];
     const data = k.materias.map(m => ({
-      ...m,
-      estatus: m.acreditada ? 'Acreditada' : 'No acreditada',
+      ...m, estatus: m.acreditada ? 'Acreditada' : 'No acreditada',
     }));
-    const file = `kardex_${k.alumno.matricula}`;
-    this.exporter.toXLSX(data, columns, 'Kardex UAEMEX', file);
+    this.exporter.toXLSX(data, columns, 'Kardex UAEMEX', `kardex_${k.alumno.matricula}`);
     this.notify.success('Kardex exportado');
   }
 }

@@ -135,6 +135,52 @@ public class KardexQueryService {
         return out;
     }
 
+    /** Grupos UAEMEX vigentes (reutiliza la misma lógica que ActaQueryService). */
+    public List<Map<String, Object>> gruposUaemex(UUID plantelId) {
+        MapSqlParameterSource p = new MapSqlParameterSource()
+                .addValue("plantel", plantelId != null ? plantelId.toString() : null);
+        return jdbc.queryForList(
+                """
+                SELECT g.id, g.nombre_grupo,
+                       gr.nombre_grado   AS semestre,
+                       gr.numero_grado,
+                       n.nombre_nivel    AS nivel,
+                       pl.nombre_plantel AS plantel,
+                       pl.id             AS plantel_id,
+                       c.nombre_ciclo    AS ciclo
+                FROM ades_grupos g
+                JOIN ades_grados gr            ON gr.id = g.grado_id
+                JOIN ades_niveles_educativos n  ON n.id  = gr.nivel_educativo_id
+                JOIN ades_ciclos_escolares c    ON c.id  = g.ciclo_escolar_id
+                LEFT JOIN ades_planteles pl     ON pl.id = gr.plantel_id
+                WHERE c.sistema_educativo = 'UAEMEX'
+                  AND c.es_vigente = true
+                  AND g.is_active   = true
+                  AND (CAST(:plantel AS uuid) IS NULL OR gr.plantel_id = CAST(:plantel AS uuid))
+                ORDER BY pl.nombre_plantel, gr.numero_grado, g.nombre_grupo
+                """,
+                p);
+    }
+
+    /** Alumnos inscritos en un grupo (para el selector del kardex). */
+    public List<Map<String, Object>> alumnosGrupo(UUID grupoId) {
+        MapSqlParameterSource p = new MapSqlParameterSource()
+                .addValue("grupo", grupoId.toString());
+        return jdbc.queryForList(
+                """
+                SELECT e.id,
+                       trim(p.apellido_paterno||' '||COALESCE(p.apellido_materno,'')||', '||p.nombre) AS nombre,
+                       e.matricula
+                FROM ades_inscripciones i
+                JOIN ades_estudiantes e ON e.id = i.estudiante_id
+                JOIN ades_personas    p ON p.id = e.persona_id
+                WHERE i.grupo_id  = CAST(:grupo AS uuid)
+                  AND i.is_active = true
+                ORDER BY p.apellido_paterno, p.apellido_materno, p.nombre
+                """,
+                p);
+    }
+
     private BigDecimal toBd(Object v) {
         if (v == null) return null;
         if (v instanceof BigDecimal b) return b;

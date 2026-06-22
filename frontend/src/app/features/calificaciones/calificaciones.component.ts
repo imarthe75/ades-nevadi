@@ -49,8 +49,23 @@ import { ApexNotificationService } from 'apex-component-library';
       <app-help-button modulo="calificaciones" />
     </div>
 
-    <!-- ── Filtros APEX-style ── -->
+    <!-- ── Filtros APEX-style — Cascada Plantel → Nivel → Grado → Grupo ── -->
     <div class="filter-bar">
+      <p-select
+        [options]="plantelesOpts()" optionLabel="nombre_plantel" optionValue="id"
+        placeholder="Plantel…" [(ngModel)]="selectedPlantelId"
+        [disabled]="isPlantelDisabled()"
+        (onChange)="onPlantelChange()" />
+      <p-select
+        [options]="nivelesOpts()" optionLabel="nombre_nivel" optionValue="id"
+        placeholder="Nivel…" [(ngModel)]="selectedNivelId"
+        [disabled]="isNivelDisabled() || !selectedPlantelId"
+        (onChange)="onNivelChange()" />
+      <p-select
+        [options]="gradosOpts()" optionLabel="nombre_grado" optionValue="id"
+        placeholder="Grado…" [(ngModel)]="selectedGradoId"
+        [disabled]="!selectedNivelId"
+        (onChange)="onGradoChange()" />
       <p-select
         [options]="grupos()"
         [(ngModel)]="selectedGrupo"
@@ -58,9 +73,8 @@ import { ApexNotificationService } from 'apex-component-library';
         placeholder="Seleccionar grupo"
         (onChange)="onGrupoChange()"
         [showClear]="true"
-      
-
-      [filter]="true" filterPlaceholder="Buscar..."/>
+        [disabled]="!selectedGradoId"
+        [filter]="true" filterPlaceholder="Buscar..."/>
       <p-select
         [options]="materias()"
         [(ngModel)]="selectedMateria"
@@ -69,9 +83,7 @@ import { ApexNotificationService } from 'apex-component-library';
         (onChange)="loadLibreta()"
         [showClear]="true"
         [disabled]="!selectedGrupo"
-      
-
-      [filter]="true" filterPlaceholder="Buscar..."/>
+        [filter]="true" filterPlaceholder="Buscar..."/>
     </div>
 
     <!-- ── Libreta — Editable Interactive Report ── -->
@@ -219,48 +231,95 @@ export class CalificacionesComponent implements OnInit {
   private readonly ctx = inject(ContextService);
   private readonly notify = inject(ApexNotificationService);
 
-  grupos    = signal<GrupoConLabel[]>([]);
-  materias  = signal<Materia[]>([]);
-  libreta   = signal<LibretaGrupo | null>(null);
-  saving    = signal(false);
+  // ── Cascada: Plantel → Nivel → Grado → Grupo ────────────────────────────
+  plantelesOpts = signal<any[]>([]);
+  nivelesOpts   = signal<any[]>([]);
+  gradosOpts    = signal<any[]>([]);
+  grupos        = signal<GrupoConLabel[]>([]);
+  materias      = signal<Materia[]>([]);
+  libreta       = signal<LibretaGrupo | null>(null);
+  saving        = signal(false);
 
-  selectedGrupo: GrupoConLabel | null = null;
-  selectedMateria: Materia | null = null;
+  selectedPlantelId: string | null = null;
+  selectedNivelId:   string | null = null;
+  selectedGradoId:   string | null = null;
+  selectedGrupo:     GrupoConLabel | null = null;
+  selectedMateria:   Materia | null = null;
 
-  // Registro de celdas editadas: { `${estudiante_id}|${periodo}` }
+  readonly isPlantelDisabled = computed(() => (this.ctx.nivelAcceso() ?? 0) > 2);
+  readonly isNivelDisabled   = computed(() => (this.ctx.nivelAcceso() ?? 0) > 3);
+
   private editadas = new Set<string>();
 
-  columnas = computed(() => this.libreta()?.periodos ?? []);
+  columnas       = computed(() => this.libreta()?.periodos ?? []);
   pendingChanges = computed(() => this.editadas.size);
 
-  constructor() {
-    effect(() => {
-      const plantelId = this.ctx.plantel()?.id;
-      const nivelNombre = this.ctx.nivel()?.nombre_nivel;
-      this.loadGrupos(plantelId, nivelNombre);
-    });
-  }
-
-  loadGrupos(plantelId?: string, nivelNombre?: string): void {
-    const params: Record<string, any> = { solo_activos: true, ciclo_vigente: true };
-    if (plantelId) params['plantel_id'] = plantelId;
-    if (nivelNombre && nivelNombre !== 'TODOS') params['nivel'] = nivelNombre;
-
-    this.api.get<Grupo[]>('/grupos', params).subscribe({
-      next: g => {
-        this.grupos.set(g.map(x => ({ ...x, _label: grupoLabel(x) })));
-        if (this.selectedGrupo && !g.some(x => x.id === this.selectedGrupo!.id)) {
-          this.selectedGrupo = null;
-          this.selectedMateria = null;
-          this.libreta.set(null);
-          this.editadas.clear();
+  ngOnInit(): void {
+    this.api.get<any[]>('/planteles').subscribe({
+      next: list => {
+        this.plantelesOpts.set(list);
+        const ctxPlantel = this.ctx.plantel();
+        if (ctxPlantel) {
+          this.selectedPlantelId = ctxPlantel.id;
+          this._loadNiveles(ctxPlantel.id);
         }
       },
-      error: () => this.grupos.set([])
     });
   }
 
-  ngOnInit(): void {
+  private _loadNiveles(plantelId: string): void {
+    this.api.get<any[]>(`/planteles/${plantelId}/niveles`).subscribe({
+      next: list => {
+        this.nivelesOpts.set(list);
+        const ctxNivel = this.ctx.nivel();
+        if (ctxNivel && list.some((n: any) => n.id === ctxNivel.id)) {
+          this.selectedNivelId = ctxNivel.id;
+          this._loadGrados(ctxNivel.id);
+        }
+      },
+    });
+  }
+
+  private _loadGrados(nivelId: string): void {
+    this.api.get<any[]>('/catalogs/grados', { nivel_id: nivelId }).subscribe({
+      next: list => this.gradosOpts.set(list),
+    });
+  }
+
+  onPlantelChange(): void {
+    this.selectedNivelId = null;
+    this.selectedGradoId = null;
+    this.selectedGrupo   = null;
+    this.selectedMateria = null;
+    this.nivelesOpts.set([]); this.gradosOpts.set([]); this.grupos.set([]);
+    this.libreta.set(null); this.editadas.clear();
+    if (this.selectedPlantelId) this._loadNiveles(this.selectedPlantelId);
+  }
+
+  onNivelChange(): void {
+    this.selectedGradoId = null;
+    this.selectedGrupo   = null;
+    this.selectedMateria = null;
+    this.gradosOpts.set([]); this.grupos.set([]);
+    this.libreta.set(null); this.editadas.clear();
+    if (this.selectedNivelId) this._loadGrados(this.selectedNivelId);
+  }
+
+  onGradoChange(): void {
+    this.selectedGrupo   = null;
+    this.selectedMateria = null;
+    this.grupos.set([]);
+    this.libreta.set(null); this.editadas.clear();
+    if (this.selectedPlantelId && this.selectedGradoId) {
+      this.api.get<Grupo[]>('/grupos', {
+        plantel_id: this.selectedPlantelId,
+        grado_id: this.selectedGradoId,
+        solo_activos: true, ciclo_vigente: true,
+      }).subscribe({
+        next: g => this.grupos.set(g.map(x => ({ ...x, _label: grupoLabel(x) }))),
+        error: () => this.grupos.set([]),
+      });
+    }
   }
 
   onGrupoChange(): void {

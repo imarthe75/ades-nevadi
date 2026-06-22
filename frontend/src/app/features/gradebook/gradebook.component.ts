@@ -109,19 +109,32 @@ interface Insights {
   </div>
 </div>
 
-<!-- Filtros -->
+<!-- Filtros — Cascada Plantel → Nivel → Grado → Grupo -->
 <div class="filter-bar">
+  <p-select [options]="plantelesOpts()" optionLabel="nombre_plantel" optionValue="id"
+            placeholder="Plantel…" [(ngModel)]="plantelSel"
+            [disabled]="isPlantelDisabled()"
+            (onChange)="onPlantelChange()" />
+  <p-select [options]="nivelesOpts()" optionLabel="nombre_nivel" optionValue="id"
+            placeholder="Nivel…" [(ngModel)]="nivelSel"
+            [disabled]="isNivelDisabled() || !plantelSel"
+            (onChange)="onNivelChange()" />
+  <p-select [options]="gradosOpts()" optionLabel="nombre_grado" optionValue="id"
+            placeholder="Grado…" [(ngModel)]="gradoSel"
+            [disabled]="!nivelSel"
+            (onChange)="onGradoChange()" />
   <p-select [options]="grupos()" optionLabel="_label" optionValue="id"
             placeholder="Grupo" [(ngModel)]="grupoSel"
-            (onChange)="onGrupoChange()" 
+            [disabled]="!gradoSel"
+            (onChange)="onGrupoChange()"
  [filter]="true" filterPlaceholder="Buscar..."/>
   <p-select [options]="materias()" optionLabel="nombre_materia" optionValue="id"
             placeholder="Materia" [(ngModel)]="materiaSel"
-            (onChange)="cargarActividades()" [disabled]="!grupoSel" 
+            (onChange)="cargarActividades()" [disabled]="!grupoSel"
  [filter]="true" filterPlaceholder="Buscar..."/>
   <p-select [options]="periodos()" optionLabel="nombre_periodo" optionValue="id"
             placeholder="Período" [(ngModel)]="periodoSel"
-            (onChange)="cargarConcentrado()" [disabled]="!grupoSel" 
+            (onChange)="cargarConcentrado()" [disabled]="!grupoSel"
  [filter]="true" filterPlaceholder="Buscar..."/>
 </div>
 
@@ -400,6 +413,18 @@ export class GradebookComponent implements OnInit {
   private exporter = inject(ExportService);
   private readonly notify = inject(ApexNotificationService);
 
+  // ── Cascada: Plantel → Nivel → Grado → Grupo ────────────────────────────
+  plantelesOpts = signal<any[]>([]);
+  nivelesOpts   = signal<any[]>([]);
+  gradosOpts    = signal<any[]>([]);
+
+  plantelSel: string | null = null;
+  nivelSel:   string | null = null;
+  gradoSel:   string | null = null;
+
+  readonly isPlantelDisabled = computed(() => (this.ctx.nivelAcceso() ?? 0) > 2);
+  readonly isNivelDisabled   = computed(() => (this.ctx.nivelAcceso() ?? 0) > 3);
+
   grupos = signal<GrupoOpt[]>([]);
   materias = signal<MateriaOpt[]>([]);
   periodos = signal<PeriodoOpt[]>([]);
@@ -518,15 +543,65 @@ export class GradebookComponent implements OnInit {
     fecha_asignacion: '', fecha_entrega: '', puntaje_maximo: 10.0,
   };
 
-  ngOnInit() { this.cargarGrupos(); }
-
-  cargarGrupos() {
-    const plantelId = this.ctx.plantel()?.id;
-    const params = plantelId ? `?plantel_id=${plantelId}` : '';
-    this.api.get(`/grupos${params}`).subscribe((r: any) => {
-      const list: any[] = r.data ?? r;
-      this.grupos.set(list.map((g: any) => ({ ...g, _label: grupoLabel(g) || g.nombre_grupo })));
+  ngOnInit() {
+    this.api.get<any[]>('/planteles').subscribe({
+      next: list => {
+        this.plantelesOpts.set(list);
+        const ctxPlantel = this.ctx.plantel();
+        if (ctxPlantel) {
+          this.plantelSel = ctxPlantel.id;
+          this._loadNiveles(ctxPlantel.id);
+        }
+      },
     });
+  }
+
+  private _loadNiveles(plantelId: string): void {
+    this.api.get<any[]>(`/planteles/${plantelId}/niveles`).subscribe({
+      next: list => {
+        this.nivelesOpts.set(list);
+        const ctxNivel = this.ctx.nivel();
+        if (ctxNivel && list.some((n: any) => n.id === ctxNivel.id)) {
+          this.nivelSel = ctxNivel.id;
+          this._loadGrados(ctxNivel.id);
+        }
+      },
+    });
+  }
+
+  private _loadGrados(nivelId: string): void {
+    this.api.get<any[]>('/catalogs/grados', { nivel_id: nivelId }).subscribe({
+      next: list => this.gradosOpts.set(list),
+    });
+  }
+
+  onPlantelChange(): void {
+    this.nivelSel   = null; this.gradoSel   = null; this.grupoSel   = null;
+    this.materiaSel = null; this.periodoSel = null;
+    this.nivelesOpts.set([]); this.gradosOpts.set([]); this.grupos.set([]);
+    this.actividades.set([]); this.concentrado.set([]);
+    if (this.plantelSel) this._loadNiveles(this.plantelSel);
+  }
+
+  onNivelChange(): void {
+    this.gradoSel   = null; this.grupoSel   = null;
+    this.materiaSel = null; this.periodoSel = null;
+    this.gradosOpts.set([]); this.grupos.set([]);
+    this.actividades.set([]); this.concentrado.set([]);
+    if (this.nivelSel) this._loadGrados(this.nivelSel);
+  }
+
+  onGradoChange(): void {
+    this.grupoSel   = null; this.materiaSel = null; this.periodoSel = null;
+    this.grupos.set([]); this.actividades.set([]); this.concentrado.set([]);
+    if (this.plantelSel && this.gradoSel) {
+      this.api.get<any[]>('/grupos', { plantel_id: this.plantelSel, grado_id: this.gradoSel }).subscribe({
+        next: (r: any) => {
+          const list: any[] = r.data ?? r;
+          this.grupos.set(list.map((g: any) => ({ ...g, _label: grupoLabel(g) || g.nombre_grupo })));
+        },
+      });
+    }
   }
 
   onGrupoChange() {
