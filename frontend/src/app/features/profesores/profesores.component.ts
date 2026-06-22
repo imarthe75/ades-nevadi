@@ -122,9 +122,20 @@ export class ProfesoresComponent implements OnInit {
   private readonly exportCols: ExportColumn[] = [
     { field: 'numero_empleado', header: 'No. Empleado' },
     { field: 'nombre_completo', header: 'Nombre' },
+    { field: 'curp', header: 'CURP' },
     { field: 'rfc', header: 'RFC' },
+    { field: 'genero', header: 'Género' },
+    { field: 'fecha_nacimiento', header: 'Fecha Nacimiento' },
+    { field: 'telefono', header: 'Teléfono' },
+    { field: 'email_personal', header: 'Email' },
+    { field: 'plantel', header: 'Plantel' },
     { field: 'tipo_contrato', header: 'Contrato' },
     { field: 'especialidad', header: 'Especialidad' },
+    { field: 'nivel_estudios', header: 'Nivel Estudios' },
+    { field: 'cedula_profesional', header: 'Cédula Profesional' },
+    { field: 'nss', header: 'NSS' },
+    { field: 'turno', header: 'Turno' },
+    { field: 'fecha_ingreso_inst', header: 'Fecha Ingreso' },
   ];
 
   readonly recargar = () => this.cargarProfesores();
@@ -141,15 +152,24 @@ export class ProfesoresComponent implements OnInit {
       next: resp => {
         this.profesores.set(resp.data);
         this.totalProfesores.set(resp.total);
-        this.profesoresDatos.set(resp.data.map(p => ({
+        this.profesoresDatos.set(resp.data.map((p: any) => ({
           id: p.id,
           numero_empleado: p.numero_empleado,
           nombre_completo: `${p.persona?.nombre} ${p.persona?.apellido_paterno} ${p.persona?.apellido_materno || ''}`.trim(),
-          rfc: p.rfc || '—',
-          tipo_contrato: p.tipo_contrato || '—',
-          especialidad: p.especialidad || '—',
-          turno: p.turno || '—',
+          curp: p.persona?.curp || '',
+          rfc: p.rfc || '',
+          genero: p.persona?.genero || '',
+          fecha_nacimiento: p.persona?.fecha_nacimiento || '',
+          telefono: p.persona?.telefono || '',
+          email_personal: p.persona?.email_personal || '',
+          plantel: p.plantel_nombre || '—',
+          tipo_contrato: p.tipo_contrato || '',
+          especialidad: p.especialidad || '',
+          nivel_estudios: p.nivel_estudios || '',
           cedula_profesional: p.cedula_profesional || '',
+          nss: p.nss || '',
+          turno: p.turno || '',
+          fecha_ingreso_inst: p.fecha_ingreso_inst || '',
           _original: p,
         })));
         this.loadingTabla.set(false);

@@ -270,13 +270,35 @@ export class CalificacionesComponent implements OnInit {
     if (!this.selectedGrupo) return;
 
     const gradoId = this.selectedGrupo.grado_id;
-    const params: Record<string, any> = { grado_id: gradoId };
     const cicloId = this.ctx.ciclo()?.id;
-    if (cicloId) params['ciclo_id'] = cicloId;
-    this.api.get<Materia[]>('/planes-estudio', params).subscribe(planes => {
-      // planes contiene MateriaPlanOut — extraemos materias únicas
-      const materias: Materia[] = (planes as any[]).map((p: any) => p.materia).filter(Boolean);
-      this.materias.set(materias);
+    const planParams: Record<string, any> = { grado_id: gradoId };
+    if (cicloId) planParams['ciclo_id'] = cicloId;
+
+    // Cargar planes del grado para obtener las materia_ids vigentes
+    this.api.get<any[]>('/planes-estudio', planParams).subscribe({
+      next: planes => {
+        const materiaIds = new Set(planes.map((p: any) => p.materia_id).filter(Boolean));
+        // Cargar todas las materias y filtrar por las que están en el plan del grado
+        this.api.get<Materia[]>('/materias').subscribe({
+          next: all => {
+            const filtradas = materiaIds.size > 0
+              ? all.filter(m => materiaIds.has(m.id))
+              : all;
+            this.materias.set(filtradas.sort((a, b) => a.nombre_materia.localeCompare(b.nombre_materia)));
+          },
+          error: () => this.materias.set([]),
+        });
+      },
+      error: () => {
+        // Fallback: cargar materias por nivel del grupo
+        const nivelNombre = this.selectedGrupo?.nombre_nivel;
+        const params: Record<string, any> = {};
+        if (nivelNombre) params['nivel'] = nivelNombre;
+        this.api.get<Materia[]>('/materias', params).subscribe({
+          next: all => this.materias.set(all.sort((a, b) => a.nombre_materia.localeCompare(b.nombre_materia))),
+          error: () => this.materias.set([]),
+        });
+      },
     });
   }
 

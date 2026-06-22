@@ -22,9 +22,12 @@ public class ProfesorQueryService {
             SELECT pr.id, pr.numero_empleado, pr.rfc, pr.nss, pr.cedula_profesional,
                    pr.especialidad, pr.turno, pr.tipo_contrato, pr.nivel_estudios,
                    pr.fecha_ingreso_inst, pr.is_active, pr.plantel_id, pr.persona_id,
-                   p.nombre, p.apellido_paterno, p.apellido_materno, p.curp
+                   p.nombre, p.apellido_paterno, p.apellido_materno, p.curp,
+                   p.genero, p.fecha_nacimiento, p.telefono, p.email_personal, p.nacionalidad,
+                   pl.nombre_plantel
             FROM ades_profesores pr
             JOIN ades_personas p ON p.id = pr.persona_id
+            LEFT JOIN ades_planteles pl ON pl.id = pr.plantel_id
             WHERE pr.is_active = TRUE
             """);
 
@@ -44,6 +47,11 @@ public class ProfesorQueryService {
             persona.put("apellido_paterno", rs.getString("apellido_paterno"));
             persona.put("apellido_materno", rs.getString("apellido_materno"));
             persona.put("curp",             rs.getString("curp"));
+            persona.put("genero",           rs.getString("genero"));
+            persona.put("fecha_nacimiento", rs.getObject("fecha_nacimiento"));
+            persona.put("telefono",         rs.getString("telefono"));
+            persona.put("email_personal",   rs.getString("email_personal"));
+            persona.put("nacionalidad",     rs.getString("nacionalidad"));
 
             Map<String, Object> row = new LinkedHashMap<>();
             row.put("id",                rs.getObject("id",         UUID.class));
@@ -58,6 +66,7 @@ public class ProfesorQueryService {
             row.put("fecha_ingreso_inst",rs.getObject("fecha_ingreso_inst"));
             row.put("is_active",         rs.getBoolean("is_active"));
             row.put("plantel_id",        rs.getObject("plantel_id", UUID.class));
+            row.put("plantel_nombre",    rs.getString("nombre_plantel"));
             row.put("persona_id",        rs.getObject("persona_id", UUID.class));
             row.put("persona",           persona);
             return row;

@@ -18,6 +18,7 @@ import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
 import { ExportService, ExportColumn } from '../../core/services/export.service';
 import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
+import { grupoLabel } from '../../core/models';
 
 type TagSeverity = 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' | undefined;
 
@@ -337,7 +338,7 @@ export class EvaluacionesComponent implements OnInit {
     if (plantel) params['plantel_id'] = plantel.id;
     if (ciclo)   params['ciclo_id']   = ciclo.id;
     this.api.get<any[]>('/grupos', params).subscribe(list => {
-      this.grupos.set(list.map(g => ({ label: `${g.nombre_grupo} — ${g.nombre_grado ?? ''}`, value: g.id })));
+      this.grupos.set(list.map(g => ({ label: grupoLabel(g) || `${g.nombre_grupo} — ${g.nombre_grado ?? ''}`, value: g.id })));
     });
   }
 

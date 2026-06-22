@@ -8,14 +8,19 @@ public enum TipoEntidadImport {
     ALUMNOS(
             2,
             new String[]{"nombre", "curp"},
-            new String[]{"nombre", "apellido_paterno", "apellido_materno", "curp", "genero",
-                    "fecha_nacimiento", "fecha_ingreso", "clave_plantel"}
+            new String[]{"nombre", "apellido_paterno", "apellido_materno", "curp", "rfc", "genero",
+                    "fecha_nacimiento", "telefono", "email_personal", "nacionalidad",
+                    "clave_plantel", "fecha_ingreso", "nss", "escuela_procedencia",
+                    "clave_ct_procedencia", "promedio_procedencia", "beca_tipo", "beca_monto",
+                    "folio_sep", "tipo_alumno"}
     ),
     PROFESORES(
             2,
             new String[]{"nombre", "curp", "numero_empleado"},
-            new String[]{"nombre", "apellido_paterno", "apellido_materno", "curp", "genero",
-                    "fecha_nacimiento", "numero_empleado", "tipo_contrato", "clave_plantel"}
+            new String[]{"nombre", "apellido_paterno", "apellido_materno", "curp", "rfc", "genero",
+                    "fecha_nacimiento", "telefono", "email_personal", "numero_empleado",
+                    "tipo_contrato", "clave_plantel", "nss", "cedula_profesional",
+                    "especialidad", "nivel_estudios", "fecha_ingreso_inst"}
     ),
     MATERIAS(
             2,
@@ -30,8 +35,10 @@ public enum TipoEntidadImport {
     AULAS(
             3,
             new String[]{"nombre_aula", "clave_plantel"},
-            new String[]{"nombre_aula", "tipo_aula", "capacidad_alumnos", "clave_plantel",
-                    "tiene_proyector", "tiene_pizarra_digital", "tiene_internet", "observaciones"}
+            new String[]{"nombre_aula", "clave_aula", "tipo_aula", "capacidad_alumnos", "clave_plantel",
+                    "edificio", "piso", "tiene_proyector", "tiene_pizarra_digital", "tiene_pizarron",
+                    "tiene_aire_acondicionado", "tiene_internet", "num_computadoras",
+                    "estado_aula", "observaciones"}
     ),
     PREINSCRITOS_SEP(
             2,

@@ -4,8 +4,8 @@
       "/home/ubuntu/.nvm/versions/node/v24.16.0/bin/node",
       "/opt/ades/frontend/node_modules/.bin/playwright",
       "test",
-      "--grep",
-      "A11Y"
+      "e2e/tests/02-alumnos.spec.ts",
+      "--workers=1"
     ],
     "configFile": "/opt/ades/frontend/playwright.config.ts",
     "rootDir": "/opt/ades/frontend/e2e/tests",
@@ -74,24 +74,22 @@
   },
   "suites": [
     {
-      "title": "14-a11y.spec.ts",
-      "file": "14-a11y.spec.ts",
+      "title": "02-alumnos.spec.ts",
+      "file": "02-alumnos.spec.ts",
       "column": 0,
       "line": 0,
       "specs": [],
       "suites": [
         {
-          "title": "A. Audit axe-core por módulo",
-          "file": "14-a11y.spec.ts",
-          "line": 27,
+          "title": "A. Flujo feliz",
+          "file": "02-alumnos.spec.ts",
+          "line": 30,
           "column": 6,
           "specs": [
             {
-              "title": "A11Y-01 | /dashboard (autenticado) — sin violaciones críticas @smoke",
-              "ok": false,
-              "tags": [
-                "smoke"
-              ],
+              "title": "ALU-01 | lista alumnos visible con búsqueda",
+              "ok": true,
+              "tags": [],
               "tests": [
                 {
                   "timeout": 30000,
@@ -103,63 +101,28 @@
                     {
                       "workerIndex": 0,
                       "parallelIndex": 0,
-                      "status": "failed",
-                      "duration": 260,
-                      "error": {
-                        "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:4200/login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:4200/login\", waiting until \"domcontentloaded\"\u001b[22m\n",
-                        "stack": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:4200/login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:4200/login\", waiting until \"domcontentloaded\"\u001b[22m\n\n    at LoginPage.login (/opt/ades/frontend/e2e/page-objects/login-page.ts:73:21)\n    at loginCoord (/opt/ades/frontend/e2e/tests/14-a11y.spec.ts:22:29)\n    at /opt/ades/frontend/e2e/tests/14-a11y.spec.ts:30:11",
-                        "location": {
-                          "file": "/opt/ades/frontend/e2e/page-objects/login-page.ts",
-                          "column": 21,
-                          "line": 73
-                        },
-                        "snippet": "   at ../page-objects/login-page.ts:73\n\n  71 |\n  72 |     // Navegar a /login para establecer el origen (permite sessionStorage en ese origin)\n> 73 |     await this.page.goto('/login', { waitUntil: 'domcontentloaded' });\n     |                     ^\n  74 |     // Inyectar token + perfil de usuario en sessionStorage\n  75 |     // Angular lee ambos en el constructor de AuthService y ContextService\n  76 |     await this.page.evaluate(([tok, usr]: [string, object]) => {"
-                      },
-                      "errors": [
-                        {
-                          "location": {
-                            "file": "/opt/ades/frontend/e2e/page-objects/login-page.ts",
-                            "column": 21,
-                            "line": 73
-                          },
-                          "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:4200/login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:4200/login\", waiting until \"domcontentloaded\"\u001b[22m\n\n\n   at ../page-objects/login-page.ts:73\n\n  71 |\n  72 |     // Navegar a /login para establecer el origen (permite sessionStorage en ese origin)\n> 73 |     await this.page.goto('/login', { waitUntil: 'domcontentloaded' });\n     |                     ^\n  74 |     // Inyectar token + perfil de usuario en sessionStorage\n  75 |     // Angular lee ambos en el constructor de AuthService y ContextService\n  76 |     await this.page.evaluate(([tok, usr]: [string, object]) => {\n    at LoginPage.login (/opt/ades/frontend/e2e/page-objects/login-page.ts:73:21)\n    at loginCoord (/opt/ades/frontend/e2e/tests/14-a11y.spec.ts:22:29)\n    at /opt/ades/frontend/e2e/tests/14-a11y.spec.ts:30:11"
-                        }
-                      ],
+                      "status": "passed",
+                      "duration": 1496,
+                      "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-06-19T00:11:26.726Z",
+                      "startTime": "2026-06-21T15:47:54.574Z",
                       "annotations": [],
-                      "attachments": [
-                        {
-                          "name": "screenshot",
-                          "contentType": "image/png",
-                          "path": "/opt/ades/frontend/test-results/14-a11y-A-Audit-axe-core-p-41377--violaciones-críticas-smoke-chromium/test-failed-1.png"
-                        },
-                        {
-                          "name": "error-context",
-                          "contentType": "text/markdown",
-                          "path": "/opt/ades/frontend/test-results/14-a11y-A-Audit-axe-core-p-41377--violaciones-críticas-smoke-chromium/error-context.md"
-                        }
-                      ],
-                      "errorLocation": {
-                        "file": "/opt/ades/frontend/e2e/page-objects/login-page.ts",
-                        "column": 21,
-                        "line": 73
-                      }
+                      "attachments": []
                     }
                   ],
-                  "status": "unexpected"
+                  "status": "expected"
                 }
               ],
-              "id": "329504bbe7c0db980f58-54bc9835755c4bb7bb39",
-              "file": "14-a11y.spec.ts",
-              "line": 28,
+              "id": "ee2d24fd2c65dcd13bda-bfd3754cb4fe7c3a95ad",
+              "file": "02-alumnos.spec.ts",
+              "line": 31,
               "column": 7
             },
             {
-              "title": "A11Y-02 | /alumnos — sin violaciones críticas en tabla",
-              "ok": false,
+              "title": "ALU-02 | crear alumno con datos válidos",
+              "ok": true,
               "tags": [],
               "tests": [
                 {
@@ -170,65 +133,30 @@
                   "projectName": "chromium",
                   "results": [
                     {
-                      "workerIndex": 1,
+                      "workerIndex": 0,
                       "parallelIndex": 0,
-                      "status": "failed",
-                      "duration": 182,
-                      "error": {
-                        "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:4200/login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:4200/login\", waiting until \"domcontentloaded\"\u001b[22m\n",
-                        "stack": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:4200/login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:4200/login\", waiting until \"domcontentloaded\"\u001b[22m\n\n    at LoginPage.login (/opt/ades/frontend/e2e/page-objects/login-page.ts:73:21)\n    at loginCoord (/opt/ades/frontend/e2e/tests/14-a11y.spec.ts:22:29)\n    at /opt/ades/frontend/e2e/tests/14-a11y.spec.ts:39:11",
-                        "location": {
-                          "file": "/opt/ades/frontend/e2e/page-objects/login-page.ts",
-                          "column": 21,
-                          "line": 73
-                        },
-                        "snippet": "   at ../page-objects/login-page.ts:73\n\n  71 |\n  72 |     // Navegar a /login para establecer el origen (permite sessionStorage en ese origin)\n> 73 |     await this.page.goto('/login', { waitUntil: 'domcontentloaded' });\n     |                     ^\n  74 |     // Inyectar token + perfil de usuario en sessionStorage\n  75 |     // Angular lee ambos en el constructor de AuthService y ContextService\n  76 |     await this.page.evaluate(([tok, usr]: [string, object]) => {"
-                      },
-                      "errors": [
-                        {
-                          "location": {
-                            "file": "/opt/ades/frontend/e2e/page-objects/login-page.ts",
-                            "column": 21,
-                            "line": 73
-                          },
-                          "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:4200/login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:4200/login\", waiting until \"domcontentloaded\"\u001b[22m\n\n\n   at ../page-objects/login-page.ts:73\n\n  71 |\n  72 |     // Navegar a /login para establecer el origen (permite sessionStorage en ese origin)\n> 73 |     await this.page.goto('/login', { waitUntil: 'domcontentloaded' });\n     |                     ^\n  74 |     // Inyectar token + perfil de usuario en sessionStorage\n  75 |     // Angular lee ambos en el constructor de AuthService y ContextService\n  76 |     await this.page.evaluate(([tok, usr]: [string, object]) => {\n    at LoginPage.login (/opt/ades/frontend/e2e/page-objects/login-page.ts:73:21)\n    at loginCoord (/opt/ades/frontend/e2e/tests/14-a11y.spec.ts:22:29)\n    at /opt/ades/frontend/e2e/tests/14-a11y.spec.ts:39:11"
-                        }
-                      ],
+                      "status": "passed",
+                      "duration": 2537,
+                      "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-06-19T00:11:27.647Z",
+                      "startTime": "2026-06-21T15:47:56.196Z",
                       "annotations": [],
-                      "attachments": [
-                        {
-                          "name": "screenshot",
-                          "contentType": "image/png",
-                          "path": "/opt/ades/frontend/test-results/14-a11y-A-Audit-axe-core-p-ffbb4-olaciones-críticas-en-tabla-chromium/test-failed-1.png"
-                        },
-                        {
-                          "name": "error-context",
-                          "contentType": "text/markdown",
-                          "path": "/opt/ades/frontend/test-results/14-a11y-A-Audit-axe-core-p-ffbb4-olaciones-críticas-en-tabla-chromium/error-context.md"
-                        }
-                      ],
-                      "errorLocation": {
-                        "file": "/opt/ades/frontend/e2e/page-objects/login-page.ts",
-                        "column": 21,
-                        "line": 73
-                      }
+                      "attachments": []
                     }
                   ],
-                  "status": "unexpected"
+                  "status": "expected"
                 }
               ],
-              "id": "329504bbe7c0db980f58-aa9e1284e869a6a7b69e",
-              "file": "14-a11y.spec.ts",
+              "id": "ee2d24fd2c65dcd13bda-2bb12f9efe3832fc6848",
+              "file": "02-alumnos.spec.ts",
               "line": 38,
               "column": 7
             },
             {
-              "title": "A11Y-03 | /alumnos — tabla accesible con landmarks",
-              "ok": false,
+              "title": "ALU-04 | perfil alumno abre al hacer click en fila",
+              "ok": true,
               "tags": [],
               "tests": [
                 {
@@ -239,65 +167,30 @@
                   "projectName": "chromium",
                   "results": [
                     {
-                      "workerIndex": 2,
+                      "workerIndex": 0,
                       "parallelIndex": 0,
-                      "status": "failed",
-                      "duration": 170,
-                      "error": {
-                        "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:4200/login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:4200/login\", waiting until \"domcontentloaded\"\u001b[22m\n",
-                        "stack": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:4200/login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:4200/login\", waiting until \"domcontentloaded\"\u001b[22m\n\n    at LoginPage.login (/opt/ades/frontend/e2e/page-objects/login-page.ts:73:21)\n    at loginCoord (/opt/ades/frontend/e2e/tests/14-a11y.spec.ts:22:29)\n    at /opt/ades/frontend/e2e/tests/14-a11y.spec.ts:54:11",
-                        "location": {
-                          "file": "/opt/ades/frontend/e2e/page-objects/login-page.ts",
-                          "column": 21,
-                          "line": 73
-                        },
-                        "snippet": "   at ../page-objects/login-page.ts:73\n\n  71 |\n  72 |     // Navegar a /login para establecer el origen (permite sessionStorage en ese origin)\n> 73 |     await this.page.goto('/login', { waitUntil: 'domcontentloaded' });\n     |                     ^\n  74 |     // Inyectar token + perfil de usuario en sessionStorage\n  75 |     // Angular lee ambos en el constructor de AuthService y ContextService\n  76 |     await this.page.evaluate(([tok, usr]: [string, object]) => {"
-                      },
-                      "errors": [
-                        {
-                          "location": {
-                            "file": "/opt/ades/frontend/e2e/page-objects/login-page.ts",
-                            "column": 21,
-                            "line": 73
-                          },
-                          "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:4200/login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:4200/login\", waiting until \"domcontentloaded\"\u001b[22m\n\n\n   at ../page-objects/login-page.ts:73\n\n  71 |\n  72 |     // Navegar a /login para establecer el origen (permite sessionStorage en ese origin)\n> 73 |     await this.page.goto('/login', { waitUntil: 'domcontentloaded' });\n     |                     ^\n  74 |     // Inyectar token + perfil de usuario en sessionStorage\n  75 |     // Angular lee ambos en el constructor de AuthService y ContextService\n  76 |     await this.page.evaluate(([tok, usr]: [string, object]) => {\n    at LoginPage.login (/opt/ades/frontend/e2e/page-objects/login-page.ts:73:21)\n    at loginCoord (/opt/ades/frontend/e2e/tests/14-a11y.spec.ts:22:29)\n    at /opt/ades/frontend/e2e/tests/14-a11y.spec.ts:54:11"
-                        }
-                      ],
+                      "status": "passed",
+                      "duration": 1955,
+                      "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-06-19T00:11:28.472Z",
+                      "startTime": "2026-06-21T15:47:58.752Z",
                       "annotations": [],
-                      "attachments": [
-                        {
-                          "name": "screenshot",
-                          "contentType": "image/png",
-                          "path": "/opt/ades/frontend/test-results/14-a11y-A-Audit-axe-core-p-2f2df-bla-accesible-con-landmarks-chromium/test-failed-1.png"
-                        },
-                        {
-                          "name": "error-context",
-                          "contentType": "text/markdown",
-                          "path": "/opt/ades/frontend/test-results/14-a11y-A-Audit-axe-core-p-2f2df-bla-accesible-con-landmarks-chromium/error-context.md"
-                        }
-                      ],
-                      "errorLocation": {
-                        "file": "/opt/ades/frontend/e2e/page-objects/login-page.ts",
-                        "column": 21,
-                        "line": 73
-                      }
+                      "attachments": []
                     }
                   ],
-                  "status": "unexpected"
+                  "status": "expected"
                 }
               ],
-              "id": "329504bbe7c0db980f58-f185fb13445d3cec8e64",
-              "file": "14-a11y.spec.ts",
-              "line": 53,
+              "id": "ee2d24fd2c65dcd13bda-2e97c77aaec7bf77fdb1",
+              "file": "02-alumnos.spec.ts",
+              "line": 48,
               "column": 7
             },
             {
-              "title": "A11Y-04 | /gradebook — inputs tienen labels",
-              "ok": false,
+              "title": "ALU-07 | panel detalle alumno con pestañas",
+              "ok": true,
               "tags": [],
               "tests": [
                 {
@@ -308,73 +201,38 @@
                   "projectName": "chromium",
                   "results": [
                     {
-                      "workerIndex": 3,
+                      "workerIndex": 0,
                       "parallelIndex": 0,
-                      "status": "failed",
-                      "duration": 162,
-                      "error": {
-                        "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:4200/login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:4200/login\", waiting until \"domcontentloaded\"\u001b[22m\n",
-                        "stack": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:4200/login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:4200/login\", waiting until \"domcontentloaded\"\u001b[22m\n\n    at LoginPage.login (/opt/ades/frontend/e2e/page-objects/login-page.ts:73:21)\n    at /opt/ades/frontend/e2e/tests/14-a11y.spec.ts:63:31",
-                        "location": {
-                          "file": "/opt/ades/frontend/e2e/page-objects/login-page.ts",
-                          "column": 21,
-                          "line": 73
-                        },
-                        "snippet": "   at ../page-objects/login-page.ts:73\n\n  71 |\n  72 |     // Navegar a /login para establecer el origen (permite sessionStorage en ese origin)\n> 73 |     await this.page.goto('/login', { waitUntil: 'domcontentloaded' });\n     |                     ^\n  74 |     // Inyectar token + perfil de usuario en sessionStorage\n  75 |     // Angular lee ambos en el constructor de AuthService y ContextService\n  76 |     await this.page.evaluate(([tok, usr]: [string, object]) => {"
-                      },
-                      "errors": [
-                        {
-                          "location": {
-                            "file": "/opt/ades/frontend/e2e/page-objects/login-page.ts",
-                            "column": 21,
-                            "line": 73
-                          },
-                          "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:4200/login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:4200/login\", waiting until \"domcontentloaded\"\u001b[22m\n\n\n   at ../page-objects/login-page.ts:73\n\n  71 |\n  72 |     // Navegar a /login para establecer el origen (permite sessionStorage en ese origin)\n> 73 |     await this.page.goto('/login', { waitUntil: 'domcontentloaded' });\n     |                     ^\n  74 |     // Inyectar token + perfil de usuario en sessionStorage\n  75 |     // Angular lee ambos en el constructor de AuthService y ContextService\n  76 |     await this.page.evaluate(([tok, usr]: [string, object]) => {\n    at LoginPage.login (/opt/ades/frontend/e2e/page-objects/login-page.ts:73:21)\n    at /opt/ades/frontend/e2e/tests/14-a11y.spec.ts:63:31"
-                        }
-                      ],
+                      "status": "passed",
+                      "duration": 2967,
+                      "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-06-19T00:11:29.301Z",
+                      "startTime": "2026-06-21T15:48:00.721Z",
                       "annotations": [],
-                      "attachments": [
-                        {
-                          "name": "screenshot",
-                          "contentType": "image/png",
-                          "path": "/opt/ades/frontend/test-results/14-a11y-A-Audit-axe-core-p-8cf48-book-—-inputs-tienen-labels-chromium/test-failed-1.png"
-                        },
-                        {
-                          "name": "error-context",
-                          "contentType": "text/markdown",
-                          "path": "/opt/ades/frontend/test-results/14-a11y-A-Audit-axe-core-p-8cf48-book-—-inputs-tienen-labels-chromium/error-context.md"
-                        }
-                      ],
-                      "errorLocation": {
-                        "file": "/opt/ades/frontend/e2e/page-objects/login-page.ts",
-                        "column": 21,
-                        "line": 73
-                      }
+                      "attachments": []
                     }
                   ],
-                  "status": "unexpected"
+                  "status": "expected"
                 }
               ],
-              "id": "329504bbe7c0db980f58-d6ba7b78925bf9f655bd",
-              "file": "14-a11y.spec.ts",
-              "line": 62,
+              "id": "ee2d24fd2c65dcd13bda-2f0105cc06ce19154d1d",
+              "file": "02-alumnos.spec.ts",
+              "line": 58,
               "column": 7
             }
           ]
         },
         {
-          "title": "B. Keyboard-only navigation",
-          "file": "14-a11y.spec.ts",
+          "title": "B. Errores de validación",
+          "file": "02-alumnos.spec.ts",
           "line": 76,
           "column": 6,
           "specs": [
             {
-              "title": "A11Y-05 | /alumnos — Tab navega controles sin quedar atrapado",
-              "ok": false,
+              "title": "ALU-03 | CURP duplicado → 409 Conflict",
+              "ok": true,
               "tags": [],
               "tests": [
                 {
@@ -385,65 +243,30 @@
                   "projectName": "chromium",
                   "results": [
                     {
-                      "workerIndex": 4,
+                      "workerIndex": 0,
                       "parallelIndex": 0,
-                      "status": "failed",
-                      "duration": 174,
-                      "error": {
-                        "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:4200/login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:4200/login\", waiting until \"domcontentloaded\"\u001b[22m\n",
-                        "stack": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:4200/login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:4200/login\", waiting until \"domcontentloaded\"\u001b[22m\n\n    at LoginPage.login (/opt/ades/frontend/e2e/page-objects/login-page.ts:73:21)\n    at loginCoord (/opt/ades/frontend/e2e/tests/14-a11y.spec.ts:22:29)\n    at /opt/ades/frontend/e2e/tests/14-a11y.spec.ts:78:11",
-                        "location": {
-                          "file": "/opt/ades/frontend/e2e/page-objects/login-page.ts",
-                          "column": 21,
-                          "line": 73
-                        },
-                        "snippet": "   at ../page-objects/login-page.ts:73\n\n  71 |\n  72 |     // Navegar a /login para establecer el origen (permite sessionStorage en ese origin)\n> 73 |     await this.page.goto('/login', { waitUntil: 'domcontentloaded' });\n     |                     ^\n  74 |     // Inyectar token + perfil de usuario en sessionStorage\n  75 |     // Angular lee ambos en el constructor de AuthService y ContextService\n  76 |     await this.page.evaluate(([tok, usr]: [string, object]) => {"
-                      },
-                      "errors": [
-                        {
-                          "location": {
-                            "file": "/opt/ades/frontend/e2e/page-objects/login-page.ts",
-                            "column": 21,
-                            "line": 73
-                          },
-                          "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:4200/login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:4200/login\", waiting until \"domcontentloaded\"\u001b[22m\n\n\n   at ../page-objects/login-page.ts:73\n\n  71 |\n  72 |     // Navegar a /login para establecer el origen (permite sessionStorage en ese origin)\n> 73 |     await this.page.goto('/login', { waitUntil: 'domcontentloaded' });\n     |                     ^\n  74 |     // Inyectar token + perfil de usuario en sessionStorage\n  75 |     // Angular lee ambos en el constructor de AuthService y ContextService\n  76 |     await this.page.evaluate(([tok, usr]: [string, object]) => {\n    at LoginPage.login (/opt/ades/frontend/e2e/page-objects/login-page.ts:73:21)\n    at loginCoord (/opt/ades/frontend/e2e/tests/14-a11y.spec.ts:22:29)\n    at /opt/ades/frontend/e2e/tests/14-a11y.spec.ts:78:11"
-                        }
-                      ],
+                      "status": "passed",
+                      "duration": 4040,
+                      "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-06-19T00:11:30.112Z",
+                      "startTime": "2026-06-21T15:48:03.712Z",
                       "annotations": [],
-                      "attachments": [
-                        {
-                          "name": "screenshot",
-                          "contentType": "image/png",
-                          "path": "/opt/ades/frontend/test-results/14-a11y-B-Keyboard-only-na-6d0b9-ntroles-sin-quedar-atrapado-chromium/test-failed-1.png"
-                        },
-                        {
-                          "name": "error-context",
-                          "contentType": "text/markdown",
-                          "path": "/opt/ades/frontend/test-results/14-a11y-B-Keyboard-only-na-6d0b9-ntroles-sin-quedar-atrapado-chromium/error-context.md"
-                        }
-                      ],
-                      "errorLocation": {
-                        "file": "/opt/ades/frontend/e2e/page-objects/login-page.ts",
-                        "column": 21,
-                        "line": 73
-                      }
+                      "attachments": []
                     }
                   ],
-                  "status": "unexpected"
+                  "status": "expected"
                 }
               ],
-              "id": "329504bbe7c0db980f58-682bfd9184133e0bd81e",
-              "file": "14-a11y.spec.ts",
+              "id": "ee2d24fd2c65dcd13bda-77456bc5bc8d40713bd4",
+              "file": "02-alumnos.spec.ts",
               "line": 77,
               "column": 7
             },
             {
-              "title": "A11Y-06 | botón \"Nuevo alumno\" accesible con Enter desde teclado",
-              "ok": false,
+              "title": "ALU-05 | inscripción doble en mismo ciclo → error",
+              "ok": true,
               "tags": [],
               "tests": [
                 {
@@ -454,65 +277,30 @@
                   "projectName": "chromium",
                   "results": [
                     {
-                      "workerIndex": 5,
+                      "workerIndex": 0,
                       "parallelIndex": 0,
-                      "status": "failed",
-                      "duration": 197,
-                      "error": {
-                        "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:4200/login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:4200/login\", waiting until \"domcontentloaded\"\u001b[22m\n",
-                        "stack": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:4200/login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:4200/login\", waiting until \"domcontentloaded\"\u001b[22m\n\n    at LoginPage.login (/opt/ades/frontend/e2e/page-objects/login-page.ts:73:21)\n    at loginCoord (/opt/ades/frontend/e2e/tests/14-a11y.spec.ts:22:29)\n    at /opt/ades/frontend/e2e/tests/14-a11y.spec.ts:104:11",
-                        "location": {
-                          "file": "/opt/ades/frontend/e2e/page-objects/login-page.ts",
-                          "column": 21,
-                          "line": 73
-                        },
-                        "snippet": "   at ../page-objects/login-page.ts:73\n\n  71 |\n  72 |     // Navegar a /login para establecer el origen (permite sessionStorage en ese origin)\n> 73 |     await this.page.goto('/login', { waitUntil: 'domcontentloaded' });\n     |                     ^\n  74 |     // Inyectar token + perfil de usuario en sessionStorage\n  75 |     // Angular lee ambos en el constructor de AuthService y ContextService\n  76 |     await this.page.evaluate(([tok, usr]: [string, object]) => {"
-                      },
-                      "errors": [
-                        {
-                          "location": {
-                            "file": "/opt/ades/frontend/e2e/page-objects/login-page.ts",
-                            "column": 21,
-                            "line": 73
-                          },
-                          "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:4200/login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:4200/login\", waiting until \"domcontentloaded\"\u001b[22m\n\n\n   at ../page-objects/login-page.ts:73\n\n  71 |\n  72 |     // Navegar a /login para establecer el origen (permite sessionStorage en ese origin)\n> 73 |     await this.page.goto('/login', { waitUntil: 'domcontentloaded' });\n     |                     ^\n  74 |     // Inyectar token + perfil de usuario en sessionStorage\n  75 |     // Angular lee ambos en el constructor de AuthService y ContextService\n  76 |     await this.page.evaluate(([tok, usr]: [string, object]) => {\n    at LoginPage.login (/opt/ades/frontend/e2e/page-objects/login-page.ts:73:21)\n    at loginCoord (/opt/ades/frontend/e2e/tests/14-a11y.spec.ts:22:29)\n    at /opt/ades/frontend/e2e/tests/14-a11y.spec.ts:104:11"
-                        }
-                      ],
+                      "status": "passed",
+                      "duration": 2243,
+                      "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-06-19T00:11:30.936Z",
+                      "startTime": "2026-06-21T15:48:07.773Z",
                       "annotations": [],
-                      "attachments": [
-                        {
-                          "name": "screenshot",
-                          "contentType": "image/png",
-                          "path": "/opt/ades/frontend/test-results/14-a11y-B-Keyboard-only-na-f3aed-ble-con-Enter-desde-teclado-chromium/test-failed-1.png"
-                        },
-                        {
-                          "name": "error-context",
-                          "contentType": "text/markdown",
-                          "path": "/opt/ades/frontend/test-results/14-a11y-B-Keyboard-only-na-f3aed-ble-con-Enter-desde-teclado-chromium/error-context.md"
-                        }
-                      ],
-                      "errorLocation": {
-                        "file": "/opt/ades/frontend/e2e/page-objects/login-page.ts",
-                        "column": 21,
-                        "line": 73
-                      }
+                      "attachments": []
                     }
                   ],
-                  "status": "unexpected"
+                  "status": "expected"
                 }
               ],
-              "id": "329504bbe7c0db980f58-0baaee0b2f453d7a9635",
-              "file": "14-a11y.spec.ts",
-              "line": 103,
+              "id": "ee2d24fd2c65dcd13bda-c229c5db909eebb95616",
+              "file": "02-alumnos.spec.ts",
+              "line": 94,
               "column": 7
             },
             {
-              "title": "A11Y-07 | menú de navegación accesible con teclado",
-              "ok": false,
+              "title": "ALU-11 | submit sin CURP → warning de validación",
+              "ok": true,
               "tags": [],
               "tests": [
                 {
@@ -523,73 +311,106 @@
                   "projectName": "chromium",
                   "results": [
                     {
-                      "workerIndex": 6,
+                      "workerIndex": 0,
                       "parallelIndex": 0,
-                      "status": "failed",
-                      "duration": 158,
-                      "error": {
-                        "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:4200/login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:4200/login\", waiting until \"domcontentloaded\"\u001b[22m\n",
-                        "stack": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:4200/login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:4200/login\", waiting until \"domcontentloaded\"\u001b[22m\n\n    at LoginPage.login (/opt/ades/frontend/e2e/page-objects/login-page.ts:73:21)\n    at loginCoord (/opt/ades/frontend/e2e/tests/14-a11y.spec.ts:22:29)\n    at /opt/ades/frontend/e2e/tests/14-a11y.spec.ts:132:11",
-                        "location": {
-                          "file": "/opt/ades/frontend/e2e/page-objects/login-page.ts",
-                          "column": 21,
-                          "line": 73
-                        },
-                        "snippet": "   at ../page-objects/login-page.ts:73\n\n  71 |\n  72 |     // Navegar a /login para establecer el origen (permite sessionStorage en ese origin)\n> 73 |     await this.page.goto('/login', { waitUntil: 'domcontentloaded' });\n     |                     ^\n  74 |     // Inyectar token + perfil de usuario en sessionStorage\n  75 |     // Angular lee ambos en el constructor de AuthService y ContextService\n  76 |     await this.page.evaluate(([tok, usr]: [string, object]) => {"
-                      },
-                      "errors": [
-                        {
-                          "location": {
-                            "file": "/opt/ades/frontend/e2e/page-objects/login-page.ts",
-                            "column": 21,
-                            "line": 73
-                          },
-                          "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:4200/login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:4200/login\", waiting until \"domcontentloaded\"\u001b[22m\n\n\n   at ../page-objects/login-page.ts:73\n\n  71 |\n  72 |     // Navegar a /login para establecer el origen (permite sessionStorage en ese origin)\n> 73 |     await this.page.goto('/login', { waitUntil: 'domcontentloaded' });\n     |                     ^\n  74 |     // Inyectar token + perfil de usuario en sessionStorage\n  75 |     // Angular lee ambos en el constructor de AuthService y ContextService\n  76 |     await this.page.evaluate(([tok, usr]: [string, object]) => {\n    at LoginPage.login (/opt/ades/frontend/e2e/page-objects/login-page.ts:73:21)\n    at loginCoord (/opt/ades/frontend/e2e/tests/14-a11y.spec.ts:22:29)\n    at /opt/ades/frontend/e2e/tests/14-a11y.spec.ts:132:11"
-                        }
-                      ],
+                      "status": "passed",
+                      "duration": 1692,
+                      "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-06-19T00:11:31.788Z",
+                      "startTime": "2026-06-21T15:48:10.039Z",
                       "annotations": [],
-                      "attachments": [
-                        {
-                          "name": "screenshot",
-                          "contentType": "image/png",
-                          "path": "/opt/ades/frontend/test-results/14-a11y-B-Keyboard-only-na-618a6-ación-accesible-con-teclado-chromium/test-failed-1.png"
-                        },
-                        {
-                          "name": "error-context",
-                          "contentType": "text/markdown",
-                          "path": "/opt/ades/frontend/test-results/14-a11y-B-Keyboard-only-na-618a6-ación-accesible-con-teclado-chromium/error-context.md"
-                        }
-                      ],
-                      "errorLocation": {
-                        "file": "/opt/ades/frontend/e2e/page-objects/login-page.ts",
-                        "column": 21,
-                        "line": 73
-                      }
+                      "attachments": []
                     }
                   ],
-                  "status": "unexpected"
+                  "status": "expected"
                 }
               ],
-              "id": "329504bbe7c0db980f58-189d0e681ce5e8331c45",
-              "file": "14-a11y.spec.ts",
-              "line": 131,
+              "id": "ee2d24fd2c65dcd13bda-5e7967e553b75f6ad3e2",
+              "file": "02-alumnos.spec.ts",
+              "line": 108,
+              "column": 7
+            },
+            {
+              "title": "ALU-12 | CURP de 5 chars → warning longitud",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1692,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-06-21T15:48:11.745Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ee2d24fd2c65dcd13bda-b76d7e6e3ea7f0bf12c5",
+              "file": "02-alumnos.spec.ts",
+              "line": 119,
+              "column": 7
+            },
+            {
+              "title": "ALU-10 | RBAC plantel — docente solo ve su plantel",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1041,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-06-21T15:48:13.450Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ee2d24fd2c65dcd13bda-e54a7999b59f2227f296",
+              "file": "02-alumnos.spec.ts",
+              "line": 130,
               "column": 7
             }
           ]
         },
         {
-          "title": "C. Focus trap en dialogs PrimeNG",
-          "file": "14-a11y.spec.ts",
-          "line": 159,
+          "title": "C. Usuario torpe",
+          "file": "02-alumnos.spec.ts",
+          "line": 143,
           "column": 6,
           "specs": [
             {
-              "title": "A11Y-08 | dialog de nuevo alumno — Tab no sale del dialog",
-              "ok": false,
+              "title": "ALU-C1 | navega atrás en medio del formulario de creación",
+              "ok": true,
               "tags": [],
               "tests": [
                 {
@@ -600,65 +421,30 @@
                   "projectName": "chromium",
                   "results": [
                     {
-                      "workerIndex": 7,
+                      "workerIndex": 0,
                       "parallelIndex": 0,
-                      "status": "failed",
-                      "duration": 184,
-                      "error": {
-                        "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:4200/login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:4200/login\", waiting until \"domcontentloaded\"\u001b[22m\n",
-                        "stack": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:4200/login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:4200/login\", waiting until \"domcontentloaded\"\u001b[22m\n\n    at LoginPage.login (/opt/ades/frontend/e2e/page-objects/login-page.ts:73:21)\n    at loginCoord (/opt/ades/frontend/e2e/tests/14-a11y.spec.ts:22:29)\n    at /opt/ades/frontend/e2e/tests/14-a11y.spec.ts:161:11",
-                        "location": {
-                          "file": "/opt/ades/frontend/e2e/page-objects/login-page.ts",
-                          "column": 21,
-                          "line": 73
-                        },
-                        "snippet": "   at ../page-objects/login-page.ts:73\n\n  71 |\n  72 |     // Navegar a /login para establecer el origen (permite sessionStorage en ese origin)\n> 73 |     await this.page.goto('/login', { waitUntil: 'domcontentloaded' });\n     |                     ^\n  74 |     // Inyectar token + perfil de usuario en sessionStorage\n  75 |     // Angular lee ambos en el constructor de AuthService y ContextService\n  76 |     await this.page.evaluate(([tok, usr]: [string, object]) => {"
-                      },
-                      "errors": [
-                        {
-                          "location": {
-                            "file": "/opt/ades/frontend/e2e/page-objects/login-page.ts",
-                            "column": 21,
-                            "line": 73
-                          },
-                          "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:4200/login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:4200/login\", waiting until \"domcontentloaded\"\u001b[22m\n\n\n   at ../page-objects/login-page.ts:73\n\n  71 |\n  72 |     // Navegar a /login para establecer el origen (permite sessionStorage en ese origin)\n> 73 |     await this.page.goto('/login', { waitUntil: 'domcontentloaded' });\n     |                     ^\n  74 |     // Inyectar token + perfil de usuario en sessionStorage\n  75 |     // Angular lee ambos en el constructor de AuthService y ContextService\n  76 |     await this.page.evaluate(([tok, usr]: [string, object]) => {\n    at LoginPage.login (/opt/ades/frontend/e2e/page-objects/login-page.ts:73:21)\n    at loginCoord (/opt/ades/frontend/e2e/tests/14-a11y.spec.ts:22:29)\n    at /opt/ades/frontend/e2e/tests/14-a11y.spec.ts:161:11"
-                        }
-                      ],
+                      "status": "passed",
+                      "duration": 2583,
+                      "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-06-19T00:11:32.601Z",
+                      "startTime": "2026-06-21T15:48:14.506Z",
                       "annotations": [],
-                      "attachments": [
-                        {
-                          "name": "screenshot",
-                          "contentType": "image/png",
-                          "path": "/opt/ades/frontend/test-results/14-a11y-C-Focus-trap-en-di-3e9c1-no-—-Tab-no-sale-del-dialog-chromium/test-failed-1.png"
-                        },
-                        {
-                          "name": "error-context",
-                          "contentType": "text/markdown",
-                          "path": "/opt/ades/frontend/test-results/14-a11y-C-Focus-trap-en-di-3e9c1-no-—-Tab-no-sale-del-dialog-chromium/error-context.md"
-                        }
-                      ],
-                      "errorLocation": {
-                        "file": "/opt/ades/frontend/e2e/page-objects/login-page.ts",
-                        "column": 21,
-                        "line": 73
-                      }
+                      "attachments": []
                     }
                   ],
-                  "status": "unexpected"
+                  "status": "expected"
                 }
               ],
-              "id": "329504bbe7c0db980f58-c46c41d59c7925da123b",
-              "file": "14-a11y.spec.ts",
-              "line": 160,
+              "id": "ee2d24fd2c65dcd13bda-27ecff603a9943a716c2",
+              "file": "02-alumnos.spec.ts",
+              "line": 144,
               "column": 7
             },
             {
-              "title": "A11Y-09 | Escape cierra el dialog y devuelve foco al trigger",
-              "ok": false,
+              "title": "ALU-C2 | recarga en medio de búsqueda",
+              "ok": true,
               "tags": [],
               "tests": [
                 {
@@ -669,73 +455,140 @@
                   "projectName": "chromium",
                   "results": [
                     {
-                      "workerIndex": 8,
+                      "workerIndex": 0,
                       "parallelIndex": 0,
-                      "status": "failed",
-                      "duration": 176,
-                      "error": {
-                        "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:4200/login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:4200/login\", waiting until \"domcontentloaded\"\u001b[22m\n",
-                        "stack": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:4200/login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:4200/login\", waiting until \"domcontentloaded\"\u001b[22m\n\n    at LoginPage.login (/opt/ades/frontend/e2e/page-objects/login-page.ts:73:21)\n    at loginCoord (/opt/ades/frontend/e2e/tests/14-a11y.spec.ts:22:29)\n    at /opt/ades/frontend/e2e/tests/14-a11y.spec.ts:204:11",
-                        "location": {
-                          "file": "/opt/ades/frontend/e2e/page-objects/login-page.ts",
-                          "column": 21,
-                          "line": 73
-                        },
-                        "snippet": "   at ../page-objects/login-page.ts:73\n\n  71 |\n  72 |     // Navegar a /login para establecer el origen (permite sessionStorage en ese origin)\n> 73 |     await this.page.goto('/login', { waitUntil: 'domcontentloaded' });\n     |                     ^\n  74 |     // Inyectar token + perfil de usuario en sessionStorage\n  75 |     // Angular lee ambos en el constructor de AuthService y ContextService\n  76 |     await this.page.evaluate(([tok, usr]: [string, object]) => {"
-                      },
-                      "errors": [
-                        {
-                          "location": {
-                            "file": "/opt/ades/frontend/e2e/page-objects/login-page.ts",
-                            "column": 21,
-                            "line": 73
-                          },
-                          "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:4200/login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:4200/login\", waiting until \"domcontentloaded\"\u001b[22m\n\n\n   at ../page-objects/login-page.ts:73\n\n  71 |\n  72 |     // Navegar a /login para establecer el origen (permite sessionStorage en ese origin)\n> 73 |     await this.page.goto('/login', { waitUntil: 'domcontentloaded' });\n     |                     ^\n  74 |     // Inyectar token + perfil de usuario en sessionStorage\n  75 |     // Angular lee ambos en el constructor de AuthService y ContextService\n  76 |     await this.page.evaluate(([tok, usr]: [string, object]) => {\n    at LoginPage.login (/opt/ades/frontend/e2e/page-objects/login-page.ts:73:21)\n    at loginCoord (/opt/ades/frontend/e2e/tests/14-a11y.spec.ts:22:29)\n    at /opt/ades/frontend/e2e/tests/14-a11y.spec.ts:204:11"
-                        }
-                      ],
+                      "status": "passed",
+                      "duration": 1919,
+                      "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-06-19T00:11:33.477Z",
+                      "startTime": "2026-06-21T15:48:17.100Z",
                       "annotations": [],
-                      "attachments": [
-                        {
-                          "name": "screenshot",
-                          "contentType": "image/png",
-                          "path": "/opt/ades/frontend/test-results/14-a11y-C-Focus-trap-en-di-83b9f--y-devuelve-foco-al-trigger-chromium/test-failed-1.png"
-                        },
-                        {
-                          "name": "error-context",
-                          "contentType": "text/markdown",
-                          "path": "/opt/ades/frontend/test-results/14-a11y-C-Focus-trap-en-di-83b9f--y-devuelve-foco-al-trigger-chromium/error-context.md"
-                        }
-                      ],
-                      "errorLocation": {
-                        "file": "/opt/ades/frontend/e2e/page-objects/login-page.ts",
-                        "column": 21,
-                        "line": 73
-                      }
+                      "attachments": []
                     }
                   ],
-                  "status": "unexpected"
+                  "status": "expected"
                 }
               ],
-              "id": "329504bbe7c0db980f58-a27586be0186963283c0",
-              "file": "14-a11y.spec.ts",
-              "line": 203,
+              "id": "ee2d24fd2c65dcd13bda-57953370f32e36700f3e",
+              "file": "02-alumnos.spec.ts",
+              "line": 157,
+              "column": 7
+            },
+            {
+              "title": "ALU-C3 | click múltiple en \"Nuevo\" no duplica el dialog",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2126,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-06-21T15:48:19.031Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ee2d24fd2c65dcd13bda-ae84c7c6ad845922914e",
+              "file": "02-alumnos.spec.ts",
+              "line": 166,
+              "column": 7
+            },
+            {
+              "title": "ALU-C4 | scroll rápido en tabla con 1000+ filas",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1984,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-06-21T15:48:21.172Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ee2d24fd2c65dcd13bda-0b428795140beee9fcea",
+              "file": "02-alumnos.spec.ts",
+              "line": 181,
+              "column": 7
+            },
+            {
+              "title": "ALU-C5 | pegar en campo CURP y cambiar inmediatamente de campo",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2041,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-06-21T15:48:23.177Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ee2d24fd2c65dcd13bda-8eebbbf05dafe8877756",
+              "file": "02-alumnos.spec.ts",
+              "line": 192,
               "column": 7
             }
           ]
         },
         {
-          "title": "D. ARIA live regions y anuncios",
-          "file": "14-a11y.spec.ts",
-          "line": 239,
+          "title": "D. Usuario caótico — inputs extremos",
+          "file": "02-alumnos.spec.ts",
+          "line": 209,
           "column": 6,
           "specs": [
             {
-              "title": "A11Y-10 | p-toast tiene aria-live para screen readers",
-              "ok": false,
+              "title": "ALU-D | campo nombre: SQL injection",
+              "ok": true,
               "tags": [],
               "tests": [
                 {
@@ -746,65 +599,302 @@
                   "projectName": "chromium",
                   "results": [
                     {
-                      "workerIndex": 9,
+                      "workerIndex": 0,
                       "parallelIndex": 0,
-                      "status": "failed",
-                      "duration": 166,
-                      "error": {
-                        "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:4200/login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:4200/login\", waiting until \"domcontentloaded\"\u001b[22m\n",
-                        "stack": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:4200/login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:4200/login\", waiting until \"domcontentloaded\"\u001b[22m\n\n    at LoginPage.login (/opt/ades/frontend/e2e/page-objects/login-page.ts:73:21)\n    at loginCoord (/opt/ades/frontend/e2e/tests/14-a11y.spec.ts:22:29)\n    at /opt/ades/frontend/e2e/tests/14-a11y.spec.ts:241:11",
-                        "location": {
-                          "file": "/opt/ades/frontend/e2e/page-objects/login-page.ts",
-                          "column": 21,
-                          "line": 73
-                        },
-                        "snippet": "   at ../page-objects/login-page.ts:73\n\n  71 |\n  72 |     // Navegar a /login para establecer el origen (permite sessionStorage en ese origin)\n> 73 |     await this.page.goto('/login', { waitUntil: 'domcontentloaded' });\n     |                     ^\n  74 |     // Inyectar token + perfil de usuario en sessionStorage\n  75 |     // Angular lee ambos en el constructor de AuthService y ContextService\n  76 |     await this.page.evaluate(([tok, usr]: [string, object]) => {"
-                      },
-                      "errors": [
-                        {
-                          "location": {
-                            "file": "/opt/ades/frontend/e2e/page-objects/login-page.ts",
-                            "column": 21,
-                            "line": 73
-                          },
-                          "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:4200/login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:4200/login\", waiting until \"domcontentloaded\"\u001b[22m\n\n\n   at ../page-objects/login-page.ts:73\n\n  71 |\n  72 |     // Navegar a /login para establecer el origen (permite sessionStorage en ese origin)\n> 73 |     await this.page.goto('/login', { waitUntil: 'domcontentloaded' });\n     |                     ^\n  74 |     // Inyectar token + perfil de usuario en sessionStorage\n  75 |     // Angular lee ambos en el constructor de AuthService y ContextService\n  76 |     await this.page.evaluate(([tok, usr]: [string, object]) => {\n    at LoginPage.login (/opt/ades/frontend/e2e/page-objects/login-page.ts:73:21)\n    at loginCoord (/opt/ades/frontend/e2e/tests/14-a11y.spec.ts:22:29)\n    at /opt/ades/frontend/e2e/tests/14-a11y.spec.ts:241:11"
-                        }
-                      ],
+                      "status": "passed",
+                      "duration": 2822,
+                      "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-06-19T00:11:34.318Z",
+                      "startTime": "2026-06-21T15:48:25.236Z",
                       "annotations": [],
-                      "attachments": [
-                        {
-                          "name": "screenshot",
-                          "contentType": "image/png",
-                          "path": "/opt/ades/frontend/test-results/14-a11y-D-ARIA-live-region-4ff65-ia-live-para-screen-readers-chromium/test-failed-1.png"
-                        },
-                        {
-                          "name": "error-context",
-                          "contentType": "text/markdown",
-                          "path": "/opt/ades/frontend/test-results/14-a11y-D-ARIA-live-region-4ff65-ia-live-para-screen-readers-chromium/error-context.md"
-                        }
-                      ],
-                      "errorLocation": {
-                        "file": "/opt/ades/frontend/e2e/page-objects/login-page.ts",
-                        "column": 21,
-                        "line": 73
-                      }
+                      "attachments": []
                     }
                   ],
-                  "status": "unexpected"
+                  "status": "expected"
                 }
               ],
-              "id": "329504bbe7c0db980f58-28136f27598cb5b31145",
-              "file": "14-a11y.spec.ts",
-              "line": 240,
+              "id": "ee2d24fd2c65dcd13bda-7efc0dcf0a866a3f5a4f",
+              "file": "02-alumnos.spec.ts",
+              "line": 222,
+              "column": 9
+            },
+            {
+              "title": "ALU-D | campo nombre: XSS básico",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2584,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-06-21T15:48:28.081Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ee2d24fd2c65dcd13bda-da2c32f01c4cad17cd82",
+              "file": "02-alumnos.spec.ts",
+              "line": 222,
+              "column": 9
+            },
+            {
+              "title": "ALU-D | campo nombre: Emojis",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2504,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-06-21T15:48:30.677Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ee2d24fd2c65dcd13bda-b79898bc52526628d98d",
+              "file": "02-alumnos.spec.ts",
+              "line": 222,
+              "column": 9
+            },
+            {
+              "title": "ALU-D | campo nombre: 1000 chars",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2523,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-06-21T15:48:33.194Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ee2d24fd2c65dcd13bda-4dccf805ddeb943686ed",
+              "file": "02-alumnos.spec.ts",
+              "line": 222,
+              "column": 9
+            },
+            {
+              "title": "ALU-D | campo nombre: Unicode mix",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2675,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-06-21T15:48:35.730Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ee2d24fd2c65dcd13bda-89afac074217ccff2b23",
+              "file": "02-alumnos.spec.ts",
+              "line": 222,
+              "column": 9
+            },
+            {
+              "title": "ALU-D | campo nombre: Solo espacios",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2863,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-06-21T15:48:38.417Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ee2d24fd2c65dcd13bda-e2aadd2d562ce0a2bb13",
+              "file": "02-alumnos.spec.ts",
+              "line": 222,
+              "column": 9
+            },
+            {
+              "title": "ALU-D | campo nombre: Fórmula CSV inj",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2761,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-06-21T15:48:41.293Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ee2d24fd2c65dcd13bda-b71ebedf0e255ef8cc7f",
+              "file": "02-alumnos.spec.ts",
+              "line": 222,
+              "column": 9
+            },
+            {
+              "title": "ALU-D | campo nombre: Path traversal",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2709,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-06-21T15:48:44.066Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ee2d24fd2c65dcd13bda-5c3e80435127951a2e31",
+              "file": "02-alumnos.spec.ts",
+              "line": 222,
+              "column": 9
+            },
+            {
+              "title": "ALU-D-fuzz | 5 curps aleatorias en formulario",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 17638,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-06-21T15:48:46.796Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ee2d24fd2c65dcd13bda-4c38aec30a205d044ed1",
+              "file": "02-alumnos.spec.ts",
+              "line": 238,
               "column": 7
             },
             {
-              "title": "A11Y-11 | spinner / loading indicator accesible",
-              "ok": false,
+              "title": "ALU-D-csv-invalido | subir CSV con datos malformados",
+              "ok": true,
               "tags": [],
               "tests": [
                 {
@@ -815,60 +905,25 @@
                   "projectName": "chromium",
                   "results": [
                     {
-                      "workerIndex": 10,
+                      "workerIndex": 0,
                       "parallelIndex": 0,
-                      "status": "failed",
-                      "duration": 188,
-                      "error": {
-                        "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:4200/login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:4200/login\", waiting until \"domcontentloaded\"\u001b[22m\n",
-                        "stack": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:4200/login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:4200/login\", waiting until \"domcontentloaded\"\u001b[22m\n\n    at LoginPage.login (/opt/ades/frontend/e2e/page-objects/login-page.ts:73:21)\n    at loginCoord (/opt/ades/frontend/e2e/tests/14-a11y.spec.ts:22:29)\n    at /opt/ades/frontend/e2e/tests/14-a11y.spec.ts:264:11",
-                        "location": {
-                          "file": "/opt/ades/frontend/e2e/page-objects/login-page.ts",
-                          "column": 21,
-                          "line": 73
-                        },
-                        "snippet": "   at ../page-objects/login-page.ts:73\n\n  71 |\n  72 |     // Navegar a /login para establecer el origen (permite sessionStorage en ese origin)\n> 73 |     await this.page.goto('/login', { waitUntil: 'domcontentloaded' });\n     |                     ^\n  74 |     // Inyectar token + perfil de usuario en sessionStorage\n  75 |     // Angular lee ambos en el constructor de AuthService y ContextService\n  76 |     await this.page.evaluate(([tok, usr]: [string, object]) => {"
-                      },
-                      "errors": [
-                        {
-                          "location": {
-                            "file": "/opt/ades/frontend/e2e/page-objects/login-page.ts",
-                            "column": 21,
-                            "line": 73
-                          },
-                          "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:4200/login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:4200/login\", waiting until \"domcontentloaded\"\u001b[22m\n\n\n   at ../page-objects/login-page.ts:73\n\n  71 |\n  72 |     // Navegar a /login para establecer el origen (permite sessionStorage en ese origin)\n> 73 |     await this.page.goto('/login', { waitUntil: 'domcontentloaded' });\n     |                     ^\n  74 |     // Inyectar token + perfil de usuario en sessionStorage\n  75 |     // Angular lee ambos en el constructor de AuthService y ContextService\n  76 |     await this.page.evaluate(([tok, usr]: [string, object]) => {\n    at LoginPage.login (/opt/ades/frontend/e2e/page-objects/login-page.ts:73:21)\n    at loginCoord (/opt/ades/frontend/e2e/tests/14-a11y.spec.ts:22:29)\n    at /opt/ades/frontend/e2e/tests/14-a11y.spec.ts:264:11"
-                        }
-                      ],
+                      "status": "passed",
+                      "duration": 12353,
+                      "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-06-19T00:11:35.127Z",
+                      "startTime": "2026-06-21T15:49:04.454Z",
                       "annotations": [],
-                      "attachments": [
-                        {
-                          "name": "screenshot",
-                          "contentType": "image/png",
-                          "path": "/opt/ades/frontend/test-results/14-a11y-D-ARIA-live-region-15929-loading-indicator-accesible-chromium/test-failed-1.png"
-                        },
-                        {
-                          "name": "error-context",
-                          "contentType": "text/markdown",
-                          "path": "/opt/ades/frontend/test-results/14-a11y-D-ARIA-live-region-15929-loading-indicator-accesible-chromium/error-context.md"
-                        }
-                      ],
-                      "errorLocation": {
-                        "file": "/opt/ades/frontend/e2e/page-objects/login-page.ts",
-                        "column": 21,
-                        "line": 73
-                      }
+                      "attachments": []
                     }
                   ],
-                  "status": "unexpected"
+                  "status": "expected"
                 }
               ],
-              "id": "329504bbe7c0db980f58-428f60fb16689b2d90d5",
-              "file": "14-a11y.spec.ts",
-              "line": 263,
+              "id": "ee2d24fd2c65dcd13bda-46197513ea1667894967",
+              "file": "02-alumnos.spec.ts",
+              "line": 265,
               "column": 7
             }
           ]
@@ -878,11 +933,11 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-06-19T00:11:25.713Z",
-    "duration": 9762.358,
-    "expected": 0,
+    "startTime": "2026-06-21T15:47:53.818Z",
+    "duration": 83082.447,
+    "expected": 24,
     "skipped": 0,
-    "unexpected": 11,
+    "unexpected": 0,
     "flaky": 0
   }
 }

@@ -6,14 +6,19 @@ import mx.ades.modules.horarios.application.service.HorarioApplicationService;
 import mx.ades.modules.horarios.domain.port.in.ActualizarHorarioUseCase;
 import mx.ades.modules.horarios.domain.port.in.CrearHorarioUseCase;
 import mx.ades.modules.horarios.query.HorarioQueryService;
+import mx.ades.security.AdesUser;
 import mx.ades.security.AdesUserService;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 @RestController
@@ -26,6 +31,9 @@ public class HorarioController {
     private final CrearHorarioUseCase crearHorarioUseCase;
     private final ActualizarHorarioUseCase actualizarHorarioUseCase;
     private final HorarioApplicationService horarioService;
+    private final HorarioAscService ascService;
+
+    private static final long MAX_XML_BYTES = 10 * 1024 * 1024; // 10 MB
 
     @GetMapping("/grupo/{grupo_id}")
     public ResponseEntity<List<Map<String, Object>>> porGrupo(
@@ -92,6 +100,63 @@ public class HorarioController {
     public void eliminar(@PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
         userService.resolveUser(jwt);
         horarioService.eliminar(id);
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // aSc TimeTables — Export / Import
+    // ──────────────────────────────────────────────────────────────────────────
+
+    @GetMapping("/exportar-asc/{ciclo_id}")
+    public ResponseEntity<byte[]> exportarAsc(
+            @PathVariable("ciclo_id") UUID cicloId,
+            @RequestParam(name = "plantel_id", required = false) UUID plantelId,
+            @AuthenticationPrincipal Jwt jwt) {
+        AdesUser user = userService.resolveUser(jwt);
+        // No-admins quedan acotados a su propio plantel (evita fuga cross-plantel)
+        if (user.getNivelAcceso() != null && user.getNivelAcceso() > 1 && user.getPlantelId() != null) {
+            plantelId = user.getPlantelId();
+        }
+        String xml = ascService.exportarXml(cicloId, plantelId);
+        byte[] content = xml.getBytes(StandardCharsets.UTF_8);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(new MediaType("application", "xml", StandardCharsets.UTF_8));
+        headers.setContentDispositionFormData("attachment", "horarios_asc.xml");
+        return ResponseEntity.ok().headers(headers).body(content);
+    }
+
+    @PostMapping("/importar-asc/{ciclo_id}")
+    public ResponseEntity<HorarioAscService.ImportResult> importarAsc(
+            @PathVariable("ciclo_id") UUID cicloId,
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(name = "plantel_id", required = false) UUID plantelId,
+            @RequestParam(name = "reemplazar", defaultValue = "false") boolean reemplazar,
+            @AuthenticationPrincipal Jwt jwt) {
+        AdesUser user = userService.resolveUser(jwt);
+        // Solo coordinador (nivel 3) o superior puede reconstruir horarios
+        if (user.getNivelAcceso() == null || user.getNivelAcceso() > 3) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Permisos insuficientes para importar horarios");
+        }
+        // No-admins acotados a su plantel
+        if (user.getNivelAcceso() > 1 && user.getPlantelId() != null) {
+            plantelId = user.getPlantelId();
+        }
+        if (file.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El archivo no contiene datos");
+        }
+        if (file.getSize() > MAX_XML_BYTES) {
+            throw new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE, "El archivo supera el límite de 10 MB");
+        }
+        try {
+            byte[] bytes = file.getBytes();
+            HorarioAscService.ImportResult result =
+                    ascService.importarXml(bytes, cicloId, plantelId, reemplazar, user.getUsername());
+            return ResponseEntity.ok(result);
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error al importar: " + e.getMessage());
+        }
     }
 
     @Data

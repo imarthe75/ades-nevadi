@@ -9,7 +9,7 @@ export class BasePage {
       error:   '.p-toast-message-error',
       warn:    '.p-toast-message-warn',
     };
-    await expect(this.page.locator(sel[type])).toBeVisible({ timeout: 8_000 });
+    await expect(this.page.locator(sel[type]).first()).toBeVisible({ timeout: 8_000 });
   }
 
   async dismissToasts() {

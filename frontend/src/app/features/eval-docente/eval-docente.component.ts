@@ -84,20 +84,20 @@ const TIPO_LABELS: Record<string, string> = {
       </div>
     </div>
 
-    <p-tabs>
+    <p-tabs value="0">
 
       <!-- ── Pestaña Resumen ── -->
       <p-tabpanel value="0" header="Resumen por docente">
         <div class="toolbar-row">
           <p-select
-            [options]="profesores()"
+            [options]="profesoresOpts()"
             [(ngModel)]="selectedProfesor"
-            [optionLabel]="'persona.nombre'"
+            optionLabel="_nombre"
             placeholder="Seleccionar docente..."
             [showClear]="true"
             (onChange)="cargarResumen()"
             styleClass="select-docente"
-          
+
 
           [filter]="true" filterPlaceholder="Buscar..."/>
           <p-button label="CSV" icon="pi pi-file" severity="secondary" [text]="true"
@@ -155,12 +155,12 @@ const TIPO_LABELS: Record<string, string> = {
             <div class="field">
               <label>Docente a evaluar *</label>
               <p-select
-                [options]="profesores()"
+                [options]="profesoresOpts()"
                 [(ngModel)]="formProfesor"
-                [optionLabel]="'persona.nombre'"
+                optionLabel="_nombre"
                 placeholder="Seleccionar docente..."
                 styleClass="w-full"
-              
+
 
               [filter]="true" filterPlaceholder="Buscar..."/>
             </div>
@@ -331,6 +331,14 @@ export class EvalDocenteComponent implements OnInit {
   private readonly export = inject(ExportService);
 
   profesores       = signal<Profesor[]>([]);
+  readonly profesoresOpts = computed(() =>
+    this.profesores().map(p => ({
+      ...p,
+      _nombre: p.persona
+        ? `${p.persona.apellido_paterno} ${p.persona.apellido_materno ?? ''} ${p.persona.nombre}`.replace(/\s+/g, ' ').trim()
+        : p.numero_empleado,
+    }))
+  );
   criterios        = signal<Criterio[]>([]);
   resumen          = signal<ResumenEvaluador[]>([]);
   evaluaciones     = signal<EvaluacionOut[]>([]);
@@ -384,10 +392,10 @@ export class EvalDocenteComponent implements OnInit {
 
   ngOnInit(): void {
     const plantelId = this.ctx.plantel()?.id;
-    if (plantelId) {
-      this.api.get<Profesor[]>('/profesores', { plantel_id: plantelId })
-        .subscribe(p => this.profesores.set(p));
-    }
+    const params: Record<string, any> = {};
+    if (plantelId) params['plantel_id'] = plantelId;
+    this.api.get<Profesor[]>('/profesores', params)
+      .subscribe(p => this.profesores.set(p));
     this.api.get<Criterio[]>('/eval-docente/criterios').subscribe(c => {
       this.criterios.set(c);
       this.criteriosForm.set(c.map(cr => ({ criterio: cr, calificacion: 3, observacion: '' })));
@@ -479,12 +487,17 @@ export class EvalDocenteComponent implements OnInit {
   }
 
   private readonly exportCols: ExportColumn[] = [
+    { field: '_docente',         header: 'Docente evaluado', format: v => v || '—' },
     { field: 'tipo_evaluador',   header: 'Tipo evaluador', format: v => TIPO_LABELS[v] || v },
     { field: 'fecha_evaluacion', header: 'Fecha', format: v => v ? new Date(v).toLocaleDateString('es-MX') : '' },
     { field: 'calificacion_global', header: 'Calificación', format: v => v !== null ? String(v) : '—' },
     { field: 'estatus',          header: 'Estatus' },
   ];
 
-  exportCSV():  void { this.export.toCSV(this.evaluaciones(), this.exportCols, 'eval-docente'); }
-  exportXLSX(): void { this.export.toXLSX(this.evaluaciones(), this.exportCols, 'Eval Docente', 'eval-docente'); }
+  private evaluacionesExport() {
+    const docente = (this.selectedProfesor as any)?._nombre ?? '';
+    return this.evaluaciones().map(e => ({ ...e, _docente: docente }));
+  }
+  exportCSV():  void { this.export.toCSV(this.evaluacionesExport(), this.exportCols, 'eval-docente'); }
+  exportXLSX(): void { this.export.toXLSX(this.evaluacionesExport(), this.exportCols, 'Eval Docente', 'eval-docente'); }
 }

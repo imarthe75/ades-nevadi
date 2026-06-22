@@ -23,6 +23,7 @@ import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
 import { AuthService } from '../../core/services/auth.service';
 import { ApexNotificationService } from 'apex-component-library';
+import { grupoLabel } from '../../core/models';
 
 interface Plantilla {
   id: string;
@@ -379,7 +380,7 @@ export class ReportesComponent implements OnInit {
     this.api.get<any[]>('/grupos', params).subscribe({
       next: gs => this.grupos.set(gs.map(g => ({
         id: g.id,
-        label: g._label ?? `${g.nivel ?? ''} ${g.grado ?? g.numero_grado ?? ''} — ${g.nombre_grupo ?? g.nombre ?? g.id.slice(0,6)}`,
+        label: (g._label ?? grupoLabel(g)) || g.nombre_grupo || g.nombre || '—',
       }))),
       error: () => {},
     });
@@ -410,7 +411,7 @@ export class ReportesComponent implements OnInit {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `boletas_grupo_${this.grupoSel?.slice(0,6)}.${ext}`;
+        a.download = `boletas_grupo.${ext}`;
         a.click();
         URL.revokeObjectURL(url);
         this.notify.success('PDF generado', `Boletas del grupo descargadas (.${ext})`);

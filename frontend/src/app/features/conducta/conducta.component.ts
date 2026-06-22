@@ -944,10 +944,13 @@ export class ConductaComponent implements OnInit {
 
   // ── Exports ───────────────────────────────────────────────────
   private readonly exportCols: ExportColumn[] = [
+    { field: 'nombre_alumno',        header: 'Alumno', format: v => v || '—' },
     { field: 'fecha_reporte',        header: 'Fecha' },
     { field: 'tipo_falta',           header: 'Tipo de falta' },
     { field: 'descripcion',          header: 'Descripción' },
     { field: 'medida_aplicada',      header: 'Medida aplicada', format: v => v || '' },
+    { field: 'sancion_str',          header: 'Sanción', format: v => v || '—' },
+    { field: 'reportado_por_nombre', header: 'Reportado por', format: v => v || '—' },
     { field: 'requiere_seguimiento', header: 'Seguimiento', format: v => v ? 'Pendiente' : 'Cerrado' },
   ];
   exportCSV():  void { this.export.toCSV(this.reportes(), this.exportCols, 'conducta'); }

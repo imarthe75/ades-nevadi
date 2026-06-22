@@ -103,7 +103,7 @@ export class AsistenciasComponent implements OnInit {
   private readonly ctx = inject(ContextService);
   private readonly notify = inject(ApexNotificationService);
 
-  readonly estatusOptions: EstatusAsistencia[] = ['PRESENTE', 'AUSENTE', 'TARDE', 'JUSTIFICADO'];
+  readonly estatusOptions: EstatusAsistencia[] = ['PRESENTE', 'AUSENTE', 'TARDANZA', 'JUSTIFICADO'];
   clases = signal<any[]>([]);
   asistencias = signal<AsistenciaLocal[]>([]);
   saving = signal(false);

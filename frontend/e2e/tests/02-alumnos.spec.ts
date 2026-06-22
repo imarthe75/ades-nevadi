@@ -42,7 +42,7 @@ test.describe('A. Flujo feliz', () => {
     await ap.fillAlumnoForm(data);
     await ap.save();
     // QA-007 corregido — BFF ahora crea Persona+Estudiante correctamente
-    await expect(page.locator('.p-toast-message-success')).toBeVisible({ timeout: 8_000 });
+    await expect(page.locator('.p-toast-message-success').first()).toBeVisible({ timeout: 8_000 });
   });
 
   test('ALU-04 | perfil alumno abre al hacer click en fila', async ({ page }) => {
@@ -88,7 +88,7 @@ test.describe('B. Errores de validación', () => {
     await ap.openNewForm();
     await ap.fillAlumnoForm(data); // misma CURP
     await ap.save();
-    await expect(page.locator('.p-toast-message-error')).toBeVisible({ timeout: 8_000 });
+    await expect(page.locator('.p-toast-message-error').first()).toBeVisible({ timeout: 8_000 });
   });
 
   test('ALU-05 | inscripción doble en mismo ciclo → error', async ({ page }) => {
@@ -113,7 +113,7 @@ test.describe('B. Errores de validación', () => {
     await ap.fillAndBlur(ap.apPaternoInput, 'López');
     await ap.save();
     // El componente usa notify.warning() no ng-invalid
-    await expect(page.locator('.p-toast-message-warn, .p-toast-message-error')).toBeVisible({ timeout: 5_000 });
+    await expect(page.locator('.p-toast-message-warn, .p-toast-message-error').first()).toBeVisible({ timeout: 5_000 });
   });
 
   test('ALU-12 | CURP de 5 chars → warning longitud', async ({ page }) => {
@@ -124,7 +124,7 @@ test.describe('B. Errores de validación', () => {
     await ap.fillAndBlur(ap.curpInput, '12345');
     await ap.save();
     // El componente verifica que CURP tenga exactamente 18 chars
-    await expect(page.locator('.p-toast-message-warn, .p-toast-message-error')).toBeVisible({ timeout: 5_000 });
+    await expect(page.locator('.p-toast-message-warn, .p-toast-message-error').first()).toBeVisible({ timeout: 5_000 });
   });
 
   test('ALU-10 | RBAC plantel — docente solo ve su plantel', async ({ page }) => {

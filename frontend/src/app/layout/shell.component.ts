@@ -538,7 +538,7 @@ export class ShellComponent implements OnInit, OnDestroy {
     ]},
     { section: 'Mi Familia', minNivel: 5, items: [
       { route: '/padres',       icon: 'pi-users',        label: 'Portal de Padres',    minNivel: 5 },
-      { route: '/portal',       icon: 'pi-chart-line',   label: 'Progreso del Alumno', minNivel: 5 },
+      { route: '/mi-progreso',  icon: 'pi-chart-line',   label: 'Mi Progreso',         minNivel: 5 },
       { route: '/comunicados',  icon: 'pi-envelope',     label: 'Comunicados',         minNivel: 5 },
     ]},
     { section: 'Inteligencia', maxNivel: 3, items: [

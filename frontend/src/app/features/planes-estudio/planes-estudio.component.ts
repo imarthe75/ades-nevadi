@@ -524,10 +524,10 @@ export class PlanesEstudioComponent implements OnInit {
 
   readonly materiasColumns: ColumnConfig[] = [
     { field: 'nombre_materia',   header: 'Materia / Campo formativo', sortable: true },
-    { field: 'clave_materia',    header: 'Clave',    width: '110px' },
-    { field: 'nivel_educativo_id', header: 'Nivel',  width: '120px' },
-    { field: 'horas_semana',     header: 'Hrs/sem',  width: '75px' },
-    { field: 'is_active',        header: 'Estado',   width: '80px' },
+    { field: 'clave_materia',    header: 'Clave',       width: '110px' },
+    { field: '_nivel_nombre',    header: 'Nivel',       width: '120px' },
+    { field: 'horas_semana',     header: 'Hrs/sem',     width: '75px' },
+    { field: 'is_active',        header: 'Estado',      width: '80px' },
   ];
 
   readonly temasFlat = computed(() =>
@@ -564,7 +564,9 @@ export class PlanesEstudioComponent implements OnInit {
       list = list.filter(m => m.nombre_materia.toLowerCase().includes(q) ||
                                (m.clave_materia ?? '').toLowerCase().includes(q));
     }
-    return list.sort((a, b) => a.nombre_materia.localeCompare(b.nombre_materia));
+    return list
+      .sort((a, b) => a.nombre_materia.localeCompare(b.nombre_materia))
+      .map(m => ({ ...m, _nivel_nombre: this.nivelNombre(m.nivel_educativo_id) }));
   });
 
   readonly nivelesConMaterias = computed(() => this.niveles());
@@ -905,6 +907,6 @@ export class PlanesEstudioComponent implements OnInit {
 
   gradoNombre(gradoId: string): string {
     const g = this.grados().find(x => x.id === gradoId);
-    return g ? `${g.numero_grado}° ${g.nombre_grado}` : gradoId.slice(0, 6);
+    return g ? `${g.numero_grado}° ${g.nombre_grado}` : '—';
   }
 }

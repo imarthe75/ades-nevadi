@@ -32,15 +32,20 @@ export class AlumnosPage extends BasePage {
   );
 
   async navigate() {
-    await this.page.goto('/alumnos');
+    await this.page.goto('/alumnos', { waitUntil: 'domcontentloaded' });
     await this.waitSpinner();
+    // Esperar a que la tabla o el botón "Nuevo" estén presentes antes de continuar
+    await this.page.waitForSelector(
+      'app-interactive-grid, [data-testid="tabla-alumnos"], p-table, button:has-text("Nuevo")',
+      { timeout: 15_000 }
+    );
   }
 
   async openNewForm() {
-    await this.newBtn.click();
-    // Esperar a que el dialog de apex-modal-dialog aparezca
-    await expect(this.page.locator('.apex-dialog, [role="dialog"]')).toBeVisible({ timeout: 5_000 });
-    await this.page.waitForTimeout(300); // pequeña pausa para animación del dialog
+    await this.newBtn.first().waitFor({ state: 'visible', timeout: 10_000 });
+    await this.newBtn.first().click();
+    await expect(this.page.locator('.apex-dialog, [role="dialog"]')).toBeVisible({ timeout: 10_000 });
+    await this.page.waitForTimeout(300);
   }
 
   async fillAlumnoForm(data: {

@@ -20,7 +20,10 @@ import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
 import type { Grupo } from '../../core/models';
+import { grupoLabel } from '../../core/models';
 import { ApexNotificationService } from 'apex-component-library';
+
+type GrupoConLabel = Grupo & { _label: string };
 
 interface Mensaje {
   rol: 'user' | 'assistant';
@@ -168,7 +171,7 @@ const RIESGO_SEVERITY: Record<string, AlertaSeverity> = {
           <p-select
             [options]="grupos()"
             [(ngModel)]="selectedGrupo"
-            optionLabel="nombre_grupo"
+            optionLabel="_label"
             placeholder="Seleccionar grupo..."
             [showClear]="true"
           
@@ -370,7 +373,7 @@ export class IaComponent implements OnInit {
   inputMensaje = '';
   sesionId: string = crypto.randomUUID();
 
-  grupos   = signal<Grupo[]>([]);
+  grupos   = signal<GrupoConLabel[]>([]);
   alertas  = signal<Alerta[]>([]);
   cargandoAlertas = signal(false);
 
@@ -389,7 +392,7 @@ export class IaComponent implements OnInit {
     { field: 'estado_str',   header: 'Estado',      width: '90px' },
   ];
   escaneando = signal(false);
-  selectedGrupo: Grupo | null = null;
+  selectedGrupo: GrupoConLabel | null = null;
 
   readonly sugerencias = [
     '¿Cuáles son los alumnos en riesgo de reprobar?',
@@ -418,7 +421,7 @@ export class IaComponent implements OnInit {
     const plantelId = this.ctx.plantel()?.id;
     if (plantelId) {
       this.api.get<Grupo[]>('/grupos', { plantel_id: plantelId, solo_activos: true, ciclo_vigente: true })
-        .subscribe(g => this.grupos.set(g));
+        .subscribe(g => this.grupos.set(g.map(x => ({ ...x, _label: grupoLabel(x) }))));
     }
     this.cargarAlertas();
     this._cargarSesiones();

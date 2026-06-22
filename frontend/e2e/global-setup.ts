@@ -43,7 +43,7 @@ async function globalSetup() {
     "from unittest.mock import MagicMock",
     "import secrets",
     "provider = OAuth2Provider.objects.get(client_id='ades-frontend')",
-    "user = User.objects.get(username='akadmin')",
+    "user = User.objects.get(username='admin')",
     "at = AccessToken(provider=provider, user=user, expires=timezone.now()+timedelta(days=365), auth_time=timezone.now(), token=secrets.token_hex(32))",
     "at.scope = ['openid','email','profile']",
     "at.save()",

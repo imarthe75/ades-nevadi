@@ -399,6 +399,7 @@ export class ReinscripcionComponent implements OnInit {
       { field: 'nombre_plantel', header: 'Plantel' },
       { field: 'estado',         header: 'Estado' },
       { field: 'adeudo_str',     header: 'Adeudo' },
+      { field: 'fecha_val_str',  header: 'Validado', format: (v: any) => v || '—' },
       { field: 'razon_rechazo',  header: 'Razón rechazo' },
     ];
     this.exporter.toXLSX(this.alumnos(), cols, 'Reinscripción', 'reinscripcion');
