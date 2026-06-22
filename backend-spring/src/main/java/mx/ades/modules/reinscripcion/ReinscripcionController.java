@@ -93,7 +93,7 @@ public class ReinscripcionController {
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         requireAdmin(user);
-        String resumen = queryService.validarMasiva(cicloOrigenId, cicloDestinoId);
+        Map<String, Object> resumen = queryService.validarMasiva(cicloOrigenId, cicloDestinoId);
         return ResponseEntity.ok(Map.of("ok", true, "resumen", resumen));
     }
 

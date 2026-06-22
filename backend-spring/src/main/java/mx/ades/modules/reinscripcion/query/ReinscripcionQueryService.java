@@ -1,5 +1,7 @@
 package mx.ades.modules.reinscripcion.query;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -10,6 +12,7 @@ import java.util.*;
 public class ReinscripcionQueryService {
 
     private final JdbcTemplate jdbc;
+    private final ObjectMapper  om = new ObjectMapper();
 
     public ReinscripcionQueryService(JdbcTemplate jdbc) {
         this.jdbc = jdbc;
@@ -111,10 +114,17 @@ public class ReinscripcionQueryService {
     }
 
     @Transactional
-    public String validarMasiva(UUID cicloOrigenId, UUID cicloDestinoId) {
-        return jdbc.queryForObject(
+    public Map<String, Object> validarMasiva(UUID cicloOrigenId, UUID cicloDestinoId) {
+        String json = jdbc.queryForObject(
             "SELECT pg_validar_reinscripcion_masiva(?, ?)::text",
             String.class, cicloOrigenId, cicloDestinoId);
+        try {
+            return json != null
+                ? om.readValue(json, new TypeReference<Map<String, Object>>() {})
+                : Map.of();
+        } catch (Exception e) {
+            return Map.of("raw", json != null ? json : "");
+        }
     }
 
     @Transactional
@@ -126,11 +136,19 @@ public class ReinscripcionQueryService {
             "WHERE ciclo_destino_id = ? AND estado = 'VALIDADO' AND is_active = TRUE",
             usuarioId, cicloDestinoId);
 
-        String resultadoPromo = jdbc.queryForObject(
+        String promoJson = jdbc.queryForObject(
             "SELECT cerrar_ciclo_y_promover(?, ?, ?)::text",
             String.class, cicloOrigenId, cicloDestinoId, usuarioId.toString());
 
-        return Map.of("ok", true, "aprobados", nAprobados,
-                "resultado_promocion", resultadoPromo != null ? resultadoPromo : "");
+        Map<String, Object> promo;
+        try {
+            promo = promoJson != null
+                ? om.readValue(promoJson, new TypeReference<Map<String, Object>>() {})
+                : Map.of();
+        } catch (Exception e) {
+            promo = Map.of("raw", promoJson != null ? promoJson : "");
+        }
+
+        return Map.of("ok", true, "aprobados", nAprobados, "resultado_promocion", promo);
     }
 }

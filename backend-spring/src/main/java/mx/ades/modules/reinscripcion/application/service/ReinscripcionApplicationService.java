@@ -4,9 +4,11 @@ import mx.ades.modules.reinscripcion.domain.event.ReinscripcionProcesadaEvent;
 import mx.ades.modules.reinscripcion.domain.port.in.ProcesarAccionReinscripcionUseCase;
 import mx.ades.modules.reinscripcion.domain.port.out.ReinscripcionRepositoryPort;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 
+@Service
 public class ReinscripcionApplicationService implements ProcesarAccionReinscripcionUseCase {
 
     private final ReinscripcionRepositoryPort repo;
