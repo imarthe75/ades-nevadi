@@ -331,6 +331,43 @@ public class HexagonalConfig {
         return service;
     }
 
+    // ── biblioteca ─────────────────────────────────────────────────────────────
+    @Bean
+    public mx.ades.modules.biblioteca.application.service.BibliotecaApplicationService bibliotecaApplicationService(
+            mx.ades.modules.biblioteca.domain.port.out.BibliotecaRepositoryPort repo) {
+        return new mx.ades.modules.biblioteca.application.service.BibliotecaApplicationService(repo);
+    }
+
+    @Bean
+    public mx.ades.modules.biblioteca.domain.port.in.RegistrarLibroUseCase registrarLibro(
+            mx.ades.modules.biblioteca.application.service.BibliotecaApplicationService service) {
+        return service;
+    }
+
+    @Bean
+    public mx.ades.modules.biblioteca.domain.port.in.ActualizarLibroUseCase actualizarLibro(
+            mx.ades.modules.biblioteca.application.service.BibliotecaApplicationService service) {
+        return service;
+    }
+
+    @Bean
+    public mx.ades.modules.biblioteca.domain.port.in.EliminarLibroUseCase eliminarLibro(
+            mx.ades.modules.biblioteca.application.service.BibliotecaApplicationService service) {
+        return service;
+    }
+
+    @Bean
+    public mx.ades.modules.biblioteca.domain.port.in.RegistrarPrestamoUseCase registrarPrestamo(
+            mx.ades.modules.biblioteca.application.service.BibliotecaApplicationService service) {
+        return service;
+    }
+
+    @Bean
+    public mx.ades.modules.biblioteca.domain.port.in.DevolverPrestamoUseCase devolverPrestamo(
+            mx.ades.modules.biblioteca.application.service.BibliotecaApplicationService service) {
+        return service;
+    }
+
     // ── licencias (FASE 24) ───────────────────────────────────────────────────
     @Bean
     public mx.ades.modules.licencias.application.service.LicenciaApplicationService licenciaApplicationService(

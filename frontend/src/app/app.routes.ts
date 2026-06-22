@@ -87,6 +87,10 @@ export const routes: Routes = [
       { path: 'justificaciones',      canActivate: [roleGuard(3)], loadComponent: () => import('./features/justificaciones/justificaciones.component').then(m => m.JustificacionesComponent) },
       // ── FASE 32 — Movilidad Estudiantil ──────────────────────────────────────
       { path: 'movilidad', canActivate: [roleGuard(3)], loadComponent: () => import('./features/movilidad/movilidad.component').then(m => m.MovilidadComponent) },
+      // ── Biblioteca — acervo + circulación ────────────────────────────────────
+      { path: 'biblioteca', canActivate: [roleGuard(4)], loadComponent: () => import('./features/biblioteca/biblioteca.component').then(m => m.BibliotecaComponent) },
+      // ── Formato 911 SEP (pre-cálculo inicio de cursos) ───────────────────────
+      { path: 'estadistica-911', canActivate: [roleGuard(3)], loadComponent: () => import('./features/estadistica-911/estadistica-911.component').then(m => m.Estadistica911Component) },
       // ── FASE 36 — Foros y Anuncios ───────────────────────────────────────────
       { path: 'foros', loadComponent: () => import('./features/foros/foros.component').then(m => m.ForosComponent) },
       // ── FASE 35 ──────────────────────────────────────────────────────────
