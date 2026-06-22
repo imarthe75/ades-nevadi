@@ -84,6 +84,9 @@ public class ConductaController {
 
     @GetMapping
     public ResponseEntity<List<Map<String, Object>>> listar(
+            @RequestParam(value = "plantel_id", required = false) UUID plantelId,
+            @RequestParam(value = "nivel_id", required = false) UUID nivelId,
+            @RequestParam(value = "grado_id", required = false) UUID gradoId,
             @RequestParam(value = "estudiante_id", required = false) UUID estudianteId,
             @RequestParam(value = "grupo_id", required = false) UUID grupoId,
             @RequestParam(value = "tipo_falta", required = false) String tipoFalta,
@@ -92,7 +95,7 @@ public class ConductaController {
             @RequestParam(value = "por_pagina", defaultValue = "20") int porPagina) {
 
         return ResponseEntity.ok(
-                queryService.listar(estudianteId, grupoId, tipoFalta, requiereSeguimiento, pagina, porPagina));
+                queryService.listar(plantelId, nivelId, gradoId, grupoId, estudianteId, tipoFalta, requiereSeguimiento, pagina, porPagina));
     }
 
     @GetMapping("/alumno/{estudianteId}/historial")

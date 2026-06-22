@@ -5,7 +5,7 @@
  * SB-013: Plan de mejora conductual (tab Plan de Mejora)
  * SB-014: Seguimiento del plan (tab Seguimientos)
  */
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
@@ -96,11 +96,64 @@ interface Compromiso {
       </div>
     </div>
 
+    <!-- Filtros de Contexto Cascading (Plantel -> Nivel -> Grado -> Grupo) -->
     <div class="filter-bar">
+      <p-select
+        [options]="plantelesOpts()"
+        [(ngModel)]="selectedPlantelId"
+        optionLabel="nombre_plantel"
+        optionValue="id"
+        placeholder="Plantel"
+        (onChange)="onPlantelChange()"
+        [showClear]="!isPlantelDisabled()"
+        [disabled]="isPlantelDisabled()"
+        [filter]="true" filterPlaceholder="Buscar..."
+        styleClass="filter-select" />
+
+      <p-select
+        [options]="nivelesOpts()"
+        [(ngModel)]="selectedNivelId"
+        optionLabel="nombre_nivel"
+        optionValue="id"
+        placeholder="Nivel"
+        (onChange)="onNivelChange()"
+        [showClear]="!isNivelDisabled()"
+        [disabled]="isNivelDisabled() || !selectedPlantelId"
+        [filter]="true" filterPlaceholder="Buscar..."
+        styleClass="filter-select" />
+
+      <p-select
+        [options]="gradosOpts()"
+        [(ngModel)]="selectedGradoId"
+        optionLabel="nombre_grado"
+        optionValue="id"
+        placeholder="Grado"
+        (onChange)="onGradoChange()"
+        [showClear]="true"
+        [disabled]="!selectedNivelId"
+        [filter]="true" filterPlaceholder="Buscar..."
+        styleClass="filter-select" />
+
+      <p-select
+        [options]="filterGruposOpts()"
+        [(ngModel)]="selectedGrupoId"
+        optionLabel="_label"
+        optionValue="id"
+        placeholder="Grupo"
+        (onChange)="onGrupoChange()"
+        [showClear]="true"
+        [disabled]="!selectedGradoId"
+        [filter]="true" filterPlaceholder="Buscar..."
+        styleClass="filter-select" />
+    </div>
+
+    <div class="filter-bar" style="margin-top: 0.5rem">
       <p-select [options]="tiposFalta" [(ngModel)]="filtroTipo" optionLabel="label" optionValue="value"
-                placeholder="Tipo de falta" [showClear]="true" (onChange)="cargar()" [filter]="true" />
+                placeholder="Tipo de falta" [showClear]="true" (onChange)="cargar()" [filter]="true"
+                styleClass="filter-select" />
       <p-select [options]="seguimientoOpts" [(ngModel)]="filtroSeguimiento" optionLabel="label" optionValue="value"
-                placeholder="Estado seguimiento" [showClear]="true" (onChange)="cargar()" [filter]="true" />
+                placeholder="Estado seguimiento" [showClear]="true" (onChange)="cargar()" [filter]="true"
+                styleClass="filter-select" />
     </div>
 
     <app-interactive-grid
@@ -451,6 +504,7 @@ interface Compromiso {
   `,
   styles: [`
     .filter-bar { display: flex; gap: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap; }
+    .filter-select { min-width: 220px; }
     .form-fields { display: flex; flex-direction: column; gap: 0.75rem; }
     .field { display: flex; flex-direction: column; gap: 0.25rem; }
     .field label { font-size: 0.82rem; font-weight: 600; color: var(--text-secondary); }
@@ -490,6 +544,19 @@ export class ConductaComponent implements OnInit {
 
   filtroTipo: string | null = null;
   filtroSeguimiento: boolean | null = null;
+
+  plantelesOpts = signal<any[]>([]);
+  nivelesOpts = signal<any[]>([]);
+  gradosOpts = signal<any[]>([]);
+  filterGruposOpts = signal<any[]>([]);
+
+  selectedPlantelId: string | null = null;
+  selectedNivelId: string | null = null;
+  selectedGradoId: string | null = null;
+  selectedGrupoId: string | null = null;
+
+  readonly isPlantelDisabled = computed(() => this.ctx.nivelAcceso() > 2);
+  readonly isNivelDisabled = computed(() => this.ctx.nivelAcceso() > 3);
 
   readonly columnasReportes: ColumnConfig[] = [
     { field: 'fecha_reporte',   header: 'Fecha',           sortable: true,  filterable: false, width: '110px' },
@@ -608,7 +675,15 @@ export class ConductaComponent implements OnInit {
   } = this.formVacio();
 
   constructor() {
-    // Cargar grupos del ciclo vigente
+    effect(() => {
+      const p = this.ctx.plantel();
+      if (p?.id && !this.selectedPlantelId) {
+        this.selectedPlantelId = p.id;
+        this.onPlantelChange();
+      }
+    });
+
+    // Cargar grupos del ciclo vigente para el formulario
     const ctx = this.ctx;
     const api  = this.api;
     const gOpts = this.gruposOpts;
@@ -621,13 +696,98 @@ export class ConductaComponent implements OnInit {
     });
   }
 
-  ngOnInit(): void { this.cargar(); }
+  ngOnInit(): void {
+    this.api.get<any[]>('/planteles').subscribe({
+      next: p => {
+        this.plantelesOpts.set(p);
+        const currentPlantel = this.ctx.plantel();
+        if (currentPlantel?.id) {
+          this.selectedPlantelId = currentPlantel.id;
+          this.onPlantelChange();
+        }
+      },
+      error: () => {}
+    });
+    this.cargar();
+  }
+
+  onPlantelChange(): void {
+    this.selectedNivelId = null;
+    this.selectedGradoId = null;
+    this.selectedGrupoId = null;
+    this.nivelesOpts.set([]);
+    this.gradosOpts.set([]);
+    this.filterGruposOpts.set([]);
+    this.cargar();
+
+    if (!this.selectedPlantelId) return;
+
+    this.api.get<any[]>(`/planteles/${this.selectedPlantelId}/niveles`).subscribe({
+      next: ns => {
+        const mapped = ns.map(x => ({ id: x.id ?? x.nivel_id, nombre_nivel: x.nombre_nivel }));
+        this.nivelesOpts.set(mapped);
+        
+        const ctxNivel = this.ctx.nivel();
+        if (ctxNivel && mapped.some(n => n.id === ctxNivel.id)) {
+          this.selectedNivelId = ctxNivel.id;
+          this.onNivelChange();
+        }
+      },
+      error: () => {}
+    });
+  }
+
+  onNivelChange(): void {
+    this.selectedGradoId = null;
+    this.selectedGrupoId = null;
+    this.gradosOpts.set([]);
+    this.filterGruposOpts.set([]);
+    this.cargar();
+
+    if (!this.selectedNivelId) return;
+
+    this.api.get<any[]>(`/catalogs/grados`, { nivel_id: this.selectedNivelId }).subscribe({
+      next: gs => {
+        this.gradosOpts.set(gs);
+      },
+      error: () => {}
+    });
+  }
+
+  onGradoChange(): void {
+    this.selectedGrupoId = null;
+    this.filterGruposOpts.set([]);
+    this.cargar();
+
+    if (!this.selectedGradoId) return;
+
+    const params: Record<string, any> = { solo_activos: true, ciclo_vigente: true };
+    if (this.selectedPlantelId) params['plantel_id'] = this.selectedPlantelId;
+    if (this.selectedGradoId) params['grado_id'] = this.selectedGradoId;
+
+    this.api.get<any[]>('/grupos', params).subscribe({
+      next: gps => {
+        this.filterGruposOpts.set(gps.map(x => ({ ...x, _label: grupoLabel(x) })));
+      },
+      error: () => this.filterGruposOpts.set([])
+    });
+  }
+
+  onGrupoChange(): void {
+    this.cargar();
+  }
 
   cargar(): void {
     this.loading.set(true);
     const params: Record<string, any> = {};
     if (this.filtroTipo) params['tipo_falta'] = this.filtroTipo;
     if (this.filtroSeguimiento !== null) params['requiere_seguimiento'] = this.filtroSeguimiento;
+
+    if (this.selectedPlantelId) params['plantel_id'] = this.selectedPlantelId;
+    if (this.selectedNivelId) params['nivel_id'] = this.selectedNivelId;
+    if (this.selectedGradoId) params['grado_id'] = this.selectedGradoId;
+    if (this.selectedGrupoId) params['grupo_id'] = this.selectedGrupoId;
+
     this.api.get<any[]>('/conducta', params).subscribe({
       next: r => {
         this.reportes.set(r.map(x => ({
