@@ -91,6 +91,8 @@ export const routes: Routes = [
       { path: 'biblioteca', canActivate: [roleGuard(4)], loadComponent: () => import('./features/biblioteca/biblioteca.component').then(m => m.BibliotecaComponent) },
       // ── Formato 911 SEP (pre-cálculo inicio de cursos) ───────────────────────
       { path: 'estadistica-911', canActivate: [roleGuard(3)], loadComponent: () => import('./features/estadistica-911/estadistica-911.component').then(m => m.Estadistica911Component) },
+      // ── Kardex / Historial Académico UAEMEX (preparatoria) ───────────────────
+      { path: 'kardex', canActivate: [roleGuard(3)], loadComponent: () => import('./features/kardex/kardex.component').then(m => m.KardexComponent) },
       // ── FASE 36 — Foros y Anuncios ───────────────────────────────────────────
       { path: 'foros', loadComponent: () => import('./features/foros/foros.component').then(m => m.ForosComponent) },
       // ── FASE 35 ──────────────────────────────────────────────────────────

@@ -18,8 +18,12 @@ el cumplimiento oficial **SEP / control escolar (UAEMEX)**. Prioridad de diseño
 sostenibilidad y mantenibilidad por equipo pequeño > cantidad de features.
 
 **Arquitectura (hexagonal / SOLID):** BFF en **Spring Boot 3 (Java 21)** + frontend
-**Angular 22**. **FastAPI queda exclusivamente para la capa de IA** (agente, embeddings,
-insights). Toda lógica de negocio nueva vive en `backend-spring/` salvo IA.
+**Angular 22**. **FastAPI queda para IA + render de documentos** (agente, embeddings,
+insights; y generación PDF de boletas/constancias/actas/certificados vía
+weasyprint/Jinja/Carbone — stacks de documentos maduros en Python). El BFF Spring
+proxea esos endpoints (patrón `*FastApiAdapter`, límite hexagonal limpio). Toda lógica
+de negocio nueva vive en `backend-spring/` salvo IA y render de documentos.
+Ver ADR-0011 para el plan de boleta NEM.
 
 ---
 
@@ -40,7 +44,8 @@ insights). Toda lógica de negocio nueva vive en `backend-spring/` salvo IA.
 | Regla ciclo escolar | 1 año vigente por sistema (SEP/UAEMEX). Mig 083: `sistema_educativo` + trigger `fn_ciclo_sistema_vigente` |
 | Biblioteca | Mig 084: `ades_biblioteca_libros` + `ades_biblioteca_prestamos`; módulo hexagonal `/api/v1/biblioteca` + feature `biblioteca` |
 | Reporte 911 SEP | `/api/v1/reportes/911` (solo lectura) + feature `estadistica-911`; pre-cálculo inicio de cursos (matriz edad×grado×sexo×ingreso + grupos); SEP only |
-| Boleta NEM | Mig 085: `ades_materias.campo_formativo` (4 campos NEM). Boleta en FastAPI (`tasks/boletas.py` + `templates/boletas/boleta.html`) agrupa por campo formativo, CURP, asistencias, escala 6-10, acreditó grado |
+| Boleta NEM | Mig 085: `ades_materias.campo_formativo` (4 campos NEM). Boleta en FastAPI (`tasks/boletas.py` + `templates/boletas/boleta.html`) agrupa por campo formativo, CURP, asistencias, escala 6-10, acreditó grado. PDF real verificado. Ver ADR-0011 |
+| Kardex UAEMEX | `/api/v1/reportes/kardex/{id}` (Spring, solo lectura) + feature `kardex`; prepa CBU, escala 0-10 mín 6.0, ordinario→extraordinario→definitiva |
 
 ---
 
