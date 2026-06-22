@@ -41,37 +41,73 @@ type GrupoConLabel = Grupo & { _label: string };
       }
     </div>
 
-    <!-- Filtros de Contexto (APEX Interactive Grid Style) -->
+    <!-- Filtros de Contexto Cascading (Plantel -> Nivel -> Grado -> Grupo -> Materia) -->
     <div class="filter-bar">
       <p-select
-        [options]="grupos()"
-        [(ngModel)]="selectedGrupo"
+        [options]="plantelesOpts()"
+        [(ngModel)]="selectedPlantelId"
+        optionLabel="nombre_plantel"
+        optionValue="id"
+        placeholder="Plantel"
+        (onChange)="onPlantelChange()"
+        [showClear]="!isPlantelDisabled()"
+        [disabled]="isPlantelDisabled()"
+        [filter]="true" filterPlaceholder="Buscar..."
+        styleClass="filter-select" />
+
+      <p-select
+        [options]="nivelesOpts()"
+        [(ngModel)]="selectedNivelId"
+        optionLabel="nombre_nivel"
+        optionValue="id"
+        placeholder="Nivel"
+        (onChange)="onNivelChange()"
+        [showClear]="!isNivelDisabled()"
+        [disabled]="isNivelDisabled() || !selectedPlantelId"
+        [filter]="true" filterPlaceholder="Buscar..."
+        styleClass="filter-select" />
+
+      <p-select
+        [options]="gradosOpts()"
+        [(ngModel)]="selectedGradoId"
+        optionLabel="nombre_grado"
+        optionValue="id"
+        placeholder="Grado"
+        (onChange)="onGradoChange()"
+        [showClear]="true"
+        [disabled]="!selectedNivelId"
+        [filter]="true" filterPlaceholder="Buscar..."
+        styleClass="filter-select" />
+
+      <p-select
+        [options]="gruposOpts()"
+        [(ngModel)]="selectedGrupoId"
         optionLabel="_label"
-        placeholder="Seleccionar grupo"
+        optionValue="id"
+        placeholder="Grupo"
         (onChange)="onGrupoChange()"
         [showClear]="true"
-        styleClass="filter-select"
-      
+        [disabled]="!selectedGradoId"
+        [filter]="true" filterPlaceholder="Buscar..."
+        styleClass="filter-select" />
 
-      [filter]="true" filterPlaceholder="Buscar..."/>
       <p-select
-        [options]="materias()"
-        [(ngModel)]="selectedMateria"
+        [options]="materiasOpts()"
+        [(ngModel)]="selectedMateriaId"
         optionLabel="nombre_materia"
-        placeholder="Seleccionar materia"
+        optionValue="id"
+        placeholder="Materia"
         (onChange)="loadTareas()"
         [showClear]="true"
-        [disabled]="!selectedGrupo"
-        styleClass="filter-select"
-      
-
-      [filter]="true" filterPlaceholder="Buscar..."/>
+        [disabled]="!selectedGrupoId"
+        [filter]="true" filterPlaceholder="Buscar..."
+        styleClass="filter-select" />
     </div>
 
-    @if (!selectedGrupo || !selectedMateria) {
+    @if (!selectedGrupoId || !selectedMateriaId) {
       <div class="empty-state">
         <i class="pi pi-info-circle" style="font-size:2rem; color:var(--text-muted)"></i>
-        <p>Selecciona un grupo y una materia para ver y gestionar las tareas.</p>
+        <p>Selecciona plantel, nivel, grado, grupo y materia para ver y gestionar las tareas.</p>
       </div>
     } @else {
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:2rem">
@@ -118,8 +154,8 @@ type GrupoConLabel = Grupo & { _label: string };
               <td>{{ entrega.fecha_limite | date:'dd/MM/yyyy' }}</td>
               <td>
                 <p-tag
-                  [value]="entrega.estatus_entrega === 'PENDIENTE' ? 'Pendiente' : 'Entregado'"
-                  [severity]="entrega.estatus_entrega === 'PENDIENTE' ? 'warn' : 'success'"
+                   [value]="entrega.estatus_entrega === 'PENDIENTE' ? 'Pendiente' : 'Entregado'"
+                   [severity]="entrega.estatus_entrega === 'PENDIENTE' ? 'warn' : 'success'"
                 />
                 @if (entrega.vencida) {
                   <p-tag value="Vencida" severity="danger" styleClass="ml-1" />
@@ -195,14 +231,32 @@ export class TareasComponent implements OnInit {
     { field: 'origen',         header: 'Origen',       width: '90px' },
   ];
 
-  grupos = signal<GrupoConLabel[]>([]);
-  materias = signal<Materia[]>([]);
-  selectedGrupo: GrupoConLabel | null = null;
-  selectedMateria: Materia | null = null;
+  plantelesOpts = signal<any[]>([]);
+  nivelesOpts = signal<any[]>([]);
+  gradosOpts = signal<any[]>([]);
+  gruposOpts = signal<GrupoConLabel[]>([]);
+  materiasOpts = signal<Materia[]>([]);
+
+  selectedPlantelId: string | null = null;
+  selectedNivelId: string | null = null;
+  selectedGradoId: string | null = null;
+  selectedGrupoId: string | null = null;
+  selectedMateriaId: string | null = null;
+
+  readonly isPlantelDisabled = computed(() => this.ctx.nivelAcceso() > 2);
+  readonly isNivelDisabled = computed(() => this.ctx.nivelAcceso() > 3);
+
+  get selectedGrupo(): GrupoConLabel | null {
+    return this.gruposOpts().find(g => g.id === this.selectedGrupoId) || null;
+  }
+
+  get selectedMateria(): Materia | null {
+    return this.materiasOpts().find(m => m.id === this.selectedMateriaId) || null;
+  }
 
   tareas = signal<Tarea[]>([]);
   entregas = signal<any[]>([]);
-  readonly pendientes = computed(() => this.entregas().filter(e => e.estado === 'PENDIENTE').length);
+  readonly pendientes = computed(() => this.entregas().filter(e => e.estatus_entrega === 'PENDIENTE').length);
 
   showDialog = false;
   saving = signal(false);
@@ -218,54 +272,123 @@ export class TareasComponent implements OnInit {
   readonly puedeCrear = computed(() => this.ctx.nivelAcceso() <= 4);
 
   constructor() {
+    // Escucha cambios del plantel/nivel en el contexto global si no se han seleccionado manualmente
     effect(() => {
-      const plantelId = this.ctx.plantel()?.id;
-      const nivelNombre = this.ctx.nivel()?.nombre_nivel;
-      this.loadGrupos(plantelId, nivelNombre);
-    });
-  }
-
-  loadGrupos(plantelId?: string, nivelNombre?: string): void {
-    const params: Record<string, any> = { solo_activos: true, ciclo_vigente: true };
-    if (plantelId) params['plantel_id'] = plantelId;
-    if (nivelNombre && nivelNombre !== 'TODOS') params['nivel'] = nivelNombre;
-
-    this.api.get<Grupo[]>('/grupos', params).subscribe({
-      next: g => {
-        this.grupos.set(g.map(x => ({ ...x, _label: grupoLabel(x) })));
-        if (this.selectedGrupo && !g.some(x => x.id === this.selectedGrupo!.id)) {
-          this.selectedGrupo = null;
-          this.selectedMateria = null;
-          this.tareas.set([]);
-          this.entregas.set([]);
-        }
-      },
-      error: () => this.grupos.set([])
+      const p = this.ctx.plantel();
+      if (p?.id && !this.selectedPlantelId) {
+        this.selectedPlantelId = p.id;
+        this.onPlantelChange();
+      }
     });
   }
 
   ngOnInit(): void {
+    this.api.get<any[]>('/planteles').subscribe({
+      next: p => {
+        this.plantelesOpts.set(p);
+        const currentPlantel = this.ctx.plantel();
+        if (currentPlantel?.id) {
+          this.selectedPlantelId = currentPlantel.id;
+          this.onPlantelChange();
+        }
+      },
+      error: () => {}
+    });
+  }
+
+  onPlantelChange(): void {
+    this.selectedNivelId = null;
+    this.selectedGradoId = null;
+    this.selectedGrupoId = null;
+    this.selectedMateriaId = null;
+    this.nivelesOpts.set([]);
+    this.gradosOpts.set([]);
+    this.gruposOpts.set([]);
+    this.materiasOpts.set([]);
+    this.tareas.set([]);
+    this.entregas.set([]);
+
+    if (!this.selectedPlantelId) return;
+
+    this.api.get<any[]>(`/planteles/${this.selectedPlantelId}/niveles`).subscribe({
+      next: ns => {
+        const mapped = ns.map(x => ({ id: x.id ?? x.nivel_id, nombre_nivel: x.nombre_nivel }));
+        this.nivelesOpts.set(mapped);
+        
+        const ctxNivel = this.ctx.nivel();
+        if (ctxNivel && mapped.some(n => n.id === ctxNivel.id)) {
+          this.selectedNivelId = ctxNivel.id;
+          this.onNivelChange();
+        }
+      },
+      error: () => {}
+    });
+  }
+
+  onNivelChange(): void {
+    this.selectedGradoId = null;
+    this.selectedGrupoId = null;
+    this.selectedMateriaId = null;
+    this.gradosOpts.set([]);
+    this.gruposOpts.set([]);
+    this.materiasOpts.set([]);
+    this.tareas.set([]);
+    this.entregas.set([]);
+
+    if (!this.selectedNivelId) return;
+
+    this.api.get<any[]>(`/catalogs/grados`, { nivel_id: this.selectedNivelId }).subscribe({
+      next: gs => {
+        this.gradosOpts.set(gs);
+      },
+      error: () => {}
+    });
+  }
+
+  onGradoChange(): void {
+    this.selectedGrupoId = null;
+    this.selectedMateriaId = null;
+    this.gruposOpts.set([]);
+    this.materiasOpts.set([]);
+    this.tareas.set([]);
+    this.entregas.set([]);
+
+    if (!this.selectedGradoId) return;
+
+    const params: Record<string, any> = { solo_activos: true, ciclo_vigente: true };
+    if (this.selectedPlantelId) params['plantel_id'] = this.selectedPlantelId;
+    if (this.selectedGradoId) params['grado_id'] = this.selectedGradoId;
+
+    this.api.get<Grupo[]>('/grupos', params).subscribe({
+      next: gps => {
+        this.gruposOpts.set(gps.map(x => ({ ...x, _label: grupoLabel(x) })));
+      },
+      error: () => this.gruposOpts.set([])
+    });
   }
 
   onGrupoChange(): void {
-    this.selectedMateria = null;
+    this.selectedMateriaId = null;
+    this.materiasOpts.set([]);
     this.tareas.set([]);
     this.entregas.set([]);
-    if (!this.selectedGrupo) return;
 
-    const gradoId = this.selectedGrupo.grado_id;
-    this.api.get<Materia[]>('/planes-estudio', { grado_id: gradoId }).subscribe(planes => {
+    if (!this.selectedGrupoId) return;
+
+    const grupo = this.selectedGrupo;
+    if (!grupo) return;
+
+    this.api.get<Materia[]>('/planes-estudio', { grado_id: grupo.grado_id }).subscribe(planes => {
       const materias: Materia[] = (planes as any[]).map((p: any) => p.materia).filter(Boolean);
-      this.materias.set(materias);
+      this.materiasOpts.set(materias);
     });
   }
 
   loadTareas(): void {
-    if (!this.selectedGrupo || !this.selectedMateria) return;
-    this.api.get<Tarea[]>('/tareas', { grupo_id: this.selectedGrupo.id, materia_id: this.selectedMateria.id })
+    if (!this.selectedGrupoId || !this.selectedMateriaId) return;
+    this.api.get<Tarea[]>('/tareas', { grupo_id: this.selectedGrupoId, materia_id: this.selectedMateriaId })
       .subscribe(t => {
         this.tareas.set(t);
-        // Solo cargar entregas pendientes si el usuario es alumno
         const usuarioId = this.ctx.usuario()?.id;
         if (usuarioId && this.ctx.nivelAcceso() >= 5) {
           this.api.get<any[]>(`/entregas/alumno/${usuarioId}`, { solo_pendientes: true })
@@ -302,7 +425,7 @@ export class TareasComponent implements OnInit {
   }
 
   guardarTarea(): void {
-    if (!this.form.titulo || !this.form.fecha_entrega || !this.selectedGrupo || !this.selectedMateria) {
+    if (!this.form.titulo || !this.form.fecha_entrega || !this.selectedGrupoId || !this.selectedMateriaId) {
       this.notify.warning('Campos vacíos', 'Debe rellenar los campos obligatorios');
       return;
     }
@@ -313,8 +436,8 @@ export class TareasComponent implements OnInit {
       descripcion: this.form.descripcion,
       fecha_entrega: this.form.fecha_entrega,
       puntaje_maximo: this.form.puntaje_maximo,
-      grupo_id: this.selectedGrupo.id,
-      materia_id: this.selectedMateria.id,
+      grupo_id: this.selectedGrupoId,
+      materia_id: this.selectedMateriaId,
       fecha_asignacion: new Date().toISOString().substring(0, 10),
       permite_entrega_tarde: true,
       origen: 'MANUAL',

@@ -9,7 +9,7 @@
  *
  * Principios: Oracle APEX Interactive Report + Moodle Course Outline.
  */
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TabsModule } from 'primeng/tabs';
@@ -230,8 +230,13 @@ const NIVEL_ORDER = ['PRIMARIA', 'SECUNDARIA', 'PREPARATORIA'];
             <p-select [options]="niveles()" [(ngModel)]="filtroNivelId"
               optionLabel="nombre_nivel" optionValue="id"
               placeholder="Todos los niveles" [showClear]="true"
+              (onChange)="onFiltroNivelChange()" style="width:180px"
+              [filter]="true" filterPlaceholder="Buscar..."/>
+            <p-select [options]="gradosFiltradosPorNivel()" [(ngModel)]="filtroGradoId"
+              optionLabel="nombre_grado" optionValue="id"
+              placeholder="Todos los grados" [showClear]="true"
               (onChange)="filtrarMaterias()" style="width:180px"
- [filter]="true" filterPlaceholder="Buscar..."/>
+              [filter]="true" filterPlaceholder="Buscar..."/>
             @if (esAdmin()) {
               <app-import-button entidad="materias" [onSuccess]="cargarMaterias.bind(this)" />
               <p-button label="Nueva materia" icon="pi pi-plus" size="small"
@@ -519,15 +524,17 @@ export class PlanesEstudioComponent implements OnInit {
   // ── Catálogo filtros ─────────────────────────────────────────────────────
   busquedaCat     = '';
   filtroNivelId   = '';
+  filtroGradoId   = '';
 
   readonly esAdmin = computed(() => this.ctx.nivelAcceso() <= 1);
 
   readonly materiasColumns: ColumnConfig[] = [
-    { field: 'nombre_materia',   header: 'Materia / Campo formativo', sortable: true },
-    { field: 'clave_materia',    header: 'Clave',       width: '110px' },
-    { field: '_nivel_nombre',    header: 'Nivel',       width: '120px' },
-    { field: 'horas_semana',     header: 'Hrs/sem',     width: '75px' },
-    { field: 'is_active',        header: 'Estado',      width: '80px' },
+    { field: 'nombre_materia',        header: 'Materia / Campo formativo', sortable: true },
+    { field: 'clave_materia',         header: 'Clave',       width: '110px' },
+    { field: '_nivel_nombre',         header: 'Nivel',       width: '120px' },
+    { field: '_grados_asignados_str', header: 'Grados asignados', width: '220px' },
+    { field: 'horas_semana',          header: 'Hrs/sem',     width: '75px' },
+    { field: 'is_active',             header: 'Estado',      width: '80px' },
   ];
 
   readonly temasFlat = computed(() =>
@@ -556,9 +563,21 @@ export class PlanesEstudioComponent implements OnInit {
       .sort((a, b) => a.nombre_materia.localeCompare(b.nombre_materia))
   );
 
+  readonly gradosFiltradosPorNivel = computed(() => {
+    const nivelId = this.filtroNivelId;
+    if (!nivelId) return this.grados();
+    return this.grados().filter(g => g.nivel_educativo_id === nivelId);
+  });
+
   readonly materiasFiltradas = computed(() => {
     let list = this.materias();
     if (this.filtroNivelId) list = list.filter(m => m.nivel_educativo_id === this.filtroNivelId);
+    if (this.filtroGradoId) {
+      const materiaIdsEnGrado = new Set(
+        this.plan().filter(p => p.grado_id === this.filtroGradoId && p.is_active).map(p => p.materia_id)
+      );
+      list = list.filter(m => materiaIdsEnGrado.has(m.id));
+    }
     if (this.busquedaCat) {
       const q = this.busquedaCat.toLowerCase();
       list = list.filter(m => m.nombre_materia.toLowerCase().includes(q) ||
@@ -566,7 +585,20 @@ export class PlanesEstudioComponent implements OnInit {
     }
     return list
       .sort((a, b) => a.nombre_materia.localeCompare(b.nombre_materia))
-      .map(m => ({ ...m, _nivel_nombre: this.nivelNombre(m.nivel_educativo_id) }));
+      .map(m => {
+        const assignedGrades = this.plan()
+          .filter(p => p.materia_id === m.id && p.is_active)
+          .map(p => {
+            const gr = this.grados().find(g => g.id === p.grado_id);
+            return gr ? gr.nombre_grado : '';
+          })
+          .filter(Boolean);
+        return {
+          ...m,
+          _nivel_nombre: this.nivelNombre(m.nivel_educativo_id),
+          _grados_asignados_str: assignedGrades.join(', ') || 'Sin asignar'
+        };
+      });
   });
 
   readonly nivelesConMaterias = computed(() => this.niveles());
@@ -619,6 +651,19 @@ export class PlanesEstudioComponent implements OnInit {
     const gr  = this.grados().find(g => g.id === this._temarioGradoId());
     return mat && gr ? `${mat.nombre_materia} — ${gr.nombre_grado}` : '';
   });
+
+  constructor() {
+    effect(() => {
+      const p = this.ctx.plantel();
+      const c = this.ctx.ciclo();
+      this.cargarTodo();
+    });
+  }
+
+  onFiltroNivelChange(): void {
+    this.filtroGradoId = '';
+    this.filtrarMaterias();
+  }
 
   ngOnInit(): void {
     this.api.get<NivelOpt[]>('/catalogs/niveles').subscribe(n => {

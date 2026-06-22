@@ -2,12 +2,13 @@
  * FASE 1 & FASE 24 — Profesores (Teachers) + Interactive Grid APEX-style
  * Manages teacher records with filtering, sorting, and profile management.
  */
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { DialogModule } from 'primeng/dialog';
+import { SelectModule } from 'primeng/select';
 
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
@@ -16,7 +17,7 @@ import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/
 import { ProfesorPerfilComponent } from '../../shared/components/profesor-perfil/profesor-perfil.component';
 import { HelpButtonComponent } from '../../shared/components/help-button/help-button.component';
 import { ImportButtonComponent } from '../../shared/components/import-button/import-button.component';
-import type { Profesor } from '../../core/models';
+import { Profesor, grupoLabel } from '../../core/models';
 import { ApexNotificationService } from 'apex-component-library';
 
 @Component({
@@ -24,7 +25,7 @@ import { ApexNotificationService } from 'apex-component-library';
   standalone: true,
   imports: [
     CommonModule, FormsModule,
-    ButtonModule, InputTextModule, DialogModule,
+    ButtonModule, InputTextModule, DialogModule, SelectModule,
     InteractiveGridComponent, ProfesorPerfilComponent, HelpButtonComponent, ImportButtonComponent,
   ],
   template: `
@@ -48,6 +49,57 @@ import { ApexNotificationService } from 'apex-component-library';
         <p-button label="Excel" icon="pi pi-file-excel" severity="secondary" [text]="true" (onClick)="exportXLSX()" pTooltip="Exportar Excel" />
         <p-button label="Nuevo profesor" icon="pi pi-plus" (onClick)="openDialog()" />
       </div>
+    </div>
+
+    <!-- Filtros de Contexto Cascading (Plantel -> Nivel -> Grado -> Grupo) -->
+    <div class="filter-bar">
+      <p-select
+        [options]="plantelesOpts()"
+        [(ngModel)]="selectedPlantelId"
+        optionLabel="nombre_plantel"
+        optionValue="id"
+        placeholder="Plantel"
+        (onChange)="onPlantelChange()"
+        [showClear]="!isPlantelDisabled()"
+        [disabled]="isPlantelDisabled()"
+        [filter]="true" filterPlaceholder="Buscar..."
+        styleClass="filter-select" />
+
+      <p-select
+        [options]="nivelesOpts()"
+        [(ngModel)]="selectedNivelId"
+        optionLabel="nombre_nivel"
+        optionValue="id"
+        placeholder="Nivel"
+        (onChange)="onNivelChange()"
+        [showClear]="!isNivelDisabled()"
+        [disabled]="isNivelDisabled() || !selectedPlantelId"
+        [filter]="true" filterPlaceholder="Buscar..."
+        styleClass="filter-select" />
+
+      <p-select
+        [options]="gradosOpts()"
+        [(ngModel)]="selectedGradoId"
+        optionLabel="nombre_grado"
+        optionValue="id"
+        placeholder="Grado"
+        (onChange)="onGradoChange()"
+        [showClear]="true"
+        [disabled]="!selectedNivelId"
+        [filter]="true" filterPlaceholder="Buscar..."
+        styleClass="filter-select" />
+
+      <p-select
+        [options]="gruposOpts()"
+        [(ngModel)]="selectedGrupoId"
+        optionLabel="_label"
+        optionValue="id"
+        placeholder="Grupo"
+        (onChange)="onGrupoChange()"
+        [showClear]="true"
+        [disabled]="!selectedGradoId"
+        [filter]="true" filterPlaceholder="Buscar..."
+        styleClass="filter-select" />
     </div>
 
     <!-- Interactive Grid APEX-style (Spec: spec/modules/fase-24-interactive-grid/) -->
@@ -92,6 +144,8 @@ import { ApexNotificationService } from 'apex-component-library';
     .page-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem; }
     .subtitle { font-size: 0.82rem; color: var(--text-color-secondary); margin: 0; }
     .dlg-lbl { display: block; font-size: .85rem; margin-bottom: .25rem; color: var(--text-color-secondary); }
+    .filter-bar { display: flex; gap: 0.75rem; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; }
+    .filter-select { min-width: 220px; }
   `],
 })
 export class ProfesoresComponent implements OnInit {
@@ -109,6 +163,19 @@ export class ProfesoresComponent implements OnInit {
   loading = signal(false);
   loadingTabla = signal(false);
   form = { nombre: '', apellido_paterno: '', apellido_materno: '', numero_empleado: '', curp: '', tipo_contrato: '' };
+
+  plantelesOpts = signal<any[]>([]);
+  nivelesOpts = signal<any[]>([]);
+  gradosOpts = signal<any[]>([]);
+  gruposOpts = signal<any[]>([]);
+
+  selectedPlantelId: string | null = null;
+  selectedNivelId: string | null = null;
+  selectedGradoId: string | null = null;
+  selectedGrupoId: string | null = null;
+
+  readonly isPlantelDisabled = computed(() => this.ctx.nivelAcceso() > 2);
+  readonly isNivelDisabled = computed(() => this.ctx.nivelAcceso() > 3);
 
   columnas: ColumnConfig[] = [
     { field: 'numero_empleado', header: 'Empleado', sortable: true, filterable: true, width: '120px' },
@@ -140,12 +207,104 @@ export class ProfesoresComponent implements OnInit {
 
   readonly recargar = () => this.cargarProfesores();
 
-  ngOnInit(): void { this.cargarProfesores(); }
+  constructor() {
+    effect(() => {
+      const p = this.ctx.plantel();
+      if (p?.id && !this.selectedPlantelId) {
+        this.selectedPlantelId = p.id;
+        this.onPlantelChange();
+      }
+    });
+  }
+
+  ngOnInit(): void {
+    this.api.get<any[]>('/planteles').subscribe({
+      next: p => {
+        this.plantelesOpts.set(p);
+        const currentPlantel = this.ctx.plantel();
+        if (currentPlantel?.id) {
+          this.selectedPlantelId = currentPlantel.id;
+          this.onPlantelChange();
+        }
+      },
+      error: () => {}
+    });
+
+    this.cargarProfesores();
+  }
+
+  onPlantelChange(): void {
+    this.selectedNivelId = null;
+    this.selectedGradoId = null;
+    this.selectedGrupoId = null;
+    this.nivelesOpts.set([]);
+    this.gradosOpts.set([]);
+    this.gruposOpts.set([]);
+    this.cargarProfesores();
+
+    if (!this.selectedPlantelId) return;
+
+    this.api.get<any[]>(`/planteles/${this.selectedPlantelId}/niveles`).subscribe({
+      next: ns => {
+        const mapped = ns.map(x => ({ id: x.id ?? x.nivel_id, nombre_nivel: x.nombre_nivel }));
+        this.nivelesOpts.set(mapped);
+        
+        const ctxNivel = this.ctx.nivel();
+        if (ctxNivel && mapped.some(n => n.id === ctxNivel.id)) {
+          this.selectedNivelId = ctxNivel.id;
+          this.onNivelChange();
+        }
+      },
+      error: () => {}
+    });
+  }
+
+  onNivelChange(): void {
+    this.selectedGradoId = null;
+    this.selectedGrupoId = null;
+    this.gradosOpts.set([]);
+    this.gruposOpts.set([]);
+    this.cargarProfesores();
+
+    if (!this.selectedNivelId) return;
+
+    this.api.get<any[]>(`/catalogs/grados`, { nivel_id: this.selectedNivelId }).subscribe({
+      next: gs => {
+        this.gradosOpts.set(gs);
+      },
+      error: () => {}
+    });
+  }
+
+  onGradoChange(): void {
+    this.selectedGrupoId = null;
+    this.gruposOpts.set([]);
+    this.cargarProfesores();
+
+    if (!this.selectedGradoId) return;
+
+    const params: Record<string, any> = { solo_activos: true, ciclo_vigente: true };
+    if (this.selectedPlantelId) params['plantel_id'] = this.selectedPlantelId;
+    if (this.selectedGradoId) params['grado_id'] = this.selectedGradoId;
+
+    this.api.get<any[]>('/grupos', params).subscribe({
+      next: gps => {
+        this.gruposOpts.set(gps.map(x => ({ ...x, _label: grupoLabel(x) })));
+      },
+      error: () => this.gruposOpts.set([])
+    });
+  }
+
+  onGrupoChange(): void {
+    this.cargarProfesores();
+  }
 
   cargarProfesores(): void {
     const params: Record<string, any> = { pagina: 1, por_pagina: 500 };
-    const plantelId = this.ctx.plantel()?.id;
-    if (plantelId) params['plantel_id'] = plantelId;
+    if (this.selectedPlantelId) params['plantel_id'] = this.selectedPlantelId;
+    if (this.selectedNivelId) params['nivel_id'] = this.selectedNivelId;
+    if (this.selectedGradoId) params['grado_id'] = this.selectedGradoId;
+    if (this.selectedGrupoId) params['grupo_id'] = this.selectedGrupoId;
 
     this.loadingTabla.set(true);
     this.api.get<{ data: Profesor[]; total: number }>('/profesores', params).subscribe({

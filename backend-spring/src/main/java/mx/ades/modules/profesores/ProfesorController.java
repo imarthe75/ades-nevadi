@@ -31,11 +31,14 @@ public class ProfesorController {
     @GetMapping
     public ResponseEntity<Map<String, Object>> list(
             @RequestParam(name = "plantel_id", required = false) UUID plantelId,
+            @RequestParam(name = "nivel_id",   required = false) UUID nivelId,
+            @RequestParam(name = "grado_id",   required = false) UUID gradoId,
+            @RequestParam(name = "grupo_id",   required = false) UUID grupoId,
             @RequestParam(name = "buscar",     required = false) String buscar,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         UUID effectivePlantel = userService.getEffectivePlantelId(user, plantelId);
-        return ResponseEntity.ok(query.listar(effectivePlantel, buscar));
+        return ResponseEntity.ok(query.listar(effectivePlantel, nivelId, gradoId, grupoId, buscar));
     }
 
     @GetMapping("/{id}")

@@ -18,6 +18,11 @@ public class ProfesorQueryService {
 
     @Transactional(readOnly = true)
     public Map<String, Object> listar(UUID plantelId, String buscar) {
+        return listar(plantelId, null, null, null, buscar);
+    }
+
+    @Transactional(readOnly = true)
+    public Map<String, Object> listar(UUID plantelId, UUID nivelId, UUID gradoId, UUID grupoId, String buscar) {
         StringBuilder sql = new StringBuilder("""
             SELECT pr.id, pr.numero_empleado, pr.rfc, pr.nss, pr.cedula_profesional,
                    pr.especialidad, pr.turno, pr.tipo_contrato, pr.nivel_estudios,
@@ -33,6 +38,52 @@ public class ProfesorQueryService {
 
         List<Object> params = new ArrayList<>();
         if (plantelId != null) { sql.append("AND pr.plantel_id = ? "); params.add(plantelId); }
+
+        if (grupoId != null) {
+            sql.append("""
+                AND pr.id IN (
+                    SELECT id FROM ades_profesores WHERE id IN (
+                        SELECT profesor_titular_id FROM ades_grupos WHERE id = ?
+                        UNION
+                        SELECT profesor_id FROM ades_asignaciones_docentes WHERE grupo_id = ?
+                    )
+                )
+                """);
+            params.add(grupoId);
+            params.add(grupoId);
+        } else if (gradoId != null) {
+            sql.append("""
+                AND pr.id IN (
+                    SELECT id FROM ades_profesores WHERE id IN (
+                        SELECT profesor_titular_id FROM ades_grupos WHERE grado_id = ?
+                        UNION
+                        SELECT ad.profesor_id FROM ades_asignaciones_docentes ad 
+                        JOIN ades_grupos g ON g.id = ad.grupo_id 
+                        WHERE g.grado_id = ?
+                    )
+                )
+                """);
+            params.add(gradoId);
+            params.add(gradoId);
+        } else if (nivelId != null) {
+            sql.append("""
+                AND pr.id IN (
+                    SELECT id FROM ades_profesores WHERE id IN (
+                        SELECT profesor_titular_id FROM ades_grupos g 
+                        JOIN ades_grados gr ON gr.id = g.grado_id 
+                        WHERE gr.nivel_educativo_id = ?
+                        UNION
+                        SELECT ad.profesor_id FROM ades_asignaciones_docentes ad 
+                        JOIN ades_grupos g ON g.id = ad.grupo_id 
+                        JOIN ades_grados gr ON gr.id = g.grado_id 
+                        WHERE gr.nivel_educativo_id = ?
+                    )
+                )
+                """);
+            params.add(nivelId);
+            params.add(nivelId);
+        }
+
         if (buscar != null && !buscar.isBlank()) {
             sql.append("AND (p.nombre ILIKE ? OR p.apellido_paterno ILIKE ? " +
                        "OR p.apellido_materno ILIKE ? OR CONCAT(p.nombre,' ',p.apellido_paterno) ILIKE ?) ");

@@ -118,15 +118,7 @@ const BANCOS          = ['BBVA','SANTANDER','BANAMEX','BANORTE','HSBC','SCOTIABA
                 </div>
               </div>
               <div class="form-section">
-                <h4 class="sec-title">Contacto</h4>
-                <div class="form-row">
-                  <label>Teléfono</label>
-                  <input pInputText [(ngModel)]="form.telefono" maxlength="15" />
-                </div>
-                <div class="form-row">
-                  <label>Email personal</label>
-                  <input pInputText [(ngModel)]="form.email_personal" type="email" />
-                </div>
+                <h4 class="sec-title">Nacimiento</h4>
                 <div class="form-row">
                   <label>País nacimiento</label>
                   <p-select [options]="paises()"
