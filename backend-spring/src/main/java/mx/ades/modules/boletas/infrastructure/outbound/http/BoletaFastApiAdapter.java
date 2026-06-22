@@ -68,4 +68,23 @@ public class BoletaFastApiAdapter implements BoletaFastApiPort {
                     "Error al consultar tarea: " + e.getMessage());
         }
     }
+
+    @Override
+    public ResponseEntity<byte[]> generarUaemex(UUID estudianteId, UUID cicloId, String authHeader) {
+        try {
+            String url = API_BASE_URL + "/uaemex/" + estudianteId;
+            if (cicloId != null) url += "?ciclo_id=" + cicloId;
+            RestClient.RequestHeadersSpec<?> req = restClient.get().uri(url);
+            if (authHeader != null) req.header(HttpHeaders.AUTHORIZATION, authHeader);
+            ResponseEntity<byte[]> resp = req.retrieve().toEntity(byte[].class);
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_PDF);
+            String cd = resp.getHeaders().getFirst(HttpHeaders.CONTENT_DISPOSITION);
+            if (cd != null) headers.set(HttpHeaders.CONTENT_DISPOSITION, cd);
+            return new ResponseEntity<>(resp.getBody(), headers, HttpStatus.OK);
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
+                    "Error al generar constancia UAEMEX: " + e.getMessage());
+        }
+    }
 }

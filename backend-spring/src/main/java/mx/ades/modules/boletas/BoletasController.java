@@ -48,4 +48,14 @@ public class BoletasController {
         userService.resolveUser(jwt);
         return generarUseCase.estadoTarea(taskId, authHeader);
     }
+
+    @GetMapping("/uaemex/{estudiante_id}")
+    public ResponseEntity<byte[]> generarConstanciaUaemex(
+            @PathVariable("estudiante_id") UUID estudianteId,
+            @RequestParam(value = "ciclo_id", required = false) UUID cicloId,
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authHeader,
+            @AuthenticationPrincipal Jwt jwt) {
+        userService.resolveUser(jwt);
+        return generarUseCase.generarUaemex(estudianteId, cicloId, authHeader);
+    }
 }

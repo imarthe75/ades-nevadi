@@ -12,4 +12,6 @@ public interface BoletaFastApiPort {
     ResponseEntity<Map<String, Object>> encolarGrupo(UUID grupoId, UUID cicloId, String authHeader);
 
     ResponseEntity<Map<String, Object>> estadoTarea(String taskId, String authHeader);
+
+    ResponseEntity<byte[]> generarUaemex(UUID estudianteId, UUID cicloId, String authHeader);
 }

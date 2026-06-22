@@ -87,6 +87,38 @@ public class Estadistica911QueryService {
         return jdbc.queryForList(sql, params(plantelId, cicloId));
     }
 
+    /**
+     * Sección IX — Alumnado con discapacidad por tipo, grado y sexo.
+     * Fuente: {@code ades_condiciones_cronicas} con {@code tipo_condicion LIKE 'DISCAPACIDAD_%'}.
+     * Solo niveles SEP. Una fila por nivel/grado/tipo_discapacidad/sexo con su conteo.
+     */
+    public List<Map<String, Object>> discapacidadPorGrado(UUID plantelId, UUID cicloId) {
+        String sql = """
+            SELECT n.nombre_nivel                   AS nivel,
+                   gr.numero_grado                  AS grado,
+                   cc.tipo_condicion                AS tipo_discapacidad,
+                   p.genero                         AS sexo,
+                   COUNT(DISTINCT e.id)             AS alumnos
+            FROM ades_condiciones_cronicas cc
+            JOIN ades_estudiantes e         ON e.id  = cc.estudiante_id
+            JOIN ades_inscripciones i       ON i.estudiante_id = e.id AND i.is_active = true
+            JOIN ades_grupos g              ON g.id  = i.grupo_id
+            JOIN ades_grados gr             ON gr.id = g.grado_id
+            JOIN ades_niveles_educativos n  ON n.id  = gr.nivel_educativo_id
+            JOIN ades_ciclos_escolares c    ON c.id  = i.ciclo_escolar_id
+            JOIN ades_personas p            ON p.id  = e.persona_id
+            WHERE cc.tipo_condicion LIKE 'DISCAPACIDAD_%'
+              AND cc.activo = true
+              AND n.autoridad_educativa = 'SEP'
+              AND (CAST(:ciclo AS uuid) IS NULL AND c.es_vigente
+                   OR c.id = CAST(:ciclo AS uuid))
+              AND (CAST(:plantel AS uuid) IS NULL OR gr.plantel_id = CAST(:plantel AS uuid))
+            GROUP BY n.nombre_nivel, gr.numero_grado, cc.tipo_condicion, p.genero
+            ORDER BY n.nombre_nivel, gr.numero_grado, cc.tipo_condicion, p.genero
+            """;
+        return jdbc.queryForList(sql, params(plantelId, cicloId));
+    }
+
     private MapSqlParameterSource params(UUID plantelId, UUID cicloId) {
         return new MapSqlParameterSource()
                 .addValue("plantel", plantelId != null ? plantelId.toString() : null)

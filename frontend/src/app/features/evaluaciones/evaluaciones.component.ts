@@ -173,11 +173,27 @@ const TIPO_SEV: Record<string, TagSeverity> = {
                  placeholder="Ej. Examen Bimestral 1" style="width:100%" />
         </div>
         <div class="form-field">
+          <label>Nivel *</label>
+          <p-select [options]="nivelesOpts()" [(ngModel)]="form._nivelId"
+                    optionLabel="nombre_nivel" optionValue="id"
+                    placeholder="Nivel…" styleClass="w-full"
+                    (onChange)="onNivelChange()" />
+        </div>
+        <div class="form-field">
+          <label>Grado *</label>
+          <p-select [options]="gradosOpts()" [(ngModel)]="form._gradoId"
+                    optionLabel="nombre_grado" optionValue="id"
+                    placeholder="Grado…" styleClass="w-full"
+                    [disabled]="!form._nivelId"
+                    (onChange)="onGradoChange()" />
+        </div>
+        <div class="form-field">
           <label>Grupo *</label>
           <p-select [options]="grupos()" [(ngModel)]="form.grupo_id"
                     optionLabel="label" optionValue="value"
                     placeholder="Seleccionar..." styleClass="w-full"
-                    (onChange)="onGrupoChange()" 
+                    [disabled]="!form._gradoId"
+                    (onChange)="onGrupoChange()"
  [filter]="true" filterPlaceholder="Buscar..."/>
         </div>
         <div class="form-field">
@@ -259,6 +275,10 @@ export class EvaluacionesComponent implements OnInit {
   readonly ctx              = inject(ContextService);
   private readonly exporter = inject(ExportService);
 
+  // ── Cascada Nivel → Grado → Grupo (en el diálogo de nueva evaluación) ──
+  nivelesOpts = signal<any[]>([]);
+  gradosOpts  = signal<any[]>([]);
+
   evaluaciones   = signal<Evaluacion[]>([]);
   evaluacionesDatos = signal<any[]>([]);
   alumnos        = signal<AlumnoCalif[]>([]);
@@ -301,8 +321,52 @@ export class EvaluacionesComponent implements OnInit {
   ];
 
   ngOnInit(): void {
-    this.cargarGrupos();
+    this._initNiveles();
     this.cargar();
+  }
+
+  private _initNiveles(): void {
+    const plantel = this.ctx.plantel();
+    if (!plantel) return;
+    this.api.get<any[]>(`/planteles/${plantel.id}/niveles`).subscribe({
+      next: list => {
+        this.nivelesOpts.set(list);
+        const ctxNivel = this.ctx.nivel();
+        if (ctxNivel && list.some((n: any) => n.id === ctxNivel.id)) {
+          this.form._nivelId = ctxNivel.id;
+          this._loadGrados(ctxNivel.id);
+        }
+      },
+    });
+  }
+
+  private _loadGrados(nivelId: string): void {
+    this.api.get<any[]>('/catalogs/grados', { nivel_id: nivelId }).subscribe({
+      next: list => this.gradosOpts.set(list),
+    });
+  }
+
+  onNivelChange(): void {
+    this.form._gradoId = '';
+    this.form.grupo_id = '';
+    this.form.materia_id = '';
+    this.gradosOpts.set([]); this.grupos.set([]); this.materias.set([]);
+    if (this.form._nivelId) this._loadGrados(this.form._nivelId);
+  }
+
+  onGradoChange(): void {
+    this.form.grupo_id   = '';
+    this.form.materia_id = '';
+    this.grupos.set([]); this.materias.set([]);
+    const plantel = this.ctx.plantel();
+    if (plantel && this.form._gradoId) {
+      this.api.get<any[]>('/grupos', { plantel_id: plantel.id, grado_id: this.form._gradoId }).subscribe({
+        next: list => this.grupos.set(list.map((g: any) => ({
+          label: grupoLabel(g) || `${g.nombre_grupo} — ${g.nombre_grado ?? ''}`,
+          value: g.id,
+        }))),
+      });
+    }
   }
 
   cargar(): void {
@@ -328,17 +392,6 @@ export class EvaluacionesComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => this.loading.set(false),
-    });
-  }
-
-  cargarGrupos(): void {
-    const plantel = this.ctx.plantel();
-    const ciclo   = this.ctx.ciclo();
-    const params: Record<string, string> = {};
-    if (plantel) params['plantel_id'] = plantel.id;
-    if (ciclo)   params['ciclo_id']   = ciclo.id;
-    this.api.get<any[]>('/grupos', params).subscribe(list => {
-      this.grupos.set(list.map(g => ({ label: grupoLabel(g) || `${g.nombre_grupo} — ${g.nombre_grado ?? ''}`, value: g.id })));
     });
   }
 
@@ -425,7 +478,8 @@ export class EvaluacionesComponent implements OnInit {
       return;
     }
     this.saving.set(true);
-    this.api.post('/evaluaciones', this.form).subscribe({
+    const { _nivelId, _gradoId, ...payload } = this.form;
+    this.api.post('/evaluaciones', payload).subscribe({
       next: () => {
         this.saving.set(false);
         this.showDialog.set(false);
@@ -438,6 +492,8 @@ export class EvaluacionesComponent implements OnInit {
   private emptyForm() {
     return {
       nombre_evaluacion: '',
+      _nivelId: '',
+      _gradoId: '',
       grupo_id: '',
       materia_id: '',
       periodo_evaluacion_id: '',
