@@ -228,10 +228,20 @@
       <span class="dato-label">Nivel educativo</span>
       <span class="dato-valor">{{ nivel_educativo }}</span>
     </div>
+    <div class="dato">
+      <span class="dato-label">CURP</span>
+      <span class="dato-valor">{{ curp }}</span>
+    </div>
+    <div class="dato">
+      <span class="dato-label">Inasistencias</span>
+      <span class="dato-valor">{{ faltas }}{% if faltas_justificadas %} ({{ faltas_justificadas }} justificadas){% endif %}</span>
+    </div>
   </div>
 
   <!-- Tabla de calificaciones -->
-  <div class="section-title">Calificaciones por materia y periodo</div>
+  <div class="section-title">
+    {% if es_nem %}Evaluación por campo formativo y periodo{% else %}Calificaciones por materia y periodo{% endif %}
+  </div>
   <table>
     <thead>
       <tr>
@@ -244,39 +254,62 @@
       </tr>
     </thead>
     <tbody>
-      {% for mat in materias %}
-      <tr>
-        <td>{{ mat.materia_nombre }}</td>
-        {% for periodo in periodos %}
-          <td>
-            {% set cal = mat.calificaciones.get(periodo) %}
-            {% if cal is not none %}
-              <span class="{{ 'cal-acreditado' if cal >= 6 else 'cal-reprobado' }}">
-                {{ "%.1f"|format(cal) }}
-              </span>
-            {% else %}
-              <span class="cal-vacio">—</span>
-            {% endif %}
-          </td>
+      {% if es_nem %}
+        {% for grupo_campo in campos %}
+          <tr>
+            <td colspan="{{ periodos|length + 3 }}"
+                style="text-align:left; font-weight:700; color:#D02030; text-transform:uppercase;
+                       font-size:7.5pt; letter-spacing:.05em; background:#fdeef0;">
+              {{ grupo_campo.campo }}
+            </td>
+          </tr>
+          {% for mat in grupo_campo.materias %}
+          <tr>
+            <td style="padding-left:12pt">{{ mat.materia_nombre }}</td>
+            {% for periodo in periodos %}
+              <td>
+                {% set cal = mat.calificaciones.get(periodo) %}
+                {% if cal is not none %}
+                  <span class="{{ 'cal-acreditado' if cal >= 6 else 'cal-reprobado' }}">{{ "%.1f"|format(cal) }}</span>
+                {% else %}<span class="cal-vacio">—</span>{% endif %}
+              </td>
+            {% endfor %}
+            <td>
+              {% if mat.promedio is not none %}
+                <span class="{{ 'cal-acreditado' if mat.promedio >= 6 else 'cal-reprobado' }}">{{ "%.2f"|format(mat.promedio) }}</span>
+              {% else %}<span class="cal-vacio">—</span>{% endif %}
+            </td>
+            <td>
+              {% if mat.acreditado %}<span class="cal-acreditado">✓ Sí</span>
+              {% else %}<span class="cal-reprobado">✗ No</span>{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
         {% endfor %}
-        <td>
-          {% if mat.promedio is not none %}
-            <span class="{{ 'cal-acreditado' if mat.promedio >= 6 else 'cal-reprobado' }} promedio-general">
-              {{ "%.2f"|format(mat.promedio) }}
-            </span>
-          {% else %}
-            <span class="cal-vacio">—</span>
-          {% endif %}
-        </td>
-        <td>
-          {% if mat.acreditado %}
-            <span class="cal-acreditado">✓ Sí</span>
-          {% else %}
-            <span class="cal-reprobado">✗ No</span>
-          {% endif %}
-        </td>
-      </tr>
-      {% endfor %}
+      {% else %}
+        {% for mat in materias %}
+        <tr>
+          <td>{{ mat.materia_nombre }}</td>
+          {% for periodo in periodos %}
+            <td>
+              {% set cal = mat.calificaciones.get(periodo) %}
+              {% if cal is not none %}
+                <span class="{{ 'cal-acreditado' if cal >= 6 else 'cal-reprobado' }}">{{ "%.1f"|format(cal) }}</span>
+              {% else %}<span class="cal-vacio">—</span>{% endif %}
+            </td>
+          {% endfor %}
+          <td>
+            {% if mat.promedio is not none %}
+              <span class="{{ 'cal-acreditado' if mat.promedio >= 6 else 'cal-reprobado' }} promedio-general">{{ "%.2f"|format(mat.promedio) }}</span>
+            {% else %}<span class="cal-vacio">—</span>{% endif %}
+          </td>
+          <td>
+            {% if mat.acreditado %}<span class="cal-acreditado">✓ Sí</span>
+            {% else %}<span class="cal-reprobado">✗ No</span>{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      {% endif %}
     </tbody>
     <tfoot>
       <tr class="tfoot-row">
@@ -295,9 +328,18 @@
   </table>
 
   <div class="leyenda">
-    <span><span class="dot dot-acr"></span> Calificación acreditada (≥ 6.0)</span>
-    <span><span class="dot dot-rep"></span> Reprobado (< 6.0)</span>
-    <span>Escala: 0 – 10</span>
+    <span><span class="dot dot-acr"></span> Acreditada (≥ 6.0)</span>
+    <span><span class="dot dot-rep"></span> No acreditada (&lt; 6.0)</span>
+    <span>Escala: 6 a 10</span>
+    <span style="margin-left:auto; font-weight:700; color:{{ '#15803d' if acredito_grado else '#dc2626' }}">
+      ¿Acreditó el grado?: {{ 'SÍ' if acredito_grado else 'NO' }}
+    </span>
+  </div>
+
+  <!-- Observaciones -->
+  <div class="section-title">Observaciones</div>
+  <div style="border:1px solid #e2e8f0; border-radius:4pt; padding:6pt 8pt; font-size:8.5pt; min-height:24pt; color:#334155">
+    {{ observaciones }}
   </div>
 
   <!-- Firmas -->

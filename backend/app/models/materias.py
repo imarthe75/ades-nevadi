@@ -17,6 +17,7 @@ class Materia(AuditMixin, Base):
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, server_default=func.uuidv7())
     nombre_materia: Mapped[str] = mapped_column(String(150), nullable=False)
     clave_materia: Mapped[str | None] = mapped_column(String(20))
+    campo_formativo: Mapped[str | None] = mapped_column(String(40))  # NEM (educación básica SEP)
     nivel_educativo_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("ades_niveles_educativos.id"), nullable=False)
     horas_semana: Mapped[float | None] = mapped_column(Numeric(4, 1))
     es_inglés: Mapped[bool] = mapped_column(Boolean, default=False)

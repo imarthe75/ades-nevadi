@@ -40,6 +40,7 @@ insights). Toda lógica de negocio nueva vive en `backend-spring/` salvo IA.
 | Regla ciclo escolar | 1 año vigente por sistema (SEP/UAEMEX). Mig 083: `sistema_educativo` + trigger `fn_ciclo_sistema_vigente` |
 | Biblioteca | Mig 084: `ades_biblioteca_libros` + `ades_biblioteca_prestamos`; módulo hexagonal `/api/v1/biblioteca` + feature `biblioteca` |
 | Reporte 911 SEP | `/api/v1/reportes/911` (solo lectura) + feature `estadistica-911`; pre-cálculo inicio de cursos (matriz edad×grado×sexo×ingreso + grupos); SEP only |
+| Boleta NEM | Mig 085: `ades_materias.campo_formativo` (4 campos NEM). Boleta en FastAPI (`tasks/boletas.py` + `templates/boletas/boleta.html`) agrupa por campo formativo, CURP, asistencias, escala 6-10, acreditó grado |
 
 ---
 
