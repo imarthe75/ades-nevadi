@@ -3,7 +3,7 @@
  *
  * Flujo: buscar alumno → ver/editar expediente base → ver incidentes → registrar nuevo incidente.
  */
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
@@ -21,6 +21,7 @@ import { TooltipModule } from 'primeng/tooltip';
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
 import type { Estudiante } from '../../core/models';
+import { grupoLabel } from '../../core/models';
 import { ApexNotificationService, ApexTimelineComponent } from 'apex-component-library';
 import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
 
@@ -75,26 +76,68 @@ interface Medicamento {
       </div>
     </div>
 
-    <!-- Buscador de alumno -->
-    <div class="search-bar">
-      <input
-        pInputText
-        [(ngModel)]="buscarTerm"
-        placeholder="Buscar alumno por nombre o matrícula..."
-        style="width: 340px"
-        (keyup.enter)="buscarAlumno()"
-      />
-      <p-button label="Buscar" icon="pi pi-search" (onClick)="buscarAlumno()" [loading]="buscando()" />
-    </div>
+    <!-- Filtros de Contexto Cascading (Plantel -> Nivel -> Grado -> Grupo -> Alumno) -->
+    <div class="filter-bar">
+      <p-select
+        [options]="plantelesOpts()"
+        [(ngModel)]="selectedPlantelId"
+        optionLabel="nombre_plantel"
+        optionValue="id"
+        placeholder="Plantel"
+        (onChange)="onPlantelChange()"
+        [showClear]="!isPlantelDisabled()"
+        [disabled]="isPlantelDisabled()"
+        [filter]="true" filterPlaceholder="Buscar..."
+        styleClass="filter-select" />
 
-    <!-- Resultados búsqueda -->
-    @if (resultados().length > 0 && !alumnoSeleccionado()) {
-      <app-interactive-grid
-        [data]="resultadosFlat()"
-        [columns]="resultadosColumns"
-        (rowSelected)="seleccionar($event)"
-      />
-    }
+      <p-select
+        [options]="nivelesOpts()"
+        [(ngModel)]="selectedNivelId"
+        optionLabel="nombre_nivel"
+        optionValue="id"
+        placeholder="Nivel"
+        (onChange)="onNivelChange()"
+        [showClear]="!isNivelDisabled()"
+        [disabled]="isNivelDisabled() || !selectedPlantelId"
+        [filter]="true" filterPlaceholder="Buscar..."
+        styleClass="filter-select" />
+
+      <p-select
+        [options]="gradosOpts()"
+        [(ngModel)]="selectedGradoId"
+        optionLabel="nombre_grado"
+        optionValue="id"
+        placeholder="Grado"
+        (onChange)="onGradoChange()"
+        [showClear]="true"
+        [disabled]="!selectedNivelId"
+        [filter]="true" filterPlaceholder="Buscar..."
+        styleClass="filter-select" />
+
+      <p-select
+        [options]="gruposOpts()"
+        [(ngModel)]="selectedGrupoId"
+        optionLabel="_label"
+        optionValue="id"
+        placeholder="Grupo"
+        (onChange)="onGrupoChange()"
+        [showClear]="true"
+        [disabled]="!selectedGradoId"
+        [filter]="true" filterPlaceholder="Buscar..."
+        styleClass="filter-select" />
+
+      <p-select
+        [options]="alumnosOpts()"
+        [(ngModel)]="selectedAlumnoId"
+        optionLabel="_label"
+        optionValue="id"
+        placeholder="Alumno"
+        (onChange)="onAlumnoChange()"
+        [showClear]="true"
+        [disabled]="!selectedGrupoId"
+        [filter]="true" filterPlaceholder="Buscar..."
+        styleClass="filter-select" />
+    </div>
 
     <!-- Expediente del alumno seleccionado -->
     @if (alumnoSeleccionado()) {
@@ -254,7 +297,8 @@ interface Medicamento {
     </p-dialog>
   `,
   styles: [`
-    .search-bar { display: flex; gap: 0.75rem; margin-bottom: 1.25rem; align-items: center; }
+    .filter-bar { display: flex; gap: 0.75rem; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; }
+    .filter-select { min-width: 220px; }
     .expediente-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-top: 1rem; }
     @media (max-width: 900px) { .expediente-layout { grid-template-columns: 1fr; } }
     .card-title-row { display: flex; justify-content: space-between; align-items: center; }
@@ -276,9 +320,21 @@ export class MedicoComponent implements OnInit {
   readonly ctx = inject(ContextService);
   private readonly notify = inject(ApexNotificationService);
 
-  buscarTerm = '';
-  buscando  = signal(false);
-  resultados = signal<Estudiante[]>([]);
+  plantelesOpts = signal<any[]>([]);
+  nivelesOpts = signal<any[]>([]);
+  gradosOpts = signal<any[]>([]);
+  gruposOpts = signal<any[]>([]);
+  alumnosOpts = signal<Estudiante[]>([]);
+
+  selectedPlantelId: string | null = null;
+  selectedNivelId: string | null = null;
+  selectedGradoId: string | null = null;
+  selectedGrupoId: string | null = null;
+  selectedAlumnoId: string | null = null;
+
+  readonly isPlantelDisabled = computed(() => this.ctx.nivelAcceso() > 2);
+  readonly isNivelDisabled = computed(() => this.ctx.nivelAcceso() > 3);
+
   alumnoSeleccionado = signal<Estudiante | null>(null);
   expediente = signal<ExpedienteMedico | null>(null);
   incidentes = signal<IncidenteMedico[]>([]);
@@ -295,30 +351,6 @@ export class MedicoComponent implements OnInit {
   medForm = { nombre_medicamento: '', dosis: '', frecuencia: '', horario: '', via_administracion: 'ORAL', prescrito_por: '', observaciones: '' };
   
   readonly vias = ['ORAL', 'TOPICA', 'INHALADA', 'INYECTABLE', 'OFTALMICA', 'OTICA'];
-
-  readonly resultadosFlat = computed(() =>
-    this.resultados().map((a: any) => ({
-      ...a,
-      nombre_str: `${a.persona?.apellido_paterno ?? ''} ${a.persona?.nombre ?? ''}`.trim(),
-    }))
-  );
-  readonly resultadosColumns: ColumnConfig[] = [
-    { field: 'matricula',   header: 'Matrícula', width: '120px' },
-    { field: 'nombre_str',  header: 'Nombre' },
-  ];
-
-  readonly incidentesFlat = computed(() =>
-    this.incidentes().map(inc => ({
-      ...inc,
-      fecha_str:    inc.fecha_incidente ? new Date(inc.fecha_incidente).toLocaleDateString('es-MX') : '—',
-      traslado_str: inc.requirio_traslado ? 'Sí' : 'No',
-    }))
-  );
-  readonly incidentesColumns: ColumnConfig[] = [
-    { field: 'fecha_str',    header: 'Fecha',     width: '110px' },
-    { field: 'descripcion',  header: 'Descripción' },
-    { field: 'traslado_str', header: 'Traslado',  width: '80px' },
-  ];
 
   readonly incidentesTimeline = computed(() =>
     this.incidentes().map(inc => ({
@@ -343,19 +375,131 @@ export class MedicoComponent implements OnInit {
     { field: 'via_administracion', header: 'Vía',         width: '110px' },
   ];
 
-  ngOnInit(): void {}
+  constructor() {
+    effect(() => {
+      const p = this.ctx.plantel();
+      if (p?.id && !this.selectedPlantelId) {
+        this.selectedPlantelId = p.id;
+        this.onPlantelChange();
+      }
+    });
+  }
 
-  buscarAlumno(): void {
-    if (!this.buscarTerm.trim()) return;
-    this.buscando.set(true);
-    const plantelId = this.ctx.plantel()?.id;
-    this.api.get<Estudiante[]>('/alumnos', { buscar: this.buscarTerm, plantel_id: plantelId })
-      .subscribe({ next: r => { this.resultados.set(r); this.buscando.set(false); }, error: () => this.buscando.set(false) });
+  ngOnInit(): void {
+    this.api.get<any[]>('/planteles').subscribe({
+      next: p => {
+        this.plantelesOpts.set(p);
+        const currentPlantel = this.ctx.plantel();
+        if (currentPlantel?.id) {
+          this.selectedPlantelId = currentPlantel.id;
+          this.onPlantelChange();
+        }
+      },
+      error: () => {}
+    });
+  }
+
+  onPlantelChange(): void {
+    this.selectedNivelId = null;
+    this.selectedGradoId = null;
+    this.selectedGrupoId = null;
+    this.selectedAlumnoId = null;
+    this.nivelesOpts.set([]);
+    this.gradosOpts.set([]);
+    this.gruposOpts.set([]);
+    this.alumnosOpts.set([]);
+    this.alumnoSeleccionado.set(null);
+
+    if (!this.selectedPlantelId) return;
+
+    this.api.get<any[]>(`/planteles/${this.selectedPlantelId}/niveles`).subscribe({
+      next: ns => {
+        const mapped = ns.map(x => ({ id: x.id ?? x.nivel_id, nombre_nivel: x.nombre_nivel }));
+        this.nivelesOpts.set(mapped);
+        
+        const ctxNivel = this.ctx.nivel();
+        if (ctxNivel && mapped.some(n => n.id === ctxNivel.id)) {
+          this.selectedNivelId = ctxNivel.id;
+          this.onNivelChange();
+        }
+      },
+      error: () => {}
+    });
+  }
+
+  onNivelChange(): void {
+    this.selectedGradoId = null;
+    this.selectedGrupoId = null;
+    this.selectedAlumnoId = null;
+    this.gradosOpts.set([]);
+    this.gruposOpts.set([]);
+    this.alumnosOpts.set([]);
+    this.alumnoSeleccionado.set(null);
+
+    if (!this.selectedNivelId) return;
+
+    this.api.get<any[]>(`/catalogs/grados`, { nivel_id: this.selectedNivelId }).subscribe({
+      next: gs => {
+        this.gradosOpts.set(gs);
+      },
+      error: () => {}
+    });
+  }
+
+  onGradoChange(): void {
+    this.selectedGrupoId = null;
+    this.selectedAlumnoId = null;
+    this.gruposOpts.set([]);
+    this.alumnosOpts.set([]);
+    this.alumnoSeleccionado.set(null);
+
+    if (!this.selectedGradoId) return;
+
+    const params: Record<string, any> = { solo_activos: true, ciclo_vigente: true };
+    if (this.selectedPlantelId) params['plantel_id'] = this.selectedPlantelId;
+    if (this.selectedGradoId) params['grado_id'] = this.selectedGradoId;
+
+    this.api.get<any[]>('/grupos', params).subscribe({
+      next: gps => {
+        this.gruposOpts.set(gps.map(x => ({ ...x, _label: grupoLabel(x) })));
+      },
+      error: () => this.gruposOpts.set([])
+    });
+  }
+
+  onGrupoChange(): void {
+    this.selectedAlumnoId = null;
+    this.alumnosOpts.set([]);
+    this.alumnoSeleccionado.set(null);
+
+    if (!this.selectedGrupoId) return;
+
+    const params: Record<string, any> = { grupo_id: this.selectedGrupoId };
+    if (this.selectedPlantelId) params['plantel_id'] = this.selectedPlantelId;
+
+    this.api.get<any>('/alumnos', params).subscribe({
+      next: resp => {
+        const list = resp.data ?? resp;
+        this.alumnosOpts.set(list.map((a: any) => ({
+          ...a,
+          _label: `${a.persona?.apellido_paterno ?? ''} ${a.persona?.nombre ?? ''}`.trim() || a.matricula
+        })));
+      },
+      error: () => this.alumnosOpts.set([])
+    });
+  }
+
+  onAlumnoChange(): void {
+    this.alumnoSeleccionado.set(null);
+    if (!this.selectedAlumnoId) return;
+    const selected = this.alumnosOpts().find(a => a.id === this.selectedAlumnoId);
+    if (selected) {
+      this.seleccionar(selected);
+    }
   }
 
   seleccionar(a: Estudiante): void {
     this.alumnoSeleccionado.set(a);
-    this.resultados.set([]);
     this.cargarExpediente(a.id);
     this.cargarIncidentes(a.id);
     this.cargarMedicamentos(a.id);
@@ -482,4 +626,3 @@ export class MedicoComponent implements OnInit {
     window.open(`/api/v1/salud-avanzada/incidentes/${incidenteId}/acta-pdf`, '_blank');
   }
 }
-

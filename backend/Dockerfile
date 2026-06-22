@@ -3,7 +3,7 @@ FROM python:3.12-slim-bookworm
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl libpq-dev gcc libc-dev python3-dev \
+    curl git libpq-dev gcc libc-dev python3-dev \
     libpango-1.0-0 libpangoft2-1.0-0 libpangocairo-1.0-0 \
     libcairo2 libgdk-pixbuf2.0-0 libffi-dev libglib2.0-0 \
     shared-mime-info libmagic1 \

@@ -16,6 +16,37 @@ Este documento es el diario de vida y bitácora del agente. Debe ser leído en e
 
 ---
 
+## Sesión 2026-06-22 — Centinela-AI Compliance + Valkey estabilizado ✅
+
+### 🔑 Estado del Agente:
+- **Última Conexión:** 2026-06-22
+- **Estado Cognitivo:** Operacional ✅
+- **Valkey:** Autenticación validada 100% (`PONG`) + ping desde FastAPI ✅
+
+### 🛠️ Tareas Completadas:
+- [x] Diagnóstico Valkey: la falla era de método de prueba (variable no presente dentro del contenedor), no de contraseña real.
+- [x] Validación extrema Valkey:
+  - `docker compose exec valkey valkey-cli -a <pass> ping` → `PONG`
+  - `redis.asyncio` usando `settings.VALKEY_URL` en `ades-api` → `APP_REDIS_PING=True`
+- [x] Migración aplicada: `089_centinela_compliance.sql`
+  - Tablas creadas: `ades_compliance_scans`, `ades_compliance_issues`
+  - Triggers BIU de auditoría asignados.
+- [x] Robustecimiento runtime del módulo compliance:
+  - `backend/Dockerfile`: agregado `git` (requerido para clonado de repos).
+  - `compliance_orchestrator.py`: fix serialización `dataclass(slots=True)` usando `asdict()`.
+  - `compliance.py`: manejo de errores del pipeline y fix de `scanned_at` como `datetime`.
+- [x] Configuración de despliegue:
+  - `docker-compose.yml`: inyección de variables GitLab/Gemini/comandos de escáner.
+  - `.env.example`: variables de referencia agregadas para Centinela-AI.
+- [x] Prueba end-to-end endpoint:
+  - `POST /api/v1/audit/compliance` → HTTP 200
+  - Persistencia confirmada en `ades_compliance_scans`.
+
+### 🚀 Próximos Pasos:
+- [ ] Cargar tokens reales de GitLab (`GITLAB_API_TOKEN`, `GITLAB_READ_TOKEN`) y `GITLAB_WEBHOOK_SECRET` en secretos de entorno.
+- [ ] Instalar scanners CLI en la imagen (Trivy, TruffleHog, Semgrep/Medusa) para pasar de modo fallback a escaneo real.
+- [ ] Configurar webhook de GitLab local hacia `/api/v1/audit/compliance` con `X-Gitlab-Token`.
+
 ## Sesión 2026-06-20/21 — Auditoría completa de módulos + Fixes backend/frontend ✅
 
 ### 🔑 Estado del Agente:

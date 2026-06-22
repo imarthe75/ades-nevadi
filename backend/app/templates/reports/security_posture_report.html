@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8" />
+    <title>Postura de Seguridad y Cumplimiento Normativo</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 18mm;
+        }
+
+        :root {
+            --red: #c41724;
+            --dark: #1f2937;
+            --muted: #6b7280;
+            --bg: #f8fafc;
+            --line: #e5e7eb;
+            --critical: #b91c1c;
+            --high: #c2410c;
+            --medium: #d97706;
+            --low: #2563eb;
+        }
+
+        body {
+            font-family: "DejaVu Sans", sans-serif;
+            color: var(--dark);
+            font-size: 11px;
+            line-height: 1.4;
+            background: #fff;
+        }
+
+        h1,
+        h2,
+        h3 {
+            margin: 0;
+            font-weight: 700;
+        }
+
+        h1 {
+            color: var(--red);
+            font-size: 20px;
+            margin-bottom: 8px;
+        }
+
+        h2 {
+            font-size: 14px;
+            margin-bottom: 6px;
+            color: var(--dark);
+        }
+
+        .muted {
+            color: var(--muted);
+        }
+
+        .header {
+            border-bottom: 2px solid var(--line);
+            padding-bottom: 10px;
+            margin-bottom: 12px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .kpi {
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 8px;
+            background: var(--bg);
+        }
+
+        .kpi .label {
+            font-size: 10px;
+            color: var(--muted);
+        }
+
+        .kpi .value {
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .critical {
+            color: var(--critical);
+        }
+
+        .high {
+            color: var(--high);
+        }
+
+        .medium {
+            color: var(--medium);
+        }
+
+        .low {
+            color: var(--low);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 8px;
+            margin-bottom: 14px;
+            table-layout: fixed;
+            word-wrap: break-word;
+        }
+
+        th,
+        td {
+            border: 1px solid var(--line);
+            padding: 6px;
+            vertical-align: top;
+            text-align: left;
+        }
+
+        th {
+            background: #f3f4f6;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: .03em;
+        }
+
+        .section {
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
+
+        .badge {
+            display: inline-block;
+            border-radius: 999px;
+            padding: 2px 7px;
+            font-size: 9px;
+            color: #fff;
+            font-weight: 700;
+        }
+
+        .b-critical {
+            background: var(--critical);
+        }
+
+        .b-high {
+            background: var(--high);
+        }
+
+        .b-medium {
+            background: var(--medium);
+        }
+
+        .b-low {
+            background: var(--low);
+        }
+
+        .coverage-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+        }
+
+        .coverage-item {
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            padding: 6px;
+            background: #fff;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <h1>Postura de Seguridad y Cumplimiento Normativo</h1>
+        <div class="muted">Centinela-AI | Scan ID: {{ scan_id }}</div>
+        <div class="muted">Proyecto: {{ project_id }} | Commit: {{ commit_sha }}</div>
+        <div class="muted">Repositorio: {{ repository_url }}</div>
+        <div class="muted">Fecha de ejecución: {{ scanned_at }}</div>
+    </div>
+
+    <div class="grid">
+        <div class="kpi">
+            <div class="label">Hallazgos Totales</div>
+            <div class="value">{{ findings_total }}</div>
+        </div>
+        <div class="kpi">
+            <div class="label">Críticos</div>
+            <div class="value critical">{{ severity.critical }}</div>
+        </div>
+        <div class="kpi">
+            <div class="label">Altos</div>
+            <div class="value high">{{ severity.high }}</div>
+        </div>
+        <div class="kpi">
+            <div class="label">Medios/Bajos</div>
+            <div class="value">{{ severity.medium }} / {{ severity.low }}</div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Cobertura de Marcos de Cumplimiento</h2>
+        <div class="coverage-grid">
+            {% for k, v in coverage.items() %}
+            <div class="coverage-item">
+                <strong>{{ k }}</strong><br />
+                <span class="muted">estado: {{ v }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Hallazgos Críticos</h2>
+        {% if critical_findings|length == 0 %}
+        <p class="muted">No se detectaron hallazgos críticos en este escaneo.</p>
+        {% else %}
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 20%">ID</th>
+                    <th style="width: 26%">Título</th>
+                    <th style="width: 18%">Estándar</th>
+                    <th style="width: 36%">Parche sugerido</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for f in critical_findings %}
+                <tr>
+                    <td>{{ f.id }}</td>
+                    <td>
+                        <span class="badge b-critical">CRITICAL</span><br />
+                        {{ f.title }}
+                    </td>
+                    <td>{{ (f.standard.owasp_top10|default([]))|join(', ') }}</td>
+                    <td>{{ f.recommended_patch.patch if f.recommended_patch else 'N/A' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+    </div>
+
+    <div class="section">
+        <h2>Hallazgos Altos</h2>
+        {% if high_findings|length == 0 %}
+        <p class="muted">No se detectaron hallazgos altos en este escaneo.</p>
+        {% else %}
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 22%">Archivo</th>
+                    <th style="width: 24%">Título</th>
+                    <th style="width: 14%">Severidad</th>
+                    <th style="width: 40%">Riesgo Forense</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for f in high_findings %}
+                <tr>
+                    <td>{{ f.evidence.file if f.evidence else 'N/A' }}</td>
+                    <td>{{ f.title }}</td>
+                    <td><span class="badge b-high">HIGH</span></td>
+                    <td>{{ f.risk_forensics }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+    </div>
+</body>
+
+</html>

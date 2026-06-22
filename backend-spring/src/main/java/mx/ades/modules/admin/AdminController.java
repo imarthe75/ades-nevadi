@@ -360,6 +360,8 @@ public class AdminController {
         private String turno;
         private UUID profesorTitularId;
         private Boolean isActive;
+        private UUID gradoId;
+        private UUID cicloEscolarId;
     }
 
     @GetMapping("/grupos")
@@ -398,6 +400,8 @@ public class AdminController {
         if (body.getTurno() != null) grupo.setTurno(body.getTurno());
         if (body.getProfesorTitularId() != null) grupo.setProfesorTitularId(body.getProfesorTitularId());
         if (body.getIsActive() != null) grupo.setIsActive(body.getIsActive());
+        if (body.getGradoId() != null) grupo.setGradoId(body.getGradoId());
+        if (body.getCicloEscolarId() != null) grupo.setCicloEscolarId(body.getCicloEscolarId());
 
         return ResponseEntity.ok(grupoRepository.save(grupo));
     }

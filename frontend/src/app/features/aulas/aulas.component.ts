@@ -198,11 +198,15 @@ interface Franja {
               </div>
               <div class="field">
                 <label>Piso</label>
-                <p-inputnumber [(ngModel)]="form.piso" [min]="0" [max]="20" style="width:100%" />
+                <p-select [options]="pisosOpts()" [(ngModel)]="form.piso"
+                          optionLabel="label" optionValue="value"
+                          placeholder="Seleccionar piso" style="width:100%" />
               </div>
               <div class="field">
                 <label>Edificio / Bloque</label>
-                <input pInputText [(ngModel)]="form.edificio" style="width:100%" placeholder="Ej: Edificio A" />
+                <p-select [options]="edificiosOpts()" [(ngModel)]="form.edificio"
+                          optionLabel="valor" optionValue="valor"
+                          placeholder="Seleccionar edificio" style="width:100%" [filter]="true" />
               </div>
               <div class="field">
                 <label>Capacidad alumnos</label>
@@ -349,6 +353,16 @@ export class AulasComponent implements OnInit {
   saving   = signal(false);
 
   plantelesOpts = signal<any[]>([]);
+  edificiosOpts = signal<any[]>([]);
+  pisosOpts     = signal<any[]>([]);
+
+  readonly pisoLabels: Record<number, string> = {
+    0: 'Planta Baja',
+    1: 'Primer Piso',
+    2: 'Segundo Piso',
+    3: 'Tercer Piso',
+    99: 'Otro'
+  };
 
   // Filtros
   filtroPlantel: string | null = null;
@@ -381,7 +395,7 @@ export class AulasComponent implements OnInit {
     { field: 'clave_aula',        header: 'Clave',       sortable: false, filterable: false, width: '80px'  },
     { field: 'tipo_aula',         header: 'Tipo',        sortable: true,  filterable: true,  width: '110px' },
     { field: 'capacidad_alumnos', header: 'Capacidad',   sortable: true,  filterable: false, width: '90px'  },
-    { field: 'piso',              header: 'Piso',        sortable: true,  filterable: false, width: '60px'  },
+    { field: 'piso_str',          header: 'Piso',        sortable: true,  filterable: false, width: '90px'  },
     { field: 'estado_str',        header: 'Estado',      sortable: true,  filterable: true,  width: '120px' },
     { field: 'equip_str',         header: 'Equipamiento',sortable: false, filterable: false, width: '150px' },
   ];
@@ -422,6 +436,29 @@ export class AulasComponent implements OnInit {
       next: p => this.plantelesOpts.set(p),
       error: () => {},
     });
+    
+    // Cargar catálogos dinámicos
+    this.api.get<any[]>('/catalogos').subscribe({
+      next: cats => {
+        const edif = cats.find(c => c.codigo === 'CAT_EDIFICIOS');
+        if (edif) this.edificiosOpts.set(edif.items ?? []);
+        
+        const piso = cats.find(c => c.codigo === 'CAT_PISOS');
+        if (piso) {
+          const mapped = (piso.items ?? []).map((item: any) => {
+            let numVal = 99;
+            if (item.valor === 'Planta Baja') numVal = 0;
+            else if (item.valor === 'Primer Piso') numVal = 1;
+            else if (item.valor === 'Segundo Piso') numVal = 2;
+            else if (item.valor === 'Tercer Piso') numVal = 3;
+            return { label: item.valor, value: numVal };
+          });
+          this.pisosOpts.set(mapped);
+        }
+      },
+      error: () => {},
+    });
+
     this.cargar();
   }
 
@@ -438,6 +475,7 @@ export class AulasComponent implements OnInit {
       next: r => {
         this.aulas.set(r.map(a => ({
           ...a,
+          piso_str: this.pisoLabels[a.piso] ?? `Piso ${a.piso}`,
           estado_str: a.estado_aula?.replace(/_/g, ' ') ?? '—',
           equip_str: [
             a.tiene_proyector      ? 'Proyector'  : '',

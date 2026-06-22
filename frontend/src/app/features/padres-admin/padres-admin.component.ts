@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
+import { DrawerModule } from 'primeng/drawer';
 import { SelectModule } from 'primeng/select';
 import { InputTextModule } from 'primeng/inputtext';
 import { InputNumberModule } from 'primeng/inputnumber';
@@ -15,6 +16,7 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ApiService } from '../../core/services/api.service';
 import { ApexNotificationService } from 'apex-component-library';
 import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
+import { DomicilioComponent } from '../../shared/components/domicilio/domicilio.component';
 
 interface EstudianteOpt { id: string; nombre_completo: string; matricula?: string; }
 
@@ -66,11 +68,12 @@ const NIVELES_ACCESO_PORTAL = [
   standalone: true,
   imports: [
     CommonModule, FormsModule, ReactiveFormsModule,
-    ButtonModule, DialogModule, SelectModule,
+    ButtonModule, DialogModule, DrawerModule, SelectModule,
     InputTextModule, InputNumberModule, TooltipModule,
     ToggleSwitchModule, CardModule,
     TabsModule, TabList, Tab, TabPanels, TabPanel,
     ConfirmDialogModule, InteractiveGridComponent,
+    DomicilioComponent,
   ],
   providers: [ConfirmationService],
   template: `
@@ -169,97 +172,126 @@ const NIVELES_ACCESO_PORTAL = [
       </p-tabpanels>
     </p-tabs>
 
-    <!-- ─── Dialog: Agregar/Editar Contacto ─── -->
-    <p-dialog [visible]="mostrarFormulario()" (visibleChange)="mostrarFormulario.set($event)"
-      [header]="formularioTitulo()" [modal]="true" [style]="{width:'90vw'}" [maximizable]="true">
-      <form [formGroup]="form">
-        <div class="form-grid">
-          <div class="form-section">
-            <h3>Datos Personales</h3>
-            <div class="field">
-              <label>Nombre Completo *</label>
-              <input pInputText formControlName="nombre_completo" placeholder="Ej: Juan García Pérez" style="width:100%" />
-            </div>
-            <div class="field">
-              <label>Email</label>
-              <input pInputText type="email" formControlName="email" placeholder="contacto@example.com" style="width:100%" />
-            </div>
-            <div class="field">
-              <label>Teléfono Principal *</label>
-              <input pInputText formControlName="telefono_principal" placeholder="Ej: 5551234567" style="width:100%" />
-            </div>
-            <div class="field">
-              <label>RFC</label>
-              <input pInputText formControlName="rfc" [maxLength]="13" placeholder="Ej: XXXX000000YYY" style="width:100%" />
-            </div>
-          </div>
+    <!-- ─── Drawer: Agregar/Editar Contacto ─── -->
+    <p-drawer [visible]="mostrarFormulario()" (visibleChange)="mostrarFormulario.set($event)"
+      [header]="formularioTitulo()" position="right" [style]="{width:'560px'}">
+      <p-tabs [(value)]="formTab">
+        <p-tablist>
+          <p-tab value="personal"><i class="pi pi-user"></i> Personal</p-tab>
+          <p-tab value="domicilio" [disabled]="!contactoEditado"><i class="pi pi-map-marker"></i> Domicilio</p-tab>
+          <p-tab value="relacion"><i class="pi pi-shield"></i> Relación</p-tab>
+        </p-tablist>
 
-          <div class="form-section">
-            <h3>Relación con el Alumno</h3>
-            <div class="field">
-              <label>Parentesco *</label>
-              <p-select formControlName="parentesco" [options]="parentescos()" optionLabel="label" optionValue="value"
-                placeholder="Seleccionar parentesco..." [filter]="true" [style]="{width:'100%'}" />
-            </div>
-            <div class="field">
-              <label>Ocupación</label>
-              <input pInputText formControlName="ocupacion" placeholder="Ej: Ingeniero, Independiente" style="width:100%" />
-            </div>
-            <div class="field">
-              <label>Nivel de Estudios</label>
-              <p-select formControlName="nivel_estudios" [options]="nivelesEstudios" optionLabel="label" optionValue="value"
-                placeholder="Seleccionar..." [style]="{width:'100%'}" />
-            </div>
-          </div>
+        <p-tabpanels>
+          <!-- Tab 1: Personal -->
+          <p-tabpanel value="personal">
+            <form [formGroup]="form">
+              <div style="display:flex; flex-direction:column; gap:1rem; margin-top:1rem;">
+                <div class="field">
+                  <label>Nombre Completo *</label>
+                  <input pInputText formControlName="nombre_completo" placeholder="Ej: Juan García Pérez" style="width:100%" />
+                </div>
+                <div class="field">
+                  <label>RFC</label>
+                  <input pInputText formControlName="rfc" [maxLength]="13" placeholder="Ej: XXXX000000YYY" style="width:100%" />
+                </div>
+                <div class="field">
+                  <label>Ocupación</label>
+                  <p-select formControlName="ocupacion" [options]="ocupacionesOpts()" optionLabel="valor" optionValue="valor"
+                    placeholder="Seleccionar ocupación..." [filter]="true" [style]="{width:'100%'}" />
+                </div>
+                <div class="field">
+                  <label>Nivel de Estudios</label>
+                  <p-select formControlName="nivel_estudios" [options]="nivelesEstudios" optionLabel="label" optionValue="value"
+                    placeholder="Seleccionar..." [style]="{width:'100%'}" />
+                </div>
+              </div>
+            </form>
+          </p-tabpanel>
 
-          <div class="form-section">
-            <h3>Permisos y Responsabilidades</h3>
-            <div class="field-toggle">
-              <label>Tutor Legal</label>
-              <p-toggleSwitch formControlName="es_tutor_legal" />
-              <small>Autoridad legal sobre decisiones del alumno</small>
+          <!-- Tab 2: Domicilio y Contactos -->
+          <p-tabpanel value="domicilio">
+            <div style="margin-top:1rem;">
+              @if (contactoEditado) {
+                <app-domicilio [personaId]="contactoEditado.persona_id" />
+              }
             </div>
-            <div class="field-toggle">
-              <label>Contacto de Emergencia</label>
-              <p-toggleSwitch formControlName="es_contacto_emergencia" />
-              <small>A contactar en caso de emergencia médica</small>
-            </div>
-            <div class="field-toggle">
-              <label>Puede Recoger</label>
-              <p-toggleSwitch formControlName="puede_recoger" />
-              <small>Autorizado para recoger al alumno</small>
-            </div>
-            <div class="field-toggle">
-              <label>Decisión Conjunta</label>
-              <p-toggleSwitch formControlName="toma_decision_conjunta" />
-              <small>Requiere aprobación de ambos padres</small>
-            </div>
-            <div class="field">
-              <label>Grado de Responsabilidad</label>
-              <p-select formControlName="grado_responsabilidad" [options]="gradosResponsabilidad"
-                optionLabel="label" optionValue="value" [style]="{width:'100%'}" />
-            </div>
-          </div>
+          </p-tabpanel>
+
+          <!-- Tab 3: Relación y Permisos -->
+          <p-tabpanel value="relacion">
+            <form [formGroup]="form">
+              <div style="display:flex; flex-direction:column; gap:1rem; margin-top:1rem;">
+                <div class="field">
+                  <label>Parentesco *</label>
+                  <p-select formControlName="parentesco" [options]="parentescos()" optionLabel="label" optionValue="value"
+                    placeholder="Seleccionar parentesco..." [filter]="true" [style]="{width:'100%'}" />
+                </div>
+                
+                <div class="field">
+                  <label>Email</label>
+                  <input pInputText type="email" formControlName="email" placeholder="contacto@example.com" style="width:100%" />
+                </div>
+                <div class="field">
+                  <label>Teléfono Principal *</label>
+                  <input pInputText formControlName="telefono_principal" placeholder="Ej: 5551234567" style="width:100%" />
+                </div>
+
+                <div class="field-toggle">
+                  <label>Tutor Legal</label>
+                  <p-toggleSwitch formControlName="es_tutor_legal" />
+                  <small style="display:block;color:var(--text-color-secondary);font-size:0.75rem">Autoridad legal sobre decisiones del alumno</small>
+                </div>
+                
+                <div class="field-toggle">
+                  <label>Contacto de Emergencia</label>
+                  <p-toggleSwitch formControlName="es_contacto_emergencia" />
+                  <small style="display:block;color:var(--text-color-secondary);font-size:0.75rem">A contactar en caso de emergencia médica</small>
+                </div>
+                
+                <div class="field-toggle">
+                  <label>Puede Recoger</label>
+                  <p-toggleSwitch formControlName="puede_recoger" />
+                  <small style="display:block;color:var(--text-color-secondary);font-size:0.75rem">Autorizado para recoger al alumno</small>
+                </div>
+                
+                <div class="field-toggle">
+                  <label>Decisión Conjunta</label>
+                  <p-toggleSwitch formControlName="toma_decision_conjunta" />
+                  <small style="display:block;color:var(--text-color-secondary);font-size:0.75rem">Requiere aprobación de ambos padres</small>
+                </div>
+                
+                <div class="field">
+                  <label>Grado de Responsabilidad</label>
+                  <p-select formControlName="grado_responsabilidad" [options]="gradosResponsabilidad"
+                    optionLabel="label" optionValue="value" [style]="{width:'100%'}" />
+                </div>
+              </div>
+            </form>
+          </p-tabpanel>
+        </p-tabpanels>
+      </p-tabs>
+
+      @if (mostrarErrores()) {
+        <div class="validation-errors" style="margin-top:1rem;">
+          <strong>Errores:</strong>
+          <ul>
+            @if (form.get('nombre_completo')?.hasError('required')) { <li>Nombre completo es requerido</li> }
+            @if (form.get('telefono_principal')?.hasError('required')) { <li>Teléfono principal es requerido</li> }
+            @if (form.get('parentesco')?.hasError('required')) { <li>Parentesco es requerido</li> }
+            @if (form.get('email')?.hasError('email')) { <li>Email debe ser válido</li> }
+          </ul>
         </div>
+      }
 
-        @if (mostrarErrores()) {
-          <div class="validation-errors">
-            <strong>Errores:</strong>
-            <ul>
-              @if (form.get('nombre_completo')?.hasError('required')) { <li>Nombre completo es requerido</li> }
-              @if (form.get('telefono_principal')?.hasError('required')) { <li>Teléfono principal es requerido</li> }
-              @if (form.get('parentesco')?.hasError('required')) { <li>Parentesco es requerido</li> }
-              @if (form.get('email')?.hasError('email')) { <li>Email debe ser válido</li> }
-            </ul>
-          </div>
+      <div class="drawer-footer" style="display:flex; justify-content:flex-end; gap:0.5rem; margin-top:1.5rem; padding-top:1rem; border-top:1px solid var(--surface-200)">
+        <p-button label="Cancelar" icon="pi pi-times" severity="secondary" [text]="true" (onClick)="mostrarFormulario.set(false)" />
+        @if (formTab !== 'domicilio') {
+          <p-button label="Guardar" icon="pi pi-check" severity="success"
+            (onClick)="guardarContacto()" [loading]="guardando()" [disabled]="guardando()" />
         }
-      </form>
-      <ng-template pTemplate="footer">
-        <p-button label="Cancelar" icon="pi pi-times" severity="secondary" (onClick)="mostrarFormulario.set(false)" />
-        <p-button label="Guardar" icon="pi pi-check" severity="success"
-          (onClick)="guardarContacto()" [loading]="guardando()" [disabled]="guardando()" />
-      </ng-template>
-    </p-dialog>
+      </div>
+    </p-drawer>
 
     <!-- ─── Dialog: Añadir Tutor Legal ─── -->
     <p-dialog header="Añadir Tutor Legal" [(visible)]="dlgAgregarTutor"
@@ -413,6 +445,8 @@ export class PadresAdminComponent implements OnInit {
 
   // ── Shared state ──────────────────────────────────────────────
   tabActivo             = signal('contactos');
+  formTab               = 'personal';
+  ocupacionesOpts       = signal<any[]>([]);
   estudiantes           = signal<EstudianteOpt[]>([]);
   estudianteSeleccionado: string | null = null;
   loading               = signal(false);
@@ -558,6 +592,12 @@ export class PadresAdminComponent implements OnInit {
   // ─────────────────────────────────────────────────────────────
   ngOnInit(): void {
     this.cargarEstudiantes();
+    this.api.get<any[]>('/catalogos').subscribe({
+      next: cats => {
+        const ocup = cats.find(c => c.codigo === 'CAT_OCUPACIONES');
+        if (ocup) this.ocupacionesOpts.set(ocup.items ?? []);
+      }
+    });
   }
 
   onTabChange(tab: string | number | undefined): void {
@@ -628,6 +668,7 @@ export class PadresAdminComponent implements OnInit {
     this.contactoEditado = null;
     this.formularioTitulo.set('Agregar Contacto Familiar');
     this.form.reset({ puede_recoger: true, grado_responsabilidad: 'PRINCIPAL' });
+    this.formTab = 'personal';
     this.mostrarErrores.set(false);
     this.mostrarFormulario.set(true);
   }
@@ -635,6 +676,7 @@ export class PadresAdminComponent implements OnInit {
   editarContacto(row: ContactoFamiliar): void {
     this.contactoEditado = row;
     this.formularioTitulo.set(`Editar: ${row.nombre_completo}`);
+    this.formTab = 'personal';
     this.form.patchValue({
       nombre_completo: row.nombre_completo,
       email: row.email,

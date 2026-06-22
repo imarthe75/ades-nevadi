@@ -5,7 +5,7 @@
  * Permite ver el horario de un grupo O de un docente, y crear/editar/eliminar entradas.
  * Exporta el XML para aSc TimeTables.
  */
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
@@ -112,7 +112,7 @@ const COLORS: Record<string, string> = {
           } @else {
             <div>
               <label class="dlg-lbl">Grupo</label>
-              <p-select [options]="grupos()" [(ngModel)]="form.grupo_id"
+              <p-select [options]="gruposOpts()" [(ngModel)]="form.grupo_id"
                 optionLabel="_label" optionValue="id"
                 style="width:100%" [filter]="true" filterPlaceholder="Buscar…" placeholder="Grupo…" [showClear]="true" />
             </div>
@@ -194,13 +194,52 @@ const COLORS: Record<string, string> = {
 
       @if (modo === 'grupo') {
         <p-select
-          [options]="grupos()"
-          [(ngModel)]="selectedGrupo"
+          [options]="plantelesOpts()"
+          [(ngModel)]="selectedPlantelId"
+          optionLabel="nombre_plantel"
+          optionValue="id"
+          placeholder="Plantel"
+          (onChange)="onPlantelChange()"
+          [showClear]="!isPlantelDisabled()"
+          [disabled]="isPlantelDisabled()"
+          [filter]="true" filterPlaceholder="Buscar..."
+          styleClass="filter-select" />
+
+        <p-select
+          [options]="nivelesOpts()"
+          [(ngModel)]="selectedNivelId"
+          optionLabel="nombre_nivel"
+          optionValue="id"
+          placeholder="Nivel"
+          (onChange)="onNivelChange()"
+          [showClear]="!isNivelDisabled()"
+          [disabled]="isNivelDisabled() || !selectedPlantelId"
+          [filter]="true" filterPlaceholder="Buscar..."
+          styleClass="filter-select" />
+
+        <p-select
+          [options]="gradosOpts()"
+          [(ngModel)]="selectedGradoId"
+          optionLabel="nombre_grado"
+          optionValue="id"
+          placeholder="Grado"
+          (onChange)="onGradoChange()"
+          [showClear]="true"
+          [disabled]="!selectedNivelId"
+          [filter]="true" filterPlaceholder="Buscar..."
+          styleClass="filter-select" />
+
+        <p-select
+          [options]="gruposOpts()"
+          [(ngModel)]="selectedGrupoId"
           optionLabel="_label"
-          placeholder="Seleccionar grupo..."
+          optionValue="id"
+          placeholder="Grupo"
           (onChange)="onGrupoChange()"
           [showClear]="true"
-          [filter]="true" filterPlaceholder="Buscar..."/>
+          [disabled]="!selectedGradoId"
+          [filter]="true" filterPlaceholder="Buscar..."
+          styleClass="filter-select" />
       } @else {
         <p-select
           [options]="profesores()"
@@ -214,7 +253,7 @@ const COLORS: Record<string, string> = {
     </div>
 
     <!-- ── Grid semanal ── -->
-    @if (!selectedGrupo && !selectedProfesor) {
+    @if ((modo === 'grupo' && !selectedGrupoId) || (modo === 'profesor' && !selectedProfesor)) {
       <div class="empty-state">
         <i class="pi pi-calendar" style="font-size:2.5rem;color:#CBD5E1"></i>
         <p>Selecciona un {{ modo === 'grupo' ? 'grupo' : 'docente' }} para ver el horario.</p>
@@ -337,14 +376,28 @@ export class HorariosComponent implements OnInit {
   ];
 
   modo: 'grupo' | 'profesor' = 'grupo';
-  selectedGrupo:   GrupoConLabel | null   = null;
   selectedProfesor: any  | null   = null;
 
-  grupos    = signal<GrupoConLabel[]>([]);
+  plantelesOpts = signal<any[]>([]);
+  nivelesOpts = signal<any[]>([]);
+  gradosOpts = signal<any[]>([]);
+  gruposOpts = signal<GrupoConLabel[]>([]);
   profesores = signal<any[]>([]);
   materias  = signal<MateriaOpt[]>([]);
   aulas     = signal<AulaOpt[]>([]);
   entradas  = signal<HorarioEntry[]>([]);
+
+  selectedPlantelId: string | null = null;
+  selectedNivelId: string | null = null;
+  selectedGradoId: string | null = null;
+  selectedGrupoId: string | null = null;
+
+  readonly isPlantelDisabled = computed(() => this.ctx.nivelAcceso() > 2);
+  readonly isNivelDisabled = computed(() => this.ctx.nivelAcceso() > 3);
+
+  get selectedGrupo(): GrupoConLabel | null {
+    return this.gruposOpts().find(g => g.id === this.selectedGrupoId) || null;
+  }
 
   showDialog  = signal(false);
   guardando   = signal(false);
@@ -375,15 +428,35 @@ export class HorariosComponent implements OnInit {
   readonly profeLabel = (p: any) => `${p.nombre ?? ''} ${p.apellido_paterno ?? ''}`.trim() || p.numero_empleado;
   readonly aulaLabel  = (a: AulaOpt) => a.codigo ? `${a.codigo} — ${a.nombre}` : a.nombre;
 
+  constructor() {
+    effect(() => {
+      const p = this.ctx.plantel();
+      if (p?.id && !this.selectedPlantelId) {
+        this.selectedPlantelId = p.id;
+        this.onPlantelChange();
+      }
+    });
+  }
+
   ngOnInit(): void {
     this.cargarCatalogos();
   }
 
   cargarCatalogos(): void {
+    this.api.get<any[]>('/planteles').subscribe({
+      next: p => {
+        this.plantelesOpts.set(p);
+        const currentPlantel = this.ctx.plantel();
+        if (currentPlantel?.id) {
+          this.selectedPlantelId = currentPlantel.id;
+          this.onPlantelChange();
+        }
+      },
+      error: () => {}
+    });
+
     const plantelId = this.ctx.plantel()?.id;
     if (plantelId) {
-      this.api.get<Grupo[]>('/grupos', { plantel_id: plantelId, solo_activos: true, ciclo_vigente: true })
-        .subscribe(g => this.grupos.set(g.map(x => ({ ...x, _label: grupoLabel(x) }))));
       this.api.get<any[]>('/profesores', { plantel_id: plantelId })
         .subscribe(p => this.profesores.set(
           p.map(x => ({ ...x, _label: `${x.nombre ?? ''} ${x.apellido_paterno ?? ''}`.trim() || x.numero_empleado }))
@@ -395,23 +468,90 @@ export class HorariosComponent implements OnInit {
     }
   }
 
+  onPlantelChange(): void {
+    this.selectedNivelId = null;
+    this.selectedGradoId = null;
+    this.selectedGrupoId = null;
+    this.nivelesOpts.set([]);
+    this.gradosOpts.set([]);
+    this.gruposOpts.set([]);
+    this.entradas.set([]);
+
+    if (!this.selectedPlantelId) return;
+
+    this.api.get<any[]>(`/planteles/${this.selectedPlantelId}/niveles`).subscribe({
+      next: ns => {
+        const mapped = ns.map(x => ({ id: x.id ?? x.nivel_id, nombre_nivel: x.nombre_nivel }));
+        this.nivelesOpts.set(mapped);
+        
+        const ctxNivel = this.ctx.nivel();
+        if (ctxNivel && mapped.some(n => n.id === ctxNivel.id)) {
+          this.selectedNivelId = ctxNivel.id;
+          this.onNivelChange();
+        }
+      },
+      error: () => {}
+    });
+  }
+
+  onNivelChange(): void {
+    this.selectedGradoId = null;
+    this.selectedGrupoId = null;
+    this.gradosOpts.set([]);
+    this.gruposOpts.set([]);
+    this.entradas.set([]);
+
+    if (!this.selectedNivelId) return;
+
+    this.api.get<any[]>(`/catalogs/grados`, { nivel_id: this.selectedNivelId }).subscribe({
+      next: gs => {
+        this.gradosOpts.set(gs);
+      },
+      error: () => {}
+    });
+  }
+
+  onGradoChange(): void {
+    this.selectedGrupoId = null;
+    this.gruposOpts.set([]);
+    this.entradas.set([]);
+
+    if (!this.selectedGradoId) return;
+
+    const params: Record<string, any> = { solo_activos: true, ciclo_vigente: true };
+    if (this.selectedPlantelId) params['plantel_id'] = this.selectedPlantelId;
+    if (this.selectedGradoId) params['grado_id'] = this.selectedGradoId;
+
+    this.api.get<Grupo[]>('/grupos', params).subscribe({
+      next: gps => {
+        this.gruposOpts.set(gps.map(x => ({ ...x, _label: grupoLabel(x) })));
+      },
+      error: () => this.gruposOpts.set([])
+    });
+  }
+
   onModoChange(): void {
-    this.selectedGrupo = null;
+    this.selectedGrupoId = null;
     this.selectedProfesor = null;
     this.entradas.set([]);
   }
 
   onGrupoChange(): void {
-    if (this.selectedGrupo) {
-      this.api.get<MateriaOpt[]>('/materias', { grupo_id: (this.selectedGrupo as any).id })
-        .subscribe(m => this.materias.set(m));
-    }
+    this.entradas.set([]);
+    this.materias.set([]);
+    if (!this.selectedGrupoId) return;
     this.cargar();
+
+    const grupo = this.selectedGrupo;
+    if (!grupo) return;
+    const gId = grupo.grado_id;
+    this.api.get<any[]>('/planes-estudio', { grado_id: gId })
+      .subscribe(p => this.materias.set(p.map((x: any) => x.materia).filter(Boolean)));
   }
 
   cargar(): void {
-    if (this.modo === 'grupo' && this.selectedGrupo) {
-      this.api.get<any>(`/horarios/grupo/${(this.selectedGrupo as any).id}`)
+    if (this.modo === 'grupo' && this.selectedGrupoId) {
+      this.api.get<any>(`/horarios/grupo/${this.selectedGrupoId}`)
         .subscribe(r => this.entradas.set(r.entradas || r || []));
     } else if (this.modo === 'profesor' && this.selectedProfesor) {
       this.api.get<any>(`/horarios/profesor/${this.selectedProfesor.id}`)
