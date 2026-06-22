@@ -36,7 +36,10 @@ insights). Toda lógica de negocio nueva vive en `backend-spring/` salvo IA.
 | **FastAPI (solo IA)** | Capa de agente/embeddings/insights — `backend/app/routers/agente.py` |
 | Frontend Angular 22 | Standalone components + signals + PrimeNG |
 | Superset 6.1.0 | Pendiente levantar |
-| Migraciones | 3 dígitos hasta **082** + date-based (`20260613_*`). Próxima 3-díg: 083 |
+| Migraciones | 3 dígitos hasta **084** + date-based (`20260613_*`). Próxima 3-díg: 085 |
+| Regla ciclo escolar | 1 año vigente por sistema (SEP/UAEMEX). Mig 083: `sistema_educativo` + trigger `fn_ciclo_sistema_vigente` |
+| Biblioteca | Mig 084: `ades_biblioteca_libros` + `ades_biblioteca_prestamos`; módulo hexagonal `/api/v1/biblioteca` + feature `biblioteca` |
+| Reporte 911 SEP | `/api/v1/reportes/911` (solo lectura) + feature `estadistica-911`; pre-cálculo inicio de cursos (matriz edad×grado×sexo×ingreso + grupos); SEP only |
 
 ---
 
