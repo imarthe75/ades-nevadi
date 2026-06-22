@@ -93,6 +93,8 @@ export const routes: Routes = [
       { path: 'estadistica-911', canActivate: [roleGuard(3)], loadComponent: () => import('./features/estadistica-911/estadistica-911.component').then(m => m.Estadistica911Component) },
       // ── Kardex / Historial Académico UAEMEX (preparatoria) ───────────────────
       { path: 'kardex', canActivate: [roleGuard(3)], loadComponent: () => import('./features/kardex/kardex.component').then(m => m.KardexComponent) },
+      // ── Acta de Evaluación UAEMEX (por grupo × materia) ──────────────────────
+      { path: 'acta-evaluacion', canActivate: [roleGuard(3)], loadComponent: () => import('./features/acta-evaluacion/acta-evaluacion.component').then(m => m.ActaEvaluacionComponent) },
       // ── FASE 36 — Foros y Anuncios ───────────────────────────────────────────
       { path: 'foros', loadComponent: () => import('./features/foros/foros.component').then(m => m.ForosComponent) },
       // ── FASE 35 ──────────────────────────────────────────────────────────
