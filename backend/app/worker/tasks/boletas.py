@@ -138,12 +138,61 @@ def _generar_pdf_alumno(session: Session, estudiante_id: uuid.UUID, ciclo_id: uu
             promedios_mat.append(promedio)
         materias_data.append({
             "materia_nombre": plan.materia.nombre_materia if plan.materia else "—",
+            "campo_formativo": getattr(plan.materia, "campo_formativo", None) if plan.materia else None,
             "calificaciones": mat_cals,
             "promedio": promedio,
             "acreditado": (promedio >= 6.0) if promedio is not None else False,
         })
 
     promedio_general = round(sum(promedios_mat) / len(promedios_mat), 2) if promedios_mat else None
+    # NEM: acredita el grado si tiene promedio y toda materia evaluada es ≥ 6.
+    acredito_grado = (
+        promedio_general is not None
+        and all(m["acreditado"] for m in materias_data if m["promedio"] is not None)
+    )
+
+    # ── Agrupación por Campo Formativo (NEM, educación básica) ──────────────
+    CAMPOS_NEM = [
+        ("LENGUAJES",                      "Lenguajes"),
+        ("SABERES_PENSAMIENTO_CIENTIFICO", "Saberes y Pensamiento Científico"),
+        ("ETICA_NATURALEZA_SOCIEDADES",    "Ética, Naturaleza y Sociedades"),
+        ("HUMANO_COMUNITARIO",             "De lo Humano y lo Comunitario"),
+    ]
+    es_nem = any(m["campo_formativo"] for m in materias_data)
+    campos = []
+    if es_nem:
+        for code, label in CAMPOS_NEM:
+            mats = [m for m in materias_data if m["campo_formativo"] == code]
+            if mats:
+                campos.append({"campo": label, "materias": mats})
+        sin_campo = [m for m in materias_data if not m["campo_formativo"]]
+        if sin_campo:
+            campos.append({"campo": "Otras asignaturas", "materias": sin_campo})
+
+    # ── Asistencias y observaciones del ciclo ──────────────────────────────
+    from sqlalchemy import text
+    asis = session.execute(text(
+        """
+        SELECT COUNT(*) FILTER (WHERE a.estatus_asistencia = 'AUSENTE') AS faltas,
+               COUNT(*) FILTER (WHERE a.estatus_asistencia = 'AUSENTE'
+                                AND a.justificacion_id IS NOT NULL) AS justificadas
+        FROM ades_asistencias a
+        JOIN ades_clases cl ON cl.id = a.clase_id
+        WHERE a.estudiante_id = :est AND cl.grupo_id = :grupo
+        """
+    ), {"est": estudiante_id, "grupo": inscripcion.grupo_id}).mappings().first()
+    faltas = (asis["faltas"] if asis else 0) or 0
+    faltas_justificadas = (asis["justificadas"] if asis else 0) or 0
+
+    obs_rows = session.execute(text(
+        """
+        SELECT observacion FROM ades_observaciones_pedagogicas
+        WHERE alumno_id = :est
+        ORDER BY fecha_creacion DESC LIMIT 3
+        """
+    ), {"est": estudiante_id}).scalars().all()
+    observaciones = "  •  ".join(o for o in obs_rows if o) or "Sin observaciones."
+
     plantel_nombre = plantel.nombre_plantel if plantel else "—"
     info = PLANTEL_INFO.get(plantel_nombre, {"direccion": "", "tel": ""})
     persona = estudiante.persona
@@ -160,12 +209,19 @@ def _generar_pdf_alumno(session: Session, estudiante_id: uuid.UUID, ciclo_id: uu
         "ciclo_nombre": ciclo.nombre_ciclo if ciclo else "—",
         "fecha_generacion": date.today().strftime("%d/%m/%Y"),
         "nombre_completo": nombre_completo,
+        "curp": getattr(persona, "curp", None) or "—",
         "matricula": estudiante.matricula or "—",
         "grado_grupo": grado_grupo_str,
         "nivel_educativo": nivel_nombre,
         "periodos": periodo_nombres,
         "materias": materias_data,
+        "es_nem": es_nem,
+        "campos": campos,
         "promedio_general": promedio_general,
+        "acredito_grado": acredito_grado,
+        "faltas": faltas,
+        "faltas_justificadas": faltas_justificadas,
+        "observaciones": observaciones,
         "plantel_direccion": info["direccion"],
         "plantel_telefono": info["tel"],
     }
