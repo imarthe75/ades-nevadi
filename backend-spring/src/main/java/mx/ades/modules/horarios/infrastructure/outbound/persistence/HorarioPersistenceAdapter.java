@@ -24,7 +24,7 @@ public class HorarioPersistenceAdapter implements HorarioWriteRepositoryPort {
             "INSERT INTO ades_horarios " +
             "(id, grupo_id, materia_id, profesor_id, aula_id, ciclo_escolar_id, " +
             " dia_semana, hora_inicio, hora_fin, origen, usuario_creacion, usuario_modificacion) " +
-            "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+            "VALUES (?,?,?,?,?,?,?,CAST(? AS time),CAST(? AS time),?,?,?)",
             id, cmd.grupoId(), cmd.materiaId(), cmd.profesorId(), cmd.aulaId(),
             cmd.cicloEscolarId(), cmd.diaSemana(),
             cmd.horaInicio(), cmd.horaFin(), cmd.origen(),
@@ -49,8 +49,8 @@ public class HorarioPersistenceAdapter implements HorarioWriteRepositoryPort {
         if (cmd.profesorId()   != null) { sql.append(", profesor_id = ?");   params.add(cmd.profesorId()); }
         if (cmd.aulaId()       != null) { sql.append(", aula_id = ?");       params.add(cmd.aulaId()); }
         if (cmd.diaSemana()    != null) { sql.append(", dia_semana = ?");    params.add(cmd.diaSemana()); }
-        if (cmd.horaInicio()   != null) { sql.append(", hora_inicio = ?");   params.add(cmd.horaInicio()); }
-        if (cmd.horaFin()      != null) { sql.append(", hora_fin = ?");      params.add(cmd.horaFin()); }
+        if (cmd.horaInicio()   != null) { sql.append(", hora_inicio = CAST(? AS time)"); params.add(cmd.horaInicio()); }
+        if (cmd.horaFin()      != null) { sql.append(", hora_fin = CAST(? AS time)");    params.add(cmd.horaFin()); }
         if (cmd.origen()       != null) { sql.append(", origen = ?");        params.add(cmd.origen()); }
         if (cmd.motivoCambio() != null) {
             sql.append(", motivo_cambio = ?, fecha_cambio = NOW()");

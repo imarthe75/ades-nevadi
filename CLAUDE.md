@@ -1,5 +1,5 @@
 # ADES — Claude Code Guidelines
-# Versión: 2.1 | Actualizado: 2026-06-21
+# Versión: 2.2 | Actualizado: 2026-06-21
 
 ## MISIÓN Y CONTEXTO
 
@@ -8,6 +8,18 @@ ADES es el sistema integral de administración escolar del Instituto Nevadi (Mé
 Repositorio: https://github.com/imarthe75/ades-nevadi
 Servidor desarrollo: ades.setag.mx (129.213.35.140) — ARM OCI 4 cores 24 GB RAM
 Contexto completo: .agent/CONTEXT.md
+
+**Naturaleza del proyecto:** software **donado** al Instituto Nevadi, institución
+privada **sin fines de lucro**. No se comercializa. El instituto cobra solo una
+**cuota inicial**; el resto del ciclo se cubre con **becas del 100%** financiadas por
+una asociación civil. Por ello el sistema **no requiere pasarela de pago ni
+facturación CFDI ni nómina**: el alcance es **educativo, de salud y conductual**, más
+el cumplimiento oficial **SEP / control escolar (UAEMEX)**. Prioridad de diseño:
+sostenibilidad y mantenibilidad por equipo pequeño > cantidad de features.
+
+**Arquitectura (hexagonal / SOLID):** BFF en **Spring Boot 3 (Java 21)** + frontend
+**Angular 22**. **FastAPI queda exclusivamente para la capa de IA** (agente, embeddings,
+insights). Toda lógica de negocio nueva vive en `backend-spring/` salvo IA.
 
 ---
 
@@ -20,13 +32,11 @@ Contexto completo: .agent/CONTEXT.md
 | Authentik 2026.5.2 | Corriendo healthy en localhost:9010 |
 | MinIO | Corriendo healthy en localhost:9000-9001 |
 | nginx | Corriendo — pendiente configurar upstreams faltantes |
-| Backend FastAPI | Pendiente Dockerfile |
-| Frontend Angular 22 | Pendiente Dockerfile |
+| **BFF Spring Boot 3 (Java 21)** | Backend principal — ~50 módulos hexagonales |
+| **FastAPI (solo IA)** | Capa de agente/embeddings/insights — `backend/app/routers/agente.py` |
+| Frontend Angular 22 | Standalone components + signals + PrimeNG |
 | Superset 6.1.0 | Pendiente levantar |
-| Fases 1-3 | Completas |
-| Fase 4 IA | En progreso |
-| Fase 5 Blockchain | Pendiente |
-| Migraciones | 001-018 aplicadas. Próxima: 019 (ades_certificados_digitales) |
+| Migraciones | 3 dígitos hasta **082** + date-based (`20260613_*`). Próxima 3-díg: 083 |
 
 ---
 
@@ -63,7 +73,15 @@ npm run build    # producción
 npm run test     # Vitest
 ```
 
-### Backend FastAPI
+### Backend principal — BFF Spring Boot (Java 21)
+```bash
+cd /opt/ades/backend-spring
+./mvnw spring-boot:run           # arrancar BFF
+./mvnw -q test                   # tests
+./mvnw -q package                # build jar
+```
+
+### Backend IA — FastAPI (solo agente/embeddings/insights)
 ```bash
 cd /opt/ades/backend
 uvicorn app.main:app --reload --port 8000
@@ -168,13 +186,19 @@ Prioridad 1: Valkey (0 latencia) → Prioridad 2: PostgreSQL (20-50ms) → Prior
 
 ## CÓDIGO — ESTILO Y CALIDAD
 
-### Backend Python/FastAPI
-- Python 3.12+ con type annotations completas
-- Pydantic v2 para schemas
-- SQLAlchemy 2.x async patterns
-- PKs: UUID v7 siempre
-- snake_case para todo (parámetros, métodos, columnas)
-- AuditMiddleware en endpoints mutantes
+### Backend principal — Spring Boot 3 / Java 21 (hexagonal, SOLID)
+- Arquitectura hexagonal: `controller` (adaptador entrada) → `*ApplicationService`
+  (caso de uso) → `query`/`domain` (puertos). Un `@Service` por interfaz; si una clase
+  implementa 2+ casos de uso, ver patrón `@Service` multi-usecase.
+- `resolveUser(jwt)` obligatorio en cada endpoint; verificación de `nivelAcceso` y
+  scoping por `plantelId` para no-admins.
+- PKs UUID v7; mutaciones pasan por `AuditHttpFilter` (audit trail con hash encadenado).
+- Optimistic locking con `row_version` en PATCH/PUT.
+
+### Backend IA — Python 3.12 / FastAPI (solo agente/embeddings/insights)
+- Pydantic v2, type annotations completas, snake_case.
+- `fastembed` (ONNX) para embeddings en ARM64 — NO sentence-transformers/torch.
+- `get_ades_user` obligatorio; AuditMiddleware en endpoints mutantes.
 
 ### Frontend Angular
 - Standalone components
@@ -231,7 +255,8 @@ lessons = db_mem.search_lessons(query_embedding, limit=3)
 | `memory/long_term_memory.py` | API persistencia PostgreSQL |
 | `memory/semantic_cache.py` | API caché Valkey |
 | `docker-compose.yml` | Stack dockerizado |
-| `db/migrations/` | DDL versionado (001-018+) |
+| `db/migrations/` | DDL versionado (3 díg. hasta 082 + date-based) |
+| `backend-spring/` | BFF principal Spring Boot 3 / Java 21 (hexagonal) |
 | `db/seeds/` | Datos iniciales 2026-2027 |
 
 ---
