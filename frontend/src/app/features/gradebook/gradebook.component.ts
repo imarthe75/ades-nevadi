@@ -17,6 +17,7 @@ import { ExportService } from '../../core/services/export.service';
 import { ApexNotificationService } from 'apex-component-library';
 import { CierrePeriodoComponent } from './cierre-periodo.component';
 import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
+import { grupoLabel } from '../../core/models';
 
 interface Actividad {
   id: string;
@@ -59,7 +60,7 @@ interface CalPeriodo {
   cal_periodo_id: string;
 }
 
-interface GrupoOpt { id: string; nombre_grupo: string; }
+interface GrupoOpt { id: string; nombre_grupo: string; _label?: string; [key: string]: any; }
 interface MateriaOpt { id: string; nombre_materia: string; }
 interface PeriodoOpt { id: string; nombre_periodo: string; }
 
@@ -110,7 +111,7 @@ interface Insights {
 
 <!-- Filtros -->
 <div class="filter-bar">
-  <p-select [options]="grupos()" optionLabel="nombre_grupo" optionValue="id"
+  <p-select [options]="grupos()" optionLabel="_label" optionValue="id"
             placeholder="Grupo" [(ngModel)]="grupoSel"
             (onChange)="onGrupoChange()" 
  [filter]="true" filterPlaceholder="Buscar..."/>
@@ -429,9 +430,10 @@ export class GradebookComponent implements OnInit {
   readonly periodoNombreSel = computed(() =>
     this.periodos().find(p => p.id === this.periodoSel)?.nombre_periodo ?? ''
   );
-  readonly grupoNombreSel = computed(() =>
-    this.grupos().find(g => g.id === this.grupoSel)?.nombre_grupo ?? ''
-  );
+  readonly grupoNombreSel = computed(() => {
+    const g = this.grupos().find(g => g.id === this.grupoSel);
+    return g?._label ?? g?.nombre_grupo ?? '';
+  });
 
   readonly actividadesFlat = computed(() =>
     this.actividades().map(a => ({
@@ -521,7 +523,10 @@ export class GradebookComponent implements OnInit {
   cargarGrupos() {
     const plantelId = this.ctx.plantel()?.id;
     const params = plantelId ? `?plantel_id=${plantelId}` : '';
-    this.api.get(`/grupos${params}`).subscribe((r: any) => this.grupos.set(r.data ?? r));
+    this.api.get(`/grupos${params}`).subscribe((r: any) => {
+      const list: any[] = r.data ?? r;
+      this.grupos.set(list.map((g: any) => ({ ...g, _label: grupoLabel(g) || g.nombre_grupo })));
+    });
   }
 
   onGrupoChange() {

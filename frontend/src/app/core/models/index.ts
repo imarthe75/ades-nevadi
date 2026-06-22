@@ -168,7 +168,7 @@ export interface Clase {
   estatus_clase: string;
 }
 
-export type EstatusAsistencia = 'PRESENTE' | 'AUSENTE' | 'TARDE' | 'JUSTIFICADO';
+export type EstatusAsistencia = 'PRESENTE' | 'AUSENTE' | 'TARDANZA' | 'JUSTIFICADO';
 
 export interface Asistencia {
   id: string;

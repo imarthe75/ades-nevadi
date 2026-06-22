@@ -182,14 +182,32 @@ public class ImportsController {
             String matricula = String.format("MAT-%06d", seq);
 
             try {
-                importWrite.insertarAlumno(
-                        nombre,
-                        ImportadorUtil.getCol(row, parsed.getHeaders(), "apellido_paterno"),
-                        ImportadorUtil.getCol(row, parsed.getHeaders(), "apellido_materno"),
-                        curp,
-                        ImportadorUtil.getCol(row, parsed.getHeaders(), "genero"),
-                        ImportadorUtil.parseDate(ImportadorUtil.getCol(row, parsed.getHeaders(), "fecha_nacimiento")),
-                        plantelId, matricula, estatusId, user.getUsername());
+                ImportsWriteService.AlumnoData data = ImportsWriteService.AlumnoData.builder()
+                        .nombre(nombre)
+                        .apellidoPaterno(ImportadorUtil.getCol(row, parsed.getHeaders(), "apellido_paterno"))
+                        .apellidoMaterno(ImportadorUtil.getCol(row, parsed.getHeaders(), "apellido_materno"))
+                        .curp(curp)
+                        .rfc(emptyToNull(ImportadorUtil.getCol(row, parsed.getHeaders(), "rfc")))
+                        .genero(ImportadorUtil.getCol(row, parsed.getHeaders(), "genero"))
+                        .fechaNacimiento(ImportadorUtil.parseDate(ImportadorUtil.getCol(row, parsed.getHeaders(), "fecha_nacimiento")))
+                        .telefono(emptyToNull(ImportadorUtil.getCol(row, parsed.getHeaders(), "telefono")))
+                        .emailPersonal(emptyToNull(ImportadorUtil.getCol(row, parsed.getHeaders(), "email_personal", "email", "correo")))
+                        .nacionalidad(emptyToNull(ImportadorUtil.getCol(row, parsed.getHeaders(), "nacionalidad")))
+                        .plantelId(plantelId)
+                        .matricula(matricula)
+                        .fechaIngreso(ImportadorUtil.parseDate(ImportadorUtil.getCol(row, parsed.getHeaders(), "fecha_ingreso")))
+                        .nss(emptyToNull(ImportadorUtil.getCol(row, parsed.getHeaders(), "nss")))
+                        .escuelaProcedencia(emptyToNull(ImportadorUtil.getCol(row, parsed.getHeaders(), "escuela_procedencia", "procedencia")))
+                        .claveCtProcedencia(emptyToNull(ImportadorUtil.getCol(row, parsed.getHeaders(), "clave_ct_procedencia")))
+                        .promedioProcedencia(ImportadorUtil.parseDouble(ImportadorUtil.getCol(row, parsed.getHeaders(), "promedio_procedencia", "promedio")))
+                        .becaTipo(emptyToNull(ImportadorUtil.getCol(row, parsed.getHeaders(), "beca_tipo", "beca")))
+                        .becaMonto(ImportadorUtil.parseDouble(ImportadorUtil.getCol(row, parsed.getHeaders(), "beca_monto")))
+                        .folioSep(emptyToNull(ImportadorUtil.getCol(row, parsed.getHeaders(), "folio_sep")))
+                        .tipoAlumno(emptyToNull(ImportadorUtil.getCol(row, parsed.getHeaders(), "tipo_alumno")))
+                        .estatusId(estatusId)
+                        .usuario(user.getUsername())
+                        .build();
+                importWrite.insertarAlumno(data);
                 exitosos++;
             } catch (Exception e) {
                 log.error("Error inserting alumno row {}", rowNum, e);
@@ -265,14 +283,28 @@ public class ImportsController {
             if (tipoContrato.isEmpty()) tipoContrato = "BASE";
 
             try {
-                importWrite.insertarProfesor(
-                        nombre,
-                        ImportadorUtil.getCol(row, parsed.getHeaders(), "apellido_paterno"),
-                        ImportadorUtil.getCol(row, parsed.getHeaders(), "apellido_materno"),
-                        curp,
-                        ImportadorUtil.getCol(row, parsed.getHeaders(), "genero"),
-                        ImportadorUtil.parseDate(ImportadorUtil.getCol(row, parsed.getHeaders(), "fecha_nacimiento")),
-                        plantelId, numEmp, tipoContrato, estatusId, user.getUsername());
+                ImportsWriteService.ProfesorData data = ImportsWriteService.ProfesorData.builder()
+                        .nombre(nombre)
+                        .apellidoPaterno(ImportadorUtil.getCol(row, parsed.getHeaders(), "apellido_paterno"))
+                        .apellidoMaterno(ImportadorUtil.getCol(row, parsed.getHeaders(), "apellido_materno"))
+                        .curp(curp)
+                        .rfc(emptyToNull(ImportadorUtil.getCol(row, parsed.getHeaders(), "rfc")))
+                        .genero(ImportadorUtil.getCol(row, parsed.getHeaders(), "genero"))
+                        .fechaNacimiento(ImportadorUtil.parseDate(ImportadorUtil.getCol(row, parsed.getHeaders(), "fecha_nacimiento")))
+                        .telefono(emptyToNull(ImportadorUtil.getCol(row, parsed.getHeaders(), "telefono")))
+                        .emailPersonal(emptyToNull(ImportadorUtil.getCol(row, parsed.getHeaders(), "email_personal", "email", "correo")))
+                        .plantelId(plantelId)
+                        .numeroEmpleado(numEmp)
+                        .tipoContrato(tipoContrato)
+                        .nss(emptyToNull(ImportadorUtil.getCol(row, parsed.getHeaders(), "nss")))
+                        .cedulaProfesional(emptyToNull(ImportadorUtil.getCol(row, parsed.getHeaders(), "cedula_profesional", "cedula")))
+                        .especialidad(emptyToNull(ImportadorUtil.getCol(row, parsed.getHeaders(), "especialidad")))
+                        .nivelEstudios(emptyToNull(ImportadorUtil.getCol(row, parsed.getHeaders(), "nivel_estudios")))
+                        .fechaIngresoInst(ImportadorUtil.parseDate(ImportadorUtil.getCol(row, parsed.getHeaders(), "fecha_ingreso_inst", "fecha_ingreso")))
+                        .estatusId(estatusId)
+                        .usuario(user.getUsername())
+                        .build();
+                importWrite.insertarProfesor(data);
                 exitosos++;
             } catch (Exception e) {
                 log.error("Error inserting profesor row {}", rowNum, e);
@@ -485,18 +517,39 @@ public class ImportsController {
             String tipoAula = ImportadorUtil.getCol(row, parsed.getHeaders(), "tipo_aula", "tipo");
             if (tipoAula.isEmpty()) tipoAula = "SALON";
 
-            Integer capacidad = ImportadorUtil.parseInt(ImportadorUtil.getCol(row, parsed.getHeaders(), "capacidad", "capacidad_maxima"));
+            Integer capacidad = ImportadorUtil.parseInt(ImportadorUtil.getCol(row, parsed.getHeaders(), "capacidad_alumnos", "capacidad", "capacidad_maxima"));
             if (capacidad == null) capacidad = 30;
 
-            boolean tieneProyector = parseBoolCol(row, parsed.getHeaders(), "tiene_proyector");
-            boolean tienePizarra = parseBoolCol(row, parsed.getHeaders(), "tiene_pizarra_digital");
-            boolean tieneInternet = parseBoolCol(row, parsed.getHeaders(), "tiene_internet");
+            Integer piso = ImportadorUtil.parseInt(ImportadorUtil.getCol(row, parsed.getHeaders(), "piso"));
+            if (piso == null) piso = 1;
+            Integer numComputadoras = ImportadorUtil.parseInt(ImportadorUtil.getCol(row, parsed.getHeaders(), "num_computadoras", "computadoras"));
+            if (numComputadoras == null) numComputadoras = 0;
+            String estadoAula = ImportadorUtil.getCol(row, parsed.getHeaders(), "estado_aula", "estado");
+            if (estadoAula.isEmpty()) estadoAula = "ACTIVA";
+
             String observaciones = ImportadorUtil.getCol(row, parsed.getHeaders(), "observaciones", "ubicacion", "ubicacion_fisica");
             if (observaciones.isEmpty()) observaciones = null;
 
             try {
-                importWrite.insertarAula(nombreAula, tipoAula, capacidad, plantelId,
-                        tieneProyector, tienePizarra, tieneInternet, observaciones, user.getUsername());
+                ImportsWriteService.AulaData data = ImportsWriteService.AulaData.builder()
+                        .nombreAula(nombreAula)
+                        .claveAula(emptyToNull(ImportadorUtil.getCol(row, parsed.getHeaders(), "clave_aula", "clave")))
+                        .tipoAula(tipoAula)
+                        .capacidadAlumnos(capacidad)
+                        .plantelId(plantelId)
+                        .edificio(emptyToNull(ImportadorUtil.getCol(row, parsed.getHeaders(), "edificio")))
+                        .piso(piso)
+                        .tieneProyector(parseBoolCol(row, parsed.getHeaders(), "tiene_proyector"))
+                        .tienePizarraDigital(parseBoolCol(row, parsed.getHeaders(), "tiene_pizarra_digital"))
+                        .tienePizarron(parseBoolColDefault(row, parsed.getHeaders(), "tiene_pizarron", true))
+                        .tieneAireAcondicionado(parseBoolCol(row, parsed.getHeaders(), "tiene_aire_acondicionado"))
+                        .tieneInternet(parseBoolCol(row, parsed.getHeaders(), "tiene_internet"))
+                        .numComputadoras(numComputadoras)
+                        .estadoAula(estadoAula)
+                        .observaciones(observaciones)
+                        .usuario(user.getUsername())
+                        .build();
+                importWrite.insertarAula(data);
                 exitosos++;
             } catch (Exception e) {
                 errores.add(new ErrorFila(rowNum, nombreAula, e.getMessage()));
@@ -515,6 +568,18 @@ public class ImportsController {
     private boolean parseBoolCol(List<String> row, List<String> headers, String colName) {
         String val = ImportadorUtil.getCol(row, headers, colName).trim().toUpperCase();
         return List.of("SI", "SÍ", "YES", "TRUE", "1", "S").contains(val);
+    }
+
+    /** Igual que parseBoolCol pero usa un valor por defecto si la celda está vacía. */
+    private boolean parseBoolColDefault(List<String> row, List<String> headers, String colName, boolean def) {
+        String val = ImportadorUtil.getCol(row, headers, colName).trim();
+        if (val.isEmpty()) return def;
+        return List.of("SI", "SÍ", "YES", "TRUE", "1", "S").contains(val.toUpperCase());
+    }
+
+    /** Convierte cadenas vacías en null para que las columnas opcionales queden NULL. */
+    private static String emptyToNull(String s) {
+        return (s == null || s.isBlank()) ? null : s.trim();
     }
 
     // ──────────────────────────────────────────────────────────────────────────

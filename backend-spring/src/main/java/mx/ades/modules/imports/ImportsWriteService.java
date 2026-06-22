@@ -1,5 +1,7 @@
 package mx.ades.modules.imports;
 
+import lombok.Builder;
+import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
@@ -99,31 +101,76 @@ public class ImportsWriteService {
 
     // ── Transactional row inserts ─────────────────────────────────────────────
 
-    @Transactional
-    public void insertarAlumno(String nombre, String apellidoPaterno, String apellidoMaterno,
-                                String curp, String genero, Object fechaNacimiento,
-                                UUID plantelId, String matricula, UUID estatusId, String usuario) {
-        UUID personaId = UUID.randomUUID();
-        jdbc.update(
-                "INSERT INTO ades_personas (id, nombre, apellido_paterno, apellido_materno, curp, genero, fecha_nacimiento, usuario_creacion, usuario_modificacion) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                personaId, nombre, apellidoPaterno, apellidoMaterno, curp, genero, fechaNacimiento, usuario, usuario);
-        jdbc.update(
-                "INSERT INTO ades_estudiantes (id, matricula, persona_id, plantel_id, fecha_ingreso, estatus_id, usuario_creacion, usuario_modificacion) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                UUID.randomUUID(), matricula, personaId, plantelId, null, estatusId, usuario, usuario);
+    @Data
+    @Builder
+    public static class AlumnoData {
+        private String nombre, apellidoPaterno, apellidoMaterno, curp, rfc, genero;
+        private Object fechaNacimiento;
+        private String telefono, emailPersonal, nacionalidad;
+        private UUID plantelId;
+        private String matricula;
+        private Object fechaIngreso;
+        private String nss, escuelaProcedencia, claveCtProcedencia;
+        private Double promedioProcedencia;
+        private String becaTipo;
+        private Double becaMonto;
+        private String folioSep, tipoAlumno;
+        private UUID estatusId;
+        private String usuario;
     }
 
     @Transactional
-    public void insertarProfesor(String nombre, String apellidoPaterno, String apellidoMaterno,
-                                  String curp, String genero, Object fechaNacimiento,
-                                  UUID plantelId, String numEmpleado, String tipoContrato,
-                                  UUID estatusId, String usuario) {
+    public void insertarAlumno(AlumnoData d) {
         UUID personaId = UUID.randomUUID();
         jdbc.update(
-                "INSERT INTO ades_personas (id, nombre, apellido_paterno, apellido_materno, curp, genero, fecha_nacimiento, usuario_creacion, usuario_modificacion) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                personaId, nombre, apellidoPaterno, apellidoMaterno, curp, genero, fechaNacimiento, usuario, usuario);
+                "INSERT INTO ades_personas (id, nombre, apellido_paterno, apellido_materno, curp, rfc, genero, " +
+                "fecha_nacimiento, telefono, email_personal, nacionalidad, usuario_creacion, usuario_modificacion) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, 'MEXICANA'), ?, ?)",
+                personaId, d.getNombre(), d.getApellidoPaterno(), d.getApellidoMaterno(), d.getCurp(), d.getRfc(),
+                d.getGenero(), d.getFechaNacimiento(), d.getTelefono(), d.getEmailPersonal(), d.getNacionalidad(),
+                d.getUsuario(), d.getUsuario());
         jdbc.update(
-                "INSERT INTO ades_profesores (id, persona_id, plantel_id, numero_empleado, tipo_contrato, estatus_id, usuario_creacion, usuario_modificacion) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                UUID.randomUUID(), personaId, plantelId, numEmpleado, tipoContrato.toUpperCase(), estatusId, usuario, usuario);
+                "INSERT INTO ades_estudiantes (id, matricula, persona_id, plantel_id, fecha_ingreso, nss, " +
+                "escuela_procedencia, clave_ct_procedencia, promedio_procedencia, beca_tipo, beca_monto, folio_sep, " +
+                "tipo_alumno, estatus_id, usuario_creacion, usuario_modificacion) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, 'NUEVO'), ?, ?, ?)",
+                UUID.randomUUID(), d.getMatricula(), personaId, d.getPlantelId(), d.getFechaIngreso(), d.getNss(),
+                d.getEscuelaProcedencia(), d.getClaveCtProcedencia(), d.getPromedioProcedencia(), d.getBecaTipo(),
+                d.getBecaMonto(), d.getFolioSep(), d.getTipoAlumno(), d.getEstatusId(), d.getUsuario(), d.getUsuario());
+    }
+
+    @Data
+    @Builder
+    public static class ProfesorData {
+        private String nombre, apellidoPaterno, apellidoMaterno, curp, rfc, genero;
+        private Object fechaNacimiento;
+        private String telefono, emailPersonal;
+        private UUID plantelId;
+        private String numeroEmpleado, tipoContrato, nss, cedulaProfesional, especialidad, nivelEstudios;
+        private Object fechaIngresoInst;
+        private UUID estatusId;
+        private String usuario;
+    }
+
+    @Transactional
+    public void insertarProfesor(ProfesorData d) {
+        UUID personaId = UUID.randomUUID();
+        jdbc.update(
+                "INSERT INTO ades_personas (id, nombre, apellido_paterno, apellido_materno, curp, rfc, genero, " +
+                "fecha_nacimiento, telefono, email_personal, usuario_creacion, usuario_modificacion) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                personaId, d.getNombre(), d.getApellidoPaterno(), d.getApellidoMaterno(), d.getCurp(), d.getRfc(),
+                d.getGenero(), d.getFechaNacimiento(), d.getTelefono(), d.getEmailPersonal(),
+                d.getUsuario(), d.getUsuario());
+        jdbc.update(
+                "INSERT INTO ades_profesores (id, persona_id, plantel_id, numero_empleado, tipo_contrato, rfc, nss, " +
+                "cedula_profesional, especialidad, nivel_estudios, fecha_ingreso_inst, estatus_id, " +
+                "usuario_creacion, usuario_modificacion) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                UUID.randomUUID(), personaId, d.getPlantelId(), d.getNumeroEmpleado(),
+                d.getTipoContrato().toUpperCase(), d.getRfc(), d.getNss(), d.getCedulaProfesional(),
+                d.getEspecialidad(), d.getNivelEstudios() == null ? null : d.getNivelEstudios().toUpperCase(),
+                d.getFechaIngresoInst(), d.getEstatusId(), d.getUsuario(), d.getUsuario());
     }
 
     @Transactional
@@ -141,14 +188,31 @@ public class ImportsWriteService {
                 UUID.randomUUID(), nombre, gradoId, cicloId, turno.toUpperCase(), capacidad, usuario, usuario);
     }
 
+    @Data
+    @Builder
+    public static class AulaData {
+        private String nombreAula, claveAula, tipoAula;
+        private Integer capacidadAlumnos;
+        private UUID plantelId;
+        private String edificio;
+        private Integer piso;
+        private boolean tieneProyector, tienePizarraDigital, tienePizarron, tieneAireAcondicionado, tieneInternet;
+        private Integer numComputadoras;
+        private String estadoAula, observaciones, usuario;
+    }
+
     @Transactional
-    public void insertarAula(String nombre, String tipoAula, Integer capacidad, UUID plantelId,
-                              boolean tieneProyector, boolean tienePizarra, boolean tieneInternet,
-                              String observaciones, String usuario) {
+    public void insertarAula(AulaData d) {
         jdbc.update(
-                "INSERT INTO ades_aulas (id, nombre_aula, tipo_aula, capacidad_alumnos, plantel_id, tiene_proyector, tiene_pizarra_digital, tiene_internet, observaciones, usuario_creacion, usuario_modificacion) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                UUID.randomUUID(), nombre, tipoAula.toUpperCase(), capacidad, plantelId,
-                tieneProyector, tienePizarra, tieneInternet, observaciones, usuario, usuario);
+                "INSERT INTO ades_aulas (id, nombre_aula, clave_aula, tipo_aula, capacidad_alumnos, plantel_id, " +
+                "edificio, piso, tiene_proyector, tiene_pizarra_digital, tiene_pizarron, tiene_aire_acondicionado, " +
+                "tiene_internet, num_computadoras, estado_aula, observaciones, usuario_creacion, usuario_modificacion) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                UUID.randomUUID(), d.getNombreAula(), d.getClaveAula(), d.getTipoAula().toUpperCase(),
+                d.getCapacidadAlumnos(), d.getPlantelId(), d.getEdificio(), d.getPiso(),
+                d.isTieneProyector(), d.isTienePizarraDigital(), d.isTienePizarron(), d.isTieneAireAcondicionado(),
+                d.isTieneInternet(), d.getNumComputadoras(), d.getEstadoAula().toUpperCase(),
+                d.getObservaciones(), d.getUsuario(), d.getUsuario());
     }
 
     @Transactional

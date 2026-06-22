@@ -1,5 +1,5 @@
 # ADES — Claude Code Guidelines
-# Versión: 2.0 | Actualizado: 2026-06-09
+# Versión: 2.1 | Actualizado: 2026-06-21
 
 ## MISIÓN Y CONTEXTO
 
@@ -69,6 +69,34 @@ cd /opt/ades/backend
 uvicorn app.main:app --reload --port 8000
 celery -A app.worker.celery_app worker --loglevel=info
 ```
+
+---
+
+## ESTÁNDARES DE SEGURIDAD OBLIGATORIOS (PERMANENTES)
+
+> **TODO lo que se desarrolle en ADES debe cumplir SIEMPRE con estos estándares — sin excepción.**
+
+| Estándar | Aplicación concreta |
+|---|---|
+| **STRIDE** | Modelar amenazas en cada endpoint y migración nueva |
+| **OWASP Top 10 2021** | Sin SQLi, XSS, IDOR, broken auth, misconfiguration |
+| **OWASP API Security Top 10** | BOLA, auth de función, consumo de recursos, mass assignment |
+| **NIST Framework** | AC-3 (control acceso), AU-3/AU-12 (auditoría), SI-10 (validación input), SC-8 (tránsito cifrado) |
+| **GDPR / LFPDPPP** | Minimización PII, acceso por necesidad, datos académicos cifrados en tránsito |
+| **Infrastructure Security** | Secrets en .env, no exponer puertos innecesarios, TLS en producción |
+| **Supply Chain** | Pinear versiones de dependencias, revisar cambios de deps |
+| **SDLC Security** | Code review antes de merge, no `--no-verify`, audit trail en mutaciones |
+| **Compliance** | SEP (México), UAEMEX, LFPDPPP, ISO 27001 aspiracional |
+
+### Checklist de seguridad para cada endpoint nuevo
+
+- [ ] `resolveUser(jwt)` llamado — nunca anonimato
+- [ ] Verificación de `nivelAcceso` vs operación (403 si insuficiente)
+- [ ] Scoping por `plantelId` para no-admins (evita lectura cross-plantel)
+- [ ] Path params usados realmente en la lógica (no ignorados)
+- [ ] Inputs de body validados: tipo, rango, enum, longitud máxima
+- [ ] Endpoint mutante pasa por `AuditHttpFilter` (Spring) o `AuditMiddleware` (FastAPI)
+- [ ] `actualizarX()` con 0 filas → lanzar 404, no HTTP 200
 
 ---
 

@@ -8,9 +8,15 @@ import mx.ades.modules.calificaciones.infrastructure.inbound.rest.dto.CalcularCa
 import mx.ades.modules.calificaciones.infrastructure.inbound.rest.dto.CalificacionResponseDto;
 import mx.ades.modules.calificaciones.infrastructure.inbound.rest.dto.GuardarCalificacionManualDto;
 import mx.ades.modules.calificaciones.query.CalificacionesQueryService;
+import mx.ades.security.AdesUser;
+import mx.ades.security.AdesUserService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -25,6 +31,7 @@ public class CalificacionesController {
     private final ObtenerBoletaUseCase               obtenerBoleta;
     private final CalificacionesQueryService         queryService;
     private final JdbcTemplate                       jdbc;
+    private final AdesUserService                    userService;
 
     @PostMapping("/calcular")
     public ResponseEntity<Void> calcular(@RequestBody CalcularCalificacionDto req) {
@@ -61,7 +68,25 @@ public class CalificacionesController {
     @GetMapping("/grupo/{grupoId}/libreta")
     public ResponseEntity<Map<String, Object>> libreta(
             @PathVariable("grupoId") UUID grupoId,
-            @RequestParam(name = "materia_id") UUID materiaId) {
+            @RequestParam(name = "materia_id") UUID materiaId,
+            @AuthenticationPrincipal Jwt jwt) {
+
+        AdesUser user = userService.resolveUser(jwt);
+        // ALUMNO (5) y PADRE_FAMILIA (6) no pueden ver la libreta completa del grupo
+        if (user.getNivelAcceso() != null && user.getNivelAcceso() > 4) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                "Sin permisos para acceder a la libreta del grupo");
+        }
+        // Para no-admin: verificar que el grupo pertenece al plantel del usuario
+        if (user.getNivelAcceso() != null && user.getNivelAcceso() > 1 && user.getPlantelId() != null) {
+            boolean perteneceAPlantel = !jdbc.queryForList(
+                "SELECT id FROM ades_grupos WHERE id = ?::uuid AND plantel_id = ?::uuid",
+                grupoId, user.getPlantelId()).isEmpty();
+            if (!perteneceAPlantel) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Sin acceso al grupo solicitado");
+            }
+        }
 
         // 1. Períodos activos del ciclo del grupo
         List<Map<String, Object>> periodos = jdbc.queryForList(

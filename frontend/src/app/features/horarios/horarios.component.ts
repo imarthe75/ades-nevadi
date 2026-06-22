@@ -19,7 +19,10 @@ import { TooltipModule } from 'primeng/tooltip';
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
 import type { Grupo, Profesor } from '../../core/models';
+import { grupoLabel } from '../../core/models';
 import { ApexNotificationService } from 'apex-component-library';
+
+type GrupoConLabel = Grupo & { _label: string };
 
 interface HorarioEntry {
   id: string;
@@ -103,21 +106,21 @@ const COLORS: Record<string, string> = {
             <div>
               <label class="dlg-lbl">Docente</label>
               <p-select [options]="profesores()" [(ngModel)]="form.profesor_id"
-                optionLabel="nombre_completo" optionValue="id"
+                optionLabel="_label" optionValue="id"
                 style="width:100%" [filter]="true" filterPlaceholder="Buscar…" placeholder="Docente…" [showClear]="true" />
             </div>
           } @else {
             <div>
               <label class="dlg-lbl">Grupo</label>
               <p-select [options]="grupos()" [(ngModel)]="form.grupo_id"
-                optionLabel="nombre_grupo" optionValue="id"
+                optionLabel="_label" optionValue="id"
                 style="width:100%" [filter]="true" filterPlaceholder="Buscar…" placeholder="Grupo…" [showClear]="true" />
             </div>
           }
           <div>
             <label class="dlg-lbl">Aula</label>
             <p-select [options]="aulas()" [(ngModel)]="form.aula_id"
-              [optionLabel]="aulaLabel" optionValue="id"
+              optionLabel="_label" optionValue="id"
               style="width:100%" [filter]="true" filterPlaceholder="Buscar…" placeholder="Aula…" [showClear]="true" />
           </div>
         </div>
@@ -147,9 +150,28 @@ const COLORS: Record<string, string> = {
           severity="secondary"
           [text]="true"
           (onClick)="exportarASC()"
+          [loading]="exportandoAsc()"
           [disabled]="!ctx.ciclo()"
-          pTooltip="Exportar para aSc TimeTables"
+          pTooltip="Exportar horarios al formato XML de aSc TimeTables"
         />
+        @if (ctx.nivelAcceso() <= 3) {
+          <label class="asc-reemplazar" pTooltip="Si está activo, reemplaza los horarios vigentes del ciclo antes de importar">
+            <input type="checkbox" [(ngModel)]="reemplazarAsc" />
+            <span>Reemplazar al importar</span>
+          </label>
+          <p-button
+            label="Importar XML aSc"
+            icon="pi pi-upload"
+            severity="secondary"
+            [text]="true"
+            (onClick)="ascInput.click()"
+            [loading]="importandoAsc()"
+            [disabled]="!ctx.ciclo()"
+            pTooltip="Importar la solución resuelta desde aSc TimeTables"
+          />
+          <input #ascInput type="file" accept=".xml" style="display:none"
+                 (change)="onArchivoAscSeleccionado($event)" />
+        }
         @if (selectedGrupo || selectedProfesor) {
           <p-button
             label="Nueva entrada"
@@ -174,7 +196,7 @@ const COLORS: Record<string, string> = {
         <p-select
           [options]="grupos()"
           [(ngModel)]="selectedGrupo"
-          optionLabel="nombre_grupo"
+          optionLabel="_label"
           placeholder="Seleccionar grupo..."
           (onChange)="onGrupoChange()"
           [showClear]="true"
@@ -183,7 +205,7 @@ const COLORS: Record<string, string> = {
         <p-select
           [options]="profesores()"
           [(ngModel)]="selectedProfesor"
-          [optionLabel]="profeLabel"
+          optionLabel="_label"
           placeholder="Seleccionar docente..."
           (onChange)="cargar()"
           [showClear]="true"
@@ -295,6 +317,8 @@ const COLORS: Record<string, string> = {
     .dlg-grid { display:flex; flex-direction:column; gap:.75rem; padding:.5rem 0; }
     .dlg-row  { display:grid; grid-template-columns:1fr 1fr; gap:.75rem; }
     .dlg-lbl  { display:block; font-size:.8rem; font-weight:600; margin-bottom:.3rem; color:var(--p-text-color); }
+    .asc-reemplazar { display:flex; align-items:center; gap:.35rem; font-size:.8rem; color:var(--p-text-muted-color); cursor:pointer; user-select:none; }
+    .asc-reemplazar input { cursor:pointer; }
   `],
 })
 export class HorariosComponent implements OnInit {
@@ -313,10 +337,10 @@ export class HorariosComponent implements OnInit {
   ];
 
   modo: 'grupo' | 'profesor' = 'grupo';
-  selectedGrupo:   Grupo | null   = null;
+  selectedGrupo:   GrupoConLabel | null   = null;
   selectedProfesor: any  | null   = null;
 
-  grupos    = signal<Grupo[]>([]);
+  grupos    = signal<GrupoConLabel[]>([]);
   profesores = signal<any[]>([]);
   materias  = signal<MateriaOpt[]>([]);
   aulas     = signal<AulaOpt[]>([]);
@@ -325,6 +349,11 @@ export class HorariosComponent implements OnInit {
   showDialog  = signal(false);
   guardando   = signal(false);
   editEntry: HorarioEntry | null = null;
+
+  // aSc TimeTables
+  exportandoAsc = signal(false);
+  importandoAsc = signal(false);
+  reemplazarAsc = false;
 
   form: {
     dia_semana: number | null;
@@ -354,11 +383,15 @@ export class HorariosComponent implements OnInit {
     const plantelId = this.ctx.plantel()?.id;
     if (plantelId) {
       this.api.get<Grupo[]>('/grupos', { plantel_id: plantelId, solo_activos: true, ciclo_vigente: true })
-        .subscribe(g => this.grupos.set(g));
+        .subscribe(g => this.grupos.set(g.map(x => ({ ...x, _label: grupoLabel(x) }))));
       this.api.get<any[]>('/profesores', { plantel_id: plantelId })
-        .subscribe(p => this.profesores.set(p));
+        .subscribe(p => this.profesores.set(
+          p.map(x => ({ ...x, _label: `${x.nombre ?? ''} ${x.apellido_paterno ?? ''}`.trim() || x.numero_empleado }))
+        ));
       this.api.get<AulaOpt[]>('/aulas', { plantel_id: plantelId })
-        .subscribe(a => this.aulas.set(a));
+        .subscribe(a => this.aulas.set(
+          a.map(x => ({ ...x, _label: x.codigo ? `${x.codigo} — ${x.nombre}` : x.nombre }))
+        ));
     }
   }
 
@@ -424,7 +457,7 @@ export class HorariosComponent implements OnInit {
 
   guardar(): void {
     if (!this.form.dia_semana || !this.form.hora_inicio || !this.form.materia_id) {
-      this.notify.warn('Completa los campos obligatorios: Día, Hora inicio y Materia.');
+      this.notify.warning('Validación', 'Completa los campos obligatorios: Día, Hora inicio y Materia.');
       return;
     }
     this.guardando.set(true);
@@ -489,8 +522,57 @@ export class HorariosComponent implements OnInit {
     const cicloId   = this.ctx.ciclo()?.id;
     const plantelId = this.ctx.plantel()?.id;
     if (!cicloId) return;
-    const params = plantelId ? `?plantel_id=${plantelId}` : '';
-    window.open(`/api/v1/horarios/exportar-asc/${cicloId}${params}`, '_blank');
+    const params: Record<string, string> = {};
+    if (plantelId) params['plantel_id'] = plantelId;
+    this.exportandoAsc.set(true);
+    this.api.getBlob(`/horarios/exportar-asc/${cicloId}`, params).subscribe({
+      next: blob => {
+        this.exportandoAsc.set(false);
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'horarios_asc.xml';
+        a.click();
+        URL.revokeObjectURL(url);
+      },
+      error: () => {
+        this.exportandoAsc.set(false);
+        this.notify.error('Error', 'No se pudo exportar el XML aSc');
+      },
+    });
+  }
+
+  onArchivoAscSeleccionado(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    input.value = '';   // permite re-subir el mismo archivo
+    const cicloId = this.ctx.ciclo()?.id;
+    if (!cicloId) {
+      this.notify.warning('Ciclo requerido', 'Selecciona un ciclo escolar en el contexto antes de importar');
+      return;
+    }
+    const plantelId = this.ctx.plantel()?.id;
+    const form = new FormData();
+    form.append('file', file);
+    if (plantelId) form.append('plantel_id', plantelId);
+    form.append('reemplazar', String(this.reemplazarAsc));
+
+    this.importandoAsc.set(true);
+    this.api.upload<any>(`/horarios/importar-asc/${cicloId}`, form).subscribe({
+      next: r => {
+        this.importandoAsc.set(false);
+        const detalle = r.errores > 0 ? ` (${r.errores} con error)` : '';
+        const reemplazo = r.eliminados > 0 ? `, ${r.eliminados} reemplazadas` : '';
+        this.notify.success('Importación aSc',
+          `${r.exitosos} de ${r.total} clases importadas${reemplazo}${detalle}`);
+        this.cargar();
+      },
+      error: e => {
+        this.importandoAsc.set(false);
+        this.notify.error('Error', e.error?.detail ?? e.error?.message ?? 'No se pudo importar el XML aSc');
+      },
+    });
   }
 
   private resetForm() {

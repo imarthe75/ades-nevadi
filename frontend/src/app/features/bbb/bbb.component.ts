@@ -16,6 +16,7 @@ import { ApexNotificationService } from 'apex-component-library';
 import { ContextService } from '../../core/services/context.service';
 import { AuthService } from '../../core/services/auth.service';
 import { ApiService } from '../../core/services/api.service';
+import { grupoLabel } from '../../core/models';
 
 interface BbbReunion {
   id: string;
@@ -201,7 +202,7 @@ const ESTADO_SEV: Record<string, string> = {
       <div>
         <label class="apex-label">Grupo (opcional)</label>
         <p-select [options]="grupos()" [(ngModel)]="crearForm.grupo_id"
-                  optionLabel="nombre_grupo" optionValue="id" placeholder="Seleccionar grupo"
+                  optionLabel="_label" optionValue="id" placeholder="Seleccionar grupo"
                   [showClear]="true" class="w-full" />
       </div>
       <div>
@@ -343,7 +344,10 @@ export class BbbComponent implements OnInit {
   }
 
   cargarGrupos() {
-    this.api.get<any[]>('/grupos').subscribe({ next: g => this.grupos.set(g), error: () => {} });
+    this.api.get<any[]>('/grupos').subscribe({
+      next: g => this.grupos.set(g.map((x: any) => ({ ...x, _label: grupoLabel(x) || x.nombre_grupo }))),
+      error: () => {},
+    });
   }
 
   abrirCrear() {

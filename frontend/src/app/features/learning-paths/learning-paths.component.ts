@@ -555,7 +555,7 @@ export class LearningPathsComponent implements OnInit {
 
   private readonly exportCols: ExportColumn[] = [
     { field: 'path_nombre',     header: 'Ruta' },
-    { field: 'estudiante_id',   header: 'Alumno ID' },
+    { field: 'alumno_nombre',   header: 'Alumno' },
     { field: 'motivo',          header: 'Motivo' },
     { field: 'estatus',         header: 'Estatus' },
     { field: 'pct_completado',  header: '% Completado', format: v => `${v}%` },

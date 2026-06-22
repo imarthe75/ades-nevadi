@@ -20,6 +20,7 @@ import mx.ades.modules.expediente.domain.port.in.*;
 import mx.ades.modules.expediente.query.ExpedienteQueryService;
 import mx.ades.security.AdesUser;
 import mx.ades.security.AdesUserService;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.time.LocalDate;
 import java.util.*;
@@ -33,6 +34,7 @@ public class ExpedienteController {
     private final AdesUserService userService;
     private final PaperlessService paperlessSvc;
     private final ExpedienteWriteService writeService;
+    private final JdbcTemplate jdbc;
     private final RegistrarBajaUseCase registrarBaja;
     private final CalificarExtraordinarioUseCase calificarExtraordinario;
     private final EmitirConstanciaUseCase emitirConstancia;
@@ -326,11 +328,23 @@ public class ExpedienteController {
             @RequestParam(value = "page", defaultValue = "1") int page,
             @RequestParam(value = "page_size", defaultValue = "25") int pageSize,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        AdesUser user = userService.resolveUser(jwt);
+        // Verificar que el alumno pertenece al plantel del usuario (para no-admins globales)
+        if (user.getNivelAcceso() != null && user.getNivelAcceso() > 1 && user.getPlantelId() != null) {
+            boolean tieneAcceso = !jdbc.queryForList(
+                "SELECT id FROM ades_estudiantes WHERE id = ?::uuid AND plantel_id = ?::uuid AND is_active = true",
+                estudianteId, user.getPlantelId()).isEmpty();
+            if (!tieneAcceso) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Sin acceso al expediente del alumno solicitado");
+            }
+        }
         if (!paperlessSvc.hasToken()) {
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Paperless-ngx no configurado.");
         }
-        return ResponseEntity.ok(paperlessSvc.buscarDocumentos(q, page, pageSize));
+        // Incluir estudianteId como término de búsqueda adicional para acotar resultados al alumno
+        String scopedQuery = q.isBlank() ? estudianteId.toString() : q + " " + estudianteId;
+        return ResponseEntity.ok(paperlessSvc.buscarDocumentos(scopedQuery, page, pageSize));
     }
 
     @PostMapping("/expediente/{expediente_id}/verificar")

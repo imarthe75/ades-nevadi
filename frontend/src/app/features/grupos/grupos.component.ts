@@ -134,11 +134,14 @@ export class GruposComponent implements OnInit {
   ];
 
   private readonly exportCols: ExportColumn[] = [
+    { field: 'plantel_nombre', header: 'Plantel', format: v => v ?? '—' },
     { field: 'nombre_nivel', header: 'Nivel' },
     { field: 'nombre_grado', header: 'Grado' },
     { field: 'nombre_grupo', header: 'Grupo' },
+    { field: 'turno', header: 'Turno', format: v => v ?? '—' },
     { field: 'inscritos', header: 'Inscritos', format: v => String(v ?? 0) },
     { field: 'capacidad_maxima', header: 'Capacidad' },
+    { field: 'is_active', header: 'Estado', format: v => v ? 'Activo' : 'Inactivo' },
   ];
 
   isAdmin(): boolean {

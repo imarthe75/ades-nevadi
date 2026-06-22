@@ -5,6 +5,10 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -106,12 +110,33 @@ public class TareaQueryService {
         List<Object> params = new ArrayList<>();
         if (body.containsKey("titulo"))         { sets.add("titulo = ?");          params.add(body.get("titulo")); }
         if (body.containsKey("descripcion"))    { sets.add("descripcion = ?");      params.add(body.get("descripcion")); }
-        if (body.containsKey("fecha_entrega"))  { sets.add("fecha_entrega = ?::date"); params.add(body.get("fecha_entrega")); }
-        if (body.containsKey("puntaje_maximo")) { sets.add("puntaje_maximo = ?");   params.add(body.get("puntaje_maximo")); }
+        if (body.containsKey("fecha_entrega")) {
+            Object raw = body.get("fecha_entrega");
+            if (raw != null) {
+                try { LocalDate.parse(raw.toString()); }
+                catch (Exception e) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "fecha_entrega inválida. Formato esperado: YYYY-MM-DD");
+                }
+            }
+            sets.add("fecha_entrega = ?::date"); params.add(raw);
+        }
+        if (body.containsKey("puntaje_maximo")) {
+            Object raw = body.get("puntaje_maximo");
+            if (raw instanceof Number n && n.doubleValue() < 0) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "puntaje_maximo no puede ser negativo");
+            }
+            sets.add("puntaje_maximo = ?"); params.add(raw);
+        }
         if (body.containsKey("permite_entrega_tarde")) { sets.add("permite_entrega_tarde = ?"); params.add(body.get("permite_entrega_tarde")); }
         if (!sets.isEmpty()) {
             params.add(actividadId.toString());
-            jdbc.update("UPDATE ades_tareas SET " + String.join(", ", sets) + " WHERE id = ?::uuid", params.toArray());
+            int rows = jdbc.update(
+                "UPDATE ades_tareas SET " + String.join(", ", sets) + " WHERE id = ?::uuid AND is_active = TRUE",
+                params.toArray());
+            if (rows == 0) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Tarea no encontrada");
+            }
         }
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("id", actividadId);

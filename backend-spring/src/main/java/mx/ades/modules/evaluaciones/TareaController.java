@@ -13,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -45,7 +46,15 @@ public class TareaController {
             @RequestParam(value = "grupo_id", required = false) UUID grupoId,
             @RequestParam(value = "materia_id", required = false) UUID materiaId,
             @RequestParam(value = "periodo_id", required = false) UUID periodoId,
-            @RequestParam(value = "tipo_item", required = false) String tipoItem) {
+            @RequestParam(value = "tipo_item", required = false) String tipoItem,
+            @AuthenticationPrincipal Jwt jwt) {
+        AdesUser user = userService.resolveUser(jwt);
+        // Para no-admins (DOCENTE, ALUMNO, PADRE) requerir grupo_id para evitar volcado cross-plantel
+        if (grupoId == null && (user.getNivelAcceso() == null || user.getNivelAcceso() > 1)) {
+            throw new ResponseStatusException(
+                org.springframework.http.HttpStatus.BAD_REQUEST,
+                "El parámetro 'grupo_id' es requerido");
+        }
         return ResponseEntity.ok(query.actividadesDeGrupo(grupoId, materiaId, periodoId, tipoItem));
     }
 

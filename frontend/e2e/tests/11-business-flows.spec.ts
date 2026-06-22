@@ -98,7 +98,7 @@ test.describe('B. Reinscripción de alumnos', () => {
   test('BIZ-04 | rechazar reinscripción sin razón → error de validación', async ({ page }) => {
     const apiResponses = attachApiMonitor(page);
     await new LoginPage(page).login(USERS.COORDINADOR);
-    await page.goto('/reinscripcion', { waitUntil: 'networkidle' });
+    await page.goto('/reinscripcion', { waitUntil: 'load' });
 
     if (!await assertPageLoaded(page, '/reinscripcion')) { test.skip(); return; }
 

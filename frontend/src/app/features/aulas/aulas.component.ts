@@ -616,9 +616,16 @@ export class AulasComponent implements OnInit {
     { field: 'clave_aula',        header: 'Clave', format: v => v || '' },
     { field: 'tipo_aula',         header: 'Tipo' },
     { field: 'capacidad_alumnos', header: 'Capacidad' },
+    { field: 'edificio',          header: 'Edificio', format: v => v || '—' },
     { field: 'piso',              header: 'Piso' },
     { field: 'estado_aula',       header: 'Estado' },
-    { field: 'equip_str',         header: 'Equipamiento' },
+    { field: 'tiene_proyector',     header: 'Proyector', format: v => v ? 'Sí' : 'No' },
+    { field: 'tiene_pizarra_digital', header: 'Pizarra Digital', format: v => v ? 'Sí' : 'No' },
+    { field: 'tiene_pizarron',      header: 'Pizarrón', format: v => v ? 'Sí' : 'No' },
+    { field: 'tiene_aire_acondicionado', header: 'A/C', format: v => v ? 'Sí' : 'No' },
+    { field: 'tiene_internet',      header: 'Internet', format: v => v ? 'Sí' : 'No' },
+    { field: 'num_computadoras',    header: 'Computadoras', format: v => String(v ?? 0) },
+    { field: 'observaciones',       header: 'Observaciones', format: v => v || '' },
   ];
   exportCSV():  void { this.export.toCSV(this.aulas(), this.exportCols, 'aulas'); }
   exportXLSX(): void { this.export.toXLSX(this.aulas(), this.exportCols, 'Aulas', 'aulas'); }

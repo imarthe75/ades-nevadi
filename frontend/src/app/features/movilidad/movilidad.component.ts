@@ -13,6 +13,7 @@ import { ApexNotificationService } from 'apex-component-library';
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
 import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
+import { grupoLabel } from '../../core/models';
 
 interface Alumno {
   id: string;
@@ -23,6 +24,7 @@ interface Alumno {
 interface Grupo {
   id: string;
   nombre_grupo: string;
+  [key: string]: any;
 }
 
 interface Baja {
@@ -352,7 +354,7 @@ export class MovilidadComponent implements OnInit {
   );
 
   readonly gruposLov = computed(() =>
-    this.grupos().map(g => ({ label: g.nombre_grupo, value: g.id }))
+    this.grupos().map(g => ({ label: grupoLabel(g as any) || g.nombre_grupo, value: g.id }))
   );
 
   readonly bajasColumns: ColumnConfig[] = [

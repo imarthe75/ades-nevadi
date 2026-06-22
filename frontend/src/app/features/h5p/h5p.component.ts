@@ -20,6 +20,7 @@ import { ApexNotificationService } from 'apex-component-library';
 import { ContextService } from '../../core/services/context.service';
 import { AuthService } from '../../core/services/auth.service';
 import { ApiService } from '../../core/services/api.service';
+import { grupoLabel } from '../../core/models';
 
 interface H5PTipo {
   id: string;
@@ -242,7 +243,7 @@ type TabKey = 'biblioteca' | 'mis-resultados';
     <div>
       <label class="apex-label">Grupo</label>
       <p-select [options]="grupos()" [(ngModel)]="asignarForm.grupo_id"
-                optionLabel="nombre_grupo" optionValue="id" placeholder="Seleccionar grupo"
+                optionLabel="_label" optionValue="id" placeholder="Seleccionar grupo"
                 class="w-full" />
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
@@ -343,7 +344,10 @@ export class H5pComponent implements OnInit {
   }
 
   cargarGrupos() {
-    this.api.get<any[]>('/grupos').subscribe({ next: g => this.grupos.set(g), error: () => {} });
+    this.api.get<any[]>('/grupos').subscribe({
+      next: g => this.grupos.set(g.map((x: any) => ({ ...x, _label: grupoLabel(x) || x.nombre_grupo }))),
+      error: () => {},
+    });
   }
 
   cargarMisResultados() {

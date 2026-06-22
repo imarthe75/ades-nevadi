@@ -59,15 +59,15 @@ interface CalificacionResumen {
       </div>
     </div>
 
-    <!-- Buscador/Simulador de Alumnos para Administradores -->
+    <!-- Selector de alumno para administradores (vista de padre) -->
     @if (isAdmin()) {
       <div class="admin-sim-bar">
-        <div class="sim-label"><i class="pi pi-shield"></i> Modo Administrador: Simular alumno</div>
+        <div class="sim-label"><i class="pi pi-shield"></i> Vista de administrador — Seleccionar alumno:</div>
         <p-select
           [options]="todosAlumnos()"
           [(ngModel)]="simulatedAlumno"
           optionLabel="nombre_completo"
-          placeholder="Buscar un alumno para simular..."
+          placeholder="Buscar alumno..."
           [filter]="true"
           filterBy="nombre_completo,matricula"
           styleClass="sim-select"
@@ -376,7 +376,7 @@ export class PadresComponent implements OnInit {
               grado: String(x.grupo?.grado || '1'),
               grupo: x.grupo?.nombre_grupo || 'A',
               plantel: x.plantel?.nombre_plantel || 'Nevadi',
-              parentesco: 'Simulado',
+              parentesco: 'Admin',
               es_tutor_legal: true
             }))
           );
