@@ -122,14 +122,27 @@ def _generar_pdf_alumno(session: Session, estudiante_id: uuid.UUID, ciclo_id: uu
         for c in cals
     }
 
+    # nivel_logro — columna agregada en mig 089; consultar aparte para no tocar el modelo ORM
+    from sqlalchemy import text as _text
+    import json as _json
+    logro_rows = session.execute(_text(
+        "SELECT materia_id::text AS m, periodo_evaluacion_id::text AS p, nivel_logro AS n "
+        "FROM ades_calificaciones_periodo "
+        "WHERE estudiante_id = :est AND grupo_id = :g AND nivel_logro IS NOT NULL"
+    ), {"est": str(estudiante_id), "g": str(inscripcion.grupo_id)}).mappings().all()
+    logro_map = {(r["m"], r["p"]): r["n"] for r in logro_rows}
+
     materias_data, promedios_mat = [], []
     for plan in planes:
         mat_cals: dict[str, float | None] = {}
+        mat_logros: dict[str, str | None] = {}
         suma = 0.0
         conteo = 0
         for p in periodos:
             val = cal_map.get((str(plan.materia_id), str(p.id)))
+            logro = logro_map.get((str(plan.materia_id), str(p.id)))
             mat_cals[p.nombre_periodo] = val
+            mat_logros[p.nombre_periodo] = logro
             if val is not None:
                 suma += val
                 conteo += 1
@@ -140,6 +153,7 @@ def _generar_pdf_alumno(session: Session, estudiante_id: uuid.UUID, ciclo_id: uu
             "materia_nombre": plan.materia.nombre_materia if plan.materia else "—",
             "campo_formativo": getattr(plan.materia, "campo_formativo", None) if plan.materia else None,
             "calificaciones": mat_cals,
+            "logros": mat_logros,
             "promedio": promedio,
             "acreditado": (promedio >= 6.0) if promedio is not None else False,
         })
@@ -168,6 +182,36 @@ def _generar_pdf_alumno(session: Session, estudiante_id: uuid.UUID, ciclo_id: uu
         sin_campo = [m for m in materias_data if not m["campo_formativo"]]
         if sin_campo:
             campos.append({"campo": "Otras asignaturas", "materias": sin_campo})
+
+    # ── Evaluación cualitativa NEM (1°-2° primaria) ────────────────────────
+    numero_grado_val = grado.numero_grado if grado else 0
+    es_primaria = "PRIMARIA" in nivel_nombre.upper()
+
+    # Cargar config y escala desde BD
+    grados_cualit = [1, 2]
+    mostrar_equiv_num = True
+    cual_descriptores: list[dict] = []
+
+    if es_nem and es_primaria:
+        cfg_rows = session.execute(_text(
+            "SELECT clave, valor::text AS v FROM ades_config WHERE grupo = 'evaluacion_cualitativa'"
+        )).mappings().all()
+        for c in cfg_rows:
+            parsed = _json.loads(c["v"])
+            if c["clave"] == "EVAL_CUAL_GRADOS_PRIMARIA" and isinstance(parsed, list):
+                grados_cualit = [int(g) for g in parsed]
+            elif c["clave"] == "EVAL_CUAL_MOSTRAR_EQUIVALENCIA":
+                mostrar_equiv_num = bool(parsed)
+
+        escala_json = session.execute(_text(
+            "SELECT valores_json::text AS v FROM ades_escalas_evaluacion "
+            "WHERE nivel_educativo = 'PRIMARIA' AND is_active = true "
+            "ORDER BY fecha_creacion DESC LIMIT 1"
+        )).scalar_one_or_none()
+        if escala_json:
+            cual_descriptores = _json.loads(escala_json)
+
+    es_cualitativa = es_nem and es_primaria and numero_grado_val in grados_cualit
 
     # ── Asistencias y observaciones del ciclo ──────────────────────────────
     from sqlalchemy import text
@@ -224,6 +268,9 @@ def _generar_pdf_alumno(session: Session, estudiante_id: uuid.UUID, ciclo_id: uu
         "observaciones": observaciones,
         "plantel_direccion": info["direccion"],
         "plantel_telefono": info["tel"],
+        "es_cualitativa": es_cualitativa,
+        "cual_descriptores": cual_descriptores,
+        "mostrar_equiv_num": mostrar_equiv_num,
     }
 
     from jinja2 import Environment, FileSystemLoader

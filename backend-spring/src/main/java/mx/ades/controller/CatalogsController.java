@@ -26,9 +26,10 @@ public class CatalogsController {
 
     @GetMapping("/grados")
     public ResponseEntity<List<Grado>> grados(
-            @RequestParam(name = "nivel_id", required = false) UUID nivelId) {
-        return ResponseEntity.ok(nivelId != null
-                ? catalogPort.findGradosByNivel(nivelId)
+            @RequestParam(name = "nivel_id", required = false) UUID nivelId,
+            @RequestParam(name = "plantel_id", required = false) UUID plantelId) {
+        return ResponseEntity.ok((nivelId != null || plantelId != null)
+                ? catalogPort.findGrados(nivelId, plantelId)
                 : catalogPort.findAllGrados());
     }
 
@@ -54,7 +55,7 @@ public class CatalogsController {
 
     @GetMapping("/niveles/{nivelId}/grados")
     public ResponseEntity<List<Grado>> gradosPorNivel(@PathVariable UUID nivelId) {
-        return ResponseEntity.ok(catalogPort.findGradosByNivel(nivelId));
+        return ResponseEntity.ok(catalogPort.findGrados(nivelId, null));
     }
 
     @GetMapping("/paises")

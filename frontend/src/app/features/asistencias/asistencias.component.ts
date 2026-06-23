@@ -5,6 +5,7 @@ import { TableModule } from 'primeng/table';
 import { SelectModule } from 'primeng/select';
 import { ButtonModule } from 'primeng/button';
 import { ToolbarModule } from 'primeng/toolbar';
+import { InputTextModule } from 'primeng/inputtext';
 
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
@@ -23,7 +24,7 @@ interface AsistenciaLocal {
   standalone: true,
   imports: [
     CommonModule, FormsModule,
-    TableModule, SelectModule, ButtonModule, ToolbarModule,
+    TableModule, SelectModule, ButtonModule, ToolbarModule, InputTextModule,
   ],
   template: `
 
@@ -40,8 +41,8 @@ interface AsistenciaLocal {
         optionValue="id"
         placeholder="Plantel"
         (onChange)="onPlantelChange()"
-        [showClear]="!isPlantelDisabled()"
-        [disabled]="isPlantelDisabled()"
+        [showClear]="!isPlantelDisabled() && !ctx.plantel()"
+        [disabled]="isPlantelDisabled() || !!ctx.plantel()"
         [filter]="true" filterPlaceholder="Buscar..."
         styleClass="filter-select" />
 
@@ -52,8 +53,8 @@ interface AsistenciaLocal {
         optionValue="id"
         placeholder="Nivel"
         (onChange)="onNivelChange()"
-        [showClear]="!isNivelDisabled()"
-        [disabled]="isNivelDisabled() || !selectedPlantelId"
+        [showClear]="!isNivelDisabled() && !ctx.nivel()"
+        [disabled]="isNivelDisabled() || !!ctx.nivel() || !selectedPlantelId"
         [filter]="true" filterPlaceholder="Buscar..."
         styleClass="filter-select" />
 
@@ -65,7 +66,7 @@ interface AsistenciaLocal {
         placeholder="Grado"
         (onChange)="onGradoChange()"
         [showClear]="true"
-        [disabled]="!selectedNivelId"
+        [disabled]="!!ctx.grado() || !selectedNivelId"
         [filter]="true" filterPlaceholder="Buscar..."
         styleClass="filter-select" />
 
@@ -77,29 +78,43 @@ interface AsistenciaLocal {
         placeholder="Grupo"
         (onChange)="onGrupoChange()"
         [showClear]="true"
-        [disabled]="!selectedGradoId"
+        [disabled]="!!ctx.grupo() || !selectedGradoId"
         [filter]="true" filterPlaceholder="Buscar..."
         styleClass="filter-select" />
     </div>
 
-    <div style="margin-bottom:1rem">
-      <p-select
-        [options]="clases()"
-        [(ngModel)]="selectedClase"
-        placeholder="Seleccionar clase"
-        optionLabel="_label"
-        (onChange)="onClaseChange()"
-        [showClear]="true"
-        [filter]="true"
-        filterPlaceholder="Buscar..."
-        [disabled]="!selectedGrupoId"
-      />
+    <div style="display:flex; gap:0.75rem; align-items:center; margin-bottom:1rem; flex-wrap:wrap">
+      <div style="width:280px">
+        <p-select
+          [options]="clases()"
+          [(ngModel)]="selectedClase"
+          placeholder="Seleccionar clase"
+          optionLabel="_label"
+          (onChange)="onClaseChange()"
+          [showClear]="true"
+          [filter]="true"
+          filterPlaceholder="Buscar..."
+          [disabled]="!selectedGrupoId"
+          styleClass="w-full"
+        />
+      </div>
+      @if (asistencias().length > 0) {
+        <div style="flex:1; min-width:250px">
+          <input
+            pInputText
+            type="text"
+            placeholder="Buscar alumno..."
+            [(ngModel)]="busqueda"
+            style="width:100%"
+          />
+        </div>
+      }
     </div>
 
     @if (asistencias().length > 0) {
       <p-toolbar style="margin-bottom:0.5rem">
         <ng-template pTemplate="start">
-          <span>{{ asistencias().length }} alumnos</span>
+          <span>{{ asistenciasFiltradas().length }} de {{ asistencias().length }} alumnos</span>
         </ng-template>
         <ng-template pTemplate="end">
           <p-button
@@ -111,7 +126,7 @@ interface AsistenciaLocal {
         </ng-template>
       </p-toolbar>
 
-      <p-table [value]="asistencias()" styleClass="p-datatable-sm">
+      <p-table [value]="asistenciasFiltradas()" styleClass="p-datatable-sm">
         <ng-template pTemplate="header">
           <tr>
             <th style="width:100px">Matrícula</th>
@@ -154,12 +169,21 @@ interface AsistenciaLocal {
 })
 export class AsistenciasComponent implements OnInit {
   private readonly api = inject(ApiService);
-  private readonly ctx = inject(ContextService);
+  readonly ctx = inject(ContextService);
   private readonly notify = inject(ApexNotificationService);
 
   readonly estatusOptions: EstatusAsistencia[] = ['PRESENTE', 'AUSENTE', 'TARDANZA', 'JUSTIFICADO'];
   clases = signal<any[]>([]);
   asistencias = signal<AsistenciaLocal[]>([]);
+  busqueda = signal('');
+  readonly asistenciasFiltradas = computed(() => {
+    const q = this.busqueda().toLowerCase();
+    if (!q) return this.asistencias();
+    return this.asistencias().filter(a =>
+      (a.nombre || '').toLowerCase().includes(q) ||
+      (a.matricula || '').toLowerCase().includes(q)
+    );
+  });
   saving = signal(false);
   selectedClase: any = null;
 
@@ -177,11 +201,51 @@ export class AsistenciasComponent implements OnInit {
   readonly isNivelDisabled = computed(() => this.ctx.nivelAcceso() > 3);
 
   constructor() {
+    // Sincronizar plantel desde el contexto global
     effect(() => {
       const p = this.ctx.plantel();
-      if (p?.id && !this.selectedPlantelId) {
+      if (p?.id) {
         this.selectedPlantelId = p.id;
         this.onPlantelChange();
+      } else {
+        this.selectedPlantelId = null;
+        this.onPlantelChange();
+      }
+    });
+
+    // Sincronizar nivel desde el contexto global
+    effect(() => {
+      const n = this.ctx.nivel();
+      if (n?.id) {
+        this.selectedNivelId = n.id;
+        this.onNivelChange();
+      } else {
+        this.selectedNivelId = null;
+        this.onNivelChange();
+      }
+    });
+
+    // Sincronizar grado desde el contexto global
+    effect(() => {
+      const g = this.ctx.grado();
+      if (g?.id) {
+        this.selectedGradoId = g.id;
+        this.onGradoChange();
+      } else {
+        this.selectedGradoId = null;
+        this.onGradoChange();
+      }
+    });
+
+    // Sincronizar grupo desde el contexto global
+    effect(() => {
+      const gp = this.ctx.grupo();
+      if (gp?.id) {
+        this.selectedGrupoId = gp.id;
+        this.onGrupoChange();
+      } else {
+        this.selectedGrupoId = null;
+        this.onGrupoChange();
       }
     });
   }
@@ -239,7 +303,7 @@ export class AsistenciasComponent implements OnInit {
 
     if (!this.selectedNivelId) return;
 
-    this.api.get<any[]>(`/catalogs/grados`, { nivel_id: this.selectedNivelId }).subscribe({
+    this.api.get<any[]>(`/catalogs/grados`, { nivel_id: this.selectedNivelId, plantel_id: this.selectedPlantelId || undefined }).subscribe({
       next: gs => {
         this.gradosOpts.set(gs);
       },
@@ -259,6 +323,9 @@ export class AsistenciasComponent implements OnInit {
     const params: Record<string, any> = { solo_activos: true, ciclo_vigente: true };
     if (this.selectedPlantelId) params['plantel_id'] = this.selectedPlantelId;
     if (this.selectedGradoId) params['grado_id'] = this.selectedGradoId;
+    if (this.selectedNivelId) params['nivel_id'] = this.selectedNivelId;
+    const cicloId = this.ctx.ciclo()?.id;
+    if (cicloId) params['ciclo_escolar_id'] = cicloId;
 
     this.api.get<any[]>('/grupos', params).subscribe({
       next: gps => {

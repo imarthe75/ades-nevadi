@@ -308,7 +308,7 @@ export class AlumnosComponent implements OnInit {
 
     if (!this.selectedNivelId) return;
 
-    this.api.get<any[]>(`/catalogs/grados`, { nivel_id: this.selectedNivelId }).subscribe({
+    this.api.get<any[]>(`/catalogs/grados`, { nivel_id: this.selectedNivelId, plantel_id: this.selectedPlantelId || undefined }).subscribe({
       next: gs => {
         this.gradosOpts.set(gs);
       },

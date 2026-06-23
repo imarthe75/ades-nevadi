@@ -14,7 +14,7 @@ public interface CatalogReadPort {
 
     List<Grado> findAllGrados();
 
-    List<Grado> findGradosByNivel(UUID nivelId);
+    List<Grado> findGrados(UUID nivelId, UUID plantelId);
 
     List<CicloEscolar> findAllCiclos();
 

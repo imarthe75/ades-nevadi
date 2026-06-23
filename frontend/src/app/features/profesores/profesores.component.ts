@@ -51,6 +51,19 @@ import { ApexNotificationService } from 'apex-component-library';
       </div>
     </div>
 
+    <!-- Búsqueda rápida -->
+    <div style="display:flex; gap:0.75rem; align-items:center; margin-bottom:1rem; flex-wrap:wrap">
+      <div style="flex:1; min-width:250px">
+        <input
+          pInputText
+          type="text"
+          placeholder="Buscar profesor..."
+          [(ngModel)]="busqueda"
+          style="width:100%"
+        />
+      </div>
+    </div>
+
     <!-- Filtros de Contexto Cascading (Plantel -> Nivel -> Grado -> Grupo) -->
     <div class="filter-bar">
       <p-select
@@ -104,7 +117,7 @@ import { ApexNotificationService } from 'apex-component-library';
 
     <!-- Interactive Grid APEX-style (Spec: spec/modules/fase-24-interactive-grid/) -->
     <app-interactive-grid
-      [data]="profesoresDatos()"
+      [data]="profesoresFiltrados()"
       [columns]="columnas"
       [loading]="loadingTabla()"
       (rowSelected)="abrirPerfil($event)"
@@ -157,6 +170,16 @@ export class ProfesoresComponent implements OnInit {
   profesores = signal<Profesor[]>([]);
   profesoresDatos = signal<any[]>([]);
   totalProfesores = signal(0);
+  busqueda = signal('');
+  readonly profesoresFiltrados = computed(() => {
+    const q = this.busqueda().toLowerCase();
+    if (!q) return this.profesoresDatos();
+    return this.profesoresDatos().filter(p =>
+      (p.nombre_completo || '').toLowerCase().includes(q) ||
+      (p.numero_empleado || '').toLowerCase().includes(q) ||
+      (p.curp || '').toLowerCase().includes(q)
+    );
+  });
   profesorSeleccionado = signal<Profesor | null>(null);
   perfilVisible = signal(false);
   showDialog = signal(false);
@@ -268,7 +291,7 @@ export class ProfesoresComponent implements OnInit {
 
     if (!this.selectedNivelId) return;
 
-    this.api.get<any[]>(`/catalogs/grados`, { nivel_id: this.selectedNivelId }).subscribe({
+    this.api.get<any[]>(`/catalogs/grados`, { nivel_id: this.selectedNivelId, plantel_id: this.selectedPlantelId || undefined }).subscribe({
       next: gs => {
         this.gradosOpts.set(gs);
       },

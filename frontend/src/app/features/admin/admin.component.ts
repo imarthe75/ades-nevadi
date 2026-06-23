@@ -30,6 +30,7 @@ import { ImportButtonComponent } from '../../shared/components/import-button/imp
 import { SelectorGeoComponent } from '../../shared/components/selector-geo/selector-geo.component';
 import { ApexNotificationService } from 'apex-component-library';
 import { SkeletonModule } from 'primeng/skeleton';
+import { MessageModule } from 'primeng/message';
 
 interface UsuarioAdmin {
   id: string; nombre_usuario: string; email_institucional: string;
@@ -83,7 +84,7 @@ interface Catalogo {
     TableModule, ButtonModule, DialogModule, SelectModule,
     InputTextModule, InputNumberModule, DatePickerModule, ToggleSwitchModule,
     TagModule, TooltipModule, ConfirmDialogModule,
-    TabsModule, TabList, TabPanels, Tab, TabPanel, SkeletonModule,
+    TabsModule, TabList, TabPanels, Tab, TabPanel, SkeletonModule, MessageModule,
     InteractiveGridComponent, ImportButtonComponent, SelectorGeoComponent
   ],
   providers: [ConfirmationService],
@@ -98,11 +99,15 @@ interface Catalogo {
     <p-tabs [value]="tabActivo()" (valueChange)="onTabChange($event)">
       <p-tablist>
         <p-tab value="usuarios"><i class="pi pi-users"></i> Usuarios</p-tab>
+        <p-tab value="roles"><i class="pi pi-id-card"></i> Roles</p-tab>
+        <p-tab value="menus"><i class="pi pi-bars"></i> Menús</p-tab>
+        <p-tab value="permisos"><i class="pi pi-lock"></i> Permisos</p-tab>
         <p-tab value="ciclos"><i class="pi pi-calendar"></i> Ciclos Escolares</p-tab>
         <p-tab value="planteles"><i class="pi pi-map-marker"></i> Planteles</p-tab>
         <p-tab value="grupos"><i class="pi pi-th-large"></i> Grupos</p-tab>
         <p-tab value="variables"><i class="pi pi-cog"></i> Variables del Sistema</p-tab>
         <p-tab value="reglas"><i class="pi pi-graduation-cap"></i> Reglas de Promoción</p-tab>
+        <p-tab value="eval-cualitativa"><i class="pi pi-star"></i> Eval. Cualitativa</p-tab>
         <p-tab value="catalogos"><i class="pi pi-list"></i> Catálogos</p-tab>
         <p-tab value="geo"><i class="pi pi-map"></i> Geográficos</p-tab>
         <p-tab value="marca"><i class="pi pi-palette"></i> Marca / Identidad</p-tab>
@@ -127,6 +132,187 @@ interface Catalogo {
             [loading]="loadingUsuarios()"
             (rowSelected)="abrirEditarUsuario($event)"
           />
+        </p-tabpanel>
+
+        <!-- ══ ROLES ══════════════════════════════════════════════════════ -->
+        <p-tabpanel value="roles">
+          <div class="tab-toolbar">
+            <span class="tab-title">Roles del sistema</span>
+            <small style="color:var(--text-color-secondary)">Solo se puede editar la descripción. El nivel de acceso es estructural.</small>
+          </div>
+          <app-interactive-grid
+            [data]="roles()"
+            [columns]="columnasRoles"
+            [loading]="loadingRoles()"
+            (rowSelected)="abrirEditarRol($event)"
+          />
+          <p-dialog [visible]="rolDlgVisible()" (visibleChange)="rolDlgVisible.set($event)"
+            header="Editar Rol" [modal]="true" [draggable]="false" [style]="{width:'420px'}">
+            @if (rolEdit()) {
+              <div style="display:flex;flex-direction:column;gap:.75rem">
+                <div class="field"><span class="dlg-lbl">Nombre</span>
+                  <strong>{{ rolEdit()!.nombre_rol }}</strong></div>
+                <div class="field"><span class="dlg-lbl">Nivel de acceso</span>
+                  <span class="nivel-badge">{{ rolEdit()!.nivel_acceso }}</span></div>
+                <div class="field" style="display:flex;flex-direction:column;gap:.35rem">
+                  <label class="dlg-lbl">Descripción</label>
+                  <textarea pInputTextarea [(ngModel)]="rolEditForm.descripcion" rows="3"
+                    style="width:100%;resize:vertical"></textarea>
+                </div>
+              </div>
+              <ng-template pTemplate="footer">
+                <p-button label="Cancelar" severity="secondary" [text]="true" (onClick)="rolDlgVisible.set(false)" />
+                <p-button label="Guardar" icon="pi pi-save" [loading]="guardandoRol()" (onClick)="guardarRol()" />
+              </ng-template>
+            }
+          </p-dialog>
+        </p-tabpanel>
+
+        <!-- ══ MENÚS ═══════════════════════════════════════════════════════ -->
+        <p-tabpanel value="menus">
+          <div class="tab-toolbar">
+            <span class="tab-title">Configuración de menús del sidebar</span>
+            <small style="color:var(--text-color-secondary)">
+              Nivel máximo: 0=solo Admin Global, 4=Docentes, 99=Todos. Nivel mínimo: 5=solo Padres/Alumnos.
+            </small>
+          </div>
+          <app-interactive-grid
+            [data]="menus()"
+            [columns]="columnasMenus"
+            [loading]="loadingMenus()"
+            (rowSelected)="abrirEditarMenu($event)"
+          />
+          <p-dialog [visible]="menuDlgVisible()" (visibleChange)="menuDlgVisible.set($event)"
+            header="Editar Menú" [modal]="true" [draggable]="false" [style]="{width:'440px'}">
+            @if (menuEdit()) {
+              <div style="display:flex;flex-direction:column;gap:.75rem">
+                <div class="field"><span class="dlg-lbl">Clave</span>
+                  <code>{{ menuEdit()!.clave }}</code></div>
+                <div class="field" style="display:flex;flex-direction:column;gap:.35rem">
+                  <label class="dlg-lbl">Etiqueta</label>
+                  <input pInputText [(ngModel)]="menuEditForm.label" />
+                </div>
+                <div class="field" style="display:flex;flex-direction:column;gap:.35rem">
+                  <label class="dlg-lbl">Nivel máximo (0–99)</label>
+                  <p-inputNumber [(ngModel)]="menuEditForm.nivel_maximo" [min]="0" [max]="99" [showButtons]="true" />
+                  <small>0 = solo Admin Global · 1 = Admin Plantel · 2 = Director · 3 = Coord · 4 = Docente · 99 = Todos</small>
+                </div>
+                <div class="field" style="display:flex;flex-direction:column;gap:.35rem">
+                  <label class="dlg-lbl">Nivel mínimo (0–99)</label>
+                  <p-inputNumber [(ngModel)]="menuEditForm.nivel_minimo" [min]="0" [max]="99" [showButtons]="true" />
+                  <small>0 = todos · 5 = solo Padres/Alumnos</small>
+                </div>
+                <div class="field" style="display:flex;align-items:center;gap:.5rem">
+                  <p-toggleswitch [(ngModel)]="menuEditForm.activo" inputId="menu-activo" />
+                  <label for="menu-activo">Menú activo (visible en sidebar)</label>
+                </div>
+              </div>
+              <ng-template pTemplate="footer">
+                <p-button label="Cancelar" severity="secondary" [text]="true" (onClick)="menuDlgVisible.set(false)" />
+                <p-button label="Guardar" icon="pi pi-save" [loading]="guardandoMenu()" (onClick)="guardarMenu()" />
+              </ng-template>
+            }
+          </p-dialog>
+        </p-tabpanel>
+
+        <!-- ══ PERMISOS POR ROL ═══════════════════════════════════════════ -->
+        <p-tabpanel value="permisos">
+          <div class="tab-toolbar">
+            <span class="tab-title">Permisos por rol y módulo</span>
+            <div style="display:flex;gap:.5rem;align-items:center">
+              <label class="dlg-lbl">Filtrar por rol:</label>
+              <p-select [options]="roles()" [(ngModel)]="permisosRolFiltro"
+                optionLabel="nombre_rol" optionValue="id"
+                placeholder="Todos los roles" [showClear]="true"
+                (onChange)="cargarPermisos()"
+                style="min-width:200px" />
+            </div>
+          </div>
+
+          <!-- Matriz permisos estilo APEX -->
+          <div class="permisos-matrix">
+            <table class="pm-table">
+              <thead>
+                <tr>
+                  <th style="width:22%">Módulo</th>
+                  <th style="width:18%">Rol</th>
+                  <th class="pm-check">Ver</th>
+                  <th class="pm-check">Editar</th>
+                  <th class="pm-check">Crear</th>
+                  <th class="pm-check">Eliminar</th>
+                  <th style="width:80px"></th>
+                </tr>
+              </thead>
+              <tbody>
+                @if (loadingPermisos()) {
+                  <tr><td colspan="7" style="text-align:center;padding:2rem">Cargando...</td></tr>
+                } @else if (permisos().length === 0) {
+                  <tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--text-color-secondary)">
+                    Selecciona un rol para ver sus permisos configurados.<br>
+                    <small>Los módulos sin configuración usan el acceso por nivel_acceso del menú.</small>
+                  </td></tr>
+                }
+                @for (p of permisos(); track p.id) {
+                  <tr>
+                    <td><code style="font-size:.8rem">{{ p.menu_clave }}</code><br>
+                      <small>{{ p.label }}</small></td>
+                    <td><span class="nivel-badge">{{ p.nombre_rol }}</span></td>
+                    <td class="pm-check">
+                      <p-toggleswitch [(ngModel)]="p.puede_ver" (onChange)="guardarPermiso(p)" />
+                    </td>
+                    <td class="pm-check">
+                      <p-toggleswitch [(ngModel)]="p.puede_editar" (onChange)="guardarPermiso(p)" />
+                    </td>
+                    <td class="pm-check">
+                      <p-toggleswitch [(ngModel)]="p.puede_crear" (onChange)="guardarPermiso(p)" />
+                    </td>
+                    <td class="pm-check">
+                      <p-toggleswitch [(ngModel)]="p.puede_eliminar" (onChange)="guardarPermiso(p)" />
+                    </td>
+                    <td><p-button icon="pi pi-save" size="small" [text]="true"
+                      [loading]="p._saving" (onClick)="guardarPermiso(p)" /></td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+
+            <div class="pm-add">
+              <p-button label="Agregar permiso" icon="pi pi-plus" size="small" severity="secondary"
+                [disabled]="!permisosRolFiltro"
+                (onClick)="abrirNuevoPermiso()" />
+            </div>
+          </div>
+
+          <!-- Dialog nuevo permiso -->
+          <p-dialog [visible]="nuevoPrmDlgVisible()" (visibleChange)="nuevoPrmDlgVisible.set($event)"
+            header="Agregar permiso de rol" [modal]="true" [draggable]="false" [style]="{width:'420px'}">
+            <div style="display:flex;flex-direction:column;gap:.75rem">
+              <div class="field" style="display:flex;flex-direction:column;gap:.35rem">
+                <label class="dlg-lbl">Módulo (clave del menú)</label>
+                <p-select [options]="menus()" [(ngModel)]="nuevoPrmForm.menu_clave"
+                  optionLabel="clave" optionValue="clave"
+                  [filter]="true" filterPlaceholder="Buscar módulo..." />
+              </div>
+              <div style="display:flex;gap:1rem;flex-wrap:wrap">
+                <label style="display:flex;align-items:center;gap:.4rem">
+                  <p-toggleswitch [(ngModel)]="nuevoPrmForm.puede_ver" /> Ver
+                </label>
+                <label style="display:flex;align-items:center;gap:.4rem">
+                  <p-toggleswitch [(ngModel)]="nuevoPrmForm.puede_editar" /> Editar
+                </label>
+                <label style="display:flex;align-items:center;gap:.4rem">
+                  <p-toggleswitch [(ngModel)]="nuevoPrmForm.puede_crear" /> Crear
+                </label>
+                <label style="display:flex;align-items:center;gap:.4rem">
+                  <p-toggleswitch [(ngModel)]="nuevoPrmForm.puede_eliminar" /> Eliminar
+                </label>
+              </div>
+            </div>
+            <ng-template pTemplate="footer">
+              <p-button label="Cancelar" severity="secondary" [text]="true" (onClick)="nuevoPrmDlgVisible.set(false)" />
+              <p-button label="Guardar" icon="pi pi-save" [loading]="guardandoPermiso()" (onClick)="guardarNuevoPermiso()" />
+            </ng-template>
+          </p-dialog>
         </p-tabpanel>
 
         <!-- ══ GEOGRÁFICOS (SEPOMEX) ═══════════════════════════════════════ -->
@@ -388,6 +574,148 @@ interface Catalogo {
         </p-tabpanel>
 
         <!-- ══ AUDITORÍA ═════════════════════════════════════════════════════ -->
+        <!-- ══ EVALUACIÓN CUALITATIVA NEM ═════════════════════════════════════ -->
+        <p-tabpanel value="eval-cualitativa">
+          @if (loadingCual()) {
+            <div style="display:flex;gap:.5rem;flex-direction:column;padding:1rem">
+              <p-skeleton height="2.5rem" /><p-skeleton height="2.5rem" /><p-skeleton height="2.5rem" />
+            </div>
+          } @else {
+            <!-- Sección 1: Config switches -->
+            <div style="margin-bottom:1.5rem">
+              <h3 style="margin:0 0 .75rem;font-size:1rem;font-weight:600;color:var(--text-primary)">
+                <i class="pi pi-cog" style="margin-right:.4rem"></i>Configuración
+              </h3>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem">
+
+                <div class="cual-config-card">
+                  <label class="cual-config-label">Grados con evaluación cualitativa</label>
+                  <small class="cual-config-hint">Grados de primaria (números separados por coma)</small>
+                  <input pInputText
+                    [(ngModel)]="cualGradosStr"
+                    placeholder="ej: 1, 2"
+                    style="margin-top:.5rem;width:100%" />
+                  <p-button label="Guardar" size="small" styleClass="mt-2"
+                    (onClick)="guardarConfigCual('EVAL_CUAL_GRADOS_PRIMARIA', parseCualGrados())" />
+                </div>
+
+                <div class="cual-config-card">
+                  <label class="cual-config-label">Mostrar equivalencia numérica</label>
+                  <small class="cual-config-hint">Muestra el número equivalente junto al descriptor en libreta y boleta</small>
+                  <div style="margin-top:.75rem;display:flex;align-items:center;gap:.5rem">
+                    <p-toggleSwitch [(ngModel)]="cualMostrarEquiv"
+                      (onChange)="guardarConfigCual('EVAL_CUAL_MOSTRAR_EQUIVALENCIA', cualMostrarEquiv)" />
+                    <span>{{ cualMostrarEquiv ? 'Sí' : 'No' }}</span>
+                  </div>
+                </div>
+
+                <div class="cual-config-card">
+                  <label class="cual-config-label">Aplicar a todas las materias</label>
+                  <small class="cual-config-hint">Si está desactivado, solo aplica a materias con campo formativo configurado</small>
+                  <div style="margin-top:.75rem;display:flex;align-items:center;gap:.5rem">
+                    <p-toggleSwitch [(ngModel)]="cualTodasMaterias"
+                      (onChange)="guardarConfigCual('EVAL_CUAL_APLICAR_TODAS_MATERIAS', cualTodasMaterias)" />
+                    <span>{{ cualTodasMaterias ? 'Sí' : 'No' }}</span>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            <!-- Sección 2: Escala de descriptores -->
+            <div>
+              <h3 style="margin:0 0 .75rem;font-size:1rem;font-weight:600;color:var(--text-primary)">
+                <i class="pi pi-list" style="margin-right:.4rem"></i>Escala de Descriptores NEM — Primaria
+              </h3>
+              @for (escala of cualEscalas(); track escala.id) {
+                <div style="margin-bottom:1rem">
+                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem">
+                    <span style="font-weight:600;font-size:.9rem">{{ escala.nombre }}</span>
+                    <p-tag [value]="escala.nivel_educativo" severity="info" />
+                  </div>
+                  <p-table [value]="escala._descriptores ?? []" styleClass="p-datatable-sm p-datatable-gridlines"
+                    [editMode]="'cell'">
+                    <ng-template pTemplate="header">
+                      <tr>
+                        <th style="width:50px">Nivel</th>
+                        <th style="width:160px">Etiqueta</th>
+                        <th>Descripción</th>
+                        <th style="width:80px">Mín</th>
+                        <th style="width:80px">Máx</th>
+                        <th style="width:90px">Equiv. Num.</th>
+                      </tr>
+                    </ng-template>
+                    <ng-template pTemplate="body" let-d>
+                      <tr>
+                        <td>
+                          <span class="nivel-badge" [style.background]="d.color">{{ d.nivel }}</span>
+                        </td>
+                        <td [pEditableColumn]="d.label" pEditableColumnField="label">
+                          <p-cellEditor>
+                            <ng-template pTemplate="input">
+                              <input pInputText [(ngModel)]="d.label" style="width:100%"
+                                (blur)="marcarEscalaCambio(escala)" />
+                            </ng-template>
+                            <ng-template pTemplate="output">{{ d.label }}</ng-template>
+                          </p-cellEditor>
+                        </td>
+                        <td [pEditableColumn]="d.descripcion" pEditableColumnField="descripcion">
+                          <p-cellEditor>
+                            <ng-template pTemplate="input">
+                              <input pInputText [(ngModel)]="d.descripcion" style="width:100%"
+                                (blur)="marcarEscalaCambio(escala)" />
+                            </ng-template>
+                            <ng-template pTemplate="output">
+                              <span style="font-size:.8rem">{{ d.descripcion }}</span>
+                            </ng-template>
+                          </p-cellEditor>
+                        </td>
+                        <td [pEditableColumn]="d.min" pEditableColumnField="min" style="text-align:center">
+                          <p-cellEditor>
+                            <ng-template pTemplate="input">
+                              <p-inputNumber [(ngModel)]="d.min" [min]="0" [max]="10" [maxFractionDigits]="1"
+                                [inputStyle]="{width:'60px'}" (onBlur)="marcarEscalaCambio(escala)" />
+                            </ng-template>
+                            <ng-template pTemplate="output">{{ d.min }}</ng-template>
+                          </p-cellEditor>
+                        </td>
+                        <td [pEditableColumn]="d.max" pEditableColumnField="max" style="text-align:center">
+                          <p-cellEditor>
+                            <ng-template pTemplate="input">
+                              <p-inputNumber [(ngModel)]="d.max" [min]="0" [max]="10" [maxFractionDigits]="1"
+                                [inputStyle]="{width:'60px'}" (onBlur)="marcarEscalaCambio(escala)" />
+                            </ng-template>
+                            <ng-template pTemplate="output">{{ d.max }}</ng-template>
+                          </p-cellEditor>
+                        </td>
+                        <td [pEditableColumn]="d.equiv_num" pEditableColumnField="equiv_num" style="text-align:center">
+                          <p-cellEditor>
+                            <ng-template pTemplate="input">
+                              <p-inputNumber [(ngModel)]="d.equiv_num" [min]="0" [max]="10" [maxFractionDigits]="1"
+                                [inputStyle]="{width:'60px'}" (onBlur)="marcarEscalaCambio(escala)" />
+                            </ng-template>
+                            <ng-template pTemplate="output">
+                              <strong>{{ d.equiv_num }}</strong>
+                            </ng-template>
+                          </p-cellEditor>
+                        </td>
+                      </tr>
+                    </ng-template>
+                  </p-table>
+                  @if (escala._modificado) {
+                    <div style="margin-top:.5rem;display:flex;gap:.5rem">
+                      <p-button label="Guardar descriptores" icon="pi pi-save" size="small"
+                        (onClick)="guardarEscala(escala)" [loading]="guardandoCual()" />
+                      <p-button label="Cancelar" severity="secondary" size="small" [text]="true"
+                        (onClick)="cargarConfigCualitativa()" />
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          }
+        </p-tabpanel>
+
         <p-tabpanel value="auditoria">
           <div style="padding:2rem;text-align:center;color:var(--text-secondary)">
             <i class="pi pi-shield" style="font-size:2rem;display:block;margin-bottom:1rem"></i>
@@ -559,6 +887,64 @@ interface Catalogo {
       }
     </p-dialog>
 
+    <!-- Dialog crear usuario (formulario completo) -->
+    <p-dialog [visible]="crearUsrDlgVisible()" (visibleChange)="crearUsrDlgVisible.set($event)"
+      header="Crear Usuario" [modal]="true" [draggable]="false" [style]="{width:'520px'}">
+      <div style="display:flex;flex-direction:column;gap:.75rem">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem">
+          <div class="field" style="display:flex;flex-direction:column;gap:.35rem">
+            <label class="dlg-lbl">Nombre(s) *</label>
+            <input pInputText [(ngModel)]="nuevoUsrForm.nombre" placeholder="Ej. María" />
+          </div>
+          <div class="field" style="display:flex;flex-direction:column;gap:.35rem">
+            <label class="dlg-lbl">Apellido paterno *</label>
+            <input pInputText [(ngModel)]="nuevoUsrForm.apellido_paterno" />
+          </div>
+          <div class="field" style="display:flex;flex-direction:column;gap:.35rem">
+            <label class="dlg-lbl">Apellido materno</label>
+            <input pInputText [(ngModel)]="nuevoUsrForm.apellido_materno" />
+          </div>
+          <div class="field" style="display:flex;flex-direction:column;gap:.35rem">
+            <label class="dlg-lbl">CURP *</label>
+            <input pInputText [(ngModel)]="nuevoUsrForm.curp" maxlength="18"
+              style="text-transform:uppercase" placeholder="18 caracteres" />
+          </div>
+          <div class="field" style="display:flex;flex-direction:column;gap:.35rem">
+            <label class="dlg-lbl">Email institucional</label>
+            <input pInputText [(ngModel)]="nuevoUsrForm.email_institucional" type="email"
+              placeholder="opcional — se genera automático" />
+          </div>
+          <div class="field" style="display:flex;flex-direction:column;gap:.35rem">
+            <label class="dlg-lbl">Género</label>
+            <p-select [options]="[{l:'Hombre',v:'M'},{l:'Mujer',v:'F'},{l:'No especificado',v:'NB'}]"
+              [(ngModel)]="nuevoUsrForm.genero" optionLabel="l" optionValue="v" />
+          </div>
+          <div class="field" style="display:flex;flex-direction:column;gap:.35rem">
+            <label class="dlg-lbl">Fecha de nacimiento</label>
+            <input pInputText type="date" [(ngModel)]="nuevoUsrForm.fecha_nacimiento" />
+          </div>
+        </div>
+        <div class="field" style="display:flex;flex-direction:column;gap:.35rem">
+          <label class="dlg-lbl">Rol *</label>
+          <p-select [options]="roles()" [(ngModel)]="nuevoUsrForm.rol_id"
+            optionLabel="nombre_rol" optionValue="id" placeholder="Seleccionar Rol"
+            [filter]="true" filterPlaceholder="Buscar..." />
+        </div>
+        <div class="field" style="display:flex;flex-direction:column;gap:.35rem">
+          <label class="dlg-lbl">Plantel (alcance)</label>
+          <p-select [options]="planteles()" [(ngModel)]="nuevoUsrForm.plantel_id"
+            optionLabel="nombre_plantel" optionValue="id" placeholder="Global (sin plantel fijo)"
+            [showClear]="true" [filter]="true" filterPlaceholder="Buscar..." />
+        </div>
+        <p-message severity="info" icon="pi pi-info-circle"
+          text="El usuario se creará en ADES. Para que pueda iniciar sesión también necesita cuenta en Authentik (SSO)." />
+      </div>
+      <ng-template pTemplate="footer">
+        <p-button label="Cancelar" severity="secondary" [text]="true" (onClick)="crearUsrDlgVisible.set(false)" />
+        <p-button label="Crear Usuario" icon="pi pi-user-plus" [loading]="guardandoNuevoUsr()" (onClick)="crearUsuario()" />
+      </ng-template>
+    </p-dialog>
+
     <!-- Dialog Ciclo -->
     <p-dialog [visible]="dlgCicloVisible()" (visibleChange)="dlgCicloVisible.set($event)"
       [header]="cicloEdit()?.id ? 'Editar Ciclo Escolar' : 'Nuevo Ciclo Escolar'"
@@ -720,6 +1106,23 @@ interface Catalogo {
     .regla-field { display:flex; justify-content:space-between; align-items:center; gap:.5rem; }
     .regla-field label { font-size:.82rem; color:var(--text-secondary,#64748b); }
     .regla-field--toggle { flex-direction:row; }
+    /* Evaluación Cualitativa */
+    .cual-config-card { background:var(--surface-card,#fff); border:1px solid var(--surface-border);
+      border-radius:6px; padding:1rem; display:flex; flex-direction:column; }
+    .cual-config-label { font-size:.85rem; font-weight:600; color:var(--text-primary); margin-bottom:.2rem; }
+    .cual-config-hint { font-size:.78rem; color:var(--text-secondary); }
+    .nivel-badge { display:inline-flex; align-items:center; justify-content:center;
+      width:28px; height:28px; border-radius:50%; color:#fff; font-weight:700; font-size:.85rem; }
+    /* Permisos matrix */
+    .permisos-matrix { overflow-x:auto; }
+    .pm-table { width:100%; border-collapse:collapse; font-size:.85rem; }
+    .pm-table th { background:var(--surface-100); padding:.5rem .75rem; text-align:left;
+      font-weight:600; font-size:.78rem; color:var(--text-secondary); border-bottom:2px solid var(--surface-border); }
+    .pm-table td { padding:.45rem .75rem; border-bottom:1px solid var(--surface-border); vertical-align:middle; }
+    .pm-table tr:hover td { background:var(--surface-hover); }
+    .pm-check { text-align:center; width:70px; }
+    .pm-add { margin-top:1rem; }
+    .tab-title { font-weight:600; font-size:.95rem; }
   `],
 })
 export class AdminComponent implements OnInit {
@@ -757,6 +1160,53 @@ export class AdminComponent implements OnInit {
 
   tabActivo       = signal('usuarios');
   cicloFiltroId   = '';
+
+  // ── Roles ───────────────────────────────────────────────────────────────────
+  loadingRoles     = signal(false);
+  rolDlgVisible    = signal(false);
+  rolEdit          = signal<any | null>(null);
+  guardandoRol     = signal(false);
+  rolEditForm      = { descripcion: '' };
+
+  columnasRoles: ColumnConfig[] = [
+    { field: 'nombre_rol',   header: 'Rol',        sortable: true,  filterable: true, width: '160px' },
+    { field: 'nivel_acceso', header: 'Nivel',       sortable: true,  filterable: false, width: '80px' },
+    { field: 'descripcion',  header: 'Descripción', sortable: false, filterable: true },
+  ];
+
+  // ── Menús ───────────────────────────────────────────────────────────────────
+  menus            = signal<any[]>([]);
+  loadingMenus     = signal(false);
+  menuDlgVisible   = signal(false);
+  menuEdit         = signal<any | null>(null);
+  guardandoMenu    = signal(false);
+  menuEditForm     = { label: '', nivel_maximo: 99, nivel_minimo: 0, activo: true };
+
+  columnasMenus: ColumnConfig[] = [
+    { field: 'clave',        header: 'Clave',    sortable: true,  filterable: true, width: '150px' },
+    { field: 'seccion',      header: 'Sección',  sortable: true,  filterable: true, width: '130px' },
+    { field: 'label',        header: 'Etiqueta', sortable: true,  filterable: true },
+    { field: 'nivel_maximo', header: 'Máx',      sortable: true,  filterable: false, width: '70px' },
+    { field: 'nivel_minimo', header: 'Mín',      sortable: true,  filterable: false, width: '70px' },
+    { field: 'activo',       header: 'Activo',   sortable: false, filterable: false, width: '80px' },
+  ];
+
+  // ── Permisos por rol ────────────────────────────────────────────────────────
+  permisos         = signal<any[]>([]);
+  loadingPermisos  = signal(false);
+  permisosRolFiltro: string | null = null;
+  nuevoPrmDlgVisible = signal(false);
+  guardandoPermiso = signal(false);
+  nuevoPrmForm     = { menu_clave: '', puede_ver: true, puede_editar: true, puede_crear: true, puede_eliminar: false };
+
+  // ── Crear usuario (formulario completo) ──────────────────────────────────────
+  crearUsrDlgVisible = signal(false);
+  guardandoNuevoUsr  = signal(false);
+  nuevoUsrForm = {
+    nombre: '', apellido_paterno: '', apellido_materno: '',
+    curp: '', email_institucional: '', genero: 'M',
+    fecha_nacimiento: '', rol_id: '', plantel_id: null as string | null,
+  };
 
   columnasUsuarios: ColumnConfig[] = [
     { field: 'nombre_usuario',      header: 'Usuario',       sortable: true, filterable: true, width: '130px' },
@@ -865,6 +1315,76 @@ export class AdminComponent implements OnInit {
   itemEdit: CatalogoItem | null = null;
   itemForm         = { valor: '', descripcion: '', orden: 0, is_active: true };
 
+  // ── Evaluación Cualitativa ──────────────────────────────────────────────────
+  cualEscalas      = signal<any[]>([]);
+  loadingCual      = signal(false);
+  guardandoCual    = signal(false);
+  cualGradosStr    = '1, 2';
+  cualMostrarEquiv = true;
+  cualTodasMaterias = true;
+
+  cargarConfigCualitativa(): void {
+    this.loadingCual.set(true);
+    Promise.all([
+      this.api.get<any[]>('/admin/config/escalas-cualitativas').toPromise(),
+      this.api.get<any[]>('/admin/config', { grupo: 'evaluacion_cualitativa' }).toPromise(),
+    ]).then(([escalas, configs]) => {
+      // Parsear descriptores
+      const parsed = (escalas ?? []).map((e: any) => ({
+        ...e,
+        _descriptores: typeof e.valores_json === 'string'
+          ? JSON.parse(e.valores_json) : (e.valores_json ?? []),
+        _modificado: false,
+      }));
+      this.cualEscalas.set(parsed);
+      // Aplicar config
+      for (const c of (configs ?? [])) {
+        const v = typeof c.valor === 'string' ? JSON.parse(c.valor) : c.valor;
+        if (c.clave === 'EVAL_CUAL_GRADOS_PRIMARIA')
+          this.cualGradosStr = Array.isArray(v) ? v.join(', ') : String(v);
+        if (c.clave === 'EVAL_CUAL_MOSTRAR_EQUIVALENCIA') this.cualMostrarEquiv = !!v;
+        if (c.clave === 'EVAL_CUAL_APLICAR_TODAS_MATERIAS') this.cualTodasMaterias = !!v;
+      }
+      this.loadingCual.set(false);
+    }).catch(() => this.loadingCual.set(false));
+  }
+
+  parseCualGrados(): number[] {
+    return this.cualGradosStr.split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n));
+  }
+
+  guardarConfigCual(clave: string, valor: any): void {
+    this.api.patch(`/admin/config/${clave}`, { valor }).subscribe({
+      next: () => this.notify.success('Guardado', `${clave} actualizado`),
+      error: (e) => this.notify.error('Error', e.error?.message ?? 'No se pudo guardar'),
+    });
+  }
+
+  marcarEscalaCambio(escala: any): void {
+    escala._modificado = true;
+  }
+
+  guardarEscala(escala: any): void {
+    this.guardandoCual.set(true);
+    const payload = {
+      nombre: escala.nombre,
+      descripcion: escala.descripcion,
+      is_active: escala.is_active,
+      valores_json: escala._descriptores,
+    };
+    this.api.put(`/admin/config/escalas-cualitativas/${escala.id}`, payload).subscribe({
+      next: () => {
+        escala._modificado = false;
+        this.guardandoCual.set(false);
+        this.notify.success('Guardado', 'Escala de descriptores actualizada');
+      },
+      error: (e) => {
+        this.guardandoCual.set(false);
+        this.notify.error('Error', e.error?.message ?? 'No se pudo guardar la escala');
+      },
+    });
+  }
+
   // ── Reglas de Promoción ─────────────────────────────────────────────────────
   nivelesReglas        = signal<any[]>([]);
   loadingReglas        = signal(false);
@@ -892,10 +1412,14 @@ export class AdminComponent implements OnInit {
   onTabChange(tab: any): void {
     if (!tab) return;
     this.tabActivo.set(tab);
-    if (tab === 'variables' && this.variables().length === 0) this.cargarVariables();
-    if (tab === 'reglas' && this.nivelesReglas().length === 0) this.cargarReglasPromocion();
-    if (tab === 'catalogos' && this.catalogos().length === 0) this.cargarCatalogos();
-    if (tab === 'marca') this.cargarMarca();
+    if (tab === 'variables'        && this.variables().length === 0)     this.cargarVariables();
+    if (tab === 'reglas'           && this.nivelesReglas().length === 0) this.cargarReglasPromocion();
+    if (tab === 'eval-cualitativa' && this.cualEscalas().length === 0)   this.cargarConfigCualitativa();
+    if (tab === 'catalogos'        && this.catalogos().length === 0)     this.cargarCatalogos();
+    if (tab === 'marca')                                                  this.cargarMarca();
+    if (tab === 'roles'            && this.roles().length === 0)         this.cargarRoles();
+    if (tab === 'menus'            && this.menus().length === 0)         this.cargarMenusAdmin();
+    if (tab === 'permisos')                                               this.cargarPermisos();
   }
 
   // ── Usuarios ────────────────────────────────────────────────────────────────
@@ -979,7 +1503,13 @@ export class AdminComponent implements OnInit {
   }
 
   cargarRoles(): void {
-    this.api.get<RolOpt[]>('/catalogs/roles').subscribe(r => this.roles.set(r));
+    this.loadingRoles.set(true);
+    this.api.get<any[]>('/admin/roles').subscribe({
+      next: (r) => { this.roles.set(r as any); this.loadingRoles.set(false); },
+      error: () => {
+        this.api.get<RolOpt[]>('/catalogs/roles').subscribe(r => { this.roles.set(r); this.loadingRoles.set(false); });
+      },
+    });
   }
 
   cargarNiveles(): void {
@@ -1284,10 +1814,171 @@ export class AdminComponent implements OnInit {
     });
   }
 
-  // ── Crear usuario (abre el mismo dialog de edición en modo nuevo) ────────────
+  // ── Crear usuario ─────────────────────────────────────────────────────────
 
   abrirCrearUsuario(): void {
-    this.notify.info('Próximamente', 'La creación de usuarios desde la UI estará disponible en la siguiente iteración. Use Authentik para crear el usuario primero.');
+    this.nuevoUsrForm = {
+      nombre: '', apellido_paterno: '', apellido_materno: '',
+      curp: '', email_institucional: '', genero: 'M',
+      fecha_nacimiento: '', rol_id: '', plantel_id: null,
+    };
+    if (this.roles().length === 0) this.cargarRoles();
+    this.crearUsrDlgVisible.set(true);
+  }
+
+  crearUsuario(): void {
+    const f = this.nuevoUsrForm;
+    if (!f.nombre || !f.apellido_paterno || !f.curp || !f.rol_id) {
+      this.notify.warning('Datos incompletos', 'Nombre, apellido paterno, CURP y Rol son requeridos');
+      return;
+    }
+    if (f.curp.length !== 18) {
+      this.notify.warning('CURP inválida', 'La CURP debe tener 18 caracteres');
+      return;
+    }
+    this.guardandoNuevoUsr.set(true);
+    this.api.post('/admin/usuarios', {
+      nombre: f.nombre, apellidoPaterno: f.apellido_paterno,
+      apellidoMaterno: f.apellido_materno || null,
+      curp: f.curp.toUpperCase(), emailInstitucional: f.email_institucional || null,
+      genero: f.genero, fechaNacimiento: f.fecha_nacimiento || null,
+      rolId: f.rol_id, plantelId: f.plantel_id || null,
+    }).subscribe({
+      next: (res: any) => {
+        this.notify.success('Usuario creado',
+          `Usuario: ${res.nombre_usuario} — Email: ${res.email_institucional}`);
+        this.crearUsrDlgVisible.set(false);
+        this.guardandoNuevoUsr.set(false);
+        this.cargarUsuarios();
+      },
+      error: (e) => {
+        this.notify.error('Error', e.error?.detail || e.error?.message || 'Error al crear usuario');
+        this.guardandoNuevoUsr.set(false);
+      },
+    });
+  }
+
+  // ── Roles ──────────────────────────────────────────────────────────────────
+
+  abrirEditarRol(row: any): void {
+    const r = row._original ?? row;
+    this.rolEdit.set(r);
+    this.rolEditForm = { descripcion: r.descripcion ?? '' };
+    this.rolDlgVisible.set(true);
+  }
+
+  guardarRol(): void {
+    const r = this.rolEdit();
+    if (!r) return;
+    this.guardandoRol.set(true);
+    this.api.patch(`/admin/roles/${r.id}`, { descripcion: this.rolEditForm.descripcion }).subscribe({
+      next: () => {
+        this.notify.success('Éxito', 'Descripción del rol actualizada');
+        this.rolDlgVisible.set(false);
+        this.guardandoRol.set(false);
+        this.cargarRoles();
+      },
+      error: (e) => { this.notify.error('Error', e.error?.detail ?? 'Error al guardar'); this.guardandoRol.set(false); },
+    });
+  }
+
+  // ── Menús ──────────────────────────────────────────────────────────────────
+
+  cargarMenusAdmin(): void {
+    this.loadingMenus.set(true);
+    this.api.get<any[]>('/admin/menus').subscribe({
+      next: (m) => { this.menus.set(m); this.loadingMenus.set(false); },
+      error: () => this.loadingMenus.set(false),
+    });
+  }
+
+  abrirEditarMenu(row: any): void {
+    const m = row._original ?? row;
+    this.menuEdit.set(m);
+    this.menuEditForm = {
+      label: m.label ?? '',
+      nivel_maximo: m.nivel_maximo ?? 99,
+      nivel_minimo: m.nivel_minimo ?? 0,
+      activo: m.activo !== false,
+    };
+    this.menuDlgVisible.set(true);
+  }
+
+  guardarMenu(): void {
+    const m = this.menuEdit();
+    if (!m) return;
+    this.guardandoMenu.set(true);
+    this.api.patch(`/admin/menus/${m.clave}`, {
+      label: this.menuEditForm.label,
+      nivelMaximo: this.menuEditForm.nivel_maximo,
+      nivelMinimo: this.menuEditForm.nivel_minimo,
+      activo: this.menuEditForm.activo,
+    }).subscribe({
+      next: () => {
+        this.notify.success('Éxito', 'Menú actualizado');
+        this.menuDlgVisible.set(false);
+        this.guardandoMenu.set(false);
+        this.cargarMenusAdmin();
+      },
+      error: (e) => { this.notify.error('Error', e.error?.detail ?? 'Error al guardar'); this.guardandoMenu.set(false); },
+    });
+  }
+
+  // ── Permisos por rol ────────────────────────────────────────────────────────
+
+  cargarPermisos(): void {
+    this.loadingPermisos.set(true);
+    const params: Record<string, string> = {};
+    if (this.permisosRolFiltro) params['rol_id'] = this.permisosRolFiltro;
+    this.api.get<any[]>('/admin/permisos-rol', params).subscribe({
+      next: (p) => {
+        this.permisos.set(p.map(x => ({ ...x, _saving: false })));
+        this.loadingPermisos.set(false);
+      },
+      error: () => this.loadingPermisos.set(false),
+    });
+  }
+
+  guardarPermiso(p: any): void {
+    p._saving = true;
+    this.api.put('/admin/permisos-rol', {
+      rolId: p.rol_id, menuClave: p.menu_clave,
+      puedeVer: p.puede_ver, puedeEditar: p.puede_editar,
+      puedeCrear: p.puede_crear, puedeEliminar: p.puede_eliminar,
+    }).subscribe({
+      next: () => { p._saving = false; this.notify.success('Guardado', `Permiso actualizado: ${p.menu_clave}`); },
+      error: (e) => { p._saving = false; this.notify.error('Error', e.error?.detail ?? 'Error'); },
+    });
+  }
+
+  abrirNuevoPermiso(): void {
+    this.nuevoPrmForm = { menu_clave: '', puede_ver: true, puede_editar: true, puede_crear: true, puede_eliminar: false };
+    if (this.menus().length === 0) this.cargarMenusAdmin();
+    this.nuevoPrmDlgVisible.set(true);
+  }
+
+  guardarNuevoPermiso(): void {
+    if (!this.permisosRolFiltro || !this.nuevoPrmForm.menu_clave) {
+      this.notify.warning('Faltan datos', 'Selecciona un rol y un módulo');
+      return;
+    }
+    this.guardandoPermiso.set(true);
+    this.api.put('/admin/permisos-rol', {
+      rolId: this.permisosRolFiltro,
+      menuClave: this.nuevoPrmForm.menu_clave,
+      puedeVer: this.nuevoPrmForm.puede_ver,
+      puedeEditar: this.nuevoPrmForm.puede_editar,
+      puedeCrear: this.nuevoPrmForm.puede_crear,
+      puedeEliminar: this.nuevoPrmForm.puede_eliminar,
+    }).subscribe({
+      next: () => {
+        this.notify.success('Guardado', 'Permiso creado/actualizado');
+        this.nuevoPrmDlgVisible.set(false);
+        this.guardandoPermiso.set(false);
+        this.cargarPermisos();
+      },
+      error: (e) => { this.notify.error('Error', e.error?.detail ?? 'Error'); this.guardandoPermiso.set(false); },
+    });
   }
 
   // ── Editar Usuario ──

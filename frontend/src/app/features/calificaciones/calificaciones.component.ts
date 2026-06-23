@@ -54,17 +54,17 @@ import { ApexNotificationService } from 'apex-component-library';
       <p-select
         [options]="plantelesOpts()" optionLabel="nombre_plantel" optionValue="id"
         placeholder="Plantel…" [(ngModel)]="selectedPlantelId"
-        [disabled]="isPlantelDisabled()"
+        [disabled]="isPlantelDisabled() || !!ctx.plantel()"
         (onChange)="onPlantelChange()" />
       <p-select
         [options]="nivelesOpts()" optionLabel="nombre_nivel" optionValue="id"
         placeholder="Nivel…" [(ngModel)]="selectedNivelId"
-        [disabled]="isNivelDisabled() || !selectedPlantelId"
+        [disabled]="isNivelDisabled() || !!ctx.nivel() || !selectedPlantelId"
         (onChange)="onNivelChange()" />
       <p-select
         [options]="gradosOpts()" optionLabel="nombre_grado" optionValue="id"
         placeholder="Grado…" [(ngModel)]="selectedGradoId"
-        [disabled]="!selectedNivelId"
+        [disabled]="!!ctx.grado() || !selectedNivelId"
         (onChange)="onGradoChange()" />
       <p-select
         [options]="grupos()"
@@ -73,7 +73,7 @@ import { ApexNotificationService } from 'apex-component-library';
         placeholder="Seleccionar grupo"
         (onChange)="onGrupoChange()"
         [showClear]="true"
-        [disabled]="!selectedGradoId"
+        [disabled]="!!ctx.grupo() || !selectedGradoId"
         [filter]="true" filterPlaceholder="Buscar..."/>
       <p-select
         [options]="materias()"
@@ -88,6 +88,19 @@ import { ApexNotificationService } from 'apex-component-library';
 
     <!-- ── Libreta — Editable Interactive Report ── -->
     @if (libreta()) {
+      @if (esCualitativa()) {
+        <div class="cual-badge">
+          <i class="pi pi-star-fill"></i>
+          Evaluación cualitativa NEM — Grado {{ selectedGrupo?.numero_grado }}° Primaria
+          <span class="cual-desc-legend">
+            @for (d of cualDescriptores(); track d.nivel) {
+              <span class="cual-chip" [style.background]="d.color" [pTooltip]="d.descripcion">
+                {{ d.nivel }} – {{ d.label }}
+              </span>
+            }
+          </span>
+        </div>
+      }
       <p-toolbar styleClass="libreta-toolbar">
         <ng-template pTemplate="start">
           <span class="changes-badge" [class.has-changes]="pendingChanges() > 0">
@@ -126,7 +139,6 @@ import { ApexNotificationService } from 'apex-component-library';
         styleClass="p-datatable-sm p-datatable-gridlines libreta-table"
         [editMode]="'cell'"
       >
-        <!-- Caption con búsqueda global -->
         <ng-template pTemplate="caption">
           <div class="table-caption">
             <input
@@ -148,12 +160,11 @@ import { ApexNotificationService } from 'apex-component-library';
               Alumno <p-sortIcon field="nombre_completo" />
             </th>
             @for (col of columns; track col) {
-              <th style="width:90px; text-align:center">{{ col }}</th>
+              <th style="width:110px; text-align:center">{{ col }}</th>
             }
-            <th style="width:80px; text-align:center; font-weight:700">Promedio</th>
+            <th style="width:90px; text-align:center; font-weight:700">Promedio</th>
             <th style="width:70px; text-align:center">Acredita</th>
           </tr>
-          <!-- Fila de filtros (estilo APEX) -->
           <tr>
             <th><p-columnFilter field="matricula" type="text" matchMode="contains" /></th>
             <th><p-columnFilter field="nombre_completo" type="text" matchMode="contains" /></th>
@@ -168,28 +179,59 @@ import { ApexNotificationService } from 'apex-component-library';
             <td>{{ row.nombre_completo }}</td>
             @for (col of columns; track col) {
               <td
-                [pEditableColumn]="row.calificaciones[col]"
+                [pEditableColumn]="esCualitativa() ? (row.niveles_logro?.[col] ?? null) : row.calificaciones[col]"
                 pEditableColumnField="col"
                 style="text-align:center; padding:0.2rem"
                 [class.edited]="isEdited(row.estudiante_id, col)"
               >
-                <p-cellEditor>
-                  <ng-template pTemplate="input">
-                    <p-inputNumber
-                      [(ngModel)]="row.calificaciones[col]"
-                      [min]="0" [max]="10" [maxFractionDigits]="1"
-                      [inputStyle]="{width:'60px', textAlign:'center'}"
-                      (onBlur)="onCalificacionChange(row, col)"
-                    />
-                  </ng-template>
-                  <ng-template pTemplate="output">
-                    {{ row.calificaciones[col] | number:'1.1-1' }}
-                  </ng-template>
-                </p-cellEditor>
+                @if (esCualitativa()) {
+                  <p-cellEditor>
+                    <ng-template pTemplate="input">
+                      <p-select
+                        [options]="cualDescriptoresOpts()"
+                        [(ngModel)]="row.niveles_logro[col]"
+                        placeholder="—"
+                        [style]="{width:'110px'}"
+                        (onChange)="onLogrolChange(row, col, $event.value)"
+                      />
+                    </ng-template>
+                    <ng-template pTemplate="output">
+                      @if (row.niveles_logro?.[col]) {
+                        <span class="cual-cell"
+                          [style.background]="nivelColor(row.niveles_logro[col])">
+                          {{ row.niveles_logro[col] }}
+                          @if (cualMostrarEquiv()) {
+                            <span class="cual-equiv">({{ row.calificaciones[col] | number:'1.1-1' }})</span>
+                          }
+                        </span>
+                      } @else { <span style="color:var(--text-muted)">—</span> }
+                    </ng-template>
+                  </p-cellEditor>
+                } @else {
+                  <p-cellEditor>
+                    <ng-template pTemplate="input">
+                      <p-inputNumber
+                        [(ngModel)]="row.calificaciones[col]"
+                        [min]="0" [max]="10" [maxFractionDigits]="1"
+                        [inputStyle]="{width:'60px', textAlign:'center'}"
+                        (onBlur)="onCalificacionChange(row, col)"
+                      />
+                    </ng-template>
+                    <ng-template pTemplate="output">
+                      {{ row.calificaciones[col] | number:'1.1-1' }}
+                    </ng-template>
+                  </p-cellEditor>
+                }
               </td>
             }
             <td style="text-align:center; font-weight:600">
-              {{ row.promedio | number:'1.1-1' }}
+              @if (esCualitativa()) {
+                @if (nivelPromedio(row); as np) {
+                  <span class="cual-cell" [style.background]="nivelColor(np)">{{ np }}</span>
+                } @else { — }
+              } @else {
+                {{ row.promedio | number:'1.1-1' }}
+              }
             </td>
             <td style="text-align:center">
               @if (row.promedio !== null) {
@@ -215,7 +257,7 @@ import { ApexNotificationService } from 'apex-component-library';
   `,
   styles: [`
     .page-header { margin-bottom: 1rem; }
-    .filter-bar { display: flex; gap: 1rem; margin-bottom: 1rem; }
+    .filter-bar { display: flex; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap; }
     .libreta-toolbar { margin-bottom: 0.5rem; }
     .changes-badge { font-size: 0.85rem; color: var(--text-secondary); }
     .changes-badge.has-changes { color: var(--color-warning); font-weight: 600; }
@@ -224,11 +266,21 @@ import { ApexNotificationService } from 'apex-component-library';
     td.edited { background-color: #fef9c3 !important; }
     .empty-state { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 4rem; color: var(--text-muted); }
     :host ::ng-deep .libreta-table .p-datatable-tbody > tr > td { padding: 0.3rem 0.5rem; }
+    /* Evaluación cualitativa */
+    .cual-badge { display:flex; align-items:center; gap:.5rem; flex-wrap:wrap;
+      background:#eff6ff; border:1px solid #bfdbfe; border-radius:6px;
+      padding:.5rem .75rem; margin-bottom:.75rem; font-size:.85rem; color:#1e40af; font-weight:500; }
+    .cual-desc-legend { display:flex; gap:.4rem; flex-wrap:wrap; margin-left:.5rem; }
+    .cual-chip { color:#fff; font-size:.75rem; font-weight:600; padding:.15rem .5rem;
+      border-radius:4px; cursor:help; }
+    .cual-cell { display:inline-flex; align-items:center; gap:.25rem; color:#fff;
+      font-weight:700; font-size:.82rem; padding:.15rem .45rem; border-radius:4px; }
+    .cual-equiv { font-weight:400; opacity:.85; font-size:.75rem; }
   `],
 })
 export class CalificacionesComponent implements OnInit {
   private readonly api = inject(ApiService);
-  private readonly ctx = inject(ContextService);
+  readonly ctx = inject(ContextService);
   private readonly notify = inject(ApexNotificationService);
 
   // ── Cascada: Plantel → Nivel → Grado → Grupo ────────────────────────────
@@ -251,8 +303,105 @@ export class CalificacionesComponent implements OnInit {
 
   private editadas = new Set<string>();
 
+  // ── Evaluación Cualitativa NEM ───────────────────────────────────────────
+  cualConfig    = signal<{ config: any; escala: any } | null>(null);
+  cualGrados    = computed<number[]>(() => {
+    const v = this.cualConfig()?.config?.['EVAL_CUAL_GRADOS_PRIMARIA'];
+    return Array.isArray(v) ? v : [];
+  });
+  cualDescriptores = computed<any[]>(() => {
+    return this.cualConfig()?.escala?.valores_json ?? [];
+  });
+  cualDescriptoresOpts = computed(() =>
+    this.cualDescriptores().map(d => ({ label: `${d.nivel} – ${d.label}`, value: d.nivel }))
+  );
+  cualMostrarEquiv = computed<boolean>(() =>
+    !!this.cualConfig()?.config?.['EVAL_CUAL_MOSTRAR_EQUIVALENCIA']
+  );
+
+  /** true cuando el grupo seleccionado es de primaria y su grado está en la lista cualitativa */
+  esCualitativa = computed(() => {
+    const grupo = this.selectedGrupo;
+    if (!grupo) return false;
+    const nivel = (grupo as any).nombre_nivel ?? (grupo as any).nivel ?? '';
+    if (!nivel.toLowerCase().includes('primaria')) return false;
+    const grado = (grupo as any).numero_grado ?? (grupo as any).numero ?? 0;
+    return this.cualGrados().includes(Number(grado));
+  });
+
+  /** Calcula el nivel de logro dominante (el más frecuente) para una fila */
+  nivelPromedio(row: any): string | null {
+    if (!row.niveles_logro) return null;
+    const counts: Record<string, number> = {};
+    const orden = ['D', 'C', 'B', 'A'];
+    for (const v of Object.values(row.niveles_logro)) {
+      if (v) counts[v as string] = (counts[v as string] ?? 0) + 1;
+    }
+    if (!Object.keys(counts).length) return null;
+    let best: string | null = null;
+    for (const n of orden) {
+      if (counts[n]) { best = n; break; }
+    }
+    return best;
+  }
+
+  nivelColor(nivel: string | null): string {
+    const d = this.cualDescriptores().find((x: any) => x.nivel === nivel);
+    return d?.color ?? '#94a3b8';
+  }
+
   columnas       = computed(() => this.libreta()?.periodos ?? []);
   pendingChanges = computed(() => this.editadas.size);
+
+  constructor() {
+    // Sincronizar plantel desde el contexto global
+    effect(() => {
+      const p = this.ctx.plantel();
+      if (p?.id) {
+        this.selectedPlantelId = p.id;
+        this._loadNiveles(p.id);
+      } else {
+        this.selectedPlantelId = null;
+        this.onPlantelChange();
+      }
+    });
+
+    // Sincronizar nivel desde el contexto global
+    effect(() => {
+      const n = this.ctx.nivel();
+      if (n?.id) {
+        this.selectedNivelId = n.id;
+        this._loadGrados(n.id);
+      } else {
+        this.selectedNivelId = null;
+        this.onNivelChange();
+      }
+    });
+
+    // Sincronizar grado desde el contexto global
+    effect(() => {
+      const g = this.ctx.grado();
+      if (g?.id) {
+        this.selectedGradoId = g.id;
+        this.onGradoChange();
+      } else {
+        this.selectedGradoId = null;
+        this.onGradoChange();
+      }
+    });
+
+    // Sincronizar grupo desde el contexto global
+    effect(() => {
+      const gp = this.ctx.grupo();
+      if (gp?.id) {
+        this.selectedGrupo = { ...gp, _label: grupoLabel(gp) };
+        this.onGrupoChange();
+      } else {
+        this.selectedGrupo = null;
+        this.onGrupoChange();
+      }
+    });
+  }
 
   ngOnInit(): void {
     this.api.get<any[]>('/planteles').subscribe({
@@ -281,7 +430,7 @@ export class CalificacionesComponent implements OnInit {
   }
 
   private _loadGrados(nivelId: string): void {
-    this.api.get<any[]>('/catalogs/grados', { nivel_id: nivelId }).subscribe({
+    this.api.get<any[]>('/catalogs/grados', { nivel_id: nivelId, plantel_id: this.selectedPlantelId || undefined }).subscribe({
       next: list => this.gradosOpts.set(list),
     });
   }
@@ -311,11 +460,16 @@ export class CalificacionesComponent implements OnInit {
     this.grupos.set([]);
     this.libreta.set(null); this.editadas.clear();
     if (this.selectedPlantelId && this.selectedGradoId) {
-      this.api.get<Grupo[]>('/grupos', {
+      const params: Record<string, any> = {
         plantel_id: this.selectedPlantelId,
         grado_id: this.selectedGradoId,
-        solo_activos: true, ciclo_vigente: true,
-      }).subscribe({
+        solo_activos: true,
+      };
+      if (this.selectedNivelId) params['nivel_id'] = this.selectedNivelId;
+      const cicloId = this.ctx.ciclo()?.id;
+      if (cicloId) params['ciclo_escolar_id'] = cicloId;
+
+      this.api.get<Grupo[]>('/grupos', params).subscribe({
         next: g => this.grupos.set(g.map(x => ({ ...x, _label: grupoLabel(x) }))),
         error: () => this.grupos.set([]),
       });
@@ -327,6 +481,14 @@ export class CalificacionesComponent implements OnInit {
     this.libreta.set(null);
     this.editadas.clear();
     if (!this.selectedGrupo) return;
+
+    // Cargar config cualitativa si aún no está cargada
+    if (!this.cualConfig()) {
+      this.api.get<any>('/calificaciones/config-cualitativa', { nivel: 'PRIMARIA' }).subscribe({
+        next: cfg => this.cualConfig.set(cfg),
+        error: () => {},
+      });
+    }
 
     const gradoId = this.selectedGrupo.grado_id;
     const cicloId = this.ctx.ciclo()?.id;
@@ -376,9 +538,21 @@ export class CalificacionesComponent implements OnInit {
 
   onCalificacionChange(row: RegistroLibreta, periodo: string): void {
     this.editadas.add(`${row.estudiante_id}|${periodo}`);
-    // Recalcular promedio local
     const vals = Object.values(row.calificaciones).filter((v): v is number => v !== null);
     row.promedio = vals.length ? parseFloat((vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1)) : null;
+  }
+
+  onLogrolChange(row: any, periodo: string, nivel: string): void {
+    this.editadas.add(`${row.estudiante_id}|${periodo}`);
+    // Actualizar calificacion_final con equiv_num del descriptor
+    const d = this.cualDescriptores().find((x: any) => x.nivel === nivel);
+    if (d && d.equiv_num !== undefined) {
+      if (!row.calificaciones) row.calificaciones = {};
+      row.calificaciones[periodo] = d.equiv_num;
+      // Recalcular promedio local
+      const vals = Object.values(row.calificaciones as Record<string, number>).filter(v => v !== null);
+      row.promedio = vals.length ? parseFloat((vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1)) : null;
+    }
   }
 
   guardarCambios(): void {
@@ -386,25 +560,39 @@ export class CalificacionesComponent implements OnInit {
     this.saving.set(true);
 
     const libreta = this.libreta()!;
-    // Mapa nombre_periodo → id para construir el payload correcto
     const periodoMap = new Map<string, string>(
       libreta.periodos_detalle.map((p: PeriodoSimple) => [p.nombre_periodo, p.id]),
     );
+    const esCual = this.esCualitativa();
 
     const requests = [...this.editadas].map(key => {
       const [estudianteId, periodoNombre] = key.split('|');
-      const row = libreta.registros.find(r => r.estudiante_id === estudianteId);
-      const valor = row?.calificaciones[periodoNombre];
+      const row = libreta.registros.find((r: any) => r.estudiante_id === estudianteId);
       const periodoId = periodoMap.get(periodoNombre);
-      if (!row || valor === null || valor === undefined || !periodoId) return null;
+      if (!row || !periodoId) return null;
 
-      return {
-        estudiante_id: estudianteId,
-        grupo_id: this.selectedGrupo!.id,
-        materia_id: this.selectedMateria!.id,
-        periodo_evaluacion_id: periodoId,
-        calificacion_final: valor,
-      };
+      if (esCual) {
+        const nivelLogro = (row as any).niveles_logro?.[periodoNombre];
+        if (!nivelLogro) return null;
+        return {
+          _endpoint: '/calificaciones/cualitativa',
+          estudianteId, grupoId: this.selectedGrupo!.id,
+          materiaId: this.selectedMateria!.id,
+          periodoEvaluacionId: periodoId,
+          nivelLogro,
+        };
+      } else {
+        const valor = row?.calificaciones[periodoNombre];
+        if (valor === null || valor === undefined) return null;
+        return {
+          _endpoint: '/calificaciones/manual',
+          estudiante_id: estudianteId,
+          grupo_id: this.selectedGrupo!.id,
+          materia_id: this.selectedMateria!.id,
+          periodo_id: periodoId,
+          calificacion_final: valor,
+        };
+      }
     }).filter(Boolean);
 
     if (requests.length === 0) {
@@ -415,8 +603,10 @@ export class CalificacionesComponent implements OnInit {
 
     let completed = 0;
     let hasError = false;
-    requests.forEach(payload => {
-      this.api.post('/calificaciones', payload).subscribe({
+    requests.forEach((payload: any) => {
+      const endpoint = payload._endpoint;
+      const { _endpoint, ...body } = payload;
+      this.api.post(endpoint, body).subscribe({
         next: () => {
           completed++;
           if (completed === requests.length && !hasError) {
@@ -428,7 +618,7 @@ export class CalificacionesComponent implements OnInit {
         error: (e) => {
           hasError = true;
           this.saving.set(false);
-          this.notify.error('Error', e.error?.detail || 'Error al guardar');
+          this.notify.error('Error', e.error?.detail || e.error?.message || 'Error al guardar');
         },
       });
     });

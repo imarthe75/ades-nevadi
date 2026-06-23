@@ -29,7 +29,33 @@ public class CatalogReadAdapter implements CatalogReadPort {
 
     @Override public List<NivelEducativo> findAllNiveles()               { return nivelRepo.findAll(); }
     @Override public List<Grado> findAllGrados()                         { return gradoRepo.findAll(); }
-    @Override public List<Grado> findGradosByNivel(UUID nivelId)         { return gradoRepo.findByNivelEducativoId(nivelId); }
+    @Override
+    public List<Grado> findGrados(UUID nivelId, UUID plantelId) {
+        List<Grado> list;
+        if (nivelId != null && plantelId != null) {
+            list = gradoRepo.findByNivelEducativoIdAndPlantelId(nivelId, plantelId);
+        } else if (nivelId != null) {
+            list = gradoRepo.findByNivelEducativoId(nivelId);
+        } else if (plantelId != null) {
+            list = gradoRepo.findByPlantelId(plantelId);
+        } else {
+            list = gradoRepo.findAll();
+        }
+
+        if (plantelId == null) {
+            java.util.Set<String> seen = new java.util.HashSet<>();
+            List<Grado> uniqueList = new java.util.ArrayList<>();
+            for (Grado g : list) {
+                UUID nId = g.getNivelEducativo() != null ? g.getNivelEducativo().getId() : null;
+                String key = g.getNumeroGrado() + "_" + nId;
+                if (seen.add(key)) {
+                    uniqueList.add(g);
+                }
+            }
+            return uniqueList;
+        }
+        return list;
+    }
     @Override public List<CicloEscolar> findAllCiclos()                  { return cicloRepo.findAll(); }
     @Override public List<CicloEscolar> findCiclosVigentes()             { return cicloRepo.findByEsVigenteTrue(); }
     @Override public List<Map<String, Object>> roles()                   { return queryService.roles(); }

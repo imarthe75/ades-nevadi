@@ -1,6 +1,10 @@
 package mx.ades.modules.calificaciones;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import mx.ades.modules.admin.ConfigQueryService;
 import mx.ades.modules.calificaciones.domain.port.in.CalcularCalificacionPeriodoUseCase;
 import mx.ades.modules.calificaciones.domain.port.in.GuardarCalificacionManualUseCase;
 import mx.ades.modules.calificaciones.domain.port.in.ObtenerBoletaUseCase;
@@ -18,6 +22,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -30,8 +35,13 @@ public class CalificacionesController {
     private final GuardarCalificacionManualUseCase   guardarCalificacionManual;
     private final ObtenerBoletaUseCase               obtenerBoleta;
     private final CalificacionesQueryService         queryService;
+    private final ConfigQueryService                 configQueryService;
     private final JdbcTemplate                       jdbc;
     private final AdesUserService                    userService;
+
+    private final ObjectMapper om = new ObjectMapper();
+
+    private static final Set<String> NIVELES_LOGRO_VALIDOS = Set.of("A", "B", "C", "D");
 
     @PostMapping("/calcular")
     public ResponseEntity<Void> calcular(@RequestBody CalcularCalificacionDto req) {
@@ -108,19 +118,23 @@ public class CalificacionesController {
             "ORDER BY p.apellido_paterno, p.nombre",
             grupoId);
 
-        // 3. Calificaciones registradas
+        // 3. Calificaciones registradas (incluyendo nivel_logro para evaluación cualitativa)
         List<Map<String, Object>> cals = jdbc.queryForList(
-            "SELECT estudiante_id, periodo_evaluacion_id, calificacion_final " +
+            "SELECT estudiante_id, periodo_evaluacion_id, calificacion_final, nivel_logro " +
             "FROM ades_calificaciones_periodo " +
             "WHERE grupo_id = ? AND materia_id = ? AND is_active = true",
             grupoId, materiaId);
 
-        // Construir mapa: estudianteId → (periodoId → calificacion)
+        // Construir mapa: estudianteId → (periodoId → {calificacion, nivel_logro})
         Map<String, Map<String, Object>> calMap = new HashMap<>();
+        Map<String, Map<String, Object>> logroMap = new HashMap<>();
         for (Map<String, Object> cal : cals) {
             String eId = cal.get("estudiante_id").toString();
             String pId = cal.get("periodo_evaluacion_id").toString();
             calMap.computeIfAbsent(eId, k -> new HashMap<>()).put(pId, cal.get("calificacion_final"));
+            if (cal.get("nivel_logro") != null) {
+                logroMap.computeIfAbsent(eId, k -> new HashMap<>()).put(pId, cal.get("nivel_logro"));
+            }
         }
 
         // Mapa periodoId → nombre
@@ -133,18 +147,22 @@ public class CalificacionesController {
         List<Map<String, Object>> registros = alumnos.stream().map(a -> {
             String eId = a.get("estudiante_id").toString();
             Map<String, Object> calsPorPeriodo = new LinkedHashMap<>();
+            Map<String, Object> logrosPorPeriodo = new LinkedHashMap<>();
             Double sum = 0.0; int count = 0;
             for (Map<String, Object> p : periodos) {
                 String pId = p.get("id").toString();
                 String pNombre = p.get("nombre_periodo").toString();
                 Object val = calMap.getOrDefault(eId, Map.of()).get(pId);
+                Object logro = logroMap.getOrDefault(eId, Map.of()).get(pId);
                 calsPorPeriodo.put(pNombre, val);
+                logrosPorPeriodo.put(pNombre, logro);
                 if (val != null) { sum += ((Number) val).doubleValue(); count++; }
             }
             Map<String, Object> row = new LinkedHashMap<>();
             row.put("estudiante_id", eId);
             row.put("nombre_completo", a.get("nombre_completo"));
             row.put("calificaciones", calsPorPeriodo);
+            row.put("niveles_logro", logrosPorPeriodo);
             row.put("promedio", count > 0 ? Math.round(sum / count * 10.0) / 10.0 : null);
             return row;
         }).collect(Collectors.toList());
@@ -155,5 +173,105 @@ public class CalificacionesController {
         result.put("periodos_detalle", periodos);
         result.put("registros", registros);
         return ResponseEntity.ok(result);
+    }
+
+    /**
+     * GET /api/v1/calificaciones/config-cualitativa?nivel=PRIMARIA
+     * Devuelve la config de evaluación cualitativa + escala activa para el nivel dado.
+     * Público para docentes y admins.
+     */
+    @GetMapping("/config-cualitativa")
+    public ResponseEntity<Map<String, Object>> configCualitativa(
+            @RequestParam(value = "nivel", defaultValue = "PRIMARIA") String nivel,
+            @AuthenticationPrincipal Jwt jwt) {
+        userService.resolveUser(jwt);
+        return ResponseEntity.ok(configQueryService.configCualitativa(nivel));
+    }
+
+    /**
+     * POST /api/v1/calificaciones/cualitativa
+     * Guarda evaluación cualitativa NEM (nivel_logro A/B/C/D + calificacion_final derivada).
+     * Calcula calificacion_final desde el equiv_num de la escala activa.
+     */
+    @Data
+    public static class CualitativaRequest {
+        private UUID estudianteId;
+        private UUID grupoId;
+        private UUID materiaId;
+        private UUID periodoEvaluacionId;
+        private String nivelLogro;
+    }
+
+    @PostMapping("/cualitativa")
+    public ResponseEntity<Map<String, Object>> guardarCualitativa(
+            @RequestBody CualitativaRequest body,
+            @AuthenticationPrincipal Jwt jwt) {
+
+        AdesUser user = userService.resolveUser(jwt);
+        if (user.getNivelAcceso() != null && user.getNivelAcceso() > 4)
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Sin permisos para registrar calificaciones");
+
+        if (body.getNivelLogro() == null || !NIVELES_LOGRO_VALIDOS.contains(body.getNivelLogro()))
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                "nivelLogro debe ser A, B, C o D");
+
+        if (body.getEstudianteId() == null || body.getGrupoId() == null
+                || body.getMateriaId() == null || body.getPeriodoEvaluacionId() == null)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Faltan campos requeridos");
+
+        // Obtener equiv_num de la escala activa PRIMARIA
+        BigDecimal equivNum = resolverEquivNum(body.getNivelLogro());
+
+        // UPSERT: actualizar si existe, insertar si no
+        int updated = jdbc.update(
+            "UPDATE ades_calificaciones_periodo " +
+            "SET calificacion_final = ?, nivel_logro = ?, " +
+            "    fecha_modificacion = now(), row_version = row_version + 1 " +
+            "WHERE estudiante_id = ? AND grupo_id = ? AND materia_id = ? " +
+            "  AND periodo_evaluacion_id = ? AND is_active = true",
+            equivNum, body.getNivelLogro(),
+            body.getEstudianteId(), body.getGrupoId(),
+            body.getMateriaId(), body.getPeriodoEvaluacionId());
+
+        if (updated == 0) {
+            jdbc.update(
+                "INSERT INTO ades_calificaciones_periodo " +
+                "(id, estudiante_id, grupo_id, materia_id, periodo_evaluacion_id, " +
+                " calificacion_final, nivel_logro, is_active) " +
+                "VALUES (gen_random_uuid(), ?, ?, ?, ?, ?, ?, true)",
+                body.getEstudianteId(), body.getGrupoId(),
+                body.getMateriaId(), body.getPeriodoEvaluacionId(),
+                equivNum, body.getNivelLogro());
+        }
+
+        return ResponseEntity.ok(Map.of(
+            "ok", true,
+            "nivel_logro", body.getNivelLogro(),
+            "calificacion_final", equivNum));
+    }
+
+    private BigDecimal resolverEquivNum(String nivel) {
+        List<Map<String, Object>> escalas = jdbc.queryForList(
+            "SELECT valores_json::text AS v FROM ades_escalas_evaluacion " +
+            "WHERE nivel_educativo = 'PRIMARIA' AND is_active = true ORDER BY fecha_creacion DESC LIMIT 1");
+        if (!escalas.isEmpty()) {
+            try {
+                List<Map<String, Object>> descriptores = om.readValue(
+                    escalas.get(0).get("v").toString(), new TypeReference<>() {});
+                for (Map<String, Object> d : descriptores) {
+                    if (nivel.equals(d.get("nivel"))) {
+                        Object equiv = d.get("equiv_num");
+                        if (equiv instanceof Number n) return BigDecimal.valueOf(n.doubleValue());
+                    }
+                }
+            } catch (Exception ignored) {}
+        }
+        // Fallback hardcoded si no hay escala en BD
+        return switch (nivel) {
+            case "A" -> new BigDecimal("10.0");
+            case "B" -> new BigDecimal("8.0");
+            case "C" -> new BigDecimal("6.5");
+            default  -> new BigDecimal("5.0");
+        };
     }
 }

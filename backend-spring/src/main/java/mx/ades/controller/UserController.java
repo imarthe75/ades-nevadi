@@ -92,8 +92,16 @@ public class UserController {
         out.put("email", user.getEmail());
         out.put("nombre_usuario", user.getUsername());
         out.put("roles", user.getRoles());
+        out.put("rol", user.getRoles().isEmpty() ? null : user.getRoles().get(0));
         out.put("plantel_id", user.getPlantelId());
-        out.put("nivel_educativo_id", null);
+        out.put("nivel_educativo_id", user.getNivelEducativoId());
+        out.put("grado_id", user.getGradoId());
+        out.put("grupo_id", user.getGrupoId());
+        out.put("nombre_completo", user.getNombreCompleto());
+        out.put("nombre_plantel", user.getNombrePlantel());
+        out.put("nombre_nivel", user.getNombreNivel());
+        out.put("nombre_grado", user.getNombreGrado());
+        out.put("nombre_grupo", user.getNombreGrupo());
         out.put("nivel_acceso", user.getNivelAcceso());
         return ResponseEntity.ok(out);
     }

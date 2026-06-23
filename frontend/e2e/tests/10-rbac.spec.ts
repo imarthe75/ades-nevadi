@@ -118,6 +118,24 @@ test.describe('A. Elevation Attack — manipular sessionStorage', () => {
       return;
     }
 
+    // Verificar que el token sea de un usuario docente y no el JWT de admin del global-setup.
+    // El global-setup inyecta un JWT de admin que puede no tener la claim nivel_acceso; en ese
+    // caso también skip porque no tenemos un token de docente real para el test.
+    try {
+      const payload = JSON.parse(
+        Buffer.from(token.split('.')[1], 'base64').toString('utf-8')
+      );
+      const nivelAcceso = payload['nivel_acceso'] ?? payload['nivelAcceso'];
+      // Sin claim nivel_acceso → es el token genérico del global-setup (admin Authentik)
+      if (nivelAcceso === undefined || Number(nivelAcceso) <= 2) {
+        console.warn('[RBAC-03] Token no es de docente real (admin o sin claim nivel_acceso) — skip');
+        return;
+      }
+    } catch { /* no puede parsear — skip por seguridad */
+      console.warn('[RBAC-03] No se pudo decodificar el JWT — skip');
+      return;
+    }
+
     // POST a ruta de admin — debe ser rechazado
     const endpoints = [
       '/api/v1/admin/usuarios',

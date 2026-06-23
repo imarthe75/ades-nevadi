@@ -341,7 +341,8 @@ export class EvaluacionesComponent implements OnInit {
   }
 
   private _loadGrados(nivelId: string): void {
-    this.api.get<any[]>('/catalogs/grados', { nivel_id: nivelId }).subscribe({
+    const plantelId = this.ctx.plantel()?.id;
+    this.api.get<any[]>('/catalogs/grados', { nivel_id: nivelId, plantel_id: plantelId || undefined }).subscribe({
       next: list => this.gradosOpts.set(list),
     });
   }

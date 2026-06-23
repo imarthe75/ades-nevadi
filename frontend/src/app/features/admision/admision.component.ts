@@ -11,6 +11,7 @@ import { ToastModule } from 'primeng/toast';
 import { TextareaModule } from 'primeng/textarea';
 import { TooltipModule } from 'primeng/tooltip';
 import { InputNumberModule } from 'primeng/inputnumber';
+import { MessageModule } from 'primeng/message';
 import { MessageService } from 'primeng/api';
 import { ApexNotificationService } from 'apex-component-library';
 import { ImportButtonComponent } from '../../shared/components/import-button/import-button.component';
@@ -59,7 +60,7 @@ const NIVELES = [
   imports: [
     CommonModule, FormsModule, ButtonModule, DialogModule,
     InputTextModule, SelectModule, TagModule, ToastModule, TextareaModule,
-    TooltipModule, InputNumberModule, ImportButtonComponent,
+    TooltipModule, InputNumberModule, MessageModule, ImportButtonComponent,
     InteractiveGridComponent,
   ],
   providers: [MessageService],
@@ -128,10 +129,57 @@ const NIVELES = [
               <p-button label="Descargar PDF" icon="pi pi-file-pdf" severity="danger" size="small" (onClick)="descargarCarta()" />
             </div>
           </div>
+
+          @if (solicitudSeleccionada()!.estado === 'ACEPTADO' || solicitudSeleccionada()!.estado === 'PENDIENTE') {
+            <div class="flex flex-col gap-2 border-t pt-3">
+              <h3 class="font-semibold text-primary m-0" style="color:var(--green-700)">
+                <i class="pi pi-user-plus"></i> Inscribir Alumno
+              </h3>
+              <p-message severity="info" icon="pi pi-info-circle"
+                text="Al inscribir se creará automáticamente la cuenta de sistema del alumno y del padre/tutor." />
+              <div class="flex gap-2 mt-1">
+                <p-button label="Aprobar e Inscribir" icon="pi pi-check-circle"
+                  severity="success" size="small"
+                  [loading]="inscribiendo()"
+                  (onClick)="confirmarInscripcion()" />
+              </div>
+            </div>
+          }
+          @if (solicitudSeleccionada()!.estado === 'INSCRITO') {
+            <p-message severity="success" icon="pi pi-check"
+              text="Este aspirante ya fue inscrito como alumno del sistema." />
+          }
         </div>
       }
       <ng-template pTemplate="footer">
         <p-button label="Cerrar" [text]="true" (onClick)="dlgDetalle=false" />
+      </ng-template>
+    </p-dialog>
+
+    <!-- Dialog confirmación inscripción -->
+    <p-dialog [visible]="dlgConfirmInscripcion()" (visibleChange)="dlgConfirmInscripcion.set($event)"
+      header="Confirmar Inscripción" [modal]="true" [draggable]="false" [style]="{width:'460px'}">
+      @if (solicitudSeleccionada()) {
+        <div style="display:flex;flex-direction:column;gap:.75rem">
+          <p>¿Confirmas la inscripción de <strong>{{ solicitudSeleccionada()!.nombre }} {{ solicitudSeleccionada()!.apellido_paterno }}</strong>?</p>
+          <p-message severity="warn" icon="pi pi-exclamation-triangle"
+            text="Esta acción creará cuentas de acceso al sistema para el alumno y su tutor. No se puede deshacer automáticamente." />
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem">
+            <div style="display:flex;flex-direction:column;gap:.25rem">
+              <label style="font-size:.82rem;color:var(--text-secondary)">Grupo / Ciclo escolar</label>
+              <input pInputText [(ngModel)]="inscribirForm.grupoClave" placeholder="Opcional: clave de grupo" />
+            </div>
+            <div style="display:flex;flex-direction:column;gap:.25rem">
+              <label style="font-size:.82rem;color:var(--text-secondary)">Matrícula (opcional)</label>
+              <input pInputText [(ngModel)]="inscribirForm.matricula" placeholder="Se genera automática si vacío" />
+            </div>
+          </div>
+        </div>
+      }
+      <ng-template pTemplate="footer">
+        <p-button label="Cancelar" severity="secondary" [text]="true" (onClick)="dlgConfirmInscripcion.set(false)" />
+        <p-button label="Inscribir" icon="pi pi-check" severity="success"
+          [loading]="inscribiendo()" (onClick)="ejecutarInscripcion()" />
       </ng-template>
     </p-dialog>
 
@@ -371,6 +419,42 @@ export class AdmisionComponent implements OnInit {
     const url = `/api/v1/procesos/admision/${s.id}/carta?template_id=${this.cartaTemplateId}`;
     window.open(url, '_blank');
     this.notify.success('PDF', 'Generando carta de admisión PDF...');
+  }
+
+  // ── Aprobar e Inscribir ───────────────────────────────────────────────────
+  inscribiendo = signal(false);
+  dlgConfirmInscripcion = signal(false);
+  inscribirForm = { grupoClave: '', matricula: '' };
+
+  confirmarInscripcion(): void {
+    this.inscribirForm = { grupoClave: '', matricula: '' };
+    this.dlgConfirmInscripcion.set(true);
+  }
+
+  ejecutarInscripcion(): void {
+    const s = this.solicitudSeleccionada();
+    if (!s) return;
+    this.inscribiendo.set(true);
+    const payload: Record<string, string> = {};
+    if (this.inscribirForm.grupoClave) payload['grupoClave'] = this.inscribirForm.grupoClave;
+    if (this.inscribirForm.matricula)  payload['matricula']  = this.inscribirForm.matricula;
+
+    this.http.post<any>(`/api/v1/procesos/admision/${s.id}/aprobar-e-inscribir`, payload).subscribe({
+      next: (r) => {
+        this.inscribiendo.set(false);
+        this.dlgConfirmInscripcion.set(false);
+        this.dlgDetalle = false;
+        this.notify.success(
+          'Alumno inscrito',
+          `Matrícula: ${r.matricula ?? '—'} · Usuario: ${r.usuario_alumno ?? '—'}`
+        );
+        this.cargar();
+      },
+      error: (e) => {
+        this.inscribiendo.set(false);
+        this.notify.error('Error al inscribir', e.error?.detail ?? e.error?.message ?? 'Error desconocido');
+      },
+    });
   }
 
   countEstado(estado: string): number {

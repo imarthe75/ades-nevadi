@@ -2713,3 +2713,71 @@ Total cambios: 8 files changed, 906 insertions(+)
 - [ ] Migrar módulos con raw HttpClient a ApiService (mejora consistencia)
 
 ---
+
+## Sesión 2026-06-22 — NEM Fase 3: Evaluación Cualitativa + Fixes e2e
+
+### ✅ Completado
+
+**Fix RBAC-03 e2e + AdminController bug 500→400:**
+- [x] Test RBAC-03: JWT sin claim `nivel_acceso` → skip (token admin de global-setup)
+- [x] `AdminController.crearUsuario()`: validación `rolId == null → 400` antes de `findById()`
+- [x] 17/17 smoke tests passing, 259/289 tests totales passing (30 skipped infra)
+
+**Migración 089 — NEM Cualitativa:**
+- [x] Tabla `ades_config` con audit_biu
+- [x] 3 configs sembradas: `EVAL_CUAL_GRADOS_PRIMARIA=[1,2]`, `EVAL_CUAL_MOSTRAR_EQUIVALENCIA=true`, `EVAL_CUAL_APLICAR_TODAS_MATERIAS=true`
+- [x] Escala NEM 1°-2° primaria en `ades_escalas_evaluacion` (A=Avanzado/B=Satisfactorio/C=En proceso/D=Requiere apoyo) con equiv_num y color
+- [x] Columna `nivel_logro varchar(1) CHECK (A/B/C/D)` en `ades_calificaciones_periodo` (particionada)
+
+**Backend BFF — Nuevos endpoints:**
+- [x] `ConfigQueryService.java` — CRUD config + escalas
+- [x] `GET /api/v1/admin/config?grupo=` — listar config (admin only)
+- [x] `PATCH /api/v1/admin/config/{clave}` — actualizar valor (admin only)
+- [x] `GET /api/v1/admin/config/escalas-cualitativas` — listar escalas
+- [x] `PUT /api/v1/admin/config/escalas-cualitativas/{id}` — editar descriptores
+- [x] `GET /api/v1/calificaciones/config-cualitativa?nivel=PRIMARIA` — config+escala para frontend
+- [x] `POST /api/v1/calificaciones/cualitativa` — guarda nivel_logro + deriva calificacion_final
+- [x] Libreta ahora retorna `niveles_logro` por período además de `calificaciones`
+
+**Frontend Admin — Pestaña "Eval. Cualitativa":**
+- [x] Config switches: grados primaria, mostrar equivalencia, todas las materias
+- [x] Tabla editable de descriptores A/B/C/D (label, descripción, min, max, equiv_num)
+- [x] Botón guardar por escala con detección de cambios
+
+**Frontend Calificaciones — Modo cualitativo:**
+- [x] `esCualitativa` computed: detecta primaria grado 1°-2° vs config
+- [x] Badge visual azul con leyenda de descriptores
+- [x] Celda: `p-select` (A/B/C/D) en vez de `p-inputNumber` cuando esCualitativa
+- [x] `onLogrolChange()` actualiza equiv_num local (calificacion_final)
+- [x] Columna promedio muestra badge de color con nivel dominante
+- [x] `guardarCambios()` usa `POST /calificaciones/cualitativa` vs `/calificaciones/manual`
+- [x] Build Angular OK, TypeScript sin errores
+
+### 🚀 Próximos Pasos:
+- [ ] Boleta NEM 1°-2°: mostrar descriptor cualitativo en lugar/además de número
+- [ ] Google SSO (falta OAuth2 credentials del instituto)
+- [ ] Configurar Superset OIDC
+
+## Sesión 2026-06-22 (cont.) — Boleta NEM cualitativa 1°-2° primaria
+
+### ✅ Completado
+
+**backend/app/worker/tasks/boletas.py:**
+- [x] `logro_map` — consulta raw SQL `nivel_logro` de `ades_calificaciones_periodo` sin tocar el modelo ORM
+- [x] `mat.logros` dict `{periodo_nombre: nivel_logro}` agregado a cada materia_data
+- [x] Detección `es_cualitativa = es_nem AND es_primaria AND numero_grado in grados_cualit`
+- [x] Carga de `grados_cualit`, `mostrar_equiv_num` desde `ades_config`
+- [x] Carga de `cual_descriptores` desde `ades_escalas_evaluacion` activa PRIMARIA
+- [x] Contexto Jinja2 extendido con `es_cualitativa`, `cual_descriptores`, `mostrar_equiv_num`
+
+**backend/app/templates/boletas/boleta.html:**
+- [x] CSS descriptores: `.cual-badge`, `.cual-equiv`, `.cual-legend`, `.cual-dot`
+- [x] Macro `celda_cal(cal, logro)` — muestra badge color+letra+label cuando `es_cualitativa`
+- [x] Macro `celda_promedio(mat)` — muestra descriptor dominante (A>B>C>D)
+- [x] Encabezado tabla adapta a "Nivel" vs "Promedio" según modo
+- [x] `tfoot` muestra descriptor dominante global con color cuando cualitativa
+- [x] Leyenda NEM: descripción completa de cada nivel con color dot
+- [x] Boleta numérica normal sin cambios
+- [x] Jinja2 y Python sintácticamente válidos; smoke test de render pasa
+
+**NEM Fase 3 — COMPLETA**

@@ -37,7 +37,7 @@ public class PlanesEstudioQueryService {
             params.add(cicloId);
         }
         if (gradoId != null) {
-            sql.append(" AND mp.grado_id = ?");
+            sql.append(" AND mp.grado_id IN (SELECT id FROM ades_grados WHERE (numero_grado, nivel_educativo_id) = (SELECT numero_grado, nivel_educativo_id FROM ades_grados WHERE id = ?))");
             params.add(gradoId);
         }
         if (nivelId != null) {

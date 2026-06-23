@@ -247,8 +247,12 @@ export interface UsuarioMe {
   nivel_acceso: number;
   plantel_id?: string | null;
   nivel_educativo_id?: string | null;
+  grado_id?: string | null;
+  grupo_id?: string | null;
   nombre_plantel?: string | null;
   nombre_nivel?: string | null;
+  nombre_grado?: string | null;
+  nombre_grupo?: string | null;
 }
 
 /** Helpers de rol derivados de UsuarioMe */
@@ -282,5 +286,7 @@ export interface AppContext {
   plantel: Plantel | null;
   ciclo: CicloEscolar | null;
   nivel: NivelEducativo | null;
+  grado: Grado | null;
+  grupo: Grupo | null;
   usuario: UsuarioMe | null;
 }

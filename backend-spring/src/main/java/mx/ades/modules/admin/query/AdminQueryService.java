@@ -103,4 +103,91 @@ public class AdminQueryService {
             "SELECT id FROM ades_usuarios WHERE nombre_usuario = ?", username);
         return !rows.isEmpty();
     }
+
+    // ── ROLES ────────────────────────────────────────────────────────────────
+
+    public List<Map<String, Object>> listarRoles() {
+        return jdbc.queryForList(
+            "SELECT id, nombre_rol, nivel_acceso, descripcion FROM ades_roles ORDER BY nivel_acceso, nombre_rol");
+    }
+
+    // ── MENÚS ────────────────────────────────────────────────────────────────
+
+    public List<Map<String, Object>> listarMenus() {
+        return jdbc.queryForList(
+            "SELECT id, clave, seccion, label, icon AS icono, route AS ruta, " +
+            "nivel_maximo, nivel_minimo, is_active AS activo, peso AS orden " +
+            "FROM ades_menus ORDER BY peso ASC");
+    }
+
+    public Map<String, Object> actualizarMenu(String clave, String label,
+                                               Integer nivelMaximo, Integer nivelMinimo, Boolean activo) {
+        List<Object> params = new ArrayList<>();
+        StringBuilder sql = new StringBuilder("UPDATE ades_menus SET fecha_modificacion = now()");
+        if (label != null)       { sql.append(", label = ?");         params.add(label); }
+        if (nivelMaximo != null) { sql.append(", nivel_maximo = ?");  params.add(nivelMaximo); }
+        if (nivelMinimo != null) { sql.append(", nivel_minimo = ?");  params.add(nivelMinimo); }
+        if (activo != null)      { sql.append(", is_active = ?");     params.add(activo); }
+        sql.append(" WHERE clave = ?");
+        params.add(clave);
+        int rows = jdbc.update(sql.toString(), params.toArray());
+        if (rows == 0) throw new org.springframework.web.server.ResponseStatusException(
+            org.springframework.http.HttpStatus.NOT_FOUND, "Menú no encontrado: " + clave);
+        return Map.of("ok", true, "clave", clave);
+    }
+
+    // ── PERMISOS POR ROL ─────────────────────────────────────────────────────
+
+    public List<Map<String, Object>> listarPermisosRol(UUID rolId) {
+        if (rolId != null) {
+            return jdbc.queryForList(
+                "SELECT mr.id, mr.rol_id, r.nombre_rol, mr.menu_id, m.clave AS menu_clave, m.label, " +
+                "mr.puede_ver, mr.puede_editar, mr.puede_crear, mr.puede_eliminar " +
+                "FROM ades_menu_roles mr " +
+                "JOIN ades_roles r ON r.id = mr.rol_id " +
+                "JOIN ades_menus m ON m.id = mr.menu_id " +
+                "WHERE mr.rol_id = ? " +
+                "ORDER BY m.peso",
+                rolId);
+        }
+        return jdbc.queryForList(
+            "SELECT mr.id, mr.rol_id, r.nombre_rol, mr.menu_id, m.clave AS menu_clave, m.label, " +
+            "mr.puede_ver, mr.puede_editar, mr.puede_crear, mr.puede_eliminar " +
+            "FROM ades_menu_roles mr " +
+            "JOIN ades_roles r ON r.id = mr.rol_id " +
+            "JOIN ades_menus m ON m.id = mr.menu_id " +
+            "ORDER BY r.nivel_acceso, m.peso");
+    }
+
+    public Map<String, Object> upsertPermisoRol(UUID rolId, String menuClave,
+                                                  Boolean puedeVer, Boolean puedeEditar,
+                                                  Boolean puedeCrear, Boolean puedeEliminar) {
+        List<Map<String, Object>> existing = jdbc.queryForList(
+            "SELECT mr.id FROM ades_menu_roles mr " +
+            "JOIN ades_menus m ON m.id = mr.menu_id " +
+            "WHERE mr.rol_id = ? AND m.clave = ?", rolId, menuClave);
+
+        boolean pVer = puedeVer != null ? puedeVer : true;
+        boolean pEdt = puedeEditar != null ? puedeEditar : true;
+        boolean pCre = puedeCrear != null ? puedeCrear : true;
+        boolean pEli = puedeEliminar != null ? puedeEliminar : false;
+
+        if (existing.isEmpty()) {
+            List<Map<String, Object>> menus = jdbc.queryForList(
+                "SELECT id FROM ades_menus WHERE clave = ?", menuClave);
+            if (menus.isEmpty()) throw new org.springframework.web.server.ResponseStatusException(
+                org.springframework.http.HttpStatus.NOT_FOUND, "Menú no encontrado: " + menuClave);
+            UUID menuId = (UUID) menus.get(0).get("id");
+            jdbc.update(
+                "INSERT INTO ades_menu_roles (rol_id, menu_id, puede_ver, puede_editar, puede_crear, puede_eliminar) " +
+                "VALUES (?, ?, ?, ?, ?, ?)",
+                rolId, menuId, pVer, pEdt, pCre, pEli);
+        } else {
+            jdbc.update(
+                "UPDATE ades_menu_roles SET puede_ver=?, puede_editar=?, puede_crear=?, puede_eliminar=?, " +
+                "fecha_modificacion=now() WHERE id=?",
+                pVer, pEdt, pCre, pEli, existing.get(0).get("id"));
+        }
+        return Map.of("ok", true, "rol_id", rolId, "menu_clave", menuClave);
+    }
 }
