@@ -21,7 +21,7 @@ import { TooltipModule } from 'primeng/tooltip';
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
 import type { Estudiante } from '../../core/models';
-import { grupoLabel } from '../../core/models';
+
 import { ApexNotificationService, ApexTimelineComponent } from 'apex-component-library';
 import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
 
@@ -76,56 +76,8 @@ interface Medicamento {
       </div>
     </div>
 
-    <!-- Filtros de Contexto Cascading (Plantel -> Nivel -> Grado -> Grupo -> Alumno) -->
+    <!-- Selector de alumno — la cascada plantel→nivel→grado→grupo vive en el topbar -->
     <div class="filter-bar">
-      <p-select
-        [options]="plantelesOpts()"
-        [(ngModel)]="selectedPlantelId"
-        optionLabel="nombre_plantel"
-        optionValue="id"
-        placeholder="Plantel"
-        (onChange)="onPlantelChange()"
-        [showClear]="!isPlantelDisabled()"
-        [disabled]="isPlantelDisabled()"
-        [filter]="true" filterPlaceholder="Buscar..."
-        styleClass="filter-select" />
-
-      <p-select
-        [options]="nivelesOpts()"
-        [(ngModel)]="selectedNivelId"
-        optionLabel="nombre_nivel"
-        optionValue="id"
-        placeholder="Nivel"
-        (onChange)="onNivelChange()"
-        [showClear]="!isNivelDisabled()"
-        [disabled]="isNivelDisabled() || !selectedPlantelId"
-        [filter]="true" filterPlaceholder="Buscar..."
-        styleClass="filter-select" />
-
-      <p-select
-        [options]="gradosOpts()"
-        [(ngModel)]="selectedGradoId"
-        optionLabel="nombre_grado"
-        optionValue="id"
-        placeholder="Grado"
-        (onChange)="onGradoChange()"
-        [showClear]="true"
-        [disabled]="!selectedNivelId"
-        [filter]="true" filterPlaceholder="Buscar..."
-        styleClass="filter-select" />
-
-      <p-select
-        [options]="gruposOpts()"
-        [(ngModel)]="selectedGrupoId"
-        optionLabel="_label"
-        optionValue="id"
-        placeholder="Grupo"
-        (onChange)="onGrupoChange()"
-        [showClear]="true"
-        [disabled]="!selectedGradoId"
-        [filter]="true" filterPlaceholder="Buscar..."
-        styleClass="filter-select" />
-
       <p-select
         [options]="alumnosOpts()"
         [(ngModel)]="selectedAlumnoId"
@@ -134,7 +86,7 @@ interface Medicamento {
         placeholder="Alumno"
         (onChange)="onAlumnoChange()"
         [showClear]="true"
-        [disabled]="!selectedGrupoId"
+        [disabled]="!ctx.grupo()?.id"
         [filter]="true" filterPlaceholder="Buscar..."
         styleClass="filter-select" />
     </div>
@@ -320,20 +272,8 @@ export class MedicoComponent implements OnInit {
   readonly ctx = inject(ContextService);
   private readonly notify = inject(ApexNotificationService);
 
-  plantelesOpts = signal<any[]>([]);
-  nivelesOpts = signal<any[]>([]);
-  gradosOpts = signal<any[]>([]);
-  gruposOpts = signal<any[]>([]);
   alumnosOpts = signal<Estudiante[]>([]);
-
-  selectedPlantelId: string | null = null;
-  selectedNivelId: string | null = null;
-  selectedGradoId: string | null = null;
-  selectedGrupoId: string | null = null;
   selectedAlumnoId: string | null = null;
-
-  readonly isPlantelDisabled = computed(() => this.ctx.nivelAcceso() > 2);
-  readonly isNivelDisabled = computed(() => this.ctx.nivelAcceso() > 3);
 
   alumnoSeleccionado = signal<Estudiante | null>(null);
   expediente = signal<ExpedienteMedico | null>(null);
@@ -376,117 +316,33 @@ export class MedicoComponent implements OnInit {
   ];
 
   constructor() {
+    // Recargar lista de alumnos cuando cambia el grupo en el contexto global.
     effect(() => {
-      const p = this.ctx.plantel();
-      if (p?.id && !this.selectedPlantelId) {
-        this.selectedPlantelId = p.id;
-        this.onPlantelChange();
-      }
+      const grupo = this.ctx.grupo();
+      this.selectedAlumnoId = null;
+      this.alumnosOpts.set([]);
+      this.alumnoSeleccionado.set(null);
+      if (!grupo?.id) return;
+
+      const params: Record<string, any> = { grupo_id: grupo.id };
+      const plantelId = this.ctx.plantel()?.id;
+      if (plantelId) params['plantel_id'] = plantelId;
+
+      this.api.get<any>('/alumnos', params).subscribe({
+        next: resp => {
+          const list = resp.data ?? resp;
+          this.alumnosOpts.set(list.map((a: any) => ({
+            ...a,
+            _label: `${a.persona?.apellido_paterno ?? ''} ${a.persona?.nombre ?? ''}`.trim() || a.matricula
+          })));
+        },
+        error: () => this.alumnosOpts.set([])
+      });
     });
   }
 
   ngOnInit(): void {
-    this.api.get<any[]>('/planteles').subscribe({
-      next: p => {
-        this.plantelesOpts.set(p);
-        const currentPlantel = this.ctx.plantel();
-        if (currentPlantel?.id) {
-          this.selectedPlantelId = currentPlantel.id;
-          this.onPlantelChange();
-        }
-      },
-      error: () => {}
-    });
-  }
-
-  onPlantelChange(): void {
-    this.selectedNivelId = null;
-    this.selectedGradoId = null;
-    this.selectedGrupoId = null;
-    this.selectedAlumnoId = null;
-    this.nivelesOpts.set([]);
-    this.gradosOpts.set([]);
-    this.gruposOpts.set([]);
-    this.alumnosOpts.set([]);
-    this.alumnoSeleccionado.set(null);
-
-    if (!this.selectedPlantelId) return;
-
-    this.api.get<any[]>(`/planteles/${this.selectedPlantelId}/niveles`).subscribe({
-      next: ns => {
-        const mapped = ns.map(x => ({ id: x.id ?? x.nivel_id, nombre_nivel: x.nombre_nivel }));
-        this.nivelesOpts.set(mapped);
-        
-        const ctxNivel = this.ctx.nivel();
-        if (ctxNivel && mapped.some(n => n.id === ctxNivel.id)) {
-          this.selectedNivelId = ctxNivel.id;
-          this.onNivelChange();
-        }
-      },
-      error: () => {}
-    });
-  }
-
-  onNivelChange(): void {
-    this.selectedGradoId = null;
-    this.selectedGrupoId = null;
-    this.selectedAlumnoId = null;
-    this.gradosOpts.set([]);
-    this.gruposOpts.set([]);
-    this.alumnosOpts.set([]);
-    this.alumnoSeleccionado.set(null);
-
-    if (!this.selectedNivelId) return;
-
-    this.api.get<any[]>(`/catalogs/grados`, { nivel_id: this.selectedNivelId }).subscribe({
-      next: gs => {
-        this.gradosOpts.set(gs);
-      },
-      error: () => {}
-    });
-  }
-
-  onGradoChange(): void {
-    this.selectedGrupoId = null;
-    this.selectedAlumnoId = null;
-    this.gruposOpts.set([]);
-    this.alumnosOpts.set([]);
-    this.alumnoSeleccionado.set(null);
-
-    if (!this.selectedGradoId) return;
-
-    const params: Record<string, any> = { solo_activos: true, ciclo_vigente: true };
-    if (this.selectedPlantelId) params['plantel_id'] = this.selectedPlantelId;
-    if (this.selectedGradoId) params['grado_id'] = this.selectedGradoId;
-
-    this.api.get<any[]>('/grupos', params).subscribe({
-      next: gps => {
-        this.gruposOpts.set(gps.map(x => ({ ...x, _label: grupoLabel(x) })));
-      },
-      error: () => this.gruposOpts.set([])
-    });
-  }
-
-  onGrupoChange(): void {
-    this.selectedAlumnoId = null;
-    this.alumnosOpts.set([]);
-    this.alumnoSeleccionado.set(null);
-
-    if (!this.selectedGrupoId) return;
-
-    const params: Record<string, any> = { grupo_id: this.selectedGrupoId };
-    if (this.selectedPlantelId) params['plantel_id'] = this.selectedPlantelId;
-
-    this.api.get<any>('/alumnos', params).subscribe({
-      next: resp => {
-        const list = resp.data ?? resp;
-        this.alumnosOpts.set(list.map((a: any) => ({
-          ...a,
-          _label: `${a.persona?.apellido_paterno ?? ''} ${a.persona?.nombre ?? ''}`.trim() || a.matricula
-        })));
-      },
-      error: () => this.alumnosOpts.set([])
-    });
+    // ngOnInit no necesita cargar planteles — la cascada vive en el topbar.
   }
 
   onAlumnoChange(): void {

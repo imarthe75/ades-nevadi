@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, computed, effect } from '@angular/core';
+import { Component, inject, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TableModule } from 'primeng/table';
@@ -9,7 +9,7 @@ import { InputTextModule } from 'primeng/inputtext';
 
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
-import { Clase, EstatusAsistencia, grupoLabel } from '../../core/models';
+import { EstatusAsistencia } from '../../core/models';
 import { ApexNotificationService } from 'apex-component-library';
 
 interface AsistenciaLocal {
@@ -32,57 +32,7 @@ interface AsistenciaLocal {
       <h2>Asistencias — Pase de Lista</h2>
     </div>
 
-    <!-- Filtros de Contexto Cascading (Plantel -> Nivel -> Grado -> Grupo) -->
-    <div class="filter-bar">
-      <p-select
-        [options]="plantelesOpts()"
-        [(ngModel)]="selectedPlantelId"
-        optionLabel="nombre_plantel"
-        optionValue="id"
-        placeholder="Plantel"
-        (onChange)="onPlantelChange()"
-        [showClear]="!isPlantelDisabled() && !ctx.plantel()"
-        [disabled]="isPlantelDisabled() || !!ctx.plantel()"
-        [filter]="true" filterPlaceholder="Buscar..."
-        styleClass="filter-select" />
-
-      <p-select
-        [options]="nivelesOpts()"
-        [(ngModel)]="selectedNivelId"
-        optionLabel="nombre_nivel"
-        optionValue="id"
-        placeholder="Nivel"
-        (onChange)="onNivelChange()"
-        [showClear]="!isNivelDisabled() && !ctx.nivel()"
-        [disabled]="isNivelDisabled() || !!ctx.nivel() || !selectedPlantelId"
-        [filter]="true" filterPlaceholder="Buscar..."
-        styleClass="filter-select" />
-
-      <p-select
-        [options]="gradosOpts()"
-        [(ngModel)]="selectedGradoId"
-        optionLabel="nombre_grado"
-        optionValue="id"
-        placeholder="Grado"
-        (onChange)="onGradoChange()"
-        [showClear]="true"
-        [disabled]="!!ctx.grado() || !selectedNivelId"
-        [filter]="true" filterPlaceholder="Buscar..."
-        styleClass="filter-select" />
-
-      <p-select
-        [options]="gruposOpts()"
-        [(ngModel)]="selectedGrupoId"
-        optionLabel="_label"
-        optionValue="id"
-        placeholder="Grupo"
-        (onChange)="onGrupoChange()"
-        [showClear]="true"
-        [disabled]="!!ctx.grupo() || !selectedGradoId"
-        [filter]="true" filterPlaceholder="Buscar..."
-        styleClass="filter-select" />
-    </div>
-
+    <!-- Selector de clase — habilitado cuando el contexto global tiene grupo seleccionado -->
     <div style="display:flex; gap:0.75rem; align-items:center; margin-bottom:1rem; flex-wrap:wrap">
       <div style="width:280px">
         <p-select
@@ -94,7 +44,7 @@ interface AsistenciaLocal {
           [showClear]="true"
           [filter]="true"
           filterPlaceholder="Buscar..."
-          [disabled]="!selectedGrupoId"
+          [disabled]="!ctx.grupo()?.id"
           styleClass="w-full"
         />
       </div>
@@ -163,11 +113,9 @@ interface AsistenciaLocal {
   `,
   styles: [`
     .page-header { margin-bottom: 1rem; }
-    .filter-bar { display: flex; gap: 0.75rem; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; }
-    .filter-select { min-width: 220px; }
   `],
 })
-export class AsistenciasComponent implements OnInit {
+export class AsistenciasComponent {
   private readonly api = inject(ApiService);
   readonly ctx = inject(ContextService);
   private readonly notify = inject(ApexNotificationService);
@@ -187,170 +135,25 @@ export class AsistenciasComponent implements OnInit {
   saving = signal(false);
   selectedClase: any = null;
 
-  plantelesOpts = signal<any[]>([]);
-  nivelesOpts = signal<any[]>([]);
-  gradosOpts = signal<any[]>([]);
-  gruposOpts = signal<any[]>([]);
-
-  selectedPlantelId: string | null = null;
-  selectedNivelId: string | null = null;
-  selectedGradoId: string | null = null;
-  selectedGrupoId: string | null = null;
-
-  readonly isPlantelDisabled = computed(() => this.ctx.nivelAcceso() > 2);
-  readonly isNivelDisabled = computed(() => this.ctx.nivelAcceso() > 3);
-
   constructor() {
-    // Sincronizar plantel desde el contexto global
+    // Recargar clases cuando cambia el grupo en el contexto global.
     effect(() => {
-      const p = this.ctx.plantel();
-      if (p?.id) {
-        this.selectedPlantelId = p.id;
-        this.onPlantelChange();
-      } else {
-        this.selectedPlantelId = null;
-        this.onPlantelChange();
+      const grupo = this.ctx.grupo();
+      this.selectedClase = null;
+      this.asistencias.set([]);
+      if (!grupo?.id) {
+        this.clases.set([]);
+        return;
       }
-    });
-
-    // Sincronizar nivel desde el contexto global
-    effect(() => {
-      const n = this.ctx.nivel();
-      if (n?.id) {
-        this.selectedNivelId = n.id;
-        this.onNivelChange();
-      } else {
-        this.selectedNivelId = null;
-        this.onNivelChange();
-      }
-    });
-
-    // Sincronizar grado desde el contexto global
-    effect(() => {
-      const g = this.ctx.grado();
-      if (g?.id) {
-        this.selectedGradoId = g.id;
-        this.onGradoChange();
-      } else {
-        this.selectedGradoId = null;
-        this.onGradoChange();
-      }
-    });
-
-    // Sincronizar grupo desde el contexto global
-    effect(() => {
-      const gp = this.ctx.grupo();
-      if (gp?.id) {
-        this.selectedGrupoId = gp.id;
-        this.onGrupoChange();
-      } else {
-        this.selectedGrupoId = null;
-        this.onGrupoChange();
-      }
-    });
-  }
-
-  ngOnInit(): void {
-    this.api.get<any[]>('/planteles').subscribe({
-      next: p => {
-        this.plantelesOpts.set(p);
-        const currentPlantel = this.ctx.plantel();
-        if (currentPlantel?.id) {
-          this.selectedPlantelId = currentPlantel.id;
-          this.onPlantelChange();
-        }
-      },
-      error: () => {}
-    });
-  }
-
-  onPlantelChange(): void {
-    this.selectedNivelId = null;
-    this.selectedGradoId = null;
-    this.selectedGrupoId = null;
-    this.selectedClase = null;
-    this.nivelesOpts.set([]);
-    this.gradosOpts.set([]);
-    this.gruposOpts.set([]);
-    this.clases.set([]);
-    this.asistencias.set([]);
-
-    if (!this.selectedPlantelId) return;
-
-    this.api.get<any[]>(`/planteles/${this.selectedPlantelId}/niveles`).subscribe({
-      next: ns => {
-        const mapped = ns.map(x => ({ id: x.id ?? x.nivel_id, nombre_nivel: x.nombre_nivel }));
-        this.nivelesOpts.set(mapped);
-        
-        const ctxNivel = this.ctx.nivel();
-        if (ctxNivel && mapped.some(n => n.id === ctxNivel.id)) {
-          this.selectedNivelId = ctxNivel.id;
-          this.onNivelChange();
-        }
-      },
-      error: () => {}
-    });
-  }
-
-  onNivelChange(): void {
-    this.selectedGradoId = null;
-    this.selectedGrupoId = null;
-    this.selectedClase = null;
-    this.gradosOpts.set([]);
-    this.gruposOpts.set([]);
-    this.clases.set([]);
-    this.asistencias.set([]);
-
-    if (!this.selectedNivelId) return;
-
-    this.api.get<any[]>(`/catalogs/grados`, { nivel_id: this.selectedNivelId, plantel_id: this.selectedPlantelId || undefined }).subscribe({
-      next: gs => {
-        this.gradosOpts.set(gs);
-      },
-      error: () => {}
-    });
-  }
-
-  onGradoChange(): void {
-    this.selectedGrupoId = null;
-    this.selectedClase = null;
-    this.gruposOpts.set([]);
-    this.clases.set([]);
-    this.asistencias.set([]);
-
-    if (!this.selectedGradoId) return;
-
-    const params: Record<string, any> = { solo_activos: true, ciclo_vigente: true };
-    if (this.selectedPlantelId) params['plantel_id'] = this.selectedPlantelId;
-    if (this.selectedGradoId) params['grado_id'] = this.selectedGradoId;
-    if (this.selectedNivelId) params['nivel_id'] = this.selectedNivelId;
-    const cicloId = this.ctx.ciclo()?.id;
-    if (cicloId) params['ciclo_escolar_id'] = cicloId;
-
-    this.api.get<any[]>('/grupos', params).subscribe({
-      next: gps => {
-        this.gruposOpts.set(gps.map(x => ({ ...x, _label: grupoLabel(x) })));
-      },
-      error: () => this.gruposOpts.set([])
-    });
-  }
-
-  onGrupoChange(): void {
-    this.selectedClase = null;
-    this.clases.set([]);
-    this.asistencias.set([]);
-
-    if (!this.selectedGrupoId) return;
-
-    this.api.get<any[]>('/clases', { grupo_id: this.selectedGrupoId, solo_activos: true }).subscribe({
-      next: c => {
-        const mapped = c.map(x => ({
-          ...x,
-          _label: `${x.materia_nombre || 'Materia'} (${x.fecha_clase} ${x.hora_inicio})`
-        }));
-        this.clases.set(mapped);
-      },
-      error: () => this.clases.set([])
+      this.api.get<any[]>('/clases', { grupo_id: grupo.id, solo_activos: true }).subscribe({
+        next: c => {
+          this.clases.set(c.map(x => ({
+            ...x,
+            _label: `${x.materia_nombre || 'Materia'} (${x.fecha_clase} ${x.hora_inicio})`
+          })));
+        },
+        error: () => this.clases.set([])
+      });
     });
   }
 
