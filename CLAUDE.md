@@ -1,5 +1,5 @@
 # ADES — Claude Code Guidelines
-# Versión: 2.2 | Actualizado: 2026-06-21
+# Versión: 2.3 | Actualizado: 2026-06-23
 
 ## MISIÓN Y CONTEXTO
 
@@ -34,22 +34,23 @@ Ver ADR-0011 para el plan de boleta NEM.
 | PostgreSQL 18 + pgvector | Corriendo healthy en localhost:5432 |
 | Valkey 9.1.0 | Corriendo healthy en localhost:6379 |
 | Authentik 2026.5.2 | Corriendo healthy en localhost:9010 |
-| MinIO | Corriendo healthy en localhost:9000-9001 |
-| nginx | Corriendo — pendiente configurar upstreams faltantes |
-| **BFF Spring Boot 3 (Java 21)** | Backend principal — ~50 módulos hexagonales |
-| **FastAPI (solo IA)** | Capa de agente/embeddings/insights — `backend/app/routers/agente.py` |
-| Frontend Angular 22 | Standalone components + signals + PrimeNG |
-| Superset 6.1.0 | Pendiente levantar |
-| Migraciones | 3 dígitos hasta **085** + date-based (`20260613_*`). Próxima 3-díg: 086 |
+| SeaweedFS | Corriendo healthy en localhost:9000 (S3) y 8888 (Filer) |
+| nginx | Corriendo — proxy reverso TLS y static files |
+| **BFF Spring Boot 3 (Java 21)** | Backend principal — 57 módulos hexagonales |
+| **FastAPI (IA + Render Docs)** | Capa de agente/embeddings/insights + generación PDF boletas |
+| Frontend Angular 22 | Standalone components + signals + PrimeNG (estilo APEX) |
+| Superset 6.1.0 | Levantado — pendiente configurar OIDC final |
+| Migraciones | 3 dígitos hasta **092** + date-based. Próxima 3-díg: 093 |
 | Regla ciclo escolar | 1 año vigente por sistema (SEP/UAEMEX). Mig 083: `sistema_educativo` + trigger `fn_ciclo_sistema_vigente` |
-| Biblioteca | Mig 084: `ades_biblioteca_libros` + `ades_biblioteca_prestamos`; módulo hexagonal `/api/v1/biblioteca` + feature `biblioteca`; 60 libros + 74 préstamos seeded |
-| Reporte 911 SEP | `/api/v1/reportes/911` (solo lectura) + feature `estadistica-911`; matriz edad×grado×sexo×ingreso + grupos + Sección IX discapacidad; SEP only |
-| Boleta NEM | Mig 085: `ades_materias.campo_formativo` (4 campos NEM). FastAPI (`tasks/boletas.py` + `templates/boletas/boleta.html`); escala 6-10, acreditó grado. PDF verificado. Ver ADR-0011 |
-| Boleta UAEMEX | FastAPI `/boletas/uaemex/{id}` → BFF proxy; template `boleta_uaemex.html` weasyprint; ordinario/extra/definitiva RGEMS; botón en kardex.component |
-| Kardex UAEMEX | `/api/v1/reportes/kardex/{id}` (Spring, solo lectura) + feature `kardex`; prepa CBU, escala 0-10 mín 6.0, ordinario→extraordinario→definitiva; cascada Plantel→Semestre→Grupo→Alumno |
-| Evaluación Docente 360° | `/api/v1/eval-docente` (Spring hexagonal); 4 tipos: DIRECTOR/COORDINADOR/PAR/AUTO; 7 criterios ponderados escala 1-5; KPI cards por tipo; ciclo_id opcional; 32 evaluaciones seeded (seed_009) |
-| NEM Fase 3 | `ades_config` + `ades_escalas_evaluacion`; evaluación cualitativa A/B/C/D para 1°-2° primaria; mig 089 |
-| Seguridad (2026-06-19/23) | HTTPS enforcement + security headers, rate limiting slowapi, IDOR fixes en expediente/carbone/certificados; 5 PRs mergeados en main |
+| Biblioteca | Mig 084: `ades_biblioteca_libros` + `ades_biblioteca_prestamos`; módulo hexagonal `/api/v1/biblioteca`; 60 libros + 74 préstamos seeded |
+| Reporte 911 SEP | `/api/v1/reportes/911` (Spring hexagonal); matriz edad×grado×sexo×ingreso + grupos + Sección IX discapacidad |
+| Boleta NEM | Mig 085: `ades_materias.campo_formativo` (4 campos NEM). FastAPI (`tasks/boletas.py` + Jinja `boleta.html`). Soporte numérico (6-10) y cualitativo |
+| Boleta UAEMEX | FastAPI `/boletas/uaemex/{id}` → BFF proxy; template `boleta_uaemex.html` weasyprint; ordinario/extra/definitiva RGEMS |
+| Kardex UAEMEX | `/api/v1/reportes/kardex/{id}` (Spring hexagonal); prepa CBU, escala 0-10 mín 6.0, ordinario→extraordinario→definitiva |
+| Evaluación Docente 360° | `/api/v1/eval-docente` (Spring hexagonal); 4 tipos (DIRECTOR/COORDINADOR/PAR/AUTO); 7 criterios ponderados |
+| NEM Fase 3 (Cualitativa) | Evaluación cualitativa A/B/C/D para 1°-2° de primaria. Mig 089. Configuración y carga en frontend + visualización en Boleta PDF. |
+| Seguridad (IDOR, HTTPS, Limiting) | 5 vulnerabilidades corregidas, HTTPSRedirectMiddleware, rate limiting slowapi, IDOR fixes |
+| Filtros en Cascada y Búsqueda | Filtro global en cascada Toolbar y inputs de búsqueda rápida integrados en todos los módulos clave |
 | LOV Global Fix | `overlayAppendTo: 'body'` en `providePrimeNG()` (app.config.ts) — todos los p-select dentro de p-dialog/p-drawer muestran correctamente |
 
 ---

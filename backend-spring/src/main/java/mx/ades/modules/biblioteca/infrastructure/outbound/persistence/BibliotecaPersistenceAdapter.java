@@ -40,7 +40,7 @@ public class BibliotecaPersistenceAdapter implements BibliotecaRepositoryPort {
         StringBuilder q = new StringBuilder(
                 "SELECT l.id, l.titulo, l.autor, l.isbn, l.editorial, l.anio_publicacion, " +
                 "l.categoria, l.ubicacion, l.plantel_id, " +
-                "pl.nombre AS plantel_nombre, " +
+                "pl.nombre_plantel AS plantel_nombre, " +
                 "l.ejemplares_total, l.ejemplares_disponibles, l.fecha_creacion " +
                 "FROM ades_biblioteca_libros l " +
                 "LEFT JOIN ades_planteles pl ON pl.id = l.plantel_id " +
@@ -84,7 +84,7 @@ public class BibliotecaPersistenceAdapter implements BibliotecaRepositoryPort {
         StringBuilder q = new StringBuilder(
                 "SELECT pr.id, pr.libro_id, l.titulo AS libro_titulo, " +
                 "pr.persona_id, p.nombre || ' ' || p.apellido_paterno AS persona_nombre, " +
-                "e.numero_control, pr.plantel_id, " +
+                "e.matricula AS numero_control, pr.plantel_id, " +
                 "pr.fecha_prestamo, pr.fecha_devolucion_esperada, pr.fecha_devolucion_real, " +
                 "pr.estatus, pr.observaciones, " +
                 "(pr.estatus = 'PRESTADO' AND pr.fecha_devolucion_esperada < CURRENT_DATE) AS vencido " +

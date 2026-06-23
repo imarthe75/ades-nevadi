@@ -16,7 +16,7 @@ public class CicloEscolar extends AdesBaseEntity {
     @Column(name = "nombre_ciclo", nullable = false)
     private String nombreCiclo;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "nivel_educativo_id", nullable = false)
     private NivelEducativo nivelEducativo;
 

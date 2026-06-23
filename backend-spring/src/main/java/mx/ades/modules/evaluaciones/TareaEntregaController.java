@@ -71,4 +71,39 @@ public class TareaEntregaController {
         service.registrarExcusa(entregaId, motivo);
         return ResponseEntity.ok(Map.of("message", "Excusa registrada"));
     }
+
+    @PostMapping("/{entrega_id}/plagio-check")
+    public ResponseEntity<Map<String, Object>> runPlagioCheck(
+            @PathVariable("entrega_id") UUID entregaId) {
+        return ResponseEntity.ok(service.checkPlagio(entregaId));
+    }
+
+    @PostMapping("/{entrega_id}/feedback-multimedia")
+    public ResponseEntity<Map<String, Object>> subirFeedbackMultimedia(
+            @PathVariable("entrega_id") UUID entregaId,
+            @RequestParam(value = "audio", required = false) MultipartFile audio,
+            @RequestParam(value = "video", required = false) MultipartFile video) {
+        return ResponseEntity.ok(service.subirFeedbackMultimedia(entregaId, audio, video));
+    }
+
+    @GetMapping("/media")
+    public ResponseEntity<byte[]> getMedia(@RequestParam("url") String minioUrl) {
+        byte[] bytes = service.descargarArchivo(minioUrl);
+        if (bytes == null) {
+            return ResponseEntity.notFound().build();
+        }
+        
+        String contentType = "application/octet-stream";
+        if (minioUrl.endsWith(".mp3")) contentType = "audio/mpeg";
+        else if (minioUrl.endsWith(".wav")) contentType = "audio/wav";
+        else if (minioUrl.endsWith(".mp4")) contentType = "video/mp4";
+        else if (minioUrl.endsWith(".webm")) contentType = "video/webm";
+        else if (minioUrl.endsWith(".pdf")) contentType = "application/pdf";
+        else if (minioUrl.endsWith(".png")) contentType = "image/png";
+        else if (minioUrl.endsWith(".jpg") || minioUrl.endsWith(".jpeg")) contentType = "image/jpeg";
+
+        return ResponseEntity.ok()
+                .contentType(org.springframework.http.MediaType.parseMediaType(contentType))
+                .body(bytes);
+    }
 }

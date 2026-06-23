@@ -234,4 +234,93 @@ public class StatsQueryService {
         }
         return colas;
     }
+
+    public Map<String, Object> directorKPIs(UUID plantelId) {
+        String kpisSql = """
+            SELECT
+                COALESCE(SUM(total_alumnos), 0) AS total_alumnos,
+                COALESCE(SUM(total_grupos), 0) AS total_grupos,
+                COALESCE(ROUND(AVG(promedio_institucional), 2), 0) AS promedio_general,
+                COALESCE(ROUND(AVG(pct_riesgo_alto), 2), 0) AS pct_riesgo_alto
+            FROM ades_bi.mv_resumen_plantel
+            WHERE :plantelId::text IS NULL OR plantel_id = :plantelId::uuid
+            """;
+
+        String asistenciaSql = """
+            SELECT
+                COALESCE(ROUND(AVG(pct_asistencia), 2), 0) AS pct_asistencia
+            FROM ades_bi.mv_asistencia_mensual
+            WHERE :plantelId::text IS NULL OR plantel_id = :plantelId::uuid
+            """;
+
+        String coberturaSql = """
+            SELECT
+                COALESCE(ROUND(AVG(pct_cobertura), 2), 0) AS pct_cobertura
+            FROM ades_bi.mv_cobertura_curricular cc
+            WHERE :plantelId::text IS NULL OR cc.nombre_plantel IN (
+                SELECT nombre_plantel FROM ades_planteles WHERE id = :plantelId::uuid
+            )
+            """;
+
+        var params = new MapSqlParameterSource();
+        params.addValue("plantelId", plantelId != null ? plantelId.toString() : null, java.sql.Types.VARCHAR);
+
+        try {
+            Map<String, Object> kpis = namedJdbc.queryForMap(kpisSql, params);
+            Map<String, Object> attendance = namedJdbc.queryForMap(asistenciaSql, params);
+            Map<String, Object> coverage = namedJdbc.queryForMap(coberturaSql, params);
+
+            Map<String, Object> result = new HashMap<>(kpis);
+            result.putAll(attendance);
+            result.putAll(coverage);
+            return result;
+        } catch (Exception e) {
+            return Map.of("error", e.getMessage());
+        }
+    }
+
+    public List<Map<String, Object>> directorAvanceGrado(UUID plantelId) {
+        String sql = """
+            SELECT
+                nombre_grado AS grado,
+                ROUND(AVG(promedio)::numeric, 2) AS promedio_grado,
+                ROUND(AVG(aprobados * 100.0 / NULLIF(alumnos_evaluados, 0))::numeric, 2) AS pct_aprobacion
+            FROM ades_bi.mv_calificaciones_grupo cg
+            WHERE :plantelId::text IS NULL OR cg.nombre_plantel IN (
+                SELECT nombre_plantel FROM ades_planteles WHERE id = :plantelId::uuid
+            )
+            GROUP BY nombre_grado
+            ORDER BY nombre_grado
+            """;
+        var params = new MapSqlParameterSource();
+        params.addValue("plantelId", plantelId != null ? plantelId.toString() : null, java.sql.Types.VARCHAR);
+        try {
+            return namedJdbc.queryForList(sql, params);
+        } catch (Exception e) {
+            return List.of(Map.of("error", e.getMessage()));
+        }
+    }
+
+    public List<Map<String, Object>> directorAvanceAsignatura(UUID plantelId) {
+        String sql = """
+            SELECT
+                nombre_materia AS asignatura,
+                ROUND(AVG(promedio)::numeric, 2) AS promedio_asignatura,
+                ROUND(AVG(aprobados * 100.0 / NULLIF(alumnos_evaluados, 0))::numeric, 2) AS pct_aprobacion
+            FROM ades_bi.mv_calificaciones_grupo cg
+            WHERE :plantelId::text IS NULL OR cg.nombre_plantel IN (
+                SELECT nombre_plantel FROM ades_planteles WHERE id = :plantelId::uuid
+            )
+            GROUP BY nombre_materia
+            ORDER BY promedio_asignatura DESC
+            LIMIT 15
+            """;
+        var params = new MapSqlParameterSource();
+        params.addValue("plantelId", plantelId != null ? plantelId.toString() : null, java.sql.Types.VARCHAR);
+        try {
+            return namedJdbc.queryForList(sql, params);
+        } catch (Exception e) {
+            return List.of(Map.of("error", e.getMessage()));
+        }
+    }
 }

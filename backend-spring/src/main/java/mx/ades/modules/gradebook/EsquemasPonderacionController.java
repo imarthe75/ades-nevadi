@@ -47,6 +47,7 @@ public class EsquemasPonderacionController {
         private LocalDate vigenteDesde;
         private LocalDate vigenteHasta;
         private List<ItemIn> items;
+        private Boolean esNee = false;
     }
 
     private List<ItemPonderacion> toItems(List<ItemIn> in) {
@@ -91,7 +92,7 @@ public class EsquemasPonderacionController {
             cmd = new CrearEsquemaUseCase.Command(
                     body.getNombre(), body.getNivelEducativoId(), body.getMateriaId(),
                     body.getVigenteDesde(), body.getVigenteHasta(), items,
-                    user.getId(), user.getUsername());
+                    user.getId(), user.getUsername(), body.getEsNee());
         } catch (IllegalArgumentException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
         }
@@ -117,7 +118,7 @@ public class EsquemasPonderacionController {
         try {
             cmd = new ActualizarEsquemaUseCase.Command(
                     esquemaId, body.getNombre(), body.getNivelEducativoId(), body.getMateriaId(),
-                    body.getVigenteDesde(), body.getVigenteHasta(), items, user.getUsername());
+                    body.getVigenteDesde(), body.getVigenteHasta(), items, user.getUsername(), body.getEsNee());
         } catch (IllegalArgumentException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
         }

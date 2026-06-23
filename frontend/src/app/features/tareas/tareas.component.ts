@@ -106,14 +106,35 @@ import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/
                   <p-tag value="Vencida" severity="danger" style="margin-left:4px" />
                 }
               </td>
-              <td>
-                @if (e.calificacion_obtenida != null) {
-                  <strong>{{ e.calificacion_obtenida }}</strong>
-                  @if (e.comentario_profesor) {
-                    <span style="font-size:.8rem;color:var(--text-muted);display:block">{{ e.comentario_profesor }}</span>
-                  }
-                } @else { — }
-              </td>
+               <td>
+                 @if (e.calificacion_obtenida != null) {
+                   <strong>{{ e.calificacion_obtenida }}</strong>
+                   @if (e.comentario_profesor) {
+                     <span style="font-size:.8rem;color:var(--text-muted);display:block">{{ e.comentario_profesor }}</span>
+                   }
+                   @if (e.plagio_porcentaje !== undefined && e.plagio_porcentaje !== null) {
+                     <div style="margin-top:4px; font-size:.75rem; color:#b45309; display:flex; align-items:center; gap:4px;">
+                       <span style="font-weight:600">Plagio:</span>
+                       <p-tag [value]="e.plagio_porcentaje + '%'" [severity]="plagioSeverity(e.plagio_porcentaje)" styleClass="scale-75"></p-tag>
+                       @if (e.plagio_reporte_url) {
+                         · <a [href]="e.plagio_reporte_url" target="_blank" style="text-decoration:underline;">Reporte</a>
+                       }
+                     </div>
+                   }
+                   @if (e.feedback_audio_url) {
+                     <div style="margin-top:6px;">
+                       <span style="font-size:.75rem; display:block; color:#166534; font-weight:600;"><i class="pi pi-volume-up"></i> Retroalimentación de audio:</span>
+                       <audio [src]="mediaUrl(e.feedback_audio_url)" controls style="width: 100%; max-width: 220px; height: 32px; margin-top:2px;"></audio>
+                     </div>
+                   }
+                   @if (e.feedback_video_url) {
+                     <div style="margin-top:6px;">
+                       <span style="font-size:.75rem; display:block; color:#166534; font-weight:600;"><i class="pi pi-video"></i> Retroalimentación de video:</span>
+                       <video [src]="mediaUrl(e.feedback_video_url)" controls style="width: 100%; max-width: 220px; height: 120px; margin-top:2px; border-radius:4px; border:1px solid #bbf7d0;"></video>
+                     </div>
+                   }
+                 } @else { — }
+               </td>
               <td>
                 @if (e.estatus_entrega === 'PENDIENTE') {
                   <p-button label="Subir archivo" icon="pi pi-upload" size="small"
@@ -250,6 +271,65 @@ import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/
             <textarea pTextarea [(ngModel)]="calificarForm.comentario" rows="3"
                       placeholder="Retroalimentación para el alumno..."
                       style="width:100%;resize:vertical"></textarea>
+          </div>
+
+          @if (calificarEntrega()?.archivo_url) {
+            <div style="padding:10px; background:#f3f4f6; border-radius:6px; border:1px solid #e5e7eb; display:flex; flex-direction:column; gap:8px;">
+              <div style="font-weight:600; font-size:.85rem; display:flex; align-items:center; gap:6px;">
+                <i class="pi pi-shield" style="color:#0284c7"></i> Detección de Plagio (Turnitin)
+              </div>
+              @if (calificarEntrega()?.plagio_porcentaje !== undefined && calificarEntrega()?.plagio_porcentaje !== null) {
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                  <span style="font-size:.85rem">Similitud encontrada:</span>
+                  <p-tag [value]="calificarEntrega().plagio_porcentaje + '%'" [severity]="plagioSeverity(calificarEntrega().plagio_porcentaje)"></p-tag>
+                </div>
+                @if (calificarEntrega()?.plagio_reporte_url) {
+                  <a [href]="calificarEntrega().plagio_reporte_url" target="_blank" style="font-size:.8rem; color:#0284c7; text-decoration:underline;">
+                    Ver reporte de originalidad
+                  </a>
+                }
+              } @else {
+                <p-button label="Escanear con Turnitin" icon="pi pi-refresh" size="small" [loading]="escaneandoPlagio()" (onClick)="escanearPlagio()"></p-button>
+              }
+            </div>
+          }
+
+          <div style="padding:10px; background:#f0fdf4; border-radius:6px; border:1px solid #bbf7d0; display:flex; flex-direction:column; gap:8px;">
+            <div style="font-weight:600; font-size:.85rem; display:flex; align-items:center; gap:6px; color:#166534;">
+              <i class="pi pi-volume-up"></i> Retroalimentación Multimedia
+            </div>
+            
+            <div style="display:flex; flex-direction:column; gap:6px;">
+              <div>
+                <label class="dlg-lbl" style="font-size:.75rem">Audio de retroalimentación (.mp3, .wav)</label>
+                <input type="file" accept="audio/*" (change)="onAudioSelected($event)" style="font-size:.8rem" />
+              </div>
+              <div>
+                <label class="dlg-lbl" style="font-size:.75rem">Video de retroalimentación (.mp4, .webm)</label>
+                <input type="file" accept="video/*" (change)="onVideoSelected($event)" style="font-size:.8rem" />
+              </div>
+            </div>
+
+            @if (audioFileForFeedback || videoFileForFeedback) {
+              <p-button label="Subir Multimedia" icon="pi pi-upload" severity="success" size="small"
+                        [loading]="subiendoMultimedia()" (onClick)="guardarMultimedia()"></p-button>
+            }
+
+            @if (calificarEntrega()?.feedback_audio_url || calificarEntrega()?.feedback_video_url) {
+              <div style="margin-top:6px; border-top:1px solid #dcfce7; padding-top:6px; display:flex; flex-direction:column; gap:4px; font-size:.8rem;">
+                <span style="font-weight:600; color:#166534">Feedback guardado:</span>
+                @if (calificarEntrega()?.feedback_audio_url) {
+                  <div style="display:flex; align-items:center; gap:4px;">
+                    <i class="pi pi-play" style="color:#166534"></i> Audio cargado
+                  </div>
+                }
+                @if (calificarEntrega()?.feedback_video_url) {
+                  <div style="display:flex; align-items:center; gap:4px;">
+                    <i class="pi pi-video" style="color:#166534"></i> Video cargado
+                  </div>
+                }
+              </div>
+            }
           </div>
           <div style="display:flex;gap:8px">
             <p-button label="Calificar" icon="pi pi-check" severity="success"
@@ -471,9 +551,18 @@ export class TareasComponent implements OnInit {
   }
 
   // ── Calificar (docente) ─────────────────────────────────────────────────────
+  escaneandoPlagio = signal(false);
+  subiendoMultimedia = signal(false);
+  audioFileForFeedback: File | null = null;
+  videoFileForFeedback: File | null = null;
+
   abrirCalificar(entrega: any): void {
     this.calificarEntrega.set(entrega);
-    this.calificarForm = { calificacion: 0, comentario: '' };
+    this.calificarForm = { calificacion: entrega.calificacion_obtenida ?? 0, comentario: entrega.comentario_profesor ?? '' };
+    this.audioFileForFeedback = null;
+    this.videoFileForFeedback = null;
+    this.escaneandoPlagio.set(false);
+    this.subiendoMultimedia.set(false);
     this.calificarVisible = true;
   }
 
@@ -511,6 +600,69 @@ export class TareasComponent implements OnInit {
   }
 
   // ── Helpers ─────────────────────────────────────────────────────────────────
+  plagioSeverity(score: number): 'success' | 'warn' | 'danger' {
+    if (score < 15) return 'success';
+    if (score < 30) return 'warn';
+    return 'danger';
+  }
+
+  escanearPlagio(): void {
+    const e = this.calificarEntrega();
+    if (!e) return;
+    this.escaneandoPlagio.set(true);
+    this.api.post<any>(`/entregas/${e.id}/plagio-check`, {}).subscribe({
+      next: (res) => {
+        this.escaneandoPlagio.set(false);
+        this.notify.success('Plagio escaneado', `${res.plagio_porcentaje}% similitud`);
+        e.plagio_porcentaje = res.plagio_porcentaje;
+        e.plagio_reporte_url = res.plagio_reporte_url;
+      },
+      error: (err) => {
+        this.escaneandoPlagio.set(false);
+        this.notify.error('Error', err?.error?.detail ?? 'No se pudo escanear');
+      }
+    });
+  }
+
+  onAudioSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.audioFileForFeedback = input.files?.[0] ?? null;
+  }
+
+  onVideoSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.videoFileForFeedback = input.files?.[0] ?? null;
+  }
+
+  guardarMultimedia(): void {
+    const e = this.calificarEntrega();
+    if (!e) return;
+    this.subiendoMultimedia.set(true);
+    const fd = new FormData();
+    if (this.audioFileForFeedback) fd.append('audio', this.audioFileForFeedback, this.audioFileForFeedback.name);
+    if (this.videoFileForFeedback) fd.append('video', this.videoFileForFeedback, this.videoFileForFeedback.name);
+    
+    this.api.postForm<any>(`/entregas/${e.id}/feedback-multimedia`, fd).subscribe({
+      next: (res: any) => {
+        this.subiendoMultimedia.set(false);
+        this.notify.success('Multimedia guardada', e.alumno_nombre);
+        e.feedback_audio_url = res.feedback_audio_url;
+        e.feedback_video_url = res.feedback_video_url;
+        this.audioFileForFeedback = null;
+        this.videoFileForFeedback = null;
+      },
+      error: (err) => {
+        this.subiendoMultimedia.set(false);
+        this.notify.error('Error', err?.error?.detail ?? 'No se pudo guardar la multimedia');
+      }
+    });
+  }
+
+  mediaUrl(minioUrl: string): string {
+    if (!minioUrl) return '';
+    return `/api/v1/entregas/media?url=${encodeURIComponent(minioUrl)}`;
+  }
+
   estatusLabel(s: string): string {
     const map: Record<string, string> = {
       PENDIENTE: 'Pendiente', ENTREGADA: 'Entregado',

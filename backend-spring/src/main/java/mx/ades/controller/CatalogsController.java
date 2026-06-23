@@ -35,7 +35,11 @@ public class CatalogsController {
 
     @GetMapping("/ciclos")
     public ResponseEntity<List<CicloEscolar>> ciclos(
-            @RequestParam(name = "solo_vigentes", required = false, defaultValue = "false") boolean soloVigentes) {
+            @RequestParam(name = "solo_vigentes", required = false, defaultValue = "false") boolean soloVigentes,
+            @RequestParam(name = "nivel_id", required = false) UUID nivelId) {
+        if (soloVigentes && nivelId != null) {
+            return ResponseEntity.ok(catalogPort.findCiclosVigentesByNivel(nivelId));
+        }
         return ResponseEntity.ok(soloVigentes
                 ? catalogPort.findCiclosVigentes()
                 : catalogPort.findAllCiclos());

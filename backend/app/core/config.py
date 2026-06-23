@@ -34,6 +34,7 @@ class Settings(BaseSettings):
     ENVIRONMENT: Literal["development", "production"] = "development"
     LOG_LEVEL: str = "info"
     API_V1_PREFIX: str = "/api/v1"
+    BASE_URL: str = "https://ades.setag.mx"
 
     # Base de datos
     DATABASE_URL: str

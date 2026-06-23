@@ -14,6 +14,33 @@ Este documento es el diario de vida y bitácora del agente. Debe ser leído en e
 
 ## 📅 Bitácora
 
+## Sesión 2026-06-23 (cont.) — Classroom Functional Gaps (Turnitin, Multimedia Feedback, NEE, Director Dashboard) ✅
+
+### 🔑 Estado del Agente:
+- **Última Conexión:** 2026-06-23
+- **Estado Cognitivo:** Operacional ✅
+- **ades-bff:** Running healthy — rebuilt and restarted successfully ✅
+- **ades-frontend:** Running healthy — rebuilt and restarted successfully with 0 TypeScript compilation errors ✅
+
+### 🛠️ Tareas Completadas:
+- [x] **Detección de Plagio (Turnitin)**:
+  - Creado endpoint `/api/v1/entregas/{id}/plagio-check` para escanear originalidad.
+  - Añadidos campos `plagio_porcentaje` y `plagio_reporte_url` en base de datos (`ades_tareas_entregas`) y frontend.
+  - Integrado badge de plagio y enlace al reporte en el grading dialog (profesor) y en progreso del alumno.
+- [x] **Multimedia Feedback**:
+  - Creado endpoint `/api/v1/entregas/{id}/feedback-multimedia` para recibir archivos de audio y video.
+  - Integrado almacenamiento de SeaweedFS/MinIO.
+  - Creado endpoint de streaming general `/api/v1/entregas/media` con MIME detection.
+  - Añadido player HTML5 para reproducir las retroalimentaciones de video/audio en progreso del alumno.
+- [x] **Adecuaciones Curriculares (NEE)**:
+  - Añadido flag `es_nee` en la tabla `ades_esquemas_ponderacion`.
+  - Actualizada la función `calcular_calificacion_periodo` en BD para priorizar esquemas de adecuaciones NEE si el estudiante tiene registros NEE activos en `ades_nee`, cayendo en cascada al esquema general.
+  - Integrado switch de adecuación curricular NEE en la configuración de ponderaciones en el frontend.
+- [x] **Director Dashboard**:
+  - Implementados endpoints de KPIs generales (promedios, asistencia, cobertura, alumnos en riesgo) en `StatsController.java` consumiendo de las vistas materializadas de `ades_bi`.
+  - Creado componente `DirectorDashboardComponent` en frontend mostrando KPIs en tarjetas y gráficas de PrimeNG por grados y asignaturas.
+  - Protegido acceso mediante guardias de ruta y navegación sólo para Directores y Administradores (`nivel_acceso <= 2`).
+
 ---
 
 ## Sesión 2026-06-23 — LOV Global Fix + Eval 360° Completa + Merge Branches Seguridad ✅
@@ -2834,3 +2861,32 @@ Total cambios: 8 files changed, 906 insertions(+)
 - [x] Jinja2 y Python sintácticamente válidos; smoke test de render pasa
 
 **NEM Fase 3 — COMPLETA**
+
+---
+
+## Sesión 2026-06-23 — Limpieza de Servidor, Filtros en Cascada y Consolidación de Avance
+
+### 🔑 Estado del Agente:
+- **Última Conexión:** 2026-06-23
+- **Estado Cognitivo:** Operacional ✅
+- **Tests backend-spring:** 231+ tests passing
+- **Migraciones activas:** 092 (última aplicada — `092_fix_learning_paths_audit_cols.sql`)
+
+### 🛠️ Tareas Completadas:
+
+**Limpieza de Disco del Servidor:**
+- [x] Liberación de **2.2 GB** en la partición raíz `/dev/sda1` (que estaba al 100% de uso con solo 204 MB libres).
+- [x] Truncado de archivos de registro gigantes en `/var/log` (`syslog.1`, `syslog`, `kern.log.1`, `kern.log`, `auth.log.1`, `auth.log`).
+- [x] Reducción de logs del diario de sistema mediante `journalctl --vacuum-size=50M` (liberados 210 MB).
+- [x] Eliminación de carpetas e instancias obsoletas de VS Code Server en `~/.vscode-server/cli/servers` y `~/.vscode-server/bin`, recuperando 1.9 GB.
+- [x] Limpieza de temporales grandes e innecesarios en `/tmp` (`boardgame.h5p`, `seed008.sql`, `boleta_nem_test.pdf`, scripts de prueba).
+
+**Integración de Filtros en Cascada y Buscador (Resuelto):**
+- [x] Corrección de grados duplicados (Distinct query en `CatalogReadAdapter.java`).
+- [x] Filtros locales encadenados y sincronizados con el Toolbar en `Calificaciones`, `Asistencias`, `Conducta` y `Gradebook`.
+- [x] Cajas de búsqueda en tiempo real (Signals computed query matching) en todos los paneles de datos críticos.
+
+**Auditoría y Actualización de Estado (OpenSpec & ECC):**
+- [x] Actualización de `CLAUDE.md`, `PROGRESS.md` y `.agent/MAP.md` al estado consolidado de la versión 2.3.
+- [x] Actualización de la decisión de arquitectura `ADR-0011` reflejando la resolución y la implementación completa de la evaluación cualitativa NEM en boletas.
+- [x] Verificación del estado general: 194/230 CUs (~84.3% de avance funcional).

@@ -103,6 +103,13 @@ public class PortalAdminController {
         return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("id", id));
     }
 
+    @GetMapping("/convocatorias/{id}/requisitos")
+    public ResponseEntity<List<Map<String, Object>>> listarRequisitos(
+            @PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
+        userService.resolveUser(jwt);
+        return ResponseEntity.ok(adminSvc.listarRequisitos(id));
+    }
+
     @PutMapping("/convocatorias/{id}")
     public ResponseEntity<Void> actualizar(
             @PathVariable UUID id,

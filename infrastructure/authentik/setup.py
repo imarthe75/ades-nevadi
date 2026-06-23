@@ -63,7 +63,9 @@ def scope_pks():
 def upsert_provider(name, payload):
     existing = first("/providers/oauth2/", name=name)
     if existing:
-        print(f"  provider '{name}' ya existe (pk={existing['pk']})")
+        print(f"  provider '{name}' ya existe (pk={existing['pk']}), actualizando...")
+        payload["client_secret"] = existing.get("client_secret", payload["client_secret"])
+        api("PATCH", f"/providers/oauth2/{existing['pk']}/", payload)
         return existing["pk"], existing.get("client_secret", "")
     r = api("POST", "/providers/oauth2/", payload)
     print(f"  provider '{name}' creado  (pk={r['pk']})")
@@ -162,6 +164,8 @@ superset_pk, superset_secret = upsert_provider("superset", {
     "client_id":     "superset",
     "redirect_uris": [
         {"url": "https://bi.ades.setag.mx/oauth-authorized/authentik",
+         "matching_mode": "strict"},
+        {"url": "https://bi.ades.setag.mx/oauth-authorized/oidc",
          "matching_mode": "strict"},
     ],
 })

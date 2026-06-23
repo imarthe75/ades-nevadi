@@ -63,6 +63,8 @@ export const routes: Routes = [
       { path: 'ponderacion-config', canActivate: [roleGuard(3)], loadComponent: () => import('./features/ponderacion-config/ponderacion-config.component').then(m => m.PonderacionConfigComponent) },
       // ── FASE 16 — BI Dashboards Superset ────────────────────────────────
       { path: 'bi', canActivate: [roleGuard(3)], loadComponent: () => import('./features/bi/bi.component').then(m => m.BiComponent) },
+      // ── OA-013 — Director Dashboard ──────────────────────────────────────
+      { path: 'director-dashboard', canActivate: [roleGuard(2)], loadComponent: () => import('./features/director-dashboard/director-dashboard.component').then(m => m.DirectorDashboardComponent) },
       // ── FASE 18 — Generador de Reportes (Carbone) ───────────────────────
       { path: 'reportes', canActivate: [roleGuard(3)], loadComponent: () => import('./features/reportes/reportes.component').then(m => m.ReportesComponent) },
       // ── FASE 22 — Monitor del sistema (Grafana + Prometheus) ─────────────

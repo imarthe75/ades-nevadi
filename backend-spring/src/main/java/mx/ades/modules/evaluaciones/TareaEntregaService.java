@@ -20,21 +20,23 @@ public class TareaEntregaService {
     @Transactional(readOnly = true)
     public List<Map<String, Object>> getEntregasDelAlumno(UUID alumnoId, UUID periodoId, UUID materiaId, Boolean soloPendientes) {
         String query = """
-            SELECT te.id, te.tarea_id, te.estatus_entrega,
-                   te.fecha_entrega, te.es_tarde,
-                   te.calificacion_obtenida, te.comentario_profesor,
-                   te.archivo_url,
-                   te.fecha_calificacion_docente,
-                   t.titulo, t.tipo_item, t.fecha_entrega AS fecha_limite,
-                   t.puntaje_maximo,
-                   m.nombre_materia,
-                   pe.nombre_periodo,
-                   (t.fecha_entrega < CURRENT_DATE AND te.estatus_entrega = 'PENDIENTE') AS vencida
-              FROM ades_tareas_entregas te
-              JOIN ades_tareas t ON t.id = te.tarea_id
-              JOIN ades_materias m ON m.id = t.materia_id
-              LEFT JOIN ades_periodos_evaluacion pe ON pe.id = t.periodo_evaluacion_id
-             WHERE te.estudiante_id = ?::uuid AND te.is_active = TRUE
+             SELECT te.id, te.tarea_id, te.estatus_entrega,
+                    te.fecha_entrega, te.es_tarde,
+                    te.calificacion_obtenida, te.comentario_profesor,
+                    te.archivo_url,
+                    te.fecha_calificacion_docente,
+                    te.plagio_porcentaje, te.plagio_reporte_url,
+                    te.feedback_audio_url, te.feedback_video_url,
+                    t.titulo, t.tipo_item, t.fecha_entrega AS fecha_limite,
+                    t.puntaje_maximo,
+                    m.nombre_materia,
+                    pe.nombre_periodo,
+                    (t.fecha_entrega < CURRENT_DATE AND te.estatus_entrega = 'PENDIENTE') AS vencida
+               FROM ades_tareas_entregas te
+               JOIN ades_tareas t ON t.id = te.tarea_id
+               JOIN ades_materias m ON m.id = t.materia_id
+               LEFT JOIN ades_periodos_evaluacion pe ON pe.id = t.periodo_evaluacion_id
+              WHERE te.estudiante_id = ?::uuid AND te.is_active = TRUE
         """;
 
         List<Object> params = new ArrayList<>();
@@ -60,19 +62,21 @@ public class TareaEntregaService {
     @Transactional(readOnly = true)
     public List<Map<String, Object>> getPendientesDelGrupo(UUID grupoId, UUID materiaId) {
         String query = """
-            SELECT te.id, te.estudiante_id, te.estatus_entrega,
-                   te.fecha_entrega, te.archivo_url, te.comentario_alumno,
-                   t.titulo, t.tipo_item, t.fecha_entrega AS fecha_limite,
-                   t.id AS actividad_id,
-                   m.nombre_materia,
-                   p.nombre || ' ' || p.apellido_paterno AS alumno_nombre,
-                   est.numero_matricula
-              FROM ades_tareas_entregas te
-              JOIN ades_tareas t ON t.id = te.tarea_id
-              JOIN ades_materias m ON m.id = t.materia_id
-              JOIN ades_estudiantes est ON est.id = te.estudiante_id
-              JOIN ades_personas p ON p.id = est.persona_id
-             WHERE t.grupo_id = ?::uuid AND te.estatus_entrega = 'ENTREGADA' AND te.is_active = TRUE
+             SELECT te.id, te.estudiante_id, te.estatus_entrega,
+                    te.fecha_entrega, te.archivo_url, te.comentario_alumno,
+                    te.plagio_porcentaje, te.plagio_reporte_url,
+                    te.feedback_audio_url, te.feedback_video_url,
+                    t.titulo, t.tipo_item, t.fecha_entrega AS fecha_limite,
+                    t.id AS actividad_id,
+                    m.nombre_materia,
+                    p.nombre || ' ' || p.apellido_paterno AS alumno_nombre,
+                    est.numero_matricula
+               FROM ades_tareas_entregas te
+               JOIN ades_tareas t ON t.id = te.tarea_id
+               JOIN ades_materias m ON m.id = t.materia_id
+               JOIN ades_estudiantes est ON est.id = te.estudiante_id
+               JOIN ades_personas p ON p.id = est.persona_id
+              WHERE t.grupo_id = ?::uuid AND te.estatus_entrega = 'ENTREGADA' AND te.is_active = TRUE
         """;
 
         List<Object> params = new ArrayList<>();
@@ -147,5 +151,85 @@ public class TareaEntregaService {
              WHERE id = ?::uuid
         """;
         jdbcTemplate.update(sql, motivo, entregaId.toString());
+    }
+
+    @Transactional
+    public Map<String, Object> checkPlagio(UUID entregaId) {
+        String fetchSql = "SELECT archivo_url FROM ades_tareas_entregas WHERE id = ?::uuid AND is_active = TRUE";
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList(fetchSql, entregaId.toString());
+        if (rows.isEmpty()) {
+            throw new NoSuchElementException("Entrega no encontrada");
+        }
+        Map<String, Object> row = rows.get(0);
+        String archivoUrl = (String) row.get("archivo_url");
+        if (archivoUrl == null || archivoUrl.isBlank()) {
+            throw new IllegalArgumentException("No hay archivo entregado para escanear");
+        }
+
+        double pct = 5.0 + Math.random() * 35.0; // 5% - 40% similarity
+        BigDecimal plagioPct = BigDecimal.valueOf(Math.round(pct * 100.0) / 100.0);
+        String reportUrl = "https://turnitin.mock/reports/" + UUID.randomUUID();
+
+        String updateSql = """
+            UPDATE ades_tareas_entregas
+               SET plagio_porcentaje = ?,
+                   plagio_reporte_url = ?,
+                   fecha_modificacion = now(),
+                   row_version = row_version + 1
+             WHERE id = ?::uuid
+        """;
+        jdbcTemplate.update(updateSql, plagioPct, reportUrl, entregaId.toString());
+
+        Map<String, Object> res = new HashMap<>();
+        res.put("plagio_porcentaje", plagioPct);
+        res.put("plagio_reporte_url", reportUrl);
+        return res;
+    }
+
+    @Transactional
+    public Map<String, Object> subirFeedbackMultimedia(UUID entregaId, MultipartFile audioFile, MultipartFile videoFile) {
+        String fetchSql = "SELECT tarea_id, estudiante_id FROM ades_tareas_entregas WHERE id = ?::uuid AND is_active = TRUE";
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList(fetchSql, entregaId.toString());
+        if (rows.isEmpty()) {
+            throw new NoSuchElementException("Entrega no encontrada");
+        }
+        Map<String, Object> row = rows.get(0);
+        UUID tareaId = UUID.fromString(row.get("tarea_id").toString());
+        UUID estudianteId = UUID.fromString(row.get("estudiante_id").toString());
+
+        String audioUrl = null;
+        if (audioFile != null && !audioFile.isEmpty()) {
+            audioUrl = minioService.uploadFile(tareaId, estudianteId, audioFile);
+        }
+
+        String videoUrl = null;
+        if (videoFile != null && !videoFile.isEmpty()) {
+            videoUrl = minioService.uploadFile(tareaId, estudianteId, videoFile);
+        }
+
+        StringBuilder sql = new StringBuilder("UPDATE ades_tareas_entregas SET ");
+        List<Object> params = new ArrayList<>();
+        if (audioUrl != null) {
+            sql.append("feedback_audio_url = ?, ");
+            params.add(audioUrl);
+        }
+        if (videoUrl != null) {
+            sql.append("feedback_video_url = ?, ");
+            params.add(videoUrl);
+        }
+        sql.delete(sql.length() - 2, sql.length()); // remove trailing comma and space
+        sql.append(" , fecha_modificacion = now(), row_version = row_version + 1 WHERE id = ?::uuid");
+        params.add(entregaId.toString());
+
+        jdbcTemplate.update(sql.toString(), params.toArray());
+
+        Map<String, Object> res = new HashMap<>();
+        res.put("feedback_audio_url", audioUrl);
+        res.put("feedback_video_url", videoUrl);
+        return res;
+    }
+
+    public byte[] descargarArchivo(String minioUrl) {
+        return minioService.downloadFile(minioUrl);
     }
 }

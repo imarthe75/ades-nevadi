@@ -85,4 +85,27 @@ public class MinioService {
             throw new RuntimeException("Error subiendo archivo a MinIO: " + e.getMessage(), e);
         }
     }
+
+    public byte[] downloadFile(String minioUrl) {
+        if (minioUrl == null || !minioUrl.startsWith("minio://")) {
+            return null;
+        }
+        try {
+            String path = minioUrl.substring("minio://".length());
+            int slash = path.indexOf('/');
+            if (slash == -1) return null;
+            String bucket = path.substring(0, slash);
+            String objectKey = path.substring(slash + 1);
+
+            try (InputStream is = minioClient.getObject(io.minio.GetObjectArgs.builder()
+                    .bucket(bucket)
+                    .object(objectKey)
+                    .build())) {
+                return is.readAllBytes();
+            }
+        } catch (Exception e) {
+            log.error("Error downloading file from MinIO: {}", e.getMessage(), e);
+            return null;
+        }
+    }
 }

@@ -14,7 +14,7 @@ import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/
 interface NivelOpt  { id: string; nombre_nivel: string; escala_maxima: number; }
 interface EsquemaRow { id: string; nombre: string; nombre_nivel: string; materia_id: string | null;
                         nombre_materia: string | null; vigente_desde: string; activo: boolean;
-                        items: ItemRow[]; }
+                        es_nee: boolean; items: ItemRow[]; }
 interface ItemRow    { tipo_item: string; nombre_personalizado: string | null; peso_porcentaje: number; orden_display: number; }
 
 @Component({
@@ -90,6 +90,10 @@ interface ItemRow    { tipo_item: string; nombre_personalizado: string | null; p
       <label>Vigente desde</label>
       <input pInputText type="date" [(ngModel)]="form.vigente_desde" class="w-full" />
     </div>
+    <div class="field col-span-2 flex items-center gap-2 mt-2">
+      <input type="checkbox" id="es_nee" [(ngModel)]="form.es_nee" style="width: 20px; height: 20px; cursor: pointer;" />
+      <label for="es_nee" style="cursor: pointer; font-weight: bold; margin-bottom: 0; display: inline-flex; align-items: center;">Aplica como adecuación curricular NEE (Necesidades Especiales)</label>
+    </div>
   </div>
 
   <!-- Ítems -->
@@ -153,6 +157,7 @@ export class PonderacionConfigComponent implements OnInit {
     { field: 'nombre',         header: 'Nombre',             sortable: true, filterable: true },
     { field: 'nombre_nivel',   header: 'Nivel',              sortable: true, filterable: true, width: '140px' },
     { field: 'materiaDisplay', header: 'Materia específica', sortable: true, filterable: true },
+    { field: 'neeLabel',       header: 'Tipo Esquema',       sortable: true, filterable: true, width: '120px' },
     { field: 'vigenteDisplay', header: 'Vigente desde',      sortable: true, filterable: false, width: '120px' },
     { field: 'activoLabel',    header: 'Estado',             sortable: true, filterable: true,  width: '90px' },
   ];
@@ -163,6 +168,7 @@ export class PonderacionConfigComponent implements OnInit {
       materiaDisplay: esc.nombre_materia ?? '— (aplica a todo el nivel)',
       vigenteDisplay: esc.vigente_desde ? new Date(esc.vigente_desde).toLocaleDateString('es-MX') : '',
       activoLabel: esc.activo ? 'Activo' : 'Inactivo',
+      neeLabel: esc.es_nee ? 'NEE (Diferenciado)' : 'General',
     }))
   );
 
@@ -178,7 +184,7 @@ export class PonderacionConfigComponent implements OnInit {
   ];
 
   form: { nombre: string; nivel_educativo_id: string; vigente_desde: string;
-          items: ItemRow[] } = this.emptyForm();
+          es_nee: boolean; items: ItemRow[] } = this.emptyForm();
 
   ngOnInit() {
     this.api.get('/catalogs/niveles').subscribe((r: any) => this.niveles.set(r ?? []));
@@ -208,6 +214,7 @@ export class PonderacionConfigComponent implements OnInit {
       nombre: original.nombre,
       nivel_educativo_id: '',  // will be loaded from row
       vigente_desde: original.vigente_desde,
+      es_nee: original.es_nee ?? false,
       items: original.items.map(i => ({ ...i })),
     };
     // Obtener el nivel_educativo_id del esquema
@@ -218,6 +225,7 @@ export class PonderacionConfigComponent implements OnInit {
   emptyForm() {
     return {
       nombre: '', nivel_educativo_id: '', vigente_desde: new Date().toISOString().slice(0, 10),
+      es_nee: false,
       items: [{ tipo_item: 'examen', nombre_personalizado: '', peso_porcentaje: 70, orden_display: 1 },
               { tipo_item: 'tarea',  nombre_personalizado: '', peso_porcentaje: 20, orden_display: 2 },
               { tipo_item: 'asistencia', nombre_personalizado: '', peso_porcentaje: 10, orden_display: 3 }],
@@ -238,6 +246,7 @@ export class PonderacionConfigComponent implements OnInit {
       nombre: this.form.nombre,
       nivel_educativo_id: this.form.nivel_educativo_id,
       vigente_desde: this.form.vigente_desde,
+      es_nee: this.form.es_nee ?? false,
       items: this.form.items.map((it, idx) => ({ ...it, orden_display: idx + 1 })),
     };
     const obs = this.editandoId

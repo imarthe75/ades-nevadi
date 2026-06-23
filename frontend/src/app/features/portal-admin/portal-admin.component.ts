@@ -110,7 +110,7 @@ interface Catalogo {
 <p-dialog [(visible)]="dialogVisible" [header]="editando()?.id ? 'Editar convocatoria' : 'Nueva convocatoria'"
   [modal]="true" [style]="{width:'860px'}" [closable]="true" (onHide)="cerrarDialog()">
 
-  <div class="form-grid" *ngIf="editando()">
+  <div class="form-grid" *ngIf="form()?.titulo !== undefined">
     <!-- Col 1 -->
     <div class="form-col">
       <div class="field">
@@ -389,18 +389,35 @@ export class PortalAdminComponent implements OnInit {
     this.editando.set(c);
     this.form.set({
       titulo: c.titulo, tipo: c.tipo,
-      plantelId: null, // plantel_id no viene en la lista, se puede extender
-      descripcion: '', requisitosGenerales: '',
+      plantelId: (c as any).plantel_id ?? null,
+      descripcion: (c as any).descripcion ?? '',
+      requisitosGenerales: (c as any).requisitos_generales ?? '',
       fechaInicio: c.fecha_inicio_postulacion?.substring(0, 16) ?? '',
       fechaCierre: c.fecha_cierre_postulacion?.substring(0, 16) ?? '',
       cupoMaximo: c.cupo_maximo,
       imagenUrl: c.imagen_url,
       requisitos: []
     });
+    this.cargarRequisitosEdicion(c.id);
     this.dialogVisible = true;
   }
 
   cerrarDialog() { this.dialogVisible = false; this.editando.set(null); }
+
+  cargarRequisitosEdicion(id: string) {
+    this.api.get<any[]>(`/portal/admin/convocatorias/${id}/requisitos`)
+      .subscribe({ next: rows => {
+        const reqs = (rows ?? []).map((r: any) => ({
+          nombre: r.nombre ?? '',
+          descripcion: r.descripcion ?? '',
+          esObligatorio: r.es_obligatorio ?? true,
+          tiposMimePermitidos: r.tipos_mime_permitidos ?? ['application/pdf'],
+          tamanoMaximoMb: r.tamano_maximo_mb ?? 5,
+          orden: r.orden ?? 0,
+        }));
+        this.form.update(f => ({ ...f, requisitos: reqs }));
+      }});
+  }
 
   guardar() {
     const f = this.form();

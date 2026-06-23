@@ -40,13 +40,16 @@ async function initH5P() {
         new H5P.fsImplementations.JsonStorage(configPath)
     ).load();
 
-    // Las URLs deben ser públicas (el player se carga en el browser del usuario)
-    // nginx proxea /h5p/ → este servicio, así que los paths relativos funcionan
+    // nginx proxea /h5p/ → este servicio.
+    // baseUrl='/h5p' se prepone a los paths relativos:
+    //   /h5p + /core      → /h5p/core      (coincide con app.use('/h5p/core', ...))
+    //   /h5p + /libraries → /h5p/libraries
+    //   /h5p + /content   → /h5p/content
     config.baseUrl = '/h5p';
-    config.librariesUrl = '/h5p/libraries';
-    config.coreUrl = '/h5p/core';
-    config.editorLibraryUrl = '/h5p/editor';
-    config.contentFilesUrlPath = '/h5p/content';
+    config.librariesUrl = '/libraries';
+    config.coreUrl = '/core';
+    config.editorLibraryUrl = '/editor';
+    config.contentFilesUrlPath = '/content';
 
     const libraryStorage   = new H5P.fsImplementations.FileLibraryStorage(dirs.libraries);
     const contentStorage   = new H5P.fsImplementations.FileContentStorage(dirs.content);
@@ -150,11 +153,25 @@ app.post('/h5p/api/upload', async (req, res) => {
 // ---------------------------------------------------------------------------
 app.get('/h5p/api/player/:contentId', async (req, res) => {
     try {
-        const user = { id: req.query.usuario_id || 'alumno', name: req.query.usuario_nombre || 'Alumno', type: 'local', email: '' };
-        const playerModel = await h5pPlayer.render(req.params.contentId, undefined, 'es', user);
-        // Devolver el HTML del player listo para iframe
-        const html = H5P.render.player(playerModel);
-        res.send(html);
+        const user = {
+            id:    req.query.usuario_id    || 'alumno',
+            name:  req.query.usuario_nombre || 'Alumno',
+            type:  'local',
+            email: '',
+        };
+        // render(contentId, actingUser, language, options) — el HTML ya viene listo
+        const html = await h5pPlayer.render(req.params.contentId, user, 'es');
+        if (typeof html === 'string') {
+            res.setHeader('Content-Type', 'text/html; charset=utf-8');
+            res.send(html);
+        } else {
+            // v9+ puede devolver un objeto modelo — serializamos a HTML básico
+            res.setHeader('Content-Type', 'text/html; charset=utf-8');
+            res.send(`<!DOCTYPE html><html><head>
+<meta charset="UTF-8">
+<script>window.H5PIntegration = ${JSON.stringify(html)};</script>
+</head><body><div class="h5p-content" data-content-id="${req.params.contentId}"></div></body></html>`);
+        }
     } catch (err) {
         res.status(404).json({ error: err.message });
     }

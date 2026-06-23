@@ -11,13 +11,20 @@ public interface CrearEsquemaUseCase {
 
     record Command(String nombre, UUID nivelEducativoId, UUID materiaId,
                    LocalDate vigenteDesde, LocalDate vigenteHasta,
-                   List<ItemPonderacion> items, UUID creadoPorId, String usuario) {
+                   List<ItemPonderacion> items, UUID creadoPorId, String usuario, Boolean esNee) {
         public Command {
             if (nombre == null || nombre.isBlank()) throw new IllegalArgumentException("nombre es requerido");
             if (items == null || items.isEmpty()) throw new IllegalArgumentException("items son requeridos");
             double suma = items.stream().mapToDouble(ItemPonderacion::pesoPorcentaje).sum();
             if (Math.abs(suma - 100.0) > 0.01)
                 throw new IllegalArgumentException("Los pesos deben sumar 100% (suma actual: " + suma + "%)");
+            if (esNee == null) esNee = false;
+        }
+
+        public Command(String nombre, UUID nivelEducativoId, UUID materiaId,
+                       LocalDate vigenteDesde, LocalDate vigenteHasta,
+                       List<ItemPonderacion> items, UUID creadoPorId, String usuario) {
+            this(nombre, nivelEducativoId, materiaId, vigenteDesde, vigenteHasta, items, creadoPorId, usuario, false);
         }
     }
 

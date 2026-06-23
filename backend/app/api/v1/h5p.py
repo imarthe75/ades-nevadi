@@ -249,12 +249,23 @@ async def player_url(
     r = row.fetchone()
     if not r:
         raise HTTPException(404, "Contenido H5P no encontrado")
+
+    # Validar que el contenido realmente existe en el servicio H5P
+    try:
+        await _h5p_get(f"/h5p/api/contenidos/{r.h5p_content_id}")
+    except Exception:
+        raise HTTPException(
+            404,
+            "El contenido H5P no está disponible en el servidor. "
+            "Puede que el paquete .h5p no haya sido subido correctamente.",
+        )
+
     # URL pública a través de nginx → /h5p/ → ades-h5p:8091
     # (no la URL interna Docker, que el browser no puede alcanzar)
     public_base = settings.BASE_URL.rstrip("/")
     public_player = (
         f"{public_base}/h5p/api/player/{r.h5p_content_id}"
-        f"?usuario_id={user.persona_id}&usuario_nombre={user.nombre}"
+        f"?usuario_id={user.persona_id}&usuario_nombre={user.nombre_usuario}"
     )
     return {"player_url": public_player, "h5p_content_id": r.h5p_content_id}
 

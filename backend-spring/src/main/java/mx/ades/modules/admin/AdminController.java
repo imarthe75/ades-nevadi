@@ -181,12 +181,14 @@ public class AdminController {
     public ResponseEntity<List<Map<String, Object>>> listarUsuarios(
             @RequestParam(value = "buscar", required = false) String buscar,
             @RequestParam(value = "rol", required = false) String rol,
+            @RequestParam(value = "plantel_id", required = false) UUID inputPlantelId,
             @RequestParam(value = "pagina", defaultValue = "1") int pagina,
             @RequestParam(value = "por_pagina", defaultValue = "50") int porPagina,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         permisoAdmin(user);
-        return ResponseEntity.ok(queryService.listarUsuarios(buscar, rol, user.getPlantelId(), pagina, porPagina));
+        UUID plantelId = user.getPlantelId() != null ? user.getPlantelId() : inputPlantelId;
+        return ResponseEntity.ok(queryService.listarUsuarios(buscar, rol, plantelId, pagina, porPagina));
     }
 
     @PostMapping("/usuarios")

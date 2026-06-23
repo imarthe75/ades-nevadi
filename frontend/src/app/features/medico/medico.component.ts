@@ -29,10 +29,17 @@ interface ExpedienteMedico {
   id: string;
   estudiante_id: string;
   tipo_sangre: string | null;
+  nss: string | null;
+  seguro_medico_tipo: string | null;
+  seguro_medico_numero: string | null;
   alergias: string | null;
-  medicamentos_autorizados: string | null;
   condiciones_cronicas: string | null;
+  discapacidad: string | null;
+  medicamentos_autorizados: string | null;
   observaciones_generales: string | null;
+  vacunas_al_dia: boolean;
+  padecimiento_cronico: boolean;
+  requiere_medicacion: boolean;
 }
 
 interface IncidenteMedico {
@@ -77,6 +84,12 @@ interface Medicamento {
     </div>
 
     <!-- Selector de alumno — la cascada plantel→nivel→grado→grupo vive en el topbar -->
+    @if (!ctx.grupo()?.id) {
+      <div class="cascade-hint">
+        <i class="pi pi-arrow-up"></i>
+        Selecciona <strong>Plantel → Nivel → Ciclo → Grado → Grupo</strong> en la barra superior para buscar un alumno.
+      </div>
+    }
     <div class="filter-bar">
       <p-select
         [options]="alumnosOpts()"
@@ -106,28 +119,75 @@ interface Medicamento {
 
           @if (expediente()) {
             <div class="expediente-form">
+
+              <p class="sec-title">Identificación médica</p>
               <div class="field-row">
                 <div class="field">
                   <label>Tipo de sangre</label>
-                  <input pInputText [(ngModel)]="expediente()!.tipo_sangre" style="width:100px" />
+                  <p-select
+                    [options]="tiposSangre"
+                    [(ngModel)]="expediente()!.tipo_sangre"
+                    [showClear]="true"
+                    placeholder="—"
+                    styleClass="tipo-sangre-select" />
+                </div>
+                <div class="field" style="flex:1">
+                  <label>NSS (IMSS/ISSSTE)</label>
+                  <input pInputText [(ngModel)]="expediente()!.nss" maxlength="11" placeholder="11 dígitos" />
                 </div>
               </div>
+              <div class="field-row">
+                <div class="field" style="flex:1">
+                  <label>Seguro médico</label>
+                  <p-select
+                    [options]="tiposSeguro"
+                    [(ngModel)]="expediente()!.seguro_medico_tipo"
+                    [showClear]="true"
+                    placeholder="—" />
+                </div>
+                <div class="field" style="flex:1">
+                  <label>Núm. póliza/afiliación</label>
+                  <input pInputText [(ngModel)]="expediente()!.seguro_medico_numero" />
+                </div>
+              </div>
+
+              <p class="sec-title">Condiciones</p>
               <div class="field">
                 <label>Alergias</label>
                 <textarea pTextarea [(ngModel)]="expediente()!.alergias" rows="2" style="width:100%"></textarea>
-              </div>
-              <div class="field">
-                <label>Medicamentos autorizados</label>
-                <textarea pTextarea [(ngModel)]="expediente()!.medicamentos_autorizados" rows="2" style="width:100%"></textarea>
               </div>
               <div class="field">
                 <label>Condiciones crónicas</label>
                 <textarea pTextarea [(ngModel)]="expediente()!.condiciones_cronicas" rows="2" style="width:100%"></textarea>
               </div>
               <div class="field">
+                <label>Discapacidad / NEE</label>
+                <textarea pTextarea [(ngModel)]="expediente()!.discapacidad" rows="2" style="width:100%"
+                  placeholder="Necesidades educativas especiales..."></textarea>
+              </div>
+              <div class="field">
+                <label>Medicamentos autorizados en escuela</label>
+                <textarea pTextarea [(ngModel)]="expediente()!.medicamentos_autorizados" rows="2" style="width:100%"></textarea>
+              </div>
+              <div class="field">
                 <label>Observaciones generales</label>
                 <textarea pTextarea [(ngModel)]="expediente()!.observaciones_generales" rows="2" style="width:100%"></textarea>
               </div>
+
+              <p class="sec-title">Estatus</p>
+              <div class="field-inline">
+                <p-toggleSwitch [(ngModel)]="expediente()!.vacunas_al_dia" />
+                <label>Vacunas al día (Cartilla de Vacunación completa)</label>
+              </div>
+              <div class="field-inline">
+                <p-toggleSwitch [(ngModel)]="expediente()!.padecimiento_cronico" />
+                <label>Tiene padecimiento crónico</label>
+              </div>
+              <div class="field-inline">
+                <p-toggleSwitch [(ngModel)]="expediente()!.requiere_medicacion" />
+                <label>Requiere medicación durante clases</label>
+              </div>
+
               <div class="flex-buttons">
                 <p-button label="Guardar expediente" icon="pi pi-save" [loading]="savingExp()" (onClick)="guardarExpediente()" />
                 <p-button label="Certificado Deportivo" icon="pi pi-file-pdf" severity="warn" (onClick)="descargarCertificado()" />
@@ -249,6 +309,10 @@ interface Medicamento {
     </p-dialog>
   `,
   styles: [`
+    :host ::ng-deep .tipo-sangre-select { width: 110px; }
+    .cascade-hint { background: #fff8e1; border: 1px solid #ffe082; border-radius: 8px; padding: 0.65rem 1rem; margin-bottom: 0.75rem; font-size: 0.85rem; color: #5d4037; display: flex; align-items: center; gap: 0.5rem; }
+    .cascade-hint i { color: #f59e0b; font-size: 1rem; }
+    .sec-title { margin: 0.25rem 0 0.1rem; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--nevadi-red); }
     .filter-bar { display: flex; gap: 0.75rem; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; }
     .filter-select { min-width: 220px; }
     .expediente-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-top: 1rem; }
@@ -290,6 +354,8 @@ export class MedicoComponent implements OnInit {
   incForm = { descripcion: '', tratamiento_aplicado: '', requirio_traslado: false, notificado_tutor: false };
   medForm = { nombre_medicamento: '', dosis: '', frecuencia: '', horario: '', via_administracion: 'ORAL', prescrito_por: '', observaciones: '' };
   
+  readonly tiposSangre = ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'];
+  readonly tiposSeguro = ['IMSS', 'ISSSTE', 'PRIVADO', 'NINGUNO'];
   readonly vias = ['ORAL', 'TOPICA', 'INHALADA', 'INYECTABLE', 'OFTALMICA', 'OTICA'];
 
   readonly incidentesTimeline = computed(() =>
@@ -475,10 +541,25 @@ export class MedicoComponent implements OnInit {
   descargarCertificado(): void {
     const alumno = this.alumnoSeleccionado();
     if (!alumno) return;
-    window.open(`/api/v1/salud-avanzada/certificado-deportivo/${alumno.id}`, '_blank');
+    this.api.getBlob(`/salud-avanzada/certificado-deportivo/${alumno.id}`).subscribe({
+      next: blob => this._downloadBlob(blob, `certificado_deportivo_${alumno.matricula}.pdf`),
+      error: () => this.notify.error('Error', 'No se pudo generar el certificado'),
+    });
   }
 
   descargarActa(incidenteId: string): void {
-    window.open(`/api/v1/salud-avanzada/incidentes/${incidenteId}/acta-pdf`, '_blank');
+    this.api.getBlob(`/salud-avanzada/incidentes/${incidenteId}/acta-pdf`).subscribe({
+      next: blob => this._downloadBlob(blob, `acta_incidente_${incidenteId}.pdf`),
+      error: () => this.notify.error('Error', 'No se pudo generar el acta'),
+    });
+  }
+
+  private _downloadBlob(blob: Blob, filename: string): void {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 }
