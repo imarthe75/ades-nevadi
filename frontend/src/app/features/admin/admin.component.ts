@@ -352,6 +352,37 @@ interface Catalogo {
         <p-tabpanel value="geo">
           <div style="max-width: 680px; margin-top: 1rem; display: flex; flex-direction: column; gap: 1.75rem;">
 
+            <!-- Estadísticas del catálogo -->
+            <div>
+              <h3 style="margin:0 0 .75rem">Catálogo geográfico cargado</h3>
+              @if (loadingSepomexStats()) {
+                <p style="font-size:.85rem;color:var(--text-color-secondary)">
+                  <i class="pi pi-spin pi-spinner" style="margin-right:.4rem"></i>Cargando estadísticas…
+                </p>
+              } @else if (sepomexStats()) {
+                <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:.75rem">
+                  @for (stat of [
+                    { label: 'Estados',           value: sepomexStats()!.estados,    icon: 'pi-map' },
+                    { label: 'Municipios',         value: sepomexStats()!.municipios, icon: 'pi-building' },
+                    { label: 'Colonias / Asent.', value: sepomexStats()!.colonias,   icon: 'pi-home' },
+                    { label: 'CPs únicos',         value: sepomexStats()!.cps_unicos, icon: 'pi-tag' }
+                  ]; track stat.label) {
+                    <div style="background:var(--surface-card);border:1px solid var(--surface-border);border-radius:8px;padding:.75rem 1rem;display:flex;flex-direction:column;gap:.2rem">
+                      <div style="display:flex;align-items:center;gap:.5rem;color:var(--text-color-secondary);font-size:.78rem">
+                        <i class="pi {{ stat.icon }}" style="font-size:.85rem"></i>
+                        {{ stat.label }}
+                      </div>
+                      <span style="font-size:1.4rem;font-weight:700;color:var(--primary-color)">
+                        {{ stat.value | number }}
+                      </span>
+                    </div>
+                  }
+                </div>
+              } @else {
+                <p style="font-size:.85rem;color:var(--text-color-secondary)">Sin datos — sincroniza el catálogo primero.</p>
+              }
+            </div>
+
             <!-- Sincronización SEPOMEX -->
             <div class="sync-card">
               <div class="sync-header">
@@ -1256,6 +1287,10 @@ export class AdminComponent implements OnInit {
   syncSepomexError    = signal<string>('');
   private _syncPollInterval: ReturnType<typeof setInterval> | null = null;
 
+  // ── SEPOMEX stats ─────────────────────────────────────────────────────────────
+  sepomexStats = signal<{ estados: number; municipios: number; colonias: number; cps_unicos: number } | null>(null);
+  loadingSepomexStats = signal(false);
+
   tabActivo       = signal('usuarios');
   cicloFiltroId   = '';
 
@@ -1528,6 +1563,17 @@ export class AdminComponent implements OnInit {
     if (tab === 'roles'            && this.roles().length === 0)         this.cargarRoles();
     if (tab === 'menus'            && this.menus().length === 0)         this.cargarMenusAdmin();
     if (tab === 'permisos')                                               this.cargarPermisos();
+    if (tab === 'geo'              && !this.sepomexStats())              this.cargarSepomexStats();
+  }
+
+  cargarSepomexStats(): void {
+    this.loadingSepomexStats.set(true);
+    this.api.get<{ estados: number; municipios: number; colonias: number; cps_unicos: number }>(
+      '/admin/sepomex/stats'
+    ).subscribe({
+      next: s => { this.sepomexStats.set(s); this.loadingSepomexStats.set(false); },
+      error: () => this.loadingSepomexStats.set(false),
+    });
   }
 
   // ── Usuarios ────────────────────────────────────────────────────────────────
@@ -1594,6 +1640,8 @@ export class AdminComponent implements OnInit {
   cargarGrupos(): void {
     this.loadingGrupos.set(true);
     const params: Record<string, string> = {};
+    const plantelId = this.ctx.plantel()?.id;
+    if (plantelId) params['plantel_id'] = plantelId;
     if (this.cicloFiltroId) params['ciclo_id'] = this.cicloFiltroId;
     this.api.get<GrupoAdmin[]>('/admin/grupos', params).subscribe({
       next: (g) => {

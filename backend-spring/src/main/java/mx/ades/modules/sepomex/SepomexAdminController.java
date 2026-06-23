@@ -5,12 +5,14 @@ import mx.ades.modules.admin.domain.model.PermisoAdmin;
 import mx.ades.security.AdesUser;
 import mx.ades.security.AdesUserService;
 import org.springframework.http.*;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -28,7 +30,19 @@ public class SepomexAdminController {
     private static final String FASTAPI_BASE = "http://ades-api:8000/api/v1/sepomex";
 
     private final AdesUserService userService;
+    private final JdbcTemplate jdbc;
     private final RestClient restClient = RestClient.create();
+
+    @GetMapping("/stats")
+    public ResponseEntity<Map<String, Object>> stats(@AuthenticationPrincipal Jwt jwt) {
+        userService.resolveUser(jwt);
+        Map<String, Object> res = new LinkedHashMap<>();
+        res.put("estados",          jdbc.queryForObject("SELECT COUNT(*) FROM ades_estados", Long.class));
+        res.put("municipios",       jdbc.queryForObject("SELECT COUNT(*) FROM ades_municipios", Long.class));
+        res.put("colonias",         jdbc.queryForObject("SELECT COUNT(*) FROM ades_codigos_postales", Long.class));
+        res.put("cps_unicos",       jdbc.queryForObject("SELECT COUNT(DISTINCT codigo_postal) FROM ades_codigos_postales", Long.class));
+        return ResponseEntity.ok(res);
+    }
 
     @PostMapping("/sync")
     public ResponseEntity<Map<String, Object>> iniciarSync(
