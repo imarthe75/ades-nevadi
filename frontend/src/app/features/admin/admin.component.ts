@@ -39,7 +39,7 @@ interface UsuarioAdmin {
   nombre_plantel: string | null; nombre_nivel: string | null; is_active: boolean;
 }
 interface CicloAdmin {
-  id: string; nombre_ciclo: string; nivel_educativo_id: string;
+  id: string; nombre_ciclo: string; nivel_educativo_id: string; nombre_nivel?: string | null;
   fecha_inicio: string; fecha_fin: string; tipo_ciclo: string; es_vigente: boolean;
 }
 interface PlantelAdmin { id: string; nombre_plantel: string; clave_ct: string | null; is_active: boolean; }
@@ -147,13 +147,26 @@ interface Catalogo {
             (rowSelected)="abrirEditarRol($event)"
           />
           <p-dialog [visible]="rolDlgVisible()" (visibleChange)="rolDlgVisible.set($event)"
-            header="Editar Rol" [modal]="true" [draggable]="false" [style]="{width:'420px'}">
+            header="Editar Rol" [modal]="true" [draggable]="false" [style]="{width:'460px'}">
             @if (rolEdit()) {
               <div style="display:flex;flex-direction:column;gap:.75rem">
                 <div class="field"><span class="dlg-lbl">Nombre</span>
                   <strong>{{ rolEdit()!.nombre_rol }}</strong></div>
                 <div class="field"><span class="dlg-lbl">Nivel de acceso</span>
-                  <span class="nivel-badge">{{ rolEdit()!.nivel_acceso }}</span></div>
+                  <span class="nivel-badge">{{ rolEdit()!.nivel_acceso }}</span>
+                  <small style="margin-left:.5rem;color:var(--text-color-secondary)">{{ nivelAccesoDesc(rolEdit()!.nivel_acceso) }}</small>
+                </div>
+                <div style="background:var(--surface-50);border-radius:6px;padding:.6rem .8rem;font-size:.75rem">
+                  <strong style="display:block;margin-bottom:.3rem;color:var(--text-color-secondary)">Niveles de acceso</strong>
+                  <div style="display:grid;grid-template-columns:auto 1fr;gap:.15rem .6rem">
+                    <span class="nivel-badge" style="width:20px;height:20px;font-size:.7rem">0</span><span>ADMIN_GLOBAL — acceso total al sistema</span>
+                    <span class="nivel-badge" style="width:20px;height:20px;font-size:.7rem">1</span><span>ADMIN_PLANTEL — administración de un plantel</span>
+                    <span class="nivel-badge" style="width:20px;height:20px;font-size:.7rem">2</span><span>Director / Subdirector / Coordinador</span>
+                    <span class="nivel-badge" style="width:20px;height:20px;font-size:.7rem">3</span><span>Coordinador Académico / Orientador / Secretaria</span>
+                    <span class="nivel-badge" style="width:20px;height:20px;font-size:.7rem">4</span><span>Docente / Apoyo académico y administrativo</span>
+                    <span class="nivel-badge" style="width:20px;height:20px;font-size:.7rem">5</span><span>Padre de familia / Alumno (solo lectura)</span>
+                  </div>
+                </div>
                 <div class="field" style="display:flex;flex-direction:column;gap:.35rem">
                   <label class="dlg-lbl">Descripción</label>
                   <textarea pInputTextarea [(ngModel)]="rolEditForm.descripcion" rows="3"
@@ -291,7 +304,7 @@ interface Catalogo {
                 <label class="dlg-lbl">Módulo (clave del menú)</label>
                 <p-select [options]="menus()" [(ngModel)]="nuevoPrmForm.menu_clave"
                   optionLabel="clave" optionValue="clave"
-                  [filter]="true" filterPlaceholder="Buscar módulo..." />
+                  [filter]="true" filterPlaceholder="Buscar módulo..." appendTo="body"/>
               </div>
               <div style="display:flex;gap:1rem;flex-wrap:wrap">
                 <label style="display:flex;align-items:center;gap:.4rem">
@@ -317,12 +330,54 @@ interface Catalogo {
 
         <!-- ══ GEOGRÁFICOS (SEPOMEX) ═══════════════════════════════════════ -->
         <p-tabpanel value="geo">
-          <div style="max-width: 600px; margin-top: 1rem;">
-            <h3>Probar Autocompletado SEPOMEX</h3>
-            <p style="margin-bottom:1.5rem;color:var(--text-color-secondary)">
-              Componente <code>&lt;app-selector-geo&gt;</code> integrado. Escribe un código postal de 5 dígitos (ej. 50100) y presiona Enter.
-            </p>
-            <app-selector-geo></app-selector-geo>
+          <div style="max-width: 680px; margin-top: 1rem; display: flex; flex-direction: column; gap: 1.75rem;">
+
+            <!-- Sincronización SEPOMEX -->
+            <div class="sync-card">
+              <div class="sync-header">
+                <div>
+                  <h3 style="margin:0 0 .25rem">Catálogo SEPOMEX</h3>
+                  <p style="margin:0;font-size:.82rem;color:var(--text-color-secondary)">
+                    Descarga la versión más reciente de Correos de México e importa estados, municipios y códigos postales.
+                  </p>
+                </div>
+                <p-button label="Sincronizar" icon="pi pi-refresh"
+                  severity="primary"
+                  [loading]="syncSepomexLoading()"
+                  [disabled]="syncSepomexLoading() || syncSepomexEstado() === 'STARTED' || syncSepomexEstado() === 'PENDING'"
+                  pTooltip="Descarga e importa el catálogo desde correosdemexico.gob.mx"
+                  (onClick)="iniciarSyncSepomex()" />
+              </div>
+
+              @if (syncSepomexTaskId()) {
+                <div class="sync-estado" [class]="'sync-' + (syncSepomexEstado() || 'PENDING').toLowerCase()">
+                  <i class="pi"
+                    [class.pi-spin]="syncSepomexEstado() === 'STARTED' || syncSepomexEstado() === 'PENDING'"
+                    [class.pi-spinner]="syncSepomexEstado() === 'STARTED' || syncSepomexEstado() === 'PENDING'"
+                    [class.pi-check-circle]="syncSepomexEstado() === 'SUCCESS'"
+                    [class.pi-times-circle]="syncSepomexEstado() === 'FAILURE'">
+                  </i>
+                  <span>
+                    @switch (syncSepomexEstado()) {
+                      @case ('PENDING') { Encolado — esperando worker disponible… }
+                      @case ('STARTED') { Descargando e importando catálogo SEPOMEX… }
+                      @case ('SUCCESS') { Sincronización completada. {{ syncSepomexResultado() }} }
+                      @case ('FAILURE') { Error: {{ syncSepomexError() }} }
+                      @default { Estado: {{ syncSepomexEstado() }} }
+                    }
+                  </span>
+                </div>
+              }
+            </div>
+
+            <!-- Verificar autocompletado -->
+            <div>
+              <h3 style="margin:0 0 .5rem">Probar Autocompletado</h3>
+              <p style="margin:0 0 1rem;font-size:.82rem;color:var(--text-color-secondary)">
+                Escribe un código postal de 5 dígitos (ej. 50100) y presiona Enter.
+              </p>
+              <app-selector-geo></app-selector-geo>
+            </div>
           </div>
         </p-tabpanel>
 
@@ -864,13 +919,13 @@ interface Catalogo {
             <label class="dlg-lbl">Rol</label>
             <p-select [options]="roles()" [(ngModel)]="usuarioEditForm.rol_id"
                       optionLabel="nombre_rol" optionValue="id" placeholder="Seleccionar Rol"
-                      [filter]="true" filterPlaceholder="Buscar..."/>
+                      [filter]="true" filterPlaceholder="Buscar..." appendTo="body"/>
           </div>
           <div class="field" style="display:flex; flex-direction:column; gap:.35rem">
             <label class="dlg-lbl">Plantel (Alcance)</label>
             <p-select [options]="planteles()" [(ngModel)]="usuarioEditForm.plantel_id"
                       optionLabel="nombre_plantel" optionValue="id" placeholder="Global"
-                      [showClear]="true" [filter]="true" filterPlaceholder="Buscar..."/>
+                      [showClear]="true" [filter]="true" filterPlaceholder="Buscar..." appendTo="body"/>
           </div>
           <div class="field" style="display:flex; flex-direction:column; gap:.35rem">
             <label class="dlg-lbl">Estado</label>
@@ -917,7 +972,7 @@ interface Catalogo {
           <div class="field" style="display:flex;flex-direction:column;gap:.35rem">
             <label class="dlg-lbl">Género</label>
             <p-select [options]="[{l:'Hombre',v:'M'},{l:'Mujer',v:'F'},{l:'No especificado',v:'NB'}]"
-              [(ngModel)]="nuevoUsrForm.genero" optionLabel="l" optionValue="v" />
+              [(ngModel)]="nuevoUsrForm.genero" optionLabel="l" optionValue="v" appendTo="body"/>
           </div>
           <div class="field" style="display:flex;flex-direction:column;gap:.35rem">
             <label class="dlg-lbl">Fecha de nacimiento</label>
@@ -928,13 +983,13 @@ interface Catalogo {
           <label class="dlg-lbl">Rol *</label>
           <p-select [options]="roles()" [(ngModel)]="nuevoUsrForm.rol_id"
             optionLabel="nombre_rol" optionValue="id" placeholder="Seleccionar Rol"
-            [filter]="true" filterPlaceholder="Buscar..." />
+            [filter]="true" filterPlaceholder="Buscar..." appendTo="body"/>
         </div>
         <div class="field" style="display:flex;flex-direction:column;gap:.35rem">
           <label class="dlg-lbl">Plantel (alcance)</label>
           <p-select [options]="planteles()" [(ngModel)]="nuevoUsrForm.plantel_id"
             optionLabel="nombre_plantel" optionValue="id" placeholder="Global (sin plantel fijo)"
-            [showClear]="true" [filter]="true" filterPlaceholder="Buscar..." />
+            [showClear]="true" [filter]="true" filterPlaceholder="Buscar..." appendTo="body"/>
         </div>
         <p-message severity="info" icon="pi pi-info-circle"
           text="El usuario se creará en ADES. Para que pueda iniciar sesión también necesita cuenta en Authentik (SSO)." />
@@ -959,7 +1014,7 @@ interface Catalogo {
             <label class="dlg-lbl">Nivel educativo *</label>
             <p-select [options]="niveles()" [(ngModel)]="cicloEdit()!.nivel_educativo_id"
               optionLabel="nombre_nivel" optionValue="id" placeholder="Seleccionar nivel"
-              [filter]="true" filterPlaceholder="Buscar..." />
+              [filter]="true" filterPlaceholder="Buscar..." appendTo="body"/>
           </div>
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:.75rem">
             <div style="display:flex; flex-direction:column; gap:.35rem">
@@ -1123,6 +1178,12 @@ interface Catalogo {
     .pm-check { text-align:center; width:70px; }
     .pm-add { margin-top:1rem; }
     .tab-title { font-weight:600; font-size:.95rem; }
+    .sync-card { background:var(--surface-0);border:1px solid var(--surface-200);border-radius:10px;padding:1.25rem }
+    .sync-header { display:flex;align-items:flex-start;justify-content:space-between;gap:1rem }
+    .sync-estado { display:flex;align-items:center;gap:.6rem;margin-top:.9rem;padding:.6rem .9rem;border-radius:8px;font-size:.83rem }
+    .sync-pending,.sync-started { background:#fef9c3;color:#78350f }
+    .sync-success { background:#dcfce7;color:#14532d }
+    .sync-failure { background:#fee2e2;color:#7f1d1d }
   `],
 })
 export class AdminComponent implements OnInit {
@@ -1157,6 +1218,14 @@ export class AdminComponent implements OnInit {
   loadingCiclos    = signal(false);
   loadingPlanteles = signal(false);
   loadingGrupos    = signal(false);
+
+  // ── SEPOMEX sync ─────────────────────────────────────────────────────────────
+  syncSepomexLoading  = signal(false);
+  syncSepomexTaskId   = signal<string | null>(null);
+  syncSepomexEstado   = signal<string | null>(null);
+  syncSepomexResultado = signal<string>('');
+  syncSepomexError    = signal<string>('');
+  private _syncPollInterval: ReturnType<typeof setInterval> | null = null;
 
   tabActivo       = signal('usuarios');
   cicloFiltroId   = '';
@@ -1219,6 +1288,7 @@ export class AdminComponent implements OnInit {
 
   columnasCiclos: ColumnConfig[] = [
     { field: 'nombre_ciclo',     header: 'Ciclo',   sortable: true,  filterable: true,  width: '200px' },
+    { field: 'nombre_nivel',     header: 'Nivel',   sortable: true,  filterable: true,  width: '160px' },
     { field: 'fecha_inicio_str', header: 'Inicio',  sortable: false, filterable: false, width: '120px' },
     { field: 'fecha_fin_str',    header: 'Fin',     sortable: false, filterable: false, width: '120px' },
     { field: 'tipo_ciclo',       header: 'Tipo',    sortable: true,  filterable: true,  width: '110px' },
@@ -2155,5 +2225,63 @@ export class AdminComponent implements OnInit {
         this.evaluandoPromocion.set(false);
       },
     });
+  }
+
+  // ── SEPOMEX sync ─────────────────────────────────────────────────────────────
+
+  nivelAccesoDesc(nivel: number): string {
+    const map: Record<number, string> = {
+      0: 'Admin Global', 1: 'Admin Plantel', 2: 'Director/Coordinador',
+      3: 'Coord. Académico/Orientador', 4: 'Docente/Apoyo', 5: 'Padre/Alumno',
+    };
+    return map[nivel] ?? `Nivel ${nivel}`;
+  }
+
+  iniciarSyncSepomex(): void {
+    this.syncSepomexLoading.set(true);
+    this.syncSepomexTaskId.set(null);
+    this.syncSepomexEstado.set(null);
+    this.syncSepomexResultado.set('');
+    this.syncSepomexError.set('');
+    if (this._syncPollInterval) { clearInterval(this._syncPollInterval); this._syncPollInterval = null; }
+
+    this.api.post<any>('/admin/sepomex/sync', {}).subscribe({
+      next: (res) => {
+        this.syncSepomexLoading.set(false);
+        this.syncSepomexTaskId.set(res.task_id);
+        this.syncSepomexEstado.set(res.estado ?? 'PENDING');
+        this._iniciarPollSepomex(res.task_id);
+      },
+      error: (e) => {
+        this.syncSepomexLoading.set(false);
+        this.notify.error('Error al encolar sincronización', e.error?.detail ?? e.message ?? 'Error desconocido');
+      },
+    });
+  }
+
+  private _iniciarPollSepomex(taskId: string): void {
+    this._syncPollInterval = setInterval(() => {
+      this.api.get<any>(`/admin/sepomex/sync/${taskId}`).subscribe({
+        next: (res) => {
+          this.syncSepomexEstado.set(res.estado);
+          if (res.estado === 'SUCCESS') {
+            clearInterval(this._syncPollInterval!);
+            this._syncPollInterval = null;
+            const r = res.resultado ?? {};
+            this.syncSepomexResultado.set(
+              typeof r === 'object'
+                ? `${r.estados_insertados ?? 0} estados · ${r.municipios_insertados ?? 0} municipios · ${r.codigos_insertados ?? 0} CPs importados.`
+                : String(r)
+            );
+            this.notify.success('SEPOMEX sincronizado', 'El catálogo se actualizó correctamente.');
+          } else if (res.estado === 'FAILURE') {
+            clearInterval(this._syncPollInterval!);
+            this._syncPollInterval = null;
+            this.syncSepomexError.set(res.error ?? 'Error desconocido en el worker.');
+            this.notify.error('Error en sincronización SEPOMEX', this.syncSepomexError());
+          }
+        },
+      });
+    }, 3000);
   }
 }

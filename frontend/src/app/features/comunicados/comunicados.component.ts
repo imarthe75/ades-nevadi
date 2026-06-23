@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal, computed } from '@angular/core';
+import { Component, inject, OnInit, signal, computed, effect } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
@@ -258,8 +258,16 @@ export class ComunicadosComponent implements OnInit {
     { field: 'requiere_acuse',  header: 'Requiere acuse', format: (v: boolean) => v ? 'Sí' : 'No' },
   ];
 
+  constructor() {
+    // Recargar cuando cambia el plantel en el contexto global.
+    effect(() => {
+      this.ctx.plantel();
+      this.cargar();
+    });
+  }
+
   ngOnInit(): void {
-    this.cargar();
+    // Carga reactiva via effect en constructor.
   }
 
   cargar(): void {

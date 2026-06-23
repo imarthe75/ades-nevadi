@@ -8,16 +8,16 @@ import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { ToastModule } from 'primeng/toast';
-import { SelectModule } from 'primeng/select';
-import { debounceTime, throttleTime, Subject } from 'rxjs';
+import { throttleTime, Subject } from 'rxjs';
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
+import { ContextCatalogService } from '../../core/services/context-catalog.service';
 import { ExportService } from '../../core/services/export.service';
 import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
 import { ImportButtonComponent } from '../../shared/components/import-button/import-button.component';
 import { AlumnoPerfilComponent } from '../../shared/components/alumno-perfil/alumno-perfil.component';
 import { HelpButtonComponent } from '../../shared/components/help-button/help-button.component';
-import { Estudiante, grupoLabel } from '../../core/models';
+import { Estudiante } from '../../core/models';
 import { ApexNotificationService, ApexSearchComponent, ApexModalDialogComponent } from 'apex-component-library';
 
 @Component({
@@ -25,7 +25,7 @@ import { ApexNotificationService, ApexSearchComponent, ApexModalDialogComponent 
   standalone: true,
   imports: [
     CommonModule, FormsModule,
-    ButtonModule, InputTextModule, ToastModule, SelectModule,
+    ButtonModule, InputTextModule, ToastModule,
     InteractiveGridComponent, ImportButtonComponent, AlumnoPerfilComponent, HelpButtonComponent,
     ApexSearchComponent, ApexModalDialogComponent,
   ],
@@ -66,62 +66,17 @@ import { ApexNotificationService, ApexSearchComponent, ApexModalDialogComponent 
       </div>
     </div>
 
-    <!-- Filtros de Contexto Cascading (Plantel -> Nivel -> Grado -> Grupo) -->
-    <div class="filter-bar">
-      <p-select
-        [options]="plantelesOpts()"
-        [(ngModel)]="selectedPlantelId"
-        optionLabel="nombre_plantel"
-        optionValue="id"
-        placeholder="Plantel"
-        (onChange)="onPlantelChange()"
-        [showClear]="!isPlantelDisabled()"
-        [disabled]="isPlantelDisabled()"
-        [filter]="true" filterPlaceholder="Buscar..."
-        styleClass="filter-select" />
-
-      <p-select
-        [options]="nivelesOpts()"
-        [(ngModel)]="selectedNivelId"
-        optionLabel="nombre_nivel"
-        optionValue="id"
-        placeholder="Nivel"
-        (onChange)="onNivelChange()"
-        [showClear]="!isNivelDisabled()"
-        [disabled]="isNivelDisabled() || !selectedPlantelId"
-        [filter]="true" filterPlaceholder="Buscar..."
-        styleClass="filter-select" />
-
-      <p-select
-        [options]="gradosOpts()"
-        [(ngModel)]="selectedGradoId"
-        optionLabel="nombre_grado"
-        optionValue="id"
-        placeholder="Grado"
-        (onChange)="onGradoChange()"
-        [showClear]="true"
-        [disabled]="!selectedNivelId"
-        [filter]="true" filterPlaceholder="Buscar..."
-        styleClass="filter-select" />
-
-      <p-select
-        [options]="gruposOpts()"
-        [(ngModel)]="selectedGrupoId"
-        optionLabel="_label"
-        optionValue="id"
-        placeholder="Grupo"
-        (onChange)="onGrupoChange()"
-        [showClear]="true"
-        [disabled]="!selectedGradoId"
-        [filter]="true" filterPlaceholder="Buscar..."
-        styleClass="filter-select" />
-    </div>
-
-    <!-- Interactive Grid APEX-style (Spec: spec/modules/fase-24-interactive-grid/) -->
+    <!-- Interactive Grid APEX-style — la cascada plantel→nivel→grado→grupo vive en el
+         topbar (ContextService). El grid la refleja y la escribe de vuelta vía
+         filterChange (lazo bilateral). -->
     <app-interactive-grid
       [data]="alumnosFiltrados()"
       [columns]="columnas"
       [loading]="loadingTabla()"
+      [externalFilters]="catalog.contextFilters()"
+      [externalSuggestions]="catalog.contextSuggestions()"
+      [serverFilteredFields]="cascadeFields"
+      (filterChange)="catalog.applyGridFilter($event.field, $event.value)"
       (rowSelected)="abrirPerfil($event)"
     />
 
@@ -160,13 +115,12 @@ import { ApexNotificationService, ApexSearchComponent, ApexModalDialogComponent 
     .subtitle { font-size: 0.82rem; color: var(--text-color-secondary); margin: 0; }
     .dlg-lbl { display: block; font-size: .85rem; margin-bottom: .25rem; color: var(--text-color-secondary); }
     .dlg-note { font-size: .78rem; color: var(--text-color-secondary); margin: 0; }
-    .filter-bar { display: flex; gap: 0.75rem; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; }
-    .filter-select { min-width: 220px; }
   `],
 })
 export class AlumnosComponent implements OnInit {
   private readonly api = inject(ApiService);
   private readonly ctx = inject(ContextService);
+  readonly catalog = inject(ContextCatalogService);
   private readonly notify = inject(ApexNotificationService);
   private readonly exp = inject(ExportService);
   private readonly crearAlumnoSubject = new Subject<void>();
@@ -175,18 +129,8 @@ export class AlumnosComponent implements OnInit {
   totalAlumnos = signal(0);
   busqueda = signal('');
 
-  plantelesOpts = signal<any[]>([]);
-  nivelesOpts = signal<any[]>([]);
-  gradosOpts = signal<any[]>([]);
-  gruposOpts = signal<any[]>([]);
-
-  selectedPlantelId: string | null = null;
-  selectedNivelId: string | null = null;
-  selectedGradoId: string | null = null;
-  selectedGrupoId: string | null = null;
-
-  readonly isPlantelDisabled = computed(() => this.ctx.nivelAcceso() > 2);
-  readonly isNivelDisabled = computed(() => this.ctx.nivelAcceso() > 3);
+  /** Columnas gobernadas por el contexto global (filtrado server-side + lazo bilateral). */
+  readonly cascadeFields = ['plantel', 'nivel', 'grado', 'grupo'];
 
   readonly alumnosFiltrados = computed(() => {
     const q = this.busqueda().toLowerCase();
@@ -212,6 +156,7 @@ export class AlumnosComponent implements OnInit {
     { field: 'nombre_completo', header: 'Nombre Completo', sortable: true, filterable: true, width: '200px' },
     { field: 'curp', header: 'CURP', sortable: true, filterable: true, width: '170px' },
     { field: 'nss', header: 'NSS', sortable: false, filterable: false, width: '80px' },
+    { field: 'plantel', header: 'Plantel', sortable: true, filterable: true, width: '140px' },
     { field: 'nivel', header: 'Nivel', sortable: true, filterable: true, width: '120px' },
     { field: 'grado', header: 'Grado', sortable: true, filterable: true, width: '80px' },
     { field: 'grupo', header: 'Grupo', sortable: true, filterable: true, width: '80px' },
@@ -242,29 +187,15 @@ export class AlumnosComponent implements OnInit {
   ];
 
   constructor() {
+    // Recargar cuando cambia la cascada del contexto global (topbar o lazo del grid).
     effect(() => {
-      const p = this.ctx.plantel();
-      if (p?.id && !this.selectedPlantelId) {
-        this.selectedPlantelId = p.id;
-        this.onPlantelChange();
-      }
+      // Suscripción explícita a las 4 dimensiones de la cascada.
+      this.ctx.plantel(); this.ctx.nivel(); this.ctx.grado(); this.ctx.grupo();
+      this.cargarAlumnos();
     });
   }
 
   ngOnInit(): void {
-    this.api.get<any[]>('/planteles').subscribe({
-      next: p => {
-        this.plantelesOpts.set(p);
-        const currentPlantel = this.ctx.plantel();
-        if (currentPlantel?.id) {
-          this.selectedPlantelId = currentPlantel.id;
-          this.onPlantelChange();
-        }
-      },
-      error: () => {}
-    });
-
-    this.cargarAlumnos();
     // Throttle submissions to max one every 500ms to prevent duplicate requests
     this.crearAlumnoSubject.pipe(
       throttleTime(500, undefined, { leading: true, trailing: false })
@@ -273,81 +204,15 @@ export class AlumnosComponent implements OnInit {
     });
   }
 
-  onPlantelChange(): void {
-    this.selectedNivelId = null;
-    this.selectedGradoId = null;
-    this.selectedGrupoId = null;
-    this.nivelesOpts.set([]);
-    this.gradosOpts.set([]);
-    this.gruposOpts.set([]);
-    this.cargarAlumnos();
-
-    if (!this.selectedPlantelId) return;
-
-    this.api.get<any[]>(`/planteles/${this.selectedPlantelId}/niveles`).subscribe({
-      next: ns => {
-        const mapped = ns.map(x => ({ id: x.id ?? x.nivel_id, nombre_nivel: x.nombre_nivel }));
-        this.nivelesOpts.set(mapped);
-        
-        const ctxNivel = this.ctx.nivel();
-        if (ctxNivel && mapped.some(n => n.id === ctxNivel.id)) {
-          this.selectedNivelId = ctxNivel.id;
-          this.onNivelChange();
-        }
-      },
-      error: () => {}
-    });
-  }
-
-  onNivelChange(): void {
-    this.selectedGradoId = null;
-    this.selectedGrupoId = null;
-    this.gradosOpts.set([]);
-    this.gruposOpts.set([]);
-    this.cargarAlumnos();
-
-    if (!this.selectedNivelId) return;
-
-    this.api.get<any[]>(`/catalogs/grados`, { nivel_id: this.selectedNivelId, plantel_id: this.selectedPlantelId || undefined }).subscribe({
-      next: gs => {
-        this.gradosOpts.set(gs);
-      },
-      error: () => {}
-    });
-  }
-
-  onGradoChange(): void {
-    this.selectedGrupoId = null;
-    this.gruposOpts.set([]);
-    this.cargarAlumnos();
-
-    if (!this.selectedGradoId) return;
-
-    const params: Record<string, any> = { solo_activos: true, ciclo_vigente: true };
-    if (this.selectedPlantelId) params['plantel_id'] = this.selectedPlantelId;
-    if (this.selectedGradoId) params['grado_id'] = this.selectedGradoId;
-
-    this.api.get<any[]>('/grupos', params).subscribe({
-      next: gps => {
-        this.gruposOpts.set(gps.map(x => ({ ...x, _label: grupoLabel(x) })));
-      },
-      error: () => this.gruposOpts.set([])
-    });
-  }
-
-  onGrupoChange(): void {
-    this.cargarAlumnos();
-  }
-
   cargarAlumnos(): void {
     const params: Record<string, any> = {
       pagina: 1,
       por_pagina: 500,
     };
-    if (this.selectedPlantelId) params['plantel_id'] = this.selectedPlantelId;
-    if (this.selectedNivelId) params['nivel_id'] = this.selectedNivelId;
-    if (this.selectedGradoId) params['grado_id'] = this.selectedGradoId;
-    if (this.selectedGrupoId) params['grupo_id'] = this.selectedGrupoId;
+    const plantel = this.ctx.plantel(); if (plantel?.id) params['plantel_id'] = plantel.id;
+    const nivel = this.ctx.nivel();     if (nivel?.id)   params['nivel_id']   = nivel.id;
+    const grado = this.ctx.grado();     if (grado?.id)   params['grado_id']   = grado.id;
+    const grupo = this.ctx.grupo();     if (grupo?.id)   params['grupo_id']   = grupo.id;
 
     this.loadingTabla.set(true);
     this.api.get<{ data: Estudiante[]; total: number }>('/alumnos', params)

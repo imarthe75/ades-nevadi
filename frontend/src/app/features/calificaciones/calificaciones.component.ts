@@ -49,32 +49,8 @@ import { ApexNotificationService } from 'apex-component-library';
       <app-help-button modulo="calificaciones" />
     </div>
 
-    <!-- ── Filtros APEX-style — Cascada Plantel → Nivel → Grado → Grupo ── -->
+    <!-- Filtro de dominio: Materia (la cascada plantel→nivel→grado→grupo vive en el topbar) -->
     <div class="filter-bar">
-      <p-select
-        [options]="plantelesOpts()" optionLabel="nombre_plantel" optionValue="id"
-        placeholder="Plantel…" [(ngModel)]="selectedPlantelId"
-        [disabled]="isPlantelDisabled() || !!ctx.plantel()"
-        (onChange)="onPlantelChange()" />
-      <p-select
-        [options]="nivelesOpts()" optionLabel="nombre_nivel" optionValue="id"
-        placeholder="Nivel…" [(ngModel)]="selectedNivelId"
-        [disabled]="isNivelDisabled() || !!ctx.nivel() || !selectedPlantelId"
-        (onChange)="onNivelChange()" />
-      <p-select
-        [options]="gradosOpts()" optionLabel="nombre_grado" optionValue="id"
-        placeholder="Grado…" [(ngModel)]="selectedGradoId"
-        [disabled]="!!ctx.grado() || !selectedNivelId"
-        (onChange)="onGradoChange()" />
-      <p-select
-        [options]="grupos()"
-        [(ngModel)]="selectedGrupo"
-        optionLabel="_label"
-        placeholder="Seleccionar grupo"
-        (onChange)="onGrupoChange()"
-        [showClear]="true"
-        [disabled]="!!ctx.grupo() || !selectedGradoId"
-        [filter]="true" filterPlaceholder="Buscar..."/>
       <p-select
         [options]="materias()"
         [(ngModel)]="selectedMateria"
@@ -283,23 +259,17 @@ export class CalificacionesComponent implements OnInit {
   readonly ctx = inject(ContextService);
   private readonly notify = inject(ApexNotificationService);
 
-  // ── Cascada: Plantel → Nivel → Grado → Grupo ────────────────────────────
-  plantelesOpts = signal<any[]>([]);
-  nivelesOpts   = signal<any[]>([]);
-  gradosOpts    = signal<any[]>([]);
-  grupos        = signal<GrupoConLabel[]>([]);
   materias      = signal<Materia[]>([]);
   libreta       = signal<LibretaGrupo | null>(null);
   saving        = signal(false);
 
-  selectedPlantelId: string | null = null;
-  selectedNivelId:   string | null = null;
-  selectedGradoId:   string | null = null;
-  selectedGrupo:     GrupoConLabel | null = null;
+  /** Grupo derivado del contexto global (topbar). Expone nombre_nivel y numero_grado para esCualitativa. */
+  get selectedGrupo(): GrupoConLabel | null {
+    const g = this.ctx.grupo();
+    if (!g?.id) return null;
+    return { ...g, _label: grupoLabel(g) } as GrupoConLabel;
+  }
   selectedMateria:   Materia | null = null;
-
-  readonly isPlantelDisabled = computed(() => (this.ctx.nivelAcceso() ?? 0) > 2);
-  readonly isNivelDisabled   = computed(() => (this.ctx.nivelAcceso() ?? 0) > 3);
 
   private editadas = new Set<string>();
 
@@ -354,126 +324,22 @@ export class CalificacionesComponent implements OnInit {
   pendingChanges = computed(() => this.editadas.size);
 
   constructor() {
-    // Sincronizar plantel desde el contexto global
+    // Recargar materias cuando cambia el grupo en el contexto global.
     effect(() => {
-      const p = this.ctx.plantel();
-      if (p?.id) {
-        this.selectedPlantelId = p.id;
-        this._loadNiveles(p.id);
-      } else {
-        this.selectedPlantelId = null;
-        this.onPlantelChange();
+      const grupo = this.ctx.grupo();
+      this.selectedMateria = null;
+      this.libreta.set(null);
+      this.editadas.clear();
+      if (!grupo?.id) {
+        this.materias.set([]);
+        return;
       }
-    });
-
-    // Sincronizar nivel desde el contexto global
-    effect(() => {
-      const n = this.ctx.nivel();
-      if (n?.id) {
-        this.selectedNivelId = n.id;
-        this._loadGrados(n.id);
-      } else {
-        this.selectedNivelId = null;
-        this.onNivelChange();
-      }
-    });
-
-    // Sincronizar grado desde el contexto global
-    effect(() => {
-      const g = this.ctx.grado();
-      if (g?.id) {
-        this.selectedGradoId = g.id;
-        this.onGradoChange();
-      } else {
-        this.selectedGradoId = null;
-        this.onGradoChange();
-      }
-    });
-
-    // Sincronizar grupo desde el contexto global
-    effect(() => {
-      const gp = this.ctx.grupo();
-      if (gp?.id) {
-        this.selectedGrupo = { ...gp, _label: grupoLabel(gp) };
-        this.onGrupoChange();
-      } else {
-        this.selectedGrupo = null;
-        this.onGrupoChange();
-      }
+      this.onGrupoChange();
     });
   }
 
   ngOnInit(): void {
-    this.api.get<any[]>('/planteles').subscribe({
-      next: list => {
-        this.plantelesOpts.set(list);
-        const ctxPlantel = this.ctx.plantel();
-        if (ctxPlantel) {
-          this.selectedPlantelId = ctxPlantel.id;
-          this._loadNiveles(ctxPlantel.id);
-        }
-      },
-    });
-  }
-
-  private _loadNiveles(plantelId: string): void {
-    this.api.get<any[]>(`/planteles/${plantelId}/niveles`).subscribe({
-      next: list => {
-        this.nivelesOpts.set(list);
-        const ctxNivel = this.ctx.nivel();
-        if (ctxNivel && list.some((n: any) => n.id === ctxNivel.id)) {
-          this.selectedNivelId = ctxNivel.id;
-          this._loadGrados(ctxNivel.id);
-        }
-      },
-    });
-  }
-
-  private _loadGrados(nivelId: string): void {
-    this.api.get<any[]>('/catalogs/grados', { nivel_id: nivelId, plantel_id: this.selectedPlantelId || undefined }).subscribe({
-      next: list => this.gradosOpts.set(list),
-    });
-  }
-
-  onPlantelChange(): void {
-    this.selectedNivelId = null;
-    this.selectedGradoId = null;
-    this.selectedGrupo   = null;
-    this.selectedMateria = null;
-    this.nivelesOpts.set([]); this.gradosOpts.set([]); this.grupos.set([]);
-    this.libreta.set(null); this.editadas.clear();
-    if (this.selectedPlantelId) this._loadNiveles(this.selectedPlantelId);
-  }
-
-  onNivelChange(): void {
-    this.selectedGradoId = null;
-    this.selectedGrupo   = null;
-    this.selectedMateria = null;
-    this.gradosOpts.set([]); this.grupos.set([]);
-    this.libreta.set(null); this.editadas.clear();
-    if (this.selectedNivelId) this._loadGrados(this.selectedNivelId);
-  }
-
-  onGradoChange(): void {
-    this.selectedGrupo   = null;
-    this.selectedMateria = null;
-    this.grupos.set([]);
-    this.libreta.set(null); this.editadas.clear();
-    if (this.selectedPlantelId && this.selectedGradoId) {
-      const params: Record<string, any> = {
-        plantel_id: this.selectedPlantelId,
-        grado_id: this.selectedGradoId,
-        solo_activos: true,
-      };
-      if (this.selectedNivelId) params['nivel_id'] = this.selectedNivelId;
-      const cicloId = this.ctx.ciclo()?.id;
-      if (cicloId) params['ciclo_escolar_id'] = cicloId;
-
-      this.api.get<Grupo[]>('/grupos', params).subscribe({
-        next: g => this.grupos.set(g.map(x => ({ ...x, _label: grupoLabel(x) }))),
-        error: () => this.grupos.set([]),
-      });
-    }
+    // ngOnInit no necesita cargar planteles — la cascada vive en el topbar.
   }
 
   onGrupoChange(): void {

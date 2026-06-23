@@ -21,17 +21,10 @@ import { ApiService } from '../core/services/api.service';
 import { PushNotificationService } from '../core/services/push-notification.service';
 import { MenuService } from '../core/services/menu.service';
 import { PermisosService } from '../core/services/permisos.service';
-import type { Plantel, CicloEscolar, NivelEducativo, Grado, Grupo } from '../core/models';
+import { ContextCatalogService } from '../core/services/context-catalog.service';
 import { ApexComponentsModule } from '../shared/apex-components.module';
 import { NavigationEnd, Router } from '@angular/router';
 import { filter } from 'rxjs/operators';
-
-// Sentinelas para "Todo el Instituto" / "Todos los niveles" / "Todos los grados / grupos / ciclos"
-const TODO_INSTITUTO: Plantel = { id: '', nombre_plantel: '— Todo el Instituto —', escuela_id: '', is_active: true };
-const TODOS_NIVELES: NivelEducativo = { id: '', nombre_nivel: 'TODOS' as any, autoridad_educativa: '', tipo_ciclo: '', num_periodos_eval: 0 };
-const TODOS_CICLOS: CicloEscolar = { id: '', nombre_ciclo: '— TODOS —', nivel_educativo_id: '', fecha_inicio: '', fecha_fin: '', tipo_ciclo: '', es_vigente: true, _label: '— TODOS —' };
-const TODOS_GRADOS: Grado = { id: '', numero_grado: 0, nombre_grado: '— TODOS —', nivel_educativo_id: '', plantel_id: '' };
-const TODOS_GRUPOS: Grupo = { id: '', nombre_grupo: '— TODOS —', grado_id: '', ciclo_escolar_id: '', capacidad_maxima: 0, turno: '', is_active: true };
 
 const ROUTE_TITLES: Record<string, string> = {
   'dashboard': 'Dashboard',
@@ -113,29 +106,18 @@ interface Notif { id: string; titulo: string; cuerpo: string; tipo: string; leid
 
         <div class="topbar-divider"></div>
 
-        <!-- ── Ciclo Escolar ── -->
-        <p-select
-          [options]="ciclos()"
-          [(ngModel)]="selectedCiclo"
-          optionLabel="_label"
-          placeholder="Ciclo..."
-          styleClass="ctx-selector ctx-selector-sm"
-          (onChange)="onCicloChange($event.value)"
-        />
-
-        <span class="ctx-sep">/</span>
-
         <!-- ── Plantel ── -->
         @if (ctx.usuario()?.plantel_id) {
-          <div class="ctx-label"><i class="pi pi-map-marker"></i> {{ ctx.usuario()?.nombre_plantel ?? selectedPlantel?.nombre_plantel }}</div>
+          <div class="ctx-label"><i class="pi pi-map-marker"></i> {{ ctx.usuario()?.nombre_plantel ?? ctx.plantel()?.nombre_plantel }}</div>
         } @else {
           <p-select
-            [options]="planteles()"
-            [(ngModel)]="selectedPlantel"
+            [options]="catalog.planteles()"
+            [ngModel]="ctx.plantel()"
+            dataKey="id"
             optionLabel="nombre_plantel"
             placeholder="Plantel..."
             styleClass="ctx-selector"
-            (onChange)="onPlantelChange($event.value)"
+            (onChange)="catalog.onPlantelChange($event.value)"
           />
         }
 
@@ -143,31 +125,46 @@ interface Notif { id: string; titulo: string; cuerpo: string; tipo: string; leid
 
         <!-- ── Nivel educativo / Escuela ── -->
         @if (ctx.usuario()?.nivel_educativo_id) {
-          <div class="ctx-label ctx-nivel">{{ ctx.usuario()?.nombre_nivel ?? selectedNivel?.nombre_nivel }}</div>
+          <div class="ctx-label ctx-nivel">{{ ctx.usuario()?.nombre_nivel ?? ctx.nivel()?.nombre_nivel }}</div>
         } @else {
           <p-select
-            [options]="niveles()"
-            [(ngModel)]="selectedNivel"
+            [options]="catalog.niveles()"
+            [ngModel]="ctx.nivel()"
+            dataKey="id"
             optionLabel="nombre_nivel"
             placeholder="Nivel..."
             styleClass="ctx-selector ctx-selector-sm"
-            (onChange)="onNivelChange($event.value)"
+            (onChange)="catalog.onNivelChange($event.value)"
           />
         }
 
         <span class="ctx-sep">/</span>
 
+        <!-- ── Ciclo Escolar ── -->
+        <p-select
+          [options]="catalog.ciclos()"
+          [ngModel]="ctx.ciclo()"
+          dataKey="id"
+          optionLabel="_label"
+          placeholder="Ciclo..."
+          styleClass="ctx-selector ctx-selector-sm"
+          (onChange)="catalog.onCicloChange($event.value)"
+        />
+
+        <span class="ctx-sep">/</span>
+
         <!-- ── Grado ── -->
         @if (ctx.usuario()?.grado_id) {
-          <div class="ctx-label">{{ ctx.usuario()?.nombre_grado ?? selectedGrado?.nombre_grado }}</div>
+          <div class="ctx-label">{{ ctx.usuario()?.nombre_grado ?? ctx.grado()?.nombre_grado }}</div>
         } @else {
           <p-select
-            [options]="grados()"
-            [(ngModel)]="selectedGrado"
+            [options]="catalog.grados()"
+            [ngModel]="ctx.grado()"
+            dataKey="id"
             optionLabel="nombre_grado"
             placeholder="Grado..."
             styleClass="ctx-selector ctx-selector-sm"
-            (onChange)="onGradoChange($event.value)"
+            (onChange)="catalog.onGradoChange($event.value)"
           />
         }
 
@@ -175,15 +172,16 @@ interface Notif { id: string; titulo: string; cuerpo: string; tipo: string; leid
 
         <!-- ── Grupo ── -->
         @if (ctx.usuario()?.grupo_id) {
-          <div class="ctx-label">{{ ctx.usuario()?.nombre_grupo ?? selectedGrupo?.nombre_grupo }}</div>
+          <div class="ctx-label">{{ ctx.usuario()?.nombre_grupo ?? ctx.grupo()?.nombre_grupo }}</div>
         } @else {
           <p-select
-            [options]="grupos()"
-            [(ngModel)]="selectedGrupo"
-            optionLabel="nombre_grupo"
+            [options]="catalog.grupos()"
+            [ngModel]="ctx.grupo()"
+            dataKey="id"
+            optionLabel="_label"
             placeholder="Grupo..."
             styleClass="ctx-selector ctx-selector-sm"
-            (onChange)="onGrupoChange($event.value)"
+            (onChange)="catalog.onGrupoChange($event.value)"
           />
         }
       </ng-template>
@@ -484,49 +482,13 @@ export class ShellComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly menuService = inject(MenuService);
   readonly permisosService = inject(PermisosService);
+  readonly catalog = inject(ContextCatalogService);
 
   breadcrumbItems: any[] = [];
   readonly routeTitles = ROUTE_TITLES;
 
-  planteles = signal<Plantel[]>([]);
-  niveles   = signal<NivelEducativo[]>([]);
-  ciclos    = signal<CicloEscolar[]>([]);
-  grados    = signal<Grado[]>([]);
-  grupos    = signal<Grupo[]>([]);
-
-  private readonly _selectedPlantel = signal<Plantel | null>(this.ctx.plantel());
-  private readonly _selectedNivel   = signal<NivelEducativo | null>(this.ctx.nivel());
-  private readonly _selectedCiclo   = signal<CicloEscolar | null>(this.ctx.ciclo());
-  private readonly _selectedGrado   = signal<Grado | null>(this.ctx.grado());
-  private readonly _selectedGrupo   = signal<Grupo | null>(this.ctx.grupo());
-
-  get selectedPlantel(): Plantel | null { return this._selectedPlantel(); }
-  set selectedPlantel(v: Plantel | null)  { this._selectedPlantel.set(v); }
-  get selectedNivel(): NivelEducativo | null { return this._selectedNivel(); }
-  set selectedNivel(v: NivelEducativo | null) { this._selectedNivel.set(v); }
-  get selectedCiclo(): CicloEscolar | null { return this._selectedCiclo(); }
-  set selectedCiclo(v: CicloEscolar | null) { this._selectedCiclo.set(v); }
-  get selectedGrado(): Grado | null { return this._selectedGrado(); }
-  set selectedGrado(v: Grado | null) { this._selectedGrado.set(v); }
-  get selectedGrupo(): Grupo | null { return this._selectedGrupo(); }
-  set selectedGrupo(v: Grupo | null) { this._selectedGrupo.set(v); }
-
-  readonly plantelLabel = computed(() => {
-    const p = this._selectedPlantel();
-    return (!p || p.id === '') ? 'Todo el Instituto' : p.nombre_plantel;
-  });
-  readonly nivelLabel = computed(() => {
-    const n = this._selectedNivel();
-    return (!n || n.id === '') ? 'Todos los niveles' : n.nombre_nivel;
-  });
-  readonly gradoLabel = computed(() => {
-    const g = this._selectedGrado();
-    return (!g || g.id === '') ? 'Todos los grados' : g.nombre_grado;
-  });
-  readonly grupoLabel = computed(() => {
-    const g = this._selectedGrupo();
-    return (!g || g.id === '') ? 'Todos los grupos' : g.nombre_grupo;
-  });
+  // La cascada (opciones + lógica de carga) vive en ContextCatalogService;
+  // el estado seleccionado vive en ContextService. El topbar solo los presenta.
 
   private notifInterval?: ReturnType<typeof setInterval>;
 
@@ -681,30 +643,8 @@ export class ShellComponent implements OnInit, OnDestroy {
       this.buildBreadcrumbs();
     });
 
-    const usuario = this.ctx.usuario();
-
-    this.api.get<Plantel[]>('/planteles').subscribe(p => {
-      // ADMIN_GLOBAL: primera opción es "Todo el Instituto" (null plantel)
-      const opciones = this.ctx.esAdminGlobal() ? [TODO_INSTITUTO, ...p] : p;
-      this.planteles.set(opciones);
-
-      if (!this.selectedPlantel) {
-        if (usuario?.plantel_id) {
-          // Usuario con plantel fijo: seleccionar su plantel
-          const match = p.find(x => x.id === usuario.plantel_id) ?? p[0];
-          this.selectedPlantel = match ?? null;
-        } else if (this.ctx.esAdminGlobal()) {
-          // Admin global: iniciar en "Todo el Instituto"
-          this.selectedPlantel = TODO_INSTITUTO;
-        } else {
-          this.selectedPlantel = p[0] ?? null;
-        }
-        this.ctx.setPlantel(this.selectedPlantel?.id ? this.selectedPlantel : null);
-      }
-
-      if (this.selectedPlantel?.id) this.loadNiveles();
-      else this.loadNivelesTodos();
-    });
+    // La cascada institucional (planteles→…→grupos) la inicializa el servicio compartido.
+    this.catalog.initTopbar();
 
     this.loadNotifCount();
     this.notifInterval = setInterval(() => this.loadNotifCount(), 60_000);
@@ -762,176 +702,6 @@ export class ShellComponent implements OnInit, OnDestroy {
       AVISO:  'pi-bell',
     };
     return map[tipo] ?? 'pi-bell';
-  }
-
-  onPlantelChange(p: Plantel): void {
-    const esGlobal = !p?.id;
-    this.ctx.setPlantel(esGlobal ? null : p);
-    this.selectedNivel = null;
-    this.ctx.setNivel(null);
-    this.selectedCiclo = null;
-    this.ctx.setCiclo(null);
-    this.selectedGrado = null;
-    this.ctx.setGrado(null);
-    this.selectedGrupo = null;
-    this.ctx.setGrupo(null);
-    this.ciclos.set([]);
-    this.grados.set([]);
-    this.grupos.set([]);
-    if (esGlobal) this.loadNivelesTodos();
-    else this.loadNiveles();
-  }
-
-  onNivelChange(n: NivelEducativo): void {
-    const esGlobal = !n?.id;
-    this.ctx.setNivel(esGlobal ? null : n);
-    this.selectedCiclo = null;
-    this.ctx.setCiclo(null);
-    this.selectedGrado = null;
-    this.ctx.setGrado(null);
-    this.selectedGrupo = null;
-    this.ctx.setGrupo(null);
-    this.grados.set([]);
-    this.grupos.set([]);
-    this.loadCiclos();
-  }
-
-  onCicloChange(c: CicloEscolar): void {
-    const esGlobal = !c?.id;
-    this.ctx.setCiclo(esGlobal ? null : c);
-    this.selectedGrupo = null;
-    this.ctx.setGrupo(null);
-    this.grupos.set([]);
-    this.loadGrados();
-  }
-
-  onGradoChange(g: Grado): void {
-    const esGlobal = !g?.id;
-    this.ctx.setGrado(esGlobal ? null : g);
-    this.selectedGrupo = null;
-    this.ctx.setGrupo(null);
-    this.grupos.set([]);
-    this.loadGrupos();
-  }
-
-  onGrupoChange(g: Grupo): void {
-    const esGlobal = !g?.id;
-    this.ctx.setGrupo(esGlobal ? null : g);
-  }
-
-  private loadNivelesTodos(): void {
-    this.api.get<NivelEducativo[]>('/catalogs/niveles').subscribe(ns => {
-      this.niveles.set([TODOS_NIVELES, ...ns]);
-      this.selectedNivel = TODOS_NIVELES;
-      this.ctx.setNivel(null);
-      this.loadCiclos();
-    });
-  }
-
-  private loadNiveles(): void {
-    const plantelId = this.selectedPlantel?.id;
-    if (!plantelId) return;
-
-    this.api.get<NivelEducativo[]>(`/planteles/${plantelId}/niveles`).subscribe(ns => {
-      const opciones = this.ctx.esAdminGlobal() ? [TODOS_NIVELES, ...ns] : ns;
-      this.niveles.set(opciones);
-
-      const usuario = this.ctx.usuario();
-      let inicial: NivelEducativo | null = null;
-
-      if (usuario?.nivel_educativo_id) {
-        inicial = ns.find(x => x.id === usuario.nivel_educativo_id) ?? null;
-      }
-      if (!inicial && this.selectedNivel?.id) {
-        inicial = ns.find(x => x.id === this.selectedNivel!.id) ?? ns[0] ?? null;
-      }
-      if (!inicial && ns.length) inicial = ns[0];
-
-      if (inicial) {
-        this.selectedNivel = inicial;
-        this.ctx.setNivel(inicial);
-        this.loadCiclos();
-      }
-    });
-  }
-
-  private loadCiclos(): void {
-    const nivel = this.selectedNivel?.id ? this.selectedNivel.nombre_nivel : undefined;
-    const params: Record<string, any> = { solo_vigentes: true };
-    if (nivel) params['nivel'] = nivel;
-
-    this.api.get<CicloEscolar[]>('/catalogs/ciclos', params).subscribe(c => {
-      const labeled = c.map(x => ({
-        ...x,
-        _label: (!this.selectedNivel?.id && x.nivel_educativo?.nombre_nivel)
-          ? `${x.nombre_ciclo} — ${x.nivel_educativo?.nombre_nivel}`
-          : x.nombre_ciclo,
-      }));
-      const opciones = this.ctx.esAdminGlobal() ? [TODOS_CICLOS, ...labeled] : labeled;
-      this.ciclos.set(opciones);
-      
-      const usuario = this.ctx.usuario();
-      if (opciones.length) {
-        const existente = this.selectedCiclo ? opciones.find(x => x.id === this.selectedCiclo!.id) : null;
-        const elegido = existente ?? opciones[0];
-        this.selectedCiclo = elegido;
-        this.ctx.setCiclo(elegido?.id ? elegido : null);
-      }
-      this.loadGrados();
-    });
-  }
-
-  private loadGrados(): void {
-    const params: Record<string, any> = {};
-    if (this.selectedNivel?.id) params['nivel_id'] = this.selectedNivel.id;
-    if (this.selectedPlantel?.id) params['plantel_id'] = this.selectedPlantel.id;
-
-    this.api.get<Grado[]>('/catalogs/grados', params).subscribe(gs => {
-      const opciones = this.ctx.esAdminGlobal() ? [TODOS_GRADOS, ...gs] : gs;
-      this.grados.set(opciones);
-
-      const usuario = this.ctx.usuario();
-      let inicial: Grado | null = null;
-
-      if (usuario?.grado_id) {
-        inicial = gs.find(x => x.id === usuario.grado_id) ?? null;
-      }
-      if (!inicial && this.selectedGrado?.id) {
-        inicial = gs.find(x => x.id === this.selectedGrado!.id) ?? null;
-      }
-      if (!inicial && opciones.length) inicial = opciones[0];
-
-      this.selectedGrado = inicial;
-      this.ctx.setGrado(inicial?.id ? inicial : null);
-
-      this.loadGrupos();
-    });
-  }
-
-  private loadGrupos(): void {
-    const params: Record<string, any> = { solo_activos: true };
-    if (this.selectedPlantel?.id) params['plantel_id'] = this.selectedPlantel.id;
-    if (this.selectedGrado?.id) params['grado_id'] = this.selectedGrado.id;
-    if (this.selectedCiclo?.id) params['ciclo_escolar_id'] = this.selectedCiclo.id;
-
-    this.api.get<Grupo[]>('/grupos', params).subscribe(gps => {
-      const opciones = this.ctx.esAdminGlobal() ? [TODOS_GRUPOS, ...gps] : gps;
-      this.grupos.set(opciones);
-
-      const usuario = this.ctx.usuario();
-      let inicial: Grupo | null = null;
-
-      if (usuario?.grupo_id) {
-        inicial = gps.find(x => x.id === usuario.grupo_id) ?? null;
-      }
-      if (!inicial && this.selectedGrupo?.id) {
-        inicial = gps.find(x => x.id === this.selectedGrupo!.id) ?? null;
-      }
-      if (!inicial && opciones.length) inicial = opciones[0];
-
-      this.selectedGrupo = inicial;
-      this.ctx.setGrupo(inicial?.id ? inicial : null);
-    });
   }
 
   private buildBreadcrumbs(): void {

@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
@@ -15,7 +15,6 @@ import { ApexNotificationService } from 'apex-component-library';
 import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
 
 interface CicloOpt   { id: string; nombre_ciclo: string; es_vigente: boolean; }
-interface PlantelOpt { id: string; nombre_plantel: string; }
 
 @Component({
   selector: 'app-reinscripcion',
@@ -43,10 +42,6 @@ interface PlantelOpt { id: string; nombre_plantel: string; }
   <p-select [options]="ciclos()" optionLabel="nombre_ciclo" optionValue="id"
             placeholder="Ciclo destino (nuevo)" [(ngModel)]="cicloDestinoId"
             (onChange)="onCicloChange()" styleClass="w-200" [filter]="true" filterPlaceholder="Buscar..." />
-  <p-select [options]="planteles()" optionLabel="nombre_plantel" optionValue="id"
-            placeholder="Todos los planteles" [(ngModel)]="plantelFiltro"
-            (onChange)="cargarEstado()" [showClear]="true" styleClass="w-200"
-            [filter]="true" filterPlaceholder="Buscar..." />
   <p-select [options]="estadoOpts" optionLabel="label" optionValue="value"
             placeholder="Todos los estados" [(ngModel)]="estadoFiltro"
             (onChange)="cargarEstado()" [showClear]="true" styleClass="w-180" />
@@ -223,7 +218,6 @@ export class ReinscripcionComponent implements OnInit {
   private notify   = inject(ApexNotificationService);
 
   ciclos   = signal<CicloOpt[]>([]);
-  planteles = signal<PlantelOpt[]>([]);
   alumnos  = signal<any[]>([]);
   reporte  = signal<any>(null);
 
@@ -263,19 +257,23 @@ export class ReinscripcionComponent implements OnInit {
   readonly totalPendientes = computed(() => this.reporte()?.resumen?.pendientes ?? 0);
   readonly puedeAprobar    = computed(() => this.totalValidados() > 0 && !this.aprobando());
 
+  constructor() {
+    effect(() => {
+      this.plantelFiltro = this.ctx.plantel()?.id ?? null;
+      if (this.cicloDestinoId) {
+        this.cargarEstado();
+        this.cargarReporte();
+      }
+    });
+  }
+
   ngOnInit() {
     this.cargarCiclos();
-    this.cargarPlanteles();
   }
 
   cargarCiclos() {
     this.api.get('/catalogs/ciclos').subscribe((r: any) =>
       this.ciclos.set(r ?? []));
-  }
-
-  cargarPlanteles() {
-    this.api.get('/planteles').subscribe((r: any) =>
-      this.planteles.set(r.data ?? r ?? []));
   }
 
   onCicloChange() {

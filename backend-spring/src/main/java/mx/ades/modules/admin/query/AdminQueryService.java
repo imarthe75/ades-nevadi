@@ -141,7 +141,7 @@ public class AdminQueryService {
     public List<Map<String, Object>> listarPermisosRol(UUID rolId) {
         if (rolId != null) {
             return jdbc.queryForList(
-                "SELECT mr.id, mr.rol_id, r.nombre_rol, mr.menu_id, m.clave AS menu_clave, m.label, " +
+                "SELECT mr.ref AS id, mr.rol_id, r.nombre_rol, mr.menu_id, m.clave AS menu_clave, m.label, " +
                 "mr.puede_ver, mr.puede_editar, mr.puede_crear, mr.puede_eliminar " +
                 "FROM ades_menu_roles mr " +
                 "JOIN ades_roles r ON r.id = mr.rol_id " +
@@ -151,7 +151,7 @@ public class AdminQueryService {
                 rolId);
         }
         return jdbc.queryForList(
-            "SELECT mr.id, mr.rol_id, r.nombre_rol, mr.menu_id, m.clave AS menu_clave, m.label, " +
+            "SELECT mr.ref AS id, mr.rol_id, r.nombre_rol, mr.menu_id, m.clave AS menu_clave, m.label, " +
             "mr.puede_ver, mr.puede_editar, mr.puede_crear, mr.puede_eliminar " +
             "FROM ades_menu_roles mr " +
             "JOIN ades_roles r ON r.id = mr.rol_id " +
@@ -163,7 +163,7 @@ public class AdminQueryService {
                                                   Boolean puedeVer, Boolean puedeEditar,
                                                   Boolean puedeCrear, Boolean puedeEliminar) {
         List<Map<String, Object>> existing = jdbc.queryForList(
-            "SELECT mr.id FROM ades_menu_roles mr " +
+            "SELECT mr.ref FROM ades_menu_roles mr " +
             "JOIN ades_menus m ON m.id = mr.menu_id " +
             "WHERE mr.rol_id = ? AND m.clave = ?", rolId, menuClave);
 
@@ -183,10 +183,11 @@ public class AdminQueryService {
                 "VALUES (?, ?, ?, ?, ?, ?)",
                 rolId, menuId, pVer, pEdt, pCre, pEli);
         } else {
+            UUID ref = (UUID) existing.get(0).get("ref");
             jdbc.update(
                 "UPDATE ades_menu_roles SET puede_ver=?, puede_editar=?, puede_crear=?, puede_eliminar=?, " +
-                "fecha_modificacion=now() WHERE id=?",
-                pVer, pEdt, pCre, pEli, existing.get(0).get("id"));
+                "fecha_modificacion=now() WHERE ref=?",
+                pVer, pEdt, pCre, pEli, ref);
         }
         return Map.of("ok", true, "rol_id", rolId, "menu_clave", menuClave);
     }
