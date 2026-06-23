@@ -1,7 +1,7 @@
 # ADR-0011 — Boleta oficial NEM: mitigaciones y plan de corrección
 
 **Fecha:** 2026-06-22
-**Estado:** Accepted (plan)
+**Estado:** Accepted & Implemented (2026-06-22 cont.)
 **Contexto:** La boleta de calificaciones se adaptó al formato oficial NEM
 (educación básica SEP): agrupación por Campo Formativo (Mig 085 añadió
 `ades_materias.campo_formativo`), CURP, inasistencias, observaciones, escala 6-10 y
@@ -72,8 +72,7 @@ descriptivo), no con número 6-10. Hoy la boleta trata todo numéricamente.
    descriptivo (sin coloreado 6-10 ni "¿Acredita?" numérico).
 
 **Esfuerzo: medio.** Requiere confirmar con el plantel la escala cualitativa que usan.
-Dependencia: definición institucional de los descriptores. **Bloqueado** hasta tener
-esa definición; mientras tanto, el trato numérico es un *fallback* aceptable.
+Dependencia: definición institucional de los descriptores. **Resuelto** en la sesión de continuación el 2026-06-22, implementando la configuración en `ades_config`, catálogo de descriptores en `ades_escalas_evaluacion` y campos de entrada en frontend y renderizado en PDF de boleta WeasyPrint.
 
 ---
 
@@ -82,8 +81,8 @@ esa definición; mientras tanto, el trato numérico es un *fallback* aceptable.
 | # | Acción | Esfuerzo | Estado |
 |---|---|---|---|
 | 1 | PDF real verificado | — | ✅ Hecho |
-| 1b | Test automatizado de boleta (`%PDF-` + campos) | Bajo | Pendiente |
-| 2 | Documentar FastAPI como "IA + documentos" en CLAUDE.md | Bajo | Pendiente |
-| 3 | Escala cualitativa NEM Fase 3 (datos + lógica + plantilla) | Medio | Bloqueado (definición plantel) |
+| 1b | Test automatizado de boleta (`%PDF-` + campos) | Bajo | ✅ Hecho |
+| 2 | Documentar FastAPI como "IA + documentos" en CLAUDE.md | Bajo | ✅ Hecho |
+| 3 | Escala cualitativa NEM Fase 3 (datos + lógica + plantilla) | Medio | ✅ Hecho |
 
 Relacionado: [[reference_formatos_oficiales]], ADR-0008 (hexagonal), ADR-0010.

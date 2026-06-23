@@ -22,7 +22,7 @@ public class EsquemaPersistenceAdapter implements EsquemaRepositoryPort {
     @Override
     public List<Map<String, Object>> list(UUID nivelEducativoId, UUID materiaId) {
         StringBuilder sql = new StringBuilder(
-            "SELECT ep.id, ep.nombre, ep.vigente_desde, ep.vigente_hasta, " +
+            "SELECT ep.id, ep.nombre, ep.vigente_desde, ep.vigente_hasta, ep.es_nee, " +
             "ep.activo, ep.materia_id, ne.nombre_nivel, m.nombre_materia, " +
             "(SELECT json_agg(json_build_object(" +
             "  'id', ip.id, 'tipo_item', ip.tipo_item, 'nombre_personalizado', ip.nombre_personalizado, " +
@@ -43,7 +43,7 @@ public class EsquemaPersistenceAdapter implements EsquemaRepositoryPort {
     @Override
     public Map<String, Object> efectivo(UUID materiaId) {
         String sql =
-            "SELECT ep.id, ep.nombre, ep.vigente_desde, ep.vigente_hasta, ep.materia_id, " +
+            "SELECT ep.id, ep.nombre, ep.vigente_desde, ep.vigente_hasta, ep.es_nee, ep.materia_id, " +
             "ne.nombre_nivel, ne.escala_maxima, ne.minimo_aprobatorio, " +
             "(SELECT json_agg(json_build_object(" +
             "  'id', ip.id, 'tipo_item', ip.tipo_item, 'nombre_personalizado', ip.nombre_personalizado, " +
@@ -66,10 +66,10 @@ public class EsquemaPersistenceAdapter implements EsquemaRepositoryPort {
         UUID id = UUID.randomUUID();
         jdbc.update(
             "INSERT INTO ades_esquemas_ponderacion " +
-            "(id, nombre, nivel_educativo_id, materia_id, vigente_desde, vigente_hasta, creado_por, activo, usuario_creacion, usuario_modificacion) " +
-            "VALUES (?, ?, ?, ?, ?, ?, ?, TRUE, ?, ?)",
+            "(id, nombre, nivel_educativo_id, materia_id, vigente_desde, vigente_hasta, creado_por, activo, usuario_creacion, usuario_modificacion, es_nee) " +
+            "VALUES (?, ?, ?, ?, ?, ?, ?, TRUE, ?, ?, ?)",
             id, cmd.nombre(), cmd.nivelEducativoId(), cmd.materiaId(),
-            cmd.vigenteDesde(), cmd.vigenteHasta(), cmd.creadoPorId(), cmd.usuario(), cmd.usuario());
+            cmd.vigenteDesde(), cmd.vigenteHasta(), cmd.creadoPorId(), cmd.usuario(), cmd.usuario(), cmd.esNee());
         return id;
     }
 
@@ -89,11 +89,11 @@ public class EsquemaPersistenceAdapter implements EsquemaRepositoryPort {
     public int updateEsquema(ActualizarEsquemaUseCase.Command cmd) {
         return jdbc.update(
             "UPDATE ades_esquemas_ponderacion " +
-            "SET nombre = ?, nivel_educativo_id = ?, materia_id = ?, vigente_desde = ?, vigente_hasta = ?, " +
+            "SET nombre = ?, nivel_educativo_id = ?, materia_id = ?, vigente_desde = ?, vigente_hasta = ?, es_nee = ?, " +
             "usuario_modificacion = ?, row_version = row_version + 1, fecha_modificacion = CURRENT_TIMESTAMP " +
             "WHERE id = ? AND is_active = TRUE",
             cmd.nombre(), cmd.nivelEducativoId(), cmd.materiaId(),
-            cmd.vigenteDesde(), cmd.vigenteHasta(), cmd.usuario(), cmd.esquemaId());
+            cmd.vigenteDesde(), cmd.vigenteHasta(), cmd.esNee(), cmd.usuario(), cmd.esquemaId());
     }
 
     @Override

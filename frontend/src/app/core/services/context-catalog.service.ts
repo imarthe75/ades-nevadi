@@ -19,10 +19,15 @@ import { grupoLabel } from '../models';
 
 // Sentinelas "Todo el Instituto / Todos…" (admin global) — espejo de ShellComponent.
 export const TODO_INSTITUTO: Plantel = { id: '', nombre_plantel: '— Todo el Instituto —', escuela_id: '', is_active: true };
-export const TODOS_NIVELES: NivelEducativo = { id: '', nombre_nivel: 'TODOS' as any, autoridad_educativa: '', tipo_ciclo: '', num_periodos_eval: 0 };
-export const TODOS_CICLOS: CicloEscolar = { id: '', nombre_ciclo: '— TODOS —', nivel_educativo_id: '', fecha_inicio: '', fecha_fin: '', tipo_ciclo: '', es_vigente: true, _label: '— TODOS —' };
-export const TODOS_GRADOS: Grado = { id: '', numero_grado: 0, nombre_grado: '— TODOS —', nivel_educativo_id: '', plantel_id: '' };
-export const TODOS_GRUPOS: Grupo = { id: '', nombre_grupo: '— TODOS —', grado_id: '', ciclo_escolar_id: '', capacidad_maxima: 0, turno: '', is_active: true };
+export const TODOS_NIVELES: NivelEducativo = { id: '', nombre_nivel: 'Todos los Niveles' as any, autoridad_educativa: '', tipo_ciclo: '', num_periodos_eval: 0 };
+export const TODOS_CICLOS: CicloEscolar = { id: '', nombre_ciclo: '— Todos —', nivel_educativo_id: '', fecha_inicio: '', fecha_fin: '', tipo_ciclo: '', es_vigente: true, _label: '— Todos —' };
+export const TODOS_GRADOS: Grado = { id: '', numero_grado: 0, nombre_grado: '— Todos —', nivel_educativo_id: '', plantel_id: '' };
+export const TODOS_GRUPOS: Grupo = { id: '', nombre_grupo: '— Todos —', grado_id: '', ciclo_escolar_id: '', capacidad_maxima: 0, turno: '', is_active: true };
+
+const NIVEL_ORDER: Record<string, number> = { PRIMARIA: 0, SECUNDARIA: 1, PREPARATORIA: 2 };
+function titleNivel(s: string): string {
+  return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : s;
+}
 
 export type CascadeRole = 'plantel' | 'nivel' | 'grado' | 'grupo';
 
@@ -166,9 +171,15 @@ export class ContextCatalogService {
   }
 
   // ── Carga de catálogos dependientes ─────────────────────────────────────────────
+  private sortNiveles(ns: NivelEducativo[]): NivelEducativo[] {
+    return [...ns]
+      .sort((a, b) => (NIVEL_ORDER[a.nombre_nivel] ?? 99) - (NIVEL_ORDER[b.nombre_nivel] ?? 99))
+      .map(n => ({ ...n, nombre_nivel: titleNivel(n.nombre_nivel) as any }));
+  }
+
   private loadNivelesTodos(): void {
     this.api.get<NivelEducativo[]>('/catalogs/niveles').subscribe(ns => {
-      this.niveles.set([TODOS_NIVELES, ...ns]);
+      this.niveles.set([TODOS_NIVELES, ...this.sortNiveles(ns)]);
       this.ctx.setNivel(null);
       this.loadCiclos();
     });
@@ -179,14 +190,15 @@ export class ContextCatalogService {
     if (!plantelId) return;
 
     this.api.get<NivelEducativo[]>(`/planteles/${plantelId}/niveles`).subscribe(ns => {
-      const opciones = this.ctx.esAdminGlobal() ? [TODOS_NIVELES, ...ns] : ns;
+      const sorted = this.sortNiveles(ns);
+      const opciones = this.ctx.esAdminGlobal() ? [TODOS_NIVELES, ...sorted] : sorted;
       this.niveles.set(opciones);
 
       const usuario = this.ctx.usuario();
       let inicial: NivelEducativo | null = null;
-      if (usuario?.nivel_educativo_id) inicial = ns.find(x => x.id === usuario.nivel_educativo_id) ?? null;
-      if (!inicial && this.ctx.nivel()?.id) inicial = ns.find(x => x.id === this.ctx.nivel()!.id) ?? null;
-      if (!inicial && ns.length) inicial = ns[0];
+      if (usuario?.nivel_educativo_id) inicial = sorted.find(x => x.id === usuario.nivel_educativo_id) ?? null;
+      if (!inicial && this.ctx.nivel()?.id) inicial = sorted.find(x => x.id === this.ctx.nivel()!.id) ?? null;
+      if (!inicial && sorted.length) inicial = sorted[0];
 
       if (inicial) {
         this.ctx.setNivel(inicial);
@@ -196,15 +208,14 @@ export class ContextCatalogService {
   }
 
   private loadCiclos(): void {
-    const nivel = this.ctx.nivel()?.id ? this.ctx.nivel()!.nombre_nivel : undefined;
     const params: Record<string, any> = { solo_vigentes: true };
-    if (nivel) params['nivel'] = nivel;
+    if (this.ctx.nivel()?.id) params['nivel_id'] = this.ctx.nivel()!.id;
 
     this.api.get<CicloEscolar[]>('/catalogs/ciclos', params).subscribe(c => {
       const labeled = c.map(x => ({
         ...x,
         _label: (!this.ctx.nivel()?.id && x.nivel_educativo?.nombre_nivel)
-          ? `${x.nombre_ciclo} — ${x.nivel_educativo?.nombre_nivel}`
+          ? `${x.nombre_ciclo} — ${titleNivel(x.nivel_educativo.nombre_nivel)}`
           : x.nombre_ciclo,
       }));
       const opciones = this.ctx.esAdminGlobal() ? [TODOS_CICLOS, ...labeled] : labeled;
@@ -247,7 +258,8 @@ export class ContextCatalogService {
 
     this.api.get<Grupo[]>('/grupos', params).subscribe(gps => {
       const labeled = gps.map(x => ({ ...x, _label: grupoLabel(x) }));
-      const opciones = this.ctx.esAdminGlobal() ? [TODOS_GRUPOS, ...labeled] : labeled;
+      const todoGrupo = { ...TODOS_GRUPOS, _label: '— Todos los Grupos —' };
+      const opciones = this.ctx.esAdminGlobal() ? [todoGrupo, ...labeled] : labeled;
       this.grupos.set(opciones);
 
       const usuario = this.ctx.usuario();

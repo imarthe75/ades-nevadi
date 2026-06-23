@@ -9,4 +9,5 @@ import java.util.UUID;
 @Repository
 public interface CicloEscolarRepository extends JpaRepository<CicloEscolar, UUID> {
     List<CicloEscolar> findByEsVigenteTrue();
+    List<CicloEscolar> findByNivelEducativoIdAndEsVigenteTrue(UUID nivelId);
 }

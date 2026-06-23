@@ -50,6 +50,18 @@ public class TareaEntrega extends AdesBaseEntity {
     @Column(name = "fecha_calificacion_docente")
     private OffsetDateTime fechaCalificacionDocente;
 
+    @Column(name = "plagio_porcentaje")
+    private BigDecimal plagioPorcentaje;
+
+    @Column(name = "plagio_reporte_url")
+    private String plagioReporteUrl;
+
+    @Column(name = "feedback_audio_url")
+    private String feedbackAudioUrl;
+
+    @Column(name = "feedback_video_url")
+    private String feedbackVideoUrl;
+
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
 }

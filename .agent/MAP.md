@@ -18,14 +18,11 @@ del sistema ADES — Instituto Nevadi.
 │   └── RULES.md                   # Reglas de formato y convenciones
 │
 ├── db/
-│   ├── migrations/                # DDL versionado (ejecutar en orden)
+│   ├── migrations/                # DDL versionado (ejecutar en orden, 001 a 092 + scripts de validación)
 │   │   ├── 001_initial_schema.sql # Esquema completo FASE 1–2 (57 tablas base)
-│   │   ├── 002_fase3_fase4.sql    # Eval. docente, IA, alertas, conversaciones
-│   │   ├── 003_bi_learning_paths.sql # Vistas BI, Learning Paths
-│   │   ├── 004_certificados_rubricas.sql # Certificados con folio, rúbricas
-│   │   ├── 005_encuestas.sql      # Encuestas con tipos de pregunta
-│   │   ├── 006_badges_portal.sql  # Badges/insignias (8 seeds)
-│   │   └── 007_gradebook.sql     # Gradebook: ponderaciones, triggers, cálculo automático
+│   │   ├── ...
+│   │   ├── 089_nem_cualitativa_config.sql # Configuración y escalas para evaluación cualitativa NEM
+│   │   └── 092_fix_learning_paths_audit_cols.sql # Última migración aplicada: correcciones de auditoría en paths
 │   └── seeds/                     # Datos iniciales (Instituto Nevadi, ciclos, etc.)
 │
 ├── backend/

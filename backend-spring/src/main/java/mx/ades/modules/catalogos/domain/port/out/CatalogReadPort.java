@@ -20,6 +20,8 @@ public interface CatalogReadPort {
 
     List<CicloEscolar> findCiclosVigentes();
 
+    List<CicloEscolar> findCiclosVigentesByNivel(UUID nivelId);
+
     List<Map<String, Object>> roles();
 
     List<Map<String, Object>> periodos(UUID cicloId, UUID grupoId);

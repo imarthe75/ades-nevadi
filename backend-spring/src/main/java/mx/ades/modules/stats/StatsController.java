@@ -54,6 +54,33 @@ public class StatsController {
         return queryService.telemetria();
     }
 
+    @GetMapping("/director/kpis")
+    public Map<String, Object> directorKPIs(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(name = "plantel_id", required = false) UUID plantelId) {
+        _requireNivelAcceso(jwt, 2, "Solo directores y administradores pueden ver el dashboard de dirección");
+        UUID pid = resolveUUID(jwt.getClaimAsString("plantel"), plantelId);
+        return queryService.directorKPIs(pid);
+    }
+
+    @GetMapping("/director/avance-grado")
+    public List<Map<String, Object>> directorAvanceGrado(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(name = "plantel_id", required = false) UUID plantelId) {
+        _requireNivelAcceso(jwt, 2, "Solo directores y administradores pueden ver el dashboard de dirección");
+        UUID pid = resolveUUID(jwt.getClaimAsString("plantel"), plantelId);
+        return queryService.directorAvanceGrado(pid);
+    }
+
+    @GetMapping("/director/avance-asignatura")
+    public List<Map<String, Object>> directorAvanceAsignatura(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(name = "plantel_id", required = false) UUID plantelId) {
+        _requireNivelAcceso(jwt, 2, "Solo directores y administradores pueden ver el dashboard de dirección");
+        UUID pid = resolveUUID(jwt.getClaimAsString("plantel"), plantelId);
+        return queryService.directorAvanceAsignatura(pid);
+    }
+
     private void _requireNivelAcceso(Jwt jwt, int maxNivel, String mensaje) {
         Object nivel = jwt.getClaim("nivel_acceso");
         int nivelAcceso = nivel instanceof Number n ? n.intValue() : 99;

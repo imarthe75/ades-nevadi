@@ -49,6 +49,7 @@ const ROUTE_TITLES: Record<string, string> = {
   'badges': 'Reconocimientos',
   'foros': 'Foros',
   'learning-paths': 'Rutas de Aprendizaje',
+  'director-dashboard': 'Panel de Dirección',
   'h5p': 'Contenido H5P',
   'videoconferencias': 'Videoconferencias BBB',
   'mi-progreso': 'Mi Progreso',
@@ -424,7 +425,7 @@ interface Notif { id: string; titulo: string; cuerpo: string; tipo: string; leid
       padding: 0.3rem 0.5rem; white-space: nowrap;
     }
     .ctx-label i { font-size: 0.75rem; opacity: 0.7; margin-right: 0.2rem; }
-    .ctx-nivel { font-weight: 700; letter-spacing: .02em; text-transform: uppercase; font-size: 0.78rem; }
+    .ctx-nivel { font-weight: 700; letter-spacing: .02em; font-size: 0.82rem; }
 
     /* p-select en topbar */
     :host ::ng-deep .ctx-selector { min-width: 160px; }
@@ -569,6 +570,7 @@ export class ShellComponent implements OnInit, OnDestroy {
       { route: '/comunicados',  icon: 'pi-envelope',     label: 'Comunicados',         minNivel: 5 },
     ]},
     { section: 'Inteligencia', maxNivel: 3, items: [
+      { route: '/director-dashboard', icon: 'pi-chart-line',  label: 'Panel de Dirección', maxNivel: 2 },
       { route: '/bi',             icon: 'pi-chart-pie',      label: 'Dashboards BI' },
       { route: '/grade-analytics', icon: 'pi-chart-bar',     label: 'Grade Analytics' },
       { route: '/ia',             icon: 'pi-sparkles',       label: 'Asistente IA + Datos' },

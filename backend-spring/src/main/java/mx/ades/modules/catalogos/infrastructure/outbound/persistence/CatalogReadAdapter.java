@@ -58,6 +58,7 @@ public class CatalogReadAdapter implements CatalogReadPort {
     }
     @Override public List<CicloEscolar> findAllCiclos()                  { return cicloRepo.findAll(); }
     @Override public List<CicloEscolar> findCiclosVigentes()             { return cicloRepo.findByEsVigenteTrue(); }
+    @Override public List<CicloEscolar> findCiclosVigentesByNivel(UUID nivelId) { return cicloRepo.findByNivelEducativoIdAndEsVigenteTrue(nivelId); }
     @Override public List<Map<String, Object>> roles()                   { return queryService.roles(); }
     @Override public List<Map<String, Object>> periodos(UUID c, UUID g)  { return queryService.periodos(c, g); }
     @Override public List<Map<String, Object>> paises()                  { return queryService.paises(); }

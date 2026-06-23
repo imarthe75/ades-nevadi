@@ -1,5 +1,5 @@
 # ADES — Estado del Proyecto
-**Actualizado:** 2026-06-15 | **Versión:** para desarrolladores y agentes
+**Actualizado:** 2026-06-23 | **Versión:** para desarrolladores y agentes
 
 ---
 
@@ -76,7 +76,7 @@ Estos módulos permanecen en Python por su acoplamiento con librerías de IA/PDF
 
 ## Base de datos
 
-**Estado:** 067 migraciones aplicadas, 150+ tablas, seeds 2026-2027
+**Estado:** 092 migraciones aplicadas, 164 tablas, seeds 2026-2027
 
 ### Schemas
 - `public` — todas las tablas `ades_*` (core del sistema)

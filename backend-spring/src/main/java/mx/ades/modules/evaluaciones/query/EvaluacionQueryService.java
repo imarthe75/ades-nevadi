@@ -76,7 +76,7 @@ public class EvaluacionQueryService {
             "SELECT n.id, n.tipo_nee, n.descripcion, n.apoyos_requeridos, " +
             "n.fecha_deteccion, n.profesional_detecta, " +
             "p.nombre || ' ' || p.apellido_paterno as alumno, " +
-            "e.numero_control " +
+            "e.matricula AS numero_control " +
             "FROM ades_nee n " +
             "JOIN ades_estudiantes e ON e.id = n.alumno_id " +
             "JOIN ades_personas p ON p.id = e.persona_id " +
@@ -109,7 +109,7 @@ public class EvaluacionQueryService {
     public List<Map<String, Object>> actasSep(UUID grupoId, String periodo) {
         return jdbc.queryForList(
             "SELECT p.nombre || ' ' || p.apellido_paterno AS alumno, " +
-            "e.numero_control, m.nombre_materia, " +
+            "e.matricula AS numero_control, m.nombre_materia, " +
             "COALESCE(c.calificacion_final, 0) as calificacion, " +
             "COALESCE(c.asistencia_porcentaje, 0) as asistencia " +
             "FROM ades_inscripciones i " +

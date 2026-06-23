@@ -17,9 +17,10 @@ public class PortalAdminService {
     public List<Map<String, Object>> listarConvocatorias(String categoria, String tipo,
             UUID plantelId, int limit, int skip) {
         StringBuilder sql = new StringBuilder("""
-            SELECT c.id, c.categoria, c.tipo, c.titulo,
+            SELECT c.id, c.categoria, c.tipo, c.titulo, c.descripcion, c.requisitos_generales,
                    c.fecha_inicio_postulacion, c.fecha_cierre_postulacion,
                    c.cupo_maximo, c.cupo_actual, c.is_published, c.is_active,
+                   c.imagen_url, c.plantel_id,
                    p.nombre_plantel,
                    (SELECT COUNT(*) FROM portal.postulaciones po WHERE po.convocatoria_id = c.id AND po.is_active = TRUE) AS total_postulaciones,
                    (SELECT COUNT(*) FROM portal.postulaciones po WHERE po.convocatoria_id = c.id AND po.estado = 'ENVIADA' AND po.is_active = TRUE) AS pendientes_revision
@@ -93,6 +94,16 @@ public class PortalAdminService {
 
     public void desactivarRequisitos(UUID convId) {
         jdbc.update("UPDATE portal.requisitos_documentos SET is_active = FALSE WHERE convocatoria_id = ?", convId);
+    }
+
+    public List<Map<String, Object>> listarRequisitos(UUID convId) {
+        return jdbc.queryForList("""
+            SELECT id, nombre, descripcion, es_obligatorio,
+                   tipos_mime_permitidos, tamano_maximo_mb, orden
+            FROM portal.requisitos_documentos
+            WHERE convocatoria_id = ? AND is_active = TRUE
+            ORDER BY orden, fecha_creacion
+            """, convId);
     }
 
     public int togglePublicar(UUID id, String usuario) {

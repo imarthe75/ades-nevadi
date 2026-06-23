@@ -365,7 +365,7 @@ export class H5pComponent implements OnInit {
         this.playerTitulo.set(c.titulo);
         this.playerVisible = true;
       },
-      error: () => this.notify.error('No se pudo abrir el player H5P'),
+      error: (e: any) => this.notify.error(e?.error?.detail || 'No se pudo abrir el player H5P'),
     });
   }
 

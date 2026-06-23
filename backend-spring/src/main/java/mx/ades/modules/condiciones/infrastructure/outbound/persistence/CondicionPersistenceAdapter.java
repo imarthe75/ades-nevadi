@@ -33,7 +33,7 @@ public class CondicionPersistenceAdapter implements CondicionRepositoryPort {
     @Override
     public List<Map<String, Object>> list(UUID alumnoId, String tipoCondicion, boolean soloActivas) {
         StringBuilder q = new StringBuilder(
-                "SELECT c.id, c.alumno_id, e.numero_control, " +
+                "SELECT c.id, c.alumno_id, e.matricula AS numero_control, " +
                 "p.nombre || ' ' || p.apellido_paterno AS alumno_nombre, " +
                 "c.tipo_condicion, c.descripcion, c.medicacion_nombre, c.dosis, c.frecuencia, " +
                 "c.alergias, c.medico_responsable, c.telefono_medico, c.activa, c.fecha_creacion " +
@@ -57,7 +57,7 @@ public class CondicionPersistenceAdapter implements CondicionRepositoryPort {
         String sql = "SELECT c.tipo_condicion, c.descripcion, c.medicacion_nombre, " +
                 "c.dosis, c.frecuencia, c.alergias, c.medico_responsable, c.telefono_medico, " +
                 "p.nombre || ' ' || p.apellido_paterno AS alumno_nombre, " +
-                "e.numero_control, " +
+                "e.matricula AS numero_control, " +
                 "cf.nombre_completo AS contacto_emergencia, " +
                 "cf.telefono_principal AS tel_emergencia " +
                 "FROM ades_condiciones_cronicas c " +
