@@ -222,8 +222,16 @@ export class InteractiveGridComponent implements OnChanges {
   @Input() loading = false;
   @Input() showDelete = false;
   @Input() searchable = true;
+  /** Labels impuestos por el contexto global — se muestran en el filtro de esas columnas. */
+  @Input() externalFilters: Record<string, string> = {};
+  /** LOV externo por columna (catálogo completo de la cascada) en vez del índice local. */
+  @Input() externalSuggestions: Record<string, string[]> = {};
+  /** Columnas filtradas por el servidor/contexto — NO se filtran client-side aquí. */
+  @Input() serverFilteredFields: string[] = [];
   @Output() rowSelected = new EventEmitter<any>();
   @Output() rowDeleted  = new EventEmitter<any>();
+  /** Camino grid → contexto: el usuario cambió el filtro de una columna de rol cascada. */
+  @Output() filterChange = new EventEmitter<{ field: string; value: string | null }>();
 
   columnasVisibles = signal<ColumnConfig[]>([]);
   mostrarColumnChooser = signal(false);
@@ -250,6 +258,21 @@ export class InteractiveGridComponent implements OnChanges {
       this._rebuildSuggestionsIndex();
       this.aplicarFiltros();
     }
+    if (changes['externalFilters']) {
+      this._seedExternalFilters();
+    }
+  }
+
+  /** Vuelca los labels del contexto en los modelos de filtro de sus columnas. */
+  private _seedExternalFilters(): void {
+    for (const field of Object.keys(this.externalFilters)) {
+      const label = this.externalFilters[field] ?? '';
+      this.filterModels[field] = label;
+    }
+  }
+
+  private _isServerFiltered(field: string): boolean {
+    return this.serverFilteredFields.includes(field);
   }
 
   // ── LOV filter ───────────────────────────────────────────────────────────────
@@ -268,7 +291,8 @@ export class InteractiveGridComponent implements OnChanges {
   }
 
   buscarSugerencias(field: string, query: string): void {
-    const all = this._suggestionsIndex[field] ?? [];
+    // Columnas de rol cascada: LOV proviene del catálogo completo del contexto.
+    const all = this.externalSuggestions[field] ?? this._suggestionsIndex[field] ?? [];
     const q = query.toLowerCase();
     this.filterSuggestions[field] = q
       ? all.filter(v => v.toLowerCase().includes(q))
@@ -276,12 +300,17 @@ export class InteractiveGridComponent implements OnChanges {
   }
 
   onFilterSelect(field: string, value: string): void {
-    this.filtrosActivos.set(field, value.toLowerCase());
     this.filterModels[field] = value;
+    if (this._isServerFiltered(field)) {
+      this.filterChange.emit({ field, value });
+      return;
+    }
+    this.filtrosActivos.set(field, value.toLowerCase());
     this.aplicarFiltros();
   }
 
   onFilterKeyUp(field: string, value: string): void {
+    if (this._isServerFiltered(field)) return; // estas columnas solo cambian vía LOV/clear
     if (value.trim()) {
       this.filtrosActivos.set(field, value.toLowerCase());
     } else {
@@ -292,14 +321,19 @@ export class InteractiveGridComponent implements OnChanges {
   }
 
   clearFilter(field: string): void {
-    this.filtrosActivos.delete(field);
     this.filterModels[field] = '';
+    if (this._isServerFiltered(field)) {
+      this.filterChange.emit({ field, value: null });
+      return;
+    }
+    this.filtrosActivos.delete(field);
     this.aplicarFiltros();
   }
 
   limpiarFiltros(): void {
     this.filtrosActivos.clear();
     this.filterModels = {};
+    this._seedExternalFilters(); // conserva el reflejo del contexto en columnas cascada
     this.datosActuales = [...this.datosOriginales];
     this.totalFilas.set(this.datosActuales.length);
   }

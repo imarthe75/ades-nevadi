@@ -20,7 +20,7 @@ from fastapi.responses import Response as FastResponse
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session
 
-from app.core.auth import get_ades_user
+from app.core.security import get_ades_user
 from app.core.config import settings
 
 router = APIRouter(prefix="/boletas", tags=["boletas"])
