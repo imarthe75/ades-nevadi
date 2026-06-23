@@ -15,7 +15,15 @@ public class AdesUser {
     private final UUID personaId;
     private final UUID plantelId;
     private final UUID nivelEducativoId;
+    private final UUID gradoId;
+    private final UUID grupoId;
+    private final String nombreGrado;
+    private final String nombreGrupo;
+    private final String nombreCompleto;
+    private final String nombrePlantel;
+    private final String nombreNivel;
     private final UUID rolPrincipalId;
     private final List<String> roles;
     private final Integer nivelAcceso;
 }
+

@@ -62,7 +62,7 @@ public class AlumnoQueryService {
             sql.append("AND g.id = ?\n");
             params.add(grupoId);
         } else if (gradoId != null) {
-            sql.append("AND gr.id = ?\n");
+            sql.append("AND gr.id IN (SELECT id FROM ades_grados WHERE (numero_grado, nivel_educativo_id) = (SELECT numero_grado, nivel_educativo_id FROM ades_grados WHERE id = ?))\n");
             params.add(gradoId);
         } else if (nivelId != null) {
             sql.append("AND ne.id = ?\n");

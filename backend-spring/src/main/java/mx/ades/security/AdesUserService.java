@@ -14,6 +14,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -83,6 +84,76 @@ public class AdesUserService {
             roles = List.of(usuario.getRol().getNombreRol());
         }
 
+        String nombreCompleto = null;
+        if (usuario.getPersonaId() != null) {
+            try {
+                nombreCompleto = jdbc.queryForObject(
+                        "SELECT TRIM(CONCAT(nombre, ' ', apellido_paterno, ' ', COALESCE(apellido_materno, ''))) FROM ades_personas WHERE id = ?",
+                        String.class, usuario.getPersonaId());
+            } catch (Exception e) {}
+        }
+
+        String nombrePlantel = null;
+        if (usuario.getPlantelId() != null) {
+            try {
+                nombrePlantel = jdbc.queryForObject(
+                        "SELECT nombre_plantel FROM ades_planteles WHERE id = ?",
+                        String.class, usuario.getPlantelId());
+            } catch (Exception e) {}
+        }
+
+        String nombreNivel = null;
+        if (usuario.getNivelEducativoId() != null) {
+            try {
+                nombreNivel = jdbc.queryForObject(
+                        "SELECT nombre_nivel FROM ades_niveles_educativos WHERE id = ?",
+                        String.class, usuario.getNivelEducativoId());
+            } catch (Exception e) {}
+        }
+
+        UUID grupoId = null;
+        UUID gradoId = null;
+        String nombreGrupo = null;
+        String nombreGrado = null;
+
+        if (roles.contains("ALUMNO")) {
+            try {
+                List<Map<String, Object>> rows = jdbc.queryForList(
+                        "SELECT i.grupo_id, g.grado_id, g.nombre_grupo, gr.nombre_grado " +
+                        "FROM ades_inscripciones i " +
+                        "JOIN ades_grupos g ON g.id = i.grupo_id " +
+                        "JOIN ades_grados gr ON gr.id = g.grado_id " +
+                        "JOIN ades_estudiantes est ON est.id = i.estudiante_id " +
+                        "WHERE est.persona_id = ? AND i.is_active = TRUE LIMIT 1",
+                        usuario.getPersonaId());
+                if (!rows.isEmpty()) {
+                    Map<String, Object> row = rows.get(0);
+                    grupoId = (UUID) row.get("grupo_id");
+                    gradoId = (UUID) row.get("grado_id");
+                    nombreGrupo = (String) row.get("nombre_grupo");
+                    nombreGrado = (String) row.get("nombre_grado");
+                }
+            } catch (Exception e) {}
+        } else if (roles.contains("DOCENTE")) {
+            try {
+                List<Map<String, Object>> rows = jdbc.queryForList(
+                        "SELECT DISTINCT c.grupo_id, g.grado_id, g.nombre_grupo, gr.nombre_grado " +
+                        "FROM ades_clases c " +
+                        "JOIN ades_grupos g ON g.id = c.grupo_id " +
+                        "JOIN ades_grados gr ON gr.id = g.grado_id " +
+                        "JOIN ades_profesores prof ON prof.id = c.profesor_id " +
+                        "WHERE prof.persona_id = ?",
+                        usuario.getPersonaId());
+                if (rows.size() == 1) {
+                    Map<String, Object> row = rows.get(0);
+                    grupoId = (UUID) row.get("grupo_id");
+                    gradoId = (UUID) row.get("grado_id");
+                    nombreGrupo = (String) row.get("nombre_grupo");
+                    nombreGrado = (String) row.get("nombre_grado");
+                }
+            } catch (Exception e) {}
+        }
+
         return AdesUser.builder()
                 .id(usuario.getId())
                 .username(usuario.getNombreUsuario())
@@ -90,6 +161,13 @@ public class AdesUserService {
                 .personaId(usuario.getPersonaId())
                 .plantelId(usuario.getPlantelId())
                 .nivelEducativoId(usuario.getNivelEducativoId())
+                .gradoId(gradoId)
+                .grupoId(grupoId)
+                .nombreGrado(nombreGrado)
+                .nombreGrupo(nombreGrupo)
+                .nombreCompleto(nombreCompleto)
+                .nombrePlantel(nombrePlantel)
+                .nombreNivel(nombreNivel)
                 .rolPrincipalId(usuario.getRol() != null ? usuario.getRol().getId() : null)
                 .roles(roles)
                 .nivelAcceso(usuario.getRol() != null ? usuario.getRol().getNivelAcceso() : 99)

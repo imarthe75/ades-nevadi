@@ -43,6 +43,7 @@ public class AdminController {
     private final AdesUserService userService;
     private final AdminWriteService writeService;
     private final AdminQueryService queryService;
+    private final ConfigQueryService configQueryService;
 
     private PermisoAdmin permisoAdmin(AdesUser user) {
         PermisoAdmin permiso = new PermisoAdmin(user.getNivelAcceso() != null ? user.getNivelAcceso() : 99);
@@ -194,6 +195,9 @@ public class AdminController {
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         PermisoAdmin permiso = permisoAdmin(user);
+
+        if (body.getRolId() == null)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "rolId es requerido");
 
         Rol rol = rolRepository.findById(body.getRolId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Rol no encontrado"));
@@ -404,5 +408,165 @@ public class AdminController {
         if (body.getCicloEscolarId() != null) grupo.setCicloEscolarId(body.getCicloEscolarId());
 
         return ResponseEntity.ok(grupoRepository.save(grupo));
+    }
+
+    // ── CONFIGURACIÓN DEL SISTEMA ─────────────────────────────────────────────
+
+    @GetMapping("/config")
+    public ResponseEntity<List<Map<String, Object>>> listarConfig(
+            @RequestParam(value = "grupo", required = false) String grupo,
+            @AuthenticationPrincipal Jwt jwt) {
+        AdesUser user = userService.resolveUser(jwt);
+        permisoAdmin(user);
+        return ResponseEntity.ok(configQueryService.listarConfig(grupo));
+    }
+
+    @Data
+    public static class ConfigUpdateRequest {
+        private Object valor;
+    }
+
+    @PatchMapping("/config/{clave}")
+    public ResponseEntity<Map<String, Object>> actualizarConfig(
+            @PathVariable("clave") String clave,
+            @RequestBody ConfigUpdateRequest body,
+            @AuthenticationPrincipal Jwt jwt) {
+        AdesUser user = userService.resolveUser(jwt);
+        permisoAdmin(user);
+        if (body.getValor() == null)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "valor requerido");
+        return ResponseEntity.ok(configQueryService.actualizarConfig(clave, body.getValor()));
+    }
+
+    // ── ESCALAS CUALITATIVAS ──────────────────────────────────────────────────
+
+    @GetMapping("/config/escalas-cualitativas")
+    public ResponseEntity<List<Map<String, Object>>> listarEscalas(
+            @AuthenticationPrincipal Jwt jwt) {
+        AdesUser user = userService.resolveUser(jwt);
+        permisoAdmin(user);
+        return ResponseEntity.ok(configQueryService.listarEscalasCualitativas());
+    }
+
+    @Data
+    public static class EscalaUpdateRequest {
+        private String nombre;
+        private String descripcion;
+        private Object valores_json;
+        private Boolean is_active;
+    }
+
+    @PutMapping("/config/escalas-cualitativas/{id}")
+    public ResponseEntity<Map<String, Object>> actualizarEscala(
+            @PathVariable("id") String id,
+            @RequestBody EscalaUpdateRequest body,
+            @AuthenticationPrincipal Jwt jwt) {
+        AdesUser user = userService.resolveUser(jwt);
+        permisoAdmin(user);
+        Map<String, Object> bodyMap = new HashMap<>();
+        if (body.getNombre() != null)      bodyMap.put("nombre", body.getNombre());
+        if (body.getDescripcion() != null) bodyMap.put("descripcion", body.getDescripcion());
+        if (body.getValores_json() != null) bodyMap.put("valores_json", body.getValores_json());
+        if (body.getIs_active() != null)   bodyMap.put("is_active", body.getIs_active());
+        return ResponseEntity.ok(configQueryService.actualizarEscala(id, bodyMap));
+    }
+
+    // ── ROLES ────────────────────────────────────────────────────────────────
+
+    @GetMapping("/roles")
+    public ResponseEntity<List<Map<String, Object>>> listarRoles(
+            @AuthenticationPrincipal Jwt jwt) {
+        AdesUser user = userService.resolveUser(jwt);
+        permisoAdmin(user);
+        return ResponseEntity.ok(queryService.listarRoles());
+    }
+
+    @Data
+    public static class RolUpdateRequest {
+        private String descripcion;
+    }
+
+    @PatchMapping("/roles/{id}")
+    public ResponseEntity<Map<String, Object>> actualizarRol(
+            @PathVariable("id") UUID id,
+            @RequestBody RolUpdateRequest body,
+            @AuthenticationPrincipal Jwt jwt) {
+        AdesUser user = userService.resolveUser(jwt);
+        PermisoAdmin permiso = permisoAdmin(user);
+        if (!permiso.esAdminGlobal())
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo ADMIN_GLOBAL puede editar roles");
+        Rol rol = rolRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Rol no encontrado"));
+        if (body.getDescripcion() != null) rol.setDescripcion(body.getDescripcion());
+        rolRepository.save(rol);
+        return ResponseEntity.ok(Map.of("ok", true));
+    }
+
+    // ── MENÚS ────────────────────────────────────────────────────────────────
+
+    @GetMapping("/menus")
+    public ResponseEntity<List<Map<String, Object>>> listarMenusAdmin(
+            @AuthenticationPrincipal Jwt jwt) {
+        AdesUser user = userService.resolveUser(jwt);
+        permisoAdmin(user);
+        return ResponseEntity.ok(queryService.listarMenus());
+    }
+
+    @Data
+    public static class MenuUpdateRequest {
+        private String label;
+        private Integer nivelMaximo;
+        private Integer nivelMinimo;
+        private Boolean activo;
+    }
+
+    @PatchMapping("/menus/{clave}")
+    public ResponseEntity<Map<String, Object>> actualizarMenu(
+            @PathVariable("clave") String clave,
+            @RequestBody MenuUpdateRequest body,
+            @AuthenticationPrincipal Jwt jwt) {
+        AdesUser user = userService.resolveUser(jwt);
+        PermisoAdmin permiso = permisoAdmin(user);
+        if (!permiso.esAdminGlobal())
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo ADMIN_GLOBAL puede editar menús");
+        return ResponseEntity.ok(queryService.actualizarMenu(clave, body.getLabel(),
+                body.getNivelMaximo(), body.getNivelMinimo(), body.getActivo()));
+    }
+
+    // ── PERMISOS POR ROL ─────────────────────────────────────────────────────
+
+    @GetMapping("/permisos-rol")
+    public ResponseEntity<List<Map<String, Object>>> listarPermisosRol(
+            @RequestParam(value = "rol_id", required = false) UUID rolId,
+            @AuthenticationPrincipal Jwt jwt) {
+        AdesUser user = userService.resolveUser(jwt);
+        permisoAdmin(user);
+        return ResponseEntity.ok(queryService.listarPermisosRol(rolId));
+    }
+
+    @Data
+    public static class PermisoRolRequest {
+        private UUID rolId;
+        private String menuClave;
+        private Boolean puedeVer;
+        private Boolean puedeEditar;
+        private Boolean puedeCrear;
+        private Boolean puedeEliminar;
+    }
+
+    @PutMapping("/permisos-rol")
+    public ResponseEntity<Map<String, Object>> upsertPermisoRol(
+            @RequestBody PermisoRolRequest body,
+            @AuthenticationPrincipal Jwt jwt) {
+        AdesUser user = userService.resolveUser(jwt);
+        PermisoAdmin permiso = permisoAdmin(user);
+        if (!permiso.esAdminGlobal())
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo ADMIN_GLOBAL puede editar permisos");
+        if (body.getRolId() == null || body.getMenuClave() == null)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "rolId y menuClave son requeridos");
+        return ResponseEntity.ok(queryService.upsertPermisoRol(
+                body.getRolId(), body.getMenuClave(),
+                body.getPuedeVer(), body.getPuedeEditar(),
+                body.getPuedeCrear(), body.getPuedeEliminar()));
     }
 }

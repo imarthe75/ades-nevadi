@@ -42,7 +42,7 @@ public class ConductaQueryService {
             q.append("AND rc.grupo_id = ? ");
             params.add(grupoId);
         } else if (gradoId != null) {
-            q.append("AND g.grado_id = ? ");
+            q.append("AND g.grado_id IN (SELECT id FROM ades_grados WHERE (numero_grado, nivel_educativo_id) = (SELECT numero_grado, nivel_educativo_id FROM ades_grados WHERE id = ?)) ");
             params.add(gradoId);
         } else if (nivelId != null) {
             q.append("AND gr.nivel_educativo_id = ? ");

@@ -12,7 +12,10 @@ public enum TipoEntidadImport {
                     "fecha_nacimiento", "telefono", "email_personal", "nacionalidad",
                     "clave_plantel", "fecha_ingreso", "nss", "escuela_procedencia",
                     "clave_ct_procedencia", "promedio_procedencia", "beca_tipo", "beca_monto",
-                    "folio_sep", "tipo_alumno"}
+                    "folio_sep", "tipo_alumno",
+                    // columnas opcionales de padre/tutor — si presentes se crea cuenta PADRE_FAMILIA
+                    "nombre_padre", "apellido_paterno_padre", "apellido_materno_padre",
+                    "curp_padre", "email_padre", "telefono_padre"}
     ),
     PROFESORES(
             2,

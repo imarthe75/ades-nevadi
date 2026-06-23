@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, OnInit } from '@angular/core';
+import { Component, inject, signal, computed, OnInit, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
@@ -113,19 +113,19 @@ interface Insights {
 <div class="filter-bar">
   <p-select [options]="plantelesOpts()" optionLabel="nombre_plantel" optionValue="id"
             placeholder="Plantel…" [(ngModel)]="plantelSel"
-            [disabled]="isPlantelDisabled()"
+            [disabled]="isPlantelDisabled() || !!ctx.plantel()"
             (onChange)="onPlantelChange()" />
   <p-select [options]="nivelesOpts()" optionLabel="nombre_nivel" optionValue="id"
             placeholder="Nivel…" [(ngModel)]="nivelSel"
-            [disabled]="isNivelDisabled() || !plantelSel"
+            [disabled]="isNivelDisabled() || !!ctx.nivel() || !plantelSel"
             (onChange)="onNivelChange()" />
   <p-select [options]="gradosOpts()" optionLabel="nombre_grado" optionValue="id"
             placeholder="Grado…" [(ngModel)]="gradoSel"
-            [disabled]="!nivelSel"
+            [disabled]="!!ctx.grado() || !nivelSel"
             (onChange)="onGradoChange()" />
   <p-select [options]="grupos()" optionLabel="_label" optionValue="id"
             placeholder="Grupo" [(ngModel)]="grupoSel"
-            [disabled]="!gradoSel"
+            [disabled]="!!ctx.grupo() || !gradoSel"
             (onChange)="onGrupoChange()"
  [filter]="true" filterPlaceholder="Buscar..."/>
   <p-select [options]="materias()" optionLabel="nombre_materia" optionValue="id"
@@ -147,7 +147,20 @@ interface Insights {
     </p>
   </div>
 } @else {
-<p-tabs value="0">
+  <!-- Búsqueda rápida -->
+  <div style="display:flex; gap:0.75rem; align-items:center; margin-bottom:1rem; flex-wrap:wrap">
+    <div style="flex:1; min-width:250px">
+      <input
+        pInputText
+        type="text"
+        placeholder="Buscar alumno, actividad o materia..."
+        [(ngModel)]="busqueda"
+        style="width:100%"
+      />
+    </div>
+  </div>
+
+  <p-tabs value="0">
   <!-- ── TAB 1: Spreadsheet de actividades ── -->
   <p-tabpanel header="Actividades" value="0">
     @if (actividadesFlat().length === 0 && !cargando()) {
@@ -409,7 +422,7 @@ interface Insights {
 })
 export class GradebookComponent implements OnInit {
   private api = inject(ApiService);
-  private ctx = inject(ContextService);
+  readonly ctx = inject(ContextService);
   private exporter = inject(ExportService);
   private readonly notify = inject(ApexNotificationService);
 
@@ -421,6 +434,56 @@ export class GradebookComponent implements OnInit {
   plantelSel: string | null = null;
   nivelSel:   string | null = null;
   gradoSel:   string | null = null;
+
+  constructor() {
+    // Sincronizar plantel desde el contexto global
+    effect(() => {
+      const p = this.ctx.plantel();
+      if (p?.id) {
+        this.plantelSel = p.id;
+        this._loadNiveles(p.id);
+      } else {
+        this.plantelSel = null;
+        this.onPlantelChange();
+      }
+    });
+
+    // Sincronizar nivel desde el contexto global
+    effect(() => {
+      const n = this.ctx.nivel();
+      if (n?.id) {
+        this.nivelSel = n.id;
+        this._loadGrados(n.id);
+      } else {
+        this.nivelSel = null;
+        this.onNivelChange();
+      }
+    });
+
+    // Sincronizar grado desde el contexto global
+    effect(() => {
+      const g = this.ctx.grado();
+      if (g?.id) {
+        this.gradoSel = g.id;
+        this.onGradoChange();
+      } else {
+        this.gradoSel = null;
+        this.onGradoChange();
+      }
+    });
+
+    // Sincronizar grupo desde el contexto global
+    effect(() => {
+      const gp = this.ctx.grupo();
+      if (gp?.id) {
+        this.grupoSel = gp.id;
+        this.onGrupoChange();
+      } else {
+        this.grupoSel = null;
+        this.onGrupoChange();
+      }
+    });
+  }
 
   readonly isPlantelDisabled = computed(() => (this.ctx.nivelAcceso() ?? 0) > 2);
   readonly isNivelDisabled   = computed(() => (this.ctx.nivelAcceso() ?? 0) > 3);
@@ -460,14 +523,22 @@ export class GradebookComponent implements OnInit {
     return g?._label ?? g?.nombre_grupo ?? '';
   });
 
-  readonly actividadesFlat = computed(() =>
-    this.actividades().map(a => ({
+  busqueda = signal('');
+
+  readonly actividadesFlat = computed(() => {
+    const q = this.busqueda().toLowerCase();
+    const list = this.actividades().map(a => ({
       ...a,
       titulo_mat:   `${a.titulo} — ${a.nombre_materia}`,
       entrega_str:  `${a.entregadas}/${a.total_alumnos}`,
       fecha_str:    a.fecha_entrega ? new Date(a.fecha_entrega).toLocaleDateString('es-MX') : '—',
-    }))
-  );
+    }));
+    if (!q) return list;
+    return list.filter(a =>
+      a.titulo_mat.toLowerCase().includes(q) ||
+      (a.tipo_item || '').toLowerCase().includes(q)
+    );
+  });
   readonly actividadesColumns: ColumnConfig[] = [
     { field: 'titulo_mat',  header: 'Actividad' },
     { field: 'tipo_item',   header: 'Tipo',          width: '100px' },
@@ -476,15 +547,22 @@ export class GradebookComponent implements OnInit {
     { field: 'calificadas', header: 'Calificadas',   width: '100px' },
   ];
 
-  readonly concentradoFlat = computed(() =>
-    this.concentrado().map(r => ({
+  readonly concentradoFlat = computed(() => {
+    const q = this.busqueda().toLowerCase();
+    const list = this.concentrado().map(r => ({
       ...r,
       cal_calc_str:  r.calificacion_calculada !== null ? String(r.calificacion_calculada) : '—',
       ajuste_str:    r.ajuste_manual !== null ? String(r.ajuste_manual) : '—',
       cal_final_str: r.calificacion_final !== null ? String(r.calificacion_final) : '—',
       estado_str:    r.cerrada ? 'Cerrada' : 'Abierta',
-    }))
-  );
+    }));
+    if (!q) return list;
+    return list.filter(r =>
+      (r.alumno || '').toLowerCase().includes(q) ||
+      (r.numero_matricula || '').toLowerCase().includes(q) ||
+      (r.nombre_materia || '').toLowerCase().includes(q)
+    );
+  });
   readonly concentradoColumns: ColumnConfig[] = [
     { field: 'alumno',          header: 'Alumno' },
     { field: 'numero_matricula',header: 'Matrícula',  width: '110px' },
@@ -570,7 +648,7 @@ export class GradebookComponent implements OnInit {
   }
 
   private _loadGrados(nivelId: string): void {
-    this.api.get<any[]>('/catalogs/grados', { nivel_id: nivelId }).subscribe({
+    this.api.get<any[]>('/catalogs/grados', { nivel_id: nivelId, plantel_id: this.plantelSel || undefined }).subscribe({
       next: list => this.gradosOpts.set(list),
     });
   }
@@ -595,7 +673,16 @@ export class GradebookComponent implements OnInit {
     this.grupoSel   = null; this.materiaSel = null; this.periodoSel = null;
     this.grupos.set([]); this.actividades.set([]); this.concentrado.set([]);
     if (this.plantelSel && this.gradoSel) {
-      this.api.get<any[]>('/grupos', { plantel_id: this.plantelSel, grado_id: this.gradoSel }).subscribe({
+      const params: Record<string, any> = {
+        plantel_id: this.plantelSel,
+        grado_id: this.gradoSel,
+        solo_activos: true,
+      };
+      if (this.nivelSel) params['nivel_id'] = this.nivelSel;
+      const cicloId = this.ctx.ciclo()?.id;
+      if (cicloId) params['ciclo_escolar_id'] = cicloId;
+
+      this.api.get<any[]>('/grupos', params).subscribe({
         next: (r: any) => {
           const list: any[] = r.data ?? r;
           this.grupos.set(list.map((g: any) => ({ ...g, _label: grupoLabel(g) || g.nombre_grupo })));

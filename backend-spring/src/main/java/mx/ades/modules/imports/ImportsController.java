@@ -207,8 +207,38 @@ public class ImportsController {
                         .estatusId(estatusId)
                         .usuario(user.getUsername())
                         .build();
-                importWrite.insertarAlumno(data);
+                UUID estudianteId = importWrite.insertarAlumno(data);
                 exitosos++;
+
+                // Si hay columnas de padre, crear PADRE_FAMILIA y vincular
+                String nombrePadre = ImportadorUtil.getCol(row, parsed.getHeaders(),
+                    "nombre_padre", "nombre_tutor");
+                String curpPadre = ImportadorUtil.getCol(row, parsed.getHeaders(), "curp_padre");
+                if (!nombrePadre.isBlank() && !curpPadre.isBlank()) {
+                    try {
+                        UUID rolPadreId = null;
+                        List<Map<String, Object>> rolRows = importWrite.getRolPadreId();
+                        if (!rolRows.isEmpty()) rolPadreId = (UUID) rolRows.get(0).get("id");
+
+                        ImportsWriteService.PadreData padreData = ImportsWriteService.PadreData.builder()
+                            .nombre(nombrePadre)
+                            .apellidoPaterno(ImportadorUtil.getCol(row, parsed.getHeaders(),
+                                "apellido_paterno_padre", "apellido_paterno_tutor"))
+                            .apellidoMaterno(emptyToNull(ImportadorUtil.getCol(row, parsed.getHeaders(),
+                                "apellido_materno_padre")))
+                            .curp(curpPadre)
+                            .email(emptyToNull(ImportadorUtil.getCol(row, parsed.getHeaders(),
+                                "email_padre", "email_tutor", "correo_tutor")))
+                            .telefono(emptyToNull(ImportadorUtil.getCol(row, parsed.getHeaders(),
+                                "telefono_padre", "telefono_tutor", "tel_tutor")))
+                            .rolPadreId(rolPadreId)
+                            .usuario(user.getUsername())
+                            .build();
+                        importWrite.insertarPadreYVincular(estudianteId, padreData);
+                    } catch (Exception ep) {
+                        log.warn("No se pudo crear padre para alumno {}: {}", curp, ep.getMessage());
+                    }
+                }
             } catch (Exception e) {
                 log.error("Error inserting alumno row {}", rowNum, e);
                 errores.add(new ErrorFila(rowNum, curp, e.getMessage()));

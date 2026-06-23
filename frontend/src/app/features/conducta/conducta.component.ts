@@ -105,8 +105,8 @@ interface Compromiso {
         optionValue="id"
         placeholder="Plantel"
         (onChange)="onPlantelChange()"
-        [showClear]="!isPlantelDisabled()"
-        [disabled]="isPlantelDisabled()"
+        [showClear]="!isPlantelDisabled() && !ctx.plantel()"
+        [disabled]="isPlantelDisabled() || !!ctx.plantel()"
         [filter]="true" filterPlaceholder="Buscar..."
         styleClass="filter-select" />
 
@@ -117,8 +117,8 @@ interface Compromiso {
         optionValue="id"
         placeholder="Nivel"
         (onChange)="onNivelChange()"
-        [showClear]="!isNivelDisabled()"
-        [disabled]="isNivelDisabled() || !selectedPlantelId"
+        [showClear]="!isNivelDisabled() && !ctx.nivel()"
+        [disabled]="isNivelDisabled() || !!ctx.nivel() || !selectedPlantelId"
         [filter]="true" filterPlaceholder="Buscar..."
         styleClass="filter-select" />
 
@@ -130,7 +130,7 @@ interface Compromiso {
         placeholder="Grado"
         (onChange)="onGradoChange()"
         [showClear]="true"
-        [disabled]="!selectedNivelId"
+        [disabled]="!!ctx.grado() || !selectedNivelId"
         [filter]="true" filterPlaceholder="Buscar..."
         styleClass="filter-select" />
 
@@ -142,7 +142,7 @@ interface Compromiso {
         placeholder="Grupo"
         (onChange)="onGrupoChange()"
         [showClear]="true"
-        [disabled]="!selectedGradoId"
+        [disabled]="!!ctx.grupo() || !selectedGradoId"
         [filter]="true" filterPlaceholder="Buscar..."
         styleClass="filter-select" />
     </div>
@@ -156,8 +156,21 @@ interface Compromiso {
                 styleClass="filter-select" />
     </div>
 
+    <!-- Búsqueda rápida -->
+    <div style="display:flex; gap:0.75rem; align-items:center; margin-top:0.5rem; margin-bottom:1rem; flex-wrap:wrap">
+      <div style="flex:1; min-width:250px">
+        <input
+          pInputText
+          type="text"
+          placeholder="Buscar por alumno o descripción..."
+          [(ngModel)]="busqueda"
+          style="width:100%"
+        />
+      </div>
+    </div>
+
     <app-interactive-grid
-      [data]="reportes()"
+      [data]="reportesFiltrados()"
       [columns]="columnasReportes"
       [loading]="loading()"
       (rowSelected)="abrirDetalle($event)"
@@ -536,6 +549,15 @@ export class ConductaComponent implements OnInit {
 
   // ── List state ────────────────────────────────────────────────
   reportes    = signal<any[]>([]);
+  busqueda    = signal('');
+  readonly reportesFiltrados = computed(() => {
+    const q = this.busqueda().toLowerCase();
+    if (!q) return this.reportes();
+    return this.reportes().filter(r =>
+      (r.nombre_alumno || '').toLowerCase().includes(q) ||
+      (r.descripcion || '').toLowerCase().includes(q)
+    );
+  });
   loading     = signal(false);
   saving      = signal(false);
   gruposOpts  = signal<GrupoConLabel[]>([]);
@@ -675,11 +697,51 @@ export class ConductaComponent implements OnInit {
   } = this.formVacio();
 
   constructor() {
+    // Sincronizar plantel desde el contexto global
     effect(() => {
       const p = this.ctx.plantel();
-      if (p?.id && !this.selectedPlantelId) {
+      if (p?.id) {
         this.selectedPlantelId = p.id;
         this.onPlantelChange();
+      } else {
+        this.selectedPlantelId = null;
+        this.onPlantelChange();
+      }
+    });
+
+    // Sincronizar nivel desde el contexto global
+    effect(() => {
+      const n = this.ctx.nivel();
+      if (n?.id) {
+        this.selectedNivelId = n.id;
+        this.onNivelChange();
+      } else {
+        this.selectedNivelId = null;
+        this.onNivelChange();
+      }
+    });
+
+    // Sincronizar grado desde el contexto global
+    effect(() => {
+      const g = this.ctx.grado();
+      if (g?.id) {
+        this.selectedGradoId = g.id;
+        this.onGradoChange();
+      } else {
+        this.selectedGradoId = null;
+        this.onGradoChange();
+      }
+    });
+
+    // Sincronizar grupo desde el contexto global
+    effect(() => {
+      const gp = this.ctx.grupo();
+      if (gp?.id) {
+        this.selectedGrupoId = gp.id;
+        this.onGrupoChange();
+      } else {
+        this.selectedGrupoId = null;
+        this.onGrupoChange();
       }
     });
 
@@ -746,7 +808,7 @@ export class ConductaComponent implements OnInit {
 
     if (!this.selectedNivelId) return;
 
-    this.api.get<any[]>(`/catalogs/grados`, { nivel_id: this.selectedNivelId }).subscribe({
+    this.api.get<any[]>(`/catalogs/grados`, { nivel_id: this.selectedNivelId, plantel_id: this.selectedPlantelId || undefined }).subscribe({
       next: gs => {
         this.gradosOpts.set(gs);
       },
@@ -761,9 +823,12 @@ export class ConductaComponent implements OnInit {
 
     if (!this.selectedGradoId) return;
 
-    const params: Record<string, any> = { solo_activos: true, ciclo_vigente: true };
+    const params: Record<string, any> = { solo_activos: true };
     if (this.selectedPlantelId) params['plantel_id'] = this.selectedPlantelId;
     if (this.selectedGradoId) params['grado_id'] = this.selectedGradoId;
+    if (this.selectedNivelId) params['nivel_id'] = this.selectedNivelId;
+    const cicloId = this.ctx.ciclo()?.id;
+    if (cicloId) params['ciclo_escolar_id'] = cicloId;
 
     this.api.get<any[]>('/grupos', params).subscribe({
       next: gps => {

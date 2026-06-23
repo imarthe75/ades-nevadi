@@ -25,10 +25,14 @@ public class GrupoController {
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam(name = "plantel_id", required = false) UUID plantelId,
             @RequestParam(name = "ciclo_id", required = false) UUID cicloId,
+            @RequestParam(name = "ciclo_escolar_id", required = false) UUID cicloEscolarId,
+            @RequestParam(name = "grado_id", required = false) UUID gradoId,
+            @RequestParam(name = "nivel_id", required = false) UUID nivelId,
             @RequestParam(name = "solo_activos", defaultValue = "true") boolean soloActivos,
             @RequestParam(name = "ciclo_vigente", defaultValue = "false") boolean cicloVigente) {
         userService.resolveUser(jwt);
-        return ResponseEntity.ok(queryService.listar(plantelId, cicloId, soloActivos, cicloVigente));
+        UUID effectiveCicloId = cicloId != null ? cicloId : cicloEscolarId;
+        return ResponseEntity.ok(queryService.listar(plantelId, effectiveCicloId, gradoId, nivelId, soloActivos, cicloVigente));
     }
 
     @GetMapping("/{id}")

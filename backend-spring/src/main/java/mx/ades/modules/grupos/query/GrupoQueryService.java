@@ -39,13 +39,18 @@ public class GrupoQueryService {
         this.jdbc = jdbc;
     }
 
-    public List<Map<String, Object>> listar(UUID plantelId, UUID cicloId,
+    public List<Map<String, Object>> listar(UUID plantelId, UUID cicloId, UUID gradoId, UUID nivelId,
                                              boolean soloActivos, boolean cicloVigente) {
         StringBuilder where = new StringBuilder(" WHERE 1=1");
         List<Object> params = new ArrayList<>();
         if (soloActivos) where.append(" AND g.is_active = TRUE");
         if (plantelId != null) { where.append(" AND gr.plantel_id = ?"); params.add(plantelId); }
         if (cicloId != null) { where.append(" AND g.ciclo_escolar_id = ?"); params.add(cicloId); }
+        if (gradoId != null) {
+            where.append(" AND g.grado_id IN (SELECT id FROM ades_grados WHERE (numero_grado, nivel_educativo_id) = (SELECT numero_grado, nivel_educativo_id FROM ades_grados WHERE id = ?))");
+            params.add(gradoId);
+        }
+        if (nivelId != null) { where.append(" AND gr.nivel_educativo_id = ?"); params.add(nivelId); }
         if (cicloVigente) where.append(" AND c.es_vigente = TRUE");
         return jdbc.queryForList(SELECT + where + GROUP_BY, params.toArray());
     }

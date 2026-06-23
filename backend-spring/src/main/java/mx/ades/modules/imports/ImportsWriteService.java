@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -120,7 +121,7 @@ public class ImportsWriteService {
     }
 
     @Transactional
-    public void insertarAlumno(AlumnoData d) {
+    public UUID insertarAlumno(AlumnoData d) {
         UUID personaId = UUID.randomUUID();
         jdbc.update(
                 "INSERT INTO ades_personas (id, nombre, apellido_paterno, apellido_materno, curp, rfc, genero, " +
@@ -129,14 +130,16 @@ public class ImportsWriteService {
                 personaId, d.getNombre(), d.getApellidoPaterno(), d.getApellidoMaterno(), d.getCurp(), d.getRfc(),
                 d.getGenero(), d.getFechaNacimiento(), d.getTelefono(), d.getEmailPersonal(), d.getNacionalidad(),
                 d.getUsuario(), d.getUsuario());
+        UUID estudianteId = UUID.randomUUID();
         jdbc.update(
                 "INSERT INTO ades_estudiantes (id, matricula, persona_id, plantel_id, fecha_ingreso, nss, " +
                 "escuela_procedencia, clave_ct_procedencia, promedio_procedencia, beca_tipo, beca_monto, folio_sep, " +
                 "tipo_alumno, estatus_id, usuario_creacion, usuario_modificacion) " +
                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, 'NUEVO'), ?, ?, ?)",
-                UUID.randomUUID(), d.getMatricula(), personaId, d.getPlantelId(), d.getFechaIngreso(), d.getNss(),
+                estudianteId, d.getMatricula(), personaId, d.getPlantelId(), d.getFechaIngreso(), d.getNss(),
                 d.getEscuelaProcedencia(), d.getClaveCtProcedencia(), d.getPromedioProcedencia(), d.getBecaTipo(),
                 d.getBecaMonto(), d.getFolioSep(), d.getTipoAlumno(), d.getEstatusId(), d.getUsuario(), d.getUsuario());
+        return estudianteId;
     }
 
     @Data
@@ -213,6 +216,86 @@ public class ImportsWriteService {
                 d.isTieneProyector(), d.isTienePizarraDigital(), d.isTienePizarron(), d.isTieneAireAcondicionado(),
                 d.isTieneInternet(), d.getNumComputadoras(), d.getEstadoAula().toUpperCase(),
                 d.getObservaciones(), d.getUsuario(), d.getUsuario());
+    }
+
+    public List<Map<String, Object>> getRolPadreId() {
+        return jdbc.queryForList("SELECT id FROM ades_roles WHERE nombre_rol = 'PADRE_FAMILIA' LIMIT 1");
+    }
+
+    // ── Datos de padre/tutor vinculado a un alumno ────────────────────────────
+
+    @Data
+    @Builder
+    public static class PadreData {
+        private String nombre, apellidoPaterno, apellidoMaterno, curp, email, telefono;
+        private UUID rolPadreId;
+        private String usuario;
+    }
+
+    /**
+     * Crea persona + usuario PADRE_FAMILIA y vincula al estudiante.
+     * Si ya existe persona con ese CURP, solo agrega la relación.
+     * Si ya existe relación con el estudiante, no hace nada.
+     */
+    @Transactional
+    public void insertarPadreYVincular(UUID estudianteId, PadreData d) {
+        // Buscar persona existente por CURP
+        UUID personaId = null;
+        List<Map<String, Object>> existing = jdbc.queryForList(
+            "SELECT id FROM ades_personas WHERE UPPER(curp) = ?", d.getCurp().toUpperCase().trim());
+        if (!existing.isEmpty()) {
+            personaId = (UUID) existing.get(0).get("id");
+        } else {
+            personaId = UUID.randomUUID();
+            jdbc.update(
+                "INSERT INTO ades_personas (id, nombre, apellido_paterno, apellido_materno, curp, " +
+                "email_personal, telefono, usuario_creacion, usuario_modificacion) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                personaId, d.getNombre(), d.getApellidoPaterno(),
+                d.getApellidoMaterno(), d.getCurp().toUpperCase().trim(),
+                d.getEmail(), d.getTelefono(), d.getUsuario(), d.getUsuario());
+        }
+
+        // Crear usuario PADRE_FAMILIA si no existe ya
+        List<Map<String, Object>> usuariosExist = jdbc.queryForList(
+            "SELECT id FROM ades_usuarios WHERE persona_id = ? AND rol_id = ?",
+            personaId, d.getRolPadreId());
+
+        if (usuariosExist.isEmpty() && d.getRolPadreId() != null) {
+            String base = (d.getNombre().substring(0, 1)
+                + d.getApellidoPaterno().replace(" ", "")).toLowerCase();
+            if (base.length() > 9) base = base.substring(0, 9);
+            String username = base;
+            int counter = 1;
+            while (!jdbc.queryForList("SELECT id FROM ades_usuarios WHERE nombre_usuario = ?", username).isEmpty()) {
+                username = base + counter++;
+            }
+            String email = d.getEmail() != null && !d.getEmail().isBlank()
+                ? d.getEmail().trim() : (username + "@nevadi.edu.mx");
+            jdbc.update(
+                "INSERT INTO ades_usuarios (id, persona_id, nombre_usuario, email_institucional, " +
+                "rol_id, is_active, usuario_creacion, usuario_modificacion) " +
+                "VALUES (gen_random_uuid(), ?, ?, ?, ?, true, ?, ?)",
+                personaId, username, email, d.getRolPadreId(), d.getUsuario(), d.getUsuario());
+        }
+
+        // Vincular padre ↔ estudiante en ades_padres_estudiantes (si tabla existe)
+        final UUID finalPersonaId = personaId;
+        try {
+            List<Map<String, Object>> vinculo = jdbc.queryForList(
+                "SELECT id FROM ades_padres_estudiantes WHERE persona_padre_id = ? AND estudiante_id = ?",
+                finalPersonaId, estudianteId);
+            if (vinculo.isEmpty()) {
+                jdbc.update(
+                    "INSERT INTO ades_padres_estudiantes " +
+                    "(id, persona_padre_id, estudiante_id, tipo_tutor, is_contacto_principal, " +
+                    "usuario_creacion, usuario_modificacion) " +
+                    "VALUES (gen_random_uuid(), ?, ?, 'TUTOR', true, ?, ?)",
+                    finalPersonaId, estudianteId, d.getUsuario(), d.getUsuario());
+            }
+        } catch (Exception ignored) {
+            // Si la tabla no existe aún, ignorar silenciosamente
+        }
     }
 
     @Transactional

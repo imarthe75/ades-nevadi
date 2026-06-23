@@ -55,11 +55,11 @@ public class ProfesorQueryService {
             sql.append("""
                 AND pr.id IN (
                     SELECT id FROM ades_profesores WHERE id IN (
-                        SELECT profesor_titular_id FROM ades_grupos WHERE grado_id = ?
+                        SELECT profesor_titular_id FROM ades_grupos WHERE grado_id IN (SELECT id FROM ades_grados WHERE (numero_grado, nivel_educativo_id) = (SELECT numero_grado, nivel_educativo_id FROM ades_grados WHERE id = ?))
                         UNION
                         SELECT ad.profesor_id FROM ades_asignaciones_docentes ad 
                         JOIN ades_grupos g ON g.id = ad.grupo_id 
-                        WHERE g.grado_id = ?
+                        WHERE g.grado_id IN (SELECT id FROM ades_grados WHERE (numero_grado, nivel_educativo_id) = (SELECT numero_grado, nivel_educativo_id FROM ades_grados WHERE id = ?))
                     )
                 )
                 """);
