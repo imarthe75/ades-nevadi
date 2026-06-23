@@ -484,6 +484,7 @@ public class AdminController {
     @Data
     public static class RolUpdateRequest {
         private String descripcion;
+        private Integer nivelAcceso;
     }
 
     @PatchMapping("/roles/{id}")
@@ -498,6 +499,11 @@ public class AdminController {
         Rol rol = rolRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Rol no encontrado"));
         if (body.getDescripcion() != null) rol.setDescripcion(body.getDescripcion());
+        if (body.getNivelAcceso() != null) {
+            if (body.getNivelAcceso() < 0 || body.getNivelAcceso() > 5)
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "nivelAcceso debe estar entre 0 y 5");
+            rol.setNivelAcceso(body.getNivelAcceso());
+        }
         rolRepository.save(rol);
         return ResponseEntity.ok(Map.of("ok", true));
     }
