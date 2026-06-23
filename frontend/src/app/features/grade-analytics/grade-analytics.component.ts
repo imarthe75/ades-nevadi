@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal, computed } from '@angular/core';
+import { Component, inject, OnInit, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -372,11 +372,17 @@ export class GradeAnalyticsComponent implements OnInit {
     { field: 'nivel_riesgo',       header: 'Nivel Riesgo' },
   ];
 
-  ngOnInit(): void {
-    this.cargarGrupos();
-    this.cargarRiesgo();
-    this.cargarResumen();
+  constructor() {
+    effect(() => {
+      this.ctx.plantel(); this.ctx.ciclo(); this.ctx.nivel();
+      this.selectedGrupoId = '';
+      this.cargarGrupos();
+      this.cargarRiesgo();
+      this.cargarResumen();
+    });
   }
+
+  ngOnInit(): void {}
 
   cargarTodo(): void {
     this.cargarRiesgo();

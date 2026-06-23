@@ -8,7 +8,14 @@ import org.springframework.stereotype.Service;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
+/**
+ * Consultas geográficas SEPOMEX sobre las tablas reales {@code public.ades_*}.
+ * (El esquema legacy {@code sepomex.ct*} nunca existió en esta BD; el catálogo
+ *  poblado vive en ades_estados / ades_municipios / ades_localidades /
+ *  ades_codigos_postales — ver task Celery sepomex.sync_sepomex_weekly y mig 054.)
+ */
 @Service
 @RequiredArgsConstructor
 public class GeoQueryService implements GeoQueryPort {
@@ -18,16 +25,18 @@ public class GeoQueryService implements GeoQueryPort {
     public List<Map<String, Object>> estados() {
         try {
             return jdbc.queryForList(
-                "SELECT id, clave, nombre FROM sepomex.ctestados WHERE vigente = TRUE ORDER BY nombre");
+                "SELECT id, nombre_estado AS nombre, clave_estado AS clave " +
+                "FROM ades_estados WHERE is_active = TRUE ORDER BY nombre_estado");
         } catch (Exception e) {
             return Collections.emptyList();
         }
     }
 
-    public List<Map<String, Object>> municipios(int estadoId) {
+    public List<Map<String, Object>> municipios(UUID estadoId) {
         try {
             return jdbc.queryForList(
-                "SELECT id, clave, nombre FROM sepomex.ctmunicipios WHERE estado_id = ? AND vigente = TRUE ORDER BY nombre",
+                "SELECT id, nombre_municipio AS nombre, clave_municipio AS clave " +
+                "FROM ades_municipios WHERE estado_id = ? AND is_active = TRUE ORDER BY nombre_municipio",
                 estadoId);
         } catch (Exception e) {
             return Collections.emptyList();
@@ -37,24 +46,25 @@ public class GeoQueryService implements GeoQueryPort {
     public List<Map<String, Object>> coloniasPorCp(String cp) {
         try {
             return jdbc.queryForList(
-                "SELECT a.id, a.nombre AS colonia, cp.codigo_postal, m.nombre AS municipio, e.nombre AS estado " +
-                "FROM sepomex.ctasentamientos a " +
-                "JOIN sepomex.ctcodigospostales cp ON cp.id = a.codigo_postal_id " +
-                "JOIN sepomex.ctmunicipios m ON m.id = a.municipio_id " +
-                "JOIN sepomex.ctestados e ON e.id = m.estado_id " +
-                "WHERE cp.codigo_postal = ? AND a.vigente = TRUE ORDER BY a.nombre", cp);
+                "SELECT l.id, l.nombre_localidad AS colonia, cp.codigo_postal, " +
+                "       m.nombre_municipio AS municipio, e.nombre_estado AS estado " +
+                "FROM ades_codigos_postales cp " +
+                "JOIN ades_localidades l ON l.id = cp.localidad_id " +
+                "JOIN ades_municipios m ON m.id = cp.municipio_id " +
+                "JOIN ades_estados e ON e.id = cp.estado_id " +
+                "WHERE cp.codigo_postal = ? ORDER BY l.nombre_localidad", cp);
         } catch (Exception e) {
             return Collections.emptyList();
         }
     }
 
-    public List<Map<String, Object>> coloniasPorMunicipio(int municipioId) {
+    public List<Map<String, Object>> coloniasPorMunicipio(UUID municipioId) {
         try {
             return jdbc.queryForList(
-                "SELECT a.id, a.nombre AS colonia, cp.codigo_postal " +
-                "FROM sepomex.ctasentamientos a " +
-                "JOIN sepomex.ctcodigospostales cp ON cp.id = a.codigo_postal_id " +
-                "WHERE a.municipio_id = ? AND a.vigente = TRUE ORDER BY a.nombre", municipioId);
+                "SELECT DISTINCT l.id, l.nombre_localidad AS colonia, cp.codigo_postal " +
+                "FROM ades_codigos_postales cp " +
+                "JOIN ades_localidades l ON l.id = cp.localidad_id " +
+                "WHERE cp.municipio_id = ? ORDER BY l.nombre_localidad", municipioId);
         } catch (Exception e) {
             return Collections.emptyList();
         }
@@ -63,16 +73,22 @@ public class GeoQueryService implements GeoQueryPort {
     public Map<String, Object> buscarPorCp(String cp) {
         try {
             List<Map<String, Object>> rows = jdbc.queryForList(
-                "SELECT e.nombre AS estado, e.id AS estado_id, m.nombre AS municipio, m.id AS municipio_id, " +
-                "cp.codigo_postal AS cp, " +
-                "json_agg(json_build_object('id', a.id, 'colonia', a.nombre) ORDER BY a.nombre) AS colonias " +
-                "FROM sepomex.ctasentamientos a " +
-                "JOIN sepomex.ctcodigospostales cp ON cp.id = a.codigo_postal_id " +
-                "JOIN sepomex.ctmunicipios m ON m.id = a.municipio_id " +
-                "JOIN sepomex.ctestados e ON e.id = m.estado_id " +
-                "WHERE cp.codigo_postal = ? AND a.vigente = TRUE " +
-                "GROUP BY e.nombre, e.id, m.nombre, m.id, cp.codigo_postal", cp);
-            return rows.isEmpty() ? null : rows.get(0);
+                "SELECT DISTINCT e.nombre_estado AS estado, e.id AS estado_id, " +
+                "       m.nombre_municipio AS municipio, m.id AS municipio_id, " +
+                "       cp.codigo_postal AS cp " +
+                "FROM ades_codigos_postales cp " +
+                "JOIN ades_municipios m ON m.id = cp.municipio_id " +
+                "JOIN ades_estados e ON e.id = cp.estado_id " +
+                "WHERE cp.codigo_postal = ? LIMIT 1", cp);
+            if (rows.isEmpty()) {
+                return null;
+            }
+            Map<String, Object> result = rows.get(0);
+            // colonias como List Java real → Jackson la serializa como array JSON
+            result.put("colonias", coloniasPorCp(cp).stream()
+                .map(r -> Map.of("id", r.get("id"), "colonia", r.get("colonia")))
+                .toList());
+            return result;
         } catch (Exception e) {
             return null;
         }

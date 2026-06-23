@@ -21,14 +21,14 @@ public class GeoController {
 
     @GetMapping("/municipios")
     public ResponseEntity<List<Map<String, Object>>> listarMunicipios(
-            @RequestParam("estado_id") int estadoId) {
+            @RequestParam("estado_id") UUID estadoId) {
         return ResponseEntity.ok(queryService.municipios(estadoId));
     }
 
     @GetMapping("/colonias")
     public ResponseEntity<List<Map<String, Object>>> buscarColonias(
             @RequestParam(value = "cp", required = false) String cp,
-            @RequestParam(value = "municipio_id", required = false) Integer municipioId) {
+            @RequestParam(value = "municipio_id", required = false) UUID municipioId) {
         if (cp != null && !cp.isBlank()) {
             return ResponseEntity.ok(queryService.coloniasPorCp(cp));
         } else if (municipioId != null) {

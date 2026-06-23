@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal, computed } from '@angular/core';
+import { Component, inject, OnInit, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
@@ -328,19 +328,22 @@ export class PlaneacionComponent implements OnInit {
     return [...mapa.values()].sort((a, b) => a.nombre_materia.localeCompare(b.nombre_materia));
   });
 
-  ngOnInit(): void {
-    this.cargarGrupos();
+  constructor() {
+    // Recargar lista de grupos cuando cambia el plantel o ciclo en el contexto global.
+    effect(() => {
+      const plantel = this.ctx.plantel();
+      const ciclo   = this.ctx.ciclo();
+      const params: Record<string, string> = {};
+      if (plantel) params['plantel_id'] = plantel.id;
+      if (ciclo)   params['ciclo_id']   = ciclo.id;
+      this.api.get<any[]>('/grupos', params).subscribe(list => {
+        this.grupos.set(list.map(g => ({ label: grupoLabel(g) || `${g.nombre_grupo} — ${g.nombre_grado ?? ''}`, value: g.id })));
+      });
+    });
   }
 
-  cargarGrupos(): void {
-    const plantel = this.ctx.plantel();
-    const ciclo   = this.ctx.ciclo();
-    const params: Record<string, string> = {};
-    if (plantel) params['plantel_id'] = plantel.id;
-    if (ciclo)   params['ciclo_id']   = ciclo.id;
-    this.api.get<any[]>('/grupos', params).subscribe(list => {
-      this.grupos.set(list.map(g => ({ label: grupoLabel(g) || `${g.nombre_grupo} — ${g.nombre_grado ?? ''}`, value: g.id })));
-    });
+  ngOnInit(): void {
+    // Grupos cargados reactivamente desde el effect en el constructor.
   }
 
   onGrupoChange(): void {

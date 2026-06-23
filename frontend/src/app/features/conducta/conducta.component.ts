@@ -96,58 +96,8 @@ interface Compromiso {
       </div>
     </div>
 
-    <!-- Filtros de Contexto Cascading (Plantel -> Nivel -> Grado -> Grupo) -->
+    <!-- Filtros de dominio: tipo de falta y seguimiento (la cascada vive en el topbar) -->
     <div class="filter-bar">
-      <p-select
-        [options]="plantelesOpts()"
-        [(ngModel)]="selectedPlantelId"
-        optionLabel="nombre_plantel"
-        optionValue="id"
-        placeholder="Plantel"
-        (onChange)="onPlantelChange()"
-        [showClear]="!isPlantelDisabled() && !ctx.plantel()"
-        [disabled]="isPlantelDisabled() || !!ctx.plantel()"
-        [filter]="true" filterPlaceholder="Buscar..."
-        styleClass="filter-select" />
-
-      <p-select
-        [options]="nivelesOpts()"
-        [(ngModel)]="selectedNivelId"
-        optionLabel="nombre_nivel"
-        optionValue="id"
-        placeholder="Nivel"
-        (onChange)="onNivelChange()"
-        [showClear]="!isNivelDisabled() && !ctx.nivel()"
-        [disabled]="isNivelDisabled() || !!ctx.nivel() || !selectedPlantelId"
-        [filter]="true" filterPlaceholder="Buscar..."
-        styleClass="filter-select" />
-
-      <p-select
-        [options]="gradosOpts()"
-        [(ngModel)]="selectedGradoId"
-        optionLabel="nombre_grado"
-        optionValue="id"
-        placeholder="Grado"
-        (onChange)="onGradoChange()"
-        [showClear]="true"
-        [disabled]="!!ctx.grado() || !selectedNivelId"
-        [filter]="true" filterPlaceholder="Buscar..."
-        styleClass="filter-select" />
-
-      <p-select
-        [options]="filterGruposOpts()"
-        [(ngModel)]="selectedGrupoId"
-        optionLabel="_label"
-        optionValue="id"
-        placeholder="Grupo"
-        (onChange)="onGrupoChange()"
-        [showClear]="true"
-        [disabled]="!!ctx.grupo() || !selectedGradoId"
-        [filter]="true" filterPlaceholder="Buscar..."
-        styleClass="filter-select" />
-    </div>
-
-    <div class="filter-bar" style="margin-top: 0.5rem">
       <p-select [options]="tiposFalta" [(ngModel)]="filtroTipo" optionLabel="label" optionValue="value"
                 placeholder="Tipo de falta" [showClear]="true" (onChange)="cargar()" [filter]="true"
                 styleClass="filter-select" />
@@ -567,19 +517,6 @@ export class ConductaComponent implements OnInit {
   filtroTipo: string | null = null;
   filtroSeguimiento: boolean | null = null;
 
-  plantelesOpts = signal<any[]>([]);
-  nivelesOpts = signal<any[]>([]);
-  gradosOpts = signal<any[]>([]);
-  filterGruposOpts = signal<any[]>([]);
-
-  selectedPlantelId: string | null = null;
-  selectedNivelId: string | null = null;
-  selectedGradoId: string | null = null;
-  selectedGrupoId: string | null = null;
-
-  readonly isPlantelDisabled = computed(() => this.ctx.nivelAcceso() > 2);
-  readonly isNivelDisabled = computed(() => this.ctx.nivelAcceso() > 3);
-
   readonly columnasReportes: ColumnConfig[] = [
     { field: 'fecha_reporte',   header: 'Fecha',           sortable: true,  filterable: false, width: '110px' },
     { field: 'tipo_falta',      header: 'Tipo',            sortable: true,  filterable: true,  width: '120px' },
@@ -697,52 +634,10 @@ export class ConductaComponent implements OnInit {
   } = this.formVacio();
 
   constructor() {
-    // Sincronizar plantel desde el contexto global
+    // Recargar cuando cambia cualquier dimensión de la cascada global.
     effect(() => {
-      const p = this.ctx.plantel();
-      if (p?.id) {
-        this.selectedPlantelId = p.id;
-        this.onPlantelChange();
-      } else {
-        this.selectedPlantelId = null;
-        this.onPlantelChange();
-      }
-    });
-
-    // Sincronizar nivel desde el contexto global
-    effect(() => {
-      const n = this.ctx.nivel();
-      if (n?.id) {
-        this.selectedNivelId = n.id;
-        this.onNivelChange();
-      } else {
-        this.selectedNivelId = null;
-        this.onNivelChange();
-      }
-    });
-
-    // Sincronizar grado desde el contexto global
-    effect(() => {
-      const g = this.ctx.grado();
-      if (g?.id) {
-        this.selectedGradoId = g.id;
-        this.onGradoChange();
-      } else {
-        this.selectedGradoId = null;
-        this.onGradoChange();
-      }
-    });
-
-    // Sincronizar grupo desde el contexto global
-    effect(() => {
-      const gp = this.ctx.grupo();
-      if (gp?.id) {
-        this.selectedGrupoId = gp.id;
-        this.onGrupoChange();
-      } else {
-        this.selectedGrupoId = null;
-        this.onGrupoChange();
-      }
+      this.ctx.plantel(); this.ctx.nivel(); this.ctx.grado(); this.ctx.grupo();
+      this.cargar();
     });
 
     // Cargar grupos del ciclo vigente para el formulario
@@ -759,87 +654,7 @@ export class ConductaComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.api.get<any[]>('/planteles').subscribe({
-      next: p => {
-        this.plantelesOpts.set(p);
-        const currentPlantel = this.ctx.plantel();
-        if (currentPlantel?.id) {
-          this.selectedPlantelId = currentPlantel.id;
-          this.onPlantelChange();
-        }
-      },
-      error: () => {}
-    });
-    this.cargar();
-  }
-
-  onPlantelChange(): void {
-    this.selectedNivelId = null;
-    this.selectedGradoId = null;
-    this.selectedGrupoId = null;
-    this.nivelesOpts.set([]);
-    this.gradosOpts.set([]);
-    this.filterGruposOpts.set([]);
-    this.cargar();
-
-    if (!this.selectedPlantelId) return;
-
-    this.api.get<any[]>(`/planteles/${this.selectedPlantelId}/niveles`).subscribe({
-      next: ns => {
-        const mapped = ns.map(x => ({ id: x.id ?? x.nivel_id, nombre_nivel: x.nombre_nivel }));
-        this.nivelesOpts.set(mapped);
-        
-        const ctxNivel = this.ctx.nivel();
-        if (ctxNivel && mapped.some(n => n.id === ctxNivel.id)) {
-          this.selectedNivelId = ctxNivel.id;
-          this.onNivelChange();
-        }
-      },
-      error: () => {}
-    });
-  }
-
-  onNivelChange(): void {
-    this.selectedGradoId = null;
-    this.selectedGrupoId = null;
-    this.gradosOpts.set([]);
-    this.filterGruposOpts.set([]);
-    this.cargar();
-
-    if (!this.selectedNivelId) return;
-
-    this.api.get<any[]>(`/catalogs/grados`, { nivel_id: this.selectedNivelId, plantel_id: this.selectedPlantelId || undefined }).subscribe({
-      next: gs => {
-        this.gradosOpts.set(gs);
-      },
-      error: () => {}
-    });
-  }
-
-  onGradoChange(): void {
-    this.selectedGrupoId = null;
-    this.filterGruposOpts.set([]);
-    this.cargar();
-
-    if (!this.selectedGradoId) return;
-
-    const params: Record<string, any> = { solo_activos: true };
-    if (this.selectedPlantelId) params['plantel_id'] = this.selectedPlantelId;
-    if (this.selectedGradoId) params['grado_id'] = this.selectedGradoId;
-    if (this.selectedNivelId) params['nivel_id'] = this.selectedNivelId;
-    const cicloId = this.ctx.ciclo()?.id;
-    if (cicloId) params['ciclo_escolar_id'] = cicloId;
-
-    this.api.get<any[]>('/grupos', params).subscribe({
-      next: gps => {
-        this.filterGruposOpts.set(gps.map(x => ({ ...x, _label: grupoLabel(x) })));
-      },
-      error: () => this.filterGruposOpts.set([])
-    });
-  }
-
-  onGrupoChange(): void {
-    this.cargar();
+    // ngOnInit no necesita cargar planteles — la cascada vive en el topbar.
   }
 
   cargar(): void {
@@ -848,10 +663,10 @@ export class ConductaComponent implements OnInit {
     if (this.filtroTipo) params['tipo_falta'] = this.filtroTipo;
     if (this.filtroSeguimiento !== null) params['requiere_seguimiento'] = this.filtroSeguimiento;
 
-    if (this.selectedPlantelId) params['plantel_id'] = this.selectedPlantelId;
-    if (this.selectedNivelId) params['nivel_id'] = this.selectedNivelId;
-    if (this.selectedGradoId) params['grado_id'] = this.selectedGradoId;
-    if (this.selectedGrupoId) params['grupo_id'] = this.selectedGrupoId;
+    const plantel = this.ctx.plantel(); if (plantel?.id) params['plantel_id'] = plantel.id;
+    const nivel   = this.ctx.nivel();   if (nivel?.id)   params['nivel_id']   = nivel.id;
+    const grado   = this.ctx.grado();   if (grado?.id)   params['grado_id']   = grado.id;
+    const grupo   = this.ctx.grupo();   if (grupo?.id)   params['grupo_id']   = grupo.id;
 
     this.api.get<any[]>('/conducta', params).subscribe({
       next: r => {
