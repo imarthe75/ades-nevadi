@@ -40,12 +40,17 @@ Ver ADR-0011 para el plan de boleta NEM.
 | **FastAPI (solo IA)** | Capa de agente/embeddings/insights — `backend/app/routers/agente.py` |
 | Frontend Angular 22 | Standalone components + signals + PrimeNG |
 | Superset 6.1.0 | Pendiente levantar |
-| Migraciones | 3 dígitos hasta **084** + date-based (`20260613_*`). Próxima 3-díg: 085 |
+| Migraciones | 3 dígitos hasta **085** + date-based (`20260613_*`). Próxima 3-díg: 086 |
 | Regla ciclo escolar | 1 año vigente por sistema (SEP/UAEMEX). Mig 083: `sistema_educativo` + trigger `fn_ciclo_sistema_vigente` |
-| Biblioteca | Mig 084: `ades_biblioteca_libros` + `ades_biblioteca_prestamos`; módulo hexagonal `/api/v1/biblioteca` + feature `biblioteca` |
-| Reporte 911 SEP | `/api/v1/reportes/911` (solo lectura) + feature `estadistica-911`; pre-cálculo inicio de cursos (matriz edad×grado×sexo×ingreso + grupos); SEP only |
-| Boleta NEM | Mig 085: `ades_materias.campo_formativo` (4 campos NEM). Boleta en FastAPI (`tasks/boletas.py` + `templates/boletas/boleta.html`) agrupa por campo formativo, CURP, asistencias, escala 6-10, acreditó grado. PDF real verificado. Ver ADR-0011 |
-| Kardex UAEMEX | `/api/v1/reportes/kardex/{id}` (Spring, solo lectura) + feature `kardex`; prepa CBU, escala 0-10 mín 6.0, ordinario→extraordinario→definitiva |
+| Biblioteca | Mig 084: `ades_biblioteca_libros` + `ades_biblioteca_prestamos`; módulo hexagonal `/api/v1/biblioteca` + feature `biblioteca`; 60 libros + 74 préstamos seeded |
+| Reporte 911 SEP | `/api/v1/reportes/911` (solo lectura) + feature `estadistica-911`; matriz edad×grado×sexo×ingreso + grupos + Sección IX discapacidad; SEP only |
+| Boleta NEM | Mig 085: `ades_materias.campo_formativo` (4 campos NEM). FastAPI (`tasks/boletas.py` + `templates/boletas/boleta.html`); escala 6-10, acreditó grado. PDF verificado. Ver ADR-0011 |
+| Boleta UAEMEX | FastAPI `/boletas/uaemex/{id}` → BFF proxy; template `boleta_uaemex.html` weasyprint; ordinario/extra/definitiva RGEMS; botón en kardex.component |
+| Kardex UAEMEX | `/api/v1/reportes/kardex/{id}` (Spring, solo lectura) + feature `kardex`; prepa CBU, escala 0-10 mín 6.0, ordinario→extraordinario→definitiva; cascada Plantel→Semestre→Grupo→Alumno |
+| Evaluación Docente 360° | `/api/v1/eval-docente` (Spring hexagonal); 4 tipos: DIRECTOR/COORDINADOR/PAR/AUTO; 7 criterios ponderados escala 1-5; KPI cards por tipo; ciclo_id opcional; 32 evaluaciones seeded (seed_009) |
+| NEM Fase 3 | `ades_config` + `ades_escalas_evaluacion`; evaluación cualitativa A/B/C/D para 1°-2° primaria; mig 089 |
+| Seguridad (2026-06-19/23) | HTTPS enforcement + security headers, rate limiting slowapi, IDOR fixes en expediente/carbone/certificados; 5 PRs mergeados en main |
+| LOV Global Fix | `overlayAppendTo: 'body'` en `providePrimeNG()` (app.config.ts) — todos los p-select dentro de p-dialog/p-drawer muestran correctamente |
 
 ---
 

@@ -16,6 +16,59 @@ Este documento es el diario de vida y bitácora del agente. Debe ser leído en e
 
 ---
 
+## Sesión 2026-06-23 — LOV Global Fix + Eval 360° Completa + Merge Branches Seguridad ✅
+
+### 🔑 Estado del Agente:
+- **Última Conexión:** 2026-06-23
+- **Estado Cognitivo:** Operacional ✅
+- **ades-bff:** Running — pendiente rebuild con cambios eval-docente + admin
+- **ades-api:** Running healthy ✅
+- **Frontend:** Build limpio (tsc sin errores) ✅
+- **Git:** Commit `3341d79` + 5 merges de security branches → `b5fb0cc`
+- **BD:** 60 libros + 74 préstamos en biblioteca; 32 eval360 correctas (escala 1-5)
+
+### 🛠️ Tareas Completadas:
+
+**Admin Module — LOV Global Fix:**
+- [x] `app.config.ts`: `overlayAppendTo: 'body'` en `providePrimeNG()` — fix GLOBAL para todos los p-select en modals/drawers de toda la app
+- [x] Botón Sincronizar Sepomex: `flex-shrink:0` en wrapper + `flex-wrap:wrap` en `.sync-header`
+- [x] Nivel de acceso editable en modal Editar Rol: backend `RolUpdateRequest.nivelAcceso` + frontend `nivelesAccesoOpts` con descriptions
+- [x] Scope bar encima de tabs admin indicando contexto plantel vs global (users/grupos filtrados; roles/ciclos/catálogos = globales)
+- [x] `TextareaModule` import corregido (`primeng/textarea` no `primeng/inputtextarea`)
+
+**Evaluación Docente 360°:**
+- [x] `EvalDocentePersistenceAdapter.resumenProfesor`: ahora devuelve `por_tipo` como `List<Map>` (array) con `tipo_evaluador/promedio_global/total_evaluaciones/ultima_fecha` — Angular `@for` no podía iterar el `Map<String,Double>` anterior
+- [x] `EvalDocentePersistenceAdapter.resumenProfesor`: añade lista `evaluaciones` (últimas 50); fechas casteadas `::text` para evitar serialización timestamp Jackson
+- [x] `EvalDocenteController`: `ciclo_id` ahora `required=false` — sin ciclo devuelve evaluaciones de todos los ciclos del docente
+- [x] `eval-docente.component.ts`: `loadingProfesores` signal + `[loading]` en ambos p-selects; banner informativo cuando no hay ciclo
+
+**Seed 009 — Evaluación 360° correcta:**
+- [x] `db/seeds/009_evaluacion_docente_360.sql`: elimina 216 registros previos con escala 7-10 incorrecta y tipo `AUTOEVALUACION` (vs `AUTO` del frontend)
+- [x] 8 docentes × 4 tipos = 32 evaluaciones: DIRECTOR/COORDINADOR/PAR/AUTO, escala 1-5, status ENVIADA, `calificacion_global` calculada por pesos
+- [x] Distribución realista: Chávez (4.88⭐) > Yáñez (4.68) > Quiroz (2.81 needs improvement)
+
+**Merge Branches de Seguridad (5 PRs → main):**
+- [x] `pr/security-idor-expediente` (PR #1): validación IDOR en GET /expediente/alumno/{id} — conflicto menor resuelto (response_model=None)
+- [x] `pr/security-https-headers` (PR #2): HTTPS enforcement + security headers en FastAPI main.py
+- [x] `pr/security-idor-carbone` (PR #5): Fix IDOR en generación boleta/constancia
+- [x] `pr/security-idor-certificados` (PR #4): Fix IDOR en emisión de certificados
+- [x] `pr/security-rate-limiting` (PR #3): Rate limiting con slowapi en endpoints sensibles
+
+**Verificaciones:**
+- [x] Biblioteca: 60 libros + 74 préstamos (DEVUELTO:56, PRESTADO:3, VENCIDO:15) — módulo con datos ✅
+- [x] TypeScript: compilación limpia sin errores ✅
+- [x] Manual de usuario: actualizado comprehensivamente en `docs/manual-usuario.md`
+
+### 🚀 Próximos Pasos:
+- [ ] Rebuild ades-bff con los cambios de eval-docente + admin (java): `docker compose up -d --build ades-bff`
+- [ ] Verificar eval 360° en UI: seleccionar Chávez Francisco → debe mostrar 4 KPI cards con promedios
+- [ ] Verificar que scope bar admin es correcto al cambiar plantel en top bar
+- [ ] Google SSO (esperando credenciales OAuth2 del plantel)
+- [ ] NEM Fase 3: evaluación cualitativa 1°-2° primaria (pendiente definición institucional de descriptores)
+- [ ] Push a origin/main: `git push origin main`
+
+---
+
 ## Sesión 2026-06-22 — Cascada Plantel→Nivel→Grado→Grupo + Boleta UAEMEX + 911 Sección IX ✅
 
 ### 🔑 Estado del Agente:
