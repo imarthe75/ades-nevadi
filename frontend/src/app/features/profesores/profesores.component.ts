@@ -1,6 +1,7 @@
 /**
  * FASE 1 & FASE 24 — Profesores (Teachers) + Interactive Grid APEX-style
  * Manages teacher records with filtering, sorting, and profile management.
+ * Cascade plantel→nivel→grado→grupo is driven by ContextService (global topbar).
  */
 import { Component, OnInit, inject, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -8,16 +9,16 @@ import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { DialogModule } from 'primeng/dialog';
-import { SelectModule } from 'primeng/select';
 
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
+import { ContextCatalogService } from '../../core/services/context-catalog.service';
 import { ExportService, ExportColumn } from '../../core/services/export.service';
 import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
 import { ProfesorPerfilComponent } from '../../shared/components/profesor-perfil/profesor-perfil.component';
 import { HelpButtonComponent } from '../../shared/components/help-button/help-button.component';
 import { ImportButtonComponent } from '../../shared/components/import-button/import-button.component';
-import { Profesor, grupoLabel } from '../../core/models';
+import { Profesor } from '../../core/models';
 import { ApexNotificationService } from 'apex-component-library';
 
 @Component({
@@ -25,7 +26,7 @@ import { ApexNotificationService } from 'apex-component-library';
   standalone: true,
   imports: [
     CommonModule, FormsModule,
-    ButtonModule, InputTextModule, DialogModule, SelectModule,
+    ButtonModule, InputTextModule, DialogModule,
     InteractiveGridComponent, ProfesorPerfilComponent, HelpButtonComponent, ImportButtonComponent,
   ],
   template: `
@@ -64,62 +65,16 @@ import { ApexNotificationService } from 'apex-component-library';
       </div>
     </div>
 
-    <!-- Filtros de Contexto Cascading (Plantel -> Nivel -> Grado -> Grupo) -->
-    <div class="filter-bar">
-      <p-select
-        [options]="plantelesOpts()"
-        [(ngModel)]="selectedPlantelId"
-        optionLabel="nombre_plantel"
-        optionValue="id"
-        placeholder="Plantel"
-        (onChange)="onPlantelChange()"
-        [showClear]="!isPlantelDisabled()"
-        [disabled]="isPlantelDisabled()"
-        [filter]="true" filterPlaceholder="Buscar..."
-        styleClass="filter-select" />
-
-      <p-select
-        [options]="nivelesOpts()"
-        [(ngModel)]="selectedNivelId"
-        optionLabel="nombre_nivel"
-        optionValue="id"
-        placeholder="Nivel"
-        (onChange)="onNivelChange()"
-        [showClear]="!isNivelDisabled()"
-        [disabled]="isNivelDisabled() || !selectedPlantelId"
-        [filter]="true" filterPlaceholder="Buscar..."
-        styleClass="filter-select" />
-
-      <p-select
-        [options]="gradosOpts()"
-        [(ngModel)]="selectedGradoId"
-        optionLabel="nombre_grado"
-        optionValue="id"
-        placeholder="Grado"
-        (onChange)="onGradoChange()"
-        [showClear]="true"
-        [disabled]="!selectedNivelId"
-        [filter]="true" filterPlaceholder="Buscar..."
-        styleClass="filter-select" />
-
-      <p-select
-        [options]="gruposOpts()"
-        [(ngModel)]="selectedGrupoId"
-        optionLabel="_label"
-        optionValue="id"
-        placeholder="Grupo"
-        (onChange)="onGrupoChange()"
-        [showClear]="true"
-        [disabled]="!selectedGradoId"
-        [filter]="true" filterPlaceholder="Buscar..."
-        styleClass="filter-select" />
-    </div>
-
-    <!-- Interactive Grid APEX-style (Spec: spec/modules/fase-24-interactive-grid/) -->
+    <!-- Interactive Grid APEX-style — cascada plantel→nivel→grado→grupo vive en topbar.
+         El grid refleja el contexto y escribe de vuelta vía filterChange (lazo bilateral). -->
     <app-interactive-grid
       [data]="profesoresFiltrados()"
       [columns]="columnas"
       [loading]="loadingTabla()"
+      [externalFilters]="catalog.contextFilters()"
+      [externalSuggestions]="catalog.contextSuggestions()"
+      [serverFilteredFields]="cascadeFields"
+      (filterChange)="catalog.applyGridFilter($event.field, $event.value)"
       (rowSelected)="abrirPerfil($event)"
     />
 
@@ -157,13 +112,12 @@ import { ApexNotificationService } from 'apex-component-library';
     .page-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem; }
     .subtitle { font-size: 0.82rem; color: var(--text-color-secondary); margin: 0; }
     .dlg-lbl { display: block; font-size: .85rem; margin-bottom: .25rem; color: var(--text-color-secondary); }
-    .filter-bar { display: flex; gap: 0.75rem; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; }
-    .filter-select { min-width: 220px; }
   `],
 })
 export class ProfesoresComponent implements OnInit {
   private readonly api = inject(ApiService);
   private readonly ctx = inject(ContextService);
+  readonly catalog = inject(ContextCatalogService);
   private readonly exp = inject(ExportService);
   private readonly notify = inject(ApexNotificationService);
 
@@ -187,26 +141,17 @@ export class ProfesoresComponent implements OnInit {
   loadingTabla = signal(false);
   form = { nombre: '', apellido_paterno: '', apellido_materno: '', numero_empleado: '', curp: '', tipo_contrato: '' };
 
-  plantelesOpts = signal<any[]>([]);
-  nivelesOpts = signal<any[]>([]);
-  gradosOpts = signal<any[]>([]);
-  gruposOpts = signal<any[]>([]);
-
-  selectedPlantelId: string | null = null;
-  selectedNivelId: string | null = null;
-  selectedGradoId: string | null = null;
-  selectedGrupoId: string | null = null;
-
-  readonly isPlantelDisabled = computed(() => this.ctx.nivelAcceso() > 2);
-  readonly isNivelDisabled = computed(() => this.ctx.nivelAcceso() > 3);
+  /** Columnas gobernadas por el contexto global (filtrado server-side + lazo bilateral). */
+  readonly cascadeFields = ['plantel', 'nivel', 'grado', 'grupo'];
 
   columnas: ColumnConfig[] = [
-    { field: 'numero_empleado', header: 'Empleado', sortable: true, filterable: true, width: '120px' },
-    { field: 'nombre_completo', header: 'Nombre Completo', sortable: true, filterable: true, width: '220px' },
-    { field: 'rfc', header: 'RFC', sortable: true, filterable: true, width: '140px' },
-    { field: 'tipo_contrato', header: 'Contrato', sortable: true, filterable: true, width: '130px' },
-    { field: 'especialidad', header: 'Especialidad', sortable: true, filterable: true, width: '120px' },
-    { field: 'turno', header: 'Turno', sortable: true, filterable: true, width: '90px' },
+    { field: 'numero_empleado', header: 'Empleado',       sortable: true, filterable: true, width: '120px' },
+    { field: 'nombre_completo', header: 'Nombre Completo',sortable: true, filterable: true, width: '220px' },
+    { field: 'plantel',         header: 'Plantel',        sortable: true, filterable: true, width: '140px' },
+    { field: 'rfc',             header: 'RFC',            sortable: true, filterable: true, width: '140px' },
+    { field: 'tipo_contrato',   header: 'Contrato',       sortable: true, filterable: true, width: '130px' },
+    { field: 'especialidad',    header: 'Especialidad',   sortable: true, filterable: true, width: '120px' },
+    { field: 'turno',           header: 'Turno',          sortable: true, filterable: true, width: '90px' },
   ];
 
   private readonly exportCols: ExportColumn[] = [
@@ -231,103 +176,23 @@ export class ProfesoresComponent implements OnInit {
   readonly recargar = () => this.cargarProfesores();
 
   constructor() {
+    // Recargar cuando cambia cualquier dimensión de la cascada global.
     effect(() => {
-      const p = this.ctx.plantel();
-      if (p?.id && !this.selectedPlantelId) {
-        this.selectedPlantelId = p.id;
-        this.onPlantelChange();
-      }
+      this.ctx.plantel(); this.ctx.nivel(); this.ctx.grado(); this.ctx.grupo();
+      this.cargarProfesores();
     });
   }
 
   ngOnInit(): void {
-    this.api.get<any[]>('/planteles').subscribe({
-      next: p => {
-        this.plantelesOpts.set(p);
-        const currentPlantel = this.ctx.plantel();
-        if (currentPlantel?.id) {
-          this.selectedPlantelId = currentPlantel.id;
-          this.onPlantelChange();
-        }
-      },
-      error: () => {}
-    });
-
-    this.cargarProfesores();
-  }
-
-  onPlantelChange(): void {
-    this.selectedNivelId = null;
-    this.selectedGradoId = null;
-    this.selectedGrupoId = null;
-    this.nivelesOpts.set([]);
-    this.gradosOpts.set([]);
-    this.gruposOpts.set([]);
-    this.cargarProfesores();
-
-    if (!this.selectedPlantelId) return;
-
-    this.api.get<any[]>(`/planteles/${this.selectedPlantelId}/niveles`).subscribe({
-      next: ns => {
-        const mapped = ns.map(x => ({ id: x.id ?? x.nivel_id, nombre_nivel: x.nombre_nivel }));
-        this.nivelesOpts.set(mapped);
-        
-        const ctxNivel = this.ctx.nivel();
-        if (ctxNivel && mapped.some(n => n.id === ctxNivel.id)) {
-          this.selectedNivelId = ctxNivel.id;
-          this.onNivelChange();
-        }
-      },
-      error: () => {}
-    });
-  }
-
-  onNivelChange(): void {
-    this.selectedGradoId = null;
-    this.selectedGrupoId = null;
-    this.gradosOpts.set([]);
-    this.gruposOpts.set([]);
-    this.cargarProfesores();
-
-    if (!this.selectedNivelId) return;
-
-    this.api.get<any[]>(`/catalogs/grados`, { nivel_id: this.selectedNivelId, plantel_id: this.selectedPlantelId || undefined }).subscribe({
-      next: gs => {
-        this.gradosOpts.set(gs);
-      },
-      error: () => {}
-    });
-  }
-
-  onGradoChange(): void {
-    this.selectedGrupoId = null;
-    this.gruposOpts.set([]);
-    this.cargarProfesores();
-
-    if (!this.selectedGradoId) return;
-
-    const params: Record<string, any> = { solo_activos: true, ciclo_vigente: true };
-    if (this.selectedPlantelId) params['plantel_id'] = this.selectedPlantelId;
-    if (this.selectedGradoId) params['grado_id'] = this.selectedGradoId;
-
-    this.api.get<any[]>('/grupos', params).subscribe({
-      next: gps => {
-        this.gruposOpts.set(gps.map(x => ({ ...x, _label: grupoLabel(x) })));
-      },
-      error: () => this.gruposOpts.set([])
-    });
-  }
-
-  onGrupoChange(): void {
-    this.cargarProfesores();
+    // ngOnInit solo necesario para lógica no relacionada con la cascada.
   }
 
   cargarProfesores(): void {
     const params: Record<string, any> = { pagina: 1, por_pagina: 500 };
-    if (this.selectedPlantelId) params['plantel_id'] = this.selectedPlantelId;
-    if (this.selectedNivelId) params['nivel_id'] = this.selectedNivelId;
-    if (this.selectedGradoId) params['grado_id'] = this.selectedGradoId;
-    if (this.selectedGrupoId) params['grupo_id'] = this.selectedGrupoId;
+    const plantel = this.ctx.plantel(); if (plantel?.id) params['plantel_id'] = plantel.id;
+    const nivel   = this.ctx.nivel();   if (nivel?.id)   params['nivel_id']   = nivel.id;
+    const grado   = this.ctx.grado();   if (grado?.id)   params['grado_id']   = grado.id;
+    const grupo   = this.ctx.grupo();   if (grupo?.id)   params['grupo_id']   = grupo.id;
 
     this.loadingTabla.set(true);
     this.api.get<{ data: Profesor[]; total: number }>('/profesores', params).subscribe({

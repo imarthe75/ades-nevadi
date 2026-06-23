@@ -17,7 +17,6 @@ import { ExportService } from '../../core/services/export.service';
 import { ApexNotificationService } from 'apex-component-library';
 import { CierrePeriodoComponent } from './cierre-periodo.component';
 import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
-import { grupoLabel } from '../../core/models';
 
 interface Actividad {
   id: string;
@@ -60,7 +59,6 @@ interface CalPeriodo {
   cal_periodo_id: string;
 }
 
-interface GrupoOpt { id: string; nombre_grupo: string; _label?: string; [key: string]: any; }
 interface MateriaOpt { id: string; nombre_materia: string; }
 interface PeriodoOpt { id: string; nombre_periodo: string; }
 
@@ -109,25 +107,8 @@ interface Insights {
   </div>
 </div>
 
-<!-- Filtros — Cascada Plantel → Nivel → Grado → Grupo -->
+<!-- Filtros de dominio: Materia y Período (la cascada plantel→nivel→grado→grupo vive en el topbar) -->
 <div class="filter-bar">
-  <p-select [options]="plantelesOpts()" optionLabel="nombre_plantel" optionValue="id"
-            placeholder="Plantel…" [(ngModel)]="plantelSel"
-            [disabled]="isPlantelDisabled() || !!ctx.plantel()"
-            (onChange)="onPlantelChange()" />
-  <p-select [options]="nivelesOpts()" optionLabel="nombre_nivel" optionValue="id"
-            placeholder="Nivel…" [(ngModel)]="nivelSel"
-            [disabled]="isNivelDisabled() || !!ctx.nivel() || !plantelSel"
-            (onChange)="onNivelChange()" />
-  <p-select [options]="gradosOpts()" optionLabel="nombre_grado" optionValue="id"
-            placeholder="Grado…" [(ngModel)]="gradoSel"
-            [disabled]="!!ctx.grado() || !nivelSel"
-            (onChange)="onGradoChange()" />
-  <p-select [options]="grupos()" optionLabel="_label" optionValue="id"
-            placeholder="Grupo" [(ngModel)]="grupoSel"
-            [disabled]="!!ctx.grupo() || !gradoSel"
-            (onChange)="onGrupoChange()"
- [filter]="true" filterPlaceholder="Buscar..."/>
   <p-select [options]="materias()" optionLabel="nombre_materia" optionValue="id"
             placeholder="Materia" [(ngModel)]="materiaSel"
             (onChange)="cargarActividades()" [disabled]="!grupoSel"
@@ -143,7 +124,7 @@ interface Insights {
     <i class="pi pi-book" style="font-size:2.5rem;color:#CBD5E1"></i>
     <h3 style="margin:.5rem 0 .25rem;color:#475569">Selecciona un grupo</h3>
     <p style="color:#94A3B8;max-width:320px;text-align:center">
-      Elige el grupo en el filtro de arriba para ver las actividades, calificaciones y cobertura curricular.
+      Selecciona el grupo en el menú de contexto superior para ver las actividades, calificaciones y cobertura curricular.
     </p>
   </div>
 } @else {
@@ -426,69 +407,23 @@ export class GradebookComponent implements OnInit {
   private exporter = inject(ExportService);
   private readonly notify = inject(ApexNotificationService);
 
-  // ── Cascada: Plantel → Nivel → Grado → Grupo ────────────────────────────
-  plantelesOpts = signal<any[]>([]);
-  nivelesOpts   = signal<any[]>([]);
-  gradosOpts    = signal<any[]>([]);
-
-  plantelSel: string | null = null;
-  nivelSel:   string | null = null;
-  gradoSel:   string | null = null;
-
   constructor() {
-    // Sincronizar plantel desde el contexto global
+    // Recargar cuando cambia el grupo en el contexto global (topbar).
     effect(() => {
-      const p = this.ctx.plantel();
-      if (p?.id) {
-        this.plantelSel = p.id;
-        this._loadNiveles(p.id);
-      } else {
-        this.plantelSel = null;
-        this.onPlantelChange();
-      }
-    });
-
-    // Sincronizar nivel desde el contexto global
-    effect(() => {
-      const n = this.ctx.nivel();
-      if (n?.id) {
-        this.nivelSel = n.id;
-        this._loadGrados(n.id);
-      } else {
-        this.nivelSel = null;
-        this.onNivelChange();
-      }
-    });
-
-    // Sincronizar grado desde el contexto global
-    effect(() => {
-      const g = this.ctx.grado();
-      if (g?.id) {
-        this.gradoSel = g.id;
-        this.onGradoChange();
-      } else {
-        this.gradoSel = null;
-        this.onGradoChange();
-      }
-    });
-
-    // Sincronizar grupo desde el contexto global
-    effect(() => {
-      const gp = this.ctx.grupo();
-      if (gp?.id) {
-        this.grupoSel = gp.id;
-        this.onGrupoChange();
-      } else {
-        this.grupoSel = null;
+      const grupo = this.ctx.grupo();
+      this.grupoSel   = grupo?.id ?? null;
+      this.materiaSel = null;
+      this.periodoSel = null;
+      this.materias.set([]);
+      this.periodos.set([]);
+      this.actividades.set([]);
+      this.concentrado.set([]);
+      if (this.grupoSel) {
         this.onGrupoChange();
       }
     });
   }
 
-  readonly isPlantelDisabled = computed(() => (this.ctx.nivelAcceso() ?? 0) > 2);
-  readonly isNivelDisabled   = computed(() => (this.ctx.nivelAcceso() ?? 0) > 3);
-
-  grupos = signal<GrupoOpt[]>([]);
   materias = signal<MateriaOpt[]>([]);
   periodos = signal<PeriodoOpt[]>([]);
   actividades = signal<Actividad[]>([]);
@@ -518,10 +453,9 @@ export class GradebookComponent implements OnInit {
   readonly periodoNombreSel = computed(() =>
     this.periodos().find(p => p.id === this.periodoSel)?.nombre_periodo ?? ''
   );
-  readonly grupoNombreSel = computed(() => {
-    const g = this.grupos().find(g => g.id === this.grupoSel);
-    return g?._label ?? g?.nombre_grupo ?? '';
-  });
+  readonly grupoNombreSel = computed(() =>
+    this.ctx.grupo()?.nombre_grupo ?? ''
+  );
 
   busqueda = signal('');
 
@@ -622,73 +556,7 @@ export class GradebookComponent implements OnInit {
   };
 
   ngOnInit() {
-    this.api.get<any[]>('/planteles').subscribe({
-      next: list => {
-        this.plantelesOpts.set(list);
-        const ctxPlantel = this.ctx.plantel();
-        if (ctxPlantel) {
-          this.plantelSel = ctxPlantel.id;
-          this._loadNiveles(ctxPlantel.id);
-        }
-      },
-    });
-  }
-
-  private _loadNiveles(plantelId: string): void {
-    this.api.get<any[]>(`/planteles/${plantelId}/niveles`).subscribe({
-      next: list => {
-        this.nivelesOpts.set(list);
-        const ctxNivel = this.ctx.nivel();
-        if (ctxNivel && list.some((n: any) => n.id === ctxNivel.id)) {
-          this.nivelSel = ctxNivel.id;
-          this._loadGrados(ctxNivel.id);
-        }
-      },
-    });
-  }
-
-  private _loadGrados(nivelId: string): void {
-    this.api.get<any[]>('/catalogs/grados', { nivel_id: nivelId, plantel_id: this.plantelSel || undefined }).subscribe({
-      next: list => this.gradosOpts.set(list),
-    });
-  }
-
-  onPlantelChange(): void {
-    this.nivelSel   = null; this.gradoSel   = null; this.grupoSel   = null;
-    this.materiaSel = null; this.periodoSel = null;
-    this.nivelesOpts.set([]); this.gradosOpts.set([]); this.grupos.set([]);
-    this.actividades.set([]); this.concentrado.set([]);
-    if (this.plantelSel) this._loadNiveles(this.plantelSel);
-  }
-
-  onNivelChange(): void {
-    this.gradoSel   = null; this.grupoSel   = null;
-    this.materiaSel = null; this.periodoSel = null;
-    this.gradosOpts.set([]); this.grupos.set([]);
-    this.actividades.set([]); this.concentrado.set([]);
-    if (this.nivelSel) this._loadGrados(this.nivelSel);
-  }
-
-  onGradoChange(): void {
-    this.grupoSel   = null; this.materiaSel = null; this.periodoSel = null;
-    this.grupos.set([]); this.actividades.set([]); this.concentrado.set([]);
-    if (this.plantelSel && this.gradoSel) {
-      const params: Record<string, any> = {
-        plantel_id: this.plantelSel,
-        grado_id: this.gradoSel,
-        solo_activos: true,
-      };
-      if (this.nivelSel) params['nivel_id'] = this.nivelSel;
-      const cicloId = this.ctx.ciclo()?.id;
-      if (cicloId) params['ciclo_escolar_id'] = cicloId;
-
-      this.api.get<any[]>('/grupos', params).subscribe({
-        next: (r: any) => {
-          const list: any[] = r.data ?? r;
-          this.grupos.set(list.map((g: any) => ({ ...g, _label: grupoLabel(g) || g.nombre_grupo })));
-        },
-      });
-    }
+    // ngOnInit no necesita cargar planteles — la cascada vive en el topbar.
   }
 
   onGrupoChange() {
