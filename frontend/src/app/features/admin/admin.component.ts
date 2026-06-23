@@ -16,6 +16,7 @@ import { TabPanel } from 'primeng/tabs';
 import { DialogModule } from 'primeng/dialog';
 import { SelectModule } from 'primeng/select';
 import { InputTextModule } from 'primeng/inputtext';
+import { TextareaModule } from 'primeng/textarea';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { DatePickerModule } from 'primeng/datepicker';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
@@ -82,7 +83,7 @@ interface Catalogo {
   imports: [
     CommonModule, FormsModule,
     TableModule, ButtonModule, DialogModule, SelectModule,
-    InputTextModule, InputNumberModule, DatePickerModule, ToggleSwitchModule,
+    InputTextModule, TextareaModule, InputNumberModule, DatePickerModule, ToggleSwitchModule,
     TagModule, TooltipModule, ConfirmDialogModule,
     TabsModule, TabList, TabPanels, Tab, TabPanel, SkeletonModule, MessageModule,
     InteractiveGridComponent, ImportButtonComponent, SelectorGeoComponent
@@ -95,6 +96,23 @@ interface Catalogo {
       <h2>Administración</h2>
       <p class="subtitle">Gestión de usuarios, ciclos, planteles, variables del sistema y catálogos</p>
     </div>
+
+    <!-- Barra de contexto: indica qué plantel está activo y cómo afecta las tabs -->
+    @if (ctx.plantel()) {
+      <div class="scope-bar">
+        <i class="pi pi-map-marker" style="color:var(--primary-color)"></i>
+        <span>Filtrando por <strong>{{ ctx.plantel()!.nombre_plantel }}</strong></span>
+        <span class="scope-tag scope-scoped">Usuarios y Grupos filtrados</span>
+        <span class="scope-tag scope-global">Roles, Ciclos, Catálogos y demás configuraciones son globales al sistema</span>
+      </div>
+    } @else {
+      <div class="scope-bar scope-bar--global">
+        <i class="pi pi-globe" style="color:var(--text-color-secondary)"></i>
+        <span style="color:var(--text-color-secondary);font-size:.8rem">
+          Vista global — todos los planteles. Selecciona un plantel en la barra superior para filtrar Usuarios y Grupos.
+        </span>
+      </div>
+    }
 
     <p-tabs [value]="tabActivo()" (valueChange)="onTabChange($event)">
       <p-tablist>
@@ -138,7 +156,7 @@ interface Catalogo {
         <p-tabpanel value="roles">
           <div class="tab-toolbar">
             <span class="tab-title">Roles del sistema</span>
-            <small style="color:var(--text-color-secondary)">Solo se puede editar la descripción. El nivel de acceso es estructural.</small>
+            <small style="color:var(--text-color-secondary)">Haz clic en un rol para editar su descripción y nivel de acceso.</small>
           </div>
           <app-interactive-grid
             [data]="roles()"
@@ -152,12 +170,14 @@ interface Catalogo {
               <div style="display:flex;flex-direction:column;gap:.75rem">
                 <div class="field"><span class="dlg-lbl">Nombre</span>
                   <strong>{{ rolEdit()!.nombre_rol }}</strong></div>
-                <div class="field"><span class="dlg-lbl">Nivel de acceso</span>
-                  <span class="nivel-badge">{{ rolEdit()!.nivel_acceso }}</span>
-                  <small style="margin-left:.5rem;color:var(--text-color-secondary)">{{ nivelAccesoDesc(rolEdit()!.nivel_acceso) }}</small>
+                <div class="field" style="display:flex;flex-direction:column;gap:.35rem">
+                  <label class="dlg-lbl">Nivel de acceso</label>
+                  <p-select [(ngModel)]="rolEditForm.nivel_acceso"
+                    [options]="nivelesAccesoOpts"
+                    optionLabel="label" optionValue="value" />
                 </div>
                 <div style="background:var(--surface-50);border-radius:6px;padding:.6rem .8rem;font-size:.75rem">
-                  <strong style="display:block;margin-bottom:.3rem;color:var(--text-color-secondary)">Niveles de acceso</strong>
+                  <strong style="display:block;margin-bottom:.3rem;color:var(--text-color-secondary)">Referencia de niveles</strong>
                   <div style="display:grid;grid-template-columns:auto 1fr;gap:.15rem .6rem">
                     <span class="nivel-badge" style="width:20px;height:20px;font-size:.7rem">0</span><span>ADMIN_GLOBAL — acceso total al sistema</span>
                     <span class="nivel-badge" style="width:20px;height:20px;font-size:.7rem">1</span><span>ADMIN_PLANTEL — administración de un plantel</span>
@@ -341,12 +361,14 @@ interface Catalogo {
                     Descarga la versión más reciente de Correos de México e importa estados, municipios y códigos postales.
                   </p>
                 </div>
+                <div style="flex-shrink:0">
                 <p-button label="Sincronizar" icon="pi pi-refresh"
                   severity="primary"
                   [loading]="syncSepomexLoading()"
                   [disabled]="syncSepomexLoading() || syncSepomexEstado() === 'STARTED' || syncSepomexEstado() === 'PENDING'"
                   pTooltip="Descarga e importa el catálogo desde correosdemexico.gob.mx"
                   (onClick)="iniciarSyncSepomex()" />
+              </div>
               </div>
 
               @if (syncSepomexTaskId()) {
@@ -1121,8 +1143,15 @@ interface Catalogo {
     </p-dialog>
   `,
   styles: [`
-    .page-header { margin-bottom:1rem; }
+    .page-header { margin-bottom:.5rem; }
     .subtitle { font-size:.82rem; color:var(--text-secondary); margin:0; }
+    .scope-bar { display:flex;align-items:center;gap:.6rem;padding:.45rem .75rem;
+      background:var(--primary-50,#fef2f3);border:1px solid var(--primary-100,#fde0e2);
+      border-radius:6px;margin-bottom:.75rem;font-size:.8rem;flex-wrap:wrap }
+    .scope-bar--global { background:var(--surface-50);border-color:var(--surface-200) }
+    .scope-tag { padding:.1rem .45rem;border-radius:4px;font-size:.73rem;font-weight:600 }
+    .scope-scoped { background:var(--primary-100);color:var(--primary-700) }
+    .scope-global  { background:var(--surface-200);color:var(--text-secondary) }
     .tab-toolbar { display:flex; gap:.5rem; align-items:center; margin-bottom:1rem; justify-content:space-between; }
     .ctx-selector { width:200px; }
     .nivel-chip { background:var(--primary-100); color:var(--primary-700); padding:.1rem .35rem;
@@ -1179,7 +1208,7 @@ interface Catalogo {
     .pm-add { margin-top:1rem; }
     .tab-title { font-weight:600; font-size:.95rem; }
     .sync-card { background:var(--surface-0);border:1px solid var(--surface-200);border-radius:10px;padding:1.25rem }
-    .sync-header { display:flex;align-items:flex-start;justify-content:space-between;gap:1rem }
+    .sync-header { display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap }
     .sync-estado { display:flex;align-items:center;gap:.6rem;margin-top:.9rem;padding:.6rem .9rem;border-radius:8px;font-size:.83rem }
     .sync-pending,.sync-started { background:#fef9c3;color:#78350f }
     .sync-success { background:#dcfce7;color:#14532d }
@@ -1235,7 +1264,16 @@ export class AdminComponent implements OnInit {
   rolDlgVisible    = signal(false);
   rolEdit          = signal<any | null>(null);
   guardandoRol     = signal(false);
-  rolEditForm      = { descripcion: '' };
+  rolEditForm      = { descripcion: '', nivel_acceso: 4 };
+
+  readonly nivelesAccesoOpts = [
+    { value: 0, label: '0 — Admin Global (acceso total)' },
+    { value: 1, label: '1 — Admin Plantel' },
+    { value: 2, label: '2 — Director / Coordinador' },
+    { value: 3, label: '3 — Coord. Académico / Secretaria' },
+    { value: 4, label: '4 — Docente / Apoyo' },
+    { value: 5, label: '5 — Padre / Alumno (solo lectura)' },
+  ];
 
   columnasRoles: ColumnConfig[] = [
     { field: 'nombre_rol',   header: 'Rol',        sortable: true,  filterable: true, width: '160px' },
@@ -1933,7 +1971,7 @@ export class AdminComponent implements OnInit {
   abrirEditarRol(row: any): void {
     const r = row._original ?? row;
     this.rolEdit.set(r);
-    this.rolEditForm = { descripcion: r.descripcion ?? '' };
+    this.rolEditForm = { descripcion: r.descripcion ?? '', nivel_acceso: r.nivel_acceso ?? 4 };
     this.rolDlgVisible.set(true);
   }
 
@@ -1941,7 +1979,10 @@ export class AdminComponent implements OnInit {
     const r = this.rolEdit();
     if (!r) return;
     this.guardandoRol.set(true);
-    this.api.patch(`/admin/roles/${r.id}`, { descripcion: this.rolEditForm.descripcion }).subscribe({
+    this.api.patch(`/admin/roles/${r.id}`, {
+      descripcion: this.rolEditForm.descripcion,
+      nivelAcceso: this.rolEditForm.nivel_acceso,
+    }).subscribe({
       next: () => {
         this.notify.success('Éxito', 'Descripción del rol actualizada');
         this.rolDlgVisible.set(false);

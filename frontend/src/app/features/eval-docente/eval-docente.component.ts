@@ -88,6 +88,13 @@ const TIPO_LABELS: Record<string, string> = {
 
       <!-- ── Pestaña Resumen ── -->
       <p-tabpanel value="0" header="Resumen por docente">
+        @if (!ctx.ciclo()) {
+          <div class="ciclo-warn">
+            <i class="pi pi-info-circle"></i>
+            No hay ciclo escolar seleccionado — se mostrarán evaluaciones de todos los ciclos.
+            Selecciona un ciclo en la barra superior para filtrar.
+          </div>
+        }
         <div class="toolbar-row">
           <p-select
             [options]="profesoresOpts()"
@@ -95,11 +102,10 @@ const TIPO_LABELS: Record<string, string> = {
             optionLabel="_nombre"
             placeholder="Seleccionar docente..."
             [showClear]="true"
+            [loading]="loadingProfesores()"
             (onChange)="cargarResumen()"
             styleClass="select-docente"
-
-
-          [filter]="true" filterPlaceholder="Buscar..."/>
+            [filter]="true" filterPlaceholder="Buscar..."/>
           <p-button label="CSV" icon="pi pi-file" severity="secondary" [text]="true"
             (onClick)="exportCSV()" [disabled]="!resumen().length" pTooltip="Exportar CSV" />
           <p-button label="Excel" icon="pi pi-file-excel" severity="secondary" [text]="true"
@@ -160,9 +166,8 @@ const TIPO_LABELS: Record<string, string> = {
                 optionLabel="_nombre"
                 placeholder="Seleccionar docente..."
                 styleClass="w-full"
-
-
-              [filter]="true" filterPlaceholder="Buscar..."/>
+                [loading]="loadingProfesores()"
+                [filter]="true" filterPlaceholder="Buscar..."/>
             </div>
             <div class="field">
               <label>Tipo de evaluador *</label>
@@ -322,6 +327,7 @@ const TIPO_LABELS: Record<string, string> = {
     .promedio-preview strong { color: var(--nevadi-red); }
 
     .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; padding: 3rem; color: #94A3B8; text-align: center; }
+    .ciclo-warn  { display: flex; align-items: center; gap: 0.5rem; background: #FFF7ED; border: 1px solid #FED7AA; border-radius: 6px; padding: 0.5rem 0.75rem; font-size: 0.8rem; color: #9A3412; margin-bottom: 0.75rem; }
   `],
 })
 export class EvalDocenteComponent implements OnInit {
@@ -330,7 +336,8 @@ export class EvalDocenteComponent implements OnInit {
   private readonly notify = inject(ApexNotificationService);
   private readonly export = inject(ExportService);
 
-  profesores       = signal<Profesor[]>([]);
+  profesores          = signal<Profesor[]>([]);
+  loadingProfesores   = signal(false);
   readonly profesoresOpts = computed(() =>
     this.profesores().map(p => ({
       ...p,
@@ -394,8 +401,11 @@ export class EvalDocenteComponent implements OnInit {
     const plantelId = this.ctx.plantel()?.id;
     const params: Record<string, any> = {};
     if (plantelId) params['plantel_id'] = plantelId;
-    this.api.get<Profesor[]>('/profesores', params)
-      .subscribe(p => this.profesores.set(p));
+    this.loadingProfesores.set(true);
+    this.api.get<Profesor[]>('/profesores', params).subscribe({
+      next: p => { this.profesores.set(p); this.loadingProfesores.set(false); },
+      error: () => this.loadingProfesores.set(false),
+    });
     this.api.get<Criterio[]>('/eval-docente/criterios').subscribe(c => {
       this.criterios.set(c);
       this.criteriosForm.set(c.map(cr => ({ criterio: cr, calificacion: 3, observacion: '' })));

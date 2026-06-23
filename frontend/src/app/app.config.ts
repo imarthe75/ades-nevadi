@@ -74,6 +74,7 @@ export const appConfig: ApplicationConfig = {
         options: { prefix: 'p', darkModeSelector: '.dark-mode', cssLayer: false },
       },
       ripple: true,
+      overlayAppendTo: 'body',
       translation: {
         accept: 'Aceptar',
         reject: 'Cancelar',

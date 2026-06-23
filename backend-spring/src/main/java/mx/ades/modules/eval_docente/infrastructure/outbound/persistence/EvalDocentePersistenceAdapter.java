@@ -83,36 +83,62 @@ public class EvalDocentePersistenceAdapter implements EvalDocenteRepositoryPort 
 
     @Override
     public Map<String, Object> resumenProfesor(UUID profesorId, UUID cicloId) {
-        List<Map<String, Object>> rows = jdbc.queryForList(
-            "SELECT tipo_evaluador, AVG(calificacion_global) AS promedio, COUNT(*) AS total " +
+        // Build dynamic WHERE — cicloId is optional
+        List<Object> baseParams = new ArrayList<>();
+        baseParams.add(profesorId);
+        String cicloFilter = "";
+        if (cicloId != null) {
+            cicloFilter = "AND ciclo_escolar_id = ? ";
+            baseParams.add(cicloId);
+        }
+
+        // Summary per tipo_evaluador
+        String sumSql =
+            "SELECT tipo_evaluador, " +
+            "AVG(calificacion_global) AS promedio_global, " +
+            "COUNT(*) AS total_evaluaciones, " +
+            "MAX(fecha_evaluacion)::text AS ultima_fecha " +
             "FROM ades_evaluacion_docente " +
-            "WHERE profesor_id = ? AND ciclo_escolar_id = ? AND is_active = TRUE AND estatus != 'BORRADOR' " +
-            "GROUP BY tipo_evaluador",
-            profesorId, cicloId);
+            "WHERE profesor_id = ? " + cicloFilter +
+            "AND is_active = TRUE AND estatus != 'BORRADOR' " +
+            "GROUP BY tipo_evaluador";
+        List<Map<String, Object>> sumRows = jdbc.queryForList(sumSql, baseParams.toArray());
 
-        Map<String, Double> porTipo = new HashMap<>();
-        long totalEval = 0;
+        List<Map<String, Object>> porTipo = new ArrayList<>();
         double sumaPromedios = 0.0;
-
-        for (Map<String, Object> r : rows) {
-            String tipo = (String) r.get("tipo_evaluador");
-            double prom = r.get("promedio") != null ? ((Number) r.get("promedio")).doubleValue() : 0.0;
-            long count = r.get("total") != null ? ((Number) r.get("total")).longValue() : 0;
+        for (Map<String, Object> r : sumRows) {
+            double prom = r.get("promedio_global") != null
+                    ? ((Number) r.get("promedio_global")).doubleValue() : 0.0;
             double roundedProm = Math.round(prom * 100.0) / 100.0;
-            porTipo.put(tipo, roundedProm);
-            totalEval += count;
+            Map<String, Object> item = new HashMap<>();
+            item.put("tipo_evaluador",     r.get("tipo_evaluador"));
+            item.put("promedio_global",    roundedProm);
+            item.put("total_evaluaciones", ((Number) r.get("total_evaluaciones")).longValue());
+            item.put("ultima_fecha",       r.get("ultima_fecha") != null
+                    ? r.get("ultima_fecha").toString() : null);
+            porTipo.add(item);
             sumaPromedios += roundedProm;
         }
 
-        Double promedioGlobal = porTipo.isEmpty() ? null
+        // Individual evaluaciones list (last 50) — cast date to text to avoid Jackson timestamp issues
+        List<Object> listParams = new ArrayList<>(baseParams);
+        String listSql =
+            "SELECT id::text, tipo_evaluador, fecha_evaluacion::text AS fecha_evaluacion, " +
+            "calificacion_global, estatus " +
+            "FROM ades_evaluacion_docente " +
+            "WHERE profesor_id = ? " + cicloFilter +
+            "AND is_active = TRUE AND estatus != 'BORRADOR' " +
+            "ORDER BY fecha_evaluacion DESC LIMIT 50";
+        List<Map<String, Object>> evaluaciones = jdbc.queryForList(listSql, listParams.toArray());
+
+        double promedioGlobal = porTipo.isEmpty() ? 0.0
                 : Math.round((sumaPromedios / porTipo.size()) * 100.0) / 100.0;
 
         Map<String, Object> res = new HashMap<>();
-        res.put("profesor_id", profesorId.toString());
-        res.put("ciclo_escolar_id", cicloId.toString());
-        res.put("total_evaluaciones", totalEval);
+        res.put("profesor_id",  profesorId.toString());
+        res.put("por_tipo",     porTipo);
+        res.put("evaluaciones", evaluaciones);
         res.put("promedio_global", promedioGlobal);
-        res.put("por_tipo", porTipo);
         return res;
     }
 }

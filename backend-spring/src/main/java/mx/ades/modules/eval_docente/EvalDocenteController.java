@@ -55,7 +55,7 @@ public class EvalDocenteController {
     @GetMapping("/profesor/{profesorId}/resumen")
     public ResponseEntity<Map<String, Object>> resumenDocente(
             @PathVariable("profesorId") UUID profesorId,
-            @RequestParam("ciclo_id") UUID cicloId,
+            @RequestParam(value = "ciclo_id", required = false) UUID cicloId,
             @AuthenticationPrincipal Jwt jwt) {
         userService.resolveUser(jwt);
         return ResponseEntity.ok(queryService.resumenProfesor(profesorId, cicloId));
