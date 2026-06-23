@@ -189,7 +189,7 @@ def sync_sepomex_weekly() -> dict:
                 cur,
                 """
                 INSERT INTO public.ades_codigos_postales (id, codigo_postal, localidad_id, municipio_id, estado_id, tipo_asentamiento_id)
-                VALUES %s ON CONFLICT DO NOTHING;
+                VALUES %s ON CONFLICT (codigo_postal, localidad_id) DO NOTHING;
                 """,
                 cps_to_insert,
                 page_size=2000
