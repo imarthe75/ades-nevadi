@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
@@ -47,9 +47,6 @@ interface EventoForm {
             (onChange)="cargar()" [filter]="true" filterPlaceholder="Buscar..." styleClass="w-220" />
   <p-select [options]="tipoOpts" optionLabel="label" optionValue="value"
             placeholder="Todos los tipos" [(ngModel)]="tipoFiltro"
-            (onChange)="cargar()" [showClear]="true" styleClass="w-200" />
-  <p-select [options]="planteles()" optionLabel="nombre_plantel" optionValue="id"
-            placeholder="Todos los planteles" [(ngModel)]="plantelFiltro"
             (onChange)="cargar()" [showClear]="true" styleClass="w-200" />
 </div>
 
@@ -186,6 +183,13 @@ export class CalendarioComponent implements OnInit {
     return Object.entries(map).map(([tipo, count]) => ({ tipo, count }))
       .sort((a, b) => b.count - a.count);
   });
+
+  constructor() {
+    effect(() => {
+      this.plantelFiltro = this.ctx.plantel()?.id ?? null;
+      this.cargar();
+    });
+  }
 
   ngOnInit() {
     this.cargarCiclos();

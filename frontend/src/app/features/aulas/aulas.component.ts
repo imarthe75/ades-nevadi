@@ -7,7 +7,7 @@
  *  - Dialog crear/editar con tabs: Datos generales / Equipamiento / Disponibilidad
  *  - Verificación de conflictos de franja horaria antes de asignar
  */
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
@@ -65,14 +65,6 @@ const ESTADO_SEVERITY: Record<string, TagSeverity> = {
   ACTIVA: 'success', EN_MANTENIMIENTO: 'warn', INHABILITADA: 'secondary', FUERA_DE_SERVICIO: 'danger',
 };
 
-interface Franja {
-  dia_semana: number;
-  hora_inicio: string;
-  hora_fin: string;
-  grupo_id: string | null;
-  motivo_bloqueo: string | null;
-}
-
 @Component({
   selector: 'app-aulas',
   standalone: true,
@@ -125,8 +117,6 @@ interface Franja {
 
     <!-- Filtros -->
     <div class="filter-bar">
-      <p-select [options]="plantelesOpts()" [(ngModel)]="filtroPlantel" optionLabel="nombre_plantel"
-                optionValue="id" placeholder="Plantel" [showClear]="true" (onChange)="cargar()" [filter]="true" />
       <p-select [options]="tipoAulaOpts" [(ngModel)]="filtroTipo" optionLabel="label" optionValue="value"
                 placeholder="Tipo de aula" [showClear]="true" (onChange)="cargar()" />
       <p-select [options]="estadoOpts" [(ngModel)]="filtroEstado" optionLabel="label" optionValue="value"
@@ -430,6 +420,13 @@ export class AulasComponent implements OnInit {
   conflictoOk       = signal(false);
 
   franjaForm = { dia_semana: 1, hora_inicio: '', hora_fin: '', motivo_bloqueo: '' };
+
+  constructor() {
+    effect(() => {
+      this.filtroPlantel = this.ctx.plantel()?.id ?? null;
+      this.cargar();
+    });
+  }
 
   ngOnInit(): void {
     this.api.get<any[]>('/planteles').subscribe({

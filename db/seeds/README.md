@@ -47,6 +47,27 @@ Es **idempotente**: cada corrida re-vacía lo operativo y regenera. Parámetros 
 ajustables al inicio del script (`ALUMNOS_POR_GRUPO`, `CLASES_POR_PERIODO`, etc.) — útil
 si el disco del entorno de desarrollo está ajustado.
 
+## 007_modulos_complementarios.py + 008_flujo_completo.py
+
+`007` puebla módulos aditivos (biblioteca, horarios, rúbricas, RRHH, H5P, etc.).
+`008` completa el flujo de gradebook end-to-end:
+
+- `calificaciones_tareas` (130k) — calificación por entrega vinculada a rúbrica
+- `avance_planificacion` (10k) — avance docente por sesión planificada
+- `expedientes_alumno` (2k) — expediente digital por alumno/ciclo
+- `rol_privilegios` — mapeo RBAC roles → privilegios
+- `alertas_academicas / alertas_cumplimiento` — alertas de riesgo
+- `reportes_academicos` (3k) — resúmenes de boleta por periodo
+- `h5p_asignaciones / h5p_resultados` — ciclo H5P completo
+- `bbb_reuniones / bbb_asistencia / bbb_grabaciones` — videoconferencias
+- `asignaciones_aula` — asignación aula por clase
+- `archivos` — referencias de archivos en MinIO
+
+```bash
+python3 db/seeds/007_modulos_complementarios.py
+python3 db/seeds/008_flujo_completo.py
+```
+
 ## Limpieza de espacio
 
 `scripts/limpieza_dev.sh` — limpieza segura de disco (logs de contenedores, prune de

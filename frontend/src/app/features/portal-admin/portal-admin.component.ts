@@ -1,5 +1,5 @@
 import {
-  Component, inject, OnInit, signal, computed, ViewChild, ElementRef
+  Component, inject, OnInit, signal, computed, ViewChild, ElementRef, effect
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -89,9 +89,6 @@ interface Catalogo {
 <!-- ── Filtros ───────────────────────────────────────────────────────────── -->
 <div class="filter-bar">
   <p-select [options]="opcionesTipo()" [(ngModel)]="filtroTipo" placeholder="Tipo"
-    optionLabel="label" optionValue="value" [showClear]="true"
-    (onChange)="cargar()" style="min-width:180px" />
-  <p-select [options]="opcionesPlantel()" [(ngModel)]="filtroPlantelId" placeholder="Plantel"
     optionLabel="label" optionValue="value" [showClear]="true"
     (onChange)="cargar()" style="min-width:180px" />
   <p-select [options]="opcionesEstado" [(ngModel)]="filtroPublicado" placeholder="Estado"
@@ -333,10 +330,16 @@ export class PortalAdminComponent implements OnInit {
     { field: 'total_documentos', header: 'Docs', width: '70px', align: 'center' },
   ];
 
+  constructor() {
+    effect(() => {
+      this.filtroPlantelId = this.ctx.plantel()?.id ?? '';
+      this.cargar();
+    });
+  }
+
   ngOnInit() {
     this.cargarCatalogo();
     this.cargarEstadisticas();
-    this.cargar();
   }
 
   cargar() {
