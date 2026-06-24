@@ -1,4 +1,15 @@
 -- =============================================================================
+-- Migración: 082_bbb.sql
+-- Descripción: Crea las tablas para videoconferencias BigBlueButton (BBB):
+--              reuniones programadas (clase, tutoría, reunión de padres, etc.),
+--              grabaciones de sesiones y registro de asistencia a videoconferencias.
+-- Tablas afectadas: ades_bbb_reuniones, ades_bbb_grabaciones, ades_bbb_asistencia
+-- Dependencias: ades_grupos, ades_planteles, ades_personas
+-- Autor: ADES
+-- Fecha: 2026-06
+-- =============================================================================
+
+-- =============================================================================
 -- MIGRACIÓN 082 — FASE 26: BigBlueButton — Videoconferencias Institucionales
 -- =============================================================================
 

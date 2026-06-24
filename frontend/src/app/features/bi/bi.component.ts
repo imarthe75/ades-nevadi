@@ -17,6 +17,13 @@ interface GuestTokenResp {
 
 type DashKey = 'instituto' | 'plantel' | 'docente' | 'alumno';
 
+/**
+ * Embed de dashboards de Business Intelligence usando Apache Superset.
+ * Obtiene un guest token del BFF para el plantel activo y renderiza el dashboard
+ * en un iframe con `SafeResourceUrl`. Soporta cuatro vistas (instituto, plantel,
+ * docente, alumno) según el nivelAcceso del usuario autenticado. El token se
+ * rota automáticamente al cambiar de contexto. Requiere nivelAcceso ≥ 3.
+ */
 @Component({
   selector: 'app-bi',
   standalone: true,

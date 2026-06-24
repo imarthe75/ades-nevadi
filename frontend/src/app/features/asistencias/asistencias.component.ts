@@ -19,6 +19,13 @@ interface AsistenciaLocal {
   estatus: EstatusAsistencia;
 }
 
+/**
+ * Control de asistencia de alumnos por grupo y fecha.
+ * Consume el endpoint `/api/v1/asistencias` del BFF para cargar y persistir
+ * el estatus diario (PRESENTE, FALTA, TARDE, JUSTIFICADO) de cada alumno
+ * del grupo activo en `ContextService`. Los efectos reactivos recargan
+ * el listado al cambiar el grupo o la fecha seleccionada. Requiere nivelAcceso ≥ 3.
+ */
 @Component({
   selector: 'app-asistencias',
   standalone: true,

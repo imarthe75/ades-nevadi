@@ -99,6 +99,11 @@ const TIPO_ICON: Record<string, string> = {
   QUIZ:      'pi-check-circle',
 };
 
+/**
+ * Módulo de rutas de aprendizaje personalizadas.
+ * Presenta secuencias de contenidos y actividades adaptadas al perfil del alumno,
+ * con seguimiento de progreso y recomendaciones generadas por el agente IA.
+ */
 @Component({
   selector: 'app-learning-paths',
   standalone: true,

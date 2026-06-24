@@ -1,4 +1,16 @@
 -- =============================================================================
+-- Migración: 084_biblioteca.sql
+-- Descripción: Crea el módulo de biblioteca escolar: catálogo de libros por título
+--              (con conteo de ejemplares total/disponibles) y tabla de circulación
+--              de préstamos. El decremento de ejemplares_disponibles es atómico.
+--              Scoping por plantel_id para acceso multi-plantel.
+-- Tablas afectadas: ades_biblioteca_libros, ades_biblioteca_prestamos
+-- Dependencias: ades_planteles, ades_personas, auditoria.asignar_biu()
+-- Autor: ADES
+-- Fecha: 2026-06
+-- =============================================================================
+
+-- =============================================================================
 -- MIGRACIÓN 084 — Biblioteca: acervo (catálogo) + circulación (préstamos)
 -- -----------------------------------------------------------------------------
 -- Modelo pragmático (escala escolar, mantenibilidad > granularidad):

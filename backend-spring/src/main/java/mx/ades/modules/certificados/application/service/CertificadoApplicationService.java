@@ -8,6 +8,15 @@ import org.springframework.http.ResponseEntity;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Caso de uso: emisión y firma digital de certificados académicos.
+ * Implementa {@link EmitirCertificadoUseCase} actuando como proxy hacia FastAPI,
+ * que gestiona la firma Ed25519, la generación de folio verificable públicamente
+ * y el registro de llaves activas por plantel.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Service
 public class CertificadoApplicationService implements EmitirCertificadoUseCase {
 

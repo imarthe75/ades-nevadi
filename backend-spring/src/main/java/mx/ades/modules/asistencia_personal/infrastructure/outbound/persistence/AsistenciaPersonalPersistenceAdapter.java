@@ -10,6 +10,16 @@ import org.springframework.stereotype.Component;
 import java.time.LocalDate;
 import java.util.*;
 
+/**
+ * Adaptador de persistencia que implementa {@link AsistenciaPersonalRepositoryPort}
+ * accediendo a la tabla {@code ades_asistencia_personal} vía JDBC.
+ *
+ * <p>Soporta filtros dinámicos (persona, fechas, tipo de jornada, búsqueda por nombre)
+ * y actualización parcial de campos sin sobreescribir los no enviados.</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Component
 @RequiredArgsConstructor
 public class AsistenciaPersonalPersistenceAdapter implements AsistenciaPersonalRepositoryPort {

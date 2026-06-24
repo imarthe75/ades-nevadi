@@ -8,6 +8,16 @@ import org.springframework.http.ResponseEntity;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Caso de uso: generación de boletas de calificaciones en PDF.
+ * Implementa {@link GenerarBoletaUseCase} actuando como proxy hacia FastAPI,
+ * que renderiza las boletas vía WeasyPrint/Jinja2. Soporta boleta NEM
+ * (SEP Primaria/Secundaria, escala 6-10 numérica y cualitativa A/B/C/D)
+ * y boleta UAEMEX (Preparatoria CBU, escala 0-10, ordinario/extraordinario/definitiva).
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Service
 public class BoletaApplicationService implements GenerarBoletaUseCase {
 

@@ -2,6 +2,15 @@ package mx.ades.modules.entregas.domain.model;
 
 import java.util.Arrays;
 
+/**
+ * Estado de una entrega de tarea por parte de un alumno en el módulo entregas.
+ * <p>Valores: PENDIENTE (aún no entregada), ENTREGADA (subida, pendiente de calificación),
+ * CALIFICADA (revisada por el docente), EXCUSA (exención aceptada).
+ * Solo ENTREGADA es calificable; CALIFICADA y EXCUSA son estados terminales.</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 public enum EstatusEntrega {
     PENDIENTE, ENTREGADA, CALIFICADA, EXCUSA;
 

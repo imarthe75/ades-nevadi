@@ -65,6 +65,13 @@ const NIVEL_ICON: Record<string, string> = {
   PRIMARIA: 'pi-star', SECUNDARIA: 'pi-book', PREPARATORIA: 'pi-graduation-cap',
 };
 
+/**
+ * Dashboard principal de ADES con KPIs institucionales y accesos rápidos.
+ * Muestra estadísticas por plantel (alumnos, docentes, grupos, niveles) y
+ * gráfica de distribución. Los widgets son configurables y persisten en
+ * localStorage. Para AdminSistema (nivelAcceso 5) muestra todos los planteles;
+ * para AdminPlantel (4) muestra solo su plantel vía `ContextService`.
+ */
 @Component({
   selector: 'app-dashboard',
   standalone: true,

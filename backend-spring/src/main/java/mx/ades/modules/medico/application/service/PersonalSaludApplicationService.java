@@ -7,6 +7,15 @@ import mx.ades.modules.medico.domain.port.out.PersonalSaludRepositoryPort;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Caso de uso: gestión del personal de salud adscrito a los planteles.
+ * Implementa {@link RegistrarPersonalSaludUseCase} y {@link ActualizarPersonalSaludUseCase}
+ * coordinando el dominio médico con el puerto de repositorio, manteniendo
+ * el directorio de médicos, enfermeras y psicólogos activos en el instituto.
+ *
+ * @author ADES
+ * @since 2026
+ */
 public class PersonalSaludApplicationService
         implements RegistrarPersonalSaludUseCase, ActualizarPersonalSaludUseCase {
 

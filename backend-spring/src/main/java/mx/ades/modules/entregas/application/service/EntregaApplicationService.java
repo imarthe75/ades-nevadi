@@ -7,6 +7,15 @@ import mx.ades.modules.entregas.domain.port.out.EntregaRepositoryPort;
 
 import java.util.Map;
 
+/**
+ * Caso de uso: gestión de entregas de tareas, proyectos y trabajos de alumnos.
+ * Implementa {@link SubirEntregaUseCase}, {@link CalificarEntregaUseCase}
+ * y {@link RegistrarExcusaUseCase} coordinando el dominio de entregas con
+ * el puerto de repositorio para los tres niveles educativos del instituto.
+ *
+ * @author ADES
+ * @since 2026
+ */
 public class EntregaApplicationService
         implements SubirEntregaUseCase, CalificarEntregaUseCase, RegistrarExcusaUseCase {
 

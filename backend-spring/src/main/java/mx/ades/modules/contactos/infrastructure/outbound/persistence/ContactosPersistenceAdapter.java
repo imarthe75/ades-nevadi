@@ -8,6 +8,14 @@ import org.springframework.stereotype.Component;
 
 import java.util.*;
 
+/**
+ * Adaptador JDBC que implementa {@link ContactosRepositoryPort}.
+ * <p>Gestiona operaciones CRUD sobre {@code ades_contactos_familiares},
+ * upsert de {@code ades_expedientes_medicos} y upsert de {@code ades_expediente_docs}.</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Component
 public class ContactosPersistenceAdapter implements ContactosRepositoryPort {
 

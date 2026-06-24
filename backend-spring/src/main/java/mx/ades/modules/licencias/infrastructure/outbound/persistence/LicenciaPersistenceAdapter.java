@@ -13,6 +13,14 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Adaptador JPA+JDBC que implementa {@link LicenciaRepositoryPort}.
+ * Combina Spring Data JPA para persistencia de entidades y JDBC para listados filtrados
+ * sobre {@code ades_licencias_personal}.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Component
 @RequiredArgsConstructor
 public class LicenciaPersistenceAdapter implements LicenciaRepositoryPort {

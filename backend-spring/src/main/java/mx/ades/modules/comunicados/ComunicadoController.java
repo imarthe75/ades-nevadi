@@ -21,6 +21,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Adaptador REST para la gestión de comunicados institucionales.
+ * Expone endpoints bajo /api/v1/comunicados para crear, listar, consultar detalle,
+ * eliminar y obtener reporte de lectura de comunicados. Soporta acuse de recibo
+ * (PUT /{id}/acusar), comunicados recurrentes con programación del siguiente envío
+ * y segmentación por plantel, nivel educativo o grupo. Los comunicados pueden
+ * requerir acuse y tener fecha de vencimiento. El listado aplica scoping por
+ * usuario autenticado. Toda operación requiere JWT válido.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @RestController
 @RequestMapping("/api/v1/comunicados")
 @RequiredArgsConstructor

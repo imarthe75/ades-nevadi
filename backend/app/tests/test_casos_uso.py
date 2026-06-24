@@ -1,3 +1,15 @@
+"""Tests de integración para casos de uso críticos del BFF FastAPI.
+
+Verifica el ciclo completo de asignación de materias a planes de estudio:
+- POST /api/v1/planes-estudio → 201 con el registro creado
+- DELETE /api/v1/planes-estudio/{id} → 204 con soft-delete (is_active=False)
+- Reactivación automática al re-asignar la misma combinación materia+grado+ciclo
+- Consulta de temarios con temas globales (grado_id IS NULL) y específicos
+
+Los tests se ejecutan contra la base de datos real; se requieren datos base
+(Materia, Grado, CicloEscolar) para que la suite no se omita.
+La autenticación se reemplaza por mocks con nivel_acceso=1 (ADMINISTRADOR_GLOBAL).
+"""
 import sys
 import os
 import asyncio
@@ -16,9 +28,11 @@ from app.models.academica import Grado, CicloEscolar
 
 # Mocking authentication dependencies
 async def mock_get_current_user():
+    """Mock de la dependencia get_current_user que retorna un usuario de prueba."""
     return {"sub": "test-sub", "email": "admin@institutonevadi.edu.mx"}
 
 async def mock_get_ades_user():
+    """Mock de get_ades_user que retorna un administrador global sin plantel fijo."""
     return AdesUser(
         id=uuid.uuid4(),
         nombre_usuario="admin",
@@ -29,6 +43,11 @@ async def mock_get_ades_user():
     )
 
 async def run_tests():
+    """Orquesta la suite completa de pruebas de integración contra la BD real.
+
+    Omite la ejecución si no hay datos base (Materia, Grado, CicloEscolar).
+    Limpia todos los registros creados al finalizar, incluyendo temas y asignaciones.
+    """
     print("Iniciando pruebas de integración...")
     # Override dependencies
     app.dependency_overrides[get_current_user] = mock_get_current_user

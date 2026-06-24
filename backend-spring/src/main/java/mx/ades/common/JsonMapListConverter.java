@@ -10,6 +10,19 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Conversor JPA que serializa/deserializa {@code List<Map<String, Object>>} como
+ * texto JSON en columnas {@code TEXT} o {@code JSONB} de PostgreSQL.
+ * <p>
+ * Utilizado en entidades que almacenan estructuras de datos dinámicas (p.ej. campos
+ * adicionales de formularios, configuraciones por plantel) sin requerir una tabla
+ * separada. Ante errores de deserialización retorna lista vacía para evitar romper
+ * la carga de entidades.
+ * </p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Converter
 public class JsonMapListConverter implements AttributeConverter<List<Map<String, Object>>, String> {
 

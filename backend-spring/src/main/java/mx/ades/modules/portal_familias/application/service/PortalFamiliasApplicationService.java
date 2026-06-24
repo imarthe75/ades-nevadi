@@ -6,6 +6,16 @@ import mx.ades.modules.portal_familias.domain.port.out.PortalFamiliasRepositoryP
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Caso de uso: gestión del portal de familias y vínculos tutor-alumno.
+ * Implementa {@link AgregarTutorUseCase} coordinando el dominio de familias
+ * con el puerto de repositorio, permitiendo vincular tutores a alumnos,
+ * crear cuentas de acceso para padres de familia y configurar restricciones
+ * de visualización de información académica.
+ *
+ * @author ADES
+ * @since 2026
+ */
 public class PortalFamiliasApplicationService implements AgregarTutorUseCase {
 
     private final PortalFamiliasRepositoryPort repo;

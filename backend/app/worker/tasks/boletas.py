@@ -31,11 +31,21 @@ TEMPLATES_DIR = Path(__file__).parent.parent.parent / "templates" / "boletas"
 
 
 def _get_db_engine():
+    """Crea un engine SQLAlchemy síncrono usando DATABASE_URL_SYNC de settings.
+
+    Se instancia dentro de la tarea (no en el módulo) para evitar compartir
+    conexiones entre procesos worker de Celery.
+    """
     from app.core.config import settings
     return create_engine(settings.DATABASE_URL_SYNC, pool_pre_ping=True)
 
 
 def _get_minio_client():
+    """Crea un cliente Minio apuntando al endpoint configurado en settings.
+
+    Utiliza MINIO_ENDPOINT, MINIO_ACCESS_KEY y MINIO_SECRET_KEY del entorno.
+    El bucket de destino es ``MINIO_BUCKET`` (por defecto ``ades-archivos``).
+    """
     from app.core.config import settings
     from minio import Minio
     return Minio(

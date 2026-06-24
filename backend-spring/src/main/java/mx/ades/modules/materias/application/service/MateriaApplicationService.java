@@ -10,6 +10,16 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Map;
 
+/**
+ * Caso de uso: creación y actualización del catálogo de materias académicas.
+ * Implementa {@link CrearMateriaUseCase} y {@link ActualizarMateriaUseCase}
+ * coordinando el dominio de materias con el puerto de repositorio, gestionando
+ * materias para los tres niveles educativos: Primaria NEM, Secundaria NEM
+ * y Preparatoria CBU UAEMEX.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Service
 public class MateriaApplicationService implements CrearMateriaUseCase, ActualizarMateriaUseCase {
 

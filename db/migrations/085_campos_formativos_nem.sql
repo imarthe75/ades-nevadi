@@ -1,4 +1,17 @@
 -- =============================================================================
+-- Migración: 085_campos_formativos_nem.sql
+-- Descripción: Agrega columna campo_formativo a ades_materias con los 4 campos
+--              formativos de la Nueva Escuela Mexicana (NEM) SEP: LENGUAJES,
+--              SABERES_PENSAMIENTO_CIENTIFICO, ETICA_NATURALEZA_SOCIEDADES,
+--              HUMANO_COMUNITARIO. Se puebla automáticamente para materias SEP
+--              mediante patrones de nombre. Prerequisito para la boleta oficial NEM.
+-- Tablas afectadas: ades_materias
+-- Dependencias: ades_materias_plan, ades_grados, ades_niveles_educativos
+-- Autor: ADES
+-- Fecha: 2026-06
+-- =============================================================================
+
+-- =============================================================================
 -- MIGRACIÓN 085 — Campos Formativos NEM en materias (prerequisito boleta oficial)
 -- -----------------------------------------------------------------------------
 -- La boleta oficial NEM (educación básica SEP) agrupa las disciplinas en 4

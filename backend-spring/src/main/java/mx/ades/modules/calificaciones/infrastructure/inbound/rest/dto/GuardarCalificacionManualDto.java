@@ -6,6 +6,12 @@ import mx.ades.modules.calificaciones.domain.model.Calificacion;
 import java.math.BigDecimal;
 import java.util.UUID;
 
+/**
+ * DTO de entrada REST para guardar manualmente una calificación de período.
+ *
+ * @author ADES
+ * @since 2026
+ */
 public record GuardarCalificacionManualDto(
         @JsonProperty("estudiante_id")      UUID estudianteId,
         @JsonProperty("grupo_id")           UUID grupoId,

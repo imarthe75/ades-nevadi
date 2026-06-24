@@ -63,6 +63,12 @@ const NIVELES_ACCESO_PORTAL = [
   { label: 'Restringido', value: 'RESTRINGIDO' },
 ];
 
+/**
+ * Módulo administrativo de tutores y padres de familia.
+ * Permite gestionar el catálogo de tutores, vincularlos con alumnos y
+ * administrar sus credenciales de acceso al portal de padres.
+ * Requiere nivelAcceso 4 (AdminPlantel) o superior.
+ */
 @Component({
   selector: 'app-padres-admin',
   standalone: true,

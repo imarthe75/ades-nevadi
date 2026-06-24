@@ -33,6 +33,13 @@ interface CicloOpt {
   _label?: string;
 }
 
+/**
+ * Operación de cierre de ciclo escolar — acción irreversible y de alto impacto.
+ * Muestra indicadores del ciclo (matrícula, promedio, tasa de aprobación) antes
+ * de confirmar el cierre. El BFF ejecuta la transición de estado ACTIVO → CERRADO
+ * y aplica las reglas de promoción automáticas. Requiere nivelAcceso = 5
+ * (AdminSistema); muestra advertencia explícita sobre la irreversibilidad.
+ */
 @Component({
   selector: 'app-cierre-ciclo',
   standalone: true,

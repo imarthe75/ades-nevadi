@@ -13,6 +13,14 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Adaptador JPA/JDBC que implementa {@link ComunicadoRepositoryPort}.
+ * <p>Persiste en {@code ades_comunicados} y {@code ades_acuses_comunicado}.
+ * La resolución de destinatarios se realiza via JDBC sobre {@code ades_usuarios}.</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Component
 @RequiredArgsConstructor
 public class ComunicadoPersistenceAdapter implements ComunicadoRepositoryPort {

@@ -45,6 +45,11 @@ const ESTADOS_OPT = [
   { label: 'Rechazada', value: 'RECHAZADA' },
 ];
 
+/**
+ * Módulo de justificaciones de inasistencias.
+ * Permite a docentes y coordinadores registrar, aprobar o rechazar justificantes
+ * de faltas de alumnos con evidencia documental adjunta.
+ */
 @Component({
   selector: 'app-justificaciones',
   standalone: true,

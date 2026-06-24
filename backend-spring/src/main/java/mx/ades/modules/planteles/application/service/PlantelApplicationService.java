@@ -10,6 +10,15 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Map;
 
+/**
+ * Caso de uso: creación y actualización de planteles del Instituto Nevadi.
+ * Implementa {@link CrearPlantelUseCase} y {@link ActualizarPlantelUseCase}
+ * coordinando el dominio de planteles con el puerto de repositorio, gestionando
+ * los tres planteles activos con sus claves de centro de trabajo (CT) SEP/UAEMEX.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Service
 public class PlantelApplicationService implements CrearPlantelUseCase, ActualizarPlantelUseCase {
 

@@ -2,6 +2,12 @@ import { Component, inject } from '@angular/core';
 import { ButtonModule } from 'primeng/button';
 import { AuthService } from '../services/auth.service';
 
+/**
+ * Pantalla de inicio de sesión de ADES.
+ * Muestra el logo institucional y el botón que inicia el flujo PKCE OIDC
+ * contra Authentik. No gestiona credenciales directamente; delega a AuthService.
+ * Accesible sin autenticación (ruta pública `/login`).
+ */
 @Component({
   selector: 'app-login',
   standalone: true,

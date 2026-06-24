@@ -107,16 +107,39 @@ const TIPOS = [
     :host ::ng-deep .w-full { width: 100%; }
   `],
 })
+/**
+ * Componente para el ejercicio de los Derechos ARCO (Acceso, Rectificación, Cancelación y Oposición)
+ * en el portal externo de admisión del Instituto Nevadi.
+ *
+ * Expone un formulario público para que cualquier persona pueda registrar una solicitud de
+ * ejercicio de derechos sobre sus datos personales conforme a la LFPDPPP.
+ */
 export class ArcoComponent {
   private readonly api = inject(PortalApiService);
 
+  /** Opciones de tipos de derecho ARCO que se pueden ejercer */
   tipos = TIPOS;
+
+  /** Estructura del formulario de solicitud ARCO */
   form  = { tipo: '', nombre: '', email: '', folioPostulacion: '', descripcion: '', consentimiento: false };
+
+  /** Signal de control de carga durante la transmisión de datos */
   cargando       = signal(false);
+
+  /** Signal indicador de éxito en la recepción de la solicitud */
   exito          = signal(false);
+
+  /** Signal que contiene los mensajes de error a mostrar en pantalla */
   error          = signal('');
+
+  /** Folio de atención autogenerado por el sistema al registrar con éxito la solicitud */
   folioRespuesta = signal('');
 
+  /**
+   * Valida y envía la solicitud de ejercicio de Derechos ARCO al endpoint de backend.
+   * Si tiene éxito, actualiza la interfaz mostrando el folio de seguimiento;
+   * de lo contrario, setea el mensaje de error.
+   */
   enviar() {
     if (!this.form.tipo || !this.form.nombre || !this.form.email || !this.form.descripcion) {
       this.error.set('Completa todos los campos obligatorios.');

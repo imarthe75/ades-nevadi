@@ -1,9 +1,21 @@
-"""
-Test de validación SPRINT 3: Optimizaciones de BD
-- Verificar que índices FK fueron creados
-- Verificar que índices no usados fueron eliminados
-- Verificar que materialized views existen
-- Verificar integridad de datos
+"""Tests de validación de optimizaciones de base de datos aplicadas en Sprint 3.
+
+Valida el estado de la BD después de las migraciones de optimización:
+
+1. **Índices FK** — confirma que los índices ``idx_ades_*`` fueron creados sobre
+   columnas de foreign key frecuentemente consultadas.
+2. **Índices eliminados** — verifica que los índices obsoletos o redundantes
+   (p.ej. ``ades_asistencias_ref_key``) ya no existen en ``pg_indexes``.
+3. **Vistas materializadas** — confirma que las MVs del esquema ``public``
+   (``v_asistencias_resumen``, ``v_tareas_entregas_resumen``) existen y tienen
+   índices UNIQUE para permitir ``REFRESH CONCURRENTLY``.
+4. **Integridad de datos** — conteo básico de tablas clave para detectar
+   pérdida de datos inesperada post-migración.
+5. **Tamaño de BD** — referencia visual; se espera ~371 MB tras Sprint 3.
+6. **Estadísticas de índices** — top 5 índices por número de escaneos.
+
+Este script puede ejecutarse directamente (``python test_sprint3_optimization.py``)
+o como parte de la suite pytest.
 """
 import sys
 import os
@@ -15,6 +27,11 @@ from sqlalchemy import select, text
 from app.core.database import get_db
 
 async def run_sprint3_validation():
+    """Ejecuta los 6 pasos de validación de optimizaciones Sprint 3 contra la BD real.
+
+    Returns:
+        True si todas las validaciones pasaron sin excepciones, False en caso de error.
+    """
     print("\n" + "="*70)
     print("VALIDACIÓN SPRINT 3: Optimizaciones de BD")
     print("="*70)

@@ -1,3 +1,13 @@
+"""Schemas Pydantic para las operaciones académicas del día a día en ADES.
+
+Incluye los siguientes dominios operativos:
+- Periodos de evaluación (trimestres NEM, parciales UAEMEX).
+- Clases: programación, impartición y estados.
+- Asistencias: registro masivo por clase, estatus y reportes.
+- Calificaciones: captura por periodo, libreta grupal y boleta por alumno.
+- Tareas: creación, entregas y calificación de entregas.
+- Archivos: metadatos de archivos almacenados en MinIO/SeaweedFS con URLs prefirmadas.
+"""
 from __future__ import annotations
 import uuid
 from datetime import date, datetime, time
@@ -10,6 +20,7 @@ from .base import AdesSchema, AdesResponse
 # ── Periodos de Evaluación ────────────────────────────────────────────────────
 
 class PeriodoOut(AdesResponse):
+    """Periodo de evaluación (trimestre NEM o parcial UAEMEX) de un ciclo escolar."""
     nombre_periodo: str
     numero_periodo: int
     tipo_periodo: str
@@ -22,6 +33,8 @@ class PeriodoOut(AdesResponse):
 # ── Clases ────────────────────────────────────────────────────────────────────
 
 class ClaseCreate(AdesSchema):
+    """Body para registrar o programar una clase en el diario de un grupo."""
+
     grupo_id: uuid.UUID
     materia_id: uuid.UUID
     profesor_id: uuid.UUID
@@ -33,12 +46,16 @@ class ClaseCreate(AdesSchema):
 
 
 class ClaseUpdate(AdesSchema):
+    """Campos actualizables de una clase (tema, observaciones, estatus)."""
+
     tema_visto: str | None = None
     observaciones: str | None = None
     estatus_clase: Literal["PROGRAMADA", "IMPARTIDA", "CANCELADA", "SUSPENDIDA"] | None = None
 
 
 class ClaseOut(AdesResponse):
+    """Respuesta de una clase con campos enriquecidos de nombres."""
+
     grupo_id: uuid.UUID
     materia_id: uuid.UUID
     profesor_id: uuid.UUID
@@ -70,6 +87,8 @@ class RegistrarAsistenciaIn(AdesSchema):
 
 
 class AsistenciaOut(AdesResponse):
+    """Respuesta de un registro de asistencia individual."""
+
     clase_id: uuid.UUID
     estudiante_id: uuid.UUID
     estatus_asistencia: str
@@ -88,6 +107,8 @@ class ReporteAsistenciaAlumno(AdesSchema):
 
 
 class ReporteAsistenciaGrupo(AdesSchema):
+    """Reporte de asistencia consolidado de todos los alumnos de un grupo."""
+
     grupo_id: uuid.UUID
     total_clases: int
     alumnos: list[ReporteAsistenciaAlumno]
@@ -96,6 +117,8 @@ class ReporteAsistenciaGrupo(AdesSchema):
 # ── Calificaciones ────────────────────────────────────────────────────────────
 
 class CalificacionCreate(AdesSchema):
+    """Body para capturar la calificación final de un alumno en un periodo."""
+
     estudiante_id: uuid.UUID
     grupo_id: uuid.UUID
     materia_id: uuid.UUID
@@ -110,11 +133,15 @@ class CalificacionCreate(AdesSchema):
 
 
 class CalificacionUpdate(AdesSchema):
+    """Body para corregir una calificación ya registrada."""
+
     calificacion_final: Decimal = Field(ge=0, le=100)
     observaciones: str | None = None
 
 
 class CalificacionOut(AdesResponse):
+    """Respuesta de la calificación de un alumno en un periodo con estado de acreditación."""
+
     estudiante_id: uuid.UUID
     grupo_id: uuid.UUID
     materia_id: uuid.UUID
@@ -134,6 +161,8 @@ class RegistroLibreta(AdesSchema):
 
 
 class PeriodoSimple(AdesSchema):
+    """Referencia mínima a un periodo de evaluación (id + nombre)."""
+
     id: uuid.UUID
     nombre_periodo: str
 
@@ -148,6 +177,8 @@ class LibretaGrupo(AdesSchema):
 
 
 class BolentaMateria(AdesSchema):
+    """Calificaciones de una materia por periodo para la boleta del alumno."""
+
     materia_nombre: str
     calificaciones: dict[str, Decimal | None]   # periodo_nombre → calificación
     promedio: Decimal | None
@@ -167,6 +198,8 @@ class BolentaAlumno(AdesSchema):
 # ── Tareas ────────────────────────────────────────────────────────────────────
 
 class TareaCreate(AdesSchema):
+    """Body para crear una tarea, proyecto o actividad evaluable asignada a un grupo."""
+
     titulo: str = Field(min_length=3, max_length=255)
     descripcion: str | None = None
     grupo_id: uuid.UUID
@@ -179,6 +212,8 @@ class TareaCreate(AdesSchema):
 
 
 class TareaUpdate(AdesSchema):
+    """Campos actualizables de una tarea (todos opcionales)."""
+
     titulo: str | None = Field(None, min_length=3, max_length=255)
     descripcion: str | None = None
     fecha_entrega: date | None = None
@@ -187,6 +222,8 @@ class TareaUpdate(AdesSchema):
 
 
 class TareaOut(AdesResponse):
+    """Respuesta completa de una tarea con fechas y configuración de entrega."""
+
     titulo: str
     descripcion: str | None
     grupo_id: uuid.UUID
@@ -203,6 +240,8 @@ class TareaOut(AdesResponse):
 # ── Entregas ──────────────────────────────────────────────────────────────────
 
 class EntregaOut(AdesResponse):
+    """Respuesta de la entrega de un alumno para una tarea."""
+
     tarea_id: uuid.UUID
     estudiante_id: uuid.UUID
     fecha_entrega: datetime | None
@@ -212,11 +251,15 @@ class EntregaOut(AdesResponse):
 
 
 class CalificarEntregaIn(AdesSchema):
+    """Body para que el docente califique la entrega de un alumno."""
+
     calificacion: Decimal = Field(ge=0, le=100)
     comentario_docente: str | None = None
 
 
 class CalificacionEntregaOut(AdesResponse):
+    """Respuesta de la calificación asignada a una entrega específica."""
+
     entrega_id: uuid.UUID
     calificacion: Decimal
     comentario_docente: str | None
@@ -224,6 +267,8 @@ class CalificacionEntregaOut(AdesResponse):
 
 
 class ArchivoOut(AdesResponse):
+    """Metadatos de un archivo almacenado en MinIO/SeaweedFS, con URL prefirmada opcional."""
+
     nombre_original: str
     nombre_almacenado: str
     bucket: str

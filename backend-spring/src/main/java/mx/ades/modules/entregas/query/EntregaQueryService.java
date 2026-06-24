@@ -8,6 +8,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Servicio de lectura CQRS para el módulo entregas.
+ * <p>Expone entregas de un alumno (con filtros opcionales de periodo y materia)
+ * y lista de entregas pendientes de calificación por grupo.</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Service
 @RequiredArgsConstructor
 public class EntregaQueryService {

@@ -23,6 +23,13 @@ interface EventoForm {
   plantel_id: string | null;
 }
 
+/**
+ * Calendario escolar institucional con eventos por ciclo y plantel.
+ * Permite registrar y visualizar eventos académicos, administrativos y
+ * festivos. Los eventos pueden aplicar a todos los planteles o a uno específico.
+ * Usa `InteractiveGridComponent` para edición inline. Integra `ContextService`
+ * para respetar el ciclo activo. Requiere nivelAcceso ≥ 4 para mutaciones.
+ */
 @Component({
   selector: 'app-calendario',
   standalone: true,

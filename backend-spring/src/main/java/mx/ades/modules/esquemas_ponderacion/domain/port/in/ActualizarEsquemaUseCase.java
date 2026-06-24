@@ -7,6 +7,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Puerto de entrada: contrato para actualizar un esquema de ponderación existente
+ * en el módulo esquemas_ponderacion.
+ * <p>Reemplaza todos los ítems (soft-delete previos + inserción nueva).
+ * La suma de pesos debe ser exactamente 100%.</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 public interface ActualizarEsquemaUseCase {
 
     record Command(UUID esquemaId, String nombre, UUID nivelEducativoId, UUID materiaId,

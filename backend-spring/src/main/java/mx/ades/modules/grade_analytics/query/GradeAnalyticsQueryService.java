@@ -9,6 +9,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Servicio de lectura CQRS para el módulo grade_analytics.
+ * Expone consultas de tendencias, distribución de calificaciones, alumnos en riesgo,
+ * resumen por plantel, cobertura curricular y alertas de umbral académico.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Service
 @RequiredArgsConstructor
 public class GradeAnalyticsQueryService {

@@ -18,6 +18,17 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.Instant;
 import java.util.UUID;
 
+/**
+ * Caso de uso: gestión integral del expediente escolar del alumno.
+ * Implementa {@link RegistrarBajaUseCase}, {@link CalificarExtraordinarioUseCase},
+ * {@link EmitirConstanciaUseCase} y {@link VerificarExpedienteUseCase} coordinando
+ * el dominio de expediente con los puertos de repositorio de bajas, exámenes
+ * extraordinarios, constancias y verificación documental. Integra con Paperless-ngx
+ * OCR para digitalización de documentos escaneados y publica eventos de dominio.
+ *
+ * @author ADES
+ * @since 2026
+ */
 public class ExpedienteApplicationService
         implements RegistrarBajaUseCase, CalificarExtraordinarioUseCase,
                    EmitirConstanciaUseCase, VerificarExpedienteUseCase {

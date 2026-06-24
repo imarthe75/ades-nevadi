@@ -1,3 +1,16 @@
+-- =============================================================================
+-- Migración: 087_menus_uuid_pk.sql
+-- Descripción: Migra la PK de ades_menus de INTEGER/serial a UUID (uuidv7),
+--              actualiza la auto-referencia parent_id y la FK de ades_menu_roles.
+--              Elimina el último SERIAL del esquema y alinea la BD con el BFF
+--              (MenusQueryService ya asumía UUID). Estrategia: columnas puente,
+--              mapeo por self-join, recrear PK/FKs, eliminar secuencia.
+-- Tablas afectadas: ades_menus, ades_menu_roles
+-- Dependencias: función uuidv7()
+-- Autor: ADES
+-- Fecha: 2026-06
+-- =============================================================================
+
 -- ============================================================================
 -- 087_menus_uuid_pk.sql
 -- Migra ades_menus.id (y la auto-referencia parent_id, más ades_menu_roles.menu_id)

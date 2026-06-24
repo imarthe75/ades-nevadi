@@ -47,6 +47,13 @@ interface AlumnoSugerencia {
   grupo: string;
 }
 
+/**
+ * Sistema de insignias y reconocimientos para alumnos del Instituto Nevadi.
+ * Permite definir badges con criterios automáticos o manuales, otorgarlos
+ * a alumnos individualmente y visualizar el historial de reconocimientos.
+ * Integra `InteractiveGridComponent` para edición inline y exporta a XLSX.
+ * Requiere nivelAcceso ≥ 3; el otorgamiento masivo requiere nivelAcceso ≥ 4.
+ */
 @Component({
   selector: 'app-badges',
   standalone: true,

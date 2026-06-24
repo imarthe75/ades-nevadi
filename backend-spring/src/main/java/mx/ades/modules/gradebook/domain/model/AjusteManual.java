@@ -3,6 +3,13 @@ package mx.ades.modules.gradebook.domain.model;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
+/**
+ * Value Object que representa un ajuste manual aplicado a una calificación calculada.
+ * Requiere una justificación de al menos 20 caracteres para garantizar trazabilidad.
+ *
+ * @author ADES
+ * @since 2026
+ */
 public record AjusteManual(BigDecimal valor, String justificacion) {
 
     private static final int MIN_JUSTIFICACION = 20;

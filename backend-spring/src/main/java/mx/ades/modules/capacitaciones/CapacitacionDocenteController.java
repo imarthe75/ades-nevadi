@@ -22,6 +22,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Adaptador REST para el registro y seguimiento de capacitaciones docentes.
+ * Expone endpoints bajo /api/v1/capacitaciones para listar, crear, actualizar,
+ * eliminar y validar (por RH) registros de capacitación. Soporta modalidades
+ * presenciales y en línea (ModalidadCapacitacion), tipos de certificación
+ * (TipoCertificacion) y áreas de formación (AreaFormacion). El endpoint
+ * /resumen/{docenteId} agrega horas totales, eventos y distribución por tipo
+ * y modalidad. La validación RH requiere nivelAcceso adecuado verificado
+ * en el use case. Toda operación requiere JWT válido.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @RestController
 @RequestMapping("/api/v1/capacitaciones")
 @RequiredArgsConstructor

@@ -10,6 +10,16 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Adaptador de persistencia que implementa {@link CierreRepositoryPort} accediendo
+ * a la tabla {@code ades_ciclos_escolares} vía JDBC.
+ *
+ * <p>El método {@code marcarCerrado} actualiza el estado a {@code 'CERRADO'} y
+ * desactiva la vigencia del ciclo en una sola sentencia.</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Component
 @RequiredArgsConstructor
 public class CierrePersistenceAdapter implements CierreRepositoryPort {

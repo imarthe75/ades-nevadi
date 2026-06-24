@@ -4,6 +4,12 @@ import mx.ades.modules.justificaciones.domain.model.AccionJustificacion;
 
 import java.util.UUID;
 
+/**
+ * Puerto de entrada: contrato para resolver (aprobar o rechazar) una justificación pendiente.
+ *
+ * @author ADES
+ * @since 2026
+ */
 public interface ResolverJustificacionUseCase {
 
     record Command(

@@ -61,6 +61,10 @@ interface Anuncio {
   fecha_creacion: string;
 }
 
+/**
+ * Módulo de foros de discusión académica entre docentes, alumnos y coordinadores.
+ * Soporta hilos por grupo/materia y moderación por nivel de acceso.
+ */
 @Component({
   selector: 'app-foros',
   standalone: true,

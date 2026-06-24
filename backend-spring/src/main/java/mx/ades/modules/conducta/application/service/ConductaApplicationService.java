@@ -7,6 +7,15 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.UUID;
 
+/**
+ * Caso de uso: creación de planes de mejora conductual para alumnos.
+ * Implementa {@link CrearPlanMejoraUseCase} coordinando el dominio de conducta
+ * con el puerto de repositorio de planes de mejora, garantizando que no exista
+ * más de un plan activo por reporte de conducta.
+ *
+ * @author ADES
+ * @since 2026
+ */
 public class ConductaApplicationService implements CrearPlanMejoraUseCase {
 
     private final PlanMejoraRepositoryPort planRepo;

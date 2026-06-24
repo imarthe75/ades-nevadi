@@ -2,6 +2,13 @@ package mx.ades.modules.horarios.domain.port.in;
 
 import java.util.UUID;
 
+/**
+ * Puerto de entrada: contrato para crear una entrada de horario para un grupo.
+ * El origen puede ser MANUAL o ASC (importado desde aSc TimeTables via XML).
+ *
+ * @author ADES
+ * @since 2026
+ */
 public interface CrearHorarioUseCase {
 
     record Command(

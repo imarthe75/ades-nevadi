@@ -16,6 +16,14 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.*;
 
+/**
+ * Controlador REST para la gestión de aulas en los distintos planteles del Instituto Nevadi.
+ * Permite listar, crear, actualizar y consultar información de las aulas, así como
+ * administrar sus franjas de disponibilidad horaria y verificar conflictos de solapamiento.
+ *
+ * @author ADES
+ * @version 2.0
+ */
 @RestController
 @RequestMapping("/api/v1/aulas")
 @RequiredArgsConstructor
@@ -27,6 +35,13 @@ public class AulaController {
     private final AdesUserService userService;
     private final JdbcTemplate jdbc;
 
+    /**
+     * Recupera el listado de todas las aulas registradas.
+     * Opcionalmente se puede filtrar por un plantel específico.
+     *
+     * @param plantelId Identificador del plantel para realizar el filtrado (opcional).
+     * @return ResponseEntity con la lista de aulas obtenidas.
+     */
     @GetMapping
     public ResponseEntity<List<Aula>> list(@RequestParam(name = "plantel_id", required = false) UUID plantelId) {
         return ResponseEntity.ok(plantelId != null
@@ -34,6 +49,14 @@ public class AulaController {
                 : repositoryPort.findAll());
     }
 
+    /**
+     * Consulta el detalle completo de un aula por su identificador único.
+     * Además, recupera todas las franjas de disponibilidad asociadas.
+     *
+     * @param id Identificador único del aula.
+     * @return ResponseEntity con el mapa de atributos del aula y sus franjas activas.
+     * @throws ResponseStatusException 404 si el aula no existe.
+     */
     @GetMapping("/{id}")
     public ResponseEntity<Map<String, Object>> get(@PathVariable("id") UUID id) {
         Aula aula = repositoryPort.findById(id)
@@ -68,6 +91,13 @@ public class AulaController {
         return ResponseEntity.ok(result);
     }
 
+    /**
+     * Registra una nueva aula en el sistema.
+     *
+     * @param body Datos básicos del aula a crear.
+     * @param jwt Credenciales del usuario autenticado.
+     * @return ResponseEntity con la estructura del aula recién creada.
+     */
     @PostMapping
     public ResponseEntity<Map<String, Object>> create(
             @RequestBody Map<String, Object> body,
@@ -77,6 +107,14 @@ public class AulaController {
         return ResponseEntity.status(HttpStatus.CREATED).body(crearUseCase.crear(cmd));
     }
 
+    /**
+     * Modifica toda la información de un aula existente.
+     *
+     * @param id Identificador del aula a actualizar.
+     * @param body Estructura con todos los datos actualizados del aula.
+     * @param jwt Credenciales del usuario autenticado.
+     * @return ResponseEntity con los datos actualizados de la operación.
+     */
     @PutMapping("/{id}")
     public ResponseEntity<Map<String, Object>> update(
             @PathVariable("id") UUID id,
@@ -86,6 +124,14 @@ public class AulaController {
         return ResponseEntity.ok(actualizarUseCase.actualizar(buildActualizarCmd(id, body)));
     }
 
+    /**
+     * Aplica cambios parciales (PATCH) a los atributos de un aula.
+     *
+     * @param id Identificador único del aula.
+     * @param body Atributos parciales a modificar.
+     * @param jwt Credenciales del usuario.
+     * @return ResponseEntity con los datos del aula modificados.
+     */
     @PatchMapping("/{id}")
     public ResponseEntity<Map<String, Object>> patch(
             @PathVariable("id") UUID id,
@@ -95,7 +141,15 @@ public class AulaController {
         return ResponseEntity.ok(actualizarUseCase.actualizar(buildActualizarCmd(id, body)));
     }
 
-    /** POST /api/v1/aulas/{id}/disponibilidad — agrega una franja de disponibilidad */
+    /**
+     * Agrega una franja horaria de disponibilidad o de bloqueo para un aula determinada.
+     *
+     * @param aulaId Identificador del aula.
+     * @param body Parámetros de la franja (dia_semana, hora_inicio, hora_fin, motivo_bloqueo).
+     * @param jwt Credenciales del usuario autenticado.
+     * @return ResponseEntity con los detalles de la franja horaria creada.
+     * @throws ResponseStatusException 404 si el aula no existe, o 400 si faltan parámetros requeridos.
+     */
     @PostMapping("/{id}/disponibilidad")
     public ResponseEntity<Map<String, Object>> agregarFranja(
             @PathVariable("id") UUID aulaId,
@@ -127,7 +181,13 @@ public class AulaController {
         return ResponseEntity.status(HttpStatus.CREATED).body(result);
     }
 
-    /** DELETE /api/v1/aulas/disponibilidad/{franjaId} — elimina una franja */
+    /**
+     * Remueve una franja de disponibilidad existente cambiando su estado activo a inactivo.
+     *
+     * @param franjaId Identificador de la franja a eliminar.
+     * @param jwt Credenciales del usuario autenticado.
+     * @throws ResponseStatusException 404 si la franja no fue localizada.
+     */
     @DeleteMapping("/disponibilidad/{franjaId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void eliminarFranja(
@@ -139,7 +199,15 @@ public class AulaController {
         if (rows == 0) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Franja no encontrada");
     }
 
-    /** POST /api/v1/aulas/{id}/verificar-conflicto — comprueba solapamientos */
+    /**
+     * Verifica si existe solapamiento u otro conflicto de horario para un intervalo dado en un aula.
+     *
+     * @param aulaId Identificador del aula.
+     * @param body Estructura con dia_semana, hora_inicio y hora_fin.
+     * @param jwt Credenciales del usuario autenticado.
+     * @return ResponseEntity indicando la presencia y conteo de conflictos detectados.
+     * @throws ResponseStatusException 400 si faltan parámetros requeridos.
+     */
     @PostMapping("/{id}/verificar-conflicto")
     public ResponseEntity<Map<String, Object>> verificarConflicto(
             @PathVariable("id") UUID aulaId,

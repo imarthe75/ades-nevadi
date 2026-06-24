@@ -8,6 +8,13 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Puerto de salida: contrato de persistencia para condiciones crónicas de salud de alumnos.
+ * <p>Incluye consulta de alerta de emergencia con datos de contacto familiar.</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 public interface CondicionRepositoryPort {
 
     CondicionCronica save(CondicionCronica condicion);

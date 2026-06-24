@@ -16,6 +16,21 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.*;
 
+/**
+ * Adaptador REST para expedientes médicos, incidentes y personal de salud.
+ * Expone endpoints bajo /api/v1 en tres secciones:
+ * <ul>
+ *   <li>/expedientes-medicos — CRUD de expediente médico por alumno (tipo sangre, alergias,
+ *       condiciones crónicas, discapacidad, seguro médico, NSS, vacunas).</li>
+ *   <li>/incidentes-medicos — registro y consulta de incidentes médicos por alumno.</li>
+ *   <li>/personal-salud — alta, consulta, actualización y baja del personal de enfermería/salud
+ *       con scoping por plantel para no-admins (evita lectura cross-plantel).</li>
+ * </ul>
+ * Los endpoints de personal de salud requieren JWT válido; expedientes e incidentes usan JPA directa.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @RestController
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor

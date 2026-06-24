@@ -1,3 +1,15 @@
+"""Router FastAPI para el Agente Residente ADES (IA conversacional).
+
+Expone endpoints de inicialización y diagnóstico del agente que validan la
+conectividad con la memoria dual:
+
+- **Valkey** (caché semántico con TTL) vía ``SemanticCache``
+- **PostgreSQL + pgvector** (memoria a largo plazo con embeddings) vía ``LongTermMemory``
+
+Si alguna dependencia de ``.agent/memory`` no está instalada, el módulo opera
+en modo degradado y devuelve HTTP 503 o un status ``"degraded"`` según la
+configuración de tolerancia a fallos.
+"""
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
 from typing import Optional, Dict, Any
@@ -20,10 +32,15 @@ router = APIRouter(
 )
 
 class AgenteResidenteRequest(BaseModel):
+    """Parámetros de inicialización del Agente Residente."""
+
     agente_id: str
     contexto_sesion: Optional[Dict[str, Any]] = None
 
+
 class AgenteResidenteResponse(BaseModel):
+    """Respuesta de estado del Agente Residente tras la inicialización."""
+
     status: str
     valkey_connected: bool
     postgres_connected: bool

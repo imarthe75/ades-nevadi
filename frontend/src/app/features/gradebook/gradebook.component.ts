@@ -79,6 +79,12 @@ interface Insights {
   calificaciones: { nombre_materia: string; promedio: number; alumnos_evaluados: number; en_riesgo: number }[];
 }
 
+/**
+ * Libreta de calificaciones granular (gradebook) con edición inline al estilo APEX.
+ * Permite capturar calificaciones por evaluación, alumno y período para docentes.
+ * Implementa cascada Plantel→Nivel→Grado→Grupo con computed() signals y
+ * optimistic locking vía row_version.
+ */
 @Component({
   selector: 'app-gradebook',
   standalone: true,

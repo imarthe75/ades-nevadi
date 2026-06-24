@@ -47,6 +47,11 @@ interface ResumenRow { nombre_plantel: string; nombre_nivel: string; total_alumn
 
 const RIESGO_SEV: Record<string, TagSeverity> = { ALTO: 'danger', MEDIO: 'warn', BAJO: 'success' };
 
+/**
+ * Panel de analítica de calificaciones con detección de alumnos en riesgo académico.
+ * Presenta distribuciones, promedios por materia y semáforo de riesgo (ALTO/MEDIO/BAJO).
+ * Accesible para docentes (nivelAcceso 3) y administradores.
+ */
 @Component({
   selector: 'app-grade-analytics',
   standalone: true,

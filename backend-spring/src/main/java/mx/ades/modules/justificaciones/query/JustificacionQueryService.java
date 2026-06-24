@@ -10,6 +10,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Servicio de lectura CQRS para el módulo justificaciones.
+ * Expone listado y detalle de justificaciones de falta con filtros por alumno, estado y grupo.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Service
 @RequiredArgsConstructor
 public class JustificacionQueryService {

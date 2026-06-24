@@ -9,6 +9,16 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Puerto de salida: define el contrato de persistencia para los registros de asistencia
+ * del personal en la tabla {@code ades_asistencia_personal}.
+ *
+ * <p>Incluye operaciones de listado, inserción, actualización parcial (patch),
+ * generación de reporte mensual y baja lógica (soft delete).</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 public interface AsistenciaPersonalRepositoryPort {
     List<Map<String, Object>> list(UUID personaId, LocalDate fechaInicio, LocalDate fechaFin, String tipoJornada, String q);
     boolean existeRegistro(UUID personaId, LocalDate fecha);

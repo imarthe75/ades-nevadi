@@ -12,6 +12,17 @@ import mx.ades.security.AdesUserService;
 
 import java.util.*;
 
+/**
+ * Adaptador REST para el portal académico del alumno (vista integrada).
+ * Expone endpoints bajo /api/v1/portal para búsqueda de alumnos por nombre/matrícula,
+ * resumen académico (datos del alumno + grupo + ciclo activo), calificaciones del ciclo,
+ * estadísticas de asistencia y tareas pendientes o completadas.
+ * Todos los endpoints resuelven el ciclo escolar activo automáticamente cuando no se
+ * especifica, y requieren JWT válido.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @RestController
 @RequestMapping("/api/v1/portal")
 @RequiredArgsConstructor

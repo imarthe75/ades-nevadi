@@ -13,6 +13,14 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Adaptador JPA/JDBC que implementa {@link CondicionRepositoryPort}.
+ * <p>Persiste en {@code ades_condiciones_cronicas} e incluye consulta de alerta de emergencia
+ * con datos de {@code ades_contactos_familiares} (campo {@code telefono_principal}).</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Component
 @RequiredArgsConstructor
 public class CondicionPersistenceAdapter implements CondicionRepositoryPort {

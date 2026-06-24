@@ -12,6 +12,14 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Adaptador JPA/JDBC que implementa {@link TareaRepositoryPort}.
+ * <p>Usa JPA para persistir la entidad {@code TareaEntity} y JDBC para operaciones
+ * masivas sobre {@code ades_tareas_entregas} (slots con upsert y calificación masiva).</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Component
 @RequiredArgsConstructor
 public class TareaPersistenceAdapter implements TareaRepositoryPort {

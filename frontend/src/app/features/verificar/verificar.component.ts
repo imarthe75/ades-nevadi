@@ -28,6 +28,11 @@ interface VerificacionResult {
   blockchain_network: string | null;
 }
 
+/**
+ * Página pública de verificación de certificados digitales por folio.
+ * No requiere autenticación. Valida la firma Ed25519 del certificado y
+ * muestra los datos del documento al ciudadano o institución verificadora.
+ */
 @Component({
   selector: 'app-verificar',
   standalone: true,

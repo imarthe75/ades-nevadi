@@ -4,6 +4,14 @@ import mx.ades.modules.condiciones.domain.model.TipoCondicion;
 
 import java.util.UUID;
 
+/**
+ * Puerto de entrada: contrato para registrar una condición crónica de salud de un alumno
+ * en el módulo condiciones.
+ * <p>Los datos de medicación y contacto médico se almacenan para uso en emergencias escolares.</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 public interface RegistrarCondicionUseCase {
 
     record Command(

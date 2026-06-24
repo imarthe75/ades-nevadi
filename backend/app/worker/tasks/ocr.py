@@ -20,6 +20,12 @@ log = logging.getLogger(__name__)
 
 
 def _get_db_engine():
+    """Crea un engine psycopg2 síncrono con pool mínimo para la tarea OCR.
+
+    Reemplaza el driver asyncpg por psycopg2 en la URL para compatibilidad
+    con el contexto síncrono de Celery. Pool pequeño (2 conexiones) dado el
+    volumen esperado de tareas OCR concurrentes.
+    """
     url = str(settings.DATABASE_URL).replace("+asyncpg", "+psycopg2")
     return create_engine(url, pool_size=2, max_overflow=0, pool_pre_ping=True)
 

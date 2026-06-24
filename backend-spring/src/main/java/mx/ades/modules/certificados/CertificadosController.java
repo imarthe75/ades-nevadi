@@ -15,6 +15,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Adaptador REST para la emisión y firma digital de certificados académicos.
+ * Expone endpoints bajo /api/v1/certificados para listar, emitir (proxy a FastAPI),
+ * firmar con llave Ed25519 y gestionar llaves de firma institucional. El endpoint
+ * GET /verificar/{folio} es público (no requiere autenticación) y permite validar
+ * la autenticidad de un certificado por su folio. La emisión y firma proxean al
+ * microservicio FastAPI (CertificadoFastApiPort) que genera el PDF con WeasyPrint.
+ * Toda operación protegida requiere JWT válido via {@code resolveUser}.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @RestController
 @RequestMapping("/api/v1/certificados")
 @RequiredArgsConstructor

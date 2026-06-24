@@ -17,6 +17,17 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDate;
 import java.util.UUID;
 
+/**
+ * Caso de uso: gestión del acervo bibliográfico y circulación de préstamos.
+ * Implementa {@link RegistrarLibroUseCase}, {@link ActualizarLibroUseCase},
+ * {@link EliminarLibroUseCase}, {@link RegistrarPrestamoUseCase} y
+ * {@link DevolverPrestamoUseCase} coordinando el dominio de biblioteca con
+ * el puerto de repositorio. Aplica decremento atómico de ejemplares al prestar
+ * para evitar sobre-préstamo bajo concurrencia.
+ *
+ * @author ADES
+ * @since 2026
+ */
 public class BibliotecaApplicationService implements
         RegistrarLibroUseCase, ActualizarLibroUseCase, EliminarLibroUseCase,
         RegistrarPrestamoUseCase, DevolverPrestamoUseCase {

@@ -13,6 +13,14 @@ import org.springframework.web.server.ResponseStatusException;
 import java.math.BigDecimal;
 import java.util.*;
 
+/**
+ * Adaptador JDBC que implementa {@link EsquemaRepositoryPort}.
+ * <p>Persiste en {@code ades_esquemas_ponderacion} e {@code ades_items_ponderacion}.
+ * La consulta {@code efectivo} prioriza el esquema específico de materia sobre el genérico de nivel.</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Component
 @RequiredArgsConstructor
 public class EsquemaPersistenceAdapter implements EsquemaRepositoryPort {

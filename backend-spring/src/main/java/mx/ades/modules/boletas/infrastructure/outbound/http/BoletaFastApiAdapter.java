@@ -12,6 +12,17 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Adaptador de salida HTTP que implementa {@link BoletaFastApiPort} proxeando
+ * las solicitudes de generación de boletas al servicio FastAPI en
+ * {@code http://ades-api:8000/api/v1/boletas} usando {@code RestClient}.
+ *
+ * <p>Propaga el header {@code Authorization} del cliente original y reenvía
+ * el PDF binario o el estado de tarea según el endpoint invocado.</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Component
 public class BoletaFastApiAdapter implements BoletaFastApiPort {
 

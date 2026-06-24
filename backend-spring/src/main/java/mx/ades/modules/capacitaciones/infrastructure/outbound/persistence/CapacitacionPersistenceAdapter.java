@@ -13,6 +13,13 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Adaptador de persistencia que implementa {@link CapacitacionRepositoryPort} accediendo
+ * a la tabla {@code ades_capacitaciones_docente} vía JPA y JDBC.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Component
 @RequiredArgsConstructor
 public class CapacitacionPersistenceAdapter implements CapacitacionRepositoryPort {

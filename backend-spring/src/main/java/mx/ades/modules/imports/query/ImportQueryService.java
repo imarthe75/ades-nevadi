@@ -6,6 +6,14 @@ import org.springframework.stereotype.Service;
 import java.util.Arrays;
 import java.util.List;
 
+/**
+ * Servicio de lectura CQRS para el módulo imports.
+ * Genera metadatos de plantillas CSV para importación masiva de alumnos, profesores,
+ * materias, grupos, aulas y pre-inscritos SEP.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Service
 public class ImportQueryService {
 

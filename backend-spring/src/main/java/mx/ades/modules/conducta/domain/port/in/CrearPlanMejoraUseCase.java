@@ -5,6 +5,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Puerto de entrada: contrato para crear un plan de mejora conductual en el módulo conducta.
+ * <p>El plan incluye compromisos del alumno, padre y escuela, y una fecha de primer seguimiento.
+ * Solo puede existir un plan activo por reporte de conducta.</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 public interface CrearPlanMejoraUseCase {
 
     record Command(

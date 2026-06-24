@@ -10,6 +10,14 @@ import org.springframework.stereotype.Component;
 
 import java.util.*;
 
+/**
+ * Adaptador JPA/JDBC que implementa {@link DisponibilidadRepositoryPort}.
+ * <p>Persiste slots en {@code ades_disponibilidad_docente} y actualiza horas máximas
+ * en {@code ades_profesores}. Soporta filtro por ciclo escolar y búsqueda por nombre de docente.</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Component
 @RequiredArgsConstructor
 public class DisponibilidadPersistenceAdapter implements DisponibilidadRepositoryPort {

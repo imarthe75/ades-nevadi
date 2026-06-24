@@ -8,6 +8,12 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Puerto de salida: contrato de persistencia para expedientes laborales del personal.
+ *
+ * @author ADES
+ * @since 2026
+ */
 public interface ExpedienteLaboralRepositoryPort {
     List<Map<String, Object>> list(UUID personaId, String tipoContrato, String q);
     UUID insert(CrearExpedienteLaboralUseCase.Command cmd);

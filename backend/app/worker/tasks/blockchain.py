@@ -1,3 +1,14 @@
+"""Tarea Celery: anclaje de certificados digitales en Polygon PoS.
+
+Flujo:
+  1. Leer el certificado (hash_sha256, folio) de ades_certificados.
+  2. Llamar a ``anclar_hash_blockchain`` del servicio blockchain (puede ser MOCK
+     en desarrollo o Polygon real en producción según POLYGON_RPC_URL).
+  3. Actualizar ades_certificados con tx_hash, estado, fecha de anclaje y red.
+
+La tarea es idempotente en cuanto al hash: si el mismo hash ya fue anclado,
+el contrato inteligente rechaza la transacción duplicada sin revertir el estado.
+"""
 from __future__ import annotations
 import logging
 import uuid
@@ -24,6 +35,18 @@ def anclar_certificado_task(certificado_id: str):
     return loop.run_until_complete(_anclar_certificado_async(certificado_id))
 
 async def _anclar_certificado_async(certificado_id: str):
+    """Implementación async del anclaje de un certificado en la blockchain.
+
+    Valida que el certificado exista y tenga hash_sha256 generado (requiere
+    firma Ed25519 previa), delega el anclaje al servicio blockchain y persiste
+    el resultado (tx_hash, estado, fecha_anclaje, red) en la BD.
+
+    Args:
+        certificado_id: UUID del registro en ades_certificados.
+
+    Returns:
+        True si el anclaje se completó correctamente, False en caso contrario.
+    """
     logger.info("Iniciando tarea de anclaje blockchain para certificado: %s", certificado_id)
     
     async for db in get_db():

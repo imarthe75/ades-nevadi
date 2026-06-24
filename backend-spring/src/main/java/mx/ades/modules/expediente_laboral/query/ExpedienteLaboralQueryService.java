@@ -8,6 +8,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Servicio de lectura CQRS para el módulo expediente_laboral.
+ * Expone consultas de listado y detalle de expedientes laborales del personal.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Service
 @RequiredArgsConstructor
 public class ExpedienteLaboralQueryService {

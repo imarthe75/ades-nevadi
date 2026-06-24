@@ -15,6 +15,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Adaptador REST para el catálogo de planteles del Instituto Nevadi.
+ * Expone endpoints bajo /api/v1/planteles para listar todos los planteles,
+ * obtener el detalle de un plantel por UUID, consultar estadísticas de ocupación
+ * y niveles educativos asociados a un plantel, crear (restringido a ROLE_ADMIN)
+ * y actualizar datos de un plantel (nombre, clave CT, estatus).
+ *
+ * @author ADES
+ * @since 2026
+ */
 @RestController
 @RequestMapping("/api/v1/planteles")
 @RequiredArgsConstructor

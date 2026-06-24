@@ -22,6 +22,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Controlador REST para la administración de la biblioteca en el Instituto Nevadi.
+ * Permite registrar y actualizar libros en el catálogo del acervo, consultar préstamos,
+ * realizar préstamos de ejemplares a alumnos o personal y gestionar devoluciones.
+ *
+ * @author ADES
+ * @version 2.0
+ */
 @RestController
 @RequestMapping("/api/v1/biblioteca")
 @RequiredArgsConstructor
@@ -49,6 +57,17 @@ public class BibliotecaController {
 
     // ── Acervo ───────────────────────────────────────────────────────────────
 
+    /**
+     * Recupera el catálogo de libros aplicando filtros por texto de búsqueda,
+     * categoría, plantel y disponibilidad.
+     *
+     * @param texto Palabra o frase de búsqueda en título o autor.
+     * @param categoria Categoría del libro (opcional).
+     * @param plantelId Identificador del plantel (opcional).
+     * @param soloDisponibles Si es true, retorna solo los libros con ejemplares disponibles.
+     * @param jwt Credenciales del usuario.
+     * @return ResponseEntity con la lista de libros del catálogo que coinciden.
+     */
     @GetMapping("/libros")
     public ResponseEntity<List<Map<String, Object>>> listarLibros(
             @RequestParam(value = "q",         required = false) String texto,
@@ -60,6 +79,13 @@ public class BibliotecaController {
         return ResponseEntity.ok(query.listLibros(texto, categoria, scopePlantel(user, plantelId), soloDisponibles));
     }
 
+    /**
+     * Obtiene los detalles de un libro del catálogo por su identificador único.
+     *
+     * @param id Identificador único del libro.
+     * @param jwt Credenciales del usuario.
+     * @return ResponseEntity con los atributos del libro.
+     */
     @GetMapping("/libros/{id}")
     public ResponseEntity<BibliotecaLibro> obtenerLibro(
             @PathVariable("id") UUID id,
@@ -68,6 +94,13 @@ public class BibliotecaController {
         return ResponseEntity.ok(query.findLibro(id));
     }
 
+    /**
+     * Registra un nuevo libro en el acervo del plantel correspondiente.
+     *
+     * @param body Atributos del libro.
+     * @param jwt Credenciales del usuario.
+     * @return ResponseEntity con el identificador único del libro creado.
+     */
     @PostMapping("/libros")
     public ResponseEntity<Map<String, Object>> crearLibro(
             @RequestBody BibliotecaLibro body,
@@ -83,6 +116,14 @@ public class BibliotecaController {
         return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("id", id));
     }
 
+    /**
+     * Actualiza parcialmente la información de un libro registrado.
+     *
+     * @param id Identificador único del libro.
+     * @param body Atributos modificados.
+     * @param jwt Credenciales del usuario.
+     * @return ResponseEntity indicando éxito.
+     */
     @PatchMapping("/libros/{id}")
     public ResponseEntity<Map<String, Object>> actualizarLibro(
             @PathVariable("id") UUID id,
@@ -97,6 +138,12 @@ public class BibliotecaController {
         return ResponseEntity.ok(Map.of("ok", true));
     }
 
+    /**
+     * Elimina un libro del acervo catalogado.
+     *
+     * @param id Identificador único del libro a borrar.
+     * @param jwt Credenciales del usuario.
+     */
     @DeleteMapping("/libros/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void eliminarLibro(
@@ -108,6 +155,16 @@ public class BibliotecaController {
 
     // ── Circulación ──────────────────────────────────────────────────────────
 
+    /**
+     * Lista los préstamos de libros registrados bajo diferentes filtros.
+     *
+     * @param personaId Identificador opcional del lector.
+     * @param libroId Identificador opcional del libro.
+     * @param estatus Estado del préstamo (VIGENTE, DEVUELTO, etc.).
+     * @param plantelId Identificador del plantel.
+     * @param jwt Credenciales del usuario.
+     * @return ResponseEntity con la lista de préstamos activos e históricos.
+     */
     @GetMapping("/prestamos")
     public ResponseEntity<List<Map<String, Object>>> listarPrestamos(
             @RequestParam(value = "persona_id", required = false) UUID personaId,
@@ -119,6 +176,13 @@ public class BibliotecaController {
         return ResponseEntity.ok(query.listPrestamos(personaId, libroId, estatus, scopePlantel(user, plantelId)));
     }
 
+    /**
+     * Registra el préstamo de un ejemplar de libro a un alumno o personal de la escuela.
+     *
+     * @param body Parámetros del préstamo (libroId, personaId, fechaDevolucionEsperada, observaciones).
+     * @param jwt Credenciales del usuario.
+     * @return ResponseEntity con el identificador del préstamo creado.
+     */
     @PostMapping("/prestamos")
     public ResponseEntity<Map<String, Object>> prestar(
             @RequestBody PrestamoRequest body,
@@ -131,6 +195,14 @@ public class BibliotecaController {
         return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("id", id));
     }
 
+    /**
+     * Registra la devolución física de un libro prestado.
+     *
+     * @param id Identificador único del préstamo.
+     * @param body Detalles finales de la devolución (estatusFinal, observaciones).
+     * @param jwt Credenciales del usuario.
+     * @return ResponseEntity indicando éxito en el registro de devolución.
+     */
     @PostMapping("/prestamos/{id}/devolver")
     public ResponseEntity<Map<String, Object>> devolver(
             @PathVariable("id") UUID id,

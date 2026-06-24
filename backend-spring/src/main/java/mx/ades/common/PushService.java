@@ -11,6 +11,23 @@ import org.springframework.web.client.RestClient;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Servicio de notificaciones push en tiempo real hacia usuarios del sistema ADES,
+ * utilizando <a href="https://ntfy.sh">ntfy</a> (contenedor {@code ades-ntfy})
+ * como broker de mensajería.
+ * <p>
+ * Cada usuario recibe mensajes en su topic personal {@code ades_<usuarioId>},
+ * lo que garantiza aislamiento entre destinatarios. Soporta envío síncrono,
+ * asíncrono y por lotes. El envío asíncrono no bloquea el hilo del request HTTP.
+ * </p>
+ * <p>
+ * Si {@code ntfy.url} no está configurado, las llamadas retornan {@code false}
+ * silenciosamente para no interrumpir flujos principales.
+ * </p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Service
 @Slf4j
 public class PushService {

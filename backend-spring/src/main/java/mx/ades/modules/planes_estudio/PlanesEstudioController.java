@@ -11,6 +11,17 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.*;
 
+/**
+ * Adaptador REST para la gestión de planes de estudio por grado y ciclo escolar.
+ * Expone endpoints bajo /api/v1/planes-estudio para listar planes con filtros opcionales
+ * (ciclo, grado, nivel), asignar una materia a un grado+ciclo (use case hexagonal),
+ * actualizar campos parciales (PATCH) y eliminar una asignación.
+ * Cubre tanto el plan NEM SEP (primaria/secundaria) como el CBU UAEMEX (preparatoria).
+ * No requiere JWT propio en los endpoints de lectura/escritura (depende del security global).
+ *
+ * @author ADES
+ * @since 2026
+ */
 @RestController
 @RequestMapping("/api/v1/planes-estudio")
 @RequiredArgsConstructor

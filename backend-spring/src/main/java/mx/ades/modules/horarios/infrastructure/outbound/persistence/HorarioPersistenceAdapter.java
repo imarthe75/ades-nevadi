@@ -11,6 +11,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Adaptador JDBC que implementa {@link HorarioWriteRepositoryPort}.
+ * Gestiona inserciones, actualizaciones y soft-delete en {@code ades_horarios}.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Component
 @RequiredArgsConstructor
 public class HorarioPersistenceAdapter implements HorarioWriteRepositoryPort {

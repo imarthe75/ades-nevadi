@@ -1,4 +1,19 @@
 -- =============================================================================
+-- Migración: 091_fix_gradebook_upsert_y_escala_prepa.sql
+-- Descripción: (1) Corrige calcular_calificacion_periodo() reemplazando el
+--              ON CONFLICT (imposible en tabla particionada por RANGE) por
+--              un patrón UPDATE-then-INSERT que funciona sobre particiones.
+--              Corrige triggers trg_gradebook_* que fallaban al tomar asistencia
+--              o capturar calificaciones. (2) Ajusta la escala_maxima de
+--              PREPARATORIA a 10.0 (RGEMS UAEMEX, igual que primaria/secundaria).
+-- Tablas afectadas: función calcular_calificacion_periodo(), ades_niveles_educativos
+-- Dependencias: ades_calificaciones_periodo (particionada), ades_grupos,
+--               ades_grados, ades_niveles_educativos, ades_esquemas_ponderacion
+-- Autor: ADES
+-- Fecha: 2026-06
+-- =============================================================================
+
+-- =============================================================================
 -- 091_fix_gradebook_upsert_y_escala_prepa.sql
 -- 1) calcular_calificacion_periodo: el upsert con ON CONFLICT(estudiante,materia,periodo)
 --    es imposible en la tabla particionada por RANGE(fecha_creacion) (un UNIQUE debe

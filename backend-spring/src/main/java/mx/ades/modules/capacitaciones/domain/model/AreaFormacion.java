@@ -1,5 +1,14 @@
 package mx.ades.modules.capacitaciones.domain.model;
 
+/**
+ * Tipo de dominio que representa el área de formación de una capacitación docente.
+ *
+ * <p>Valores posibles: {@code PEDAGOGIA}, {@code TIC}, {@code DISCIPLINAR},
+ * {@code IDIOMAS}, {@code LIDERAZGO}, {@code OTRO}.</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 public enum AreaFormacion {
     PEDAGOGIA, TIC, DISCIPLINAR, IDIOMAS, LIDERAZGO, OTRO;
 

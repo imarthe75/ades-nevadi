@@ -17,6 +17,19 @@ import mx.ades.security.AdesUserService;
 
 import java.util.*;
 
+/**
+ * Adaptador REST para la gestión de contactos familiares y expediente médico de alumnos.
+ * Expone endpoints bajo /api/v1/contactos para registrar, actualizar y eliminar
+ * contactos (tutores legales, responsables de emergencia) con optimistic locking
+ * (rowVersion) para evitar conflictos de concurrencia. También gestiona el
+ * expediente médico en /api/v1/expediente-medico/{estudiante_id} (tipo de sangre,
+ * alergias, medicamentos, discapacidad, seguro médico) y el seguimiento de
+ * documentos del expediente escolar en /api/v1/expediente-docs. Los datos de
+ * expediente médico son PII sensibles bajo LFPDPPP. Toda operación requiere JWT válido.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @RestController
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor

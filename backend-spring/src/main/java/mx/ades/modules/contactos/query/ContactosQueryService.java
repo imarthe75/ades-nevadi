@@ -6,6 +6,14 @@ import org.springframework.stereotype.Service;
 
 import java.util.*;
 
+/**
+ * Servicio de lectura CQRS para el módulo contactos.
+ * <p>Expone listado de contactos familiares de un alumno y la matriz de documentos del expediente
+ * escolar con su estado (PENDIENTE / ENTREGADO / RECHAZADO).</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Service
 @RequiredArgsConstructor
 public class ContactosQueryService {

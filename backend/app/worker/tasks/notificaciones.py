@@ -18,6 +18,11 @@ log = logging.getLogger(__name__)
 
 
 def _get_db_engine():
+    """Crea un engine SQLAlchemy síncrono para uso dentro de tareas Celery.
+
+    Las tareas Celery corren en procesos separados; crear el engine en el
+    momento de ejecución evita heredar conexiones abiertas del proceso padre.
+    """
     from app.core.config import settings
     return create_engine(settings.DATABASE_URL_SYNC, pool_pre_ping=True)
 

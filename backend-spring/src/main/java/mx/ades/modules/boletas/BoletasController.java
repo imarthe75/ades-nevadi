@@ -12,6 +12,19 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Adaptador REST para la generación de boletas de calificaciones en PDF.
+ * Expone endpoints bajo /api/v1/boletas que actúan como proxy hacia el
+ * microservicio FastAPI (Python/WeasyPrint). No genera documentos directamente:
+ * delega la renderización al use case {@code GenerarBoletaUseCase}.
+ * Soporta boleta NEM (primaria/secundaria SEP, escala 6-10 o cualitativa A/B/C/D),
+ * boleta UAEMEX (preparatoria CBU, escala 0-10 con ordinario/extra/definitiva)
+ * y generación batch por grupo con seguimiento de tarea asíncrona (taskId).
+ * Toda solicitud requiere JWT válido via {@code resolveUser}.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @RestController
 @RequestMapping("/api/v1/boletas")
 @RequiredArgsConstructor

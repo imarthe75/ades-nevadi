@@ -1,3 +1,16 @@
+-- =============================================================================
+-- Migración: 20260604_0001_ades_nevadi.sql
+-- Descripción: Aseguramiento idempotente de llaves primarias (UUID) y llaves
+--              foráneas en todas las tablas del esquema ADES Instituto Nevadi.
+--              Usa funciones de sesión pg_temp para verificar existencia de
+--              constraints antes de crearlos. Cubre geo, institucional,
+--              académico, personas, calificaciones, salud, comunicados, etc.
+-- Tablas afectadas: todas las tablas ades_* del esquema público (solo constraints)
+-- Dependencias: todas las tablas ades_* existentes
+-- Autor: ADES
+-- Fecha: 2026-06
+-- =============================================================================
+
 /*
  * by Im@rthe
  * Fecha: 2026-06-04

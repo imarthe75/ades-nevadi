@@ -18,6 +18,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Caso de uso: gestión de foros académicos, mensajería y tablero de anuncios.
+ * Implementa {@link CrearForoUseCase}, {@link PublicarMensajeUseCase},
+ * {@link ModerarMensajeUseCase} y {@link PublicarAnuncioUseCase} coordinando
+ * el dominio de foros con el puerto de repositorio, con soporte de moderación
+ * por rol y publicación de anuncios urgentes por plantel/nivel educativo.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Service
 public class ForoApplicationService
         implements CrearForoUseCase, PublicarMensajeUseCase, ModerarMensajeUseCase, PublicarAnuncioUseCase {

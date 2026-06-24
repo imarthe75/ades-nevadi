@@ -28,6 +28,18 @@ import mx.ades.modules.usuarios.RolRepository;
 import java.time.LocalDate;
 import java.util.*;
 
+/**
+ * Adaptador REST para la administración global del sistema ADES.
+ * Expone endpoints bajo /api/v1/admin para gestión de ciclos escolares,
+ * usuarios, planteles, grupos, identidad institucional, configuración del
+ * sistema, escalas cualitativas, roles, menús y permisos por rol.
+ * Requiere nivelAcceso de ADMIN_PLANTEL (4) o ADMIN_GLOBAL (5); las
+ * operaciones destructivas sobre planteles, roles y menús exigen ADMIN_GLOBAL.
+ * Aplica optimistic locking (row_version) en PATCH de usuarios.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @RestController
 @RequestMapping("/api/v1/admin")
 @RequiredArgsConstructor

@@ -36,6 +36,13 @@ interface Certificado {
 
 interface AlumnoOpt { id: string; label: string; }
 
+/**
+ * Emisión y verificación de certificados digitales con firma Ed25519.
+ * Gestiona el ciclo PENDIENTE → FIRMADO → REVOCADO y el anclaje opcional
+ * en blockchain para certificados de término de nivel. Los certificados
+ * son verificables públicamente vía `/verificar/:folio`. Integra
+ * `ApexDynamicActionService` para acciones contextuales. Requiere nivelAcceso ≥ 4.
+ */
 @Component({
   selector: 'app-certificados',
   standalone: true,

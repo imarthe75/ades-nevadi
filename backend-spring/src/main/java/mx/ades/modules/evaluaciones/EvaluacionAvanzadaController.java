@@ -19,6 +19,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Adaptador REST para funcionalidades avanzadas de evaluación pedagógica.
+ * Expone endpoints bajo /api/v1/evaluacion-avanzada para: gestión de escalas
+ * cualitativas de evaluación (EV-012), generación de datos de actas SEP por grupo
+ * y periodo (EV-014), registro y consulta de observaciones pedagógicas por alumno
+ * (EV-017), gestión de Necesidades Educativas Especiales (NEE, EV-024) y asignación
+ * de aula/hora a clases con detección de conflictos de horario (EV-025).
+ * Las mutaciones requieren Coordinador o superior (nivelAcceso {@literal <=} 3 o 4).
+ * Aplica {@code resolveUser} en todos los endpoints protegidos.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @RestController
 @RequestMapping("/api/v1/evaluacion-avanzada")
 @RequiredArgsConstructor

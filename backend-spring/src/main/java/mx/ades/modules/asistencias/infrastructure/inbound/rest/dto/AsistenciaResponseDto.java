@@ -5,6 +5,12 @@ import mx.ades.modules.asistencias.domain.model.Asistencia;
 
 import java.util.UUID;
 
+/**
+ * DTO de salida REST para la consulta de asistencias de alumnos.
+ *
+ * @author ADES
+ * @since 2026
+ */
 public record AsistenciaResponseDto(
         UUID id,
         @JsonProperty("clase_id")           UUID claseId,

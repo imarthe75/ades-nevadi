@@ -13,6 +13,14 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Adaptador JDBC que implementa {@link CalificacionPeriodoRepositoryPort}.
+ * Gestiona la lectura del estado, la aplicación de ajustes manuales y el cierre
+ * de calificaciones de periodo en {@code ades_calificaciones_periodo}.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Component
 public class CalificacionPeriodoPersistenceAdapter implements CalificacionPeriodoRepositoryPort {
 

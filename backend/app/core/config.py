@@ -1,3 +1,12 @@
+"""Configuración centralizada de la aplicación ADES via variables de entorno.
+
+Carga secretos desde HashiCorp Vault (si está disponible) antes de inicializar
+``pydantic_settings.BaseSettings``, de modo que las variables Docker siempre
+tienen precedencia sobre los valores de Vault (``os.environ.setdefault``).
+
+El objeto ``settings`` es un singleton importado por todos los módulos; modificar
+valores en tiempo de ejecución fuera de tests no está soportado.
+"""
 import os
 
 # Inject Vault secrets into environment variables before initializing BaseSettings.
@@ -27,6 +36,16 @@ from typing import Literal
 
 
 class Settings(BaseSettings):
+    """Configuración de la aplicación ADES cargada desde variables de entorno / .env.
+
+    Todas las variables con valor por defecto son opcionales; las que no tienen
+    valor por defecto (``DATABASE_URL``, ``SECRET_KEY``, ``VALKEY_URL``) son
+    obligatorias y la app fallará al arrancar si no están definidas.
+
+    En ``ENVIRONMENT=production`` se validan adicionalmente los secretos críticos
+    (``ADES_INTERNAL_API_KEY``, ``OIDC_CLIENT_SECRET``, ``MINIO_SECRET_KEY``,
+    ``NTFY_ADMIN_TOKEN``).
+    """
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     # Aplicación
@@ -118,6 +137,11 @@ class Settings(BaseSettings):
     @field_validator("DATABASE_URL_SYNC", mode="before")
     @classmethod
     def set_sync_url(cls, v: str, info) -> str:
+        """Deriva DATABASE_URL_SYNC de DATABASE_URL si no está definida explícitamente.
+
+        Reemplaza el driver ``+asyncpg`` por el driver síncrono psycopg2 para
+        uso en tareas Celery y scripts de migración que no soportan async.
+        """
         if not v:
             return info.data.get("DATABASE_URL", "").replace("+asyncpg", "")
         return v
@@ -125,10 +149,16 @@ class Settings(BaseSettings):
     @field_validator("CELERY_BROKER_URL", "CELERY_RESULT_URL", mode="before")
     @classmethod
     def set_celery_urls(cls, v: str, info) -> str:
+        """Usa VALKEY_URL como broker/backend de Celery si no están configurados."""
         return v or info.data.get("VALKEY_URL", "")
 
     @model_validator(mode="after")
     def check_production_secrets(self) -> "Settings":
+        """Valida que los secretos críticos estén presentes en entorno de producción.
+
+        Raises:
+            ValueError: Si alguno de los secretos requeridos está vacío en producción.
+        """
         if self.ENVIRONMENT == "production":
             missing = [
                 name for name, val in [
@@ -147,6 +177,7 @@ class Settings(BaseSettings):
 
     @property
     def allowed_origins_list(self) -> list[str]:
+        """Devuelve ALLOWED_ORIGINS como lista de strings sin espacios."""
         return [o.strip() for o in self.ALLOWED_ORIGINS.split(",") if o.strip()]
 
 

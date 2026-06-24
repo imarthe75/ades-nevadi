@@ -13,6 +13,14 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Adaptador JDBC que implementa {@link JustificacionRepositoryPort}.
+ * Gestiona la creación, consulta y resolución de justificaciones de falta
+ * en {@code ades_justificaciones_falta}.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Component
 @RequiredArgsConstructor
 public class JustificacionPersistenceAdapter implements JustificacionRepositoryPort {

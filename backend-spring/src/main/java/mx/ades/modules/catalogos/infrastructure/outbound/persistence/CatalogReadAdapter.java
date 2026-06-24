@@ -8,6 +8,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Adaptador de persistencia que implementa {@link CatalogReadPort} accediendo
+ * a catálogos del sistema vía JPA ({@code NivelEducativoRepository},
+ * {@code GradoRepository}, {@code CicloEscolarRepository}) y JDBC
+ * ({@code CatalogsQueryService}).
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Component
 public class CatalogReadAdapter implements CatalogReadPort {
 

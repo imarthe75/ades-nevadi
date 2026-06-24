@@ -6,6 +6,13 @@ import mx.ades.modules.asistencias.domain.port.in.RegistrarAsistenciaCommand;
 
 import java.util.UUID;
 
+/**
+ * DTO de entrada REST para registrar un ítem de asistencia individual dentro
+ * de un registro masivo de clase.
+ *
+ * @author ADES
+ * @since 2026
+ */
 public record RegistrarAsistenciaItemDto(
         @JsonProperty("clase_id")           UUID claseId,
         @JsonProperty("estudiante_id")      UUID estudianteId,

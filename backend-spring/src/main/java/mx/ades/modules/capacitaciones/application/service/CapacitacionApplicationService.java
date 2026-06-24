@@ -10,6 +10,15 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+/**
+ * Caso de uso: registro y validación de capacitaciones del personal docente.
+ * Implementa {@link RegistrarCapacitacionUseCase} y {@link ValidarCapacitacionUseCase}
+ * coordinando el dominio de formación continua con el puerto de repositorio,
+ * controlando que solo RH o Dirección pueda validar certificaciones.
+ *
+ * @author ADES
+ * @since 2026
+ */
 public class CapacitacionApplicationService
         implements RegistrarCapacitacionUseCase, ValidarCapacitacionUseCase {
 

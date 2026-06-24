@@ -9,6 +9,25 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Component;
 
+/**
+ * Aspecto de auditoría que propaga la identidad del usuario autenticado a la sesión
+ * de PostgreSQL mediante {@code SET LOCAL app.current_user}, justo antes de cada
+ * operación transaccional o de repositorio.
+ * <p>
+ * El valor inyectado ({@code sub} del JWT de Authentik) es leído por los triggers
+ * {@code audit_biu} / {@code audit_aiud} del esquema {@code auditoria} para registrar
+ * {@code usuario_creacion} y {@code usuario_modificacion} en cada fila. Sin este
+ * interceptor, los campos de auditoría quedarían vacíos.
+ * </p>
+ * <p>
+ * Se activa en métodos anotados con {@code @Transactional} y en cualquier método de
+ * repositorio del paquete {@code mx.ades.modules}. Si no hay transacción activa,
+ * el {@code set_config} falla silenciosamente para no interrumpir flujos de solo lectura.
+ * </p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Aspect
 @Component
 public class AuditSessionInterceptor {

@@ -58,6 +58,13 @@ const TIPOS = [
   { label: 'Otra',                  value: 'OTRA' },
 ];
 
+/**
+ * Registro de condiciones crónicas de salud de alumnos (PII sensible bajo LFPDPPP).
+ * Almacena diagnósticos, medicación, alergias y datos del médico responsable.
+ * Expone una vista de alerta de emergencia para uso inmediato por personal escolar.
+ * El acceso está restringido a nivelAcceso ≥ 4; los datos se transmiten solo por
+ * HTTPS y se acceden únicamente en contexto del plantel propio (anti-IDOR).
+ */
 @Component({
   selector: 'app-condiciones-cronicas',
   standalone: true,

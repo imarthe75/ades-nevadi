@@ -9,6 +9,14 @@ import org.springframework.stereotype.Component;
 
 import java.util.*;
 
+/**
+ * Adaptador JDBC que implementa {@link EvalDocenteRepositoryPort}.
+ * <p>Persiste en {@code ades_evaluacion_docente} y {@code ades_eval_docente_criterios}.
+ * El recálculo de calificación global usa promedio ponderado sobre {@code ades_criterios_eval_docente}.</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Component
 @RequiredArgsConstructor
 public class EvalDocentePersistenceAdapter implements EvalDocenteRepositoryPort {

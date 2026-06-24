@@ -17,6 +17,18 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Adaptador REST para la gestión del personal docente.
+ * Expone endpoints bajo /api/v1/profesores para listar profesores con filtros
+ * (plantel, nivel, grado, grupo, búsqueda textual) con scoping automático por plantel,
+ * obtener el detalle de un profesor, crear un nuevo registro docente, actualizar
+ * datos parciales (persona + laborales) y reemplazar el registro completo.
+ * Requiere JWT válido en los endpoints que modifican datos; el listado usa
+ * {@code getEffectivePlantelId} para evitar acceso cross-plantel.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @RestController
 @RequestMapping("/api/v1/profesores")
 @RequiredArgsConstructor

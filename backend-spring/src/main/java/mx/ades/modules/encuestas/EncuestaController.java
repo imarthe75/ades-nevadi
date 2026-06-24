@@ -18,6 +18,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Adaptador REST para la gestión de encuestas de satisfacción y diagnóstico.
+ * Expone endpoints bajo /api/v1/encuestas para crear, listar, activar/desactivar,
+ * agregar preguntas (tipos ESCALA_5, texto libre, opciones múltiples) y recopilar
+ * respuestas por sesión. El endpoint /responder registra las respuestas de un usuario
+ * autenticado en una sesión identificada por sesionId. Los resultados agregados se
+ * obtienen en /{id}/resultados. Soporta encuestas anónimas con audiencia configurable
+ * (ALUMNO, DOCENTE, PADRE). Segmentación por plantel, nivel y grupo.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @RestController
 @RequestMapping("/api/v1/encuestas")
 @RequiredArgsConstructor

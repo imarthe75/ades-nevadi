@@ -57,6 +57,14 @@ const CATEGORIAS = [
   { label: 'Otro',        value: 'OTRO' },
 ];
 
+/**
+ * Gestión del acervo bibliográfico y préstamos del Instituto Nevadi.
+ * Administra el catálogo de libros (título, autor, ISBN, categoría, ejemplares)
+ * y el ciclo de vida de préstamos: activo → devuelto / vencido. Controla el
+ * decremento atómico de ejemplares disponibles vía BFF. Organizado en pestañas
+ * Libros / Préstamos con `InteractiveGridComponent`. Requiere nivelAcceso ≥ 4
+ * para altas y bajas; nivelAcceso ≥ 3 puede consultar disponibilidad.
+ */
 @Component({
   selector: 'app-biblioteca',
   standalone: true,

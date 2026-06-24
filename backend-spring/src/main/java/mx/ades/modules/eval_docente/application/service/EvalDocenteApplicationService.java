@@ -8,6 +8,16 @@ import mx.ades.modules.eval_docente.domain.port.out.EvalDocenteRepositoryPort;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Caso de uso: evaluación docente 360° con 4 tipos y 7 criterios ponderados.
+ * Implementa {@link CrearEvaluacionUseCase}, {@link GuardarCriteriosUseCase}
+ * y {@link EnviarEvaluacionUseCase} coordinando el dominio de evaluación docente
+ * con el puerto de repositorio. Soporta tipos AUTO/PAR/COORDINADOR/DIRECTOR
+ * en escala 1-5, con recálculo automático del puntaje global al guardar criterios.
+ *
+ * @author ADES
+ * @since 2026
+ */
 public class EvalDocenteApplicationService
         implements CrearEvaluacionUseCase, GuardarCriteriosUseCase, EnviarEvaluacionUseCase {
 

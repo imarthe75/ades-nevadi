@@ -2,6 +2,13 @@ package mx.ades.modules.learning_paths.domain.port.in;
 
 import java.util.UUID;
 
+/**
+ * Puerto de entrada: contrato para registrar o actualizar el progreso de un estudiante
+ * en un recurso de su learning path asignado.
+ *
+ * @author ADES
+ * @since 2026
+ */
 public interface RegistrarProgresoUseCase {
 
     record Command(UUID asignacionId, UUID recursoId, Integer tiempoMin, Double calificacion) {

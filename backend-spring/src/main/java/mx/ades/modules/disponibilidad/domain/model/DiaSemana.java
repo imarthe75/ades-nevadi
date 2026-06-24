@@ -2,6 +2,14 @@ package mx.ades.modules.disponibilidad.domain.model;
 
 import java.util.Arrays;
 
+/**
+ * Representación de los días de la semana para slots de disponibilidad docente.
+ * <p>Índices: 0=Lunes, 1=Martes, 2=Miércoles, 3=Jueves, 4=Viernes, 5=Sábado, 6=Domingo.
+ * SABADO y DOMINGO no se consideran días laborables.</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 public enum DiaSemana {
     LUNES(0, "Lunes"),
     MARTES(1, "Martes"),

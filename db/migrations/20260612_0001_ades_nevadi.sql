@@ -1,3 +1,16 @@
+-- =============================================================================
+-- Migración: 20260612_0001_ades_nevadi.sql
+-- Descripción: FASE 34 — Crea las tablas ades_webhooks (registro de endpoints
+--              receptores de eventos) y ades_webhook_logs (historial de intentos
+--              de entrega con payload, status HTTP y resultado). Incluye PKs,
+--              FK con CASCADE DELETE, triggers audit_biu; audit_aiud creado pero
+--              deshabilitado (activar en producción).
+-- Tablas afectadas: ades_webhooks, ades_webhook_logs
+-- Dependencias: auditoria.fn_auditoria_biu(), auditoria.fn_auditoria_aiud()
+-- Autor: ADES
+-- Fecha: 2026-06
+-- =============================================================================
+
 /*
  * by Im@rthe
  * Fecha: 2026-06-12

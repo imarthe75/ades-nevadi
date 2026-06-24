@@ -1,3 +1,17 @@
+-- =============================================================================
+-- Migración: 094_dedup_codigos_postales.sql
+-- Descripción: Elimina filas duplicadas en ades_codigos_postales generadas por
+--              sincronizaciones SEPOMEX repetidas (ON CONFLICT solo en PK UUID,
+--              no en (codigo_postal, localidad_id)). Redirige FKs en
+--              ades_direcciones a la fila canónica (uuid más antiguo), borra
+--              duplicados y agrega constraint UNIQUE (codigo_postal, localidad_id)
+--              para evitar reincidencia.
+-- Tablas afectadas: ades_codigos_postales, ades_direcciones
+-- Dependencias: ades_localidades, ades_direcciones (FK a ades_codigos_postales)
+-- Autor: ADES
+-- Fecha: 2026-06
+-- =============================================================================
+
 -- 093_dedup_codigos_postales.sql
 -- Elimina duplicados en ades_codigos_postales generados por sincronizaciones SEPOMEX
 -- repetidas sin constraint UNIQUE. Añade el constraint para evitar futuros duplicados.

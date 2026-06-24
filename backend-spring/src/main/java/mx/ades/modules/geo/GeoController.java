@@ -7,6 +7,15 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
 
+/**
+ * Adaptador REST para el catálogo geográfico SEPOMEX.
+ * Expone endpoints bajo /api/v1/geo para consultar estados, municipios y colonias
+ * con IDs UUID (datos en public.ades_*, colonias deduplicadas por constraint UNIQUE).
+ * No requiere autenticación para uso en formularios de dirección (selector-geo).
+ *
+ * @author ADES
+ * @since 2026
+ */
 @RestController
 @RequestMapping("/api/v1/geo")
 @RequiredArgsConstructor

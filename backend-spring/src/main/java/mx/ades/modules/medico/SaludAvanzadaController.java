@@ -20,6 +20,24 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Adaptador REST para los módulos avanzados de salud escolar.
+ * Expone endpoints bajo /api/v1/salud-avanzada en cuatro secciones:
+ * <ul>
+ *   <li>/medicamentos/{alumno_id} — registro y suspensión de medicamentos autorizados (SB-003);
+ *       requiere {@code nivelAcceso} &le;3.</li>
+ *   <li>/actas-incidente/{incidente_id} — generación de acta formal de incidente médico (SB-005).</li>
+ *   <li>/psicosocial/{alumno_id} — historial y registro de sesiones psicosociales (SB-021);
+ *       restringido a {@code nivelAcceso} &le;3.</li>
+ *   <li>/tutorias — listado y registro de sesiones de tutoría (SB-022);
+ *       restringido a {@code nivelAcceso} &le;3.</li>
+ * </ul>
+ * Proxea la generación de PDFs (actas, certificados deportivos) al microservicio FastAPI.
+ * Requiere JWT válido en todos los endpoints.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @RestController
 @RequestMapping("/api/v1/salud-avanzada")
 @RequiredArgsConstructor

@@ -3,6 +3,15 @@ package mx.ades.modules.encuestas.domain.port.in;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Puerto de entrada: contrato para registrar las respuestas de un participante en una encuesta
+ * en el módulo encuestas.
+ * <p>Cada sesión es idempotente por pregunta: si ya existe una respuesta para el par
+ * (preguntaId, sesionId), se omite. Detecta texto de bullying y crea alerta CRITICA automáticamente.</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 public interface ResponderEncuestaUseCase {
 
     record RespuestaItem(UUID preguntaId, String textoRespuesta, Double valorNumerico, String opcionSeleccionada) {

@@ -22,6 +22,13 @@ export interface CrearAlumnoPayload {
   plantel_id?: string;
 }
 
+/**
+ * Servicio singleton para operaciones CRUD sobre alumnos en el BFF Spring.
+ * Encapsula los endpoints `/api/v1/alumnos` y delega la comunicación HTTP
+ * a `ApiService`. Proporciona métodos para listar, obtener, crear, actualizar
+ * e importar alumnos. No contiene lógica de negocio; toda validación ocurre
+ * en el BFF hexagonal.
+ */
 @Injectable({ providedIn: 'root' })
 export class AlumnosService {
   private readonly api = inject(ApiService);

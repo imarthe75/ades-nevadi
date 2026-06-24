@@ -19,6 +19,14 @@ def parse_file(content: bytes, filename: str) -> tuple[list[str], list[list[str]
 
 
 def _parse_csv(content: bytes) -> tuple[list[str], list[list[str]]]:
+    """Parsea contenido CSV (UTF-8 con/sin BOM o latin-1) y normaliza encabezados.
+
+    Args:
+        content: Bytes crudos del archivo CSV.
+
+    Returns:
+        Tupla (headers_lowercase_snake, filas_de_strings).
+    """
     try:
         text = content.decode("utf-8-sig")
     except UnicodeDecodeError:
@@ -33,6 +41,17 @@ def _parse_csv(content: bytes) -> tuple[list[str], list[list[str]]]:
 
 
 def _parse_excel(content: bytes) -> tuple[list[str], list[list[str]]]:
+    """Parsea contenido XLSX/XLS con openpyxl en modo solo lectura.
+
+    Args:
+        content: Bytes crudos del archivo Excel.
+
+    Returns:
+        Tupla (headers_lowercase_snake, filas_de_strings).
+
+    Raises:
+        RuntimeError: Si openpyxl no está instalado en el entorno.
+    """
     try:
         import openpyxl
     except ImportError:
@@ -75,6 +94,14 @@ def parse_date(s: str) -> date | None:
 
 
 def parse_float(s: str) -> float | None:
+    """Convierte un string a float aceptando coma como separador decimal.
+
+    Args:
+        s: String con el número (p. ej. ``"8,5"`` o ``"8.5"``).
+
+    Returns:
+        Valor float, o None si el string está vacío o no es convertible.
+    """
     try:
         return float(s.replace(",", ".")) if s else None
     except ValueError:
@@ -82,6 +109,14 @@ def parse_float(s: str) -> float | None:
 
 
 def parse_int(s: str) -> int | None:
+    """Convierte un string a entero.
+
+    Args:
+        s: String con el número entero.
+
+    Returns:
+        Valor int, o None si el string está vacío o no es convertible.
+    """
     try:
         return int(s) if s else None
     except ValueError:

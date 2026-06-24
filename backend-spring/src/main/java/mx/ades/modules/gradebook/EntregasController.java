@@ -19,6 +19,16 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.*;
 
+/**
+ * Adaptador REST para el ciclo de vida de entregas de actividades.
+ * Expone endpoints bajo /api/v1/entregas para consultar entregas de un alumno
+ * o pendientes de un grupo, subir archivos vía multipart/form-data a SeaweedFS/MinIO,
+ * calificar una entrega individual y registrar excusas.
+ * Requiere JWT válido; las mutaciones exigen usuario autenticado para el audit trail.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @RestController
 @RequestMapping("/api/v1/entregas")
 @RequiredArgsConstructor

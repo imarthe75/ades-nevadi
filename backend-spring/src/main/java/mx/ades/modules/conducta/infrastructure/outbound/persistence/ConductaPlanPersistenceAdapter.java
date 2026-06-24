@@ -12,6 +12,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Adaptador JDBC que implementa {@link PlanMejoraRepositoryPort}.
+ * <p>Persiste planes de mejora en {@code ades_planes_mejora} serializando los compromisos
+ * como JSONB. El estado inicial es siempre BORRADOR.</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Component
 public class ConductaPlanPersistenceAdapter implements PlanMejoraRepositoryPort {
 

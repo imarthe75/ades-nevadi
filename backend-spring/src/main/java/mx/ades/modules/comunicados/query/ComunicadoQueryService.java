@@ -5,6 +5,14 @@ import org.springframework.stereotype.Service;
 
 import java.util.*;
 
+/**
+ * Servicio de lectura CQRS para el módulo comunicados.
+ * <p>Expone consultas de listado, detalle, comunicados recurrentes pendientes
+ * y reporte de lectura con porcentaje de acuses.</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Service
 public class ComunicadoQueryService {
 

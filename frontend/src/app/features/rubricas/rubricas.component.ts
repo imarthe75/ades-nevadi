@@ -43,6 +43,11 @@ interface NivelLogro {
 
 const NIVEL_COLORS = ['var(--red-400)', 'var(--yellow-400)', 'var(--teal-400)', 'var(--green-500)'];
 
+/**
+ * Módulo de gestión de rúbricas de evaluación docente.
+ * Permite crear y administrar criterios de evaluación con niveles de desempeño
+ * codificados por color, asociados a materias o actividades específicas.
+ */
 @Component({
   selector: 'app-rubricas',
   standalone: true,

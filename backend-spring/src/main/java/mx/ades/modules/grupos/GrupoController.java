@@ -12,6 +12,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Adaptador REST para la consulta de grupos escolares.
+ * Expone endpoints bajo /api/v1/grupos para listar grupos con filtros en cascada
+ * (plantel → nivel → grado → ciclo escolar) y obtener el detalle de un grupo por ID.
+ * Requiere JWT válido en todos los endpoints; el listado admite filtro por ciclo vigente
+ * para mostrar solo el ciclo activo del sistema educativo correspondiente.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @RestController
 @RequestMapping("/api/v1/grupos")
 @RequiredArgsConstructor

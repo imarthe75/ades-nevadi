@@ -14,6 +14,17 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Adaptador de persistencia que implementa {@link CalificacionRepositoryPort} accediendo
+ * a la tabla {@code ades_calificaciones_periodo} vía JPA y JDBC.
+ *
+ * <p>El método {@code calcular} invoca la función PostgreSQL
+ * {@code calcular_calificacion_periodo} y aplica caché con {@code @Cacheable("boletas")}
+ * para acelerar la lectura de boletas frecuentes.</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Component
 @RequiredArgsConstructor
 public class CalificacionPersistenceAdapter implements CalificacionRepositoryPort {

@@ -13,6 +13,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Adaptador REST para la planeación didáctica por grupo y materia.
+ * Expone endpoints bajo /api/v1/planeacion para consultar temas con estado de avance,
+ * cobertura curricular por grupo, listado de clases planeadas, crear una planeación de clase,
+ * marcar un tema como completado con fecha de ejecución, eliminar planeaciones,
+ * obtener alertas de rezago por ciclo y el plan semanal e insights de un grupo.
+ * Este controlador no exige JWT propio en todos los endpoints (delega al servicio de comandos).
+ *
+ * @author ADES
+ * @since 2026
+ */
 @RestController
 @RequestMapping("/api/v1/planeacion")
 @RequiredArgsConstructor

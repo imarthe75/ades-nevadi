@@ -5,6 +5,13 @@ import mx.ades.modules.licencias.domain.model.TipoLicencia;
 import java.time.LocalDate;
 import java.util.UUID;
 
+/**
+ * Puerto de entrada: contrato para solicitar una licencia para el personal.
+ * Valida que fecha_fin sea mayor o igual a fecha_inicio.
+ *
+ * @author ADES
+ * @since 2026
+ */
 public interface SolicitarLicenciaUseCase {
 
     record Command(

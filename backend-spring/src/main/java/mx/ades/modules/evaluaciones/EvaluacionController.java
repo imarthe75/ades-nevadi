@@ -13,6 +13,18 @@ import mx.ades.security.AdesUserService;
 
 import java.util.*;
 
+/**
+ * Adaptador REST para la gestión de evaluaciones (exámenes, tareas, proyectos).
+ * Expone endpoints bajo /api/v1/evaluaciones para listar, crear, actualizar y
+ * consultar evaluaciones por grupo. El endpoint /{id}/calificaciones/bulk permite
+ * registrar calificaciones masivas de alumnos en una sola operación via
+ * {@code CalificarEvaluacionMasivoUseCase}. Las evaluaciones tienen tipo, puntaje
+ * máximo, periodo y fecha. El endpoint GET /{id}/calificaciones retorna las
+ * calificaciones individuales con scoping por grupo. Toda operación requiere JWT válido.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @RestController
 @RequestMapping("/api/v1/evaluaciones")
 @RequiredArgsConstructor

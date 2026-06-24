@@ -3,6 +3,12 @@ package mx.ades.modules.aulas.domain.port.in;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Puerto de entrada: define el contrato para crear un aula nueva en el dominio de aulas.
+ *
+ * @author ADES
+ * @since 2026
+ */
 public interface CrearAulaUseCase {
 
     record Command(

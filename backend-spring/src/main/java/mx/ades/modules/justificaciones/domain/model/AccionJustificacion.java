@@ -1,5 +1,11 @@
 package mx.ades.modules.justificaciones.domain.model;
 
+/**
+ * Acción que puede aplicar un coordinador sobre una justificación: APROBAR o RECHAZAR.
+ *
+ * @author ADES
+ * @since 2026
+ */
 public enum AccionJustificacion {
     APROBAR, RECHAZAR;
 

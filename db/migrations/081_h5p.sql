@@ -1,4 +1,17 @@
 -- =============================================================================
+-- Migración: 081_h5p.sql
+-- Descripción: Crea las tablas para el módulo H5P de contenido educativo
+--              interactivo: tipos de contenido, biblioteca de paquetes H5P,
+--              asignaciones a grupos/tareas y resultados xAPI por alumno.
+-- Tablas afectadas: ades_h5p_tipos, ades_h5p_contenidos, ades_h5p_asignaciones,
+--                   ades_h5p_resultados
+-- Dependencias: ades_planteles, ades_niveles_educativos, ades_grados,
+--               ades_personas, ades_tareas, ades_grupos, ades_estudiantes
+-- Autor: ADES
+-- Fecha: 2026-06
+-- =============================================================================
+
+-- =============================================================================
 -- MIGRACIÓN 081 — FASE 25: H5P Contenido Educativo Interactivo
 -- =============================================================================
 

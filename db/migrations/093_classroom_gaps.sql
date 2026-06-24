@@ -1,4 +1,20 @@
 -- =============================================================================
+-- Migración: 093_classroom_gaps.sql
+-- Descripción: (1) Agrega columnas de detección de plagio (plagio_porcentaje,
+--              plagio_reporte_url) y retroalimentación multimedia (feedback_audio_url,
+--              feedback_video_url) a ades_tareas_entregas. (2) Agrega bandera
+--              es_nee a ades_esquemas_ponderacion para esquemas diferenciados NEE.
+--              (3) Actualiza calcular_calificacion_periodo() para priorizar el
+--              esquema NEE si el alumno tiene status NEE activo.
+-- Tablas afectadas: ades_tareas_entregas, ades_esquemas_ponderacion,
+--                   función calcular_calificacion_periodo()
+-- Dependencias: ades_nee, ades_calificaciones_periodo (particionada),
+--               ades_esquemas_ponderacion
+-- Autor: ADES
+-- Fecha: 2026-06
+-- =============================================================================
+
+-- =============================================================================
 -- 093_classroom_gaps.sql
 -- 1) Add Plagiarism and Multimedia Feedback columns to ades_tareas_entregas
 -- 2) Add es_nee flag to ades_esquemas_ponderacion

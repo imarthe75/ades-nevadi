@@ -72,6 +72,14 @@ const TIPOS_DOCUMENTO = [
   { value: 'OTRO',                   label: 'Otro' },
 ];
 
+/**
+ * Gestión del expediente documental de alumnos integrado con Paperless-ngx.
+ * Controla la carga, almacenamiento y análisis OCR de documentos requeridos
+ * (CURP, acta de nacimiento, certificado previo, comprobante de domicilio, etc.).
+ * Calcula el porcentaje de completitud y ejecuta análisis con IA para detectar
+ * documentos faltantes o con alertas. Los documentos se almacenan en SeaweedFS
+ * (S3). El acceso a PII requiere nivelAcceso ≥ 4 y scope por plantel.
+ */
 @Component({
   selector: 'app-expediente-doc',
   standalone: true,

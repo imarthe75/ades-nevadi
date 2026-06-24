@@ -13,6 +13,17 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
 
+/**
+ * Adaptador REST para el centro de notificaciones del usuario autenticado.
+ * Expone endpoints bajo /api/v1/notificaciones para listar notificaciones propias
+ * (con filtro de no leídas), obtener el conteo de no leídas, marcar una notificación
+ * individual como leída y marcar todas como leídas en un solo paso.
+ * El scoping es estrictamente por usuario: cada endpoint filtra por {@code user.getId()}
+ * resuelto del JWT, garantizando que un usuario no acceda a notificaciones ajenas.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @RestController
 @RequestMapping("/api/v1/notificaciones")
 @RequiredArgsConstructor

@@ -33,6 +33,11 @@ interface Licencia {
   fecha_creacion: string;
 }
 
+/**
+ * Módulo de gestión de licencias y permisos del personal (DP-006).
+ * Permite registrar, aprobar y consultar licencias médicas, personales y de capacitación.
+ * Requiere nivelAcceso 4 (AdminPlantel) o superior.
+ */
 @Component({
   selector: 'app-licencias',
   standalone: true,

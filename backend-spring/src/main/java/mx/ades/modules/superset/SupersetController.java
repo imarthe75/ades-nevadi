@@ -17,6 +17,19 @@ import mx.ades.security.AdesUserService;
 
 import java.util.*;
 
+/**
+ * Adaptador REST como proxy de autenticación para Apache Superset BI.
+ * Expone endpoints bajo /api/v1/superset para obtener un guest token de Superset
+ * con Row-Level Security (RLS) dinámico según el nivelAcceso del usuario:
+ * AdminGlobal sin restricciones, AdminPlantel/Director/Coordinador filtrado por plantel_id,
+ * Docente filtrado por profesor_id, Alumno filtrado por estudiante_id.
+ * El endpoint /dashboard/{key} selecciona automáticamente el dashboard apropiado
+ * según el rol del usuario, y /dashboards lista los dashboards disponibles y su configuración.
+ * Requiere JWT válido en todos los endpoints; las credenciales de Superset se leen de propiedades.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @RestController
 @RequestMapping("/api/v1/superset")
 @RequiredArgsConstructor

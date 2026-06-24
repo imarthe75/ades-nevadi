@@ -14,6 +14,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Adaptador REST para el catálogo de materias del Instituto Nevadi.
+ * Expone endpoints bajo /api/v1/materias para listar (con filtro por nivel educativo,
+ * grupo y tipo), obtener, crear y actualizar materias. Soporta el campo
+ * {@code campo_formativo} NEM (cuatro campos: Lenguajes, Saberes y Pensamiento Científico,
+ * Ética y Naturaleza Humana, De lo Humano y lo Comunitario) para primaria/secundaria,
+ * y materias CBU para preparatoria UAEMEX.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @RestController
 @RequestMapping("/api/v1/materias")
 @RequiredArgsConstructor

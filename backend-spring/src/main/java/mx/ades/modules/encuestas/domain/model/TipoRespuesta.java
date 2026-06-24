@@ -1,5 +1,14 @@
 package mx.ades.modules.encuestas.domain.model;
 
+/**
+ * Tipo de respuesta esperada para una pregunta de encuesta.
+ * <p>Valores: ESCALA_5 (numérico 1-5), OPCION_MULTIPLE (selección de lista),
+ * BOOLEANO (sí/no), TEXTO_LIBRE (texto abierto, default).
+ * Solo ESCALA_5 requiere valor numérico.</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 public enum TipoRespuesta {
     ESCALA_5,
     OPCION_MULTIPLE,

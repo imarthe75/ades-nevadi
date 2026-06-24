@@ -19,6 +19,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Adaptador REST para la gestión de disponibilidad horaria de docentes.
+ * Expone endpoints bajo /api/v1/disponibilidad para registrar (PUT bulk) y
+ * consultar slots de disponibilidad semanal por profesor y ciclo escolar.
+ * Soporta marcado de slots no disponibles con motivo, horas semanales máximas
+ * y horas frente a grupo. El endpoint /cobertura/{cicloId} muestra qué docentes
+ * tienen disponibilidad configurada. Utilizado por el módulo de horarios (aSc)
+ * para generación y validación de asignaciones. Toda operación requiere JWT válido.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @RestController
 @RequestMapping("/api/v1/disponibilidad")
 @RequiredArgsConstructor

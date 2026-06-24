@@ -1,4 +1,16 @@
 -- =============================================================================
+-- Migración: 083_ciclo_sistema_educativo.sql
+-- Descripción: Agrega columna sistema_educativo (SEP|UAEMEX) a ades_ciclos_escolares,
+--              garantiza un único ciclo vigente por sistema educativo mediante índice
+--              parcial y trigger fn_ciclo_sistema_vigente. Corrige estado inconsistente
+--              UAEMEX dejando vigente solo el ciclo 26B.
+-- Tablas afectadas: ades_ciclos_escolares
+-- Dependencias: ades_niveles_educativos, función uuidv7()
+-- Autor: ADES
+-- Fecha: 2026-06
+-- =============================================================================
+
+-- =============================================================================
 -- 083_ciclo_sistema_educativo.sql
 -- -----------------------------------------------------------------------------
 -- Regla de negocio: por cada SISTEMA EDUCATIVO debe haber un solo "año" (ciclo)

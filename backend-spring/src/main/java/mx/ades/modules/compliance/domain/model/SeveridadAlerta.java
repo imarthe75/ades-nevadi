@@ -2,6 +2,14 @@ package mx.ades.modules.compliance.domain.model;
 
 import java.util.Arrays;
 
+/**
+ * Clasificación de urgencia de una alerta de cumplimiento.
+ * <p>Valores: BAJA, MEDIA (default), ALTA, CRITICA.
+ * Los niveles ALTA y CRITICA se consideran urgentes y disparan notificaciones inmediatas.</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 public enum SeveridadAlerta {
     BAJA, MEDIA, ALTA, CRITICA;
 

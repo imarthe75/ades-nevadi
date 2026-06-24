@@ -7,6 +7,16 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Puerto de salida: define el contrato de persistencia para badges y su otorgamiento
+ * a alumnos en las tablas {@code ades_badges} y {@code ades_badge_otorgados}.
+ *
+ * <p>Incluye consultas de elegibilidad por métrica (asistencia, promedio, sin reportes)
+ * y operaciones de otorgamiento individual y masivo (bulk).</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 public interface BadgeRepositoryPort {
     Badge save(Badge badge);
     Optional<Badge> findById(UUID id);

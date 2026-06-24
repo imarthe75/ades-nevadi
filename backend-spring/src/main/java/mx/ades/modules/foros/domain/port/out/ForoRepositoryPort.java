@@ -9,6 +9,12 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Puerto de salida: contrato de persistencia para foros, mensajes, respuestas y anuncios.
+ *
+ * @author ADES
+ * @since 2026
+ */
 public interface ForoRepositoryPort {
 
     // Foros

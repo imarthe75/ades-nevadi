@@ -9,6 +9,16 @@ import org.springframework.stereotype.Component;
 
 import java.util.*;
 
+/**
+ * Adaptador de persistencia que implementa {@link BadgeRepositoryPort} accediendo
+ * a las tablas {@code ades_badges} y {@code ades_badge_otorgados} vía JPA y JDBC.
+ *
+ * <p>Las consultas de elegibilidad usan SQL analítico con {@code HAVING} sobre
+ * asistencias y calificaciones para calcular métricas en el ciclo escolar.</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Component
 @RequiredArgsConstructor
 public class BadgePersistenceAdapter implements BadgeRepositoryPort {

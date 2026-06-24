@@ -2,6 +2,16 @@ package mx.ades.modules.expediente.domain.model;
 
 import java.util.Set;
 
+/**
+ * Tipo de documento que puede formar parte del expediente escolar de un alumno.
+ * <p>Valores: CURP, ACTA_NACIMIENTO, CERTIFICADO_PREV, COMPROBANTE_DOMICILIO, FOTOGRAFIA,
+ * NSS, CREDENCIAL_ESCOLAR, CONSTANCIA_INSCRIPCION, OTRO.
+ * Los cinco primeros ({@code REQUERIDOS}) son obligatorios para completar el expediente.
+ * Archivos permitidos: PDF, JPEG, PNG, TIFF, WEBP (máx. 20 MB). Se integra con Paperless-ngx para OCR.</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 public enum TipoDocumentoExpediente {
     CURP, ACTA_NACIMIENTO, CERTIFICADO_PREV, COMPROBANTE_DOMICILIO, FOTOGRAFIA,
     NSS, CREDENCIAL_ESCOLAR, CONSTANCIA_INSCRIPCION, OTRO;

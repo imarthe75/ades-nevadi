@@ -9,6 +9,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Servicio de consulta (lado lectura CQRS) para el módulo auditoria.
+ *
+ * <p>Consulta el log de auditoría en {@code ades_audit_log} con filtros por entidad,
+ * acción y usuario, limitando el número de resultados para paginación ligera.</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Service
 @RequiredArgsConstructor
 public class AuditoriaQueryService {

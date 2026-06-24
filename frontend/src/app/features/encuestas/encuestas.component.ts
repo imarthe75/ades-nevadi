@@ -100,6 +100,14 @@ const TIPOS_PREG = [
   { label: 'Sí / No',               value: 'BOOLEANO' },
 ];
 
+/**
+ * Plataforma de encuestas institucionales dirigidas a alumnos, padres y docentes.
+ * Soporta preguntas de tipo escala 1-5, opción múltiple, texto libre y sí/no.
+ * Muestra resultados agregados por pregunta (promedio, distribución, respuestas
+ * libres). Las encuestas anónimas no persisten el `persona_id` del respondente.
+ * Administradores (nivelAcceso ≥ 4) crean y activan encuestas; nivelAcceso ≥ 3
+ * puede responder encuestas activas dirigidas a su audiencia.
+ */
 @Component({
   selector: 'app-encuestas',
   standalone: true,

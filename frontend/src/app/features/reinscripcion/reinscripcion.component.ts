@@ -16,6 +16,12 @@ import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/
 
 interface CicloOpt   { id: string; nombre_ciclo: string; es_vigente: boolean; }
 
+/**
+ * Módulo de reinscripción de alumnos para el nuevo ciclo escolar.
+ * Gestiona el proceso de continuidad académica: validación de requisitos,
+ * asignación de grupo y generación de documentos de inscripción.
+ * Requiere nivelAcceso 4 (AdminPlantel) o superior.
+ */
 @Component({
   selector: 'app-reinscripcion',
   standalone: true,

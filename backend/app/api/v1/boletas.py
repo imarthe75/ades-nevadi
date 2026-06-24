@@ -28,6 +28,13 @@ TEMPLATES_DIR = Path(__file__).parent.parent.parent / "templates" / "boletas"
 
 
 def _sync_db_session() -> Session:
+    """Crea una sesión de base de datos síncrona mediante el motor SQLAlchemy.
+
+    Se utiliza para tareas que se ejecutan en subprocesos independientes o tareas de Celery.
+
+    Returns:
+        Session: Sesión síncrona activa de SQLAlchemy.
+    """
     engine = create_engine(settings.DATABASE_URL_SYNC, pool_pre_ping=True)
     return Session(engine)
 
@@ -40,7 +47,22 @@ async def boleta_nem(
     ciclo_id: uuid.UUID | None = None,
     _user=Depends(get_ades_user),
 ):
-    """Genera la boleta NEM de un alumno (primaria/secundaria). Devuelve PDF."""
+    """Genera la boleta oficial de evaluación NEM para primaria o secundaria.
+
+    Busca los datos de calificaciones del ciclo especificado, renderiza la plantilla
+    HTML correspondiente y exporta el contenido en formato PDF.
+
+    Args:
+        estudiante_id: Identificador único del estudiante.
+        ciclo_id: Identificador único del ciclo escolar (opcional).
+        _user: Usuario actual autenticado.
+
+    Returns:
+        FastResponse: Respuesta HTTP que contiene el archivo PDF.
+
+    Raises:
+        HTTPException: Si el alumno no es encontrado o carece de inscripciones activas.
+    """
     from app.worker.tasks.boletas import _generar_pdf_alumno
 
     def _gen():
@@ -49,7 +71,7 @@ async def boleta_nem(
 
     pdf = await asyncio.to_thread(_gen)
     if not pdf:
-        raise HTTPException(404, "Alumno no encontrado o sin inscripción en el ciclo indicado")
+        raise HTTPException(status_code=404, detail="Alumno no encontrado o sin inscripción en el ciclo indicado")
     return FastResponse(
         content=pdf,
         media_type="application/pdf",
@@ -65,13 +87,25 @@ async def boleta_uaemex(
     ciclo_id: uuid.UUID | None = None,
     _user=Depends(get_ades_user),
 ):
-    """Genera la constancia de calificaciones UAEMEX (preparatoria). Devuelve PDF."""
+    """Genera la constancia oficial de calificaciones con el formato UAEMEX para nivel preparatoria.
+
+    Args:
+        estudiante_id: Identificador único del estudiante.
+        ciclo_id: Identificador único del ciclo escolar (opcional).
+        _user: Usuario actual autenticado.
+
+    Returns:
+        FastResponse: Respuesta HTTP que contiene el archivo PDF de la constancia.
+
+    Raises:
+        HTTPException: Si el alumno no cuenta con un historial académico (kardex) en el ciclo.
+    """
     def _gen():
         return _generar_pdf_uaemex(estudiante_id, ciclo_id)
 
     pdf = await asyncio.to_thread(_gen)
     if not pdf:
-        raise HTTPException(404, "Alumno no encontrado o sin kardex UAEMEX en el ciclo indicado")
+        raise HTTPException(status_code=404, detail="Alumno no encontrado o sin kardex UAEMEX en el ciclo indicado")
     return FastResponse(
         content=pdf,
         media_type="application/pdf",
@@ -80,7 +114,15 @@ async def boleta_uaemex(
 
 
 def _generar_pdf_uaemex(estudiante_id: uuid.UUID, ciclo_id: uuid.UUID | None) -> bytes | None:
-    """Genera la constancia de calificaciones UAEMEX en PDF."""
+    """Genera la constancia de calificaciones UAEMEX en formato PDF leyendo la base de datos síncronamente.
+
+    Args:
+        estudiante_id: Identificador del estudiante.
+        ciclo_id: Identificador del ciclo escolar (opcional).
+
+    Returns:
+        bytes: Datos binarios del archivo PDF generado, o None si no se encuentra información.
+    """
     MIN_APROBATORIA = 6.0
 
     PLANTEL_INFO = {
@@ -214,7 +256,16 @@ async def encolar_boletas_grupo(
     ciclo_id: uuid.UUID | None = None,
     _user=Depends(get_ades_user),
 ):
-    """Encola tarea Celery para generar el ZIP de boletas de un grupo completo."""
+    """Encola una tarea de Celery para generar un archivo comprimido ZIP con las boletas de todo un grupo.
+
+    Args:
+        grupo_id: Identificador del grupo escolar.
+        ciclo_id: Identificador del ciclo escolar (opcional).
+        _user: Usuario actual autenticado que solicita el reporte.
+
+    Returns:
+        dict: Contiene el identificador de la tarea Celery (task_id) y el estado inicial (encolado).
+    """
     from app.worker.tasks.boletas import generar_boletas_grupo
     task = generar_boletas_grupo.delay(
         str(grupo_id),
@@ -229,7 +280,18 @@ async def estado_tarea(
     task_id: str,
     _user=Depends(get_ades_user),
 ):
-    """Devuelve el estado de una tarea Celery de generación de boletas."""
+    """Obtiene el estado actual y detalles de ejecución de una tarea de Celery específica.
+
+    Se utiliza para realizar sondeo (polling) desde el cliente sobre el avance
+    de generación de boletas por lote.
+
+    Args:
+        task_id: Identificador de la tarea en Celery.
+        _user: Usuario actual autenticado.
+
+    Returns:
+        dict: Datos del estado, identificador de la tarea y detalles/información del resultado.
+    """
     from celery.result import AsyncResult
     result = AsyncResult(task_id)
     return {

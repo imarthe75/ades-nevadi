@@ -20,6 +20,16 @@ import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * Adaptador REST para la gestión de esquemas de ponderación del gradebook.
+ * Expone endpoints bajo /api/v1/esquemas-ponderacion para listar, consultar el esquema
+ * efectivo por materia, crear, actualizar y desactivar esquemas con sus ítems ponderados
+ * (tarea, examen, participación, etc.) por nivel educativo y vigencia temporal.
+ * Requiere JWT válido; operaciones de escritura registran el usuario en el audit trail.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @RestController
 @RequestMapping("/api/v1/esquemas-ponderacion")
 @RequiredArgsConstructor

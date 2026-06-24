@@ -3,6 +3,13 @@ package mx.ades.modules.contactos.domain.port.in;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Puerto de entrada: contrato para registrar un nuevo contacto familiar de alumno en el módulo contactos.
+ * <p>El campo {@code nacionalidad} tiene como valor por defecto "Mexicana" si no se proporciona.</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 public interface RegistrarContactoUseCase {
 
     Map<String, Object> registrar(Command cmd);

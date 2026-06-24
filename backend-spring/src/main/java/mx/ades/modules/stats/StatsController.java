@@ -12,6 +12,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Adaptador REST para métricas y KPIs del sistema ADES.
+ * Expone endpoints bajo /api/v1/stats para resumen general de alumnos/grupos/materias,
+ * distribución estadística por plantel, información del servidor (tamaño de BD),
+ * telemetría completa (BD, conexiones, disco, JVM, colas Celery — AD-030) y
+ * el dashboard de dirección con KPIs, avance por grado y avance por asignatura.
+ * Los endpoints de telemetría y dashboard de dirección requieren nivelAcceso &le;2
+ * (Director o superior). Resuelve plantel desde el claim JWT o el parámetro de query.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @RestController
 @RequestMapping("/api/v1/stats")
 @RequiredArgsConstructor

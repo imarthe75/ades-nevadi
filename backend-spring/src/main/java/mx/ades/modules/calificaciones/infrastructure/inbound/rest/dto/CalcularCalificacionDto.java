@@ -4,6 +4,12 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.UUID;
 
+/**
+ * DTO de entrada REST para solicitar el cálculo automático de calificación de período.
+ *
+ * @author ADES
+ * @since 2026
+ */
 public record CalcularCalificacionDto(
         @JsonProperty("estudiante_id")  UUID estudianteId,
         @JsonProperty("inscripcion_id") UUID inscripcionId,

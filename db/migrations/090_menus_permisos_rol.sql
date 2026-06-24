@@ -1,4 +1,17 @@
 -- =============================================================================
+-- Migración: 090_menus_permisos_rol.sql
+-- Descripción: Extiende ades_menus con columnas de sección, clave única y
+--              filtros por nivel_acceso (nivel_maximo/minimo). Extiende
+--              ades_menu_roles con permisos CRUD por rol (puede_ver/editar/
+--              crear/eliminar). Carga el catálogo completo de menús de la app
+--              y los permisos base por rol (ALUMNO, PADRE_FAMILIA, DOCENTE).
+-- Tablas afectadas: ades_menus, ades_menu_roles
+-- Dependencias: ades_menus y ades_menu_roles post-mig-087 (PK UUID), ades_roles
+-- Autor: ADES
+-- Fecha: 2026-06
+-- =============================================================================
+
+-- =============================================================================
 -- 090_menus_permisos_rol.sql
 -- Extiende tablas existentes ades_menus y ades_menu_roles con columnas de:
 --   • sección, clave única, nivel_maximo/minimo (visibilidad por nivel_acceso)

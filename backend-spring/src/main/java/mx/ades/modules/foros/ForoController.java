@@ -20,6 +20,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Adaptador REST para el módulo de foros de comunicación y anuncios.
+ * Expone endpoints bajo /api/v1/foros para crear foros (GRUPO, PLANTEL, MATERIA),
+ * publicar mensajes, responder en hilo, moderar mensajes y publicar anuncios
+ * institucionales. La creación de foros y anuncios requiere Coordinador o superior
+ * (nivelAcceso {@literal <=} 3). La moderación aplica validación de nivel. El listado
+ * aplica filtro por nivelAcceso del usuario. Los anuncios soportan segmentación
+ * por plantel, nivel educativo y vigencia temporal. Toda operación de escritura
+ * requiere JWT válido via {@code resolveUser}.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @RestController
 @RequestMapping("/api/v1/foros")
 @RequiredArgsConstructor

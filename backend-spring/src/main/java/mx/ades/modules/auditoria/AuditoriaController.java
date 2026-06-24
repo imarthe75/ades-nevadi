@@ -16,6 +16,18 @@ import mx.ades.security.AdesUserService;
 
 import java.util.*;
 
+/**
+ * Adaptador REST para la consulta del registro de auditoría del sistema.
+ * Expone un único endpoint GET bajo /api/v1/auditoria que devuelve el log
+ * de cambios con hash MD5 encadenado almacenado en {@code auditoria.log_auditoria}.
+ * Filtrable por entidad, acción, usuario y límite de registros.
+ * Acceso exclusivo para ADMIN_GLOBAL (nivelAcceso = 0 en esta implementación).
+ * Los datos de auditoría contienen trazabilidad completa de INSERT/UPDATE/DELETE
+ * con identificación del usuario que realizó cada operación.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @RestController
 @RequestMapping("/api/v1/auditoria")
 @RequiredArgsConstructor

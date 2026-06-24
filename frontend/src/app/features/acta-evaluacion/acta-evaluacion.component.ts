@@ -30,6 +30,14 @@ interface Acta {
   sin_calificacion: number; promedio_grupal: number | null; escala: string;
 }
 
+/**
+ * Genera el Acta de Evaluación oficial para grupos de Preparatoria Nevadi (UAEMEX).
+ * Implementa la cascada de filtros Plantel → Semestre → Grupo → Materia usando
+ * `computed()` signals derivados de un único listado de grupos cargado al inicio.
+ * Muestra calificaciones ordinario/extraordinario/definitiva con estatus A/NA
+ * según escala 0-10 mín 6.0 (RGEMS UAEMEX). Permite exportar a XLSX e imprimir.
+ * Requiere nivelAcceso ≥ 3 (docente) en el BFF.
+ */
 @Component({
   selector: 'app-acta-evaluacion',
   standalone: true,

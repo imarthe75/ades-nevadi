@@ -18,6 +18,17 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.*;
 
+/**
+ * Adaptador REST para la gestión de rutas de aprendizaje personalizado.
+ * Expone endpoints bajo /api/v1/learning-paths para listar y detallar paths,
+ * crear paths y agregar recursos, asignar paths manualmente o de forma automática
+ * (basada en alertas de riesgo del grupo), registrar progreso por recurso y
+ * proxear solicitudes de recomendación IA y ajuste dinámico al microservicio FastAPI.
+ * Requiere JWT válido; las operaciones de asignación y proxy propagan el token de autorización.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @RestController
 @RequestMapping("/api/v1/learning-paths")
 @RequiredArgsConstructor

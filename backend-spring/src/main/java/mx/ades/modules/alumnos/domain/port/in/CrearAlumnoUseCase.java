@@ -3,6 +3,13 @@ package mx.ades.modules.alumnos.domain.port.in;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Puerto de entrada: define el contrato para crear un nuevo alumno en el dominio
+ * de alumnos, incluyendo la validación de CURP (18 caracteres) y generación de matrícula.
+ *
+ * @author ADES
+ * @since 2026
+ */
 public interface CrearAlumnoUseCase {
 
     record Command(

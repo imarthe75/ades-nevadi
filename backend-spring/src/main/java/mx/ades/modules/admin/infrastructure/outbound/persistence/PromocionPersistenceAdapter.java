@@ -6,6 +6,15 @@ import org.springframework.stereotype.Component;
 
 import java.util.UUID;
 
+/**
+ * Adaptador de persistencia que implementa {@link PromocionRepositoryPort} accediendo
+ * a la función {@code fn_evaluar_estatus_promocion} vía JDBC.
+ *
+ * <p>Soporta evaluación global (todos los planteles) o scoped a un plantel específico.</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Component
 public class PromocionPersistenceAdapter implements PromocionRepositoryPort {
 

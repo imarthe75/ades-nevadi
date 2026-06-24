@@ -12,6 +12,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Servicio de consulta (lado lectura CQRS) para el módulo badges.
+ *
+ * <p>Provee listado de badges con filtros, detalle enriquecido con conteo de alumnos
+ * y consulta de badges otorgados a un alumno específico.</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Service
 @RequiredArgsConstructor
 public class BadgeQueryService {

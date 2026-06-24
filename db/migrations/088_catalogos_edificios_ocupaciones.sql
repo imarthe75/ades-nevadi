@@ -1,4 +1,17 @@
 -- =============================================================================
+-- Migración: 088_catalogos_edificios_ocupaciones.sql
+-- Descripción: Siembra los catálogos dinámicos de Edificios (CAT_EDIFICIOS),
+--              Pisos/Plantas (CAT_PISOS) y Ocupaciones de padres de familia
+--              (CAT_OCUPACIONES) en ades_catalogos y ades_catalogo_items.
+--              Idempotente mediante ON CONFLICT DO NOTHING.
+-- Tablas afectadas: ades_catalogos, ades_catalogo_items
+-- Dependencias: ades_catalogos y ades_catalogo_items existentes (constraint
+--               UNIQUE en (catalogo_id, valor))
+-- Autor: ADES
+-- Fecha: 2026-06
+-- =============================================================================
+
+-- =============================================================================
 -- MIGRACIÓN 088: Catálogos de Edificios, Pisos y Ocupaciones de Padres
 -- =============================================================================
 

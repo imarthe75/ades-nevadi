@@ -8,6 +8,15 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Caso de uso: respuesta a encuestas institucionales con detección de alertas de acoso.
+ * Implementa {@link ResponderEncuestaUseCase} coordinando el dominio de encuestas
+ * con el puerto de repositorio, con soporte para encuestas anónimas y detección
+ * automática de palabras clave relacionadas con bullying o situaciones de riesgo.
+ *
+ * @author ADES
+ * @since 2026
+ */
 public class EncuestaApplicationService implements ResponderEncuestaUseCase {
 
     private static final List<String> PALABRAS_ACOSO = List.of(

@@ -6,6 +6,15 @@ import mx.ades.modules.planes_estudio.domain.port.out.PlanEstudioRepositoryPort;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Caso de uso: asignación y mantenimiento de materias en los planes de estudio.
+ * Implementa {@link AsignarMateriaUseCase} coordinando el dominio de planes de
+ * estudio con el puerto de repositorio, gestionando la relación entre planes,
+ * materias, horas semanales y carácter obligatorio para los tres niveles educativos.
+ *
+ * @author ADES
+ * @since 2026
+ */
 public class PlanEstudioApplicationService implements AsignarMateriaUseCase {
 
     private final PlanEstudioRepositoryPort repo;

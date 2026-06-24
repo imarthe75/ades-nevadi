@@ -11,6 +11,16 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Caso de uso: registro y resolución de justificaciones de asistencia.
+ * Implementa {@link RegistrarJustificacionUseCase} y {@link ResolverJustificacionUseCase}
+ * coordinando el dominio de justificaciones con el puerto de repositorio,
+ * validando que la asistencia sea justificable, evitando duplicados y
+ * controlando que solo Coordinadores o superiores puedan aprobar/rechazar.
+ *
+ * @author ADES
+ * @since 2026
+ */
 public class JustificacionApplicationService
         implements RegistrarJustificacionUseCase, ResolverJustificacionUseCase {
 

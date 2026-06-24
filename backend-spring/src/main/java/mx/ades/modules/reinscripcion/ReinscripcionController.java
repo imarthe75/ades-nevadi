@@ -18,6 +18,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Adaptador REST para el proceso de reinscripción entre ciclos escolares.
+ * Expone endpoints bajo /api/v1/reinscripcion para consultar el estado de reinscripción
+ * con paginación, generar reportes consolidados, verificar no-adeudo de un alumno
+ * y listar registros por ciclo destino. Las operaciones de escritura (validación masiva,
+ * aprobación masiva, acción individual APROBAR/RECHAZAR) requieren nivelAcceso &le;3
+ * (Director o Admin). Los endpoints heredados de JPA (aprobar/rechazar individuales)
+ * no exigen JWT directamente. Requiere JWT válido para todas las rutas hexagonales.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @RestController
 @RequestMapping("/api/v1/reinscripcion")
 @RequiredArgsConstructor

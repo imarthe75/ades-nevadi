@@ -22,6 +22,19 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDate;
 import java.util.*;
 
+/**
+ * Adaptador REST para la gestión del expediente laboral del personal.
+ * Expone endpoints bajo /api/v1/expediente-laboral para crear, consultar, actualizar
+ * y eliminar expedientes laborales de docentes y personal administrativo. Incluye
+ * datos contractuales (TipoContrato), datos previsionales (IMSS, INFONAVIT, ISSSTE),
+ * formación académica (NivelEstudios, cédula profesional) y documentos digitales
+ * adjuntos. Valida CURP y RFC con {@code ValidationUtils}. Las operaciones de
+ * creación y eliminación restringen acceso a RH (verificado en use cases).
+ * Aplica scoping por nivelAcceso del usuario autenticado.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @RestController
 @RequestMapping("/api/v1/expediente-laboral")
 @RequiredArgsConstructor

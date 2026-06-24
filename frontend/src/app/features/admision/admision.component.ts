@@ -54,6 +54,13 @@ const NIVELES = [
   { label: 'Preparatoria', value: 'PREPARATORIA' },
 ];
 
+/**
+ * Gestiona el proceso de admisión de nuevos alumnos al Instituto Nevadi.
+ * Administra el ciclo de vida de solicitudes: PENDIENTE → DIAGNOSTICO →
+ * ACEPTADO / LISTA_ESPERA / RECHAZADO → INSCRITO, para los tres niveles
+ * (Primaria, Secundaria, Preparatoria). Permite importar solicitudes masivas
+ * vía CSV/Excel y asignar resultados de diagnóstico. Requiere nivelAcceso ≥ 4.
+ */
 @Component({
   selector: 'app-admision',
   standalone: true,

@@ -8,6 +8,16 @@ import mx.ades.modules.learning_paths.domain.port.out.LearningPathRepositoryPort
 
 import java.util.*;
 
+/**
+ * Caso de uso: gestión de rutas de aprendizaje personalizadas para alumnos en riesgo.
+ * Implementa {@link RegistrarProgresoUseCase}, {@link CrearLearningPathUseCase}
+ * y {@link AsignarPathUseCase} coordinando el dominio de learning paths con
+ * el puerto de repositorio, con asignación automática basada en alertas de
+ * reprobación y ausentismo crítico detectadas por el sistema de IA.
+ *
+ * @author ADES
+ * @since 2026
+ */
 public class LearningPathApplicationService
         implements RegistrarProgresoUseCase, CrearLearningPathUseCase, AsignarPathUseCase {
 

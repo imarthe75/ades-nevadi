@@ -45,12 +45,28 @@ router = APIRouter(prefix="/chatbot", tags=["chatbot"])
 # ── Modelos ───────────────────────────────────────────────────────────────────
 
 class MensajeIn(BaseModel):
+    """Esquema de entrada para el envío de mensajes al chatbot.
+
+    Attributes:
+        pregunta: Mensaje textual en lenguaje natural provisto por el usuario.
+        sesion_id: Identificador de sesión para persistencia o seguimiento en Flowise (opcional).
+        contexto_extra: Parámetros y configuraciones adicionales de anulación (opcional).
+    """
     pregunta: str
     sesion_id: str = ""
     contexto_extra: dict = {}
 
 
 class MensajeOut(BaseModel):
+    """Esquema de salida de la respuesta procesada por el chatbot.
+
+    Attributes:
+        respuesta: Texto de respuesta sintetizado en lenguaje natural.
+        sql_generado: Sentencia SQL de consulta generada (si aplica).
+        datos: Lista de registros mapeados como resultado de la consulta.
+        sesion_id: Identificador de la sesión de conversación asociada.
+        fuente: Origen del motor procesador (flowise, vanna_directo, claude).
+    """
     respuesta: str
     sql_generado: str | None = None
     datos: list[dict] | None = None
@@ -59,6 +75,14 @@ class MensajeOut(BaseModel):
 
 
 class SqlQueryIn(BaseModel):
+    """Esquema de entrada para la invocación directa de consultas en lenguaje natural.
+
+    Attributes:
+        pregunta: Pregunta original del usuario.
+        plantel_id: Identificador de plantel opcional para validaciones RLS.
+        nivel_acceso: Nivel de acceso del rol para restringir permisos.
+        persona_id: Identificador de persona (estudiante, docente) relacionado al scope.
+    """
     pregunta: str
     plantel_id: str | None = None
     nivel_acceso: int = 4
@@ -66,6 +90,13 @@ class SqlQueryIn(BaseModel):
 
 
 class EjemploEntrenamiento(BaseModel):
+    """Representa un par pregunta-SQL para el entrenamiento o refinamiento del generador Vanna.
+
+    Attributes:
+        pregunta: Enunciado de ejemplo en lenguaje natural.
+        sql: Sentencia SQL correcta asociada.
+        descripcion: Anotación descriptiva opcional.
+    """
     pregunta: str
     sql: str
     descripcion: str = ""
@@ -74,9 +105,16 @@ class EjemploEntrenamiento(BaseModel):
 # ── RLS Builder ───────────────────────────────────────────────────────────────
 
 def _build_rls_context(user: AdesUser) -> dict:
-    """
-    Construye el contexto de seguridad que se inyecta en el prompt del chatbot.
-    El LLM lo usará para generar SQL con WHERE clauses apropiadas.
+    """Construye el contexto de seguridad que se inyecta en el prompt del chatbot.
+
+    El LLM utiliza esta información estructurada para generar sentencias SQL que
+    incorporen las cláusulas WHERE y filtros de RLS (Row-Level Security) adecuados.
+
+    Args:
+        user: Objeto del usuario autenticado actual.
+
+    Returns:
+        dict: Contexto con restricciones y pistas de construcción SQL.
     """
     ctx = {
         "nivel_acceso": user.nivel_acceso,
@@ -106,7 +144,19 @@ def _build_rls_context(user: AdesUser) -> dict:
 # ── Flowise proxy ─────────────────────────────────────────────────────────────
 
 async def _flowise_chat(pregunta: str, sesion_id: str, override_config: dict) -> str:
-    """Envía un mensaje al chatflow de Flowise y devuelve la respuesta."""
+    """Envía un mensaje al flujo de chat (chatflow) de Flowise y retorna la respuesta.
+
+    Args:
+        pregunta: Texto de la pregunta del usuario.
+        sesion_id: Identificador de la sesión de chat.
+        override_config: Configuración de anulación que incluye el systemMessage con RLS.
+
+    Returns:
+        str: Respuesta de texto del chatbot procesada por Flowise.
+
+    Raises:
+        HTTPException: Si Flowise no está configurado o si la API de Flowise retorna un código de error.
+    """
     if not settings.FLOWISE_CHATFLOW_ID:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -143,10 +193,24 @@ async def _flowise_chat(pregunta: str, sesion_id: str, override_config: dict) ->
 # ── NL→SQL con Vanna AI ───────────────────────────────────────────────────────
 
 async def _vanna_sql(pregunta: str, rls_ctx: dict, db: AsyncSession, llm: LLMService) -> tuple[str, list[dict]]:
-    """
-    Genera SQL desde lenguaje natural usando el LLM de NVIDIA NIM (Llama-3) + schema ADES.
-    Aplica RLS según el contexto del usuario.
-    Devuelve (sql_generado, filas_resultado).
+    """Genera una consulta SQL a partir de lenguaje natural usando el LLM y la ejecuta aplicando RLS.
+
+    Consiste en:
+    1. Construir un prompt del sistema que describe las tablas y las reglas RLS del usuario.
+    2. Invocar al LLM para obtener la consulta SELECT SQL exclusiva.
+    3. Validar y ejecutar la consulta en la base de datos limitando a un máximo de 200 filas.
+
+    Args:
+        pregunta: Pregunta en lenguaje natural del usuario.
+        rls_ctx: Contexto de seguridad de fila construido para el usuario.
+        db: Sesión asíncrona de base de datos.
+        llm: Servicio del Large Language Model.
+
+    Returns:
+        tuple[str, list[dict]]: Una tupla con la sentencia SQL generada y la lista de registros de resultado.
+
+    Raises:
+        HTTPException: Si la query no es un SELECT o si ocurre un error durante su ejecución.
     """
     system_prompt = _build_sql_system_prompt(rls_ctx)
 
@@ -194,7 +258,14 @@ async def _vanna_sql(pregunta: str, rls_ctx: dict, db: AsyncSession, llm: LLMSer
 
 
 def _build_sql_system_prompt(rls_ctx: dict) -> str:
-    """Construye el prompt de sistema para generación de SQL con RLS."""
+    """Construye el system prompt del LLM que detalla el esquema y reglas de seguridad RLS.
+
+    Args:
+        rls_ctx: Diccionario con el contexto de seguridad y restricciones RLS del usuario.
+
+    Returns:
+        str: Mensaje del sistema con la definición del esquema y limitaciones.
+    """
     restriccion = rls_ctx.get("restriccion", "SIN_RESTRICCION")
     hint = rls_ctx.get("hint_sql", "")
 
@@ -246,7 +317,17 @@ Reglas SQL:
 
 
 async def _generar_resumen(pregunta: str, sql: str, filas: list[dict], llm: LLMService) -> str:
-    """Genera un resumen en lenguaje natural de los resultados SQL."""
+    """Genera una explicación o síntesis en lenguaje natural sobre los registros SQL retornados.
+
+    Args:
+        pregunta: Pregunta original formulada por el usuario.
+        sql: Sentencia SQL que se ejecutó.
+        filas: Lista de registros obtenidos de la base de datos.
+        llm: Instancia del servicio de lenguaje natural.
+
+    Returns:
+        str: Resumen conciso explicativo en español.
+    """
     if not filas:
         return "No se encontraron datos para tu consulta."
 
@@ -277,9 +358,19 @@ async def enviar_mensaje(
     ades_user: AdesUser = Depends(get_ades_user),
     llm: LLMService = Depends(get_llm_service),
 ) -> MensajeOut:
-    """
-    Endpoint principal del chatbot.
-    Intenta usar Flowise si está configurado; si no, usa NL→SQL directo con NVIDIA NIM.
+    """Procesa un mensaje del usuario utilizando Flowise (si está activo) o fallback a NL→SQL directo.
+
+    Args:
+        body: Datos del mensaje y del identificador de sesión.
+        db: Sesión asíncrona de base de datos.
+        ades_user: Usuario actual autenticado en ADES.
+        llm: Servicio de Large Language Model.
+
+    Returns:
+        MensajeOut: Respuesta estructurada que incluye la explicación y datos tabulares (en modo directo).
+
+    Raises:
+        HTTPException: Si ocurre un error al procesar o ejecutar la consulta.
     """
     rls_ctx = _build_rls_context(ades_user)
     sesion_id = body.sesion_id or str(uuid.uuid4())
@@ -330,9 +421,18 @@ async def ejecutar_sql_natural(
     ades_user: AdesUser = Depends(get_ades_user),
     llm: LLMService = Depends(get_llm_service),
 ) -> dict:
-    """
-    Genera y ejecuta SQL desde lenguaje natural con RLS.
-    Usado como herramienta interna de Flowise.
+    """Genera, valida y ejecuta una consulta SQL a partir de lenguaje natural aplicando RLS.
+
+    Este endpoint es consumido internamente por Flowise como una herramienta personalizada (custom tool).
+
+    Args:
+        body: Estructura de entrada con la consulta de lenguaje natural y scopes.
+        db: Sesión asíncrona de base de datos.
+        ades_user: Usuario actual autenticado en ADES.
+        llm: Servicio de Large Language Model.
+
+    Returns:
+        dict: Datos de respuesta incluyendo el SQL generado, registros obtenidos y resumen.
     """
     rls_ctx = _build_rls_context(ades_user)
     sql, filas = await _vanna_sql(body.pregunta, rls_ctx, db, llm)
@@ -348,7 +448,11 @@ async def ejecutar_sql_natural(
 
 @router.get("/status")
 async def chatbot_status():
-    """Estado de Flowise y disponibilidad del chatbot."""
+    """Verifica y devuelve el estado de conectividad e integración de los motores del Chatbot (Flowise/Vanna).
+
+    Returns:
+        dict: Estado booleano de disponibilidad de Flowise y NVIDIA NIM.
+    """
     flowise_ok = False
     flowise_version = None
     try:

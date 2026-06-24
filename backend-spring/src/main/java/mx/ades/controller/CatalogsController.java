@@ -12,6 +12,25 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Adaptador de entrada REST que expone los catálogos de referencia de ADES
+ * bajo {@code /api/v1/catalogs}.
+ * <p>
+ * Sirve datos de solo lectura que el frontend Angular consume para poblar
+ * selectores en cascada (plantel → nivel → grado → grupo) y otros LOVs:
+ * ciclos escolares, periodos, roles, países, nacionalidades y lenguas indígenas
+ * (requeridas por el Reporte 911 SEP). Delega toda la recuperación al puerto
+ * {@link mx.ades.modules.catalogos.domain.port.out.CatalogReadPort}, manteniendo
+ * la separación hexagonal.
+ * </p>
+ * <p>
+ * Los endpoints de este controlador son accesibles para cualquier usuario autenticado;
+ * no filtran por plantel porque los catálogos son globales al sistema ADES.
+ * </p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 @RestController
 @RequestMapping("/api/v1/catalogs")
 @RequiredArgsConstructor

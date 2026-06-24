@@ -8,6 +8,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Servicio de lectura CQRS para el módulo horarios.
+ * Consulta horarios por grupo, profesor o plantel con datos enriquecidos de materia y aula.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Service
 public class HorarioQueryService {
 

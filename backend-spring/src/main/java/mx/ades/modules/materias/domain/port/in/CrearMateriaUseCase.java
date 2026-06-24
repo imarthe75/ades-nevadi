@@ -4,6 +4,12 @@ import java.math.BigDecimal;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Puerto de entrada: contrato para crear una nueva materia en el catálogo.
+ *
+ * @author ADES
+ * @since 2026
+ */
 public interface CrearMateriaUseCase {
 
     record Command(

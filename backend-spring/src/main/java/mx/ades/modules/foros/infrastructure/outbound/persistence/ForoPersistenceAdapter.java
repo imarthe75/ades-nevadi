@@ -16,6 +16,13 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Adaptador JPA que implementa {@link ForoRepositoryPort}.
+ * Delega en los repositorios Spring Data de Foro, MensajeForo, RespuestaForo y Anuncio.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Component
 @RequiredArgsConstructor
 public class ForoPersistenceAdapter implements ForoRepositoryPort {
