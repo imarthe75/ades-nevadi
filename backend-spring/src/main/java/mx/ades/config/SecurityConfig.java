@@ -23,9 +23,10 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .authorizeHttpRequests(authorize -> authorize
-                // ADES internos
+                // ADES internos y documentación
                 .requestMatchers("/api/v1/health", "/api/v1/auth/callback",
-                        "/api/v1/certificados/verificar/**", "/api/v1/config/public").permitAll()
+                        "/api/v1/certificados/verificar/**", "/api/v1/config/public",
+                        "/swagger-ui/**", "/v3/api-docs/**").permitAll()
                 .requestMatchers("/api/v1/**").authenticated()
                 // Portal público — sin autenticación (JWT validado manualmente en controllers)
                 .requestMatchers("/api/portal/**").permitAll()

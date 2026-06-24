@@ -19,3 +19,7 @@ Este archivo define las reglas de desarrollo y hooks de sistema inspirados en **
 4. **Soberanía y Seguridad de Datos:**
    - Ninguna credencial, token (PAT) o credencial de base de datos puede ser subida a repositorios públicos o expuesta en logs.
    - Las carpetas `./data` y los archivos `.env` deben estar permanentemente en el `.gitignore`.
+
+5. **Documentación Obligatoria y Exhaustiva:**
+   - Es obligatorio documentar exhaustivamente todo cambio de código.
+   - Esto incluye añadir docstrings con tipos, descripciones de parámetros y retornos para cada nueva función/método, así como comentarios explicativos en clases y bloques de código complejos.

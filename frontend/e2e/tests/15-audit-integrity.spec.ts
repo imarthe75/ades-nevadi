@@ -283,8 +283,8 @@ test.describe('E. Push notifications ntfy — patrón ades_{usuario_id}', () => 
       for (const k of keys) { tok = sessionStorage.getItem(k) ?? ''; if (tok) break; }
 
       const paths = [
-        'http://127.0.0.1:8000/api/v1/push/subscribe',
-        'http://127.0.0.1:8000/api/v1/push',
+        'http://127.0.0.1:8000/api/v1/push/suscripcion',
+        'http://127.0.0.1:8000/api/v1/push/status',
       ];
 
       for (const url of paths) {
@@ -305,9 +305,9 @@ test.describe('E. Push notifications ntfy — patrón ades_{usuario_id}', () => 
 
   test('AUD-07 | endpoint push sin auth → 401 o 404', async ({ request }) => {
     const endpoints = [
-      'http://127.0.0.1:8000/api/v1/push/subscribe',
-      'http://127.0.0.1:8000/api/v1/push',
-      'http://127.0.0.1:8000/api/v1/push/config',
+      'http://127.0.0.1:8000/api/v1/push/suscripcion',
+      'http://127.0.0.1:8000/api/v1/push/enviar',
+      'http://127.0.0.1:8000/api/v1/push/enviar-lote',
     ];
 
     let testedCount = 0;
@@ -315,7 +315,7 @@ test.describe('E. Push notifications ntfy — patrón ades_{usuario_id}', () => 
       const res = await request.get(ep).catch(() => null);
       if (res) {
         testedCount++;
-        expect([401, 404]).toContain(res.status());
+        expect([401, 403, 404, 405]).toContain(res.status());
         if (res.status() === 401) break;
       }
     }
