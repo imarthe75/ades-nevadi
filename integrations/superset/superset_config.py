@@ -72,7 +72,7 @@ BABEL_DEFAULT_TIMEZONE = "America/Mexico_City"
 _OIDC_ISSUER = os.environ.get(
     "OIDC_ISSUER",
     "https://auth.ades.setag.mx/application/o/superset",
-)
+).rstrip("/")
 
 AUTH_TYPE = AUTH_OAUTH
 AUTH_USER_REGISTRATION = True
@@ -124,6 +124,7 @@ GUEST_TOKEN_HEADER_NAME = "X-GuestToken"
 GUEST_TOKEN_JWT_EXP_SECONDS = 300  # 5 minutos
 
 TALISMAN_ENABLED = False  # Desactivado para poder embeber en iframes desde ades.setag.mx
+ENABLE_PROXY_FIX = True  # Habilitado para leer cabeceras X-Forwarded-Proto y generar HTTPS URLs
 
 # Permitir iframe desde el dominio del frontend
 HTTP_HEADERS = {"X-Frame-Options": "ALLOWALL"}  # se restringe por CORS_OPTIONS
