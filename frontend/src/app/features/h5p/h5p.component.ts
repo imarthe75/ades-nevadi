@@ -4,7 +4,6 @@ import { DatePipe } from '@angular/common';
 import { DomSanitizer } from '@angular/platform-browser';
 import { SafeResourceUrl } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
@@ -280,7 +279,6 @@ type TabKey = 'biblioteca' | 'mis-resultados';
   `,
 })
 export class H5pComponent implements OnInit {
-  private http = inject(HttpClient);
   private api = inject(ApiService);
   private notify = inject(ApexNotificationService);
   private ctx = inject(ContextService);
@@ -396,7 +394,7 @@ export class H5pComponent implements OnInit {
     fd.append('descripcion', this.subirForm.descripcion);
     if (this.subirForm.tipo_id) fd.append('tipo_id', this.subirForm.tipo_id);
     fd.append('h5p_file', this.subirArchivo);
-    this.http.post('/api/v1/h5p/subir', fd).subscribe({
+    this.api.postForm('/h5p/subir', fd).subscribe({
       next: () => {
         this.notify.success('Contenido H5P subido correctamente');
         this.subirVisible = false;

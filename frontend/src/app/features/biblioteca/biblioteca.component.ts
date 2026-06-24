@@ -1,7 +1,7 @@
 import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
+import { ApiService } from '../../core/services/api.service';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
@@ -248,7 +248,7 @@ const CATEGORIAS = [
   `],
 })
 export class BibliotecaComponent implements OnInit {
-  private http = inject(HttpClient);
+  private api = inject(ApiService);
   private notify = inject(ApexNotificationService);
 
   tab = 'acervo';
@@ -339,7 +339,7 @@ export class BibliotecaComponent implements OnInit {
     const params: any = {};
     if (this.busqueda) params.q = this.busqueda;
     if (this.filtroCategoria) params.categoria = this.filtroCategoria;
-    this.http.get<Libro[]>('/api/v1/biblioteca/libros', { params }).subscribe({
+    this.api.get<Libro[]>('/biblioteca/libros', params).subscribe({
       next: d => { this.libros.set(d); this.cargandoLibros.set(false); },
       error: () => { this.cargandoLibros.set(false); this.notify.error('Error al cargar el acervo'); },
     });
@@ -369,8 +369,8 @@ export class BibliotecaComponent implements OnInit {
     }
     this.guardando.set(true);
     const req$ = this.editandoLibroId
-      ? this.http.patch(`/api/v1/biblioteca/libros/${this.editandoLibroId}`, this.formLibro)
-      : this.http.post('/api/v1/biblioteca/libros', this.formLibro);
+      ? this.api.patch(`/biblioteca/libros/${this.editandoLibroId}`, this.formLibro)
+      : this.api.post('/biblioteca/libros', this.formLibro);
     req$.subscribe({
       next: () => { this.guardando.set(false); this.dialogLibro = false; this.notify.success('Libro guardado'); this.cargarLibros(); },
       error: e => { this.guardando.set(false); this.notify.error(e.error?.message ?? e.error?.detail ?? 'Error al guardar'); },
@@ -379,7 +379,7 @@ export class BibliotecaComponent implements OnInit {
 
   eliminarLibro(l: Libro) {
     if (!confirm(`¿Eliminar "${l.titulo}" del acervo?`)) return;
-    this.http.delete(`/api/v1/biblioteca/libros/${l.id}`).subscribe({
+    this.api.delete(`/biblioteca/libros/${l.id}`).subscribe({
       next: () => { this.notify.success('Libro eliminado'); this.cargarLibros(); },
       error: e => this.notify.error(e.error?.message ?? e.error?.detail ?? 'Error'),
     });
@@ -391,7 +391,7 @@ export class BibliotecaComponent implements OnInit {
     const params: any = {};
     if (this.filtroEstatus) params.estatus = this.filtroEstatus;
     if (this.filtroPersonaId) params.persona_id = this.filtroPersonaId;
-    this.http.get<Prestamo[]>('/api/v1/biblioteca/prestamos', { params }).subscribe({
+    this.api.get<Prestamo[]>('/biblioteca/prestamos', params).subscribe({
       next: d => { this.prestamos.set(d); this.cargandoPrestamos.set(false); },
       error: () => { this.cargandoPrestamos.set(false); this.notify.error('Error al cargar préstamos'); },
     });
@@ -409,7 +409,7 @@ export class BibliotecaComponent implements OnInit {
       return;
     }
     this.guardando.set(true);
-    this.http.post('/api/v1/biblioteca/prestamos', this.formPrestamo).subscribe({
+    this.api.post('/biblioteca/prestamos', this.formPrestamo).subscribe({
       next: () => {
         this.guardando.set(false); this.dialogPrestamo = false;
         this.notify.success('Préstamo registrado'); this.cargarLibros(); this.cargarPrestamos();
@@ -427,7 +427,7 @@ export class BibliotecaComponent implements OnInit {
   confirmarDevolucion() {
     if (!this.prestamoSel) return;
     this.guardando.set(true);
-    this.http.post(`/api/v1/biblioteca/prestamos/${this.prestamoSel.id}/devolver`,
+    this.api.post(`/biblioteca/prestamos/${this.prestamoSel.id}/devolver`,
       { estatus_final: this.cierreEstatus }).subscribe({
       next: () => {
         this.guardando.set(false); this.dialogDevolucion = false;

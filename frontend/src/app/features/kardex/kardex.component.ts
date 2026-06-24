@@ -1,7 +1,7 @@
 import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
+import { ApiService } from '../../core/services/api.service';
 import { ButtonModule } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
 import { ToastModule } from 'primeng/toast';
@@ -173,7 +173,7 @@ interface Kardex {
   `],
 })
 export class KardexComponent implements OnInit {
-  private http     = inject(HttpClient);
+  private api      = inject(ApiService);
   private notify   = inject(ApexNotificationService);
   private exporter = inject(ExportService);
   private ctx      = inject(ContextService);
@@ -219,7 +219,7 @@ export class KardexComponent implements OnInit {
   alumnosOpts = computed(() => this._alumnos());
 
   ngOnInit() {
-    this.http.get<GrupoRaw[]>('/api/v1/reportes/kardex/grupos').subscribe({
+    this.api.get<GrupoRaw[]>('/reportes/kardex/grupos').subscribe({
       next: g => {
         this._grupos.set(g);
         const ctxPlantel = this.ctx.plantel();
@@ -242,7 +242,7 @@ export class KardexComponent implements OnInit {
   onGrupoChange(grupoId: string) {
     this.alumnoSel = ''; this._alumnos.set([]); this.data.set(null);
     if (!grupoId) return;
-    this.http.get<any[]>(`/api/v1/reportes/kardex/grupos/${grupoId}/alumnos`).subscribe({
+    this.api.get<any[]>(`/reportes/kardex/grupos/${grupoId}/alumnos`).subscribe({
       next: list => this._alumnos.set(list.map(a => ({
         value: a['id'], label: `${a['nombre']} (${a['matricula'] ?? '—'})`,
       }))),
@@ -258,7 +258,7 @@ export class KardexComponent implements OnInit {
     if (!this.alumnoSel) return;
     this.cargando.set(true);
     this.data.set(null);
-    this.http.get<Kardex>(`/api/v1/reportes/kardex/${this.alumnoSel}`).subscribe({
+    this.api.get<Kardex>(`/reportes/kardex/${this.alumnoSel}`).subscribe({
       next: d => { this.data.set(d); this.cargando.set(false); },
       error: e => {
         this.cargando.set(false);
@@ -270,7 +270,7 @@ export class KardexComponent implements OnInit {
   descargarPdf() {
     if (!this.alumnoSel) return;
     this.descargando.set(true);
-    this.http.get(`/api/v1/boletas/uaemex/${this.alumnoSel}`, { responseType: 'blob' }).subscribe({
+    this.api.getBlob(`/boletas/uaemex/${this.alumnoSel}`).subscribe({
       next: blob => {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');

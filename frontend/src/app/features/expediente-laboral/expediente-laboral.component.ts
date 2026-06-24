@@ -1,7 +1,7 @@
 import { Component, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
+import { ApiService } from '../../core/services/api.service';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
@@ -222,7 +222,7 @@ interface ExpedienteLab {
   `],
 })
 export class ExpedienteLaboralComponent implements OnInit {
-  private http = inject(HttpClient);
+  private api = inject(ApiService);
   private notify = inject(ApexNotificationService);
 
   expedientes   = signal<ExpedienteLab[]>([]);
@@ -280,7 +280,7 @@ export class ExpedienteLaboralComponent implements OnInit {
     this.cargando.set(true);
     const params: any = {};
     if (this.busquedaNombre) params['q'] = this.busquedaNombre;
-    this.http.get<ExpedienteLab[]>('/api/v1/expediente-laboral', { params }).subscribe({
+    this.api.get<ExpedienteLab[]>('/expediente-laboral', params).subscribe({
       next: d => { this.expedientes.set(d); this.cargando.set(false); },
       error: () => { this.cargando.set(false); this.notify.error('Error al cargar expedientes'); },
     });
@@ -288,7 +288,7 @@ export class ExpedienteLaboralComponent implements OnInit {
 
   buscarPersona(event: { query: string }) {
     if (!event.query || event.query.length < 2) { this.personaSugerencias.set([]); return; }
-    this.http.get<any>('/api/v1/profesores', { params: { buscar: event.query } }).subscribe({
+    this.api.get<any>('/profesores', { buscar: event.query }).subscribe({
       next: res => {
         const data = res?.data ?? res ?? [];
         this.personaSugerencias.set(data.map((p: any) => ({
@@ -323,14 +323,14 @@ export class ExpedienteLaboralComponent implements OnInit {
     this.guardando.set(true);
     let req;
     if (this.editandoId) {
-      req = this.http.patch<ExpedienteLab>(`/api/v1/expediente-laboral/${this.editandoId}`, this.form);
+      req = this.api.patch<ExpedienteLab>(`/expediente-laboral/${this.editandoId}`, this.form);
     } else {
       if (!this.personaSeleccionada?.value) {
         this.guardando.set(false);
         this.notify.warning('Seleccione una persona');
         return;
       }
-      req = this.http.post<ExpedienteLab>('/api/v1/expediente-laboral', {
+      req = this.api.post<ExpedienteLab>('/expediente-laboral', {
         ...this.form,
         persona_id: this.personaSeleccionada.value,
         fecha_contratacion: this.toDateStr(this.form.fecha_contratacion),
@@ -343,7 +343,7 @@ export class ExpedienteLaboralComponent implements OnInit {
         this.notify.success(this.editandoId ? 'Expediente actualizado' : 'Expediente creado');
         this.cargar();
       },
-      error: (e) => { this.guardando.set(false); this.notify.error(e.error?.detail ?? 'Error al guardar'); },
+      error: (e: any) => { this.guardando.set(false); this.notify.error(e.error?.detail ?? 'Error al guardar'); },
     });
   }
 
@@ -352,7 +352,7 @@ export class ExpedienteLaboralComponent implements OnInit {
 
   agregarDoc() {
     if (!this.seleccionado() || !this.nuevoDocTipo || !this.nuevoDocUrl) return;
-    this.http.post<ExpedienteLab>(`/api/v1/expediente-laboral/${this.seleccionado()!.id}/documento`,
+    this.api.post<ExpedienteLab>(`/expediente-laboral/${this.seleccionado()!.id}/documento`,
       { tipo_documento: this.nuevoDocTipo, url: this.nuevoDocUrl }
     ).subscribe({
       next: (updated) => {

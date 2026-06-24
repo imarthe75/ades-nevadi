@@ -1,7 +1,7 @@
 import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
+import { ApiService } from '../../core/services/api.service';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
@@ -205,7 +205,7 @@ const TIPOS = [
   `],
 })
 export class CondicionesCronicasComponent implements OnInit {
-  private http = inject(HttpClient);
+  private api = inject(ApiService);
   private notify = inject(ApexNotificationService);
 
   readonly condicionesColumns: ColumnConfig[] = [
@@ -252,7 +252,7 @@ export class CondicionesCronicasComponent implements OnInit {
     this.cargando.set(true);
     const params: any = {};
     if (this.busquedaAlumnoId) params.alumno_id = this.busquedaAlumnoId;
-    this.http.get<Condicion[]>('/api/v1/condiciones-cronicas', { params }).subscribe({
+    this.api.get<Condicion[]>('/condiciones-cronicas', params).subscribe({
       next: d => { this.condiciones.set(d); this.cargando.set(false); },
       error: () => { this.cargando.set(false); this.notify.error('Error al cargar condiciones'); },
     });
@@ -285,8 +285,8 @@ export class CondicionesCronicasComponent implements OnInit {
     }
     this.guardando.set(true);
     const req$ = this.editandoId
-      ? this.http.patch(`/api/v1/condiciones-cronicas/${this.editandoId}`, this.form)
-      : this.http.post('/api/v1/condiciones-cronicas', this.form);
+      ? this.api.patch(`/condiciones-cronicas/${this.editandoId}`, this.form)
+      : this.api.post('/condiciones-cronicas', this.form);
     req$.subscribe({
       next: () => { this.guardando.set(false); this.dialogForm = false; this.notify.success('Condición guardada'); this.cargar(); },
       error: e => { this.guardando.set(false); this.notify.error(e.error?.detail ?? 'Error al guardar'); },
@@ -295,7 +295,7 @@ export class CondicionesCronicasComponent implements OnInit {
 
   eliminar(c: Condicion) {
     if (!confirm(`¿Eliminar la condición ${c.tipo_condicion} de ${c.alumno_nombre}?`)) return;
-    this.http.delete(`/api/v1/condiciones-cronicas/${c.id}`).subscribe({
+    this.api.delete(`/condiciones-cronicas/${c.id}`).subscribe({
       next: () => { this.notify.success('Condición eliminada'); this.cargar(); },
       error: e => this.notify.error(e.error?.detail ?? 'Error'),
     });
@@ -303,7 +303,7 @@ export class CondicionesCronicasComponent implements OnInit {
 
   verAlerta() {
     if (!this.busquedaAlumnoId) return;
-    this.http.get<AlertaEmergencia[]>(`/api/v1/condiciones-cronicas/alumno/${this.busquedaAlumnoId}/alerta`).subscribe({
+    this.api.get<AlertaEmergencia[]>(`/condiciones-cronicas/alumno/${this.busquedaAlumnoId}/alerta`).subscribe({
       next: d => { this.alertas.set(d); this.dialogAlerta = true; },
       error: () => this.notify.error('Error al cargar alerta de emergencia'),
     });

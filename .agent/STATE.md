@@ -3072,6 +3072,16 @@ Total cambios: 8 files changed, 906 insertions(+)
   - Se añadieron y validaron las URLs de redirección permitidas para producción y desarrollo local.
 - [x] **Verificación de Redirección:** Se comprobó que el endpoint `/login/oidc` de Superset responde con un redireccionamiento HTTP 302 correcto hacia la página de autorización de Authentik con el protocolo y parámetros correctos:
   `Location: https://auth.ades.setag.mx/application/o/superset/authorize/?...&redirect_uri=https%3A%2F%2Fbi.ades.setag.mx%2Foauth-authorized%2Foidc`
+- [x] **Migración de Credenciales de Base de Datos (`POSTGRES_USER`):** Se verificó que la aplicación está conectada con el usuario acotado `ades_app` y que las restricciones en el trail de auditoría funcionan. Además, se completó la transferencia de propiedad de la base de datos `ades` hacia el rol `ades_app` (`ALTER DATABASE ades OWNER TO ades_app;`).
+- [x] **Descarga e Instalación de Core H5P:** Se comprobó que el volumen compartido `/data/h5p-core` dentro del contenedor `ades-h5p` está debidamente poblado y que el servicio de H5P está en línea respondiendo de forma correcta a la API (`/h5p/api/contenidos` lista 5 contenidos de prueba).
+
+### 🚀 Próximos Pasos (Siguiente Sesión):
+- [ ] **Migración a ApiService en el Frontend:** Cambiar el consumo directo de `HttpClient` de Angular en módulos como `admision` y `licencias` al wrapper central `ApiService`.
+- [ ] **Pruebas de disponibilidad física:** Monitorear y validar el comportamiento de los endpoints `/aulas/{id}/disponibilidad` en producción con cargas de datos reales de horarios.
+- [ ] **Monitoreo de Tests E2E:** Continuar la validación y ejecución de suites de pruebas E2E de Playwright, vigilando posibles desajustes debido a actualizaciones en las plantillas y flujos masivos de las pantallas de `gradebook` y `horarios`.
+- [ ] **Google SSO (OAuth2):** Pendiente hasta que la institución provea las credenciales del cliente.
+- [ ] **Big Blue Button:** Pendiente de configuración de servidor BBB externo por parte de la institución.
+- [ ] **Blockchain Polygon PoS:** Pendiente del despliegue del contrato inteligente y anclaje a la red pública.
 
 
 

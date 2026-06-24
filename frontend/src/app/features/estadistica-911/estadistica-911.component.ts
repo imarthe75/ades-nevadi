@@ -1,7 +1,7 @@
 import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
+import { ApiService } from '../../core/services/api.service';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { ToastModule } from 'primeng/toast';
@@ -190,7 +190,7 @@ const BUCKETS: Record<string, { base: number; tope: number }> = {
   `],
 })
 export class Estadistica911Component implements OnInit {
-  private http = inject(HttpClient);
+  private api = inject(ApiService);
   private notify = inject(ApexNotificationService);
   private exporter = inject(ExportService);
 
@@ -206,7 +206,7 @@ export class Estadistica911Component implements OnInit {
     this.cargando.set(true);
     const params: any = {};
     if (this.cicloId.trim()) params.ciclo_id = this.cicloId.trim();
-    this.http.get<any>('/api/v1/reportes/911', { params }).subscribe({
+    this.api.get<any>('/reportes/911', params).subscribe({
       next: d => {
         this.matriz.set(d.matricula_por_grado_sexo_ingreso_edad ?? []);
         this.grupos.set(d.grupos_por_grado ?? []);
