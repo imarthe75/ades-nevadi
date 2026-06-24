@@ -297,7 +297,11 @@ services:
       ALLOWED_ORIGINS:     ${ALLOWED_ORIGINS:-http://localhost:4200,https://escolar.institutonevadi.edu.mx}
       BASE_URL:            ${BASE_URL:-https://ades.setag.mx}
       VAULT_ADDR:          http://ades-vault:8200
-      MINIO_SECURE:        "false"
+      MINIO_SECURE:        ${MINIO_SECURE:-true}
+      MINIO_ENDPOINT:      ${MINIO_ENDPOINT}
+      MINIO_ACCESS_KEY:    ${MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY:    ${MINIO_SECRET_KEY}
+      MINIO_BUCKET:        ${MINIO_BUCKET}
       # BigBlueButton — Videoconferencias (FASE 26)
       BBB_SERVER_URL:      ${BBB_SERVER_URL:-}
       BBB_SHARED_SECRET:   ${BBB_SHARED_SECRET:-}
@@ -315,8 +319,6 @@ services:
       pgbouncer:
         condition: service_healthy
       valkey:
-        condition: service_healthy
-      seaweedfs:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
@@ -343,6 +345,11 @@ services:
       SPRING_DATASOURCE_URL:       jdbc:postgresql://ades-postgres:5432/ades
       SPRING_DATASOURCE_USERNAME:  ${POSTGRES_USER:-ades_admin}
       SPRING_DATASOURCE_PASSWORD:  ${POSTGRES_PASSWORD}
+      MINIO_ENDPOINT:              ${MINIO_ENDPOINT}
+      MINIO_ROOT_USER:             ${MINIO_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD:         ${MINIO_SECRET_KEY}
+      MINIO_SECURE:                ${MINIO_SECURE}
+      MINIO_BUCKET:                ${MINIO_BUCKET}
     volumes:
       - vault-init:/vault/init:ro
       - ./assets:/srv/assets          # imágenes públicas de convocatorias (rw para uploads)
@@ -354,8 +361,6 @@ services:
       pgbouncer:
         condition: service_healthy
       valkey:
-        condition: service_healthy
-      seaweedfs:
         condition: service_healthy
     deploy:
       resources:
@@ -378,7 +383,11 @@ services:
       VAULT_ADDR:          http://ades-vault:8200
       ENVIRONMENT:         ${ENVIRONMENT:-development}
       BASE_URL:            ${BASE_URL:-https://ades.setag.mx}
-      MINIO_SECURE:        "false"
+      MINIO_SECURE:        ${MINIO_SECURE:-true}
+      MINIO_ENDPOINT:      ${MINIO_ENDPOINT}
+      MINIO_ACCESS_KEY:    ${MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY:    ${MINIO_SECRET_KEY}
+      MINIO_BUCKET:        ${MINIO_BUCKET}
     volumes:
       - ./backend:/app:cached
       - vault-init:/vault/init:ro
