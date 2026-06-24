@@ -8,6 +8,16 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 
+/**
+ * Caso de uso: procesamiento de acciones sobre solicitudes de reinscripción.
+ * Implementa {@link ProcesarAccionReinscripcionUseCase} coordinando el dominio
+ * de reinscripción con el puerto de repositorio, aplicando la transición de
+ * estado (aceptar/rechazar) y publicando el evento de dominio correspondiente
+ * para notificaciones y trazabilidad del ciclo de reinscripción.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Service
 public class ReinscripcionApplicationService implements ProcesarAccionReinscripcionUseCase {
 

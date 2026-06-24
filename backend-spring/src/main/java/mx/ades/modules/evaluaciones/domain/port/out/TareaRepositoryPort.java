@@ -9,6 +9,14 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Puerto de salida: contrato de persistencia para tareas y sus entregas.
+ * <p>Cubre {@code ades_tareas} (guardado JPA) y {@code ades_tareas_entregas} (slots y calificación JDBC).
+ * Los slots se crean con upsert para evitar duplicados si el alumno se inscribe tarde.</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 public interface TareaRepositoryPort {
 
     record TareaDatos(

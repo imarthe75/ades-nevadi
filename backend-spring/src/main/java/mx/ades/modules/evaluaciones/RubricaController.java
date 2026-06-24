@@ -17,6 +17,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Adaptador REST para la gestión de rúbricas de evaluación.
+ * Expone endpoints bajo /api/v1/rubricas para crear, listar, actualizar y eliminar
+ * rúbricas con sus criterios de evaluación. Cada criterio tiene ponderación,
+ * orden y niveles de logro configurables. Las rúbricas se asocian a materias y
+ * niveles educativos. La eliminación lógica (is_active = false) preserva el historial.
+ * Aplica scoping por usuario para auditoría (usuarioCreacion/usuarioModificacion).
+ * Toda operación requiere JWT válido via {@code resolveUser}.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @RestController
 @RequestMapping("/api/v1/rubricas")
 @RequiredArgsConstructor

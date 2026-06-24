@@ -3,6 +3,14 @@ package mx.ades.modules.eval_docente.domain.port.in;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Puerto de entrada: contrato para crear una evaluación docente 360° en el módulo eval_docente.
+ * <p>La evaluación se crea en estado BORRADOR; los criterios se capturan posteriormente
+ * mediante {@link GuardarCriteriosUseCase}.</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 public interface CrearEvaluacionUseCase {
 
     record Command(UUID profesorId, UUID cicloEscolarId, UUID evaluadorId,

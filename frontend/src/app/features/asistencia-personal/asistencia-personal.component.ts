@@ -46,6 +46,13 @@ interface ReportePersonal {
   porcentaje_asistencia: number;
 }
 
+/**
+ * Registro y seguimiento de asistencia del personal administrativo y docente.
+ * Permite registrar hora de entrada/salida, retardos y justificaciones por
+ * trabajador. Genera resúmenes mensuales con porcentaje de asistencia.
+ * Usa optimistic locking (`row_version`) en actualizaciones. Requiere
+ * nivelAcceso ≥ 4 (AdminPlantel) para acceder a registros de otros usuarios.
+ */
 @Component({
   selector: 'app-asistencia-personal',
   standalone: true,

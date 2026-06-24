@@ -11,6 +11,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Servicio de lectura CQRS para el módulo encuestas.
+ * <p>Expone listado de encuestas, detalle con preguntas, resultados estadísticos por tipo
+ * (ESCALA_5, OPCION_MULTIPLE, BOOLEANO, TEXTO_LIBRE) y respuestas en bruto.</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Service
 public class EncuestaQueryService {
 

@@ -1,5 +1,16 @@
 package mx.ades.modules.capacitaciones.domain.model;
 
+/**
+ * Tipo de dominio que representa la clase de certificación obtenida en una capacitación docente.
+ *
+ * <p>Valores posibles: {@code CURSO}, {@code TALLER}, {@code DIPLOMADO},
+ * {@code POSGRADO}, {@code CERTIFICACION}, {@code CONGRESO}, {@code OTRO}.
+ * Los valores {@code DIPLOMADO}, {@code POSGRADO} y {@code CERTIFICACION}
+ * se consideran formación formal.</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 public enum TipoCertificacion {
     CURSO, TALLER, DIPLOMADO, POSGRADO, CERTIFICACION, CONGRESO, OTRO;
 

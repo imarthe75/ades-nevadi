@@ -1,3 +1,9 @@
+"""Schemas Pydantic base compartidos por todos los módulos de ADES.
+
+Define los modelos raíz de los que heredan todos los schemas del proyecto:
+AdesSchema (base con from_attributes), AdesResponse (con auditoría UUID),
+Paginacion y PagedResponse genérico para respuestas paginadas.
+"""
 from __future__ import annotations
 import uuid
 from datetime import datetime
@@ -8,6 +14,7 @@ T = TypeVar("T")
 
 
 class AdesSchema(BaseModel):
+    """Base para todos los schemas ADES; habilita from_attributes para ORM."""
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -21,6 +28,8 @@ class AdesResponse(AdesSchema):
 
 
 class Paginacion(AdesSchema):
+    """Metadatos de paginación para listas."""
+
     total: int
     pagina: int
     por_pagina: int

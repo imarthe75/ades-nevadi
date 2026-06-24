@@ -1,3 +1,16 @@
+-- =============================================================================
+-- Migración: 086_periodos_trimestres_nem.sql
+-- Descripción: Reemplaza los periodos de evaluación SEP (bimestres legacy) por
+--              los 3 trimestres oficiales de la Nueva Escuela Mexicana (NEM).
+--              Los periodos UAEMEX (parciales/extraordinario/final) no se tocan.
+--              Las fechas se derivan partiendo el rango del ciclo en tres tercios.
+--              Idempotente y no-destructivo de currícula UAEMEX.
+-- Tablas afectadas: ades_periodos_evaluacion
+-- Dependencias: ades_ciclos_escolares (con sistema_educativo de mig 083), uuidv7()
+-- Autor: ADES
+-- Fecha: 2026-06
+-- =============================================================================
+
 -- ============================================================================
 -- 086_periodos_trimestres_nem.sql
 -- Corrige los periodos de evaluación SEP: reemplaza el modelo viejo de bimestres

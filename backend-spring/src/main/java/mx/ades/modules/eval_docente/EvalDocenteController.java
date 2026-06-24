@@ -18,6 +18,19 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * Adaptador REST para la evaluación docente 360°.
+ * Expone endpoints bajo /api/v1/eval-docente para crear evaluaciones, guardar
+ * calificaciones por criterio y enviar (cerrar) una evaluación. Soporta los
+ * cuatro tipos de evaluador: AUTO, PAR, COORDINADOR y DIRECTOR. La escala de
+ * calificación por criterio es 1-5 (7 criterios ponderados). El endpoint de
+ * criterios lista las dimensiones de evaluación con sus ponderaciones. El resumen
+ * por profesor agrega promedios ponderados filtrable por ciclo escolar.
+ * Toda operación requiere JWT válido via {@code resolveUser}.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @RestController
 @RequestMapping("/api/v1/eval-docente")
 @RequiredArgsConstructor

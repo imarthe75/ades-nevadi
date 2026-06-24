@@ -9,6 +9,12 @@ import mx.ades.common.AdesBaseEntity;
 
 import java.util.UUID;
 
+/**
+ * Entidad JPA que mapea a la tabla {@code ades_asistencias}.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Entity
 @Table(name = "ades_asistencias")
 @Getter

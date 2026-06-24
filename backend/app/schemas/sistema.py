@@ -12,12 +12,16 @@ TipoValor = Literal['TEXTO', 'BOOLEANO', 'JSON', 'NUMERO', 'FECHA', 'HORA', 'PAS
 # ── Catálogo Items ─────────────────────────────────────────────────────────────
 
 class CatalogoItemCreate(BaseModel):
+    """Body para agregar un ítem a un catálogo dinámico existente."""
+
     valor: str
     descripcion: str | None = None
     orden: int = 0
 
 
 class CatalogoItemOut(BaseModel):
+    """Respuesta de un ítem de catálogo con versión para optimistic locking."""
+
     id: uuid.UUID
     catalogo_id: uuid.UUID
     valor: str
@@ -29,6 +33,8 @@ class CatalogoItemOut(BaseModel):
 
 
 class CatalogoItemUpdate(BaseModel):
+    """Campos actualizables de un ítem de catálogo; row_version obligatorio para optimistic locking."""
+
     valor: str | None = None
     descripcion: str | None = None
     orden: int | None = None
@@ -39,12 +45,16 @@ class CatalogoItemUpdate(BaseModel):
 # ── Catálogos ──────────────────────────────────────────────────────────────────
 
 class CatalogoCreate(BaseModel):
+    """Body para crear un nuevo catálogo dinámico en el sistema."""
+
     codigo: str
     nombre: str
     descripcion: str | None = None
 
 
 class CatalogoOut(BaseModel):
+    """Respuesta de un catálogo dinámico con sus ítems anidados."""
+
     id: uuid.UUID
     codigo: str
     nombre: str
@@ -56,6 +66,8 @@ class CatalogoOut(BaseModel):
 
 
 class CatalogoUpdate(BaseModel):
+    """Campos actualizables de un catálogo; row_version obligatorio para optimistic locking."""
+
     nombre: str | None = None
     descripcion: str | None = None
     is_active: bool | None = None
@@ -65,6 +77,8 @@ class CatalogoUpdate(BaseModel):
 # ── Variables del Sistema ──────────────────────────────────────────────────────
 
 class VariableOut(BaseModel):
+    """Respuesta de una variable de sistema; el valor se enmascara si es PASSWORD o encriptado."""
+
     id: uuid.UUID
     nombre: str
     tipo_valor: str
@@ -85,6 +99,8 @@ class VariableOut(BaseModel):
 
 
 class VariableCreate(BaseModel):
+    """Body para crear una variable de sistema con tipo y valor inicial."""
+
     nombre: str
     tipo_valor: TipoValor
     valor: str | None = None
@@ -95,6 +111,8 @@ class VariableCreate(BaseModel):
 
 
 class VariableUpdate(BaseModel):
+    """Campos actualizables de una variable de sistema; row_version obligatorio para optimistic locking."""
+
     valor: str | None = None
     descripcion: str | None = None
     grupo: str | None = None

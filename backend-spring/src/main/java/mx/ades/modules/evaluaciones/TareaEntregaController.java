@@ -16,6 +16,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Adaptador REST para la gestión de entregas de tareas por alumnos.
+ * Expone endpoints bajo /api/v1/entregas para listar entregas por alumno o grupo,
+ * subir archivos de entrega (multipart), calificar entregas individuales, registrar
+ * excusas y ejecutar verificación de plagio. También permite adjuntar feedback
+ * multimedia (audio/video) y recuperar archivos almacenados en MinIO (SeaweedFS S3).
+ * La calificación de entregas requiere JWT válido y registra el identificador del
+ * evaluador (personaId). Las consultas públicas de entrega no exigen autenticación.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @RestController
 @RequestMapping("/api/v1/entregas")
 @RequiredArgsConstructor

@@ -54,6 +54,11 @@ interface Catalogo {
   tipos: string[];
 }
 
+/**
+ * Panel de administración del portal de comunicación institucional.
+ * Permite gestionar categorías, publicaciones y avisos visibles en el portal
+ * de alumnos y padres. Requiere nivelAcceso 4 (AdminPlantel) o superior.
+ */
 @Component({
   selector: 'app-portal-admin',
   standalone: true,

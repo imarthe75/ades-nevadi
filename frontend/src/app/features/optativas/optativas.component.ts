@@ -38,6 +38,11 @@ const TIPO_LABELS: Record<string, string> = {
   NEVADI_FORMATIVA:       'Formativa',
 };
 
+/**
+ * Módulo de gestión de materias optativas.
+ * Permite a coordinadores configurar la oferta de optativas por período y
+ * a alumnos de preparatoria seleccionar las materias dentro del CBU UAEMEX.
+ */
 @Component({
   selector: 'app-optativas',
   standalone: true,

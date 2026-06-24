@@ -18,6 +18,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Adaptador REST para el registro de condiciones crónicas de salud de alumnos.
+ * Expone endpoints bajo /api/v1/condiciones-cronicas para registrar, actualizar,
+ * consultar y eliminar condiciones crónicas (alergias, medicación, médico responsable).
+ * Los datos son PII sensibles de salud bajo LFPDPPP — acceso restringido por
+ * nivelAcceso verificado en los use cases. El endpoint /alumno/{alumnoId}/alerta
+ * devuelve información de emergencia médica del alumno. El tipo de condición
+ * es validado mediante el enum {@code TipoCondicion}.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @RestController
 @RequestMapping("/api/v1/condiciones-cronicas")
 @RequiredArgsConstructor

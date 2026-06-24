@@ -15,6 +15,17 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.*;
 
+/**
+ * Adaptador REST para la gestión del personal no-docente y administrativo.
+ * Expone endpoints bajo /api/v1/personal-admin para listar (con scoping automático
+ * por plantel para no-admins), obtener detalle, registrar, actualizar y desactivar
+ * empleados administrativos (directores, coordinadores, prefectos, etc.).
+ * Requiere JWT válido en todos los endpoints; el listado usa
+ * {@code getEffectivePlantelId} para evitar acceso cross-plantel.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @RestController
 @RequestMapping("/api/v1/personal-admin")
 @RequiredArgsConstructor

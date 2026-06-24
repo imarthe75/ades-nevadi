@@ -18,6 +18,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Adaptador REST para la configuración de reglas de promoción por nivel educativo.
+ * Expone endpoints bajo /api/v1/admin/reglas-promocion para consultar y actualizar
+ * parámetros como mínimo aprobatorio, escala máxima, máximo de materias reprobadas
+ * y porcentaje mínimo de asistencia. Incluye un endpoint de evaluación masiva
+ * de promoción por ciclo escolar. Restringido a nivelAcceso de administrador (1).
+ *
+ * @author ADES
+ * @since 2026
+ */
 @RestController
 @RequestMapping("/api/v1/admin/reglas-promocion")
 @RequiredArgsConstructor

@@ -3,6 +3,13 @@ package mx.ades.modules.aulas.domain.port.in;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Puerto de entrada: define el contrato para actualizar los datos de un aula existente
+ * en el dominio de aulas, incluyendo equipamiento e infraestructura.
+ *
+ * @author ADES
+ * @since 2026
+ */
 public interface ActualizarAulaUseCase {
 
     record Command(

@@ -12,6 +12,16 @@ import mx.ades.shared.persona.PersonaUpdateHelper;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Caso de uso: alta y actualización de docentes en los planteles del instituto.
+ * Implementa {@link CrearProfesorUseCase} y {@link ActualizarProfesorUseCase}
+ * coordinando el dominio de profesores con los puertos de repositorio, datos
+ * laborales y la entidad persona compartida, manteniendo número de empleado
+ * y tipo de contrato por plantel.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Service
 public class ProfesorApplicationService implements CrearProfesorUseCase, ActualizarProfesorUseCase {
 

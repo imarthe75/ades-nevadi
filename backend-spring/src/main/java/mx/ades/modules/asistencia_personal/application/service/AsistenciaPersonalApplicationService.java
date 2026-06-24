@@ -7,6 +7,15 @@ import mx.ades.modules.asistencia_personal.domain.port.out.AsistenciaPersonalRep
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Caso de uso: registro y actualización de asistencia del personal docente y administrativo.
+ * Implementa {@link RegistrarAsistenciaUseCase} y {@link ActualizarAsistenciaUseCase}
+ * coordinando el dominio de asistencia personal con el puerto de repositorio,
+ * aplicando upsert para evitar duplicados por persona y fecha.
+ *
+ * @author ADES
+ * @since 2026
+ */
 public class AsistenciaPersonalApplicationService
         implements RegistrarAsistenciaUseCase, ActualizarAsistenciaUseCase {
 

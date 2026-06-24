@@ -19,6 +19,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Adaptador REST para la gestión de justificaciones de asistencia.
+ * Expone endpoints bajo /api/v1/justificaciones para listar justificaciones con filtros
+ * (alumno, estado, grupo), registrar una justificación (MEDICA, FAMILIAR, etc.) vinculada
+ * a un registro de asistencia, resolver (APROBAR/RECHAZAR) con control de nivel de acceso
+ * y consultar el detalle de una justificación individual.
+ * Requiere JWT válido; la resolución valida {@code nivelAcceso} del usuario.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @RestController
 @RequestMapping("/api/v1/justificaciones")
 @RequiredArgsConstructor

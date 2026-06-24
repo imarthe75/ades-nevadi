@@ -5,6 +5,13 @@ import org.springframework.stereotype.Service;
 
 import java.util.*;
 
+/**
+ * Servicio de lectura CQRS para el módulo gradebook (actividades).
+ * Consulta tareas, entregas y estadísticas de calificación por grupo.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Service
 public class ActividadesQueryService {
 

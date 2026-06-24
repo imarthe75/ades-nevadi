@@ -7,6 +7,12 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Puerto de salida: contrato de persistencia para licencias del personal.
+ *
+ * @author ADES
+ * @since 2026
+ */
 public interface LicenciaRepositoryPort {
 
     LicenciaPersonal save(LicenciaPersonal licencia);

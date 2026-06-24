@@ -5,6 +5,16 @@ import mx.ades.modules.medico.domain.port.out.SaludAvanzadaRepositoryPort;
 
 import java.util.UUID;
 
+/**
+ * Caso de uso: gestión avanzada de salud estudiantil: medicamentos, incidentes y tutorías.
+ * Implementa {@link RegistrarMedicamentoUseCase}, {@link SuspenderMedicamentoUseCase},
+ * {@link GenerarActaIncidenteUseCase}, {@link RegistrarPsicosocialUseCase}
+ * y {@link RegistrarTutoriaUseCase} coordinando el dominio de salud avanzada
+ * con el puerto de repositorio para el seguimiento integral del bienestar estudiantil.
+ *
+ * @author ADES
+ * @since 2026
+ */
 public class SaludAvanzadaApplicationService
         implements RegistrarMedicamentoUseCase, SuspenderMedicamentoUseCase,
                    GenerarActaIncidenteUseCase, RegistrarPsicosocialUseCase,

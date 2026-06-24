@@ -42,6 +42,11 @@ interface CalificacionResumen {
   es_acreditado: boolean;
 }
 
+/**
+ * Portal de padres/tutores para seguimiento académico de sus hijos (nivelAcceso 2).
+ * Muestra calificaciones, asistencias, avisos y comunicados del plantel.
+ * El scoping por tutor evita acceso cross-alumno (protección IDOR).
+ */
 @Component({
   selector: 'app-padres',
   standalone: true,

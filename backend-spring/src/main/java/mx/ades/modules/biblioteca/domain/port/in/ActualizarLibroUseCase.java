@@ -2,6 +2,13 @@ package mx.ades.modules.biblioteca.domain.port.in;
 
 import java.util.UUID;
 
+/**
+ * Puerto de entrada: define el contrato para actualizar los datos bibliográficos
+ * de un libro existente en el dominio de biblioteca.
+ *
+ * @author ADES
+ * @since 2026
+ */
 public interface ActualizarLibroUseCase {
 
     record Command(

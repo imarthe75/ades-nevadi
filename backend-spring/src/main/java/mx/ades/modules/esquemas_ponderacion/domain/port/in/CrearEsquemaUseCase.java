@@ -7,6 +7,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Puerto de entrada: contrato para crear un nuevo esquema de ponderación de calificaciones
+ * en el módulo esquemas_ponderacion.
+ * <p>Los pesos de los ítems deben sumar exactamente 100%. El flag {@code esNee} indica
+ * si el esquema aplica a alumnos con Necesidades Educativas Especiales.</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 public interface CrearEsquemaUseCase {
 
     record Command(String nombre, UUID nivelEducativoId, UUID materiaId,

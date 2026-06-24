@@ -3,6 +3,14 @@ package mx.ades.modules.compliance.domain.port.in;
 import java.time.LocalDate;
 import java.util.UUID;
 
+/**
+ * Puerto de entrada: contrato para registrar una retención de alumno en el módulo compliance.
+ * <p>Una retención es una medida administrativa que impide la reinscripción o entrega de documentos
+ * hasta que se cumplan las condiciones requeridas. Requiere nivel de acceso 3 o inferior.</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 public interface RegistrarRetencionUseCase {
 
     record Command(UUID alumnoId, String tipoRetencion, String motivo,

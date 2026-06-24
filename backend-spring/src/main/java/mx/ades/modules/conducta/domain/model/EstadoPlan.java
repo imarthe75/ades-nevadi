@@ -1,5 +1,14 @@
 package mx.ades.modules.conducta.domain.model;
 
+/**
+ * Estado del plan de mejora conductual de un alumno.
+ * <p>Valores: BORRADOR (recién creado), EN_PROCESO (en seguimiento activo),
+ * COMPLETADO (objetivos alcanzados), ABANDONADO (plan interrumpido).
+ * Solo BORRADOR y EN_PROCESO permiten añadir nuevos seguimientos.</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 public enum EstadoPlan {
     BORRADOR, EN_PROCESO, COMPLETADO, ABANDONADO;
 

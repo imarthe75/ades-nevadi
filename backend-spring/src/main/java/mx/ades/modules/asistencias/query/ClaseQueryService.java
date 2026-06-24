@@ -12,6 +12,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Servicio de consulta (lado lectura CQRS) para el módulo asistencias.
+ *
+ * <p>Provee listado y detalle de clases ({@code ades_clases}) con filtros dinámicos
+ * por grupo, materia, profesor, rango de fechas y estatus.</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Service
 @RequiredArgsConstructor
 public class ClaseQueryService {

@@ -6,6 +6,13 @@ import mx.ades.shared.infrastructure.AdesBaseMapper;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
+/**
+ * Mapper MapStruct que convierte entre {@link AsistenciaEntity} y el objeto de dominio
+ * {@link mx.ades.modules.asistencias.domain.model.Asistencia}.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Mapper(config = AdesBaseMapper.class)
 public interface AsistenciaMapper {
 

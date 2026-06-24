@@ -48,6 +48,14 @@ const TIPOS = [
   { label: 'Salud',          value: 'SALUD' },
 ];
 
+/**
+ * Sistema de comunicados institucionales con acuse de recibo.
+ * Soporta tipos GENERAL, URGENTE, ACADÉMICO, ADMINISTRATIVO y SALUD con
+ * severidades visuales diferenciadas. Los comunicados con `requiere_acuse`
+ * registran quién confirmó lectura y cuándo. Permite publicar a toda la
+ * institución o a un plantel específico. Requiere nivelAcceso ≥ 4 para crear;
+ * nivelAcceso ≥ 3 puede leer y acusar recibo.
+ */
 @Component({
   selector: 'app-comunicados',
   standalone: true,

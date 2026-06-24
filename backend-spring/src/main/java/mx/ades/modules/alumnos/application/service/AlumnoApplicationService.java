@@ -16,6 +16,15 @@ import java.time.LocalDate;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Caso de uso: alta y actualización de alumnos en los tres planteles del Instituto Nevadi.
+ * Implementa {@link CrearAlumnoUseCase} y {@link ActualizarAlumnoUseCase} coordinando
+ * el dominio de alumnos con los puertos de repositorio, escritura de persona,
+ * datos complementarios y resolución de matrícula automática.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Service
 public class AlumnoApplicationService implements CrearAlumnoUseCase, ActualizarAlumnoUseCase {
 

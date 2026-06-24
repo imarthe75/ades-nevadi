@@ -3,6 +3,13 @@ package mx.ades.modules.contactos.domain.port.in;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Puerto de entrada: contrato para actualizar un contacto familiar de alumno en el módulo contactos.
+ * <p>Usa optimistic locking mediante {@code rowVersion}. Solo los campos no nulos se actualizan.</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 public interface ActualizarContactoUseCase {
 
     Map<String, Object> actualizar(Command cmd);

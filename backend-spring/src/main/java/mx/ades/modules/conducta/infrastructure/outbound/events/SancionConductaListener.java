@@ -10,6 +10,14 @@ import org.springframework.stereotype.Component;
 
 import java.util.Map;
 
+/**
+ * Listener de eventos de dominio que reacciona a {@code SancionConductaEvent}.
+ * <p>Dispara un webhook n8n de forma asíncrona para notificar la sanción aplicada
+ * y, si corresponde, alertar a los padres de familia.</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Slf4j
 @Component
 @RequiredArgsConstructor

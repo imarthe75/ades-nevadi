@@ -9,6 +9,13 @@ import org.springframework.stereotype.Component;
 
 import java.util.*;
 
+/**
+ * Adaptador JDBC que implementa {@link EntregaRepositoryPort}.
+ * <p>Opera sobre {@code ades_tareas_entregas} con upsert en conflicto por (tarea_id, estudiante_id).</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Component
 @RequiredArgsConstructor
 public class EntregaPersistenceAdapter implements EntregaRepositoryPort {

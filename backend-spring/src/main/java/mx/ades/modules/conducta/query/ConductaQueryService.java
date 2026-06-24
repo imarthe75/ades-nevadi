@@ -5,6 +5,14 @@ import org.springframework.stereotype.Service;
 
 import java.util.*;
 
+/**
+ * Servicio de lectura CQRS para el módulo conducta.
+ * <p>Expone listados de reportes con filtros en cascada plantel/nivel/grado/grupo/estudiante,
+ * historial conductual completo del alumno y detalle con sanción, plan de mejora y seguimientos.</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Service
 public class ConductaQueryService {
 

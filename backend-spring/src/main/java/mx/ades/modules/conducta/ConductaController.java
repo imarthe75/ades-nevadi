@@ -19,6 +19,18 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDate;
 import java.util.*;
 
+/**
+ * Adaptador REST para el módulo de conducta y disciplina escolar.
+ * Expone endpoints bajo /api/v1/conducta para crear y gestionar reportes de conducta,
+ * aplicar sanciones disciplinarias (LEVE/GRAVE/MUY_GRAVE via {@code TipoSancion}),
+ * elaborar planes de mejora y registrar seguimientos de dichos planes.
+ * Las operaciones de sanción verifican nivelAcceso; la creación/modificación de
+ * planes de mejora requiere Coordinador o superior (nivelAcceso {@literal <=} 3).
+ * Incluye endpoints de historial por alumno y detalle completo del reporte.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @RestController
 @RequestMapping("/api/v1/conducta")
 @RequiredArgsConstructor

@@ -3,6 +3,13 @@ package mx.ades.modules.foros.domain.port.in;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Puerto de entrada: contrato para crear un foro de discusión en ADES.
+ * Requiere nivel Coordinador o superior (nivelAcceso {@literal <=} 3).
+ *
+ * @author ADES
+ * @since 2026
+ */
 public interface CrearForoUseCase {
 
     record Command(

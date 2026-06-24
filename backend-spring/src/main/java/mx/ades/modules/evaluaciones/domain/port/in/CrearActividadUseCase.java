@@ -6,6 +6,15 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
 
+/**
+ * Puerto de entrada: contrato para crear una actividad evaluable (tarea, examen, proyecto, etc.)
+ * en el módulo evaluaciones.
+ * <p>Al crear la actividad se generan automáticamente los slots de entrega (PENDIENTE)
+ * para todos los alumnos inscritos en el grupo. Publica {@code ActividadCreadaEvent}.</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 public interface CrearActividadUseCase {
 
     record Command(

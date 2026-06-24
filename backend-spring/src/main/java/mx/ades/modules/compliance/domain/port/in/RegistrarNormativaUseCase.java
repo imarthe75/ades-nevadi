@@ -3,6 +3,13 @@ package mx.ades.modules.compliance.domain.port.in;
 import java.time.LocalDate;
 import java.util.UUID;
 
+/**
+ * Puerto de entrada: contrato para registrar una normativa institucional en el módulo compliance.
+ * <p>Requiere nivel de acceso 2 o inferior (Admin o superior). Indica a qué niveles educativos aplica.</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 public interface RegistrarNormativaUseCase {
 
     record Command(String nombre, String tipo, String descripcion,

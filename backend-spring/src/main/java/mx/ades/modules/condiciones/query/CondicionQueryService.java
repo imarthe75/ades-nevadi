@@ -11,6 +11,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Servicio de lectura CQRS para el módulo condiciones.
+ * <p>Expone listado filtrado de condiciones crónicas, detalle por ID y ficha de alerta de emergencia
+ * con medicación y contacto familiar.</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Service
 @RequiredArgsConstructor
 public class CondicionQueryService {

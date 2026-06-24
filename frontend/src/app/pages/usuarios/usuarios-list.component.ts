@@ -6,6 +6,11 @@ import { of } from 'rxjs';
 import { CardModule } from 'primeng/card';
 import { ButtonModule } from 'primeng/button';
 
+/**
+ * Listado de usuarios del sistema (personal docente y administrativo).
+ * Vista de administración con grid interactivo al estilo APEX.
+ * Requiere nivelAcceso 5 (AdminSistema) para gestionar usuarios de todos los planteles.
+ */
 @Component({
   selector: 'app-usuarios-list',
   templateUrl: './usuarios-list.component.html',

@@ -4,6 +4,12 @@ import java.math.BigDecimal;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Puerto de entrada: contrato para actualizar los datos de una materia existente.
+ *
+ * @author ADES
+ * @since 2026
+ */
 public interface ActualizarMateriaUseCase {
 
     record Command(

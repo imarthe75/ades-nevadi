@@ -10,6 +10,16 @@ import mx.ades.security.AdesUserService;
 
 import java.util.*;
 
+/**
+ * Adaptador REST para analítica avanzada de calificaciones.
+ * Expone endpoints bajo /api/v1/grade-analytics para tendencias por grupo,
+ * distribución de calificaciones por período, alumnos en riesgo académico,
+ * resumen por plantel, cobertura curricular y alertas por umbral configurable.
+ * Requiere JWT válido ({@code resolveUser}) en todos los endpoints.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @RestController
 @RequestMapping("/api/v1/grade-analytics")
 @RequiredArgsConstructor

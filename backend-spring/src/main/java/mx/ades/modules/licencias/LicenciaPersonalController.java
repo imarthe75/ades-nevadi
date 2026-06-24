@@ -21,6 +21,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Adaptador REST para la gestión de licencias y permisos del personal docente y administrativo.
+ * Expone endpoints bajo /api/v1/licencias para listar, crear, actualizar y cancelar licencias
+ * (médica, maternidad, paternidad, personal, etc.), así como aprobar o rechazar solicitudes
+ * con control de nivel de acceso del autorizador. Requiere JWT válido en todos los endpoints;
+ * la aprobación y el rechazo consideran el {@code nivelAcceso} del usuario autenticado.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @RestController
 @RequestMapping("/api/v1/licencias")
 @RequiredArgsConstructor

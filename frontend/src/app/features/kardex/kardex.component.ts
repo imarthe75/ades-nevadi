@@ -34,6 +34,12 @@ interface Kardex {
   total_materias: number;
 }
 
+/**
+ * Kardex académico para alumnos de Preparatoria UAEMEX (nivel CBU).
+ * Muestra historial de calificaciones con escala 0-10, mínimo aprobatorio 6.0,
+ * y distingue entre calificación ordinaria, extraordinaria y definitiva según RGEMS.
+ * Incluye botón para descargar la boleta PDF generada por FastAPI vía proxy BFF.
+ */
 @Component({
   selector: 'app-kardex',
   standalone: true,

@@ -4,6 +4,12 @@ import mx.ades.modules.justificaciones.domain.model.TipoJustificacion;
 
 import java.util.UUID;
 
+/**
+ * Puerto de entrada: contrato para registrar una justificación de falta para un alumno.
+ *
+ * @author ADES
+ * @since 2026
+ */
 public interface RegistrarJustificacionUseCase {
 
     record Command(

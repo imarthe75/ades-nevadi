@@ -6,6 +6,12 @@ import mx.ades.modules.calificaciones.domain.model.Calificacion;
 import java.math.BigDecimal;
 import java.util.UUID;
 
+/**
+ * DTO de salida REST para la consulta de una calificación de período.
+ *
+ * @author ADES
+ * @since 2026
+ */
 public record CalificacionResponseDto(
         UUID id,
         @JsonProperty("estudiante_id")   UUID estudianteId,

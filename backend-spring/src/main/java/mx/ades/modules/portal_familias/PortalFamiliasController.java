@@ -16,6 +16,17 @@ import mx.ades.security.AdesUserService;
 
 import java.util.*;
 
+/**
+ * Adaptador REST para el portal de familias (tutores y padres de familia).
+ * Expone endpoints bajo /api/v1/portal-familias para listar y agregar tutores de un alumno
+ * (requiere nivelAcceso &le;3), desvincular tutores, crear cuentas de usuario para padres
+ * (requiere nivelAcceso &le;2), establecer restricciones de acceso al portal por tutor
+ * (requiere nivelAcceso &le;2), y que un padre autenticado consulte sus alumnos vinculados
+ * y el resumen académico de cada uno. Requiere JWT válido en todos los endpoints.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @RestController
 @RequestMapping("/api/v1/portal-familias")
 @RequiredArgsConstructor

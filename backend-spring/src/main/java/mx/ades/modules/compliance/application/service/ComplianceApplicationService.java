@@ -7,6 +7,15 @@ import mx.ades.modules.compliance.domain.port.out.ComplianceRepositoryPort;
 
 import java.util.UUID;
 
+/**
+ * Caso de uso: gestión de cumplimiento normativo, retenciones y alertas regulatorias.
+ * Implementa {@link RegistrarNormativaUseCase}, {@link RegistrarRetencionUseCase}
+ * y {@link CrearAlertaUseCase} coordinando el dominio de compliance con
+ * el puerto de repositorio, en apoyo al cumplimiento SEP, UAEMEX y LFPDPPP.
+ *
+ * @author ADES
+ * @since 2026
+ */
 public class ComplianceApplicationService
         implements RegistrarNormativaUseCase, RegistrarRetencionUseCase, CrearAlertaUseCase {
 

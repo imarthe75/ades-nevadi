@@ -1,5 +1,11 @@
 package mx.ades.modules.justificaciones.domain.model;
 
+/**
+ * Tipo de justificación de falta: MEDICA, FAMILIAR, DEPORTIVA, CULTURAL, ADMINISTRATIVA u OTRA.
+ *
+ * @author ADES
+ * @since 2026
+ */
 public enum TipoJustificacion {
     MEDICA, FAMILIAR, DEPORTIVA, CULTURAL, ADMINISTRATIVA, OTRA;
 

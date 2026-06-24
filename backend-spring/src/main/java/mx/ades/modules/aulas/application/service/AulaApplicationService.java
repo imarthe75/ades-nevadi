@@ -10,6 +10,15 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Map;
 
+/**
+ * Caso de uso: creación y actualización de aulas físicas en los planteles.
+ * Implementa {@link CrearAulaUseCase} y {@link ActualizarAulaUseCase} coordinando
+ * el dominio de aulas con el puerto de repositorio, gestionando atributos
+ * extendidos como equipamiento, capacidad y estado del espacio.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Service
 public class AulaApplicationService implements CrearAulaUseCase, ActualizarAulaUseCase {
 

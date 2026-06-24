@@ -9,6 +9,16 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Servicio de consulta (lado lectura CQRS) para el módulo cierre.
+ *
+ * <p>Consulta los indicadores de cierre de ciclo desde la vista
+ * {@code v_indicadores_cierre_ciclo}, que resume el estado de calificaciones,
+ * asistencias y promociones del ciclo antes del cierre definitivo.</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Service
 @RequiredArgsConstructor
 public class CierreQueryService {

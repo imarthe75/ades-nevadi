@@ -9,6 +9,18 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Conversor JPA que serializa/deserializa {@code List<String>} como texto JSON
+ * en columnas {@code TEXT} de PostgreSQL.
+ * <p>
+ * Empleado en entidades donde se almacenan listas cortas de cadenas (etiquetas,
+ * categorías, permisos ad-hoc) sin necesidad de una tabla de relación. Ante errores
+ * de deserialización retorna lista vacía para garantizar robustez.
+ * </p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Converter
 public class StringListConverter implements AttributeConverter<List<String>, String> {
 

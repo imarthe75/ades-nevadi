@@ -8,6 +8,16 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 
+/**
+ * Caso de uso: cambios de grupo y bajas/traslados de alumnos entre planteles.
+ * Implementa {@link RegistrarCambioGrupoUseCase} y {@link RegistrarBajaUseCase}
+ * coordinando el dominio de movilidad con el puerto de repositorio, validando
+ * capacidad de grupos destino, gestionando inscripciones y activando o
+ * desactivando alumnos según el tipo de baja registrado.
+ *
+ * @author ADES
+ * @since 2026
+ */
 public class MovilidadApplicationService
         implements RegistrarCambioGrupoUseCase, RegistrarBajaUseCase {
 

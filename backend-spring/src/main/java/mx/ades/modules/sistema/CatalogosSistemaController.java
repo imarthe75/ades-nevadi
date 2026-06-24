@@ -15,6 +15,22 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.*;
 
+/**
+ * Adaptador REST para la administración de catálogos y variables del sistema.
+ * Expone endpoints bajo /api/v1 en dos secciones:
+ * <ul>
+ *   <li>/catalogos — CRUD de catálogos genéricos y sus ítems con reordenamiento;
+ *       todas las mutaciones requieren nivelAcceso=1 (AdminSistema).</li>
+ *   <li>/config/variables — gestión de variables de sistema tipadas por grupo (STRING,
+ *       INTEGER, JSON, BOOLEAN); las lecturas requieren AdminSistema, excepto
+ *       /config/public que expone un subconjunto no-encriptado sin autenticación.</li>
+ * </ul>
+ * Implementa optimistic locking vía {@code rowVersion} en actualizaciones.
+ * Requiere JWT válido en todos los endpoints excepto /config/public.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @RestController
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor

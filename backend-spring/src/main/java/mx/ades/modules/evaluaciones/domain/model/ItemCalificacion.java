@@ -3,6 +3,14 @@ package mx.ades.modules.evaluaciones.domain.model;
 import java.math.BigDecimal;
 import java.util.UUID;
 
+/**
+ * Valor de objeto que encapsula la calificación de un estudiante para una actividad evaluable.
+ * <p>La calificación no puede ser negativa. Se verifica opcionalmente contra el puntaje máximo
+ * configurado en la tarea mediante {@link #excedePuntajeMaximo}.</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 public record ItemCalificacion(UUID estudianteId, BigDecimal calificacion, String comentario) {
 
     public ItemCalificacion {

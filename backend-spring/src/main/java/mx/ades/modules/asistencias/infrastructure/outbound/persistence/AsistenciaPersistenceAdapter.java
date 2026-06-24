@@ -11,6 +11,16 @@ import java.sql.PreparedStatement;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Adaptador de persistencia que implementa {@link AsistenciaRepositoryPort} accediendo
+ * a la tabla {@code ades_asistencias} vía JPA y JDBC.
+ *
+ * <p>El método {@code guardarMasivo} utiliza {@code batchUpdate} con upsert para
+ * garantizar idempotencia en registros duplicados de la misma clase y estudiante.</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Component
 @RequiredArgsConstructor
 public class AsistenciaPersistenceAdapter implements AsistenciaRepositoryPort {

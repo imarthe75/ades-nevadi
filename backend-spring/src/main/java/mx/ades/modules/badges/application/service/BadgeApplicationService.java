@@ -9,6 +9,16 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Caso de uso: gestión del sistema de insignias (badges) para alumnos.
+ * Implementa {@link CrearBadgeUseCase}, {@link OtorgarBadgeUseCase},
+ * {@link RevocarBadgeUseCase} y {@link AutoEvaluarBadgesUseCase} coordinando
+ * el dominio de reconocimientos con el puerto de repositorio, incluyendo
+ * evaluación automática por métricas de asistencia, promedio y conducta.
+ *
+ * @author ADES
+ * @since 2026
+ */
 public class BadgeApplicationService
         implements CrearBadgeUseCase, OtorgarBadgeUseCase, RevocarBadgeUseCase, AutoEvaluarBadgesUseCase {
 

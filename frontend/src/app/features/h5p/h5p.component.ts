@@ -56,6 +56,11 @@ interface H5PResultado {
 
 type TabKey = 'biblioteca' | 'mis-resultados';
 
+/**
+ * Módulo de contenido educativo interactivo H5P.
+ * Embebe actividades H5P servidas por el servidor Node.js en el puerto 8091.
+ * Muestra biblioteca de contenidos y resultados del alumno en pestañas separadas.
+ */
 @Component({
   selector: 'app-h5p',
   standalone: true,

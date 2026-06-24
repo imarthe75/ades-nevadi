@@ -10,6 +10,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Servicio de lectura CQRS para el módulo grupos.
+ * Provee listado y detalle de grupos escolares con joins a grado, nivel, plantel y ciclo.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Service
 public class GrupoQueryService {
 

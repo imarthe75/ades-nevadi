@@ -26,6 +26,11 @@ interface ValidacionResult {
   };
 }
 
+/**
+ * Diálogo de confirmación y ejecución del cierre de período en el gradebook.
+ * Operación irreversible: congela calificaciones del período y dispara el cálculo
+ * de promedios finales. Requiere nivelAcceso 4 (AdminPlantel) o superior.
+ */
 @Component({
   selector: 'app-cierre-periodo',
   standalone: true,

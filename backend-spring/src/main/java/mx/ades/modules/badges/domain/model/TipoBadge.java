@@ -2,6 +2,15 @@ package mx.ades.modules.badges.domain.model;
 
 import java.util.Arrays;
 
+/**
+ * Tipo de dominio que representa la categoría de un badge estudiantil.
+ *
+ * <p>Valores posibles: {@code ACADEMICO}, {@code CONDUCTA}, {@code ASISTENCIA},
+ * {@code PARTICIPACION}, {@code LIDERAZGO}, {@code ESPECIAL}.</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 public enum TipoBadge {
     ACADEMICO, CONDUCTA, ASISTENCIA, PARTICIPACION, LIDERAZGO, ESPECIAL;
 

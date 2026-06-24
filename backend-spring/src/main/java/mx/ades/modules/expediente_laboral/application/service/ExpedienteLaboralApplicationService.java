@@ -8,6 +8,16 @@ import mx.ades.modules.expediente_laboral.domain.port.out.ExpedienteLaboralRepos
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Caso de uso: creación y mantenimiento del expediente laboral del personal.
+ * Implementa {@link CrearExpedienteLaboralUseCase}, {@link ActualizarExpedienteLaboralUseCase}
+ * y {@link AgregarDocumentoLaboralUseCase} coordinando el dominio de RRHH con
+ * el puerto de repositorio, gestionando los documentos digitalizados del personal
+ * docente y administrativo de los tres planteles.
+ *
+ * @author ADES
+ * @since 2026
+ */
 public class ExpedienteLaboralApplicationService
         implements CrearExpedienteLaboralUseCase, ActualizarExpedienteLaboralUseCase, AgregarDocumentoLaboralUseCase {
 

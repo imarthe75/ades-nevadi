@@ -1,3 +1,10 @@
+"""Schemas Pydantic para el dominio de Personas en ADES.
+
+Contiene datos PII protegidos bajo LFPDPPP: alumnos, docentes, contactos
+familiares y usuarios del sistema. Todos los campos de identificación
+(CURP, RFC, NSS, CLABE) se validan en el backend antes de persistirse.
+Los schemas siguen el patrón Base/Create/Update/Out para cada entidad.
+"""
 from __future__ import annotations
 import uuid
 from datetime import date, datetime
@@ -9,6 +16,7 @@ from .base import AdesSchema, AdesResponse
 # ── Persona ───────────────────────────────────────────────────────────────────
 
 class PersonaBase(AdesSchema):
+    """Datos personales comunes a alumnos, docentes y personal (PII — LFPDPPP)."""
     nombre: str = Field(min_length=1, max_length=100)
     apellido_paterno: str = Field(min_length=1, max_length=100)
     apellido_materno: str | None = None
@@ -43,10 +51,11 @@ class PersonaBase(AdesSchema):
 
 
 class PersonaCreate(PersonaBase):
-    pass
+    """Body para registrar una nueva persona en el sistema."""
 
 
 class PersonaUpdate(AdesSchema):
+    """Campos actualizables de una persona (CURP es inmutable tras creación)."""
     nombre: str | None = Field(None, min_length=1, max_length=100)
     apellido_paterno: str | None = Field(None, min_length=1, max_length=100)
     apellido_materno: str | None = None
@@ -61,6 +70,12 @@ class PersonaUpdate(AdesSchema):
 
 
 class PersonaOut(AdesResponse, PersonaBase):
+    """Respuesta de una persona con nombre_completo calculado.
+
+    CURP se relaja a opcional para no romper registros legacy o seeds con
+    datos incompletos.
+    """
+
     # En salida relajamos curp para no romper registros con datos legacy o seeds
     curp: str | None = Field(None, max_length=18)
     nombre_completo: str = ""
@@ -89,6 +104,8 @@ class EstudianteDatosComplementarios(AdesSchema):
 
 
 class ExpedienteMedicoOut(AdesSchema):
+    """Resumen del expediente médico de un estudiante (datos sensibles LFPDPPP)."""
+
     estudiante_id: uuid.UUID
     tipo_sangre: str | None = None
     alergias: str | None = None
@@ -105,6 +122,8 @@ class ExpedienteMedicoOut(AdesSchema):
 
 
 class ExpedienteMedicoUpdate(AdesSchema):
+    """Campos actualizables del expediente médico (todos opcionales)."""
+
     tipo_sangre: str | None = None
     alergias: str | None = None
     medicamentos_autorizados: str | None = None
@@ -120,18 +139,24 @@ class ExpedienteMedicoUpdate(AdesSchema):
 
 
 class EstudianteCreate(AdesSchema):
+    """Body para dar de alta un nuevo estudiante con sus datos personales."""
+
     persona: PersonaCreate
     plantel_id: uuid.UUID
     fecha_ingreso: date | None = None
 
 
 class EstudianteUpdate(AdesSchema):
+    """Campos actualizables de un estudiante (persona, fecha de ingreso, complementarios)."""
+
     persona: PersonaUpdate | None = None
     fecha_ingreso: date | None = None
     complementarios: EstudianteDatosComplementarios | None = None
 
 
 class EstudianteOut(AdesResponse):
+    """Respuesta completa de un estudiante con datos personales y complementarios académicos."""
+
     matricula: str
     plantel_id: uuid.UUID
     fecha_ingreso: date | None
@@ -152,6 +177,8 @@ class EstudianteOut(AdesResponse):
 # ── Inscripción ───────────────────────────────────────────────────────────────
 
 class InscripcionCreate(AdesSchema):
+    """Body para inscribir un estudiante a un grupo en un ciclo escolar."""
+
     estudiante_id: uuid.UUID
     grupo_id: uuid.UUID
     ciclo_escolar_id: uuid.UUID
@@ -159,6 +186,8 @@ class InscripcionCreate(AdesSchema):
 
 
 class InscripcionOut(AdesResponse):
+    """Respuesta de la inscripción de un estudiante a un grupo/ciclo."""
+
     estudiante_id: uuid.UUID
     grupo_id: uuid.UUID
     ciclo_escolar_id: uuid.UUID
@@ -182,6 +211,8 @@ class ProfesorDatosLaborales(AdesSchema):
 
 
 class ProfesorCreate(AdesSchema):
+    """Body para dar de alta un nuevo docente con sus datos personales y número de empleado."""
+
     persona: PersonaCreate
     plantel_id: uuid.UUID
     numero_empleado: str
@@ -189,11 +220,15 @@ class ProfesorCreate(AdesSchema):
 
 
 class ProfesorUpdate(AdesSchema):
+    """Campos actualizables de un docente (persona y datos laborales)."""
+
     persona: PersonaUpdate | None = None
     laborales: ProfesorDatosLaborales | None = None
 
 
 class ProfesorOut(AdesResponse):
+    """Respuesta completa de un docente con datos personales y laborales."""
+
     numero_empleado: str
     plantel_id: uuid.UUID
     tipo_contrato: str | None
@@ -213,6 +248,8 @@ class ProfesorOut(AdesResponse):
 # ── Contacto de Emergencia ─────────────────────────────────────────────────────
 
 class ContactoCreate(AdesSchema):
+    """Body para registrar un contacto de emergencia o tutor legal de un estudiante."""
+
     persona_id: uuid.UUID
     nombre_completo: str = Field(min_length=2, max_length=200)
     parentesco: str | None = None
@@ -227,6 +264,8 @@ class ContactoCreate(AdesSchema):
 
 
 class ContactoUpdate(AdesSchema):
+    """Campos actualizables de un contacto de emergencia (todos opcionales)."""
+
     nombre_completo: str | None = Field(None, min_length=2, max_length=200)
     parentesco: str | None = None
     telefono: str | None = None
@@ -240,6 +279,8 @@ class ContactoUpdate(AdesSchema):
 
 
 class ContactoOut(AdesResponse):
+    """Respuesta de un contacto de emergencia con parentesco y datos de comunicación."""
+
     persona_id: uuid.UUID
     nombre_completo: str
     parentesco: str | None
@@ -256,6 +297,8 @@ class ContactoOut(AdesResponse):
 # ── Usuario ───────────────────────────────────────────────────────────────────
 
 class UsuarioOut(AdesResponse):
+    """Respuesta de un usuario del sistema con su persona y rol asociados."""
+
     nombre_usuario: str
     email_institucional: str
     persona_id: uuid.UUID

@@ -1,3 +1,14 @@
+-- =============================================================================
+-- Migración: 20260613_0001_validation_indexes.sql
+-- Descripción: Agrega índices únicos condicionales para evitar duplicados de
+--              RFC en ades_personas y de CURP/RFC en ades_expediente_laboral,
+--              restringidos a registros activos (is_active = TRUE) y no nulos.
+-- Tablas afectadas: ades_personas, ades_expediente_laboral
+-- Dependencias: tablas ades_personas y ades_expediente_laboral existentes
+-- Autor: ADES
+-- Fecha: 2026-06
+-- =============================================================================
+
 /*
  * by Antigravity
  * Fecha: 2026-06-13

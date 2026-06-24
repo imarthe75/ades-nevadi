@@ -21,6 +21,26 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Inicializador de contexto de Spring que carga secretos desde HashiCorp Vault
+ * antes de que se resuelvan las propiedades de {@code application.properties}.
+ * <p>
+ * Se ejecuta en la fase más temprana del arranque (como
+ * {@link org.springframework.context.ApplicationContextInitializer}), permitiendo
+ * inyectar credenciales de PostgreSQL, Valkey, MinIO/SeaweedFS y el
+ * {@code OIDC_CLIENT_SECRET} de Authentik directamente en el entorno de Spring,
+ * sin exponer secretos en el sistema de archivos ni en variables de entorno del
+ * contenedor.
+ * </p>
+ * <p>
+ * Si {@code VAULT_TOKEN} no está disponible (ni en variable de entorno ni en
+ * {@code /vault/init/root_token.txt}), la inicialización se omite silenciosamente
+ * y Spring usa los valores de {@code application.properties} / {@code .env}.
+ * </p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 public class VaultInitializer implements ApplicationContextInitializer<ConfigurableApplicationContext> {
 
     private static final Logger logger = LoggerFactory.getLogger(VaultInitializer.class);

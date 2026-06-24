@@ -3,6 +3,14 @@ package mx.ades.modules.gradebook.domain.port.in;
 import java.util.Set;
 import java.util.UUID;
 
+/**
+ * Puerto de entrada: contrato para cerrar definitivamente una calificación de periodo.
+ * Solo puede ser ejecutado por roles autorizados: ADMIN_GLOBAL, ADMIN_PLANTEL,
+ * DIRECTOR o COORDINADOR_ACADEMICO.
+ *
+ * @author ADES
+ * @since 2026
+ */
 public interface CerrarCalificacionUseCase {
 
     Set<String> ROLES_AUTORIZADOS = Set.of(

@@ -31,6 +31,11 @@ interface AlumnoResumen {
   learning_paths: { nombre: string; pct_completado: number; estatus: string }[];
 }
 
+/**
+ * Portal institucional de comunicación para alumnos y comunidad escolar.
+ * Muestra avisos, noticias y recursos publicados por la administración del plantel.
+ * Accesible para todos los roles autenticados.
+ */
 @Component({
   selector: 'app-portal',
   standalone: true,

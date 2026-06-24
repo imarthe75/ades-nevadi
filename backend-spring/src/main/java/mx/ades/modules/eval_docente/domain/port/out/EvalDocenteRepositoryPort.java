@@ -8,6 +8,14 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Puerto de salida: contrato de persistencia para evaluaciones docentes 360°.
+ * <p>Cubre {@code ades_evaluacion_docente}, {@code ades_eval_docente_criterios}
+ * y {@code ades_criterios_eval_docente}. Incluye recálculo ponderado de calificación global.</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 public interface EvalDocenteRepositoryPort {
     UUID insertEvaluacion(CrearEvaluacionUseCase.Command cmd);
     Map<String, Object> fetchEvaluacion(UUID evalId);

@@ -60,6 +60,13 @@ const ESTADO_SEV: Record<string, string> = {
   CANCELADA: 'danger',
 };
 
+/**
+ * Módulo de videoconferencias mediante BigBlueButton (BBB).
+ * Permite crear, listar y gestionar reuniones (clases, tutorías, reuniones de
+ * padres, capacitaciones) y acceder a grabaciones. La unión a una reunión abre
+ * el cliente BBB en una nueva pestaña usando la URL firmada con SHA-1 devuelta
+ * por el BFF. Requiere nivelAcceso ≥ 3; la creación de reuniones requiere ≥ 4.
+ */
 @Component({
   selector: 'app-bbb',
   standalone: true,

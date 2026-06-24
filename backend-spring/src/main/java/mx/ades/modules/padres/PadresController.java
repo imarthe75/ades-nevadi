@@ -13,6 +13,17 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.*;
 
+/**
+ * Adaptador REST para el portal de padres/tutores (nivelAcceso=2).
+ * Expone endpoints bajo /api/v1/padres para que un padre o tutor autenticado consulte
+ * la lista de sus alumnos vinculados y las calificaciones de un alumno específico.
+ * Implementa validación IDOR: si el usuario tiene personaId y nivelAcceso &gt; 3,
+ * verifica que sea contacto registrado del alumno antes de devolver calificaciones (HTTP 403 si no).
+ * Requiere JWT válido en todos los endpoints.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @RestController
 @RequestMapping("/api/v1/padres")
 @RequiredArgsConstructor

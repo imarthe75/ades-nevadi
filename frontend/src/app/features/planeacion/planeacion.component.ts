@@ -50,6 +50,11 @@ const ESTADO_SEV: Record<string, TagSeverity> = {
   PENDIENTE: 'secondary',
 };
 
+/**
+ * Módulo de planeación didáctica docente.
+ * Permite a los docentes crear y gestionar planes de clase alineados a los
+ * temarios SEP/UAEMEX, con seguimiento de avance por grupo y materia.
+ */
 @Component({
   selector: 'app-planeacion',
   standalone: true,

@@ -8,6 +8,13 @@ import org.springframework.stereotype.Component;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Adaptador JPA que implementa {@link MateriaRepositoryPort}.
+ * Delega en el repositorio Spring Data de Materia.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Component
 public class MateriaPersistenceAdapter implements MateriaRepositoryPort {
 

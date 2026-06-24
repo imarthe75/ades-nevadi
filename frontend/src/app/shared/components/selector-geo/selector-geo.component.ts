@@ -7,6 +7,12 @@ import { ButtonModule } from 'primeng/button';
 import { TooltipModule } from 'primeng/tooltip';
 import { ApiService } from '../../../core/services/api.service';
 
+/**
+ * Componente compartido de selección de domicilio con cascada SEPOMEX.
+ * Implementa la cascada Estado→Municipio→Colonia usando datos del catálogo
+ * postal almacenado en `public.ades_*` (no el schema sepomex legacy).
+ * Emite el objeto dirección completo al componente padre vía Output.
+ */
 @Component({
   selector: 'app-selector-geo',
   standalone: true,

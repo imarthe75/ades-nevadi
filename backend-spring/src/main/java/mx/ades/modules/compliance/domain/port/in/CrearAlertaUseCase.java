@@ -4,6 +4,13 @@ import mx.ades.modules.compliance.domain.model.SeveridadAlerta;
 
 import java.util.UUID;
 
+/**
+ * Puerto de entrada: contrato para crear una alerta de cumplimiento en el módulo compliance.
+ * <p>Requiere nivel de acceso 3 o inferior (Director o superior).</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 public interface CrearAlertaUseCase {
 
     record Command(String tipoAlerta, String descripcion, UUID alumnoId, UUID plantelId,

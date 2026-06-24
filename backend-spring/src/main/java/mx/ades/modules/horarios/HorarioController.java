@@ -21,6 +21,17 @@ import org.springframework.web.server.ResponseStatusException;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
+/**
+ * Adaptador REST para la gestión de horarios escolares con integración aSc TimeTables.
+ * Expone endpoints bajo /api/v1/horarios para consultar horarios por grupo o profesor,
+ * crear, actualizar y eliminar bloques horarios individuales, y realizar el round-trip
+ * completo de export/import XML con aSc TimeTables (XXE-hardened, límite 10 MB).
+ * La exportación acota el plantel para no-admins (anti cross-plantel); la importación
+ * requiere nivel de acceso &le;3 (Coordinador o superior). Requiere JWT en todos los endpoints.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @RestController
 @RequestMapping("/api/v1/horarios")
 @RequiredArgsConstructor

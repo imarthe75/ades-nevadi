@@ -10,6 +10,16 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.UUID;
 
+/**
+ * Caso de uso: gestión de condiciones crónicas de salud de los alumnos.
+ * Implementa {@link RegistrarCondicionUseCase}, {@link ActualizarCondicionUseCase}
+ * y {@link EliminarCondicionUseCase} coordinando el dominio de salud estudiantil
+ * con el puerto de repositorio, controlando acceso por nivel para proteger
+ * datos médicos sensibles (LFPDPPP).
+ *
+ * @author ADES
+ * @since 2026
+ */
 public class CondicionCronicaApplicationService
         implements RegistrarCondicionUseCase, ActualizarCondicionUseCase, EliminarCondicionUseCase {
 

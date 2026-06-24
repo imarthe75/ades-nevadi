@@ -11,6 +11,14 @@ import org.springframework.stereotype.Component;
 import java.time.LocalDate;
 import java.util.UUID;
 
+/**
+ * Adaptador JDBC que implementa {@link ComplianceRepositoryPort}.
+ * <p>Persiste normativas en {@code ades_normatividad}, retenciones en {@code ades_retenciones}
+ * y alertas de cumplimiento en {@code ades_alertas_cumplimiento}.</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Component
 @RequiredArgsConstructor
 public class CompliancePersistenceAdapter implements ComplianceRepositoryPort {

@@ -7,6 +7,15 @@ import mx.ades.modules.esquemas_ponderacion.domain.port.out.EsquemaRepositoryPor
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Caso de uso: creación y actualización de esquemas de ponderación de calificaciones.
+ * Implementa {@link CrearEsquemaUseCase} y {@link ActualizarEsquemaUseCase}
+ * coordinando el dominio de esquemas con el puerto de repositorio, gestionando
+ * atómicamente la cabecera del esquema y sus ítems de ponderación por tipo de actividad.
+ *
+ * @author ADES
+ * @since 2026
+ */
 public class EsquemaApplicationService implements CrearEsquemaUseCase, ActualizarEsquemaUseCase {
 
     private final EsquemaRepositoryPort repository;

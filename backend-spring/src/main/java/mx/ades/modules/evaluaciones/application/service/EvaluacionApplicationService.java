@@ -12,6 +12,16 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 
+/**
+ * Caso de uso: asignación de aula/hora a exámenes y calificación masiva de evaluaciones.
+ * Implementa {@link AsignarAulaHoraUseCase} y {@link CalificarEvaluacionMasivoUseCase}
+ * coordinando el dominio de evaluaciones con los puertos de repositorio de aula
+ * y calificación, publicando eventos de dominio para notificaciones downstream.
+ * Aplica a los tres niveles educativos: Primaria NEM, Secundaria NEM y Preparatoria UAEMEX.
+ *
+ * @author ADES
+ * @since 2026
+ */
 public class EvaluacionApplicationService
         implements AsignarAulaHoraUseCase, CalificarEvaluacionMasivoUseCase {
 

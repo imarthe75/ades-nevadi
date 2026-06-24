@@ -15,6 +15,14 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDate;
 import java.util.UUID;
 
+/**
+ * Adaptador JPA que implementa {@code SancionRepositoryPort}.
+ * <p>Persiste sanciones en {@code ades_sanciones_disciplinarias} y actualiza el campo
+ * {@code requiere_seguimiento} del reporte de conducta asociado en {@code ades_reportes_conducta}.</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Component
 @RequiredArgsConstructor
 public class SancionPersistenceAdapter implements SancionRepositoryPort {

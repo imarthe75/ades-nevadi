@@ -16,6 +16,16 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Caso de uso: creación, acuse de recibo y programación recurrente de comunicados escolares.
+ * Implementa {@link CrearComunicadoUseCase}, {@link AcusarComunicadoUseCase}
+ * y {@link ProgramarSiguienteUseCase} coordinando el dominio de comunicados con
+ * el puerto de repositorio y el servicio de notificaciones push (ntfy),
+ * con soporte para comunicados urgentes, recurrentes y segmentados por grupo/nivel/plantel.
+ *
+ * @author ADES
+ * @since 2026
+ */
 public class ComunicadoApplicationService
         implements CrearComunicadoUseCase, AcusarComunicadoUseCase, ProgramarSiguienteUseCase {
 

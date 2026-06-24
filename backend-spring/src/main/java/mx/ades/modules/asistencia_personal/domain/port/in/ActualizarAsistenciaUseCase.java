@@ -6,6 +6,16 @@ import java.time.LocalTime;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Puerto de entrada: define el contrato para actualizar (PATCH) un registro de asistencia
+ * del personal en el dominio de asistencia_personal.
+ *
+ * <p>Solo usuarios con {@code nivelAcceso <= 3} (Coordinador o superior) pueden
+ * justificar asistencias.</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 public interface ActualizarAsistenciaUseCase {
 
     record Patch(LocalTime horaEntrada, LocalTime horaSalida, TipoJornada tipoJornada,

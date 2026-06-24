@@ -12,6 +12,17 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Adaptador de salida HTTP que implementa {@link CertificadoFastApiPort} proxeando
+ * las solicitudes de certificados al servicio FastAPI en
+ * {@code http://ades-api:8000/api/v1/certificados} usando {@code RestClient}.
+ *
+ * <p>Propaga headers de respuesta del FastAPI ({@code X-Folio}, {@code X-Certificado-Id},
+ * {@code X-Estado-Firma}) para que el cliente los pueda leer directamente.</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Component
 public class CertificadoFastApiAdapter implements CertificadoFastApiPort {
 

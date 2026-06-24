@@ -8,6 +8,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Servicio de consulta (lado lectura CQRS) para el módulo calificaciones.
+ *
+ * <p>Provee el listado de períodos de evaluación ({@code ades_periodos_evaluacion})
+ * con filtro opcional por ciclo escolar.</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Service
 @RequiredArgsConstructor
 public class CalificacionesQueryService {

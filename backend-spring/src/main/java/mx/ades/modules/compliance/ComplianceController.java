@@ -21,6 +21,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Adaptador REST para el módulo de cumplimiento normativo institucional.
+ * Expone endpoints bajo /api/v1/compliance para gestión de normatividad SEP/UAEMEX,
+ * retenciones de alumnos, alertas de cumplimiento, historial de logins (auditoría
+ * de acceso) y estadísticas de sistema. El historial de logins requiere
+ * nivelAcceso {@literal <=} 2 (ADMIN). Las estadísticas y las alertas requieren
+ * nivelAcceso {@literal <=} 3 (Director). Las alertas tienen severidades
+ * LEVE/MEDIA/GRAVE. Cumple con LFPDPPP para protección de datos personales.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @RestController
 @RequestMapping("/api/v1/compliance")
 @RequiredArgsConstructor

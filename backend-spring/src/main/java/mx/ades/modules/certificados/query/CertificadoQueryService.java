@@ -8,6 +8,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Servicio de consulta (lado lectura CQRS) para el módulo certificados.
+ *
+ * <p>Provee listado de certificados emitidos con metadatos de firma digital, estado
+ * blockchain y datos del alumno, con filtros por estudiante y tipo de certificado.</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Service
 public class CertificadoQueryService {
 

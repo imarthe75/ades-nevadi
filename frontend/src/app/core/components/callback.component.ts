@@ -3,6 +3,12 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
 
+/**
+ * Maneja el redirect de retorno del flujo OIDC Authorization Code desde Authentik.
+ * Lee el parámetro `code` de la URL, lo intercambia por tokens vía AuthService
+ * y redirige al dashboard. Muestra un spinner durante el proceso y un mensaje
+ * de error si Authentik devuelve `error` en los query params o si el intercambio falla.
+ */
 @Component({
   selector: 'app-callback',
   standalone: true,

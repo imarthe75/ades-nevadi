@@ -9,6 +9,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Servicio de consulta (lado lectura CQRS) para el módulo admin.
+ *
+ * <p>Provee lecturas de ciclos, usuarios, grupos, roles, menús y permisos por rol,
+ * incluyendo operaciones de upsert sobre la tabla {@code ades_menu_roles}.</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Service
 public class AdminQueryService {
 

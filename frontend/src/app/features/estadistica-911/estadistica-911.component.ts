@@ -41,6 +41,14 @@ const BUCKETS: Record<string, { base: number; tope: number }> = {
   SECUNDARIA: { base: 11, tope: 17 },   // «Menos de 11» … 11-17 … «18 y más»
 };
 
+/**
+ * Generación del Reporte 911 de la SEP México para Primaria y Secundaria.
+ * Construye la matriz oficial edad×grado×sexo×tipo_ingreso y la Sección IX
+ * de discapacidad. Los rangos de edad siguen las cubetas oficiales del formato
+ * vigente (Primaria 6-14, Secundaria 11-17). Permite exportar a XLSX con la
+ * estructura requerida para captura en la plataforma estadística de la SEP.
+ * Requiere nivelAcceso ≥ 4 (AdminPlantel o AdminSistema).
+ */
 @Component({
   selector: 'app-estadistica-911',
   standalone: true,

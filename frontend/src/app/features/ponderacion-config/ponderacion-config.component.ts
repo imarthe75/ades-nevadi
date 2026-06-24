@@ -17,6 +17,12 @@ interface EsquemaRow { id: string; nombre: string; nombre_nivel: string; materia
                         es_nee: boolean; items: ItemRow[]; }
 interface ItemRow    { tipo_item: string; nombre_personalizado: string | null; peso_porcentaje: number; orden_display: number; }
 
+/**
+ * Configuración de ponderación de evaluaciones para el gradebook.
+ * Permite definir el peso porcentual de cada tipo de ítem evaluativo
+ * (tareas, exámenes, proyectos, participación) por materia y período.
+ * Requiere nivelAcceso 4 (AdminPlantel) o superior.
+ */
 @Component({
   selector: 'app-ponderacion-config',
   standalone: true,

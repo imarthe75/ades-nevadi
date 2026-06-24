@@ -7,6 +7,15 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Puerto de salida: define el contrato de persistencia para la entidad
+ * {@code CapacitacionDocente} en la tabla {@code ades_capacitaciones_docente}.
+ *
+ * <p>Incluye listado filtrado y resumen agregado por docente.</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 public interface CapacitacionRepositoryPort {
 
     CapacitacionDocente save(CapacitacionDocente cap);

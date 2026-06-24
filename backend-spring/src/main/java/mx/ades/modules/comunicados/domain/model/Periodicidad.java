@@ -2,6 +2,14 @@ package mx.ades.modules.comunicados.domain.model;
 
 import java.time.LocalDateTime;
 
+/**
+ * Clasificación de la frecuencia de envío de comunicados recurrentes.
+ * <p>Valores: DIARIA, SEMANAL, QUINCENAL, MENSUAL (default), TRIMESTRAL.
+ * Cada constante implementa {@code calcularSiguiente} para derivar la próxima fecha de envío.</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 public enum Periodicidad {
     DIARIA {
         @Override public LocalDateTime calcularSiguiente(LocalDateTime base) { return base.plusDays(1); }

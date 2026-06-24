@@ -15,6 +15,18 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Adaptador de persistencia que implementa {@link BibliotecaRepositoryPort} accediendo
+ * a las tablas {@code ades_biblioteca_libros} y {@code ades_biblioteca_prestamos}
+ * vía JPA y JDBC.
+ *
+ * <p>El método {@code tomarEjemplar} realiza el decremento atómico del stock con
+ * guardián de concurrencia ({@code ejemplares_disponibles > 0}) para prevenir préstamos
+ * cuando no hay ejemplares.</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Component
 @RequiredArgsConstructor
 public class BibliotecaPersistenceAdapter implements BibliotecaRepositoryPort {

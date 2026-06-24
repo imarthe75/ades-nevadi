@@ -43,6 +43,14 @@ Cuando analices datos académicos, proporciona insights específicos y sugerenci
 
 
 class MensajeChat(BaseModel):
+    """Representa el esquema de entrada para un mensaje enviado al asistente de chat IA.
+
+    Attributes:
+        sesion_id: Identificador único de la sesión de conversación, autogenerado si no se provee.
+        mensaje: El contenido del mensaje enviado por el usuario (máx 4000 caracteres).
+        historial: Lista de mensajes previos en la conversación para mantener el contexto.
+        contexto: Datos contextuales del entorno escolar (plantel, ciclo, grupo, etc.).
+    """
     sesion_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     mensaje: str = Field(min_length=1, max_length=4000)
     historial: list[dict] = []  # [{role: "user"|"assistant", content: "..."}]
@@ -50,6 +58,20 @@ class MensajeChat(BaseModel):
 
 
 class AlertaOut(BaseModel):
+    """Representa el esquema de salida de una alerta académica activa.
+
+    Attributes:
+        id: Identificador único de la alerta.
+        estudiante_id: Identificador del estudiante asociado a la alerta.
+        grupo_id: Identificador del grupo del estudiante.
+        tipo_alerta: Tipo de alerta (ej: RIESGO_REPROBACION, AUSENTISMO).
+        nivel_riesgo: Nivel de riesgo asignado (Bajo, Medio, Alto, Crítico).
+        descripcion: Detalle explicativo de la condición que disparó la alerta.
+        datos_calculo: Datos intermedios de calificaciones o asistencia en formato JSON.
+        generada_por: Entidad que generó la alerta (SISTEMA, MANUAL).
+        atendida: Estado de atención de la alerta.
+        fecha_creacion: Fecha de creación en formato ISO string.
+    """
     id: uuid.UUID
     estudiante_id: uuid.UUID
     grupo_id: uuid.UUID
@@ -74,7 +96,18 @@ async def chat(
     current_user: AdesUser = Depends(get_ades_user),
     llm: LLMService = Depends(get_llm_service),
 ):
-    """Envía un mensaje al asistente pedagógico y devuelve la respuesta."""
+    """Envía un mensaje al asistente pedagógico de ADES y devuelve la respuesta generada.
+
+    Args:
+        data: Objeto con el mensaje, el historial previo y el contexto de ejecución.
+        db: Sesión asíncrona de base de datos para persistir el mensaje.
+        current_user: Usuario autenticado actual.
+        llm: Servicio de acceso al Large Language Model.
+
+    Returns:
+        Un diccionario que contiene la respuesta textual, el identificador de sesión
+        y las estadísticas de consumo de tokens.
+    """
     # Construir historial de mensajes
     messages = [{"role": "system", "content": SYSTEM_PROMPT}]
 
@@ -138,6 +171,18 @@ async def listar_alertas(
     db: AsyncSession = Depends(get_db),
     _user: dict = Depends(get_current_user),
 ):
+    """Obtiene el listado de alertas académicas de estudiantes filtradas por grupo y estado de atención.
+
+    Args:
+        plantel_id: Identificador opcional del plantel para filtrar.
+        grupo_id: Identificador opcional del grupo escolar.
+        atendida: Estado de atención de la alerta (por defecto False).
+        db: Sesión asíncrona de base de datos.
+        _user: Diccionario con la información del usuario autenticado.
+
+    Returns:
+        Una lista de objetos de tipo AlertaOut con las alertas coincidentes.
+    """
     from sqlalchemy import text
     where = ["is_active = TRUE", "atendida = :atendida"]
     params: dict = {"atendida": atendida}
@@ -163,7 +208,15 @@ async def resumen_alertas(
     db: AsyncSession = Depends(get_db),
     _user: dict = Depends(get_current_user),
 ):
-    """Conteo de alertas activas agrupadas por tipo y nivel de riesgo."""
+    """Obtiene el conteo total de alertas no atendidas y activas agrupadas por tipo y nivel de riesgo.
+
+    Args:
+        db: Sesión asíncrona de base de datos.
+        _user: Información del usuario autenticado.
+
+    Returns:
+        Una lista de diccionarios que representan los conteos por grupo de tipo/riesgo.
+    """
     from sqlalchemy import text
     rows = (await db.execute(text("""
         SELECT tipo_alerta, nivel_riesgo, COUNT(*) AS count
@@ -182,10 +235,23 @@ async def scan_alertas_grupo(
     db: AsyncSession = Depends(get_db),
     _user: dict = Depends(get_current_user),
 ):
-    """
-    Escanea el grupo y genera alertas automáticas para alumnos con:
-    - Promedio < 6.0 en alguna materia (RIESGO_REPROBACION)
-    - Promedio de asistencia < 80% (AUSENTISMO)
+    """Ejecuta un escaneo automático sobre un grupo escolar para detectar y generar alertas académicas.
+
+    Busca estudiantes con:
+    1. Promedio menor a 6.0 en cualquier materia (RIESGO_REPROBACION).
+    2. Porcentaje de asistencia menor al 80% (AUSENTISMO).
+
+    Args:
+        grupo_id: Identificador del grupo a escanear.
+        ciclo_id: Identificador del ciclo escolar (usa el vigente por defecto).
+        db: Sesión asíncrona de base de datos.
+        _user: Información del usuario autenticado.
+
+    Returns:
+        Un resumen indicando el número de alertas generadas y alumnos analizados.
+
+    Raises:
+        HTTPException: Si no se encuentra un ciclo escolar vigente.
     """
     from sqlalchemy import text
 
@@ -292,7 +358,16 @@ async def mis_sesiones(
     db: AsyncSession = Depends(get_db),
     current_user: AdesUser = Depends(get_ades_user),
 ):
-    """Lista las últimas sesiones de conversación del usuario autenticado."""
+    """Recupera la lista de sesiones de conversación IA guardadas del usuario autenticado.
+
+    Args:
+        limite: Número máximo de sesiones a retornar.
+        db: Sesión de base de datos.
+        current_user: Usuario actual autenticado.
+
+    Returns:
+        Lista de diccionarios con el resumen e identificador de cada sesión.
+    """
     from sqlalchemy import text
     rows = (await db.execute(
         text("""
@@ -328,7 +403,16 @@ async def obtener_sesion(
     db: AsyncSession = Depends(get_db),
     current_user: AdesUser = Depends(get_ades_user),
 ):
-    """Devuelve todos los mensajes de una sesión del usuario autenticado."""
+    """Devuelve la cronología completa de mensajes de una sesión específica del usuario.
+
+    Args:
+        sesion_id: Identificador de la sesión.
+        db: Sesión de base de datos.
+        current_user: Usuario actual autenticado.
+
+    Returns:
+        Un objeto que contiene el identificador de sesión y la lista ordenada de mensajes.
+    """
     from sqlalchemy import text
     rows = (await db.execute(
         text("""
@@ -360,7 +444,13 @@ async def eliminar_sesion(
     db: AsyncSession = Depends(get_db),
     current_user: AdesUser = Depends(get_ades_user),
 ):
-    """Elimina todos los mensajes de una sesión del usuario autenticado."""
+    """Elimina el historial de mensajes correspondiente a una sesión del usuario.
+
+    Args:
+        sesion_id: Identificador de la sesión a eliminar.
+        db: Sesión de base de datos.
+        current_user: Usuario actual autenticado.
+    """
     from sqlalchemy import text
     await db.execute(
         text("DELETE FROM ades_ai_conversaciones WHERE sesion_id = :sid AND usuario_id = :uid"),

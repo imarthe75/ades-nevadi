@@ -1,3 +1,11 @@
+"""Schemas Pydantic para operaciones de Fase 3 de ADES.
+
+Cubre entidades de infraestructura y bienestar escolar:
+aulas (físicas y especializadas), horarios de grupo/docente,
+disponibilidad docente, expediente médico e incidentes, y
+reportes de conducta (faltas LEVE/GRAVE/MUY_GRAVE).
+Utilizado principalmente por los módulos de horarios y salud del BFF.
+"""
 from __future__ import annotations
 import uuid
 from datetime import date, datetime, time
@@ -12,6 +20,8 @@ TIPO_AULA = Literal["AULA", "LABORATORIO", "COMPUTO", "CANCHA", "TALLER"]
 
 
 class AulaCreate(AdesSchema):
+    """Body para registrar un aula o espacio físico en un plantel."""
+
     nombre_aula: str = Field(min_length=1, max_length=50)
     plantel_id: uuid.UUID
     tipo_aula: TIPO_AULA = "AULA"
@@ -19,6 +29,8 @@ class AulaCreate(AdesSchema):
 
 
 class AulaOut(AdesResponse):
+    """Respuesta de un aula con su tipo y capacidad."""
+
     nombre_aula: str
     plantel_id: uuid.UUID
     tipo_aula: str
@@ -28,6 +40,8 @@ class AulaOut(AdesResponse):
 # ── Horarios ──────────────────────────────────────────────────────────────────
 
 class HorarioCreate(AdesSchema):
+    """Body para asignar un bloque horario a un grupo/materia/docente."""
+
     grupo_id: uuid.UUID
     materia_id: uuid.UUID
     profesor_id: uuid.UUID
@@ -40,6 +54,8 @@ class HorarioCreate(AdesSchema):
 
 
 class HorarioOut(AdesResponse):
+    """Respuesta de un bloque horario con campos enriquecidos de nombres."""
+
     grupo_id: uuid.UUID
     materia_id: uuid.UUID
     profesor_id: uuid.UUID
@@ -74,6 +90,8 @@ class HorarioSemanalProfesor(AdesSchema):
 # ── Disponibilidad Docente ────────────────────────────────────────────────────
 
 class DisponibilidadCreate(AdesSchema):
+    """Body para registrar la disponibilidad horaria semanal de un docente."""
+
     profesor_id: uuid.UUID
     dia_semana: int = Field(ge=1, le=5)
     hora_inicio: time
@@ -84,6 +102,8 @@ class DisponibilidadCreate(AdesSchema):
 
 
 class DisponibilidadOut(AdesResponse):
+    """Respuesta del bloque de disponibilidad de un docente."""
+
     profesor_id: uuid.UUID
     dia_semana: int
     hora_inicio: time
@@ -96,6 +116,8 @@ class DisponibilidadOut(AdesResponse):
 # ── Expediente Médico ─────────────────────────────────────────────────────────
 
 class ExpedienteCreate(AdesSchema):
+    """Body para crear el expediente médico inicial de un estudiante."""
+
     estudiante_id: uuid.UUID
     tipo_sangre: str | None = None
     alergias: str | None = None
@@ -105,6 +127,8 @@ class ExpedienteCreate(AdesSchema):
 
 
 class ExpedienteUpdate(AdesSchema):
+    """Campos actualizables del expediente médico (todos opcionales)."""
+
     tipo_sangre: str | None = None
     alergias: str | None = None
     medicamentos_autorizados: str | None = None
@@ -113,6 +137,8 @@ class ExpedienteUpdate(AdesSchema):
 
 
 class ExpedienteOut(AdesResponse):
+    """Respuesta del expediente médico de un estudiante (datos sensibles LFPDPPP)."""
+
     estudiante_id: uuid.UUID
     tipo_sangre: str | None
     alergias: str | None
@@ -124,6 +150,8 @@ class ExpedienteOut(AdesResponse):
 # ── Incidentes Médicos ────────────────────────────────────────────────────────
 
 class IncidenteCreate(AdesSchema):
+    """Body para registrar un incidente médico ocurrido en el plantel."""
+
     estudiante_id: uuid.UUID
     personal_salud_id: uuid.UUID | None = None
     descripcion: str = Field(min_length=5)
@@ -134,6 +162,8 @@ class IncidenteCreate(AdesSchema):
 
 
 class IncidenteOut(AdesResponse):
+    """Respuesta de un incidente médico con fecha y datos de seguimiento."""
+
     estudiante_id: uuid.UUID
     personal_salud_id: uuid.UUID | None
     fecha_incidente: datetime
@@ -150,6 +180,8 @@ TIPO_FALTA = Literal["LEVE", "GRAVE", "MUY_GRAVE"]
 
 
 class ConductaCreate(AdesSchema):
+    """Body para registrar un reporte de conducta contra un estudiante."""
+
     estudiante_id: uuid.UUID
     grupo_id: uuid.UUID
     reportado_por_id: uuid.UUID
@@ -161,6 +193,8 @@ class ConductaCreate(AdesSchema):
 
 
 class ConductaUpdate(AdesSchema):
+    """Campos actualizables de un reporte de conducta (seguimiento y cierre)."""
+
     medida_aplicada: str | None = None
     compromiso_mejora: str | None = None
     requiere_seguimiento: bool | None = None
@@ -168,6 +202,8 @@ class ConductaUpdate(AdesSchema):
 
 
 class ConductaOut(AdesResponse):
+    """Respuesta de un reporte de conducta con su estatus y compromisos."""
+
     estudiante_id: uuid.UUID
     grupo_id: uuid.UUID
     reportado_por_id: uuid.UUID

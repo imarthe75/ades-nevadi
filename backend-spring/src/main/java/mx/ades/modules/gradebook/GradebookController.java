@@ -16,6 +16,17 @@ import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 import java.util.*;
 
+/**
+ * Adaptador REST para el libro de calificaciones (gradebook) por período.
+ * Expone endpoints bajo /api/v1/gradebook para la tabla de calificaciones de grupo,
+ * boleta individual de alumno, concentrado de grupo, cobertura curricular, detección
+ * de inconsistencias, candidatos a extraordinario, ajustes manuales con justificación
+ * (requiere rol ADMIN_PLANTEL/ADMIN_GLOBAL), cierre de período y recálculo masivo.
+ * Requiere JWT válido; ajustes y cierres exigen roles específicos.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @RestController
 @RequestMapping("/api/v1/gradebook")
 @RequiredArgsConstructor

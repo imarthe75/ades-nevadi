@@ -8,6 +8,14 @@ import org.springframework.stereotype.Service;
 import java.time.LocalTime;
 import java.util.*;
 
+/**
+ * Servicio de lectura CQRS para el módulo disponibilidad.
+ * <p>Enriquece los slots con el nombre legible del día (via {@link DiaSemana}),
+ * calcula el resumen de horas semanales disponibles y el reporte de cobertura docente.</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Service
 @RequiredArgsConstructor
 public class DisponibilidadQueryService {

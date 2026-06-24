@@ -8,6 +8,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Puerto de salida: define el contrato de consulta para catálogos del sistema
+ * (niveles educativos, grados, ciclos, roles, períodos, países, nacionalidades,
+ * lenguas indígenas, familias lingüísticas y niveles de inglés).
+ *
+ * @author ADES
+ * @since 2026
+ */
 public interface CatalogReadPort {
 
     List<NivelEducativo> findAllNiveles();

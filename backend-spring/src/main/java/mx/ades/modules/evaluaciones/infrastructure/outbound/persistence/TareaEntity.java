@@ -11,6 +11,14 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
 
+/**
+ * Entidad JPA que mapea a la tabla {@code ades_tareas}.
+ * <p>Representa una actividad evaluable (tarea, examen, proyecto, etc.) asignada a un grupo.
+ * El campo {@code origen} indica si fue creada manualmente ({@code MANUAL}) o por importación.</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Entity
 @Table(name = "ades_tareas")
 @Getter

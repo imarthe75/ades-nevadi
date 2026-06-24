@@ -4,6 +4,13 @@ import java.time.LocalDate;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Puerto de entrada: contrato para crear un expediente laboral nuevo para un empleado.
+ * Solo accesible para usuarios con nivelAcceso {@literal <=} 2 (RH o Dirección).
+ *
+ * @author ADES
+ * @since 2026
+ */
 public interface CrearExpedienteLaboralUseCase {
 
     record Command(UUID personaId, String tipoContrato, LocalDate fechaContratacion,

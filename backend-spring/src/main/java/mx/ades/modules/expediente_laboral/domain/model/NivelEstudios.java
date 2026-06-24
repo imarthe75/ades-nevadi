@@ -2,6 +2,13 @@ package mx.ades.modules.expediente_laboral.domain.model;
 
 import java.util.Arrays;
 
+/**
+ * Clasificación del nivel de estudios de un empleado: LICENCIATURA, MAESTRIA, DOCTORADO,
+ * NORMAL_BASICA, BACHILLERATO u OTRO.
+ *
+ * @author ADES
+ * @since 2026
+ */
 public enum NivelEstudios {
     LICENCIATURA, MAESTRIA, DOCTORADO, NORMAL_BASICA, BACHILLERATO, OTRO;
 

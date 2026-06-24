@@ -11,6 +11,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Servicio de lectura CQRS para rúbricas de evaluación en el módulo evaluaciones.
+ * <p>Expone listado de rúbricas con conteo y ponderación de criterios, y detalle con criterios ordenados.</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Service
 @RequiredArgsConstructor
 public class RubricaQueryService {

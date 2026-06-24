@@ -7,6 +7,15 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.util.*;
 
+/**
+ * Servicio de consulta (lado lectura CQRS) para el módulo asistencia_personal.
+ *
+ * <p>Expone listado con filtros y generación del reporte mensual de asistencia
+ * (días asistidos, faltas, incapacidades, retardos y porcentaje de asistencia).</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Service
 @RequiredArgsConstructor
 public class AsistenciaPersonalQueryService {

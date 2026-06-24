@@ -9,6 +9,13 @@ import org.springframework.stereotype.Component;
 
 import java.util.*;
 
+/**
+ * Adaptador JDBC que implementa {@link ExpedienteLaboralRepositoryPort}.
+ * Gestiona operaciones de lectura, escritura y soft-delete sobre {@code ades_expediente_laboral}.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Component
 @RequiredArgsConstructor
 public class ExpedienteLaboralPersistenceAdapter implements ExpedienteLaboralRepositoryPort {

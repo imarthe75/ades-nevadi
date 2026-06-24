@@ -8,6 +8,15 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Caso de uso: registro y actualización de contactos de emergencia y expediente médico.
+ * Implementa {@link RegistrarContactoUseCase} y {@link ActualizarContactoUseCase}
+ * coordinando el dominio de contactos con el puerto de repositorio, aplicando
+ * locking optimista por {@code row_version} para evitar ediciones concurrentes.
+ *
+ * @author ADES
+ * @since 2026
+ */
 public class ContactosApplicationService
         implements RegistrarContactoUseCase, ActualizarContactoUseCase {
 

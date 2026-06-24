@@ -61,6 +61,13 @@ interface CapacitacionForm {
   certificado_url: string;
 }
 
+/**
+ * Registro y seguimiento de capacitaciones y certificaciones del personal docente.
+ * Captura tipo, modalidad, institución, duración en horas y folio de certificado.
+ * Genera resúmenes por docente con totales y distribución por área de formación.
+ * El área de RRHH puede validar registros (campo `validado_rh`). Usa optimistic
+ * locking (`row_version`) en actualizaciones. Requiere nivelAcceso ≥ 3.
+ */
 @Component({
   selector: 'app-capacitaciones',
   standalone: true,

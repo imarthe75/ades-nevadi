@@ -13,6 +13,18 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.*;
 
+/**
+ * Adaptador REST para la gestión del calendario escolar institucional.
+ * Expone endpoints bajo /api/v1/calendario para listar, obtener, crear,
+ * actualizar y eliminar eventos del calendario (días festivos, exámenes,
+ * actividades, etc.) filtrados por ciclo escolar, tipo y plantel.
+ * Las operaciones de escritura requieren rol de Coordinador o superior
+ * (nivelAcceso {@literal <=} 3). Los usuarios no-administradores reciben
+ * scoping automático al plantel asignado para evitar lectura cross-plantel.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @RestController
 @RequestMapping("/api/v1/calendario")
 @RequiredArgsConstructor

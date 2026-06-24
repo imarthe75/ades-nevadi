@@ -10,6 +10,14 @@ import java.math.BigDecimal;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Adaptador JDBC que implementa {@link EncuestaRespuestaRepositoryPort}.
+ * <p>Persiste respuestas en {@code ades_encuesta_respuestas} e inserta alertas CRITICA
+ * de acoso/bullying en {@code ades_alertas_cumplimiento} cuando corresponde.</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Component
 public class EncuestaPersistenceAdapter implements EncuestaRespuestaRepositoryPort {
 

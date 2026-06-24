@@ -1,5 +1,12 @@
 package mx.ades.modules.licencias.domain.model;
 
+/**
+ * Tipo de licencia del personal: MEDICA, MATERNIDAD, PATERNIDAD, DUELO, PERSONAL,
+ * COMISION, CAPACITACION u OTRO.
+ *
+ * @author ADES
+ * @since 2026
+ */
 public enum TipoLicencia {
     MEDICA, MATERNIDAD, PATERNIDAD, DUELO, PERSONAL, COMISION, CAPACITACION, OTRO;
 

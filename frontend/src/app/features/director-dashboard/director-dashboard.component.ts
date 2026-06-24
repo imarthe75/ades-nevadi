@@ -8,6 +8,13 @@ import { TagModule } from 'primeng/tag';
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
 
+/**
+ * Dashboard de KPIs operativos para directores de plantel (nivelAcceso ≥ 4).
+ * Presenta métricas clave del ciclo activo: asistencia, calificaciones,
+ * evaluaciones docentes y alertas conductuales, segmentadas por grupo y nivel.
+ * Usa `ChartModule` de PrimeNG para gráficas y señales reactivas para
+ * actualización automática al cambiar el ciclo o plantel en `ContextService`.
+ */
 @Component({
   selector: 'app-director-dashboard',
   standalone: true,

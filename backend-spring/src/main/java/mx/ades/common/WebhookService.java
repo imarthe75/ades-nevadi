@@ -16,6 +16,25 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
 
+/**
+ * Servicio de despacho de webhooks salientes para integración de ADES con sistemas
+ * externos (n8n, ERPs, automatizaciones institucionales).
+ * <p>
+ * Al recibir un {@code eventType}, consulta la tabla {@code ades_webhooks} para
+ * encontrar suscriptores activos y les envía un payload JSON firmado con HMAC-SHA256
+ * (header {@code X-Ades-Signature}) cuando el endpoint tiene configurado un
+ * {@code secret_token}. Cada intento queda registrado en {@code ades_webhook_logs}
+ * para trazabilidad y reintento manual.
+ * </p>
+ * <p>
+ * El despacho es asíncrono ({@code @Async}) para no bloquear el hilo del caso de uso
+ * que dispara el evento. El tipo comodín {@code *} en {@code event_type} suscribe
+ * al endpoint a todos los eventos del sistema.
+ * </p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Service
 @Slf4j
 @RequiredArgsConstructor

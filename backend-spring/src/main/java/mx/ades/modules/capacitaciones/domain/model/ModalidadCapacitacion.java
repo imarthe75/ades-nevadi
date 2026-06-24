@@ -1,5 +1,19 @@
 package mx.ades.modules.capacitaciones.domain.model;
 
+/**
+ * Tipo de dominio que representa la modalidad de impartición de una capacitación docente.
+ *
+ * <p>Valores posibles y su significado:
+ * <ul>
+ *   <li>{@code PRESENCIAL} — se realiza en instalaciones físicas.</li>
+ *   <li>{@code EN_LINEA} — completamente remota.</li>
+ *   <li>{@code HIBRIDA} — combina presencia física y remota.</li>
+ * </ul>
+ * </p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 public enum ModalidadCapacitacion {
     PRESENCIAL, EN_LINEA, HIBRIDA;
 

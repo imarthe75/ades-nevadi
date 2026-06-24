@@ -6,6 +6,15 @@ import mx.ades.modules.personal_admin.domain.port.out.PersonalAdminRepositoryPor
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Caso de uso: alta y actualización de personal administrativo no docente.
+ * Implementa {@link RegistrarPersonalAdminUseCase} coordinando el dominio de
+ * personal administrativo con el puerto de repositorio, creando la entidad
+ * persona y el registro de empleado en una sola transacción de escritura.
+ *
+ * @author ADES
+ * @since 2026
+ */
 public class PersonalAdminApplicationService implements RegistrarPersonalAdminUseCase {
 
     private final PersonalAdminRepositoryPort repository;

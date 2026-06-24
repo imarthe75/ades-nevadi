@@ -21,6 +21,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Adaptador REST para la gestión de movilidad estudiantil.
+ * Expone endpoints bajo /api/v1/movilidad para registrar cambios de grupo, traslados
+ * inter-plantel, bajas temporales, bajas definitivas y reactivaciones de alumnos.
+ * Cada tipo de movimiento valida el nivel de acceso mínimo requerido mediante
+ * {@code TipoMovilidad#permitePara(nivelAcceso)}. Los endpoints de consulta listan
+ * el historial de movilidad y bajas activas, con scoping por plantel para no-admins.
+ * Requiere JWT válido en todos los endpoints.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @RestController
 @RequestMapping("/api/v1/movilidad")
 @RequiredArgsConstructor

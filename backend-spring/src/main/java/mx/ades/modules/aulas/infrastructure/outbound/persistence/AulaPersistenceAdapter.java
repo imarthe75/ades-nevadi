@@ -9,6 +9,13 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Adaptador de persistencia que implementa {@link AulaRepositoryPort} accediendo
+ * a la tabla {@code ades_aulas} vía JPA ({@code AulaRepository}).
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Component
 public class AulaPersistenceAdapter implements AulaRepositoryPort {
 

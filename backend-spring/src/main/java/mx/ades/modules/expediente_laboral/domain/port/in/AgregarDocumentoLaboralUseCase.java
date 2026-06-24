@@ -4,6 +4,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+/**
+ * Puerto de entrada: contrato para agregar un documento digital al expediente laboral
+ * (contrato, título, cédula, NSS, identificación, acta de nacimiento, CURP, IMSS u otro).
+ *
+ * @author ADES
+ * @since 2026
+ */
 public interface AgregarDocumentoLaboralUseCase {
 
     Set<String> TIPOS_VALIDOS = Set.of(

@@ -2,6 +2,12 @@ package mx.ades.modules.expediente_laboral.domain.model;
 
 import java.util.Arrays;
 
+/**
+ * Tipo de contrato laboral del personal: INDEFINIDO, DETERMINADO, HONORARIOS o COMISION.
+ *
+ * @author ADES
+ * @since 2026
+ */
 public enum TipoContrato {
     INDEFINIDO, DETERMINADO, HONORARIOS, COMISION;
 

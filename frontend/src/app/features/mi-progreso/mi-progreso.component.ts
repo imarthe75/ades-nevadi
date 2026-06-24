@@ -39,6 +39,11 @@ interface EntregaHistorial extends EntregaPendiente {
   fecha_entrega: string;
 }
 
+/**
+ * Panel de progreso académico personal del alumno (nivelAcceso 1).
+ * Muestra calificaciones, asistencias, actividades pendientes y metas del período
+ * usando datos del contexto activo (plantel + ciclo escolar).
+ */
 @Component({
   selector: 'app-mi-progreso',
   standalone: true,

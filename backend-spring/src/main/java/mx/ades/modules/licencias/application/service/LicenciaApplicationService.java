@@ -12,6 +12,16 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+/**
+ * Caso de uso: solicitud y resolución de licencias del personal.
+ * Implementa {@link SolicitarLicenciaUseCase} y {@link ResolverLicenciaUseCase}
+ * coordinando el dominio de licencias con el puerto de repositorio,
+ * calculando días hábiles automáticamente y aplicando la máquina de estados
+ * PENDIENTE → APROBADA/RECHAZADA/CANCELADA con control de acceso por rol.
+ *
+ * @author ADES
+ * @since 2026
+ */
 public class LicenciaApplicationService
         implements SolicitarLicenciaUseCase, ResolverLicenciaUseCase {
 

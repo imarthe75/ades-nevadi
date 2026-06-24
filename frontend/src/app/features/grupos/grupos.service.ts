@@ -12,6 +12,11 @@ export interface CrearGrupoPayload {
   capacidad_maxima?: number;
 }
 
+/**
+ * Servicio compartido para la gestión de grupos escolares.
+ * Provee métodos HTTP para CRUD de grupos y soporta la cascada
+ * Plantel→Nivel→Grado→Grupo consumida vía computed() signals en los componentes.
+ */
 @Injectable({ providedIn: 'root' })
 export class GruposService {
   private readonly api = inject(ApiService);

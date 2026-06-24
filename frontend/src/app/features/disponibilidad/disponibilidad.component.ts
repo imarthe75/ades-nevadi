@@ -36,6 +36,14 @@ interface ResumenDisponibilidad {
   horas_frente_grupo: number;
 }
 
+/**
+ * Gestión de la disponibilidad horaria semanal de docentes para la asignación
+ * de horarios y la herramienta de importación aSc TimeTables.
+ * Registra slots por día de la semana con hora de inicio/fin y motivo de no
+ * disponibilidad. Genera resúmenes con horas totales disponibles y frente a grupo.
+ * Vinculado al ciclo escolar activo; requiere nivelAcceso ≥ 3 para registrar
+ * la propia disponibilidad y nivelAcceso ≥ 4 para ver la de otros docentes.
+ */
 @Component({
   selector: 'app-disponibilidad',
   standalone: true,

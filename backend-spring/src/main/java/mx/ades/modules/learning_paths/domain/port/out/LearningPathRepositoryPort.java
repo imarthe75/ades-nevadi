@@ -5,6 +5,13 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Puerto de salida: contrato de persistencia para learning paths, recursos, asignaciones
+ * y progreso de estudiantes.
+ *
+ * @author ADES
+ * @since 2026
+ */
 public interface LearningPathRepositoryPort {
 
     record ProgresoStats(int totalCompletados, int totalObligatorios, double pctCompletado) {}

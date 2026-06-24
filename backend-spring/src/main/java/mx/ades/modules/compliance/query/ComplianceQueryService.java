@@ -5,6 +5,14 @@ import org.springframework.stereotype.Service;
 
 import java.util.*;
 
+/**
+ * Servicio de lectura CQRS para el módulo compliance.
+ * <p>Expone consultas de historial de logins, estadísticas globales del sistema,
+ * normatividad vigente, retenciones activas y alertas de cumplimiento.</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Service
 public class ComplianceQueryService {
 

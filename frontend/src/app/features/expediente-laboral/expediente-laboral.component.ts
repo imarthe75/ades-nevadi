@@ -37,6 +37,11 @@ interface ExpedienteLab {
   fecha_creacion: string;
 }
 
+/**
+ * Módulo de expediente laboral del personal docente y administrativo.
+ * Permite consultar y gestionar documentos del historial laboral de cada empleado.
+ * Requiere nivelAcceso 4 (AdminPlantel) o superior.
+ */
 @Component({
   selector: 'app-expediente-laboral',
   standalone: true,

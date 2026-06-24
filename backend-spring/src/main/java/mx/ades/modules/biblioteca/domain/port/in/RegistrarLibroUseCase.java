@@ -4,6 +4,13 @@ import mx.ades.modules.biblioteca.domain.model.CategoriaLibro;
 
 import java.util.UUID;
 
+/**
+ * Puerto de entrada: define el contrato para registrar un nuevo libro en el acervo
+ * de la biblioteca en el dominio de biblioteca.
+ *
+ * @author ADES
+ * @since 2026
+ */
 public interface RegistrarLibroUseCase {
 
     record Command(

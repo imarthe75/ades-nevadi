@@ -16,6 +16,19 @@ import mx.ades.security.AdesUserService;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Adaptador REST para el proceso de cierre de ciclo escolar.
+ * Expone endpoints bajo /api/v1/cierre-ciclo para consultar indicadores de un
+ * ciclo, generar actas de inicio y cierre en PDF (proxy a FastAPI) y ejecutar
+ * el proceso de cierre con promoción automática de alumnos. El cierre evalúa
+ * reglas de promoción y transfiere alumnos al ciclo destino. Las actas y la
+ * consulta de indicadores requieren nivelAcceso {@literal <=} 2 (Director).
+ * El proceso de cierre ejecuta {@code CerrarCicloUseCase} con validación de
+ * autorización interna. El PDF se obtiene via proxy HTTP al microservicio FastAPI.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @RestController
 @RequestMapping("/api/v1/cierre-ciclo")
 @RequiredArgsConstructor

@@ -2,6 +2,13 @@ package mx.ades.modules.condiciones.domain.port.in;
 
 import java.util.UUID;
 
+/**
+ * Puerto de entrada: contrato para actualizar una condición crónica de salud en el módulo condiciones.
+ * <p>Permite modificar datos de medicación, médico responsable y estado de activación del registro.</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 public interface ActualizarCondicionUseCase {
 
     record Command(

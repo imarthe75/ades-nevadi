@@ -11,6 +11,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Servicio de lectura CQRS para el módulo evaluaciones.
+ * <p>Expone listado de evaluaciones por grupo, calificaciones por evaluación,
+ * NEE de alumnos, asignaciones de aula y actas SEP.</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Service
 public class EvaluacionQueryService {
 

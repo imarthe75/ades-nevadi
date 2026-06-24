@@ -7,6 +7,14 @@ import org.springframework.stereotype.Component;
 import java.math.BigDecimal;
 import java.util.*;
 
+/**
+ * Adaptador JDBC que implementa {@link LearningPathRepositoryPort}.
+ * Gestiona paths ({@code ades_learning_paths}), recursos ({@code ades_lp_recursos}),
+ * asignaciones ({@code ades_lp_asignaciones}) y progreso ({@code ades_lp_progreso}).
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Component
 public class LearningPathPersistenceAdapter implements LearningPathRepositoryPort {
 

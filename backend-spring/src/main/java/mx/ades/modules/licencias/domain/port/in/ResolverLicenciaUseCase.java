@@ -2,6 +2,13 @@ package mx.ades.modules.licencias.domain.port.in;
 
 import java.util.UUID;
 
+/**
+ * Puerto de entrada: contrato para aprobar o rechazar una solicitud de licencia del personal.
+ * Al rechazar, las observaciones son obligatorias como motivo de rechazo.
+ *
+ * @author ADES
+ * @since 2026
+ */
 public interface ResolverLicenciaUseCase {
 
     enum Accion { APROBAR, RECHAZAR }

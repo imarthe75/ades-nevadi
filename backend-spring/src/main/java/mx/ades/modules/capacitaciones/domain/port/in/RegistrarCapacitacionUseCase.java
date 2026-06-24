@@ -8,6 +8,13 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
 
+/**
+ * Puerto de entrada: define el contrato para registrar una capacitación o certificación
+ * docente en el dominio de capacitaciones.
+ *
+ * @author ADES
+ * @since 2026
+ */
 public interface RegistrarCapacitacionUseCase {
 
     record Command(

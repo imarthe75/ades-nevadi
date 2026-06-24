@@ -11,6 +11,14 @@ import org.springframework.stereotype.Component;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Adaptador de persistencia que implementa {@link AlumnoRepositoryPort} accediendo
+ * a la tabla {@code ades_estudiantes} vía JPA ({@code EstudianteRepository}) y JDBC
+ * para operaciones específicas como generación de matrícula y resolución de plantel.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Component
 @RequiredArgsConstructor
 public class AlumnoPersistenceAdapter implements AlumnoRepositoryPort {

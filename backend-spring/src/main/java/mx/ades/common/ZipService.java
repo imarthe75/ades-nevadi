@@ -11,6 +11,20 @@ import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
+/**
+ * Servicio de compresión que agrupa documentos de expediente en un único archivo ZIP
+ * para descarga masiva desde el frontend de ADES.
+ * <p>
+ * Recupera el contenido binario de cada documento desde Paperless-ngx a través de
+ * {@link mx.ades.modules.expediente.PaperlessService} y los empaqueta en el
+ * {@link java.io.OutputStream} proporcionado (generalmente el de la respuesta HTTP).
+ * Los documentos sin {@code paperless_doc_id} o cuya descarga falla se omiten con
+ * advertencia en el log, permitiendo entregas parciales.
+ * </p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j

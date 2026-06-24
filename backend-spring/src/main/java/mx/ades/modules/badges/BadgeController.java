@@ -23,6 +23,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Adaptador REST para el módulo de insignias (badges) de reconocimiento académico.
+ * Expone endpoints bajo /api/v1/badges para crear, consultar, eliminar y gestionar
+ * insignias por alumno y ciclo escolar. Soporta otorgamiento manual y automático
+ * (auto-evaluar) mediante criterios configurables (MANUAL, por métrica). Los badges
+ * pueden ser de distintos tipos (TipoBadge) y tienen criterios de otorgamiento
+ * (CriterioTipo) que permiten automatizar el reconocimiento al ejecutar el endpoint
+ * /auto-evaluar/{cicloId}. Toda operación de escritura requiere JWT válido.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @RestController
 @RequestMapping("/api/v1/badges")
 @RequiredArgsConstructor

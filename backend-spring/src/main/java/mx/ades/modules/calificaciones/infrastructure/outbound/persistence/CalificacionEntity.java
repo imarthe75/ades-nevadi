@@ -10,6 +10,12 @@ import mx.ades.common.AdesBaseEntity;
 import java.math.BigDecimal;
 import java.util.UUID;
 
+/**
+ * Entidad JPA que mapea a la tabla {@code ades_calificaciones_periodo}.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Entity
 @Table(name = "ades_calificaciones_periodo")
 @Getter

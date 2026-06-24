@@ -1,4 +1,15 @@
 -- =============================================================================
+-- Migración: 080_ades_app_role.sql
+-- Descripción: Crea el rol de base de datos ades_app (no-superusuario) con
+--              privilegios granulares para la aplicación; revoca DELETE/UPDATE
+--              en auditoria.log_auditoria para proteger el trail de auditoría.
+-- Tablas afectadas: (solo permisos) public.*, auditoria.*, memoria.*
+-- Dependencias: 038_auditoria_v2.sql, esquemas auditoria y memoria existentes
+-- Autor: ADES
+-- Fecha: 2026-06
+-- =============================================================================
+
+-- =============================================================================
 -- Migración 080 — Rol ades_app (no-superusuario) para la aplicación
 -- Fecha: 2026-06-17
 -- Hallazgo A: ades_admin es superusuario → REVOKE no tiene efecto

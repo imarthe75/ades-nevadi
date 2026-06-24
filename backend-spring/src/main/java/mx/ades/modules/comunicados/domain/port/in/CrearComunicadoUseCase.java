@@ -3,6 +3,14 @@ package mx.ades.modules.comunicados.domain.port.in;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+/**
+ * Puerto de entrada: contrato para crear un comunicado institucional en el módulo comunicados.
+ * <p>Soporta comunicados puntuales y recurrentes. El alcance se determina por plantelId,
+ * nivelEducativoId o grupoId (null = todos).</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 public interface CrearComunicadoUseCase {
 
     record Command(String titulo, String contenido, String tipoComunicado,

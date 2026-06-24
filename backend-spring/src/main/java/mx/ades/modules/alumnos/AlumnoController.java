@@ -18,6 +18,17 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Adaptador REST para la gestión de alumnos (estudiantes).
+ * Expone endpoints bajo /api/v1/alumnos para listar, consultar, crear y
+ * actualizar registros de alumnos. La consulta de lista aplica scoping
+ * automático por plantel para usuarios no-administradores. El PATCH
+ * implementa optimistic locking mediante rowVersion para evitar conflictos
+ * de concurrencia. La creación valida CURP mediante {@code ValidationUtils}.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @RestController
 @RequestMapping("/api/v1/alumnos")
 @RequiredArgsConstructor

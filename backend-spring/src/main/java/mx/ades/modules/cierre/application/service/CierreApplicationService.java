@@ -4,6 +4,16 @@ import mx.ades.modules.cierre.CierreCicloService;
 import mx.ades.modules.cierre.domain.port.in.CerrarCicloUseCase;
 import mx.ades.modules.cierre.domain.port.out.CierreRepositoryPort;
 
+/**
+ * Caso de uso: cierre definitivo de un período académico.
+ * Implementa {@link CerrarCicloUseCase} coordinando el dominio de cierre
+ * con el puerto de repositorio y el servicio de transición de ciclo.
+ * La operación es irreversible una vez confirmada; valida que el ciclo
+ * no esté ya cerrado antes de proceder.
+ *
+ * @author ADES
+ * @since 2026
+ */
 public class CierreApplicationService implements CerrarCicloUseCase {
 
     private final CierreRepositoryPort repo;

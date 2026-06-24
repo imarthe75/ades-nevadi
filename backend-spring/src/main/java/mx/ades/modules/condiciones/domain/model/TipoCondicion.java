@@ -1,5 +1,16 @@
 package mx.ades.modules.condiciones.domain.model;
 
+/**
+ * Tipo de condición crónica de salud registrada para un alumno.
+ * <p>Valores: EPILEPSIA, DIABETES, ASMA, ALERGIA, CARDIACA, HIPERTENSION,
+ * DISCAPACIDAD_VISUAL, DISCAPACIDAD_AUDITIVA, OTRA.
+ * Las condiciones EPILEPSIA, DIABETES, CARDIACA e HIPERTENSION requieren medicación.
+ * Las condiciones DISCAPACIDAD_VISUAL y DISCAPACIDAD_AUDITIVA se clasifican como discapacidad
+ * para el reporte 911-SEP Sección IX.</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 public enum TipoCondicion {
     EPILEPSIA, DIABETES, ASMA, ALERGIA, CARDIACA,
     HIPERTENSION, DISCAPACIDAD_VISUAL, DISCAPACIDAD_AUDITIVA, OTRA;

@@ -14,6 +14,19 @@ import org.springframework.web.server.ResponseStatusException;
 import java.math.BigDecimal;
 import java.util.*;
 
+/**
+ * Adaptador REST para la gestión de direcciones y medios de contacto.
+ * Expone endpoints bajo /api/v1 para dos dominios: catálogos SEPOMEX
+ * (búsqueda por código postal, asentamientos, estados, municipios — sin autenticación)
+ * y CRUD de direcciones (/api/v1/direcciones) y medios de contacto de persona
+ * (/api/v1/persona-contactos) con soporte para múltiples tipos de dirección,
+ * geolocalización GPS, optimistic locking (rowVersion) y marcado de dirección
+ * principal. Las operaciones de escritura requieren JWT válido y el scoping
+ * de entidad (entidad_tipo + entidad_id) garantiza integridad referencial.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @RestController
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor

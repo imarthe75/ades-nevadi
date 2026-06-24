@@ -14,6 +14,16 @@ import mx.ades.security.AdesUserService;
 import java.time.LocalDate;
 import java.util.*;
 
+/**
+ * Adaptador REST para la gestión de actividades del gradebook.
+ * Expone endpoints bajo /api/v1/actividades para listar actividades por grupo/materia/período,
+ * crear actividades (con generación automática de slots por alumno), consultar entregas
+ * y calificar masivamente un grupo. Requiere JWT válido en todos los endpoints;
+ * las mutaciones registran el usuario autor en el audit trail.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @RestController
 @RequestMapping("/api/v1/actividades")
 @RequiredArgsConstructor

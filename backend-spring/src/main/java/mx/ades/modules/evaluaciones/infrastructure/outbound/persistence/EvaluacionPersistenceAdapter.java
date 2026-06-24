@@ -12,6 +12,15 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Adaptador JDBC que implementa {@link AsignacionAulaRepositoryPort}
+ * y {@link CalificacionEvaluacionRepositoryPort}.
+ * <p>Persiste asignaciones de aula en {@code ades_asignaciones_aula}
+ * y calificaciones de evaluaciones en {@code ades_calificaciones_evaluaciones}.</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 @Component
 public class EvaluacionPersistenceAdapter
         implements AsignacionAulaRepositoryPort, CalificacionEvaluacionRepositoryPort {

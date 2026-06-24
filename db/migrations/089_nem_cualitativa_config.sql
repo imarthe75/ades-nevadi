@@ -1,4 +1,17 @@
 -- =============================================================================
+-- Migración: 089_nem_cualitativa_config.sql
+-- Descripción: Implementa la evaluación cualitativa NEM (Fase 3) para 1° y 2°
+--              de primaria. Crea tabla ades_config para variables de configuración
+--              del sistema; siembra la escala A/B/C/D en ades_escalas_evaluacion;
+--              agrega columna nivel_logro (A/B/C/D) a ades_calificaciones_periodo.
+-- Tablas afectadas: ades_config (nueva), ades_escalas_evaluacion,
+--                   ades_calificaciones_periodo
+-- Dependencias: auditoria.asignar_biu(), uuidv7(), ades_escalas_evaluacion
+-- Autor: ADES
+-- Fecha: 2026-06
+-- =============================================================================
+
+-- =============================================================================
 -- Migración 089 — NEM Fase 3: Evaluación cualitativa 1°-2° primaria
 --
 -- 1. Tabla ades_config  → variables de configuración del sistema

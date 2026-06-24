@@ -7,6 +7,15 @@ import mx.ades.modules.procesos.domain.port.out.PreinscripcionRepositoryPort.Gru
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
+/**
+ * Caso de uso: procesamiento de preinscripciones y conversión a inscripciones formales.
+ * Implementa {@link ProcesarPreinscripcionUseCase} coordinando el dominio de procesos
+ * de admisión con el puerto de repositorio, validando que la solicitud esté aceptada
+ * y que el grupo destino tenga capacidad disponible antes de formalizar la inscripción.
+ *
+ * @author ADES
+ * @since 2026
+ */
 public class ProcesosApplicationService implements ProcesarPreinscripcionUseCase {
 
     private final PreinscripcionRepositoryPort repo;

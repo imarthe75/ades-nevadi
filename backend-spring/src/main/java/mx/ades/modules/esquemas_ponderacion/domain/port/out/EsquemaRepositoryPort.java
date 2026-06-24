@@ -7,6 +7,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Puerto de salida: contrato de persistencia para esquemas de ponderación y sus ítems.
+ * <p>Cubre {@code ades_esquemas_ponderacion} e {@code ades_items_ponderacion}.
+ * El método {@code efectivo} resuelve el esquema vigente más específico para una materia.</p>
+ *
+ * @author ADES
+ * @since 2026
+ */
 public interface EsquemaRepositoryPort {
     List<Map<String, Object>> list(UUID nivelEducativoId, UUID materiaId);
     Map<String, Object> efectivo(UUID materiaId);

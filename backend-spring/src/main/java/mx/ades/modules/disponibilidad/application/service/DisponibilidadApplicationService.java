@@ -9,6 +9,16 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.UUID;
 
+/**
+ * Caso de uso: gestión de la disponibilidad horaria de los docentes.
+ * Implementa {@link GuardarDisponibilidadUseCase} y {@link EliminarSlotUseCase}
+ * coordinando el dominio de disponibilidad con el puerto de repositorio,
+ * realizando reemplazo completo de slots por ciclo escolar para mantener
+ * coherencia con la planificación de horarios aSc TimeTables.
+ *
+ * @author ADES
+ * @since 2026
+ */
 public class DisponibilidadApplicationService
         implements GuardarDisponibilidadUseCase, EliminarSlotUseCase {
 

@@ -20,6 +20,17 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.*;
 
+/**
+ * Adaptador REST para el control de asistencia del personal docente y administrativo.
+ * Expone endpoints bajo /api/v1/asistencia-personal para registrar, actualizar,
+ * consultar y eliminar registros de asistencia. Soporta jornadas COMPLETA, MEDIA y
+ * otros tipos definidos en {@code TipoJornada}, así como el marcado de retardos
+ * (esRetardo/minutosRetardo) y justificaciones. El endpoint de reporte mensual
+ * resume la asistencia de una persona por mes y año. Toda operación requiere JWT válido.
+ *
+ * @author ADES
+ * @since 2026
+ */
 @RestController
 @RequestMapping("/api/v1/asistencia-personal")
 @RequiredArgsConstructor

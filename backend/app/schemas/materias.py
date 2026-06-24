@@ -1,3 +1,10 @@
+"""Schemas Pydantic para el dominio de Materias y Planes de Estudio de ADES.
+
+Incluye asignaturas con campo_formativo NEM (4 campos formativos SEP),
+su relación con planes de estudio por grado/ciclo (MateriaPlan), temas
+curriculares y asignaciones docentes. Las materias UAEMEX dejan
+campo_formativo en NULL.
+"""
 from __future__ import annotations
 import uuid
 from pydantic import Field
@@ -5,6 +12,7 @@ from .base import AdesSchema, AdesResponse
 
 
 class MateriaOut(AdesResponse):
+    """Respuesta completa de una asignatura con metadatos NEM y SEP."""
     nombre_materia: str
     clave_materia: str | None = None
     nivel_educativo_id: uuid.UUID
@@ -18,6 +26,8 @@ class MateriaOut(AdesResponse):
 
 
 class MateriaCreate(AdesSchema):
+    """Body para crear una nueva asignatura en el catálogo."""
+
     nombre_materia: str = Field(min_length=2, max_length=150)
     clave_materia: str | None = Field(None, max_length=20)
     nivel_educativo_id: uuid.UUID
@@ -31,6 +41,8 @@ class MateriaCreate(AdesSchema):
 
 
 class MateriaUpdate(AdesSchema):
+    """Campos actualizables de una asignatura (todos opcionales)."""
+
     nombre_materia: str | None = Field(None, min_length=2, max_length=150)
     clave_materia: str | None = Field(None, max_length=20)
     nivel_educativo_id: uuid.UUID | None = None
@@ -45,6 +57,8 @@ class MateriaUpdate(AdesSchema):
 
 
 class MateriaPlanOut(AdesResponse):
+    """Respuesta de la asignación de una materia a un grado/ciclo en el plan de estudios."""
+
     materia_id: uuid.UUID
     grado_id: uuid.UUID
     ciclo_escolar_id: uuid.UUID
@@ -56,6 +70,8 @@ class MateriaPlanOut(AdesResponse):
 
 
 class MateriaPlanCreate(AdesSchema):
+    """Body para agregar una materia a un plan de estudios por grado y ciclo."""
+
     materia_id: uuid.UUID
     grado_id: uuid.UUID
     ciclo_escolar_id: uuid.UUID
@@ -65,6 +81,8 @@ class MateriaPlanCreate(AdesSchema):
 
 
 class MateriaPlanUpdate(AdesSchema):
+    """Campos actualizables de la relación materia-plan (horas, orden, obligatoriedad)."""
+
     horas_semana: float | None = None
     es_obligatoria: bool | None = None
     orden: int | None = None
@@ -72,6 +90,8 @@ class MateriaPlanUpdate(AdesSchema):
 
 
 class TemaOut(AdesResponse):
+    """Respuesta de un tema curricular perteneciente a una materia."""
+
     materia_id: uuid.UUID
     grado_id: uuid.UUID | None = None
     ciclo_escolar_id: uuid.UUID | None = None
@@ -82,6 +102,8 @@ class TemaOut(AdesResponse):
 
 
 class AsignacionDocenteOut(AdesResponse):
+    """Respuesta de la asignación de un docente a un grupo/materia/ciclo."""
+
     grupo_id: uuid.UUID
     materia_id: uuid.UUID
     profesor_id: uuid.UUID
