@@ -1,6 +1,6 @@
 # ADES — Administración Escolar Instituto Nevadi
 # Contexto Cognitivo del Agente Residente
-# Última actualización: 2026-06-09
+# Última actualización: 2026-06-23
 
 ## Propósito del Sistema
 Sistema integral de control escolar para el **Instituto Nevadi**, con 3 planteles
@@ -42,7 +42,7 @@ Grupos por grado: 2 grupos (A y B). Grupos inactivos se activan ciclo a ciclo si
 | Preparatoria | UAEMEX | 26B (ago 2026) / 27A (ene 2027) | UAEMEX semestral |
 
 Periodos de evaluación:
-- Primaria SEP: 3 bimestres
+- Primaria SEP: 3 bimestres (NEM 1°-2° → evaluación cualitativa A/B/C/D)
 - Secundaria SEP: 6 bimestres
 - Preparatoria UAEMEX: 2 parciales + 1 final + extraordinario por semestre
 
@@ -64,29 +64,45 @@ Historia y Geografía, Formación Cívica, Educación Física, Tecnología.
 
 ---
 
-## Estado de Fases (2026-06-11)
+## Estado de Fases (2026-06-23)
 
 | Fase | Estado | Notas |
 |---|---|---|
-| FASE 1 — Core | Completa | 30 operaciones REST, modelos SQLAlchemy, seeds |
-| FASE 2 — Operación académica | Completa | +24 ops: calificaciones, asistencias, tareas, clases |
-| FASE 3 — Especializados | Completa | Horarios+aSc, Expediente Médico, Conducta, Evaluación Docente 360, Boletas PDF WeasyPrint |
-| FASE 4 — IA + Analytics | En progreso | Asistente IA Claude, alertas riesgo activos. Learning Paths + IA completado (Mig 028). Pendiente: ClickHouse, Superset dashboards |
-| FASE 5 Etapa A — Blockchain | Completa | Ed25519 firma+QR+verificación pública. Migración 026 aplicada. |
-| FASE 5 Etapa B — Blockchain | Pendiente | Anclaje Polygon PoS (web3.py) |
-| FASE 27 — Certificación Digital | Completa | firma_digital.py, certificados.py, CertificadosComponent, VerificarComponent |
-| **Auditoría 360°** | **Completa** | 64 hallazgos (11 críticos, 22 altos, 21 medios, 10 bajos). Plan en linked-forging-sprout.md |
-| **Sprint 1 — Fixes Críticos** | **Completo** | 7 fixes: gradebook, migración 029, audit trail, RBAC, routes, reportes, admin |
-| **Sprint 2 — Altos** | **Completo** | 8/8 completados: N+1 admin.py, setInterval, async JWKS, model_validator, computed() signals, InteractiveGrid migration |
-| Migración 008 | Completa | 4 roles nuevos, ades_areas_academicas, ades_coordinaciones_area |
-| Migración 009 | Completa | ades_parametros_sistema 18 params, ades_promociones_pendientes, cerrar_ciclo_y_promover() |
-| Migración 026 | Completa | Firma Ed25519 en ades_certificados, tabla ades_llaves_firma, vista ades_v_certificados_verificacion |
-| **Migración 029** | **Completa** | trigger asistencia corregido, TARDANZA→TARDE, 4 CHECK, 6 audit triggers, 3 índices FK |
-| **Migración 030** | **Completa** | `es_acreditado` dinámico por nivel: drop GENERATED → trigger BEFORE INSERT/UPDATE → `minimo_aprobatorio` vía grupo→grado→nivel. 76,320 rows backfilled |
-| Frontend Auth | Corregido | app.html limpio, authGuard, oidcRedirectUri a ades.setag.mx/callback |
-| APEX Component Library | Completa | ApexNotificationService, static nav menu, apex-toast-container, 20 componentes migrados |
-| **RBAC Enforcement** | **Completo** | get_ades_user + plantel scope en calificaciones/imports; roleGuard(3/4) en 11 rutas (ADR 0006) |
-| **Audit Trail** | **Corregido** | usuario_id en 100% logs mutantes via request.state (ADR 0005) |
+| FASE 1 — Core | ✅ Completa | 30 ops REST, modelos SQLAlchemy, seeds |
+| FASE 2 — Operación académica | ✅ Completa | +24 ops: calificaciones, asistencias, tareas, clases |
+| FASE 3 — Especializados | ✅ Completa | Horarios+aSc, Expediente Médico, Conducta, Eval. Docente 360°, Boletas PDF WeasyPrint |
+| FASE 4 — IA + Analytics | ✅ Completa | Asistente IA, alertas riesgo, learning paths, grade analytics, gradebook, MI Progreso |
+| FASE 5A — Firma Digital Ed25519 | ✅ Completa | firma_digital.py, certificados.py, CertificadosComponent, VerificarComponent (Mig 026) |
+| FASE 5B — Blockchain Polygon PoS | ⏳ Diferida | web3.py + contrato Solidity (pendiente despliegue en red PoS) |
+| FASE 6 — Evaluaciones+Planeación | ✅ Completa | evaluaciones.py, planeacion.py, rubricas.py, certificados |
+| FASE 7 — Encuestas | ✅ Completa | EncuestasComponent con 4 tipos de pregunta |
+| FASE 8 — Badges/Gamificación | ✅ Completa | BadgesComponent, auto-evaluación por ciclo |
+| FASE 9 — Portal Familias | ✅ Completa | PortalComponent, vista 360° alumno |
+| FASE 10 — Gradebook | ✅ Completa | calcular_calificacion_periodo(), triggers, esquemas ponderación |
+| FASE 20 — ntfy | ✅ Completa | notificaciones push, canal ades-alertas |
+| FASE 21 — Stirling PDF | ✅ Completa | fusión/compresión/firma PDF |
+| FASE 22 — Grafana+Prometheus | ✅ Completa | 5 dashboards, 13 alertas, JVM BFF, PgBouncer |
+| FASE 23 — n8n | ✅ Completa | automatizaciones, webhooks |
+| FASE 24 — Paperless-ngx OCR | ⚠️ Parcial | Contenedor operativo; integración OCR en expediente.py activa, sin UI completa |
+| FASE 24P — Padres/RRHH avanzado | ✅ Completa | Gestión padres APEX-style, optimistic locking (Mig 017) |
+| FASE 25 — H5P | ✅ Completa | Nodo.js :8091, 10 tipos, iframe player, xAPI (Mig 081) |
+| FASE 26 — BigBlueButton | ✅ Completa | API-only checksum SHA-1, reuniones/grabaciones (Mig 082); requiere servidor BBB |
+| FASE 27 — Certificación Digital | ✅ Completa | Ed25519, QR PNG, verificación pública /verificar/:folio |
+| FASE 28 — Blockchain | ⏳ Diferida | Anclaje Polygon PoS (requiere credenciales y contrato desplegado) |
+| FASE 29 — RRHH + MFA | ✅ Completa | Licencias, Capacitaciones, MFA Authentik (Mig 040) |
+| FASE 30 — RRHH Avanzado | ✅ Completa | Disponibilidad, Expediente, Asistencia Personal (Mig 041) |
+| FASE 31 — Operatividad Avanzada | ✅ Completa | Condiciones Crónicas, Justificaciones, Horarios conflictos (Mig 042) |
+| **Auditoría 360°** | ✅ Completa | 64 hallazgos; Sprint 1+2 completos; 344 triggers audit_biu activos |
+| **Sprint 5 — Infra & Perf** | ✅ Completa | PgBouncer, postgres_exporter, particionamiento, 4 dashboards Grafana |
+| **Sprint 6 — Observability** | ✅ Completa | Micrometer BFF, Celery OCR, chat history IA persistente |
+| **Seguridad (IDOR+HTTPS+Rate)** | ✅ Completa | 5 vulnerabilidades corregidas, python-magic MIME, rate limiting slowapi |
+| **QA E2E (Suites 01-17)** | ✅ 74.8% | 255/341 passed; P1 ADV-02/03 → CORREGIDO (ValidationUtils 2026-06-23) |
+| **Hexagonal Spring BFF** | ✅ ~50/62 | 76 controllers, 50 ApplicationServices, 62 módulos; ADR-0008 |
+| **NEM Fase 3 Cualitativa** | ✅ Completa | Escalas A/B/C/D para 1°-2° primaria, config por plantel (Mig 089) |
+| **Reporte 911 SEP** | ✅ Completa | Sección IX discapacidad incluida (Spring BFF) |
+| **Boleta UAEMEX PDF** | ✅ Completa | /boletas/uaemex/{id} FastAPI→BFF proxy; template weasyprint |
+| **Director Dashboard** | ✅ Completa | KPIs generales, gráficas PrimeNG, roleGuard(2) |
+| **Classroom Gaps** | ✅ Completa | Detección plagio, feedback multimedia, adecuaciones NEE, Mig 093 |
 
 ## ADRs Vigentes
 
@@ -98,100 +114,179 @@ Historia y Geografía, Formación Cívica, Educación Física, Tecnología.
 | 0004 | Firma Digital Ed25519 | Aceptado |
 | 0005 | Audit Trail via request.state | Aceptado |
 | 0006 | RBAC con Scope de Plantel | Aceptado |
+| 0007 | JWKS Async TTL Cache | Aceptado |
+| 0008 | Hexagonal/SOLID Migration BFF | En progreso (~80%) |
+| 0009 | Seguridad IDOR+HTTPS+Rate Limiting | Aceptado |
+| 0009b | Vault+PgBouncer Secrets | Aceptado |
+| 0010 | Hexagonal Módulos Planos Restantes | Aceptado |
+| 0011 | Boleta NEM FastAPI+Jinja | Aceptado |
 
 ---
 
-## Módulos del Sistema
+## Módulos del Sistema (Frontend — 59 componentes)
 
 ### FASE 1 (Completa)
-1. Identidad Institucional
-2. Catálogo Geográfico SEPOMEX
-3. Estructura Académica
-4. Planes de Estudio
-5. Inscripciones
-6. Profesores
-7. Calendario Escolar
-8. Usuarios y Autenticación OIDC/RBAC
+1. Identidad Institucional — planteles, institución
+2. Catálogo Geográfico SEPOMEX — selector-geo, colonias
+3. Estructura Académica — grupos, grados, niveles
+4. Planes de Estudio — materias, temarios NEM/CBU
+5. Inscripciones — admisión, reinscripción, movilidad
+6. Profesores — CRUD, asignaciones, disponibilidad
+7. Calendario Escolar — ciclos SEP/UAEMEX
+8. Usuarios y Autenticación OIDC/RBAC — admin, roles
 
 ### FASE 2 (Completa)
-9. Asistencias
-10. Tareas y Entregas (generación automática al cargar plan)
+9. Asistencias — pase de lista, estados (PRESENTE/AUSENTE/TARDE/JUSTIFICADA)
+10. Tareas y Entregas — CRUD + MinIO + calificación
 11. Calificaciones por bimestre/parcial con rúbricas
-12. Evaluaciones ordinarias, finales, extraordinarios
-13. Planeación de Clases
+12. Evaluaciones ordinarias, finales, extraordinarios (escalas SEP/UAEMEX)
+13. Planeación de Clases — kanban temas, cobertura curricular
 14. Comunicados con acuse digital
 
 ### FASE 3 (Completa)
-15. Horarios — aSc TimeTables XML import/export
-16. Expediente Médico
-17. Reportes de Conducta
-18. Reportes Académicos — boletas PDF WeasyPrint
-19. Evaluación Docente 360°
+15. Horarios — aSc TimeTables XML import/export, CRUD conflictos
+16. Expediente Médico — incidentes, condiciones crónicas, alerta emergencia
+17. Reportes de Conducta — sanciones, planes de mejora, seguimiento
+18. Reportes Académicos — boletas PDF WeasyPrint NEM + UAEMEX
+19. Evaluación Docente 360° — 4 tipos, 7 criterios ponderados, escala 1-5
 
-### FASE 4 (En progreso)
-20. Asistente IA — LangChain/LangGraph + Claude API
-21. Riesgo Académico — alertas < 70 activas
-22. Dashboard BI — Superset (pendiente configuración completa)
-23. Learning Paths — rutas de refuerzo adaptativas
-24. Grade Analytics — tendencias, análisis de cohorte
-25. Learning Analytics — patrones de aprendizaje
-26. Gradebook — panel spreadsheet, calificación masiva, rúbrica
-27. Mi Progreso — vista alumno con countdown de tareas
-28. Ponderación Config — esquemas por nivel/materia, suma=100%
+### FASE 4 (Completa)
+20. Asistente IA — NVIDIA NIM + historial persistente sesiones
+21. Riesgo Académico — alertas 1297 activas; umbral reprobación/ausentismo
+22. Dashboard BI — Apache Superset 6.1.0; 4 dashboards con RLS
+23. Learning Paths — rutas adaptativas IA (Claude Haiku), 4 paths, 23 recursos
+24. Grade Analytics — tendencias, distribución, riesgo plantel
+25. Learning Analytics — patrones aprendizaje
+26. Gradebook — spreadsheet masivo, calcular_calificacion_periodo(), NEE
+27. Mi Progreso — vista alumno countdown tareas, badges ganados
+28. Ponderación Config — esquemas por nivel/materia, suma=100%, es_nee flag
 
-### FASE 27 — Certificación Digital Ed25519 (Completa — 2026-06-10)
+### FASE 5 (Completa)
+29. Certificación Digital Ed25519 — emitir, firmar, QR, verificar público
+30. Certificados verificación pública — /verificar/:folio sin auth
 
-Etapa A — Firmas Ed25519 (costo $0) — IMPLEMENTADA:
-- `backend/app/services/firma_digital.py` — firmar/verificar Ed25519, QR PNG, hash SHA-256
-- Llave privada en `.env` como `FIRMA_CLAVE_PRIVADA_HEX` (nunca en BD)
-- Tabla `ades_llaves_firma` — inventario de llaves públicas
-- `ades_certificados` extendida: hash_sha256, firma_ed25519, estado_firma, fecha_firma, verificable_url
-- Vista `ades_v_certificados_verificacion` — acceso rápido para verificación
-- `GET /api/v1/certificados/verificar/{folio}` — endpoint público sin auth
-- PDF con QR embebido (base64 PNG) + badge estado firma
-- Frontend: `CertificadosComponent` + `VerificarComponent` (pública `/verificar/:folio`)
-- ADR: `DECISIONS/0004-firma-digital-ed25519.md`
+### FASE 6-10 (Completas)
+31. Evaluaciones (programar exámenes ordinario/final/extraordinario)
+32. Planeación (temas IMPARTIDO/PLANEADO/PENDIENTE)
+33. Rúbricas (CRUD + criterios niveles_logro JSONB)
+34. Encuestas (4 tipos: ESCALA_5, OPCION_MULTIPLE, BOOLEANO, TEXTO_LIBRE)
+35. Badges (catálogo, otorgar manual, auto-evaluar por ciclo)
+36. Portal Familias (vista 360°: KPIs, alertas, badges, LP, calificaciones, asistencias)
+37. Grade Analytics (4 tabs: riesgo, tendencias, distribución, resumen ejecutivo)
 
-Etapa B — Anclaje Polygon PoS (costo ~$5-20 USD/año) — PENDIENTE (FASE 28):
-- Hash en smart contract Solidity en Polygon PoS
-- blockchain_tx guardado en ades_certificados
-- Stack: web3.py + Remix IDE + Blockcerts MIT
+### FASES 20-26 (Opensource Stack)
+38. H5P — contenido educativo interactivo (10 tipos, iframe player, xAPI)
+39. BigBlueButton — videoconferencias API-only (reuniones, grabaciones, join URL)
+40. Grafana / Prometheus — observabilidad, 5 dashboards, 13 alertas
+41. n8n — automatizaciones y webhooks
+42. Paperless-ngx — OCR expedientes (integrado en expediente.py)
+43. Biblioteca — libros + préstamos, control atómico ejemplares (Mig 084)
+44. Portal Admin externo — convocatorias, información institucional
 
-### Módulos inspirados en Moodle
-FASE 2: Quiz Engine, Activity Completion, Content Bank, Notificaciones, Foros
-FASE 3: Badges/Gamificación, Competency Framework, Encuestas
-FASE 4: Grade Analytics, Learning Analytics, Learning Plans
-ADES es SIS no LMS. No se adopta Moodle completo.
+### FASES 27-31 (RRHH + Operatividad)
+45. Licencias RRHH — CRUD, estados, aprobación
+46. Capacitaciones RRHH — registro, evaluación, constancias
+47. Disponibilidad Docente — horario disponible para aSc
+48. Expediente Laboral — documentos, contratación, antigüedad
+49. Asistencia Personal — pase de lista staff, justificaciones
+50. Condiciones Crónicas — SB-006/007, alerta emergencia
+51. Justificaciones de Falta — OA-003, aprobar/rechazar
+52. Aulas — CRUD completo + disponibilidad + verificar conflicto
+53. Kardex UAEMEX — constancia PDF preparatoria, ordinario/extra/definitiva
+54. Estadística 911 SEP — matriz edad×grado×sexo + Sección IX discapacidad
+55. Acta de Evaluación — reporte oficial por grupo
+56. Admisión — inscripción nueva, generación PDF
+57. Director Dashboard — KPIs generales, gráficas PrimeNG (nivel_acceso ≤ 2)
+58. Monitor — telemetría JVM, Celery queues, DB metrics (nivel_acceso ≤ 2)
+59. Ayuda — documentación in-app
 
 ---
 
-## Generación Automática de Tareas
-Al insertar en ades_materias_plan, Celery genera ades_tareas para todo el ciclo
-vinculadas a los temas. Alumnos suben archivos (MinIO/S3) como entrega.
+## Stack Tecnológico
+
+| Capa | Tecnología | Versión |
+|---|---|---|
+| Base de datos | PostgreSQL + pgvector | 18.4 + 0.8.2 |
+| PK estándar | UUID v7 uuidv7() nativo PG18 | — |
+| Caché | Valkey | 9.1.0 |
+| Backend BFF | Spring Boot + Java (hexagonal) | 3.x / 21 |
+| Backend IA | FastAPI + SQLAlchemy + Celery | 0.136 / 2.0.50 / 5.6.3 |
+| Frontend | Angular + PrimeNG | 22 / 21 |
+| Auth IdP | Authentik OIDC/OAuth2 | 2026.5.2 |
+| Almacenamiento | SeaweedFS (compatible S3) | — |
+| BI | Apache Superset | 6.1.0 |
+| Horarios | aSc TimeTables XML | — |
+| PDF | WeasyPrint (Python) | — |
+| Blockchain Fase 5 | web3.py + Polygon + Blockcerts | — (diferido) |
+| Infra | Docker Compose Ubuntu 24 ARM OCI | — |
+| Auditoría BD | Esquema auditoria triggers PL/pgSQL | 344 triggers biu activos |
+| PgBouncer | Connection pooling transaction mode | 1.25.2 |
+| Monitoreo | Prometheus + Grafana | — |
+| Secretos | HashiCorp Vault | v7 |
+| H5P | Node.js @lumieducation/h5p-server | :8091 |
+| Automatización | n8n workflows | :5678 |
+| Notificaciones | ntfy push notifications | :2586 |
+| OCR | Paperless-ngx + Celery | — |
+| Documentos | Stirling-PDF + Carbone | :8081 / :3001 |
+| Servidor | ARM OCI 4 cores 24 GB RAM | — |
+| Dominio dev | ades.setag.mx 129.213.35.140 | — |
+| SSL | Let's Encrypt válido 2026-09-01 | — |
 
 ---
 
-## Diseño Frontend — Estilo Oracle APEX con PrimeNG
+## Convenciones de Base de Datos
 
-Patrones APEX implementados con PrimeNG:
-- Interactive Report → p-table filterDisplay="row" (todas las listas)
-- Editable Report → p-table p-cellEditor (libreta calificaciones)
-- Master-Detail → split panel + router (Grupo→Alumnos→Detalle)
-- ContextService → selector plantel+ciclo persistente en toolbar
-- LOV → p-autoComplete/p-dropdown lazy
-- KPI Cards → p-card con ícono + valor grande
+- Prefijo: ades_
+- PK: id UUID NOT NULL DEFAULT uuidv7()
+- Ref: ref UUID NOT NULL UNIQUE DEFAULT uuidv7() para business key SCD2
+- Auditoría: trigger auditoria.trg_auditoria_biu en todas las tablas (344 activos)
+- Soft delete: is_active BOOLEAN NOT NULL DEFAULT TRUE
+- Estatus: ades_estatus + FK estatus_id UUID
+- Nombres: snake_case español
+- FKs: sufijo _id UUID
+- Comentarios obligatorios en tablas y columnas no obvias
+- row_version para concurrencia optimista
+- Migraciones: db/migrations/ con prefijo 3 dígitos (hasta 094 aplicadas)
 
-Reglas UX:
-1. Selector de contexto (plantel + ciclo) siempre visible
-2. Fechas DD-MM-YYYY en UI, ISO 8601 en API
-3. Español incluyendo mensajes validación PrimeNG
-4. Tablas compactas densidad tipo APEX
-5. Columna acciones fija a la derecha
-6. Guardado bulk en calificaciones/asistencias, no auto-save
-7. Responsive tablet-first
+---
 
-Tipografía: Jost (headings, KPIs) + Inter (body, tablas)
-Exportación: CSV, XLSX (SheetJS encabezado rojo Nevadi), PDF backend
+## Migraciones Aplicadas (resumen)
+
+| Rango | Contenido |
+|---|---|
+| 001-007 | Schema base FASE 1-10 (57 tablas), seeds institucionales |
+| 008-010 | Roles, parámetros sistema, cerrar_ciclo_y_promover() |
+| 011-020 | Inscripciones, horarios, biblioteca, catálogos |
+| 021-030 | Auditoría v2, NEE, movilidad, conducta, roles ades_app |
+| 031-042 | Sanciones, planes mejora, condiciones crónicas, justificaciones |
+| 043-060 | Temarios, personal no-docente, RRHH, planeación |
+| 061-070 | BBB reuniones, biblioteca, MVs BI, PgBouncer |
+| 071-080 | Particionamiento, memory embeddings, BI views, audit security, ades_app role |
+| 081-082 | H5P (10 tipos), BigBlueButton (3 tablas) |
+| 083-089 | Ciclo sistema educativo, biblioteca, campos NEM, periodos trimestres, menús UUID, catálogos edificios, eval cualitativa NEM |
+| 090-094 | Menús permisos rol, fix gradebook UAEMEX, fix LP audit, classroom gaps (plagio+NEE+multimedia), dedup códigos postales |
+
+---
+
+## Estructura del Repositorio
+
+```
+/opt/ades/
+├── .agent/         (CONTEXT.md, STATE.md, MAP.md, AGENT.md, HEURISTICS.md, RULES.md)
+├── DECISIONS/      (ADRs 0001-0011)
+├── db/             (migrations 001-094, seeds 001-009, scripts)
+├── backend/        (FastAPI: api/v1/, models/, schemas/, services/, worker/, tests/)
+├── backend-spring/ (BFF Spring Boot: 62 módulos hexagonales, 76 controllers)
+├── frontend/       (Angular 22: 59 features lazy-loaded)
+├── infrastructure/ (nginx, superset, grafana, h5p, vault)
+├── integrations/   (asc_horarios, superset, cube)
+├── memory/         (SemanticCache, LongTermMemory)
+├── agents/         (subagentes del framework)
+├── docs/           (manual-usuario.md 1526 líneas, plan_pruebas_integral.md)
+├── data/           (volúmenes Docker — en .gitignore)
+├── docker-compose.yml
+└── .env            (en .gitignore)
+```
 
 ---
 
@@ -218,6 +313,9 @@ Exportación: CSV, XLSX (SheetJS encabezado rojo Nevadi), PDF backend
 12. Cierre y promoción: cerrar_ciclo_y_promover() inscribe automáticamente.
     BAJA no se reinscribe. REPROBADO mismo grado. EGRESADO no se reinscribe.
     Sin grupo destino va a ades_promociones_pendientes.
+13. NEM 1°-2° primaria: evaluación cualitativa A/B/C/D por campo formativo.
+    equiv_num: A=10, B=8, C=6, D=4. Activable por plantel en ades_config.
+14. Fecha de nacimiento: año válido 1900 ≤ año ≤ año_actual (ValidationUtils.java).
 
 ---
 
@@ -235,93 +333,66 @@ tipo_valor: TEXTO, NUMERO, BOOLEAN, URL, COLOR, JSON.
 
 ---
 
-## Stack Tecnológico
-
-| Capa | Tecnología | Versión |
-|---|---|---|
-| Base de datos | PostgreSQL + pgvector | 18.4 + 0.8.2 |
-| PK estándar | UUID v7 uuidv7() nativo PG18 | — |
-| Caché | Valkey | 9.1.0 |
-| Backend | FastAPI + SQLAlchemy + Celery | 0.136 / 2.0.50 / 5.6.3 |
-| Frontend | Angular + PrimeNG | 22 |
-| Auth IdP | Authentik OIDC/OAuth2 | 2026.5.2 |
-| Almacenamiento | MinIO S3 | 2025-09-07 |
-| BI | Apache Superset | 6.1.0 |
-| Horarios | aSc TimeTables XML | — |
-| PDF | WeasyPrint | — |
-| Blockchain Fase 5 | web3.py + Polygon + Blockcerts | — |
-| Infra | Docker Compose Ubuntu 24 ARM OCI | — |
-| Auditoría | Esquema auditoria triggers PL/pgSQL | — |
-| Migraciones | Alembic | 1.18.4 |
-| IA Agente | LangChain + LangGraph + Claude API | — |
-| Servidor | ARM OCI 4 cores 24 GB RAM | — |
-| Dominio dev | ades.setag.mx 129.213.35.140 | — |
-| SSL | Let's Encrypt válido 2026-09-01 | — |
-
----
-
-## Convenciones de Base de Datos
-
-- Prefijo: ades_
-- PK: id UUID NOT NULL DEFAULT uuidv7()
-- Ref: ref UUID NOT NULL UNIQUE DEFAULT uuidv7() para business key SCD2
-- Auditoría: trigger auditoria.trg_auditoria_biu en todas las tablas
-- Soft delete: is_active BOOLEAN NOT NULL DEFAULT TRUE
-- Estatus: ades_estatus + FK estatus_id UUID
-- Nombres: snake_case español
-- FKs: sufijo _id UUID
-- Comentarios obligatorios en tablas y columnas no obvias
-- row_version para concurrencia optimista
-- Migraciones: db/migrations/ con prefijo 3 dígitos (018_xxx.sql)
-
----
-
-## Estructura del Repositorio
-
-/opt/ades/
-├── .agent/ (CONTEXT.md, STATE.md, MAP.md)
-├── DECISIONS/ (ADRs)
-├── db/ (migrations 001-018+, seeds, scripts)
-├── backend/ (FastAPI: api, models, schemas, services, worker, alembic)
-├── frontend/ (Angular 22 + PrimeNG)
-├── integrations/ (asc_horarios, superset, cube)
-├── infrastructure/nginx/
-├── memory/ (SemanticCache, LongTermMemory)
-├── agents/ (subagentes del framework)
-├── data/ (volúmenes Docker — en .gitignore)
-├── docker-compose.yml
-└── .env (en .gitignore)
-
----
-
 ## Datos Cargados (Seeds 2026-2027)
 
-Escuelas: 1 | Planteles: 3 | Grupos activos: 54 | Profesores: 80
-Asignaciones: 444 | Alumnos: 1,620 | Inscripciones: 1,620
-Padres: 1,620 | Usuarios: 1,668 | Materias en plan: 222 | Temas: 280
+Escuelas: 1 | Planteles: 3 | Grupos activos: 66 (78 total) | Profesores: 168
+Alumnos: 1,980 | Usuarios: 2,054 | Materias: 222+ | Temas: 523+
+Libros biblioteca: 60 | Préstamos: 74 | Evaluaciones 360°: 32 (escala 1-5 correcta)
+
+Seeds aplicados: 001 (institución), 002 (usuarios/alumnos), 003 (académico),
+004 (calificaciones), 005 (portal convocatorias), 006 (gradebook),
+007 (planes ponderación), 008 (biblioteca), 009 (eval-docente 360°)
 
 ---
 
-## Decisiones de Arquitectura
+## Datos de Infraestructura (2026-06-23)
 
-| Fecha | Decisión | Motivo |
-|---|---|---|
-| 2026-06 | PostgreSQL 18 + pgvector | Versión más reciente; pgvector memoria semántica |
-| 2026-06 | UUID v7 como PK | Time-ordered, sin fragmentación, nativo PG18 |
-| 2026-06 | Valkey en lugar de Redis | Fork opensource activo, 100% compatible |
-| 2026-06 | Authentik como IdP | Opensource, Google SSO, usuarios locales |
-| 2026-06 | Firmas Ed25519 antes de blockchain | Costo cero, compatible con Polygon |
-| 2026-06 | Polygon PoS para blockchain | Gas 1000x más barato, ~$5-20/año |
-| 2026-06 | aSc TimeTables para horarios | Problema NP-difícil ya resuelto |
-| 2026-06 | Angular + PrimeNG estilo APEX | PrimeNG cubre los mismos patrones APEX |
-| 2026-06 | WeasyPrint para PDF | Python nativo, CSS-based, sin Java |
-| 2026-06 | Superset 6.1.0 | Última estable; Dockerfile custom con psycopg2 |
+| Servicio | Estado | Puerto interno | Notas |
+|---|---|---|---|
+| PostgreSQL 18 | ✅ healthy | 5432 | Migraciones 001-094 aplicadas |
+| PgBouncer | ✅ healthy | 6432 | transaction mode, SCRAM-SHA-256 |
+| Valkey 9.1.0 | ✅ healthy | 6379 | caché + Celery broker |
+| SeaweedFS | ✅ healthy | 9000 (S3), 8888 (Filer) | archivos, entregas, boletas |
+| Authentik 2026.5.2 | ✅ healthy | 9010 | IdP OIDC; ADES Frontend app configurada |
+| Spring BFF (ades-bff) | ✅ running | 8080 | 62 módulos, 76 controllers |
+| FastAPI (ades-api) | ✅ healthy | 8000 | IA + docs; 180+ ops REST |
+| Angular Frontend | ✅ healthy | 4200 | 59 features lazy-loaded |
+| nginx | ✅ running | 80/443 | TLS Let's Encrypt 2026-09-01 |
+| Superset | ✅ healthy | 8088 | 4 dashboards con RLS por plantel |
+| Prometheus | ✅ healthy | 9090 | scraping api+bff+pg+pgbouncer |
+| Grafana | ✅ healthy | 3003 | 5 dashboards |
+| H5P Node | ✅ healthy | 8091 | 10 tipos contenido interactivo |
+| n8n | ✅ starting | 5678 | automatizaciones webhooks |
+| ntfy | ✅ healthy | 2586 | notificaciones push |
+| Paperless-ngx | ✅ healthy | — | OCR expedientes |
+| Stirling-PDF | ✅ healthy | 8081 | manipulación PDF |
+| Carbone | ✅ healthy | 3001 | generación documentos plantilla |
+| Flowise | ✅ healthy | 3002 | builder flows IA |
+| Vault | ✅ running | 8200 | secretos, DATABASE_URL, tokens |
+| Celery worker/beat | ✅ running | — | boletas batch, alertas nocturnas, refresh MVs |
+| Flower | ✅ running | 5555 | monitor Celery |
 
 ---
 
-## Prioridad de Desarrollo
+## Prioridades de Desarrollo Pendientes
 
-FASE 1 Completa → FASE 2 Completa → aSc Completa → FASE 3 Completa → FASE 4 En progreso → FASE 5 Pendiente
+### Bloqueantes (corregidos 2026-06-23):
+- [x] ADV-02/03: Validación año fecha_nacimiento en ValidationUtils.java → AdminController
 
-El agente NUNCA debe saltarse fases ni generar código de fases superiores
-antes de tener la fase anterior funcionando y probada.
+### Alta prioridad:
+- [ ] Google Workspace SSO (esperando credenciales OAuth2 del plantel)
+- [ ] Paperless-ngx: completar UI expediente-doc con OCR búsqueda
+- [ ] Verificar e2e tests con cambios recientes (cascada, classroom gaps)
+
+### Media prioridad:
+- [ ] Hexagonal Spring BFF: completar ~12 módulos restantes sin ApplicationService
+- [ ] Comentarios BD: `db/migrations/068_comentarios_schema.sql` (COMMENT ON TABLE/COLUMN)
+- [ ] ER Diagram en Mermaid en docs/
+
+### Diferidas:
+- [ ] FASE 5B — Blockchain Polygon PoS
+- [ ] POSTGRES_USER: ades_admin → ades_app (ventana mantenimiento)
+- [ ] HashiCorp Vault: integración completa secretos FastAPI (actualmente os.environ)
+- [ ] Partición ciclo_2029_2030 (crear antes de agosto 2029)
+- [ ] BigBlueButton: configurar BBB_SERVER_URL + BBB_SHARED_SECRET (servidor pendiente)
+- [ ] H5P: descargar h5p-core files en volumen /data/h5p-core/

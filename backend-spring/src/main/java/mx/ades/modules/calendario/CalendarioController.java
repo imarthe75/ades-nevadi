@@ -11,7 +11,6 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.time.LocalDate;
 import java.util.*;
 
 @RestController
@@ -21,6 +20,7 @@ public class CalendarioController {
 
     private final JdbcTemplate jdbc;
     private final AdesUserService userService;
+    private final CalendarioWriteService writeService;
 
     // Nivel mínimo para mutaciones (COORDINADOR = 3; DOCENTE/ALUMNO/PADRE no pueden)
     private static final int NIVEL_MIN_ESCRITURA = 3;
@@ -98,45 +98,12 @@ public class CalendarioController {
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         requireRole(user, NIVEL_MIN_ESCRITURA);
-
-        UUID newId = UUID.randomUUID();
-        String cicloId  = safeStr(body, "ciclo_escolar_id");
-        String fecha    = safeStr(body, "fecha_evento");
-        String nombre   = safeStr(body, "nombre_evento");
-        String tipo     = safeStr(body, "tipo_evento");
-        String plantelId = safeStr(body, "plantel_id");
-
-        if (cicloId == null || fecha == null || nombre == null || tipo == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                "ciclo_escolar_id, fecha_evento, nombre_evento y tipo_evento son obligatorios");
-        }
-        // Validate date format before hitting DB
-        try { LocalDate.parse(fecha); } catch (Exception e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                "fecha_evento inválida. Formato esperado: YYYY-MM-DD");
-        }
-        // Validate nombre length
-        if (nombre.length() > 200) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "nombre_evento excede 200 caracteres");
-        }
-
-        // Para ADMIN_PLANTEL (1) y superiores: aplica_todos_planteles por defecto false (solo su plantel)
-        boolean aplicaTodos = body.get("aplica_todos_planteles") instanceof Boolean b ? b :
-            (user.getNivelAcceso() != null && user.getNivelAcceso() == 0); // solo ADMIN_GLOBAL puede hacer global por defecto
-        // Forzar plantel del usuario para no-admins globales
-        if (user.getNivelAcceso() != null && user.getNivelAcceso() > 0 && user.getPlantelId() != null) {
-            plantelId = user.getPlantelId().toString();
-            aplicaTodos = false;
-        }
-
-        jdbc.update(
-            "INSERT INTO ades_calendario_escolar " +
-            "(id, ciclo_escolar_id, fecha_evento, nombre_evento, tipo_evento, aplica_todos_planteles, plantel_id) " +
-            "VALUES (?, ?::uuid, ?::date, ?, ?, ?, ?::uuid)",
-            newId, cicloId, fecha, nombre, tipo, aplicaTodos,
-            plantelId != null && !plantelId.isBlank() ? plantelId : null);
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("id", newId, "created", true));
+        int nivel = user.getNivelAcceso() != null ? user.getNivelAcceso() : 99;
+        boolean aplicaTodos = body.get("aplica_todos_planteles") instanceof Boolean b ? b : (nivel == 0);
+        return ResponseEntity.status(HttpStatus.CREATED).body(writeService.crearEvento(
+            safeStr(body, "ciclo_escolar_id"), safeStr(body, "fecha_evento"),
+            safeStr(body, "nombre_evento"), safeStr(body, "tipo_evento"),
+            safeStr(body, "plantel_id"), aplicaTodos, nivel, user.getPlantelId()));
     }
 
     @PatchMapping("/{id}")
@@ -146,52 +113,8 @@ public class CalendarioController {
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         requireRole(user, NIVEL_MIN_ESCRITURA);
-
-        // Verify exists and check plantel ownership
-        List<Map<String, Object>> existing = jdbc.queryForList(
-            "SELECT plantel_id FROM ades_calendario_escolar WHERE id = ? AND is_active = true", id);
-        if (existing.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Evento no encontrado");
-        }
-        Object eventPlantelId = existing.get(0).get("plantel_id");
-        if (user.getNivelAcceso() != null && user.getNivelAcceso() > 1 && user.getPlantelId() != null
-                && eventPlantelId != null
-                && !eventPlantelId.toString().equals(user.getPlantelId().toString())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Sin permisos para modificar este evento");
-        }
-
-        List<String> sets = new ArrayList<>();
-        List<Object> params = new ArrayList<>();
-        if (body.containsKey("fecha_evento")) {
-            String f = safeStr(body, "fecha_evento");
-            try { if (f != null) LocalDate.parse(f); } catch (Exception e) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "fecha_evento inválida. Formato: YYYY-MM-DD");
-            }
-            sets.add("fecha_evento = ?::date"); params.add(f);
-        }
-        if (body.containsKey("nombre_evento")) { sets.add("nombre_evento = ?"); params.add(safeStr(body, "nombre_evento")); }
-        if (body.containsKey("tipo_evento"))   { sets.add("tipo_evento = ?");   params.add(safeStr(body, "tipo_evento")); }
-        if (body.containsKey("ciclo_escolar_id")) { sets.add("ciclo_escolar_id = ?::uuid"); params.add(safeStr(body, "ciclo_escolar_id")); }
-        if (body.containsKey("aplica_todos_planteles")) {
-            // Solo ADMIN_GLOBAL puede marcar aplica_todos_planteles = true
-            boolean val = body.get("aplica_todos_planteles") instanceof Boolean b ? b : false;
-            if (val && (user.getNivelAcceso() == null || user.getNivelAcceso() > 0)) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "Solo ADMIN_GLOBAL puede marcar eventos como aplicables a todos los planteles");
-            }
-            sets.add("aplica_todos_planteles = ?"); params.add(val);
-        }
-        if (body.containsKey("plantel_id")) {
-            sets.add("plantel_id = ?::uuid");
-            params.add(safeStr(body, "plantel_id"));
-        }
-
-        if (!sets.isEmpty()) {
-            params.add(id);
-            jdbc.update("UPDATE ades_calendario_escolar SET " + String.join(", ", sets) + " WHERE id = ?",
-                params.toArray());
-        }
-        return ResponseEntity.ok(Map.of("updated", true));
+        int nivel = user.getNivelAcceso() != null ? user.getNivelAcceso() : 99;
+        return ResponseEntity.ok(writeService.actualizarEvento(id, body, nivel, user.getPlantelId()));
     }
 
     @DeleteMapping("/{id}")
@@ -199,18 +122,7 @@ public class CalendarioController {
     public void delete(@PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         requireRole(user, NIVEL_MIN_ESCRITURA);
-
-        // Verificar plantel ownership antes de eliminar
-        List<Map<String, Object>> existing = jdbc.queryForList(
-            "SELECT plantel_id FROM ades_calendario_escolar WHERE id = ? AND is_active = true", id);
-        if (existing.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Evento no encontrado");
-        Object eventPlantelId = existing.get(0).get("plantel_id");
-        if (user.getNivelAcceso() != null && user.getNivelAcceso() > 1 && user.getPlantelId() != null
-                && eventPlantelId != null
-                && !eventPlantelId.toString().equals(user.getPlantelId().toString())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Sin permisos para eliminar este evento");
-        }
-
-        jdbc.update("UPDATE ades_calendario_escolar SET is_active = false WHERE id = ? AND is_active = true", id);
+        int nivel = user.getNivelAcceso() != null ? user.getNivelAcceso() : 99;
+        writeService.eliminarEvento(id, nivel, user.getPlantelId());
     }
 }

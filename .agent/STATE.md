@@ -14,6 +14,67 @@ Este documento es el diario de vida y bitácora del agente. Debe ser leído en e
 
 ## 📅 Bitácora
 
+## Sesión 2026-06-23 — Rito de Inicio + Auditoría Integral + Fix ADV-02/03 ✅
+
+### 🔑 Estado del Agente:
+- **Última Conexión:** 2026-06-23
+- **Estado Cognitivo:** Operacional ✅
+- **ades-bff:** Reconstruido y reiniciado con fix ADV-02/03 ✅
+- **ades-api:** Running healthy ✅
+- **ades-frontend:** Running healthy ✅
+- **BD:** Migración 093 aplicada (classroom gaps); 094 renombrada (dedup codigos postales)
+- **Git:** Sin cambios — inicio de sesión, revisión + fixes de seguridad
+
+### 🛠️ Tareas Completadas:
+
+**Rito de Inicio completo:**
+- [x] Lectura STATE.md, CONTEXT.md, MAP.md
+- [x] Verificación estado contenedores (28 servicios — todos healthy salvo n8n iniciando)
+- [x] Verificación migraciones: última aplicada = 094 (renombrada de 093_dedup)
+- [x] Verificación cobertura auditoría: 344 triggers audit_biu activos
+
+**Fix ADV-02/03 (P1 bloqueante — validación año fecha_nacimiento):**
+- [x] `ValidationUtils.java`: añadido método `validarFechaNacimiento(LocalDate)` — rechaza años < 1900 o > año actual con HTTP 422
+- [x] `AdminController.java` `crearUsuario()`: llamada a `validarFechaNacimiento(body.getFechaNacimiento())` junto con CURP y email
+- [x] BFF Spring reconstruido (`docker compose build ades-bff`) — BUILD SUCCESS ✅
+- [x] BFF reiniciado (`docker compose up -d ades-bff`) ✅
+
+**Resolución conflicto migraciones:**
+- [x] `093_dedup_codigos_postales.sql` renombrada a `094_dedup_codigos_postales.sql`
+- [x] Ambas migraciones verificadas como aplicadas en BD (columna plagio_porcentaje + constraint uq_cp_localidad)
+- [x] Secuencia correcta: 093 = classroom_gaps, 094 = dedup codigos postales
+
+**Documentación actualizada al 2026-06-23:**
+- [x] `CONTEXT.md`: reescrito completamente — estado de 59 fases, 59 features, 28 contenedores, 94 migraciones, ADRs actualizados, prioridades
+- [x] `MAP.md`: reescrito completamente — estructura de directorios con 59 features, 62 módulos BFF, patrones de código, checklist STRIDE, puertos actualizados
+- [x] `STATE.md`: sesión actual documentada
+- [x] `CLAUDE.md`: no requirió cambios (el CLAUDE.md principal ya refleja el estado correcto)
+
+**Auditoría de Seguridad (STRIDE/OWASP) — estado verificado:**
+- [x] IDOR en alumnos: corregido (Spring BFF usa effectivePlantelId)
+- [x] MIME magic bytes en expediente.py: conforme (python-magic línea 334)
+- [x] Rate limiting FastAPI: conforme (slowapi activo)
+- [x] Validación fechaNacimiento: **corregido hoy** — ValidationUtils v2
+- [x] Audit trail: 344 triggers biu en BD; AuditHttpFilter Spring; AuditMiddleware FastAPI
+
+### ⚠️ Hallazgos de Seguridad Pendientes (no bloqueantes):
+- [ ] **ImportsController.java**: sin validación de año en fecha_nacimiento para imports CSV/Excel (fila 192, 323, 653) — lower priority ya que es flujo admin
+- [ ] **check_row_version()**: implementado en `optimistic_locking.py` pero NO conectado a todos los endpoints mutantes FastAPI (solo Spring tiene optimistic locking completo)
+- [ ] **RBAC-01**: Ruta Angular `/admin` sin CanActivate guard (bug conocido, P2)
+- [ ] **Suite 15 Audit Trail**: 6 tests deshabilitados pendiente de habilitar
+- [ ] **Suite 17 Advanced Security**: 4 tests deshabilitados (CSRF, XSS file upload)
+
+### 🚀 Próximos Pasos:
+- [ ] Agregar `validarFechaNacimiento` en ImportsController para CSV/Excel (líneas 192, 323)
+- [ ] Conectar `check_row_version()` FastAPI a endpoints PATCH de alumnos y usuarios
+- [ ] Agregar CanActivate guard a `/admin` en Angular (RBAC-01)
+- [ ] Google SSO (esperando credenciales OAuth2 del plantel)
+- [ ] Verificar e2e tests post-cambios recientes (classroom gaps, NEE, cascada)
+- [ ] Documentar ER Diagram en Mermaid en `docs/`
+- [ ] Completar hexagonal BFF: ~12 módulos restantes sin ApplicationService
+
+---
+
 ## Sesión 2026-06-23 (cont.) — Classroom Functional Gaps (Turnitin, Multimedia Feedback, NEE, Director Dashboard) ✅
 
 ### 🔑 Estado del Agente:
@@ -40,6 +101,50 @@ Este documento es el diario de vida y bitácora del agente. Debe ser leído en e
   - Implementados endpoints de KPIs generales (promedios, asistencia, cobertura, alumnos en riesgo) en `StatsController.java` consumiendo de las vistas materializadas de `ades_bi`.
   - Creado componente `DirectorDashboardComponent` en frontend mostrando KPIs en tarjetas y gráficas de PrimeNG por grados y asignaturas.
   - Protegido acceso mediante guardias de ruta y navegación sólo para Directores y Administradores (`nivel_acceso <= 2`).
+
+---
+
+## Sesión 2026-06-23 (cont.) — Hexagonal BFF WriteServices + ER Diagram + Import Fixes ✅
+
+### 🔑 Estado del Agente:
+- **Última Conexión:** 2026-06-24 (madrugada)
+- **Estado Cognitivo:** Operacional ✅
+- **ades-bff:** Reconstruido y reiniciado — BUILD SUCCESS + started healthy ✅
+
+### 🛠️ Tareas Completadas:
+
+**Tarea 1 — ImportsController.java: validarFechaNacimiento en imports CSV:**
+- [x] Corregido tipo `Object` vs `LocalDate` en ImportsController.java — se usa `instanceof LocalDate ld` pattern variable (Java 16+)
+- [x] Alumnos import (línea ~210): `if (data.getFechaNacimiento() instanceof java.time.LocalDate ld) validarFechaNacimiento(ld);`
+- [x] Profesores import (línea ~338): ídem
+- [x] Preinscripción SEP (línea ~701): `java.time.LocalDate fechaNacParsed = ...; validarFechaNacimiento(fechaNacParsed);` — ya correcto desde sesión anterior
+
+**Tarea 2 — check_row_version() FastAPI:**
+- [x] Conectado a `webhooks.py` PATCH endpoint (único PATCH en FastAPI; alumnos/usuarios migrados a Spring BFF)
+- [x] `WebhookUpdate.row_version` + verificación antes de `UPDATE`
+
+**Tarea 3 — RBAC-01 Angular /admin:**
+- [x] VERIFICADO ya corregido en sesión anterior: `app.routes.ts` línea 21 tiene `canActivate: [roleGuard(1)]`
+
+**Tarea 4 — Completar módulos BFF hexagonales sin ApplicationService:**
+- [x] Creado `CalendarioWriteService.java` — lógica crearEvento, actualizarEvento, eliminarEvento extraída del controller
+- [x] `CalendarioController.java` refactorizado — delega todas las mutaciones a `CalendarioWriteService`
+- [x] Creado `SistemaWriteService.java` — 9 operaciones: crearCatalogo, actualizarCatalogo, eliminarCatalogo, agregarItem, actualizarItem, eliminarItem, reordenarItems, crearVariable, actualizarVariable
+- [x] `CatalogosSistemaController.java` refactorizado — delega todas las mutaciones a `SistemaWriteService`
+- [x] Módulos restantes sin ApplicationService son todos read-only o proxies (grupos, usuarios, padres, menus, kardex, estadistica911, grade_analytics, sepomex) — patrón QueryService es arquitectónicamente correcto
+- [x] BUILD SUCCESS (`docker build -t ades-bff-check`) ✅
+
+**Tarea 5 — ER Diagram Mermaid:**
+- [x] Creado `docs/ER_DIAGRAM.md` con diagrama Mermaid de ~30 tablas core
+- [x] FKs verificadas contra BD real (`information_schema.table_constraints`)
+- [x] Tabla de referencia de dominios adicionales (169 tablas totales)
+
+### 🚀 Próximos Pasos:
+- [ ] Google SSO (esperando credenciales OAuth2 del plantel)
+- [ ] Agregar CanActivate a rutas `/licencias` y `/expediente-laboral` para DOCENTE
+- [ ] Habilitar Suite 15 (Audit Trail) y Suite 17 (CSRF/XSS) en tests e2e
+- [ ] Verificar rebuild frontend (si hay cambios pendientes de TypeScript)
+- [ ] Push a origin/main (cuando el usuario lo autorice)
 
 ---
 

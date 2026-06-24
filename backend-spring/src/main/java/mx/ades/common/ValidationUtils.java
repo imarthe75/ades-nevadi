@@ -2,6 +2,7 @@ package mx.ades.common;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
+import java.time.LocalDate;
 import java.util.regex.Pattern;
 
 public class ValidationUtils {
@@ -62,6 +63,23 @@ public class ValidationUtils {
             if (!PHONE_PATTERN.matcher(telefono.trim()).matches()) {
                 throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "El formato del teléfono es inválido (deben ser 10 dígitos).");
             }
+        }
+    }
+
+    // Año mínimo para datos históricos en México (reglamentación educativa SEP comienza ~1921)
+    private static final int YEAR_MIN = 1900;
+
+    /**
+     * Valida que una fecha de nacimiento sea coherente: no futura y no anterior a 1900.
+     * Rechaza valores como año 1026 (pasado lejano) o 2099 (futuro).
+     */
+    public static void validarFechaNacimiento(LocalDate fecha) {
+        if (fecha == null) return;
+        int year = fecha.getYear();
+        int currentYear = LocalDate.now().getYear();
+        if (year < YEAR_MIN || year > currentYear) {
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
+                "La fecha de nacimiento es inválida: el año debe estar entre " + YEAR_MIN + " y " + currentYear + ".");
         }
     }
 }

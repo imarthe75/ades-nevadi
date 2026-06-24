@@ -1514,6 +1514,200 @@ Sí. ADES está diseñado con enfoque tablet-first y funciona en dispositivos m�
 
 ---
 
+## 35. Dashboard del Director
+
+**Acceso:** Niveles 0-2 (Admin Global, Admin Plantel, Director, Subdirector, Coordinadores)
+
+### 35.1 ¿Qué es el Dashboard del Director?
+
+El Dashboard del Director es una vista ejecutiva con indicadores clave de desempeño (KPIs) diseñada para tomar decisiones rápidas sin necesidad de navegar por módulos individuales. Se accede desde el menú lateral en la sección **Administración → Dashboard Director**.
+
+### 35.2 KPIs Disponibles
+
+| Tarjeta | Indicador |
+|---|---|
+| Promedio General | Calificación promedio de todos los grupos del plantel |
+| Asistencia Hoy | Porcentaje de asistencia global del día |
+| Cobertura Curricular | Porcentaje de temas impartidos vs. planificados |
+| Alumnos en Riesgo | Número de alumnos con promedio < 6.0 (SEP) o < 60 (UAEMEX) |
+
+### 35.3 Gráficas
+
+- **Por Grado**: promedio de calificaciones desglosado por grado educativo.
+- **Por Asignatura**: las 10 materias con menor promedio (en rojo las que están por debajo del mínimo aprobatorio).
+
+Los datos provienen de las vistas materializadas de inteligencia de negocio (`ades_bi`) y se actualizan automáticamente cada hora por el proceso Celery.
+
+---
+
+## 36. H5P — Contenido Educativo Interactivo
+
+**Acceso:** Todos los niveles (nivel 5 = solo visualizar y responder; nivel ≤ 3 = crear y asignar)
+
+### 36.1 ¿Qué es H5P?
+
+H5P permite crear y distribuir contenido educativo interactivo directamente desde ADES: cuestionarios, presentaciones, líneas de tiempo, videos interactivos, ejercicios de arrastre y más. Los alumnos completan las actividades desde su navegador y los resultados se registran automáticamente.
+
+### 36.2 Tipos de Contenido Disponibles
+
+| Tipo | Descripción |
+|---|---|
+| Quiz (cuestionario) | Preguntas de opción múltiple con retroalimentación |
+| Interactive Video | Video con preguntas integradas en puntos clave |
+| Presentation | Diapositivas interactivas tipo CoursePresenter |
+| Drag and Drop | Actividades de arrastre y clasificación |
+| Flashcards | Tarjetas de memorización |
+| True/False | Preguntas de verdadero/falso |
+| Fill in the Blanks | Completar oraciones |
+| Arithmetic Quiz | Ejercicios matemáticos cronometrados |
+| Dialog Cards | Vocabulario y términos |
+| Find the Hotspot | Identificar elementos en imagen |
+
+### 36.3 Crear y Publicar Contenido H5P
+
+1. Acceda a **Recursos → Contenido H5P** en el menú lateral.
+2. Seleccione el tipo de contenido que desea crear.
+3. Haga clic en **"+ Nuevo contenido"** y complete el formulario:
+   - Título descriptivo
+   - Descripción para los alumnos
+   - Suba el paquete `.h5p` descargado del portal oficial h5p.org
+4. Guarde. El contenido aparecerá en la biblioteca con vista previa.
+
+### 36.4 Asignar a Grupos
+
+1. Desde la biblioteca H5P, seleccione el contenido deseado.
+2. Haga clic en **"Asignar a grupo"**.
+3. Elija el grupo, la materia y la fecha límite.
+4. Los alumnos del grupo recibirán una notificación y podrán acceder desde **Mi Progreso → H5P Asignado**.
+
+### 36.5 Resultados y Estadísticas
+
+La pestaña **"Mis Resultados"** muestra el historial de intentos de cada alumno: fecha, puntaje obtenido y estado (completado/en progreso). Los docentes pueden ver el resumen de resultados por grupo desde la vista de administrador.
+
+> **Nota técnica:** Los resultados se registran mediante xAPI (estándar de aprendizaje electrónico). Si el servidor H5P no está disponible, el contenido no cargará.
+
+---
+
+## 37. BigBlueButton — Videoconferencias
+
+**Acceso:** Niveles 0-4 (crear reuniones: nivel ≤ 3; unirse: todos)
+
+### 37.1 ¿Qué es BigBlueButton?
+
+BigBlueButton (BBB) es la plataforma de videoconferencias integrada en ADES, diseñada para sesiones de clase en línea, tutorías, reuniones con padres y juntas de personal. Se accede desde **Comunicación → Videoconferencias**.
+
+> **Requisito:** El Instituto Nevadi debe tener configurado un servidor BigBlueButton propio. Si el módulo muestra "BBB no configurado", comuníquese con el administrador del sistema.
+
+### 37.2 Programar una Reunión
+
+1. Acceda a **Comunicación → Videoconferencias**.
+2. Haga clic en **"+ Nueva reunión"**.
+3. Complete el formulario:
+   - **Nombre de la reunión** (ej. "Clase de Matemáticas 2°A")
+   - **Fecha y hora de inicio**
+   - **Duración estimada**
+   - **Grupo vinculado** (opcional)
+   - **Contraseña de moderador** (para el docente)
+   - **Contraseña de asistente** (para los alumnos)
+4. Guarde. La reunión aparecerá en el calendario y en la lista de videoconferencias.
+
+### 37.3 Unirse a una Reunión
+
+- **Como moderador (docente):** Haga clic en **"Entrar como moderador"** en el detalle de la reunión. Se abrirá una nueva pestaña con la sesión BBB donde tendrá controles completos.
+- **Como asistente (alumno/padre):** Haga clic en **"Entrar como asistente"**. Tendrá micrófono, cámara y chat, pero sin controles de moderación.
+
+### 37.4 Grabaciones
+
+Las reuniones pueden grabarse automáticamente si el servidor BBB está configurado para ello. Las grabaciones disponibles aparecen en la pestaña **"Grabaciones"** con enlace para reproducir directamente.
+
+---
+
+## 38. Detección de Plagio y Originalidad
+
+**Acceso:** Docentes (nivel 4) para revisar; Admin/Coordinadores para configurar
+
+### 38.1 ¿Cómo funciona la detección de plagio?
+
+ADES integra verificación de originalidad en las entregas de tareas del Gradebook. Al calificar una entrega, el docente puede solicitar un análisis de plagio que compara el documento con bases de datos académicas.
+
+### 38.2 Solicitar Análisis de Plagio
+
+1. En el **Gradebook**, seleccione la actividad y la entrega del alumno.
+2. En el diálogo de calificación, haga clic en **"Verificar Originalidad"**.
+3. El sistema procesará el documento y mostrará:
+   - **Porcentaje de similitud** (0-100%)
+   - **Enlace al reporte detallado** con las fuentes encontradas
+
+### 38.3 Interpretación del Porcentaje
+
+| Rango | Nivel de Riesgo | Acción Recomendada |
+|---|---|---|
+| 0-15% | Bajo — original | Sin acción requerida |
+| 16-30% | Moderado | Revisar el reporte detallado |
+| 31-50% | Alto | Solicitar aclaración al alumno |
+| >50% | Crítico — posible plagio | Escalar a coordinación |
+
+> El porcentaje se muestra con un badge de color en la lista de entregas del Gradebook para identificación rápida.
+
+---
+
+## 39. Adecuaciones Curriculares (NEE)
+
+**Acceso:** Docentes (nivel 4) para aplicar; Coordinadores (nivel 3) para configurar esquemas
+
+### 39.1 ¿Qué son las Adecuaciones Curriculares?
+
+Las adecuaciones curriculares son esquemas de ponderación alternativos diseñados para alumnos con Necesidades Educativas Especiales (NEE). Permiten ajustar los porcentajes de evaluación sin modificar los contenidos curriculares, garantizando una evaluación equitativa e inclusiva conforme a los lineamientos SEP.
+
+### 39.2 Configurar un Esquema NEE
+
+1. Acceda a **Configuración → Ponderación**.
+2. Cree un nuevo esquema y active el switch **"¿Es para NEE?"**.
+3. Defina los porcentajes de cada ítem (suma = 100%).
+4. Guarde. El esquema queda disponible para alumnos con registro NEE activo.
+
+### 39.3 ¿Cómo se Aplica el Esquema NEE?
+
+El sistema aplica automáticamente el esquema NEE cuando:
+1. El alumno tiene un registro activo en `ades_nee` (registrado en el Expediente Médico).
+2. Existe un esquema de ponderación con `es_nee=TRUE` para su nivel/materia.
+
+El cálculo del período usará el esquema NEE en lugar del esquema general. Si no existe esquema NEE configurado, el sistema usa el esquema general.
+
+### 39.4 Registro de NEE
+
+Para registrar a un alumno con NEE:
+1. Acceda al módulo **Médico** y busque el alumno.
+2. En su expediente, active el flag **"Necesidades Educativas Especiales"**.
+3. Complete la descripción del tipo de adecuación y el dictamen de apoyo.
+4. Guarde. El Gradebook usará automáticamente el esquema NEE desde ese momento.
+
+---
+
+## 40. Retroalimentación Multimedia
+
+**Acceso:** Docentes (nivel 4) al calificar entregas
+
+### 40.1 ¿Qué es la Retroalimentación Multimedia?
+
+Además del comentario de texto tradicional, los docentes pueden enviar retroalimentación en formato de audio o video directamente en el Gradebook. Esto enriquece la comunicación pedagógica y es especialmente útil para explicar errores complejos o para docentes que prefieren comunicarse de forma oral.
+
+### 40.2 Agregar Retroalimentación de Audio o Video
+
+1. En el **Gradebook**, abra el diálogo de calificación de una entrega.
+2. Haga clic en el botón **"Agregar retroalimentación multimedia"**.
+3. Seleccione el archivo de audio (`.mp3`, `.m4a`, `.ogg`) o video (`.mp4`, `.webm`).
+4. Haga clic en **"Subir"**. El archivo se almacena en SeaweedFS.
+5. Guarde la calificación. El alumno verá el reproductor de audio/video en su panel **Mi Progreso**.
+
+### 40.3 Ver Retroalimentación (Vista Alumno)
+
+1. El alumno accede a **Mi Progreso** y selecciona la tarea calificada.
+2. Si hay retroalimentación multimedia, aparece un reproductor HTML5 directamente en la página.
+3. El alumno puede escuchar/ver la retroalimentación sin descargar archivos.
+
+---
+
 ## Contacto y Soporte
 
 Para reportar problemas técnicos o solicitar capacitación sobre el sistema, comuníquese con el área de administración del Instituto Nevadi en el plantel correspondiente.
@@ -1522,5 +1716,5 @@ Para consultas sobre funcionalidades del sistema, también puede usar el **Asist
 
 ---
 
-*Manual generado el 2026-06-23. ADES Instituto Nevadi — Sistema de Administración Escolar.*
+*Manual generado el 2026-06-23 (v3.0 — 40 secciones, 6 módulos nuevos). ADES Instituto Nevadi — Sistema de Administración Escolar.*
 *"EL ÚNICO CAMINO PARA SALIR ADELANTE ES LA EDUCACIÓN."*

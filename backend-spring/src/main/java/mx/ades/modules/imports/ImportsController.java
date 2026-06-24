@@ -207,6 +207,8 @@ public class ImportsController {
                         .estatusId(estatusId)
                         .usuario(user.getUsername())
                         .build();
+                if (data.getFechaNacimiento() instanceof java.time.LocalDate ld)
+                    mx.ades.common.ValidationUtils.validarFechaNacimiento(ld);
                 UUID estudianteId = importWrite.insertarAlumno(data);
                 exitosos++;
 
@@ -334,6 +336,8 @@ public class ImportsController {
                         .estatusId(estatusId)
                         .usuario(user.getUsername())
                         .build();
+                if (data.getFechaNacimiento() instanceof java.time.LocalDate ld)
+                    mx.ades.common.ValidationUtils.validarFechaNacimiento(ld);
                 importWrite.insertarProfesor(data);
                 exitosos++;
             } catch (Exception e) {
@@ -696,9 +700,11 @@ public class ImportsController {
             }
 
             try {
+                java.time.LocalDate fechaNacParsed = ImportadorUtil.parseDate(fechaNac);
+                mx.ades.common.ValidationUtils.validarFechaNacimiento(fechaNacParsed);
                 importWrite.insertarPreinscritoSEP(
                         nombre, apellidoP, apellidoM, curp,
-                        ImportadorUtil.parseDate(fechaNac), nivel, grado, plantelId, cicloId,
+                        fechaNacParsed, nivel, grado, plantelId, cicloId,
                         tutor,
                         ImportadorUtil.getCol(row, parsed.getHeaders(), "telefono_tutor", "tel_tutor"),
                         ImportadorUtil.getCol(row, parsed.getHeaders(), "email_tutor", "correo_tutor"),

@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.security import get_ades_user, AdesUser
+from app.core.optimistic_locking import check_row_version, RowVersionConflict
 
 router = APIRouter(prefix="/webhooks", tags=["webhooks"])
 
@@ -25,6 +26,7 @@ class WebhookUpdate(BaseModel):
     event_type: Optional[str] = Field(None, max_length=50)
     secret_token: Optional[str] = Field(None, max_length=255)
     is_active: Optional[bool] = None
+    row_version: Optional[int] = None
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
 
@@ -76,10 +78,13 @@ async def actualizar_webhook(
     if user.nivel_acceso > _NIVEL_ADMIN:
         raise HTTPException(status_code=403, detail="Solo administradores pueden gestionar webhooks")
 
-    # Verificar existencia
-    check = await db.execute(text("SELECT id FROM public.ades_webhooks WHERE id = :id"), {"id": str(webhook_id)})
-    if not check.fetchone():
+    # Verificar existencia y row_version para optimistic locking
+    check = await db.execute(text("SELECT id, row_version FROM public.ades_webhooks WHERE id = :id"), {"id": str(webhook_id)})
+    row = check.fetchone()
+    if not row:
         raise HTTPException(status_code=404, detail="Webhook no encontrado")
+    if data.row_version is not None and row.row_version != data.row_version:
+        raise HTTPException(status_code=409, detail=f"Conflicto: versión enviada={data.row_version}, actual={row.row_version}. Recarga y reintenta.")
 
     updates = []
     params = {"id": str(webhook_id), "user": user.id}
