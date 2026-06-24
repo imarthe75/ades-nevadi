@@ -3019,8 +3019,16 @@ Total cambios: 8 files changed, 906 insertions(+)
 **Tarea 3 — Sincronización de Repositorio:**
 - [x] Ejecutados los comandos `git add .`, `git commit` y `git push origin main` de manera exitosa para integrar todos los cambios de documentación en el repositorio remoto.
 
+**Tarea 4 — Swagger, Logrotate, Guards y e2e Tests:**
+- [x] Agregada la regla de oro #5 sobre documentación obligatoria a `.agent/AGENT.md` y `.agent/RULES.md`.
+- [x] Habilitado Swagger UI y OpenAPI en Spring Boot BFF (`springdoc-openapi`) y expuestos explícitamente en `SecurityConfig.java`.
+- [x] Configurado `logrotate` en `/etc/logrotate.d/docker-containers` para la rotación diaria de registros de contenedores Docker con límite de 50MB.
+- [x] Agregada guardia `CanActivate` (`roleGuard(4)`) en Angular para permitir el acceso de `DOCENTE` a las rutas `/licencias` y `/expediente-laboral`.
+- [x] Corregida la consulta a base de datos en `expediente.py` que causaba el fallo `relation "ades_alumnos" does not exist` cambiándola por `ades_estudiantes` y `ades_inscripciones`.
+- [x] Corregidos los endpoints en la Suite 15 e2e y habilitadas y verificadas tanto la Suite 15 como la Suite 17 de Playwright (7 de 7 pasadas exitosamente).
+
 ### 🚀 Próximos Pasos:
 - [ ] Google SSO (esperando credenciales OAuth2 del plantel).
-- [ ] Agregar CanActivate a rutas `/licencias` y `/expediente-laboral` para DOCENTE.
-- [ ] Habilitar Suite 15 (Audit Trail) y Suite 17 (CSRF/XSS) en tests e2e.
+- [ ] Configurar Superset OIDC.
+
 
