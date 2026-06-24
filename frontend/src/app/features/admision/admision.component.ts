@@ -1,7 +1,7 @@
 import { Component, OnInit, signal, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
+import { ApiService } from '../../core/services/api.service';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
@@ -271,7 +271,7 @@ const NIVELES = [
   `],
 })
 export class AdmisionComponent implements OnInit {
-  private http = inject(HttpClient);
+  private api = inject(ApiService);
   private notify = inject(ApexNotificationService);
   private ctx = inject(ContextService);
 
@@ -329,7 +329,7 @@ export class AdmisionComponent implements OnInit {
     const plantelId = this.ctx.plantel()?.id;
     if (plantelId) params.plantel_id = plantelId;
 
-    this.http.get<Solicitud[]>('/api/v1/procesos/admision', { params }).subscribe({
+    this.api.get<Solicitud[]>('/procesos/admision', params).subscribe({
       next: d => { this.solicitudes.set(d); this.cargando.set(false); },
       error: () => { this.cargando.set(false); this.notify.error('Error', 'No se pudieron cargar las solicitudes'); },
     });
@@ -366,13 +366,13 @@ export class AdmisionComponent implements OnInit {
       escuela_procedencia: this.form.escuela || null,
       promedio_procedencia: this.form.promedio
     };
-    this.http.post('/api/v1/procesos/admision', payload).subscribe({
+    this.api.post('/procesos/admision', payload).subscribe({
       next: () => {
         this.notify.success('Registrada', 'Solicitud de admisión registrada');
         this.dlgNueva = false;
         this.cargar();
       },
-      error: (e) => {
+      error: (e: any) => {
         this.guardando.set(false);
         this.notify.error('Error', e.error?.detail ?? 'Error al registrar solicitud');
       }
@@ -380,14 +380,14 @@ export class AdmisionComponent implements OnInit {
   }
 
   resolver(s: Solicitud, decision: string) {
-    this.http.post(`/api/v1/procesos/admision/${s.id}/aceptar`, { decision }).subscribe({
+    this.api.post(`/procesos/admision/${s.id}/aceptar`, { decision }).subscribe({
       next: (r: any) => { this.notify.success('Éxito', r.message); this.cargar(); },
       error: e => this.notify.error('Error', e.error?.detail ?? 'Error'),
     });
   }
 
   notificarEspera(s: Solicitud) {
-    this.http.post(`/api/v1/procesos/lista-espera/${s.id}/notificar`, {}).subscribe({
+    this.api.post(`/procesos/lista-espera/${s.id}/notificar`, {}).subscribe({
       next: (r: any) => { this.notify.success('Éxito', r.message); this.cargar(); },
       error: e => this.notify.error('Error', e.error?.detail ?? 'Error'),
     });
@@ -403,7 +403,7 @@ export class AdmisionComponent implements OnInit {
   guardarEvaluacion() {
     const s = this.solicitudSeleccionada();
     if (!s) return;
-    this.http.patch(`/api/v1/procesos/admision/${s.id}/evaluacion`, {
+    this.api.patch(`/procesos/admision/${s.id}/evaluacion`, {
       puntuacion_diagnostico: this.evalScore,
       observaciones_diagnostico: this.evalObs
     }).subscribe({
@@ -446,7 +446,7 @@ export class AdmisionComponent implements OnInit {
     if (this.inscribirForm.grupoClave) payload['grupoClave'] = this.inscribirForm.grupoClave;
     if (this.inscribirForm.matricula)  payload['matricula']  = this.inscribirForm.matricula;
 
-    this.http.post<any>(`/api/v1/procesos/admision/${s.id}/aprobar-e-inscribir`, payload).subscribe({
+    this.api.post<any>(`/procesos/admision/${s.id}/aprobar-e-inscribir`, payload).subscribe({
       next: (r) => {
         this.inscribiendo.set(false);
         this.dlgConfirmInscripcion.set(false);

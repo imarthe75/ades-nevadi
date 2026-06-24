@@ -1,7 +1,7 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
-import { HttpClient } from '@angular/common/http';
+import { ApiService } from '../../core/services/api.service';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { TagModule } from 'primeng/tag';
 
@@ -290,7 +290,7 @@ interface VerificacionResult {
 })
 export class VerificarComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
-  private readonly http  = inject(HttpClient);
+  private readonly api  = inject(ApiService);
 
   result   = signal<VerificacionResult | null>(null);
   cargando = signal(true);
@@ -301,9 +301,8 @@ export class VerificarComponent implements OnInit {
     this.folioParam = this.route.snapshot.paramMap.get('folio') ?? '';
     if (!this.folioParam) { this.cargando.set(false); this.error.set(true); return; }
 
-    const apiBase = (window as any).__env?.apiUrl || '';
-    this.http.get<VerificacionResult>(
-      `${apiBase}/api/v1/certificados/verificar/${this.folioParam.toUpperCase()}`
+    this.api.get<VerificacionResult>(
+      `/certificados/verificar/${this.folioParam.toUpperCase()}`
     ).subscribe({
       next: (r) => { this.result.set(r); this.cargando.set(false); },
       error: () => { this.error.set(true); this.cargando.set(false); },

@@ -1,7 +1,7 @@
 import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
+import { ApiService } from '../../core/services/api.service';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
@@ -216,7 +216,7 @@ interface ReportePersonal {
   `],
 })
 export class AsistenciaPersonalComponent implements OnInit {
-  private http = inject(HttpClient);
+  private api = inject(ApiService);
   private notify = inject(ApexNotificationService);
 
   registros      = signal<AsistenciaPersonal[]>([]);
@@ -275,7 +275,6 @@ export class AsistenciaPersonalComponent implements OnInit {
     {label:'Mayo',value:5},{label:'Junio',value:6},{label:'Julio',value:7},{label:'Agosto',value:8},
     {label:'Septiembre',value:9},{label:'Octubre',value:10},{label:'Noviembre',value:11},{label:'Diciembre',value:12},
   ];
-
   ngOnInit() { this.cargar(); }
 
   onFiltroNombre() {
@@ -289,7 +288,7 @@ export class AsistenciaPersonalComponent implements OnInit {
     if (this.filtroNombre)      params['q']           = this.filtroNombre;
     if (this.filtroFechaInicio) params['fecha_inicio'] = this.toDateStr(this.filtroFechaInicio);
     if (this.filtroFechaFin)    params['fecha_fin']    = this.toDateStr(this.filtroFechaFin);
-    this.http.get<AsistenciaPersonal[]>('/api/v1/asistencia-personal', { params }).subscribe({
+    this.api.get<AsistenciaPersonal[]>('/asistencia-personal', params).subscribe({
       next: d => { this.registros.set(d); this.cargando.set(false); },
       error: () => { this.cargando.set(false); this.notify.error('Error al cargar registros'); },
     });
@@ -297,7 +296,7 @@ export class AsistenciaPersonalComponent implements OnInit {
 
   buscarPersona(event: { query: string }) {
     if (!event.query || event.query.length < 2) { this.personaSugerencias.set([]); return; }
-    this.http.get<any>('/api/v1/profesores', { params: { buscar: event.query } }).subscribe({
+    this.api.get<any>('/profesores', { buscar: event.query }).subscribe({
       next: res => {
         const data = res?.data ?? res ?? [];
         this.personaSugerencias.set(data.map((p: any) => ({
@@ -311,7 +310,7 @@ export class AsistenciaPersonalComponent implements OnInit {
 
   buscarPersonaReporte(event: { query: string }) {
     if (!event.query || event.query.length < 2) { this.personaReporteSug.set([]); return; }
-    this.http.get<any>('/api/v1/profesores', { params: { buscar: event.query } }).subscribe({
+    this.api.get<any>('/profesores', { buscar: event.query }).subscribe({
       next: res => {
         const data = res?.data ?? res ?? [];
         this.personaReporteSug.set(data.map((p: any) => ({
@@ -333,6 +332,7 @@ export class AsistenciaPersonalComponent implements OnInit {
   editar(reg: AsistenciaPersonal) {
     this.editandoId = reg.id;
     this.form = {
+      fecha: reg.fecha ? new Date(reg.fecha) : new Date(),
       tipo_jornada: reg.tipo_jornada, hora_entrada: reg.hora_entrada,
       hora_salida: reg.hora_salida, es_retardo: reg.es_retardo,
       minutos_retardo: reg.minutos_retardo, justificado: reg.justificado,
@@ -348,8 +348,8 @@ export class AsistenciaPersonalComponent implements OnInit {
     }
     this.guardando.set(true);
     const req = this.editandoId
-      ? this.http.patch(`/api/v1/asistencia-personal/${this.editandoId}`, this.form)
-      : this.http.post('/api/v1/asistencia-personal', {
+      ? this.api.patch(`/asistencia-personal/${this.editandoId}`, this.form)
+      : this.api.post('/asistencia-personal', {
           ...this.form,
           persona_id: this.personaSeleccionada!.value,
           fecha: this.form.fecha instanceof Date ? this.toDateStr(this.form.fecha) : this.form.fecha,
@@ -372,8 +372,8 @@ export class AsistenciaPersonalComponent implements OnInit {
   generarReporte() {
     if (!this.personaReporteSelec?.value) { this.notify.warning('Seleccione una persona para el reporte'); return; }
     this.cargandoReporte.set(true);
-    this.http.get<ReportePersonal>('/api/v1/asistencia-personal/reporte', {
-      params: { persona_id: this.personaReporteSelec.value, mes: this.reporteMes, anio: this.reporteAnio },
+    this.api.get<ReportePersonal>('/asistencia-personal/reporte', {
+      persona_id: this.personaReporteSelec.value, mes: this.reporteMes, anio: this.reporteAnio,
     }).subscribe({
       next: r => {
         this.reporte.set(r); this.cargandoReporte.set(false); this.dialogReporte = false;

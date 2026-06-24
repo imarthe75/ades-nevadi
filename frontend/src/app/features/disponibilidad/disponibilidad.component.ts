@@ -1,7 +1,7 @@
 import { Component, OnInit, signal, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
+import { ApiService } from '../../core/services/api.service';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
@@ -203,7 +203,7 @@ interface ResumenDisponibilidad {
   `],
 })
 export class DisponibilidadComponent implements OnInit {
-  private http = inject(HttpClient);
+  private api = inject(ApiService);
   private notify = inject(ApexNotificationService);
 
   readonly slotsColumns: ColumnConfig[] = [
@@ -247,7 +247,7 @@ export class DisponibilidadComponent implements OnInit {
 
   buscarDocente(event: { query: string }) {
     if (!event.query || event.query.length < 2) { this.docenteSugerencias.set([]); return; }
-    this.http.get<any>('/api/v1/profesores', { params: { buscar: event.query } }).subscribe({
+    this.api.get<any>('/profesores', { buscar: event.query }).subscribe({
       next: res => {
         const data = res?.data ?? res ?? [];
         this.docenteSugerencias.set(data.map((p: any) => ({
@@ -274,14 +274,14 @@ export class DisponibilidadComponent implements OnInit {
   cargar() {
     if (!this.profesorId) return;
     this.cargando.set(true);
-    this.http.get<SlotDisponibilidad[]>('/api/v1/disponibilidad', { params: { profesor_id: this.profesorId } }).subscribe({
+    this.api.get<SlotDisponibilidad[]>('/disponibilidad', { profesor_id: this.profesorId }).subscribe({
       next: d => { this.slots.set(d); this.cargando.set(false); this.cargarResumen(); },
       error: () => { this.cargando.set(false); this.notify.error('Error al cargar disponibilidad'); },
     });
   }
 
   cargarResumen() {
-    this.http.get<ResumenDisponibilidad>(`/api/v1/disponibilidad/docente/${this.profesorId}/resumen`).subscribe({
+    this.api.get<ResumenDisponibilidad>(`/disponibilidad/docente/${this.profesorId}/resumen`).subscribe({
       next: r => this.resumen.set(r),
       error: () => {},
     });
@@ -330,7 +330,7 @@ export class DisponibilidadComponent implements OnInit {
       horas_semana_max:   this.configHrsMax,
       horas_frente_grupo: this.configHrsFG,
     };
-    this.http.put(`/api/v1/disponibilidad/docente/${this.profesorId}`, payload).subscribe({
+    this.api.put(`/disponibilidad/docente/${this.profesorId}`, payload).subscribe({
       next: () => {
         this.guardando.set(false); this.dialogConfig = false;
         this.notify.success('Disponibilidad guardada');

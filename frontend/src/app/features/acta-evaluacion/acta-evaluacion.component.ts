@@ -1,7 +1,7 @@
 import { Component, signal, computed, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
+import { ApiService } from '../../core/services/api.service';
 import { ButtonModule } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
 import { ToastModule } from 'primeng/toast';
@@ -228,7 +228,7 @@ interface Acta {
   `],
 })
 export class ActaEvaluacionComponent implements OnInit {
-  private http     = inject(HttpClient);
+  private api      = inject(ApiService);
   private notify   = inject(ApexNotificationService);
   private exporter = inject(ExportService);
 
@@ -274,7 +274,7 @@ export class ActaEvaluacionComponent implements OnInit {
   );
 
   ngOnInit() {
-    this.http.get<GrupoRaw[]>('/api/v1/reportes/acta/grupos').subscribe({
+    this.api.get<GrupoRaw[]>('/reportes/acta/grupos').subscribe({
       next: g => this._grupos.set(g),
       error: () => this.notify.error('No se pudieron cargar los grupos UAEMEX'),
     });
@@ -300,7 +300,7 @@ export class ActaEvaluacionComponent implements OnInit {
     this._materias.set([]);
     this.acta.set(null);
     if (!grupoId) return;
-    this.http.get<any[]>(`/api/v1/reportes/acta/grupos/${grupoId}/materias`).subscribe({
+    this.api.get<any[]>(`/reportes/acta/grupos/${grupoId}/materias`).subscribe({
       next: m => this._materias.set(m),
       error: () => this.notify.error('No se pudieron cargar las materias del grupo'),
     });
@@ -311,7 +311,7 @@ export class ActaEvaluacionComponent implements OnInit {
     this.cargando.set(true);
     this.acta.set(null);
     const params = { grupo_id: this.grupoSel, materia_id: this.materiaSel };
-    this.http.get<Acta>('/api/v1/reportes/acta', { params }).subscribe({
+    this.api.get<Acta>('/reportes/acta', params).subscribe({
       next: a => { this.acta.set(a); this.cargando.set(false); },
       error: e => {
         this.cargando.set(false);

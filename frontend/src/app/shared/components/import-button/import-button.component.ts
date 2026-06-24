@@ -2,7 +2,7 @@ import {
   Component, input, inject, signal, computed,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { HttpClient, HttpEventType } from '@angular/common/http';
+import { ApiService } from '../../../core/services/api.service';
 import { ButtonModule }    from 'primeng/button';
 import { DialogModule }    from 'primeng/dialog';
 import { TableModule }     from 'primeng/table';
@@ -148,7 +148,7 @@ export interface ImportResult {
   `],
 })
 export class ImportButtonComponent {
-  private readonly http = inject(HttpClient);
+  private readonly api = inject(ApiService);
   private readonly ctx  = inject(ContextService);
 
   /** Entidad a importar: 'alumnos' | 'profesores' | 'materias' | 'grupos' */
@@ -188,8 +188,8 @@ export class ImportButtonComponent {
     form.append('file', file);
 
     this.subiendo.set(true);
-    this.http.post<ImportResult>(
-      `${environment.apiUrl}/api/v1/imports/${this.entidad()}`,
+    this.api.postForm<ImportResult>(
+      `/imports/${this.entidad()}`,
       form,
     ).subscribe({
       next: (res) => {
@@ -211,9 +211,8 @@ export class ImportButtonComponent {
   }
 
   descargarPlantilla(): void {
-    this.http.get(
-      `${environment.apiUrl}/api/v1/imports/plantillas/${this.entidad()}`,
-      { responseType: 'blob' },
+    this.api.getBlob(
+      `/imports/plantillas/${this.entidad()}`
     ).subscribe(blob => {
       const url = URL.createObjectURL(blob);
       const a   = document.createElement('a');

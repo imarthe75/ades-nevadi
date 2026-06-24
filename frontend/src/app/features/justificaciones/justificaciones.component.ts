@@ -1,7 +1,7 @@
 import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
+import { ApiService } from '../../core/services/api.service';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
@@ -152,7 +152,7 @@ const ESTADOS_OPT = [
   `],
 })
 export class JustificacionesComponent implements OnInit {
-  private http = inject(HttpClient);
+  private api = inject(ApiService);
   private notify = inject(ApexNotificationService);
 
   readonly justificacionesColumns: ColumnConfig[] = [
@@ -196,7 +196,7 @@ export class JustificacionesComponent implements OnInit {
     const params: any = {};
     if (this.filtroEstudianteId) params.estudiante_id = this.filtroEstudianteId;
     if (this.filtroEstado) params.estado = this.filtroEstado;
-    this.http.get<Justificacion[]>('/api/v1/justificaciones', { params }).subscribe({
+    this.api.get<Justificacion[]>('/justificaciones', params).subscribe({
       next: d => { this.justificaciones.set(d); this.cargando.set(false); },
       error: () => { this.cargando.set(false); this.notify.error('Error al cargar justificaciones'); },
     });
@@ -215,14 +215,14 @@ export class JustificacionesComponent implements OnInit {
       return;
     }
     this.guardando.set(true);
-    this.http.post('/api/v1/justificaciones', this.nuevaForm).subscribe({
+    this.api.post('/justificaciones', this.nuevaForm).subscribe({
       next: () => { this.guardando.set(false); this.dialogNueva = false; this.notify.success('Justificación registrada'); this.cargar(); },
       error: e => { this.guardando.set(false); this.notify.error(e.error?.detail ?? 'Error al registrar'); },
     });
   }
 
   resolver(j: Justificacion, accion: string) {
-    this.http.post(`/api/v1/justificaciones/${j.id}/resolver`, { accion }).subscribe({
+    this.api.post(`/justificaciones/${j.id}/resolver`, { accion }).subscribe({
       next: (r: any) => { this.notify.success(`Justificación ${r.estado}`); this.cargar(); },
       error: e => this.notify.error(e.error?.detail ?? 'Error'),
     });
@@ -237,7 +237,7 @@ export class JustificacionesComponent implements OnInit {
   confirmarRechazo() {
     if (!this.motivoRechazo.trim()) { this.notify.warning('El motivo es obligatorio'); return; }
     this.guardando.set(true);
-    this.http.post(`/api/v1/justificaciones/${this.rechazandoId}/resolver`,
+    this.api.post(`/justificaciones/${this.rechazandoId}/resolver`,
       { accion: 'RECHAZAR', motivo_rechazo: this.motivoRechazo }).subscribe({
       next: () => { this.guardando.set(false); this.dialogRechazo = false; this.notify.success('Justificación rechazada'); this.cargar(); },
       error: e => { this.guardando.set(false); this.notify.error(e.error?.detail ?? 'Error'); },

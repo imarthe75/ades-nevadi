@@ -1,7 +1,7 @@
 import { Component, OnInit, signal, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
+import { ApiService } from '../../core/services/api.service';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
@@ -264,7 +264,7 @@ interface CapacitacionForm {
   `],
 })
 export class CapacitacionesComponent implements OnInit {
-  private http = inject(HttpClient);
+  private api = inject(ApiService);
   private notify = inject(ApexNotificationService);
 
   capacitaciones = signal<Capacitacion[]>([]);
@@ -353,7 +353,7 @@ export class CapacitacionesComponent implements OnInit {
     if (this.filtroValidado !== null)  params['validado'] = String(this.filtroValidado);
     if (this.filtroNombre)             params['q']        = this.filtroNombre;
 
-    this.http.get<Capacitacion[]>('/api/v1/capacitaciones', { params }).subscribe({
+    this.api.get<Capacitacion[]>('/capacitaciones', params).subscribe({
       next: data => { this.capacitaciones.set(data); this.cargando.set(false); },
       error: () => { this.cargando.set(false); this.notify.error('Error al cargar capacitaciones'); },
     });
@@ -361,7 +361,7 @@ export class CapacitacionesComponent implements OnInit {
 
   buscarDocente(event: { query: string }) {
     if (!event.query || event.query.length < 2) { this.docenteSugerencias.set([]); return; }
-    this.http.get<any>('/api/v1/profesores', { params: { buscar: event.query } }).subscribe({
+    this.api.get<any>('/profesores', { buscar: event.query }).subscribe({
       next: res => {
         const data = res?.data ?? res ?? [];
         this.docenteSugerencias.set(data.map((p: any) => ({
@@ -401,14 +401,14 @@ export class CapacitacionesComponent implements OnInit {
       folio_certificado:  this.form.folio_certificado || null,
       certificado_url:    this.form.certificado_url || null,
     };
-    this.http.post<Capacitacion>('/api/v1/capacitaciones', payload).subscribe({
+    this.api.post<Capacitacion>('/capacitaciones', payload).subscribe({
       next: () => {
         this.guardando.set(false);
         this.dialogNueva = false;
         this.notify.success('Capacitación registrada');
         this.cargar();
       },
-      error: (e) => { this.guardando.set(false); this.notify.error(e.error?.detail ?? 'Error al guardar'); },
+      error: (e: any) => { this.guardando.set(false); this.notify.error(e.error?.detail ?? 'Error al guardar'); },
     });
   }
 
@@ -418,16 +418,16 @@ export class CapacitacionesComponent implements OnInit {
   }
 
   validar(cap: Capacitacion) {
-    this.http.post<Capacitacion>(`/api/v1/capacitaciones/${cap.id}/validar`, null).subscribe({
+    this.api.post<Capacitacion>(`/capacitaciones/${cap.id}/validar`, null).subscribe({
       next: () => { this.notify.success('Capacitación validada'); this.cargar(); },
-      error: (e) => this.notify.error(e.error?.detail ?? 'Error al validar'),
+      error: (e: any) => this.notify.error(e.error?.detail ?? 'Error al validar'),
     });
   }
 
   eliminar(cap: Capacitacion) {
-    this.http.delete(`/api/v1/capacitaciones/${cap.id}`).subscribe({
+    this.api.delete(`/capacitaciones/${cap.id}`).subscribe({
       next: () => { this.notify.success('Capacitación eliminada'); this.cargar(); },
-      error: (e) => this.notify.error(e.error?.detail ?? 'Error al eliminar'),
+      error: (e: any) => this.notify.error(e.error?.detail ?? 'Error al eliminar'),
     });
   }
 

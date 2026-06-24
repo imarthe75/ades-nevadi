@@ -1,7 +1,7 @@
 import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
+import { ApiService } from '../../core/services/api.service';
 import { ButtonModule } from 'primeng/button';
 import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
 import { DialogModule } from 'primeng/dialog';
@@ -181,7 +181,7 @@ interface Licencia {
   `],
 })
 export class LicenciasComponent implements OnInit {
-  private http = inject(HttpClient);
+  private api = inject(ApiService);
   private notify = inject(ApexNotificationService);
 
   licencias = signal<Licencia[]>([]);
@@ -258,7 +258,7 @@ export class LicenciasComponent implements OnInit {
     if (this.filtroEstado) params['estado'] = this.filtroEstado;
     if (this.filtroTipo)   params['tipo']   = this.filtroTipo;
     if (this.filtroNombre) params['q']      = this.filtroNombre;
-    this.http.get<Licencia[]>('/api/v1/licencias', { params }).subscribe({
+    this.api.get<Licencia[]>('/licencias', params).subscribe({
       next: data => { this.licencias.set(data); this.cargando.set(false); },
       error: () => { this.cargando.set(false); this.notify.error('Error al cargar licencias'); },
     });
@@ -266,7 +266,7 @@ export class LicenciasComponent implements OnInit {
 
   buscarPersonal(event: { query: string }) {
     if (!event.query || event.query.length < 2) { this.personalSugerencias.set([]); return; }
-    this.http.get<any>('/api/v1/profesores', { params: { buscar: event.query } }).subscribe({
+    this.api.get<any>('/profesores', { buscar: event.query }).subscribe({
       next: res => {
         const data = res?.data ?? res ?? [];
         this.personalSugerencias.set(data.map((p: any) => ({
@@ -298,7 +298,7 @@ export class LicenciasComponent implements OnInit {
       motivo:          this.form.motivo || null,
       con_goce_sueldo: this.form.con_goce_sueldo,
     };
-    this.http.post<Licencia>('/api/v1/licencias', payload).subscribe({
+    this.api.post<Licencia>('/licencias', payload).subscribe({
       next: () => {
         this.guardando.set(false);
         this.dialogNueva = false;
@@ -315,7 +315,7 @@ export class LicenciasComponent implements OnInit {
   }
 
   aprobar(lic: Licencia) {
-    this.http.post<Licencia>(`/api/v1/licencias/${lic.id}/aprobar`, null).subscribe({
+    this.api.post<Licencia>(`/licencias/${lic.id}/aprobar`, null).subscribe({
       next: () => { this.notify.success('Licencia aprobada'); this.cargar(); },
       error: (e) => this.notify.error(e.error?.detail ?? 'Error al aprobar'),
     });
@@ -330,10 +330,9 @@ export class LicenciasComponent implements OnInit {
   confirmarRechazo() {
     if (!this.licenciaARechazar) return;
     this.guardando.set(true);
-    this.http.post<Licencia>(
-      `/api/v1/licencias/${this.licenciaARechazar.id}/rechazar`,
-      null,
-      { params: { motivo_rechazo: this.motivoRechazo } }
+    this.api.post<Licencia>(
+      `/licencias/${this.licenciaARechazar.id}/rechazar?motivo_rechazo=${encodeURIComponent(this.motivoRechazo)}`,
+      null
     ).subscribe({
       next: () => {
         this.guardando.set(false);
@@ -346,7 +345,7 @@ export class LicenciasComponent implements OnInit {
   }
 
   cancelar(lic: Licencia) {
-    this.http.delete(`/api/v1/licencias/${lic.id}`).subscribe({
+    this.api.delete(`/licencias/${lic.id}`).subscribe({
       next: () => { this.notify.success('Licencia cancelada'); this.cargar(); },
       error: (e) => this.notify.error(e.error?.detail ?? 'Error al cancelar'),
     });
