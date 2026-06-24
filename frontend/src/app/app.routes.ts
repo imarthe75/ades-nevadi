@@ -76,12 +76,12 @@ export const routes: Routes = [
       // ── FASE 28 — Expediente Digital con Paperless-ngx ──────────────────
       { path: 'expediente-doc', canActivate: [roleGuard(3)], loadComponent: () => import('./features/expediente-doc/expediente-doc.component').then(m => m.ExpedienteDocComponent) },
       // ── FASE 29 — Seguridad Avanzada y RRHH ──────────────────────────────
-      { path: 'licencias',           canActivate: [roleGuard(2)], loadComponent: () => import('./features/licencias/licencias.component').then(m => m.LicenciasComponent) },
+      { path: 'licencias',           canActivate: [roleGuard(4)], loadComponent: () => import('./features/licencias/licencias.component').then(m => m.LicenciasComponent) },
       { path: 'capacitaciones',      canActivate: [roleGuard(2)], loadComponent: () => import('./features/capacitaciones/capacitaciones.component').then(m => m.CapacitacionesComponent) },
       // ── SPRINT A1 — Personal no-docente ──────────────────────────────────
       { path: 'personal-admin', canActivate: [roleGuard(2)], loadComponent: () => import('./features/personal-admin/personal-admin.component').then(m => m.PersonalAdminComponent) },
       // ── FASE 30 — RRHH Avanzado ───────────────────────────────────────────
-      { path: 'expediente-laboral',  canActivate: [roleGuard(2)], loadComponent: () => import('./features/expediente-laboral/expediente-laboral.component').then(m => m.ExpedienteLaboralComponent) },
+      { path: 'expediente-laboral',  canActivate: [roleGuard(4)], loadComponent: () => import('./features/expediente-laboral/expediente-laboral.component').then(m => m.ExpedienteLaboralComponent) },
       { path: 'disponibilidad',      canActivate: [roleGuard(2)], loadComponent: () => import('./features/disponibilidad/disponibilidad.component').then(m => m.DisponibilidadComponent) },
       { path: 'asistencia-personal', canActivate: [roleGuard(2)], loadComponent: () => import('./features/asistencia-personal/asistencia-personal.component').then(m => m.AsistenciaPersonalComponent) },
       // ── FASE 31 — Operatividad Avanzada ──────────────────────────────────────

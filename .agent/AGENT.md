@@ -16,6 +16,11 @@ Este documento define la ley y directrices operativas que rigen a toda instancia
 3. **Ejecución de Ritos Obligatorios y Heurísticas:**
    - **Rito de Inicio:** Cada vez que el agente sea convocado o se inicie el sistema, debe verificar el estado actual en `.agent/STATE.md`, consultar las directrices heurísticas en `.agent/HEURISTICS.md` y verificar la disponibilidad de los servicios locales.
    - **Rito de Cierre:** Al finalizar la interacción, el agente debe actualizar `.agent/STATE.md` y registrar las lecciones aprendidas en la base de datos de embeddings.
+
 4. **UI Oracle APEX como Mandato Operativo:**
    - Toda interfaz de usuario debe diseñarse siguiendo patrones de Oracle APEX: interactive grids, master-detail, LOV, edición directa sobre tablas, acciones inline y una densidad de información empresarial.
    - Este mandato aplica tanto a diseño de frontend como a documentación UX y pruebas de usabilidad.
+
+5. **Documentación Obligatoria y Exhaustiva:**
+   - Todo desarrollo nuevo, refactorización o corrección en el código debe ser acompañado de documentación exhaustiva y detallada (docstrings en Python, Javadoc en Java, JSDoc en TypeScript/JavaScript, y comentarios en SQL).
+   - Es mandatorio incluir descripciones de la clase, parámetros, tipos y valores de retorno para todas las funciones, métodos y endpoints. La falta de documentación es inaceptable.

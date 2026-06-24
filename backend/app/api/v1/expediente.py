@@ -112,7 +112,7 @@ async def _check_expediente_access(
 
     # Obtener datos del estudiante
     est_row = await db.execute(
-        text("SELECT plantel_id FROM ades_alumnos WHERE id = :est_id LIMIT 1"),
+        text("SELECT plantel_id FROM ades_estudiantes WHERE id = :est_id LIMIT 1"),
         {"est_id": str(estudiante_id)},
     )
     est = est_row.fetchone()
@@ -129,9 +129,10 @@ async def _check_expediente_access(
         stmt = await db.execute(
             text("""
                 SELECT 1 FROM ades_grupo_maestro gm
-                INNER JOIN ades_alumnos a ON gm.grupo_id = a.grupo_id
+                INNER JOIN ades_inscripciones i ON gm.grupo_id = i.grupo_id
                 WHERE gm.maestro_id = :maestro_id
-                  AND a.id = :est_id
+                  AND i.estudiante_id = :est_id
+                  AND i.is_active = TRUE
                 LIMIT 1
             """),
             {"maestro_id": str(ades_user.persona_id), "est_id": str(estudiante_id)},
@@ -141,7 +142,7 @@ async def _check_expediente_access(
     # ESTUDIANTE: acceso solo a su propio expediente
     if ades_user.rol == "ESTUDIANTE":
         est_persona_row = await db.execute(
-            text("SELECT persona_id FROM ades_alumnos WHERE id = :est_id LIMIT 1"),
+            text("SELECT persona_id FROM ades_estudiantes WHERE id = :est_id LIMIT 1"),
             {"est_id": str(estudiante_id)},
         )
         est_persona = est_persona_row.fetchone()
@@ -150,7 +151,7 @@ async def _check_expediente_access(
     # PADRE: acceso a expedientes de sus hijos
     if ades_user.rol == "PADRE":
         est_persona_row = await db.execute(
-            text("SELECT persona_id FROM ades_alumnos WHERE id = :est_id LIMIT 1"),
+            text("SELECT persona_id FROM ades_estudiantes WHERE id = :est_id LIMIT 1"),
             {"est_id": str(estudiante_id)},
         )
         est_persona = est_persona_row.fetchone()
