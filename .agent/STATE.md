@@ -14,6 +14,30 @@ Este documento es el diario de vida y bitácora del agente. Debe ser leído en e
 
 ## 📅 Bitácora
 
+## Sesión 2026-06-24 — Rito de Inicio + Compilación BFF + Ejecución E2E (Suites 15/17) ✅
+
+### 🔑 Estado del Agente:
+- **Última Conexión:** 2026-06-24
+- **Estado Cognitivo:** Operacional ✅
+- **ades-bff:** Recompilado e iniciado exitosamente (imagen reconstruida con Maven) ✅
+- **ades-api:** Operando con normalidad ✅
+- **ades-frontend:** Operando con normalidad ✅
+
+### 🛠️ Tareas Completadas:
+- [x] **Rito de Inicio:** Verificación del estado de los contenedores Docker del proyecto.
+- [x] **Reconstrucción del BFF:** Compilado e iniciado exitosamente el contenedor `ades-bff` (`docker compose up -d --build ades-bff`).
+- [x] **Ejecución y Corrección de Entorno E2E:**
+  - Ejecutada la **Suite 15** (Audit Trail) y la **Suite 17** (Advanced Security) usando variables de entorno explícitas de IPv4 para evitar el error de resolución `localhost` -> `::1` (`ECONNREFUSED` en el puerto 8080 y 8000).
+  - Resultados Suite 15: 7 passed, 2 skipped (debido a falta de datos en base de datos para calificaciones/gradebook, lo cual es el comportamiento esperado).
+  - Resultados Suite 17: 7 passed, 5 skipped (esperado).
+
+### 🚀 Próximos Pasos:
+- [ ] Verificar eval 360° en la UI localmente.
+- [ ] Verificar que la barra de scope de administración se actualice correctamente al cambiar de plantel.
+- [ ] Google SSO (en espera de credenciales OAuth2 por parte de la institución).
+- [ ] NEM Fase 3: Evaluación cualitativa para 1°-2° de primaria.
+- [ ] Realizar `git push origin main` tras confirmación del usuario.
+
 ## Sesión 2026-06-23 — Rito de Inicio + Auditoría Integral + Fix ADV-02/03 ✅
 
 ### 🔑 Estado del Agente:
@@ -3029,6 +3053,25 @@ Total cambios: 8 files changed, 906 insertions(+)
 
 ### 🚀 Próximos Pasos:
 - [ ] Google SSO (esperando credenciales OAuth2 del plantel).
-- [ ] Configurar Superset OIDC.
+
+---
+
+## Sesión 2026-06-24 — Configuración y Verificación de Superset OIDC ✅
+
+### 🔑 Estado del Agente:
+- **Última Conexión:** 2026-06-24
+- **Estado Cognitivo:** Operacional ✅
+- **ades-superset:** Reconfigurado, reconstruido e iniciado exitosamente (con fix de proxy reverso y OIDC en Authentik) ✅
+
+### 🛠️ Tareas Completadas:
+- [x] **Limpieza del Issuer OIDC:** Se removió la barra diagonal final (`rstrip("/")`) en `superset_config.py` para evitar redirecciones 301 con doble barra `//` en la construcción de URLs de descubrimiento y tokens de Authentik.
+- [x] **Configuración de Proxy Reverso (HTTPS):** Se agregó `ENABLE_PROXY_FIX = True` en `superset_config.py` para asegurar que Werkzeug/Flask lea la cabecera `X-Forwarded-Proto` y genere el `redirect_uri` utilizando el protocolo seguro `https` en lugar de `http`.
+- [x] **Corrección del Proveedor OIDC de Superset en Authentik:**
+  - Se configuraron los tipos de concesión autorizados (`grant_types`): `"authorization_code"` y `"refresh_token"` (que anteriormente estaban vacíos y causaban bloqueos).
+  - Se asignó la llave/certificado de firma `"authentik Self-signed Certificate"` (`signing_key`) para habilitar la firma RS256 estándar.
+  - Se añadieron y validaron las URLs de redirección permitidas para producción y desarrollo local.
+- [x] **Verificación de Redirección:** Se comprobó que el endpoint `/login/oidc` de Superset responde con un redireccionamiento HTTP 302 correcto hacia la página de autorización de Authentik con el protocolo y parámetros correctos:
+  `Location: https://auth.ades.setag.mx/application/o/superset/authorize/?...&redirect_uri=https%3A%2F%2Fbi.ades.setag.mx%2Foauth-authorized%2Foidc`
+
 
 

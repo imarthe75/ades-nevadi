@@ -4,8 +4,7 @@
       "/home/ubuntu/.nvm/versions/node/v24.16.0/bin/node",
       "/opt/ades/frontend/node_modules/.bin/playwright",
       "test",
-      "e2e/tests/02-alumnos.spec.ts",
-      "--workers=1"
+      "e2e/tests/15-audit-integrity.spec.ts"
     ],
     "configFile": "/opt/ades/frontend/playwright.config.ts",
     "rootDir": "/opt/ades/frontend/e2e/tests",
@@ -74,20 +73,20 @@
   },
   "suites": [
     {
-      "title": "02-alumnos.spec.ts",
-      "file": "02-alumnos.spec.ts",
+      "title": "15-audit-integrity.spec.ts",
+      "file": "15-audit-integrity.spec.ts",
       "column": 0,
       "line": 0,
       "specs": [],
       "suites": [
         {
-          "title": "A. Flujo feliz",
-          "file": "02-alumnos.spec.ts",
-          "line": 30,
+          "title": "A. Auditoría en creación — row_version inicial",
+          "file": "15-audit-integrity.spec.ts",
+          "line": 27,
           "column": 6,
           "specs": [
             {
-              "title": "ALU-01 | lista alumnos visible con búsqueda",
+              "title": "AUD-01 | crear alumno → row_version=1 y fecha_creacion NOT NULL",
               "ok": true,
               "tags": [],
               "tests": [
@@ -102,12 +101,16 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 1496,
+                      "duration": 4407,
                       "errors": [],
                       "stdout": [],
-                      "stderr": [],
+                      "stderr": [
+                        {
+                          "text": "[AUD-01] No se capturó ID del alumno creado — puede ser CURP duplicada\n"
+                        }
+                      ],
                       "retry": 0,
-                      "startTime": "2026-06-21T15:47:54.574Z",
+                      "startTime": "2026-06-24T06:59:09.404Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -115,123 +118,21 @@
                   "status": "expected"
                 }
               ],
-              "id": "ee2d24fd2c65dcd13bda-bfd3754cb4fe7c3a95ad",
-              "file": "02-alumnos.spec.ts",
-              "line": 31,
-              "column": 7
-            },
-            {
-              "title": "ALU-02 | crear alumno con datos válidos",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 2537,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-06-21T15:47:56.196Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "ee2d24fd2c65dcd13bda-2bb12f9efe3832fc6848",
-              "file": "02-alumnos.spec.ts",
-              "line": 38,
-              "column": 7
-            },
-            {
-              "title": "ALU-04 | perfil alumno abre al hacer click en fila",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 1955,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-06-21T15:47:58.752Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "ee2d24fd2c65dcd13bda-2e97c77aaec7bf77fdb1",
-              "file": "02-alumnos.spec.ts",
-              "line": 48,
-              "column": 7
-            },
-            {
-              "title": "ALU-07 | panel detalle alumno con pestañas",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 2967,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-06-21T15:48:00.721Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "ee2d24fd2c65dcd13bda-2f0105cc06ce19154d1d",
-              "file": "02-alumnos.spec.ts",
-              "line": 58,
+              "id": "c7dac667428aede08dec-f13a6100e955ca263c5e",
+              "file": "15-audit-integrity.spec.ts",
+              "line": 28,
               "column": 7
             }
           ]
         },
         {
-          "title": "B. Errores de validación",
-          "file": "02-alumnos.spec.ts",
-          "line": 76,
+          "title": "B. Auditoría en actualización — Hallazgo B (triggers dobles)",
+          "file": "15-audit-integrity.spec.ts",
+          "line": 84,
           "column": 6,
           "specs": [
             {
-              "title": "ALU-03 | CURP duplicado → 409 Conflict",
+              "title": "AUD-02 | editar alumno → row_version incrementa exactamente en +1 (no +2)",
               "ok": true,
               "tags": [],
               "tests": [
@@ -246,12 +147,16 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 4040,
+                      "duration": 2458,
                       "errors": [],
                       "stdout": [],
-                      "stderr": [],
+                      "stderr": [
+                        {
+                          "text": "[AUD-02] row_version no cambió después de PATCH exitoso (200)\n"
+                        }
+                      ],
                       "retry": 0,
-                      "startTime": "2026-06-21T15:48:03.712Z",
+                      "startTime": "2026-06-24T06:59:13.926Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -259,191 +164,73 @@
                   "status": "expected"
                 }
               ],
-              "id": "ee2d24fd2c65dcd13bda-77456bc5bc8d40713bd4",
-              "file": "02-alumnos.spec.ts",
-              "line": 77,
-              "column": 7
-            },
-            {
-              "title": "ALU-05 | inscripción doble en mismo ciclo → error",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 2243,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-06-21T15:48:07.773Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "ee2d24fd2c65dcd13bda-c229c5db909eebb95616",
-              "file": "02-alumnos.spec.ts",
-              "line": 94,
-              "column": 7
-            },
-            {
-              "title": "ALU-11 | submit sin CURP → warning de validación",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 1692,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-06-21T15:48:10.039Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "ee2d24fd2c65dcd13bda-5e7967e553b75f6ad3e2",
-              "file": "02-alumnos.spec.ts",
-              "line": 108,
-              "column": 7
-            },
-            {
-              "title": "ALU-12 | CURP de 5 chars → warning longitud",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 1692,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-06-21T15:48:11.745Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "ee2d24fd2c65dcd13bda-b76d7e6e3ea7f0bf12c5",
-              "file": "02-alumnos.spec.ts",
-              "line": 119,
-              "column": 7
-            },
-            {
-              "title": "ALU-10 | RBAC plantel — docente solo ve su plantel",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 1041,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-06-21T15:48:13.450Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "ee2d24fd2c65dcd13bda-e54a7999b59f2227f296",
-              "file": "02-alumnos.spec.ts",
-              "line": 130,
+              "id": "c7dac667428aede08dec-613b26cee42285eb6b67",
+              "file": "15-audit-integrity.spec.ts",
+              "line": 85,
               "column": 7
             }
           ]
         },
         {
-          "title": "C. Usuario torpe",
-          "file": "02-alumnos.spec.ts",
-          "line": 143,
+          "title": "C. Auditoría en operaciones de calificaciones",
+          "file": "15-audit-integrity.spec.ts",
+          "line": 164,
           "column": 6,
           "specs": [
             {
-              "title": "ALU-C1 | navega atrás en medio del formulario de creación",
+              "title": "AUD-03 | campos de auditoría presentes en gradebook (si existe)",
               "ok": true,
               "tags": [],
               "tests": [
                 {
                   "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "/opt/ades/frontend/e2e/tests/15-audit-integrity.spec.ts",
+                        "line": 180,
+                        "column": 25
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
                   "projectId": "chromium",
                   "projectName": "chromium",
                   "results": [
                     {
                       "workerIndex": 0,
                       "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 2583,
+                      "status": "skipped",
+                      "duration": 347,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-06-21T15:48:14.506Z",
-                      "annotations": [],
+                      "startTime": "2026-06-24T06:59:16.402Z",
+                      "annotations": [
+                        {
+                          "type": "skip",
+                          "location": {
+                            "file": "/opt/ades/frontend/e2e/tests/15-audit-integrity.spec.ts",
+                            "line": 180,
+                            "column": 25
+                          }
+                        }
+                      ],
                       "attachments": []
                     }
                   ],
-                  "status": "expected"
+                  "status": "skipped"
                 }
               ],
-              "id": "ee2d24fd2c65dcd13bda-27ecff603a9943a716c2",
-              "file": "02-alumnos.spec.ts",
-              "line": 144,
+              "id": "c7dac667428aede08dec-3d1e675a37ccd971e77b",
+              "file": "15-audit-integrity.spec.ts",
+              "line": 165,
               "column": 7
             },
             {
-              "title": "ALU-C2 | recarga en medio de búsqueda",
+              "title": "AUD-04 | API no expone DELETE en log de auditoría",
               "ok": true,
               "tags": [],
               "tests": [
@@ -458,12 +245,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 1919,
+                      "duration": 357,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-06-21T15:48:17.100Z",
+                      "startTime": "2026-06-24T06:59:16.765Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -471,123 +258,21 @@
                   "status": "expected"
                 }
               ],
-              "id": "ee2d24fd2c65dcd13bda-57953370f32e36700f3e",
-              "file": "02-alumnos.spec.ts",
-              "line": 157,
-              "column": 7
-            },
-            {
-              "title": "ALU-C3 | click múltiple en \"Nuevo\" no duplica el dialog",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 2126,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-06-21T15:48:19.031Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "ee2d24fd2c65dcd13bda-ae84c7c6ad845922914e",
-              "file": "02-alumnos.spec.ts",
-              "line": 166,
-              "column": 7
-            },
-            {
-              "title": "ALU-C4 | scroll rápido en tabla con 1000+ filas",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 1984,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-06-21T15:48:21.172Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "ee2d24fd2c65dcd13bda-0b428795140beee9fcea",
-              "file": "02-alumnos.spec.ts",
-              "line": 181,
-              "column": 7
-            },
-            {
-              "title": "ALU-C5 | pegar en campo CURP y cambiar inmediatamente de campo",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 2041,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-06-21T15:48:23.177Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "ee2d24fd2c65dcd13bda-8eebbbf05dafe8877756",
-              "file": "02-alumnos.spec.ts",
-              "line": 192,
+              "id": "c7dac667428aede08dec-7de2f6df7e91049bcbd7",
+              "file": "15-audit-integrity.spec.ts",
+              "line": 197,
               "column": 7
             }
           ]
         },
         {
-          "title": "D. Usuario caótico — inputs extremos",
-          "file": "02-alumnos.spec.ts",
-          "line": 209,
+          "title": "D. Presencia de campos de auditoría en endpoints del BFF",
+          "file": "15-audit-integrity.spec.ts",
+          "line": 224,
           "column": 6,
           "specs": [
             {
-              "title": "ALU-D | campo nombre: SQL injection",
+              "title": "AUD-05 | alumnos — respuesta incluye campos de auditoría",
               "ok": true,
               "tags": [],
               "tests": [
@@ -602,12 +287,19 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 2822,
+                      "duration": 1442,
                       "errors": [],
                       "stdout": [],
-                      "stderr": [],
+                      "stderr": [
+                        {
+                          "text": "[FINDING][Hallazgo D] AUD-05 alumnos: sin row_version\n"
+                        },
+                        {
+                          "text": "[FINDING][Hallazgo D] AUD-05 alumnos: sin fecha_creacion\n"
+                        }
+                      ],
                       "retry": 0,
-                      "startTime": "2026-06-21T15:48:25.236Z",
+                      "startTime": "2026-06-24T06:59:17.135Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -615,13 +307,13 @@
                   "status": "expected"
                 }
               ],
-              "id": "ee2d24fd2c65dcd13bda-7efc0dcf0a866a3f5a4f",
-              "file": "02-alumnos.spec.ts",
-              "line": 222,
+              "id": "c7dac667428aede08dec-8026a66c140e5fc81a32",
+              "file": "15-audit-integrity.spec.ts",
+              "line": 232,
               "column": 9
             },
             {
-              "title": "ALU-D | campo nombre: XSS básico",
+              "title": "AUD-05 | grupos — respuesta incluye campos de auditoría",
               "ok": true,
               "tags": [],
               "tests": [
@@ -636,12 +328,19 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 2584,
+                      "duration": 1000,
                       "errors": [],
                       "stdout": [],
-                      "stderr": [],
+                      "stderr": [
+                        {
+                          "text": "[FINDING][Hallazgo D] AUD-05 grupos: sin row_version\n"
+                        },
+                        {
+                          "text": "[FINDING][Hallazgo D] AUD-05 grupos: sin fecha_creacion\n"
+                        }
+                      ],
                       "retry": 0,
-                      "startTime": "2026-06-21T15:48:28.081Z",
+                      "startTime": "2026-06-24T06:59:18.598Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -649,47 +348,73 @@
                   "status": "expected"
                 }
               ],
-              "id": "ee2d24fd2c65dcd13bda-da2c32f01c4cad17cd82",
-              "file": "02-alumnos.spec.ts",
-              "line": 222,
+              "id": "c7dac667428aede08dec-6c183af9689aac891234",
+              "file": "15-audit-integrity.spec.ts",
+              "line": 232,
               "column": 9
             },
             {
-              "title": "ALU-D | campo nombre: Emojis",
+              "title": "AUD-05 | calificaciones — respuesta incluye campos de auditoría",
               "ok": true,
               "tags": [],
               "tests": [
                 {
                   "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "/opt/ades/frontend/e2e/tests/15-audit-integrity.spec.ts",
+                        "line": 247,
+                        "column": 27
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
                   "projectId": "chromium",
                   "projectName": "chromium",
                   "results": [
                     {
                       "workerIndex": 0,
                       "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 2504,
+                      "status": "skipped",
+                      "duration": 965,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-06-21T15:48:30.677Z",
-                      "annotations": [],
+                      "startTime": "2026-06-24T06:59:19.643Z",
+                      "annotations": [
+                        {
+                          "type": "skip",
+                          "location": {
+                            "file": "/opt/ades/frontend/e2e/tests/15-audit-integrity.spec.ts",
+                            "line": 247,
+                            "column": 27
+                          }
+                        }
+                      ],
                       "attachments": []
                     }
                   ],
-                  "status": "expected"
+                  "status": "skipped"
                 }
               ],
-              "id": "ee2d24fd2c65dcd13bda-b79898bc52526628d98d",
-              "file": "02-alumnos.spec.ts",
-              "line": 222,
+              "id": "c7dac667428aede08dec-14c907c2cefa5d2a0b91",
+              "file": "15-audit-integrity.spec.ts",
+              "line": 232,
               "column": 9
-            },
+            }
+          ]
+        },
+        {
+          "title": "E. Push notifications ntfy — patrón ades_{usuario_id}",
+          "file": "15-audit-integrity.spec.ts",
+          "line": 276,
+          "column": 6,
+          "specs": [
             {
-              "title": "ALU-D | campo nombre: 1000 chars",
+              "title": "AUD-06 | /api/v1/push/subscribe retorna topic del usuario autenticado",
               "ok": true,
               "tags": [],
               "tests": [
@@ -704,12 +429,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 2523,
+                      "duration": 996,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-06-21T15:48:33.194Z",
+                      "startTime": "2026-06-24T06:59:20.627Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -717,183 +442,13 @@
                   "status": "expected"
                 }
               ],
-              "id": "ee2d24fd2c65dcd13bda-4dccf805ddeb943686ed",
-              "file": "02-alumnos.spec.ts",
-              "line": 222,
-              "column": 9
-            },
-            {
-              "title": "ALU-D | campo nombre: Unicode mix",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 2675,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-06-21T15:48:35.730Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "ee2d24fd2c65dcd13bda-89afac074217ccff2b23",
-              "file": "02-alumnos.spec.ts",
-              "line": 222,
-              "column": 9
-            },
-            {
-              "title": "ALU-D | campo nombre: Solo espacios",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 2863,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-06-21T15:48:38.417Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "ee2d24fd2c65dcd13bda-e2aadd2d562ce0a2bb13",
-              "file": "02-alumnos.spec.ts",
-              "line": 222,
-              "column": 9
-            },
-            {
-              "title": "ALU-D | campo nombre: Fórmula CSV inj",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 2761,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-06-21T15:48:41.293Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "ee2d24fd2c65dcd13bda-b71ebedf0e255ef8cc7f",
-              "file": "02-alumnos.spec.ts",
-              "line": 222,
-              "column": 9
-            },
-            {
-              "title": "ALU-D | campo nombre: Path traversal",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 2709,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-06-21T15:48:44.066Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "ee2d24fd2c65dcd13bda-5c3e80435127951a2e31",
-              "file": "02-alumnos.spec.ts",
-              "line": 222,
-              "column": 9
-            },
-            {
-              "title": "ALU-D-fuzz | 5 curps aleatorias en formulario",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 17638,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-06-21T15:48:46.796Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "ee2d24fd2c65dcd13bda-4c38aec30a205d044ed1",
-              "file": "02-alumnos.spec.ts",
-              "line": 238,
+              "id": "c7dac667428aede08dec-689eed4834b2ad11b1a9",
+              "file": "15-audit-integrity.spec.ts",
+              "line": 277,
               "column": 7
             },
             {
-              "title": "ALU-D-csv-invalido | subir CSV con datos malformados",
+              "title": "AUD-07 | endpoint push sin auth → 401 o 404",
               "ok": true,
               "tags": [],
               "tests": [
@@ -908,12 +463,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 12353,
+                      "duration": 30,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-06-21T15:49:04.454Z",
+                      "startTime": "2026-06-24T06:59:21.638Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -921,9 +476,9 @@
                   "status": "expected"
                 }
               ],
-              "id": "ee2d24fd2c65dcd13bda-46197513ea1667894967",
-              "file": "02-alumnos.spec.ts",
-              "line": 265,
+              "id": "c7dac667428aede08dec-4995428ee63fc37b294f",
+              "file": "15-audit-integrity.spec.ts",
+              "line": 306,
               "column": 7
             }
           ]
@@ -933,10 +488,10 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-06-21T15:47:53.818Z",
-    "duration": 83082.447,
-    "expected": 24,
-    "skipped": 0,
+    "startTime": "2026-06-24T06:59:08.691Z",
+    "duration": 13080.02,
+    "expected": 7,
+    "skipped": 2,
     "unexpected": 0,
     "flaky": 0
   }
