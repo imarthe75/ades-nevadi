@@ -210,6 +210,7 @@ public class AdminController {
 
         mx.ades.common.ValidationUtils.validarCURP(body.getCurp());
         mx.ades.common.ValidationUtils.validarEmail(body.getEmailInstitucional());
+        mx.ades.common.ValidationUtils.validarFechaNacimiento(body.getFechaNacimiento());
 
         if (queryService.curpExiste(body.getCurp())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Ya existe una persona con CURP " + body.getCurp().toUpperCase());
