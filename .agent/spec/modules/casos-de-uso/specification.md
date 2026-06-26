@@ -610,12 +610,12 @@ Referencia rápida que vincula cada CU a sus componentes técnicos:
 #### Actores Involucrados
 - `DIRECTOR` (de nivel/plantel) — Recibe alertas
 - `TUTOR` (de grupo) — Seguimiento personalizado
-- **Sistema IA (LangChain + Claude Haiku)** — Análisis automático
+- **Sistema IA (LangChain + Llama 3.1 via NVIDIA NIM)** — Análisis automático
 
 #### Precondiciones
 1. El alumno debe tener mínimo 4 semanas de datos académicos registrados
 2. Las tablas `ades_calificaciones_periodo`, `ades_asistencias`, `ades_reportes_conducta` deben estar pobladas
-3. La API de Anthropic debe estar disponible (ANTHROPIC_API_KEY en .env)
+3. La API de NVIDIA NIM debe estar disponible (OPENAI_API_KEY en .env con base URL `https://integrate.api.nvidia.com/v1`)
 
 #### Flujo Principal
 
