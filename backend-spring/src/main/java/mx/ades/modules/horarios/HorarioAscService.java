@@ -34,6 +34,7 @@ import java.util.*;
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@Deprecated
 public class HorarioAscService {
 
     private static final int NUM_DIAS = 5;

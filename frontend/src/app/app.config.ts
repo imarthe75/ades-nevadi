@@ -22,7 +22,7 @@ const NevadiPreset = definePreset(Aura, {
   semantic: {
     // Triada A — Rojo Nevadi
     primary: {
-      50:  '#fef2f3',
+      50: '#fef2f3',
       100: '#fde0e2',
       200: '#fba7ac',
       300: '#f57580',
@@ -38,8 +38,8 @@ const NevadiPreset = definePreset(Aura, {
     colorScheme: {
       light: {
         surface: {
-          0:   '#ffffff',
-          50:  '#F8F9FA',
+          0: '#ffffff',
+          50: '#F8F9FA',
           100: '#F1F3F5',
           200: '#E9ECEF',
           300: '#DEE2E6',
@@ -52,10 +52,10 @@ const NevadiPreset = definePreset(Aura, {
           950: '#141929',   // ← fondo login — triada C oscuro
         },
         primary: {
-          color:          '#D02030',
-          contrastColor:  '#ffffff',
-          hoverColor:     '#B01C28',
-          activeColor:    '#8C1620',
+          color: '#D02030',
+          contrastColor: '#ffffff',
+          hoverColor: '#B01C28',
+          activeColor: '#8C1620',
         },
       },
     },
@@ -87,11 +87,11 @@ export const appConfig: ApplicationConfig = {
         weekHeader: 'Sm',
         firstDayOfWeek: 1,
         dateFormat: 'dd/mm/yy',
-        dayNames: ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'],
-        dayNamesShort: ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'],
-        dayNamesMin: ['D','L','M','X','J','V','S'],
-        monthNames: ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'],
-        monthNamesShort: ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'],
+        dayNames: ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'],
+        dayNamesShort: ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'],
+        dayNamesMin: ['D', 'L', 'M', 'X', 'J', 'V', 'S'],
+        monthNames: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'],
+        monthNamesShort: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
         emptyMessage: 'Sin resultados',
         emptyFilterMessage: 'Sin resultados',
         emptySelectionMessage: 'Sin selección',

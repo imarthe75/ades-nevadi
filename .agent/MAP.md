@@ -1,5 +1,5 @@
 # 🗺️ Mapa Técnico del Proyecto ADES (MAP.md)
-# Última actualización: 2026-06-23
+# Última actualización: 2026-06-26
 
 ---
 
@@ -9,9 +9,9 @@
 /opt/ades/
 ├── .agent/                        # Contexto cognitivo del agente residente
 │   ├── AGENT.md                   # Leyes y reglas de operación
-│   ├── CONTEXT.md                 # Propósito, institución, módulos, stack (actualizado 2026-06-23)
+│   ├── CONTEXT.md                 # Propósito, institución, módulos, stack (actualizado 2026-06-26)
 │   ├── MAP.md                     # Este mapa técnico
-│   ├── STATE.md                   # Estado actual y bitácora (actualizado 2026-06-23)
+│   ├── STATE.md                   # Estado actual y bitácora (actualizado 2026-06-26)
 │   ├── HEURISTICS.md              # Heurísticas de toma de decisiones
 │   └── RULES.md                   # Reglas de formato y convenciones
 │
@@ -81,7 +81,7 @@
 │       │   ├── eval-docente/      # 360° — 4 tipos, 7 criterios
 │       │   ├── geo/               # SEPOMEX, colonias, selector-geo
 │       │   ├── grupos/            # CRUD grupos + alumnos
-│       │   ├── horarios/          # Grid semanal, aSc XML
+│       │   ├── horarios/          # Grid semanal, aSc XML, solver/ con constraints y planning entities
 │       │   ├── imports/           # Import CSV/Excel (6 módulos)
 │       │   ├── kardex/            # UAEMEX constancia calificaciones
 │       │   ├── learning-paths/    # Rutas adaptativas + IA
@@ -98,6 +98,8 @@
 │       │   ├── reportes/          # Kardex, 911 SEP + Sección IX, acta evaluación
 │       │   ├── reinscripcion/     # Proceso reinscripción
 │       │   └── stats/             # Telemetría JVM, Celery, DB (Monitor)
+│       ├── config/
+│       │   └── HorarioSolverConfig.java # Beans SolverConfig/SolverManager para horarios
 │       └── common/
 │           ├── ValidationUtils.java  # CURP, RFC, email, teléfono, fechaNacimiento (año 1900-hoy)
 │           ├── AdesUser.java         # DTO resolución JWT → usuario ADES

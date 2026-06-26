@@ -1,0 +1,569 @@
+{
+  "schema_version": "1.0",
+  "plantel": {
+    "id": "nevadi-primaria",
+    "nombre": "Instituto Nevadi — Primaria",
+    "ciclo_escolar": "2025-2026",
+    "nivel": "primaria",
+    "modelo_docente": "titular"
+  },
+  "tiempo": {
+    "dias": [
+      "Lun",
+      "Mar",
+      "Mié",
+      "Jue",
+      "Vie"
+    ],
+    "duracion_bloque_min": 60,
+    "acceso_alumnos": "07:45-08:00",
+    "jornada": {
+      "Lun": {
+        "inicio": "08:00",
+        "fin": "15:30"
+      },
+      "Mar": {
+        "inicio": "08:00",
+        "fin": "15:30"
+      },
+      "Mié": {
+        "inicio": "08:00",
+        "fin": "15:30"
+      },
+      "Jue": {
+        "inicio": "08:00",
+        "fin": "15:30"
+      },
+      "Vie": {
+        "inicio": "08:00",
+        "fin": "14:00"
+      }
+    },
+    "posterior_a_clases": {
+      "Vie": {
+        "desde": "14:00",
+        "hasta": "16:00",
+        "etiqueta": "Desarrollo profesional docente"
+      }
+    },
+    "recreos": [
+      {
+        "inicio": "10:00",
+        "fin": "10:30",
+        "dias": [
+          "Lun",
+          "Mar",
+          "Mié",
+          "Jue",
+          "Vie"
+        ]
+      }
+    ],
+    "comidas": [
+      {
+        "id": "turno_baja",
+        "inicio": "13:00",
+        "fin": "13:30",
+        "dias": [
+          "Lun",
+          "Mar",
+          "Mié",
+          "Jue"
+        ],
+        "aplica_a": {
+          "subnivel": "baja"
+        }
+      },
+      {
+        "id": "turno_alta",
+        "inicio": "14:00",
+        "fin": "14:30",
+        "dias": [
+          "Lun",
+          "Mar",
+          "Mié",
+          "Jue"
+        ],
+        "aplica_a": {
+          "subnivel": "alta"
+        }
+      }
+    ],
+    "huecos_30min": {
+      "habilitado": true,
+      "descripcion": "Bloque residual de 30 min/día derivado de los descansos. Se usa para las materias marcadas como 'sesion_fraccionada' (ver reglas). Sobra ~1 hueco/sem.\n"
+    }
+  },
+  "subniveles": {
+    "baja": {
+      "grados": [
+        1,
+        2,
+        3
+      ]
+    },
+    "alta": {
+      "grados": [
+        4,
+        5,
+        6
+      ]
+    }
+  },
+  "grupos": [
+    {
+      "id": "1A",
+      "grado": 1,
+      "seccion": "A"
+    },
+    {
+      "id": "1B",
+      "grado": 1,
+      "seccion": "B"
+    },
+    {
+      "id": "2A",
+      "grado": 2,
+      "seccion": "A"
+    },
+    {
+      "id": "2B",
+      "grado": 2,
+      "seccion": "B"
+    },
+    {
+      "id": "3A",
+      "grado": 3,
+      "seccion": "A"
+    },
+    {
+      "id": "3B",
+      "grado": 3,
+      "seccion": "B"
+    },
+    {
+      "id": "4A",
+      "grado": 4,
+      "seccion": "A"
+    },
+    {
+      "id": "4B",
+      "grado": 4,
+      "seccion": "B"
+    },
+    {
+      "id": "5A",
+      "grado": 5,
+      "seccion": "A"
+    },
+    {
+      "id": "5B",
+      "grado": 5,
+      "seccion": "B"
+    },
+    {
+      "id": "6A",
+      "grado": 6,
+      "seccion": "A"
+    },
+    {
+      "id": "6B",
+      "grado": 6,
+      "seccion": "B"
+    }
+  ],
+  "materias": {
+    "Lecto": {
+      "imparte": "titular"
+    },
+    "Español": {
+      "imparte": "titular"
+    },
+    "Matemáticas": {
+      "imparte": "titular"
+    },
+    "Conocimiento": {
+      "imparte": "titular"
+    },
+    "Artes": {
+      "imparte": "titular"
+    },
+    "Fábrica de lectura": {
+      "imparte": "titular"
+    },
+    "Ortografía": {
+      "imparte": "titular"
+    },
+    "Ciencias": {
+      "imparte": "titular"
+    },
+    "Historia": {
+      "imparte": "titular"
+    },
+    "Formación": {
+      "imparte": "titular"
+    },
+    "Entidad": {
+      "imparte": "titular"
+    },
+    "Geografía": {
+      "imparte": "titular"
+    },
+    "Proyectos": {
+      "imparte": "titular"
+    },
+    "Inglés": {
+      "imparte": "especialista",
+      "pool": "ingles"
+    },
+    "Socioemocional": {
+      "imparte": "especialista",
+      "pool": "socioemocional"
+    },
+    "Educación Física": {
+      "imparte": "especialista",
+      "pool": "ef"
+    },
+    "Desarrollo Comunitario": {
+      "imparte": "especialista",
+      "pool": "desarrollo_com"
+    },
+    "Computación": {
+      "imparte": "especialista",
+      "pool": "computacion"
+    }
+  },
+  "plan_estudios": {
+    "1": {
+      "Lecto": 7,
+      "Español": 1,
+      "Matemáticas": 7,
+      "Inglés": 4,
+      "Socioemocional": 1,
+      "Desarrollo Comunitario": 1,
+      "Educación Física": 2,
+      "Computación": 1,
+      "Artes": 1,
+      "Formación": 1,
+      "Conocimiento": 1,
+      "Proyectos": 2,
+      "Fábrica de lectura": 1,
+      "Ortografía": 1
+    },
+    "2": {
+      "Lecto": 5,
+      "Español": 3,
+      "Matemáticas": 7,
+      "Inglés": 4,
+      "Socioemocional": 1,
+      "Desarrollo Comunitario": 1,
+      "Educación Física": 2,
+      "Computación": 1,
+      "Artes": 1,
+      "Formación": 1,
+      "Conocimiento": 1,
+      "Proyectos": 2,
+      "Fábrica de lectura": 1,
+      "Ortografía": 1
+    },
+    "3": {
+      "Español": 6,
+      "Matemáticas": 7,
+      "Inglés": 4,
+      "Socioemocional": 1,
+      "Desarrollo Comunitario": 1,
+      "Educación Física": 2,
+      "Computación": 1,
+      "Artes": 1,
+      "Formación": 1,
+      "Entidad": 1,
+      "Conocimiento": 2,
+      "Proyectos": 2,
+      "Fábrica de lectura": 1,
+      "Ortografía": 1
+    },
+    "4": {
+      "Español": 5,
+      "Matemáticas": 6,
+      "Inglés": 4,
+      "Socioemocional": 1,
+      "Desarrollo Comunitario": 1,
+      "Educación Física": 2,
+      "Computación": 1,
+      "Artes": 1,
+      "Formación": 1,
+      "Conocimiento": 2,
+      "Proyectos": 3,
+      "Historia": 1,
+      "Geografía": 1,
+      "Fábrica de lectura": 1,
+      "Ortografía": 1
+    },
+    "5": {
+      "Español": 5,
+      "Matemáticas": 6,
+      "Inglés": 4,
+      "Socioemocional": 1,
+      "Desarrollo Comunitario": 1,
+      "Educación Física": 2,
+      "Computación": 1,
+      "Artes": 1,
+      "Formación": 1,
+      "Conocimiento": 2,
+      "Proyectos": 3,
+      "Historia": 1,
+      "Geografía": 1,
+      "Fábrica de lectura": 1,
+      "Ortografía": 1
+    },
+    "6": {
+      "Español": 5,
+      "Matemáticas": 6,
+      "Inglés": 4,
+      "Socioemocional": 1,
+      "Desarrollo Comunitario": 1,
+      "Educación Física": 2,
+      "Computación": 1,
+      "Artes": 1,
+      "Formación": 1,
+      "Conocimiento": 2,
+      "Proyectos": 3,
+      "Historia": 1,
+      "Geografía": 1,
+      "Fábrica de lectura": 1,
+      "Ortografía": 1
+    }
+  },
+  "docentes": {
+    "titulares": {
+      "por_grupo": true
+    },
+    "pools": {
+      "ingles": [
+        {
+          "id": "ing_baja",
+          "atiende_subnivel": "baja"
+        },
+        {
+          "id": "ing_alta",
+          "atiende_subnivel": "alta"
+        }
+      ],
+      "socioemocional": [
+        {
+          "id": "soc_baja",
+          "atiende_subnivel": "baja"
+        },
+        {
+          "id": "soc_alta",
+          "atiende_subnivel": "alta"
+        }
+      ],
+      "ef": [
+        {
+          "id": "ef_unico",
+          "atiende_subnivel": "todos"
+        }
+      ],
+      "desarrollo_com": [
+        {
+          "id": "dc_unico",
+          "atiende_subnivel": "todos"
+        }
+      ],
+      "computacion": [
+        {
+          "id": "comp_unico",
+          "atiende_subnivel": "todos"
+        }
+      ]
+    }
+  },
+  "recursos": [
+    {
+      "id": "lab_computo",
+      "materia": "Computación",
+      "capacidad_simultanea": 1
+    },
+    {
+      "id": "cancha_ef",
+      "materia": "Educación Física",
+      "capacidad_simultanea": 1
+    }
+  ],
+  "reglas": [
+    {
+      "id": "cumplimiento_carga",
+      "tipo": "carga_horaria_exacta",
+      "dura": true,
+      "activa": true,
+      "descripcion": "La suma semanal por materia debe coincidir exactamente con el plan de estudios."
+    },
+    {
+      "id": "mate_solo_manana",
+      "tipo": "ventana_horaria",
+      "dura": true,
+      "activa": true,
+      "params": {
+        "materia": "Matemáticas",
+        "modo": "antes_de",
+        "hora": "12:00"
+      },
+      "descripcion": "Matemáticas no debe impartirse después de las 12:00 (solo bloques que inician antes)."
+    },
+    {
+      "id": "lecto_solo_manana",
+      "tipo": "ventana_horaria",
+      "dura": true,
+      "activa": true,
+      "params": {
+        "materia": "Lecto",
+        "modo": "antes_de",
+        "hora": "12:00"
+      }
+    },
+    {
+      "id": "proyectos_solo_tarde",
+      "tipo": "ventana_horaria",
+      "dura": true,
+      "activa": true,
+      "params": {
+        "materia": "Proyectos",
+        "modo": "despues_de",
+        "hora": "12:00"
+      },
+      "descripcion": "Proyectos solo en la tarde (inicia a las 12:00 o después)."
+    },
+    {
+      "id": "bloques_dobles_core",
+      "tipo": "bloque_contiguo",
+      "dura": true,
+      "activa": true,
+      "params": {
+        "materias": [
+          "Matemáticas",
+          "Español",
+          "Lecto"
+        ],
+        "horas_bloque": 2,
+        "permitir_sobrante_1h": true,
+        "max_dias_con_sobrante": 1,
+        "no_cruza_descanso": true
+      }
+    },
+    {
+      "id": "max_horas_dia",
+      "tipo": "max_horas_dia",
+      "dura": true,
+      "activa": true,
+      "params": {
+        "default": 1,
+        "overrides": {
+          "Matemáticas": 2,
+          "Español": 2,
+          "Lecto": 2
+        }
+      },
+      "descripcion": "No más de 2h seguidas de la misma materia el mismo día; el resto 1/día para distribuir."
+    },
+    {
+      "id": "distribucion_semanal",
+      "tipo": "distribucion_minima",
+      "dura": false,
+      "peso": 10,
+      "activa": true,
+      "params": {
+        "aplicar_a": "todas",
+        "min_dias_si_horas_mayor_igual": 2
+      }
+    },
+    {
+      "id": "docente_unico",
+      "tipo": "docente_unico",
+      "dura": true,
+      "activa": true,
+      "params": {
+        "materias": [
+          "Computación",
+          "Educación Física",
+          "Desarrollo Comunitario"
+        ]
+      }
+    },
+    {
+      "id": "pool_por_subnivel",
+      "tipo": "pool_por_subnivel",
+      "dura": true,
+      "activa": true,
+      "params": {
+        "materias": [
+          "Inglés",
+          "Socioemocional"
+        ]
+      }
+    },
+    {
+      "id": "computacion_dias",
+      "tipo": "dias_permitidos",
+      "dura": true,
+      "activa": true,
+      "params": {
+        "materia": "Computación",
+        "dias": [
+          "Mié",
+          "Jue"
+        ]
+      },
+      "descripcion": "Computación: 1 docente, solo miércoles y jueves."
+    },
+    {
+      "id": "sesiones_cortas",
+      "tipo": "sesion_fraccionada",
+      "dura": true,
+      "activa": true,
+      "params": {
+        "materias": [
+          "Fábrica de lectura",
+          "Ortografía"
+        ],
+        "duracion_min": 30,
+        "sesiones_por_semana": 2,
+        "ubicar_en": "huecos_30min"
+      }
+    },
+    {
+      "id": "horas_administrativas",
+      "tipo": "horas_administrativas",
+      "dura": true,
+      "activa": true,
+      "params": {
+        "veces_por_semana": 2,
+        "ambito": "titulares_mismo_grado",
+        "solo_modelo": "titular",
+        "dias_distintos": false
+      },
+      "descripcion": "Los titulares A y B de cada grado quedan libres a la misma hora 2 veces/semana."
+    }
+  ],
+  "salida": {
+    "formato_excel": true,
+    "formato_json": true,
+    "marcar_horas_administrativas": true
+  },
+  "expectativas_test": {
+    "estado_esperado": [
+      "OPTIMAL",
+      "FEASIBLE"
+    ],
+    "horas_por_grado": 31,
+    "sin_traslapes_docentes": true,
+    "computacion_solo_dias": [
+      "Mié",
+      "Jue"
+    ],
+    "mate_lecto_antes_de": "12:00",
+    "proyectos_despues_de": "12:00",
+    "horas_admin_por_grado": 2,
+    "grupos_totales": 12
+  }
+}

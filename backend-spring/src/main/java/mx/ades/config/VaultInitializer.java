@@ -169,8 +169,10 @@ public class VaultInitializer implements ApplicationContextInitializer<Configura
 
                     if (!vaultProperties.isEmpty()) {
                         MutablePropertySources propertySources = applicationContext.getEnvironment().getPropertySources();
-                        propertySources.addFirst(new MapPropertySource("vaultProperties", vaultProperties));
-                        logger.info("Secretos de Vault inyectados exitosamente en el entorno de Spring.");
+                        // Add Vault values with low precedence so explicit env vars from
+                        // docker-compose remain authoritative and Vault acts as fallback.
+                        propertySources.addLast(new MapPropertySource("vaultProperties", vaultProperties));
+                        logger.info("Secretos de Vault inyectados exitosamente en el entorno de Spring (modo fallback).");
                     }
                 }
             } else {

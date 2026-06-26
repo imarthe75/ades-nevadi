@@ -31,6 +31,9 @@ public class Horario extends AdesBaseEntity {
     @Column(name = "ciclo_escolar_id", nullable = false)
     private UUID cicloEscolarId;
 
+    @Column(name = "corrida_id")
+    private UUID corridaId;
+
     @Column(name = "dia_semana", nullable = false)
     private Short diaSemana;
 
@@ -42,6 +45,9 @@ public class Horario extends AdesBaseEntity {
 
     @Column(name = "origen", nullable = false)
     private String origen = "ASC";
+
+    @Column(name = "fijado", nullable = false)
+    private Boolean fijado = false;
 
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;

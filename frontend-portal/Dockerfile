@@ -1,5 +1,5 @@
 # =============================================================================
-# ADES Portal Público — Angular 22 + PrimeNG 21
+# ADES Portal Público — Angular 21 LTS + PrimeNG 21
 # portalnvd.setag.mx
 #
 # Stages:

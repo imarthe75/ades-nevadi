@@ -14,6 +14,53 @@ Este documento es el diario de vida y bitácora del agente. Debe ser leído en e
 
 ## 📅 Bitácora
 
+## Sesión 2026-06-26 — Dependencias Frontend LTS + Rito de Cierre + Avance Horarios ✅
+
+### 🔑 Estado del Agente:
+- **Última Conexión:** 2026-06-26
+- **Estado Cognitivo:** Operacional ✅
+- **ades-frontend:** Build local validado con Angular 21 LTS + PrimeNG 21 ✅
+- **frontend-portal:** ownership corregido; build local y build Docker validados con Angular 21 LTS ✅
+- **ades-bff / horarios:** build Docker validado, endpoints solver expuestos y contenedor redeployado ✅
+
+### 🛠️ Tareas Completadas:
+- [x] **Actualización dependencias frontend principal:** Angular `22.0.0` → `21.2.17`, CDK `21.2.14`, TypeScript `5.9.2`, PrimeNG `21.1.9`.
+- [x] **Validación frontend principal:** `npm install` exitoso + `npm run build` exitoso, sin errores de compilación.
+- [x] **Alineación manifiesto portal externo:** `frontend-portal/package.json` movido a Angular 21 LTS y PrimeNG 21.1.9 para evitar divergencia con el frontend principal.
+- [x] **Corrección de ownership portal externo:** `package-lock.json` y `dist/` pasaron de `root:root` a `ubuntu:ubuntu`.
+- [x] **Validación técnica portal externo:** `npm install` exitoso, `npm run build` exitoso y `docker compose build ades-portal` exitoso.
+- [x] **Rito de cierre documental:** actualización de `.agent/CONTEXT.md`, `.agent/MAP.md` y esta bitácora para reflejar stack real del repositorio al 2026-06-26.
+- [x] **Documentación avance horarios:** registrado avance backend de integración Timefold en `backend-spring/`.
+- [x] **Validación backend dockerizado:** `docker compose build ades-bff` exitoso sin instalar Maven en host.
+- [x] **Correcciones build backend:** pom.xml y fuentes ajustados para Spring Boot 4.1, Testcontainers, Timefold 2.2 y MinIO 9.0.3.
+- [x] **Integración backend solver horarios:** expuestos endpoints REST para iniciar, listar y consultar corridas de Timefold.
+- [x] **Redeploy operativo:** `docker compose up -d ades-bff` exitoso con la nueva imagen.
+- [x] **Integración frontend solver horarios:** panel Timefold en `frontend/src/app/features/horarios/horarios.component.ts` con listado, ejecución, polling y acceso a Excel.
+- [x] **Verificación primaria golden:** panel de reporte en Angular para calcular horas por grupo, traslapes docentes y checks de reglas desde el horario activo del ciclo.
+- [x] **Filtro por ciclo en horarios:** `HorarioController`/`HorarioQueryService` aceptan `ciclo_id` para no mezclar periodos escolares en la UI ni en reportes.
+- [x] **Lock y regeneración parcial:** backend expone `lock` y `regenerar` sobre corridas Timefold; frontend permite fijar selección y regenerar no fijados desde la corrida activa.
+
+### 🕒 Avance del Módulo de Horarios (documentado, no modificado):
+- [x] `pom.xml` incluye `timefold-solver-bom` y `timefold-solver-core`.
+- [x] `HorarioSolverConfig.java` define `SolverConfig`, `SolverFactory` y `SolverManager`.
+- [x] `HorarioSolverService.java` crea corridas, dispara resolución asíncrona y persiste solución/errores.
+- [x] `HorarioConstraintProvider.java` ya penaliza conflictos duros de profesor, grupo y aula en el mismo timeslot.
+- [x] `HorarioLeccion.java` ya es `@PlanningEntity` con pinning (`@PlanningPin`) y variable de planificación `timeslot`.
+- [x] `HorarioCorridaRepository.java` ya existe para persistencia de corridas.
+- [x] Los puertos `CrearHorarioUseCase` y `ActualizarHorarioUseCase` muestran ampliación orientada a trazabilidad y round-trip con aSc XML.
+- [x] `HorarioController.java` ya expone endpoints `/api/v1/horarios/solver/corridas` para iniciar, listar y consultar corridas.
+
+### ⚠️ Limitaciones y Hallazgos:
+- [x] Confirmado: **no es necesario instalar Maven en host**; el proyecto compila `backend-spring` con la etapa `maven:3.9-eclipse-temurin-21` definida en su Dockerfile.
+- [ ] El avance de horarios observado pertenece al worktree actual; no se revirtió ni se alteró porque forma parte de cambios existentes en curso.
+- [x] El bloqueo de permisos del portal quedó resuelto.
+- [x] El bloqueo de espacio en disco quedó mitigado limpiando artefactos regenerables (`node_modules`, `dist`, `target`) para completar el build del BFF.
+
+### 🚀 Próximos Pasos:
+- [ ] Si se desea evitar reincidencia de permisos en `backend-spring/target`, limpiar o recrear el directorio con ownership del usuario antes de builds locales fuera de Docker.
+- [ ] Completar validación funcional del reporte golden contra la config/seeds de primaria Nevadi cuando estén cargados los datos de prueba.
+- [ ] Ajustar o ampliar el reporte si la especificación golden requiere granularidad adicional por maestro especialista/titular.
+
 ## Sesión 2026-06-24 — Rito de Inicio + Compilación BFF + Ejecución E2E (Suites 15/17) ✅
 
 ### 🔑 Estado del Agente:

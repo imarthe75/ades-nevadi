@@ -74,7 +74,7 @@ public class MinioService {
                 minioClient.putObject(PutObjectArgs.builder()
                         .bucket(bucketName)
                         .object(key)
-                        .stream(is, file.getSize(), -1)
+                    .stream(is, file.getSize(), -1L)
                         .contentType(file.getContentType() != null ? file.getContentType() : "application/octet-stream")
                         .build());
             }

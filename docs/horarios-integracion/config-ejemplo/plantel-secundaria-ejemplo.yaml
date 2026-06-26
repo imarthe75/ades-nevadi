@@ -1,0 +1,140 @@
+# =============================================================================
+# CONFIGURACIÓN DE PLANTEL — ejemplo SECUNDARIA (modelo "por_materia")
+#
+# Demuestra que la MISMA estructura de configuración sirve para niveles sin
+# docente titular: cada materia tiene su(s) docente(s) que rotan entre grupos.
+# Valores ILUSTRATIVOS (no son los reales de Nevadi); sirven como segundo
+# fixture para probar la genericidad del motor.
+# =============================================================================
+
+schema_version: "1.0"
+
+plantel:
+  id: "ejemplo-secundaria"
+  nombre: "Ejemplo — Secundaria"
+  ciclo_escolar: "2025-2026"
+  nivel: "secundaria"
+  modelo_docente: "por_materia"     # <-- sin titular; docentes por materia que rotan
+
+tiempo:
+  dias: [Lun, Mar, Mié, Jue, Vie]
+  duracion_bloque_min: 50
+  jornada:
+    Lun: { inicio: "07:00", fin: "14:20" }
+    Mar: { inicio: "07:00", fin: "14:20" }
+    Mié: { inicio: "07:00", fin: "14:20" }
+    Jue: { inicio: "07:00", fin: "14:20" }
+    Vie: { inicio: "07:00", fin: "14:20" }
+  recreos:
+    - { inicio: "09:30", fin: "09:50", dias: [Lun, Mar, Mié, Jue, Vie] }
+    - { inicio: "12:10", fin: "12:20", dias: [Lun, Mar, Mié, Jue, Vie] }
+  comidas: []                       # secundaria sin comida en jornada
+  huecos_30min: { habilitado: false }
+
+subniveles:
+  unico: { grados: [1, 2, 3] }
+
+grupos:
+  - { id: "1A", grado: 1, seccion: A }
+  - { id: "1B", grado: 1, seccion: B }
+  - { id: "2A", grado: 2, seccion: A }
+  - { id: "2B", grado: 2, seccion: B }
+  - { id: "3A", grado: 3, seccion: A }
+  - { id: "3B", grado: 3, seccion: B }
+
+# En modelo por_materia, TODAS las materias se imparten por especialistas (pools).
+materias:
+  Español:                 { imparte: especialista, pool: "espanol" }
+  Matemáticas:             { imparte: especialista, pool: "matematicas" }
+  Ciencias:                { imparte: especialista, pool: "ciencias" }
+  Historia:                { imparte: especialista, pool: "historia" }
+  Geografía:               { imparte: especialista, pool: "geografia" }
+  Formación Cívica y Ética: { imparte: especialista, pool: "fcye" }
+  Inglés:                  { imparte: especialista, pool: "ingles" }
+  Educación Física:        { imparte: especialista, pool: "ef" }
+  Artes:                   { imparte: especialista, pool: "artes" }
+  Tecnología:              { imparte: especialista, pool: "tecnologia" }
+  Tutoría:                 { imparte: especialista, pool: "tutoria" }
+  Optativa:                { imparte: especialista, pool: "optativas" }
+
+# Plan ilustrativo: cada grado suma 35 horas/semana.
+plan_estudios:
+  1: { Español: 5, Matemáticas: 5, Ciencias: 6, Historia: 3, Geografía: 3, Formación Cívica y Ética: 2, Inglés: 3, Educación Física: 2, Artes: 2, Tecnología: 2, Tutoría: 1, Optativa: 1 }
+  2: { Español: 5, Matemáticas: 5, Ciencias: 6, Historia: 3, Geografía: 3, Formación Cívica y Ética: 2, Inglés: 3, Educación Física: 2, Artes: 2, Tecnología: 2, Tutoría: 1, Optativa: 1 }
+  3: { Español: 5, Matemáticas: 5, Ciencias: 6, Historia: 3, Geografía: 3, Formación Cívica y Ética: 2, Inglés: 3, Educación Física: 2, Artes: 2, Tecnología: 2, Tutoría: 1, Optativa: 1 }
+
+docentes:
+  titulares: { por_grupo: false }     # no hay titular en este nivel
+  pools:
+    espanol:     [ { id: "esp_1" }, { id: "esp_2" } ]
+    matematicas: [ { id: "mat_1" }, { id: "mat_2" } ]
+    ciencias:    [ { id: "cien_1" }, { id: "cien_2" } ]
+    historia:    [ { id: "hist_1" } ]
+    geografia:   [ { id: "geo_1" } ]
+    fcye:        [ { id: "fcye_1" } ]
+    ingles:      [ { id: "ing_1" }, { id: "ing_2" } ]
+    ef:          [ { id: "ef_1" } ]
+    artes:       [ { id: "art_1" } ]
+    tecnologia:  [ { id: "tec_1" } ]
+    tutoria:     [ { id: "tut_1" }, { id: "tut_2" } ]
+    optativas:   [ { id: "opt_1" }, { id: "opt_2" } ]
+  disponibilidad:
+    - { docente: "hist_1", no_disponible: [ { dia: Vie } ] }   # ejemplo: no labora viernes
+
+recursos:
+  - { id: "lab_ciencias", materia: "Ciencias", capacidad_simultanea: 1 }
+  - { id: "cancha", materia: "Educación Física", capacidad_simultanea: 2 }
+  - { id: "taller_tec", materia: "Tecnología", capacidad_simultanea: 1 }
+
+reglas:
+  - { id: cumplimiento_carga, tipo: carga_horaria_exacta, dura: true, activa: true }
+
+  # En secundaria NO aplican horas administrativas de titulares:
+  - { id: horas_administrativas, tipo: horas_administrativas, dura: true, activa: false,
+      params: { solo_modelo: "titular" } }
+
+  - { id: dobles_core, tipo: bloque_contiguo, dura: true, activa: true,
+      params: { materias: ["Matemáticas", "Español"], horas_bloque: 2, permitir_sobrante_1h: true, no_cruza_descanso: true } }
+
+  - { id: max_dia, tipo: max_horas_dia, dura: true, activa: true,
+      params: { default: 1, overrides: { Matemáticas: 2, Español: 2, Ciencias: 2 } } }
+
+  # Restricciones ricas de docente (paridad aSc):
+  - { id: huecos, tipo: huecos_docente, dura: false, peso: 20, activa: true,
+      params: { max_huecos_dia: 1, max_huecos_semana: 3 } }
+  - { id: consecutivas, tipo: consecutivas_max, dura: true, activa: true,
+      params: { ambito: "docente", max: 4 } }
+  - { id: carga_diaria_doc, tipo: lecciones_dia_docente, dura: true, activa: true,
+      params: { min: 0, max: 6 } }
+  - { id: disp_doc, tipo: disponibilidad_docente, dura: true, activa: true, params: {} }
+
+  # Distribución y sincronización:
+  - { id: spread, tipo: distribucion_minima, dura: false, peso: 10, activa: true,
+      params: { aplicar_a: "todas", min_dias_si_horas_mayor_igual: 3 } }
+  - { id: no_consecutivos_geo, tipo: dias_no_consecutivos, dura: false, peso: 5, activa: true,
+      params: { materia: "Geografía" } }
+  - { id: sync_mate, tipo: sincronizar_materia, dura: false, peso: 8, activa: false,
+      params: { materia: "Matemáticas", grupos: ["1A", "1B"], misma_posicion: true } }
+
+  # Recursos/aulas:
+  - { id: aula_lab, tipo: aula_fija_materia, dura: false, peso: 6, activa: true,
+      params: { materia: "Ciencias", misma_aula: true } }
+  - { id: uso_cancha, tipo: uso_max_recurso, dura: true, activa: true,
+      params: { recurso: "cancha", max_dias_semana: 5 } }
+
+  # OPTATIVAS: alumnos eligen; los grupos de optativa cruzan secciones del mismo grado.
+  - { id: bloque_optativas, tipo: optativas, dura: true, activa: true,
+      params: { bloque: "Optativa", opciones: ["Robótica", "Teatro", "Deportes"], alumnos_eligen: true, misma_posicion_en_grado: true } }
+
+salida:
+  formato_excel: true
+  formato_json: true
+  vistas: ["grupo", "docente", "aula"]
+
+expectativas_test:
+  estado_esperado: ["OPTIMAL", "FEASIBLE"]
+  horas_por_grado: 35
+  sin_traslapes_docentes: true
+  modelo_docente: "por_materia"
+  horas_admin_por_grado: 0
+  grupos_totales: 6

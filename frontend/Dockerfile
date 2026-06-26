@@ -1,5 +1,5 @@
 # =============================================================================
-# ADES Frontend — Angular 22 + PrimeNG 21
+# ADES Frontend — Angular 21 LTS + PrimeNG 21
 #
 # Stages:
 #   development  — ng serve con hot-reload (default en docker-compose)

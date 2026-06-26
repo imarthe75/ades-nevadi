@@ -9,4 +9,8 @@ import java.util.UUID;
 @Repository
 public interface HorarioRepository extends JpaRepository<Horario, UUID> {
     List<Horario> findByGrupoId(UUID grupoId);
+
+    List<Horario> findByCorridaIdAndIsActiveTrue(UUID corridaId);
+
+    long countByCorridaId(UUID corridaId);
 }
