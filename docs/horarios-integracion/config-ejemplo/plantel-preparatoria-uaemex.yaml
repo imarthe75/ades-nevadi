@@ -1,0 +1,185 @@
+# =============================================================================
+# CONFIGURACIÓN DE PLANTEL — PREPARATORIA UAEMEX (Instituto Nevadi · Metepec)
+#
+# Datos REALES tomados del proyecto ades-nevadi (db/seeds/001_datos_base.sql y
+# 002/005). Modelo "por_materia" (sin titular de grupo), solo turno matutino,
+# 2 grupos por semestre, plan único por semestre (sin división por área en los
+# datos actuales). Sirve de SEED conceptual y de FIXTURE de prueba del motor.
+# =============================================================================
+
+schema_version: "1.0"
+
+plantel:
+  id: "nevadi-prepa-metepec"
+  nombre: "Instituto Nevadi — Preparatoria UAEMEX (Metepec)"
+  nivel: "preparatoria"
+  modelo_docente: "por_materia"     # NO hay titular de grupo; 1 docente por materia
+  periodo: "semestre"               # "grado" representa el semestre (1–6)
+  ciclo_escolar: "26B"              # ago-ene (UAEMEX). El otro ciclo es 27A (ene-jul)
+
+tiempo:
+  dias: [Lun, Mar, Mié, Jue, Vie]
+  duracion_bloque_min: 60
+  turnos_clase: ["matutino"]        # preparatoria: SOLO matutino (sin vespertino)
+  jornada:                          # estándar del proyecto: Lun-Vie 07:00-15:00
+    Lun: { inicio: "07:00", fin: "15:00", turno: "matutino" }
+    Mar: { inicio: "07:00", fin: "15:00", turno: "matutino" }
+    Mié: { inicio: "07:00", fin: "15:00", turno: "matutino" }
+    Jue: { inicio: "07:00", fin: "15:00", turno: "matutino" }
+    Vie: { inicio: "07:00", fin: "15:00", turno: "matutino" }
+  recreos:
+    - { inicio: "10:00", fin: "10:30", dias: [Lun, Mar, Mié, Jue, Vie] }
+  comidas: []                       # jornada matutina sin comida
+  huecos_30min: { habilitado: false }
+
+# En prepa "grado" = semestre. 2 grupos (A/B) por semestre.
+periodos:
+  1: { etiqueta: "1er semestre" }
+  2: { etiqueta: "2do semestre" }
+  3: { etiqueta: "3er semestre" }
+  4: { etiqueta: "4to semestre" }
+  5: { etiqueta: "5to semestre" }
+  6: { etiqueta: "6to semestre" }
+
+grupos:
+  - { id: "1A", semestre: 1, seccion: A, turno: matutino }
+  - { id: "1B", semestre: 1, seccion: B, turno: matutino }
+  - { id: "2A", semestre: 2, seccion: A, turno: matutino }
+  - { id: "2B", semestre: 2, seccion: B, turno: matutino }
+  - { id: "3A", semestre: 3, seccion: A, turno: matutino }
+  - { id: "3B", semestre: 3, seccion: B, turno: matutino }
+  - { id: "4A", semestre: 4, seccion: A, turno: matutino }
+  - { id: "4B", semestre: 4, seccion: B, turno: matutino }
+  - { id: "5A", semestre: 5, seccion: A, turno: matutino }
+  - { id: "5B", semestre: 5, seccion: B, turno: matutino }
+  - { id: "6A", semestre: 6, seccion: A, turno: matutino }
+  - { id: "6B", semestre: 6, seccion: B, turno: matutino }
+
+# Catálogo de materias: en modelo por_materia todas se imparten por especialista.
+# Se derivan del plan de estudios (cada materia es distinta por semestre).
+materias_config:
+  imparte_default: especialista
+  derivar_de_plan: true
+
+# Plan de estudios REAL por semestre (claves y horas del seed 001_datos_base.sql).
+plan_estudios:
+  1:
+    Taller de Lectura y Redacción I: 4
+    Matemáticas I: 5
+    Química I: 4
+    Historia Universal I: 4
+    Inglés I: 3
+    Metodología de la Investigación I: 3
+    Informática I: 3
+    Educación Física I: 2
+  2:
+    Taller de Lectura y Redacción II: 4
+    Matemáticas II: 5
+    Química II: 4
+    Historia de México I: 4
+    Inglés II: 3
+    Economía: 3
+    Biología I: 4
+    Educación Física II: 2
+  3:
+    Literatura I: 4
+    Matemáticas III: 5
+    Física I: 4
+    Historia de México II: 4
+    Inglés III: 3
+    Psicología I: 3
+    Química Orgánica: 4
+    Educación Física III: 2
+  4:
+    Literatura II: 4
+    Cálculo Diferencial: 5
+    Física II: 4
+    Geografía: 3
+    Inglés IV: 3
+    Psicología II: 3
+    Ecología: 3
+    Educación Física IV: 2
+  5:
+    Probabilidad y Estadística I: 4
+    Cálculo Integral: 5
+    Biología II: 4
+    Sociología: 3
+    Inglés V: 3
+    Filosofía I: 3
+    Orientación Vocacional I: 2
+    Educación Física V: 2
+  6:
+    Probabilidad y Estadística II: 4
+    Álgebra Lineal: 5
+    Bioquímica: 4
+    Historia Contemporánea: 3
+    Inglés VI: 3
+    Filosofía II: 3
+    Orientación Vocacional II: 2
+    Educación Física VI: 2
+
+# Docentes: 1 por materia (modelo por_materia). En los datos reales viven en
+# ades_profesores / ades_asignaciones_docentes. La DISPONIBILIDAD se lee de la
+# tabla ades_disponibilidad_docente (días/horas en que cada profesor puede dar clase).
+docentes:
+  titulares: { por_grupo: false }
+  asignacion: "una_por_materia"
+  disponibilidad_desde_tabla: "ades_disponibilidad_docente"   # <-- clave para prepa
+
+recursos:
+  - { id: "lab_ciencias", materias: ["Química I","Química II","Física I","Física II","Biología I","Biología II","Química Orgánica","Bioquímica"], capacidad_simultanea: 1 }
+  - { id: "lab_computo",  materias: ["Informática I"], capacidad_simultanea: 1 }
+
+reglas:
+  - { id: cumplimiento_carga, tipo: carga_horaria_exacta, dura: true, activa: true }
+
+  # Sin titular -> horas administrativas NO aplican:
+  - { id: horas_administrativas, tipo: horas_administrativas, dura: true, activa: false,
+      params: { solo_modelo: "titular" } }
+
+  # *** DISPONIBILIDAD DE DOCENTES (clave en prepa: profesores por horas/asignatura) ***
+  - { id: disp_docente, tipo: disponibilidad_docente, dura: true, activa: true,
+      params: { fuente: "ades_disponibilidad_docente" }
+    }   # un profesor solo se asigna dentro de sus franjas disponibles
+
+  # No-traslape de docente entre grupos (implícito en modelo por_materia):
+  - { id: max_dia, tipo: max_horas_dia, dura: true, activa: true,
+      params: { default: 1, overrides: { Matemáticas I: 2, Matemáticas II: 2, Matemáticas III: 2, "Cálculo Diferencial": 2, "Cálculo Integral": 2, "Álgebra Lineal": 2 } } }
+
+  # Materias de mayor carga (5h) en bloques dobles cuando convenga:
+  - { id: dobles_mate, tipo: bloque_contiguo, dura: false, peso: 12, activa: true,
+      params: { materias: ["Matemáticas I","Matemáticas II","Matemáticas III","Cálculo Diferencial","Cálculo Integral","Álgebra Lineal"], horas_bloque: 2, permitir_sobrante_1h: true, no_cruza_descanso: true } }
+
+  # Calidad: minimizar huecos del docente y limitar consecutivas:
+  - { id: huecos, tipo: huecos_docente, dura: false, peso: 20, activa: true,
+      params: { max_huecos_dia: 1, max_huecos_semana: 4 } }
+  - { id: consecutivas, tipo: consecutivas_max, dura: true, activa: true,
+      params: { ambito: "docente", max: 5 } }
+  - { id: carga_doc, tipo: lecciones_dia_docente, dura: true, activa: true,
+      params: { min: 0, max: 7 } }
+
+  # Distribución y laboratorios:
+  - { id: spread, tipo: distribucion_minima, dura: false, peso: 8, activa: true,
+      params: { aplicar_a: "todas", min_dias_si_horas_mayor_igual: 3 } }
+  - { id: aula_lab, tipo: aula_fija_materia, dura: false, peso: 6, activa: true,
+      params: { materia_grupo: "labs", misma_aula: true } }
+
+# Mapeo a las tablas reales de ades-nevadi (para el seed/integración)
+mapeo_ades:
+  niveles: "ades_niveles_educativos (nombre_nivel='PREPARATORIA', autoridad='UAEMEX')"
+  materias: "ades_materias (nivel preparatoria, horas_semana, clave_materia 'PREP-*')"
+  plan: "ades_materias_plan (materia ↔ grado/semestre ↔ ciclo)"
+  grupos: "ades_grupos (turno='MATUTINO', 2 por semestre)"
+  docentes: "ades_profesores + ades_asignaciones_docentes (1 por materia, Metepec, ciclo 26B)"
+  disponibilidad: "ades_disponibilidad_docente (profesor_id, dia_semana, hora_inicio, hora_fin, disponible)"
+  aulas: "ades_aulas (incluye 'Laboratorio Ciencias')"
+
+expectativas_test:
+  estado_esperado: ["OPTIMAL", "FEASIBLE"]
+  modelo_docente: "por_materia"
+  turno: "matutino"
+  grupos_por_semestre: 2
+  horas_por_semestre: { 1: 28, 2: 29, 3: 29, 4: 27, 5: 26, 6: 26 }
+  horas_admin_por_grado: 0
+  respeta_disponibilidad_docente: true
+  sin_traslapes_docentes: true

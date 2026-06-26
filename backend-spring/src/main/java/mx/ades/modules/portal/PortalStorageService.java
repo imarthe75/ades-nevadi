@@ -1,7 +1,7 @@
 package mx.ades.modules.portal;
 
 import io.minio.*;
-import io.minio.http.Method;
+import io.minio.Http.Method;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -106,7 +106,7 @@ public class PortalStorageService {
                 client.putObject(PutObjectArgs.builder()
                         .bucket(bucket)
                         .object(key)
-                        .stream(is, bytes.length, -1)
+                    .stream(is, (long) bytes.length, -1L)
                         .contentType(mime)
                         .build());
             }
@@ -184,7 +184,7 @@ public class PortalStorageService {
                     client.putObject(PutObjectArgs.builder()
                             .bucket(BUCKET_IMAGENES)
                             .object("convocatorias/" + filename)
-                            .stream(bais, bytes.length, -1)
+                            .stream(bais, (long) bytes.length, -1L)
                             .contentType(mime)
                             .build());
                 }

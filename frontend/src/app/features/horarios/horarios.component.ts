@@ -5,7 +5,7 @@
  * Permite ver el horario de un grupo O de un docente, y crear/editar/eliminar entradas.
  * Exporta el XML para aSc TimeTables.
  */
-import { Component, OnInit, inject, signal, computed, effect } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
@@ -15,6 +15,7 @@ import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
 import { SelectButtonModule } from 'primeng/selectbutton';
 import { TooltipModule } from 'primeng/tooltip';
+import { TextareaModule } from 'primeng/textarea';
 
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
@@ -29,6 +30,7 @@ interface HorarioEntry {
   dia_semana: number;
   hora_inicio: string;
   hora_fin: string;
+  fijado?: boolean;
   nombre_materia: string | null;
   materia_id: string | null;
   nombre_grupo: string | null;
@@ -40,13 +42,56 @@ interface HorarioEntry {
 }
 
 interface MateriaOpt { id: string; nombre_materia: string; }
-interface AulaOpt    { id: string; nombre: string; codigo: string | null; }
+interface AulaOpt { id: string; nombre: string; codigo: string | null; }
+interface HorarioReporteMateria {
+  materia: string;
+  requerido: number | null;
+  obtenido: number;
+  cumple: boolean;
+}
+interface HorarioReporteGrupo {
+  grupo: string;
+  grado: number | null;
+  totalHoras: number;
+  materias: HorarioReporteMateria[];
+}
+interface HorarioReporteCheck {
+  criterio: string;
+  ok: boolean;
+  detalle: string;
+}
+interface HorarioReportePrimaria {
+  estado_solver: string;
+  score_text: string;
+  grupos: HorarioReporteGrupo[];
+  conflictos_docentes: { docente: string; conflictos: string[] }[];
+  checks: HorarioReporteCheck[];
+  resumen: string;
+}
+interface SolverCorrida {
+  id: string;
+  plantel_id: string | null;
+  ciclo_escolar_id: string | null;
+  estado: string | null;
+  score_text: string | null;
+  score_analysis_json: string | null;
+  tiempo_solving_ms: number | null;
+  version: string | null;
+  generado_por: string | null;
+  resultado_excel_url: string | null;
+  fecha_creacion: string | null;
+  fecha_modificacion: string | null;
+  horarios_generados: number | null;
+}
+interface SolverDetail extends SolverCorrida {
+  horarios?: HorarioEntry[];
+}
 
 const DIAS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
 const HORAS_INICIO = [
-  '07:00','07:30','08:00','08:30','09:00','09:30','10:00','10:30',
-  '11:00','11:30','12:00','12:30','13:00','13:30','14:00','14:30',
-  '15:00','15:30','16:00','16:30','17:00','17:30','18:00','18:30',
+  '07:00', '07:30', '08:00', '08:30', '09:00', '09:30', '10:00', '10:30',
+  '11:00', '11:30', '12:00', '12:30', '13:00', '13:30', '14:00', '14:30',
+  '15:00', '15:30', '16:00', '16:30', '17:00', '17:30', '18:00', '18:30',
 ];
 const DURACIONES = [
   { label: '30 min', value: 30 }, { label: '45 min', value: 45 },
@@ -57,6 +102,28 @@ const COLORS: Record<string, string> = {
   'Matemáticas': '#FEE2E2', 'Español': '#E0F2FE', 'Ciencias': '#D1FAE5',
   'Historia': '#FEF3C7', 'Inglés': '#EDE9FE', 'Física': '#FCE7F3',
   'Química': '#ECFDF5', 'default': '#F1F5F9',
+};
+
+const MATERIAS_ESPECIALISTAS = [
+  'inglés', 'socioemocional', 'educación física', 'desarrollo comunitario', 'computación',
+];
+const MATERIAS_TITULAR = [
+  'lecto', 'español', 'matemáticas', 'conocimiento', 'artes', 'fábrica de lectura', 'ortografía',
+  'historia', 'formación', 'entidad', 'geografía', 'proyectos',
+];
+const MATERIAS_REPORTE = [
+  'lecto', 'español', 'matemáticas', 'inglés', 'socioemocional', 'desarrollo comunitario',
+  'educación física', 'computación', 'artes', 'formación', 'conocimiento', 'proyectos',
+  'historia', 'geografía', 'fábrica de lectura', 'ortografía', 'entidad',
+];
+
+const HORARIO_GOLDEN_REQUERIDO: Record<string, Record<string, number>> = {
+  '1': { 'Lecto': 7, 'Español': 1, 'Matemáticas': 7, 'Inglés': 4, 'Socioemocional': 1, 'Desarrollo Comunitario': 1, 'Educación Física': 2, 'Computación': 1, 'Artes': 1, 'Formación': 1, 'Conocimiento': 1, 'Proyectos': 2, 'Fábrica de lectura': 1, 'Ortografía': 1 },
+  '2': { 'Lecto': 5, 'Español': 3, 'Matemáticas': 7, 'Inglés': 4, 'Socioemocional': 1, 'Desarrollo Comunitario': 1, 'Educación Física': 2, 'Computación': 1, 'Artes': 1, 'Formación': 1, 'Conocimiento': 1, 'Proyectos': 2, 'Fábrica de lectura': 1, 'Ortografía': 1 },
+  '3': { 'Español': 6, 'Matemáticas': 7, 'Inglés': 4, 'Socioemocional': 1, 'Desarrollo Comunitario': 1, 'Educación Física': 2, 'Computación': 1, 'Artes': 1, 'Formación': 1, 'Entidad': 1, 'Conocimiento': 2, 'Proyectos': 2, 'Fábrica de lectura': 1, 'Ortografía': 1 },
+  '4': { 'Español': 5, 'Matemáticas': 6, 'Inglés': 4, 'Socioemocional': 1, 'Desarrollo Comunitario': 1, 'Educación Física': 2, 'Computación': 1, 'Artes': 1, 'Formación': 1, 'Conocimiento': 2, 'Proyectos': 3, 'Historia': 1, 'Geografía': 1, 'Fábrica de lectura': 1, 'Ortografía': 1 },
+  '5': { 'Español': 5, 'Matemáticas': 6, 'Inglés': 4, 'Socioemocional': 1, 'Desarrollo Comunitario': 1, 'Educación Física': 2, 'Computación': 1, 'Artes': 1, 'Formación': 1, 'Conocimiento': 2, 'Proyectos': 3, 'Historia': 1, 'Geografía': 1, 'Fábrica de lectura': 1, 'Ortografía': 1 },
+  '6': { 'Español': 5, 'Matemáticas': 6, 'Inglés': 4, 'Socioemocional': 1, 'Desarrollo Comunitario': 1, 'Educación Física': 2, 'Computación': 1, 'Artes': 1, 'Formación': 1, 'Conocimiento': 2, 'Proyectos': 3, 'Historia': 1, 'Geografía': 1, 'Fábrica de lectura': 1, 'Ortografía': 1 },
 };
 
 @Component({
@@ -180,6 +247,249 @@ const COLORS: Record<string, string> = {
           />
         }
       </div>
+    </div>
+
+    <div class="solver-panel">
+      <div class="solver-head">
+        <div>
+          <h3>Timefold Solver</h3>
+          <p>
+            Corridas del optimizador para el plantel y ciclo actual. Desde aquí puedes lanzar una corrida,
+            ver corridas recientes y revisar score, análisis y horarios generados.
+          </p>
+        </div>
+        <div class="solver-actions">
+          <p-button
+            label="Refrescar corridas"
+            icon="pi pi-refresh"
+            severity="secondary"
+            [text]="true"
+            (onClick)="cargarCorridas()"
+            [loading]="cargandoCorridas()"
+            [disabled]="!puedeUsarSolver()"
+          />
+          <p-button
+            label="Ejecutar solver"
+            icon="pi pi-play"
+            (onClick)="iniciarSolver()"
+            [loading]="ejecutandoSolver()"
+            [disabled]="!puedeUsarSolver() || !ctx.plantel() || !ctx.ciclo()"
+          />
+        </div>
+      </div>
+
+      @if (!puedeUsarSolver()) {
+        <div class="solver-empty">Selecciona un contexto con permisos de coordinación para ejecutar el solver.</div>
+      } @else {
+        <div class="solver-grid">
+          <section class="solver-card">
+            <div class="solver-card-head">
+              <strong>Corridas recientes</strong>
+              <span>{{ corridasSolver().length }}</span>
+            </div>
+            @if (corridasSolver().length === 0) {
+              <div class="solver-empty small">No hay corridas registradas para este plantel.</div>
+            } @else {
+              <div class="solver-list">
+                @for (corrida of corridasSolver(); track corrida.id) {
+                  <button class="solver-list-item" type="button" (click)="seleccionarCorrida(corrida.id)">
+                    <div>
+                      <strong>{{ corrida.estado || 'SIN ESTADO' }}</strong>
+                      <span>{{ corrida.score_text || 'sin score' }}</span>
+                    </div>
+                    <small>{{ corrida.fecha_creacion | slice:0:19 }}</small>
+                  </button>
+                }
+              </div>
+            }
+          </section>
+
+          <section class="solver-card solver-detail">
+            <div class="solver-card-head">
+              <strong>Detalle de corrida</strong>
+              <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;justify-content:flex-end">
+                @if (esCorridaActiva(corridaDetalle())) {
+                  <p-tag severity="warning" value="En vivo"></p-tag>
+                }
+                <span>{{ corridaDetalle()?.estado || 'sin selección' }}</span>
+                <p-button
+                  label="Abrir Excel"
+                  icon="pi pi-external-link"
+                  severity="secondary"
+                  [text]="true"
+                  [disabled]="!resultadoExcelDisponible()"
+                  (onClick)="abrirResultadoExcel()"
+                />
+                <p-button
+                  label="Fijar selección"
+                  icon="pi pi-lock"
+                  severity="secondary"
+                  [text]="true"
+                  [loading]="mutandoCorrida()"
+                  [disabled]="horariosSeleccionados.size === 0 || !corridaDetalle()"
+                  (onClick)="fijarSeleccionados()"
+                />
+                <p-button
+                  label="Regenerar no fijados"
+                  icon="pi pi-refresh"
+                  [text]="true"
+                  [loading]="mutandoCorrida()"
+                  [disabled]="!corridaDetalle()"
+                  (onClick)="regenerarSeleccionados()"
+                />
+              </div>
+            </div>
+            @if (!corridaDetalle()) {
+              <div class="solver-empty small">Selecciona una corrida para ver score, análisis y horarios generados.</div>
+            } @else {
+              <div class="solver-summary">
+                <div><label>Score</label><strong>{{ corridaDetalle()?.score_text || 'N/D' }}</strong></div>
+                <div><label>Tiempo</label><strong>{{ corridaDetalle()?.tiempo_solving_ms ?? 'N/D' }} ms</strong></div>
+                <div><label>Generados</label><strong>{{ corridaDetalle()?.horarios_generados ?? 0 }}</strong></div>
+                <div><label>Versión</label><strong>{{ corridaDetalle()?.version || 'N/D' }}</strong></div>
+              </div>
+
+              <div class="solver-json-block">
+                <label>Análisis</label>
+                <textarea pTextarea rows="8" readonly [ngModel]="corridaAnalysisText()"></textarea>
+              </div>
+
+              @if ((corridaDetalle()?.horarios?.length ?? 0) > 0) {
+                <div class="solver-table-wrap">
+                  <table class="solver-table">
+                    <thead>
+                      <tr>
+                        <th>Fijar</th>
+                        <th>Día</th>
+                        <th>Hora</th>
+                        <th>Grupo</th>
+                        <th>Materia</th>
+                        <th>Docente</th>
+                        <th>Aula</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (row of corridaDetalle()?.horarios || []; track row.id) {
+                        <tr>
+                          <td>
+                            <input
+                              type="checkbox"
+                              [checked]="esHorarioSeleccionado(row.id) || !!row.fijado"
+                              [disabled]="!!row.fijado"
+                              (change)="alternarHorarioSeleccionado(row.id, $any($event.target).checked)"
+                            />
+                          </td>
+                          <td>{{ labelDia(row.dia_semana) }}</td>
+                          <td>{{ row.hora_inicio | slice:0:5 }}–{{ row.hora_fin | slice:0:5 }}</td>
+                          <td>{{ row.nombre_grupo }}</td>
+                          <td>{{ row.nombre_materia }}</td>
+                          <td>{{ row.nombre_profesor }}</td>
+                          <td>{{ row.nombre_aula }}</td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              }
+            }
+          </section>
+        </div>
+      }
+    </div>
+
+    <div class="solver-panel">
+      <div class="solver-head">
+        <div>
+          <h3>Verificación Primaria Nevadi</h3>
+          <p>
+            Calcula un reporte de cumplimiento con base en los horarios activos del plantel y ciclo actual.
+            Sirve para comparar la solución de Timefold contra la regla golden de primaria.
+          </p>
+        </div>
+        <div class="solver-actions">
+          <p-button
+            label="Generar verificación"
+            icon="pi pi-shield"
+            (onClick)="cargarReportePrimaria()"
+            [loading]="cargandoReporte()"
+            [disabled]="!ctx.plantel() || !ctx.ciclo()"
+          />
+        </div>
+      </div>
+
+      @if (!reportePrimaria()) {
+        <div class="solver-empty">Pulsa "Generar verificación" para construir el reporte contra la configuración golden.</div>
+      } @else {
+        <div class="reporte-summary">
+          <div><label>Estado del solver</label><strong>{{ reportePrimaria()?.estado_solver }}</strong></div>
+          <div><label>Score</label><strong>{{ reportePrimaria()?.score_text }}</strong></div>
+          <div><label>Resumen</label><strong>{{ reportePrimaria()?.resumen }}</strong></div>
+        </div>
+
+        <div class="reporte-grid">
+          <section class="solver-card">
+            <div class="solver-card-head"><strong>Horas por grupo</strong></div>
+            <div class="reporte-table-wrap">
+              <table class="solver-table">
+                <thead>
+                  <tr>
+                    <th>Grupo</th>
+                    <th>Grado</th>
+                    <th>Total h</th>
+                    <th>Materias</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (grupo of reportePrimaria()?.grupos || []; track grupo.grupo) {
+                    <tr>
+                      <td>{{ grupo.grupo }}</td>
+                      <td>{{ grupo.grado ?? 'N/D' }}</td>
+                      <td>{{ grupo.totalHoras.toFixed(1) }}</td>
+                      <td>
+                        @for (m of grupo.materias; track m.materia) {
+                          <div>
+                            {{ m.materia }}: {{ m.obtenido.toFixed(1) }} / {{ m.requerido ?? 'N/D' }}
+                            @if (!m.cumple) { <strong style="color:#b91c1c">❌</strong> } @else { <strong style="color:#166534">✅</strong> }
+                          </div>
+                        }
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="solver-card">
+            <div class="solver-card-head"><strong>Checks</strong></div>
+            <div class="reporte-checks">
+              @for (check of reportePrimaria()?.checks || []; track check.criterio) {
+                <div class="reporte-check">
+                  <div>
+                    <strong>{{ check.criterio }}</strong>
+                    <p>{{ check.detalle }}</p>
+                  </div>
+                  <span [class.ok]="check.ok">{{ check.ok ? '✅' : '❌' }}</span>
+                </div>
+              }
+            </div>
+
+            <div class="solver-card-head" style="margin-top:1rem"><strong>Traslapes docentes compartidos</strong></div>
+            @if ((reportePrimaria()?.conflictos_docentes?.length ?? 0) === 0) {
+              <div class="solver-empty small">No se detectaron traslapes.</div>
+            } @else {
+              <div class="reporte-conflicts">
+                @for (docente of reportePrimaria()?.conflictos_docentes || []; track docente.docente) {
+                  <div class="reporte-conflict">
+                    <strong>{{ docente.docente }}</strong>
+                    <p>{{ docente.conflictos.join(' · ') }}</p>
+                  </div>
+                }
+              </div>
+            }
+          </section>
+        </div>
+      }
     </div>
 
     <!-- Controles — la cascada plantel→nivel→grado→grupo vive en el topbar -->
@@ -310,16 +620,76 @@ const COLORS: Record<string, string> = {
     .dlg-lbl  { display:block; font-size:.8rem; font-weight:600; margin-bottom:.3rem; color:var(--p-text-color); }
     .asc-reemplazar { display:flex; align-items:center; gap:.35rem; font-size:.8rem; color:var(--p-text-muted-color); cursor:pointer; user-select:none; }
     .asc-reemplazar input { cursor:pointer; }
+
+    .solver-panel { margin-bottom: 1.5rem; padding: 1rem; border: 1px solid var(--surface-border); border-radius: 12px; background: linear-gradient(180deg, var(--surface-card), var(--surface-50)); }
+    .solver-head { display:flex; justify-content:space-between; gap:1rem; align-items:flex-start; margin-bottom:1rem; }
+    .solver-head h3 { margin:0 0 .25rem 0; font-family: var(--font-display); }
+    .solver-head p { margin:0; color: var(--p-text-color-secondary); font-size:.85rem; max-width: 70ch; }
+    .solver-actions { display:flex; gap:.5rem; flex-wrap:wrap; justify-content:flex-end; }
+    .solver-grid { display:grid; grid-template-columns: 320px 1fr; gap:1rem; }
+    .solver-card { background: var(--surface-card); border: 1px solid var(--surface-border); border-radius: 10px; padding: .9rem; min-height: 180px; }
+    .solver-card-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:.75rem; }
+    .solver-card-head span { color: var(--p-text-color-secondary); font-size:.82rem; }
+    .solver-empty { color: var(--p-text-color-secondary); padding:.75rem; border: 1px dashed var(--surface-border); border-radius: 8px; background: var(--surface-hover); }
+    .solver-empty.small { padding:.5rem; font-size:.82rem; }
+    .solver-list { display:flex; flex-direction:column; gap:.5rem; }
+    .solver-list-item { width:100%; border:1px solid var(--surface-border); background:var(--surface-overlay); border-radius:8px; padding:.7rem .75rem; display:flex; justify-content:space-between; align-items:center; cursor:pointer; text-align:left; }
+    .solver-list-item:hover { border-color: var(--nevadi-red); }
+    .solver-list-item strong { display:block; }
+    .solver-list-item span, .solver-list-item small { display:block; color: var(--p-text-color-secondary); font-size:.78rem; }
+    .solver-summary { display:grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap:.75rem; margin-bottom: .9rem; }
+    .solver-summary label { display:block; font-size:.72rem; color: var(--p-text-color-secondary); margin-bottom:.15rem; }
+    .solver-summary strong { font-size:.92rem; }
+    .solver-json-block { display:flex; flex-direction:column; gap:.35rem; margin-bottom:.9rem; }
+    .solver-json-block label { font-size:.8rem; font-weight:600; color: var(--p-text-color); }
+    .solver-json-block textarea { width:100%; min-height:160px; resize:vertical; }
+    .solver-table-wrap { overflow:auto; border:1px solid var(--surface-border); border-radius:8px; }
+    .solver-table { width:100%; border-collapse:collapse; font-size:.82rem; }
+    .solver-table th, .solver-table td { padding:.55rem .6rem; border-bottom:1px solid var(--surface-border); text-align:left; vertical-align:top; }
+    .solver-table th { position:sticky; top:0; background: var(--surface-100); z-index:1; }
+    .reporte-summary {
+      display:grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap:.75rem;
+      margin-bottom: 1rem;
+    }
+    .reporte-summary div { background: var(--surface-card); border:1px solid var(--surface-border); border-radius:8px; padding:.7rem .8rem; }
+    .reporte-summary label { display:block; font-size:.72rem; color: var(--p-text-color-secondary); margin-bottom:.2rem; }
+    .reporte-summary strong { font-size:.92rem; }
+    .reporte-grid { display:grid; grid-template-columns: 1.4fr .9fr; gap:1rem; }
+    .reporte-table-wrap { overflow:auto; border:1px solid var(--surface-border); border-radius:8px; }
+    .reporte-checks, .reporte-conflicts { display:flex; flex-direction:column; gap:.6rem; }
+    .reporte-check, .reporte-conflict {
+      display:flex;
+      justify-content:space-between;
+      gap:1rem;
+      padding:.7rem .8rem;
+      border:1px solid var(--surface-border);
+      border-radius:8px;
+      background:var(--surface-card);
+      align-items:flex-start;
+    }
+    .reporte-check strong, .reporte-conflict strong { display:block; margin-bottom:.2rem; }
+    .reporte-check p, .reporte-conflict p { margin:0; color: var(--p-text-color-secondary); font-size:.8rem; }
+    .reporte-check span.ok { font-size:1rem; font-weight:700; color:#166534; }
+    .reporte-check span:not(.ok) { font-size:1rem; font-weight:700; color:#b91c1c; }
+    @media (max-width: 1100px) {
+      .solver-grid { grid-template-columns: 1fr; }
+      .solver-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .reporte-summary { grid-template-columns: 1fr; }
+      .reporte-grid { grid-template-columns: 1fr; }
+      .solver-head { flex-direction:column; }
+    }
   `],
 })
-export class HorariosComponent implements OnInit {
-  private readonly api    = inject(ApiService);
-  readonly ctx            = inject(ContextService);
+export class HorariosComponent implements OnInit, OnDestroy {
+  private readonly api = inject(ApiService);
+  readonly ctx = inject(ContextService);
   private readonly notify = inject(ApexNotificationService);
 
-  readonly dias    = DIAS.slice(1).map((label, i) => ({ num: i + 1, label }));
-  readonly diasOpts   = DIAS.slice(1).map((label, i) => ({ label, value: i + 1 }));
-  readonly horasOpts  = HORAS_INICIO;
+  readonly dias = DIAS.slice(1).map((label, i) => ({ num: i + 1, label }));
+  readonly diasOpts = DIAS.slice(1).map((label, i) => ({ label, value: i + 1 }));
+  readonly horasOpts = HORAS_INICIO;
   readonly duracionOpts = DURACIONES;
 
   readonly modoOpts = [
@@ -334,9 +704,18 @@ export class HorariosComponent implements OnInit {
 
   gruposOpts = signal<GrupoConLabel[]>([]);
   profesores = signal<any[]>([]);
-  materias  = signal<MateriaOpt[]>([]);
-  aulas     = signal<AulaOpt[]>([]);
-  entradas  = signal<HorarioEntry[]>([]);
+  materias = signal<MateriaOpt[]>([]);
+  aulas = signal<AulaOpt[]>([]);
+  entradas = signal<HorarioEntry[]>([]);
+  corridasSolver = signal<SolverCorrida[]>([]);
+  corridaDetalle = signal<SolverDetail | null>(null);
+  cargandoCorridas = signal(false);
+  ejecutandoSolver = signal(false);
+  mutandoCorrida = signal(false);
+  reportePrimaria = signal<HorarioReportePrimaria | null>(null);
+  cargandoReporte = signal(false);
+  private corridasPollHandle: ReturnType<typeof setInterval> | null = null;
+  private horariosSeleccionados = new Set<string>();
 
   /** Grupo activo leído del contexto global (para modo=grupo). */
   get selectedGrupo(): GrupoConLabel | null {
@@ -345,8 +724,8 @@ export class HorariosComponent implements OnInit {
     return { ...g, _label: grupoLabel(g) } as GrupoConLabel;
   }
 
-  showDialog  = signal(false);
-  guardando   = signal(false);
+  showDialog = signal(false);
+  guardando = signal(false);
   editEntry: HorarioEntry | null = null;
 
   // aSc TimeTables
@@ -372,7 +751,7 @@ export class HorariosComponent implements OnInit {
   });
 
   readonly profeLabel = (p: any) => `${p.nombre ?? ''} ${p.apellido_paterno ?? ''}`.trim() || p.numero_empleado;
-  readonly aulaLabel  = (a: AulaOpt) => a.codigo ? `${a.codigo} — ${a.nombre}` : a.nombre;
+  readonly aulaLabel = (a: AulaOpt) => a.codigo ? `${a.codigo} — ${a.nombre}` : a.nombre;
 
   constructor() {
     // Recargar catálogos cuando cambia el plantel en el contexto global.
@@ -407,6 +786,11 @@ export class HorariosComponent implements OnInit {
 
   ngOnInit(): void {
     // Catálogos cargados reactivamente desde effects.
+    this.cargarCorridas();
+  }
+
+  ngOnDestroy(): void {
+    this.detenerPollingCorrida();
   }
 
   onModoChange(): void {
@@ -428,12 +812,472 @@ export class HorariosComponent implements OnInit {
       .subscribe(p => this.materias.set(p.map((x: any) => x.materia).filter(Boolean)));
   }
 
+  puedeUsarSolver(): boolean {
+    return Boolean(this.ctx.plantel()?.id && this.ctx.ciclo()?.id && this.ctx.nivelAcceso() <= 3);
+  }
+
+  labelDia(dia: number | null | undefined): string {
+    return dia ? (this.dias.find(x => x.num === dia)?.label ?? `Día ${dia}`) : 'N/D';
+  }
+
+  corridaAnalysisText(): string {
+    const detalle = this.corridaDetalle();
+    if (!detalle?.score_analysis_json) return 'Sin análisis disponible.';
+    try {
+      const parsed = JSON.parse(detalle.score_analysis_json);
+      return JSON.stringify(parsed, null, 2);
+    } catch {
+      return detalle.score_analysis_json;
+    }
+  }
+
+  resultadoExcelDisponible(): boolean {
+    return Boolean(this.corridaDetalle()?.resultado_excel_url);
+  }
+
+  abrirResultadoExcel(): void {
+    const url = this.corridaDetalle()?.resultado_excel_url;
+    if (!url) return;
+    window.open(url, '_blank', 'noopener');
+  }
+
+  esCorridaActiva(corrida: SolverCorrida | SolverDetail | null | undefined): boolean {
+    const estado = String(corrida?.estado ?? '').toUpperCase();
+    return estado.includes('RUNNING') || estado.includes('EN_PROCESO') || estado.includes('PROCESS') || estado.includes('PENDING');
+  }
+
+  iniciarPollingCorrida(corridaId: string): void {
+    this.detenerPollingCorrida();
+    this.corridasPollHandle = setInterval(() => {
+      this.api.get<SolverDetail>(`/horarios/solver/corridas/${corridaId}`).subscribe({
+        next: corrida => {
+          this.corridaDetalle.set(corrida);
+          this.sincronizarSeleccionDesdeDetalle(corrida);
+          this.corridasSolver.update(corridas => corridas.map(c => c.id === corrida.id ? { ...c, ...corrida } : c));
+          if (!this.esCorridaActiva(corrida)) {
+            this.detenerPollingCorrida();
+          }
+        },
+        error: () => {
+          this.detenerPollingCorrida();
+        },
+      });
+    }, 8000);
+  }
+
+  detenerPollingCorrida(): void {
+    if (this.corridasPollHandle) {
+      clearInterval(this.corridasPollHandle);
+      this.corridasPollHandle = null;
+    }
+  }
+
+  cargarCorridas(): void {
+    if (!this.puedeUsarSolver()) {
+      this.corridasSolver.set([]);
+      this.corridaDetalle.set(null);
+      return;
+    }
+    const plantelId = this.ctx.plantel()?.id;
+    const cicloId = this.ctx.ciclo()?.id;
+    if (!plantelId || !cicloId) {
+      this.corridasSolver.set([]);
+      this.corridaDetalle.set(null);
+      return;
+    }
+    this.cargandoCorridas.set(true);
+    this.api.get<SolverCorrida[]>('/horarios/solver/corridas', { plantel_id: plantelId, ciclo_id: cicloId }).subscribe({
+      next: corridas => {
+        this.corridasSolver.set(corridas);
+        this.cargandoCorridas.set(false);
+        if (!this.corridaDetalle() && corridas.length > 0) {
+          this.seleccionarCorrida(corridas[0].id);
+        }
+      },
+      error: () => {
+        this.corridasSolver.set([]);
+        this.corridaDetalle.set(null);
+        this.cargandoCorridas.set(false);
+        this.notify.error('Solver', 'No se pudieron cargar las corridas del plantel.');
+      },
+    });
+  }
+
+  cargarReportePrimaria(): void {
+    const plantelId = this.ctx.plantel()?.id;
+    const cicloId = this.ctx.ciclo()?.id;
+    if (!plantelId || !cicloId) {
+      this.notify.warning('Contexto requerido', 'Selecciona plantel y ciclo escolar para generar la verificación.');
+      return;
+    }
+    this.cargandoReporte.set(true);
+    this.api.get<any[]>('/horarios', { plantel_id: plantelId, ciclo_id: cicloId }).subscribe({
+      next: horarios => {
+        this.reportePrimaria.set(this.construirReportePrimaria(horarios ?? []));
+        this.cargandoReporte.set(false);
+      },
+      error: () => {
+        this.cargandoReporte.set(false);
+        this.notify.error('Verificación', 'No se pudo cargar el horario del plantel para verificarlo.');
+      },
+    });
+  }
+
+  private construirReportePrimaria(horarios: any[]): HorarioReportePrimaria {
+    const grupos = new Map<string, { grado: number | null; materias: Map<string, number>; total: number }>();
+    const conflictosDocentes = new Map<string, Set<string>>();
+    const checks: HorarioReporteCheck[] = [];
+    const rows = horarios.map((row: any) => ({
+      ...row,
+      nombre_materia: String(row.nombre_materia ?? ''),
+      nombre_grupo: String(row.nombre_grupo ?? ''),
+      nombre_profesor: String(row.nombre_profesor ?? ''),
+      numero_grado: row.numero_grado != null ? Number(row.numero_grado) : null,
+      inicioMin: this.toMinutes(String(row.hora_inicio ?? '00:00')),
+      finMin: this.toMinutes(String(row.hora_fin ?? '00:00')),
+    }));
+
+    for (const row of rows) {
+      const grupoKey = row.nombre_grupo || row.grupo_id || 'SIN_GRUPO';
+      if (!grupos.has(grupoKey)) {
+        grupos.set(grupoKey, { grado: row.numero_grado, materias: new Map<string, number>(), total: 0 });
+      }
+      const group = grupos.get(grupoKey)!;
+      const duracionMin = Math.max(0, row.finMin - row.inicioMin);
+      group.total += duracionMin;
+      const materia = row.nombre_materia || 'SIN_MATERIA';
+      group.materias.set(materia, (group.materias.get(materia) ?? 0) + duracionMin);
+
+      const keyConflicto = `${row.nombre_profesor}|${row.dia_semana}|${row.hora_inicio}|${row.hora_fin}`;
+      if (!conflictosDocentes.has(row.nombre_profesor)) conflictosDocentes.set(row.nombre_profesor, new Set<string>());
+      const bucket = conflictosDocentes.get(row.nombre_profesor)!;
+      if (bucket.has(keyConflicto)) {
+        bucket.add(`${this.labelDia(row.dia_semana)} ${String(row.hora_inicio).slice(0, 5)}-${String(row.hora_fin).slice(0, 5)} · ${row.nombre_grupo} · ${row.nombre_materia}`);
+      } else {
+        bucket.add(keyConflicto);
+      }
+    }
+
+    const gruposReporte = Array.from(grupos.entries()).map(([grupo, data]) => {
+      const materias = Array.from(data.materias.entries())
+        .filter(([materia]) => MATERIAS_REPORTE.some(ref => this.matchMateria(materia, ref)))
+        .map(([materia, mins]) => {
+          const requerido = this.requeridoPorGrupo(data.grado, materia);
+          return { materia, requerido, obtenido: mins / 60, cumple: requerido == null ? true : Math.abs(mins / 60 - requerido) < 0.01 };
+        });
+      return { grupo, grado: data.grado, totalHoras: data.total / 60, materias };
+    });
+
+    const conflictosResumen = Array.from(conflictosDocentes.entries())
+      .map(([docente, bucket]) => ({ docente, conflictos: Array.from(bucket).filter(x => x.includes('·')) }))
+      .filter(x => x.conflictos.length > 0);
+
+    const totalHorasOk = gruposReporte.length > 0 && gruposReporte.every(g => Math.abs(g.totalHoras - 31) < 0.01);
+    checks.push({ criterio: 'Carga horaria exacta 31h por grupo', ok: totalHorasOk, detalle: totalHorasOk ? 'Todos los grupos suman 31 horas.' : 'Hay grupos con carga distinta de 31 horas.' });
+    checks.push({ criterio: 'Computación solo Mié/Jue', ok: rows.every(r => !this.matchMateria(r.nombre_materia, 'computación') || [3, 4].includes(Number(r.dia_semana))), detalle: 'Se revisó toda la materia Computación contra Mié/Jue.' });
+    checks.push({ criterio: 'Matemáticas y Lecto solo antes de 12:00', ok: rows.every(r => !this.isMathOrLecto(r.nombre_materia) || this.toMinutes(String(r.hora_inicio)) < this.toMinutes('12:00')), detalle: 'Las materias de mañana se verificaron contra el umbral de 12:00.' });
+    checks.push({ criterio: 'Proyectos solo desde 12:00', ok: rows.every(r => !this.matchMateria(r.nombre_materia, 'proyectos') || this.toMinutes(String(r.hora_inicio)) >= this.toMinutes('12:00')), detalle: 'Todos los bloques de Proyectos empiezan al mediodía o después.' });
+    checks.push({ criterio: 'Educación Física sin viernes y sin consecutivos', ok: this.verificarEducacionFisica(rows), detalle: 'Se revisó por grupo, días de la semana y no consecutividad.' });
+    checks.push({ criterio: 'Lecto/Español/Matemáticas en bloques contiguos', ok: this.verificarBloquesContiguos(rows), detalle: 'Se validaron bloques de 120 min y una sola hora suelta por semana.' });
+    checks.push({ criterio: 'Fábrica de lectura y Ortografía en 2 sesiones de 30 min', ok: this.verificarMediasHoras(rows, 'fábrica de lectura') && this.verificarMediasHoras(rows, 'ortografía'), detalle: 'Cada materia debe aparecer en dos sesiones de 30 minutos.' });
+    checks.push({ criterio: 'Horas administrativas comunes por grado', ok: this.verificarHorasAdministrativas(rows), detalle: 'Se buscaron franjas donde 1A/1B, 2A/2B, etc. coinciden con especialistas.' });
+
+    const scoreText = this.corridaDetalle()?.score_text ?? 'N/D';
+    const estado = this.corridaDetalle()?.estado ?? 'SIN_CORRIDA';
+    const resumen = checks.every(x => x.ok) ? 'Cumple la regla golden de primaria.' : 'Hay reglas que no cumplen; revisar detallado.';
+
+    return {
+      estado_solver: estado,
+      score_text: scoreText,
+      grupos: gruposReporte,
+      conflictos_docentes: conflictosResumen,
+      checks,
+      resumen,
+    };
+  }
+
+  private matchMateria(nombre: string, needle: string): boolean {
+    return this.normalizar(nombre).includes(this.normalizar(needle));
+  }
+
+  private isMathOrLecto(nombre: string): boolean {
+    const n = this.normalizar(nombre);
+    return n.includes('matematic') || n.includes('lecto');
+  }
+
+  private requeridoPorGrupo(grado: number | null, materia: string): number | null {
+    if (grado == null) return null;
+    const plantilla = HORARIO_GOLDEN_REQUERIDO[String(grado)];
+    if (!plantilla) return null;
+    const exacta = Object.entries(plantilla).find(([nombre]) => this.matchMateria(materia, nombre));
+    return exacta ? exacta[1] : null;
+  }
+
+  private verificarEducacionFisica(rows: any[]): boolean {
+    const porGrupo = new Map<string, any[]>();
+    for (const row of rows) {
+      if (!this.matchMateria(row.nombre_materia, 'educación física')) continue;
+      const key = String(row.nombre_grupo ?? row.grupo_id ?? 'SIN_GRUPO');
+      if (!porGrupo.has(key)) porGrupo.set(key, []);
+      porGrupo.get(key)!.push(row);
+    }
+    return Array.from(porGrupo.values()).every(items => {
+      const dias = [...new Set(items.map(r => Number(r.dia_semana)))].sort((a, b) => a - b);
+      if (dias.includes(5)) return false;
+      return dias.every((dia, index) => index === 0 || dia - dias[index - 1] > 1);
+    });
+  }
+
+  private verificarMediasHoras(rows: any[], materiaNeedle: string): boolean {
+    const porGrupo = new Map<string, number[]>();
+    for (const row of rows) {
+      if (!this.matchMateria(row.nombre_materia, materiaNeedle)) continue;
+      const key = String(row.nombre_grupo ?? row.grupo_id ?? 'SIN_GRUPO');
+      if (!porGrupo.has(key)) porGrupo.set(key, []);
+      porGrupo.get(key)!.push(Math.max(0, this.toMinutes(String(row.hora_fin)) - this.toMinutes(String(row.hora_inicio))));
+    }
+    return Array.from(porGrupo.values()).every(sesiones => sesiones.length === 2 && sesiones.every(mins => mins === 30));
+  }
+
+  private verificarBloquesContiguos(rows: any[]): boolean {
+    const grupos = new Map<string, any[]>();
+    for (const row of rows) {
+      if (!this.isMathOrLecto(row.nombre_materia)) continue;
+      const key = `${row.nombre_grupo ?? row.grupo_id}`;
+      if (!grupos.has(key)) grupos.set(key, []);
+      grupos.get(key)!.push(row);
+    }
+    return Array.from(grupos.values()).every(items => {
+      const porDia = new Map<number, any[]>();
+      for (const row of items) {
+        const dia = Number(row.dia_semana);
+        if (!porDia.has(dia)) porDia.set(dia, []);
+        porDia.get(dia)!.push(row);
+      }
+      return Array.from(porDia.values()).every(dayRows => {
+        dayRows.sort((a, b) => this.toMinutes(String(a.hora_inicio)) - this.toMinutes(String(b.hora_inicio)));
+        let looseDays = 0;
+        for (let i = 0; i < dayRows.length; i++) {
+          const row = dayRows[i];
+          const duration = Math.max(0, this.toMinutes(String(row.hora_fin)) - this.toMinutes(String(row.hora_inicio)));
+          if (duration > 120) return false;
+          if (duration === 60) looseDays += 1;
+          if (duration === 120) {
+            const next = dayRows[i + 1];
+            if (!next) continue;
+            const contiguous = this.toMinutes(String(row.hora_fin)) === this.toMinutes(String(next.hora_inicio));
+            const combined = Math.max(0, this.toMinutes(String(next.hora_fin)) - this.toMinutes(String(row.hora_inicio)));
+            if (!contiguous || combined !== 120) return false;
+            i += 1;
+          }
+        }
+        return looseDays <= 1;
+      });
+    });
+  }
+
+  private verificarHorasAdministrativas(rows: any[]): boolean {
+    const porGrado = new Map<number, Map<string, any[]>>();
+    for (const row of rows) {
+      const grado = Number(row.numero_grado ?? 0);
+      if (!grado) continue;
+      const grupo = String(row.nombre_grupo ?? '');
+      if (!/^[1-6][AB]$/i.test(grupo)) continue;
+      if (!porGrado.has(grado)) porGrado.set(grado, new Map<string, any[]>());
+      const map = porGrado.get(grado)!;
+      if (!map.has(grupo)) map.set(grupo, []);
+      map.get(grupo)!.push(row);
+    }
+    return Array.from(porGrado.values()).every(map => {
+      const grupos = Array.from(map.keys()).sort();
+      if (grupos.length < 2) return false;
+      const a = map.get(grupos.find(g => g.endsWith('A')) ?? '') ?? [];
+      const b = map.get(grupos.find(g => g.endsWith('B')) ?? '') ?? [];
+      if (!a.length || !b.length) return false;
+      const slotsA = new Set(a.filter(r => this.materiaEsEspecialista(String(r.nombre_materia))).map(r => `${r.dia_semana}|${r.hora_inicio}|${r.hora_fin}`));
+      const slotsB = new Set(b.filter(r => this.materiaEsEspecialista(String(r.nombre_materia))).map(r => `${r.dia_semana}|${r.hora_inicio}|${r.hora_fin}`));
+      let comunes = 0;
+      for (const slot of slotsA) {
+        if (slotsB.has(slot)) comunes += 1;
+      }
+      return comunes >= 2;
+    });
+  }
+
+  private materiaEsEspecialista(nombre: string): boolean {
+    const n = this.normalizar(nombre);
+    return MATERIAS_ESPECIALISTAS.some(ref => n.includes(this.normalizar(ref)));
+  }
+
+  private normalizar(texto: string): string {
+    return texto.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '');
+  }
+
+  private toMinutes(hhmm: string): number {
+    const [h, m] = hhmm.split(':').map(Number);
+    return (Number.isFinite(h) ? h : 0) * 60 + (Number.isFinite(m) ? m : 0);
+  }
+
+  seleccionarCorrida(id: string): void {
+    this.api.get<SolverDetail>(`/horarios/solver/corridas/${id}`).subscribe({
+      next: corrida => {
+        this.corridaDetalle.set(corrida);
+        this.sincronizarSeleccionDesdeDetalle(corrida);
+        if (this.esCorridaActiva(corrida)) {
+          this.iniciarPollingCorrida(corrida.id);
+        } else {
+          this.detenerPollingCorrida();
+        }
+      },
+      error: () => this.notify.error('Solver', 'No se pudo cargar el detalle de la corrida.'),
+    });
+  }
+
+  iniciarSolver(): void {
+    const plantelId = this.ctx.plantel()?.id;
+    const cicloId = this.ctx.ciclo()?.id;
+    if (!plantelId || !cicloId) {
+      this.notify.warning('Contexto requerido', 'Selecciona plantel y ciclo escolar antes de ejecutar el solver.');
+      return;
+    }
+    this.ejecutandoSolver.set(true);
+    this.api.get<any[]>('/horarios', { plantel_id: plantelId, ciclo_id: cicloId }).subscribe({
+      next: horarios => {
+        const payload = this.construirPayloadSolver(horarios ?? [], plantelId, cicloId);
+        this.api.post<SolverCorrida>('/horarios/solver/corridas', payload).subscribe({
+          next: corrida => {
+            this.ejecutandoSolver.set(false);
+            this.notify.success('Solver', `Corrida ${corrida.id} creada con estado ${corrida.estado ?? 'N/D'}.`);
+            this.cargarCorridas();
+            this.seleccionarCorrida(corrida.id);
+            if (this.esCorridaActiva(corrida)) {
+              this.iniciarPollingCorrida(corrida.id);
+            }
+          },
+          error: (err: any) => {
+            this.ejecutandoSolver.set(false);
+            this.notify.error('Solver', err?.error?.detail ?? 'No se pudo iniciar la corrida.');
+          },
+        });
+      },
+      error: () => {
+        this.ejecutandoSolver.set(false);
+        this.notify.error('Solver', 'No se pudieron leer los horarios vigentes del plantel.');
+      },
+    });
+  }
+
+  esHorarioSeleccionado(id: string): boolean {
+    return this.horariosSeleccionados.has(id);
+  }
+
+  alternarHorarioSeleccionado(id: string, seleccionado: boolean): void {
+    if (seleccionado) {
+      this.horariosSeleccionados.add(id);
+    } else {
+      this.horariosSeleccionados.delete(id);
+    }
+  }
+
+  sincronizarSeleccionDesdeDetalle(corrida: SolverDetail | null): void {
+    this.horariosSeleccionados.clear();
+    for (const horario of corrida?.horarios ?? []) {
+      if (horario.fijado) {
+        this.horariosSeleccionados.add(horario.id);
+      }
+    }
+  }
+
+  fijarSeleccionados(): void {
+    const corridaId = this.corridaDetalle()?.id;
+    if (!corridaId || this.horariosSeleccionados.size === 0) return;
+    this.mutandoCorrida.set(true);
+    this.api.post<SolverDetail>(`/horarios/solver/corridas/${corridaId}/lock`, { horarioIds: Array.from(this.horariosSeleccionados) }).subscribe({
+      next: corrida => {
+        this.mutandoCorrida.set(false);
+        this.notify.success('Solver', 'Horarios fijados correctamente.');
+        this.corridaDetalle.set(corrida);
+        this.sincronizarSeleccionDesdeDetalle(corrida);
+        this.cargarCorridas();
+      },
+      error: (err: any) => {
+        this.mutandoCorrida.set(false);
+        this.notify.error('Solver', err?.error?.detail ?? 'No se pudieron fijar los horarios seleccionados.');
+      },
+    });
+  }
+
+  regenerarSeleccionados(): void {
+    const corridaId = this.corridaDetalle()?.id;
+    if (!corridaId) return;
+    this.mutandoCorrida.set(true);
+    this.api.post<SolverCorrida>(`/horarios/solver/corridas/${corridaId}/regenerar`, { horarioIds: Array.from(this.horariosSeleccionados) }).subscribe({
+      next: corrida => {
+        this.mutandoCorrida.set(false);
+        this.notify.success('Solver', `Nueva corrida ${corrida.id} generada.`);
+        this.cargarCorridas();
+        this.seleccionarCorrida(corrida.id);
+      },
+      error: (err: any) => {
+        this.mutandoCorrida.set(false);
+        this.notify.error('Solver', err?.error?.detail ?? 'No se pudo regenerar la corrida.');
+      },
+    });
+  }
+
+  private construirPayloadSolver(horarios: any[], plantelId: string, cicloId: string): Record<string, any> {
+    const timeslotsMap = new Map<string, Record<string, any>>();
+    const leccionesMap = new Map<string, Record<string, any>>();
+
+    for (const row of horarios) {
+      const diaSemana = Number(row.dia_semana);
+      const horaInicio = String(row.hora_inicio ?? '').slice(0, 5);
+      const horaFin = String(row.hora_fin ?? '').slice(0, 5);
+      const timeslotKey = `${diaSemana}|${horaInicio}|${horaFin}`;
+      if (!timeslotsMap.has(timeslotKey)) {
+        timeslotsMap.set(timeslotKey, {
+          dia_semana: diaSemana,
+          hora_inicio: horaInicio,
+          hora_fin: horaFin,
+          turno: row.turno ?? null,
+        });
+      }
+
+      const leccionKey = String(row.id ?? `${row.grupo_id}|${row.materia_id}|${row.profesor_id}|${row.aula_id}`);
+      if (!leccionesMap.has(leccionKey)) {
+        leccionesMap.set(leccionKey, {
+          id: row.id ?? null,
+          grupo_id: row.grupo_id,
+          materia_id: row.materia_id,
+          profesor_id: row.profesor_id,
+          aula_id: row.aula_id ?? null,
+          ciclo_escolar_id: row.ciclo_escolar_id ?? cicloId,
+          fijado: Boolean(row.fijado),
+          timeslot: {
+            dia_semana: diaSemana,
+            hora_inicio: horaInicio,
+            hora_fin: horaFin,
+            turno: row.turno ?? null,
+          },
+        });
+      }
+    }
+
+    return {
+      plantel_id: plantelId,
+      ciclo_escolar_id: cicloId,
+      timeslots: Array.from(timeslotsMap.values()),
+      lecciones: Array.from(leccionesMap.values()),
+    };
+  }
+
   cargar(): void {
+    const cicloId = this.ctx.ciclo()?.id;
     if (this.modo === 'grupo' && this.selectedGrupoId) {
-      this.api.get<any>(`/horarios/grupo/${this.selectedGrupoId}`)
+      this.api.get<any>(`/horarios/grupo/${this.selectedGrupoId}`, cicloId ? { ciclo_id: cicloId } : undefined)
         .subscribe(r => this.entradas.set(r.entradas || r || []));
     } else if (this.modo === 'profesor' && this.selectedProfesor) {
-      this.api.get<any>(`/horarios/profesor/${this.selectedProfesor.id}`)
+      this.api.get<any>(`/horarios/profesor/${this.selectedProfesor.id}`, cicloId ? { ciclo_id: cicloId } : undefined)
         .subscribe(r => this.entradas.set(r.entradas || r || []));
     }
   }
@@ -452,7 +1296,7 @@ export class HorariosComponent implements OnInit {
     this.editEntry = null;
     this.form = {
       ...this.resetForm(),
-      grupo_id:   this.modo === 'grupo'    ? (this.selectedGrupo as any)?.id ?? null : null,
+      grupo_id: this.modo === 'grupo' ? (this.selectedGrupo as any)?.id ?? null : null,
       profesor_id: this.modo === 'profesor' ? this.selectedProfesor?.id ?? null : null,
     };
     this.showDialog.set(true);
@@ -463,13 +1307,13 @@ export class HorariosComponent implements OnInit {
     const [h, m] = e.hora_inicio.split(':').map(Number);
     const [hFin, mFin] = e.hora_fin.split(':').map(Number);
     this.form = {
-      dia_semana:  e.dia_semana,
-      hora_inicio: `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`,
-      duracion:    (hFin * 60 + mFin) - (h * 60 + m),
-      materia_id:  e.materia_id,
+      dia_semana: e.dia_semana,
+      hora_inicio: `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`,
+      duracion: (hFin * 60 + mFin) - (h * 60 + m),
+      materia_id: e.materia_id,
       profesor_id: e.profesor_id,
-      grupo_id:    e.grupo_id,
-      aula_id:     e.aula_id,
+      grupo_id: e.grupo_id,
+      aula_id: e.aula_id,
     };
     this.showDialog.set(true);
   }
@@ -485,14 +1329,14 @@ export class HorariosComponent implements OnInit {
     const cicloId = this.ctx.ciclo()?.id;
 
     const body: Record<string, any> = {
-      dia_semana:      this.form.dia_semana,
-      hora_inicio:     this.form.hora_inicio,
-      hora_fin:        horaFin,
-      materia_id:      this.form.materia_id,
-      profesor_id:     this.form.profesor_id || null,
-      aula_id:         this.form.aula_id || null,
+      dia_semana: this.form.dia_semana,
+      hora_inicio: this.form.hora_inicio,
+      hora_fin: horaFin,
+      materia_id: this.form.materia_id,
+      profesor_id: this.form.profesor_id || null,
+      aula_id: this.form.aula_id || null,
       ciclo_escolar_id: cicloId || null,
-      origen:          'MANUAL',
+      origen: 'MANUAL',
     };
 
     if (this.modo === 'grupo') {
@@ -538,7 +1382,7 @@ export class HorariosComponent implements OnInit {
   }
 
   exportarASC(): void {
-    const cicloId   = this.ctx.ciclo()?.id;
+    const cicloId = this.ctx.ciclo()?.id;
     const plantelId = this.ctx.plantel()?.id;
     if (!cicloId) return;
     const params: Record<string, string> = {};
@@ -596,19 +1440,19 @@ export class HorariosComponent implements OnInit {
 
   private resetForm() {
     return {
-      dia_semana:  null as number | null,
+      dia_semana: null as number | null,
       hora_inicio: '08:00',
-      duracion:    50,
-      materia_id:  null as string | null,
+      duracion: 50,
+      materia_id: null as string | null,
       profesor_id: null as string | null,
-      grupo_id:    null as string | null,
-      aula_id:     null as string | null,
+      grupo_id: null as string | null,
+      aula_id: null as string | null,
     };
   }
 
   private calcHoraFin(inicio: string, duracionMin: number): string {
     const [h, m] = inicio.split(':').map(Number);
     const total = h * 60 + m + duracionMin;
-    return `${String(Math.floor(total / 60)).padStart(2,'0')}:${String(total % 60).padStart(2,'0')}`;
+    return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
   }
 }

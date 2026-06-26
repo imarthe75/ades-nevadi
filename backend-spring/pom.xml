@@ -11,12 +11,21 @@
     <java.version>21</java.version>
     <maven.compiler.source>21</maven.compiler.source>
     <maven.compiler.target>21</maven.compiler.target>
-    <spring.boot.version>3.2.0</spring.boot.version>
-    <spring.cloud.version>2023.0.3</spring.cloud.version>
+    <spring.boot.version>4.1.0</spring.boot.version>
+    <spring.cloud.version>2025.1.2</spring.cloud.version>
+    <testcontainers.postgresql.version>1.21.4</testcontainers.postgresql.version>
+    <timefold.version>2.2.0</timefold.version>
   </properties>
 
   <dependencyManagement>
     <dependencies>
+      <dependency>
+        <groupId>ai.timefold.solver</groupId>
+        <artifactId>timefold-solver-bom</artifactId>
+        <version>${timefold.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
       <dependency>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-dependencies</artifactId>
@@ -53,7 +62,8 @@
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-aop</artifactId>
+      <artifactId>spring-boot-starter-aspectj</artifactId>
+      <version>${spring.boot.version}</version>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
@@ -93,6 +103,12 @@
       <artifactId>jackson-module-parameter-names</artifactId>
     </dependency>
 
+    <!-- Timefold solver core -->
+    <dependency>
+      <groupId>ai.timefold.solver</groupId>
+      <artifactId>timefold-solver-core</artifactId>
+    </dependency>
+
     <!-- Spring Cloud Vault -->
     <dependency>
       <groupId>org.springframework.cloud</groupId>
@@ -103,14 +119,14 @@
     <dependency>
       <groupId>com.github.f4b6a3</groupId>
       <artifactId>uuid-creator</artifactId>
-      <version>6.0.0</version>
+      <version>6.1.1</version>
     </dependency>
 
     <!-- MinIO -->
     <dependency>
       <groupId>io.minio</groupId>
       <artifactId>minio</artifactId>
-      <version>8.5.9</version>
+      <version>9.0.3</version>
     </dependency>
 
     <!-- Lombok -->
@@ -131,7 +147,7 @@
     <dependency>
       <groupId>org.apache.poi</groupId>
       <artifactId>poi-ooxml</artifactId>
-      <version>5.2.5</version>
+      <version>5.5.1</version>
     </dependency>
 
     <!-- Testcontainers -->
@@ -148,13 +164,14 @@
     <dependency>
       <groupId>org.testcontainers</groupId>
       <artifactId>postgresql</artifactId>
+      <version>${testcontainers.postgresql.version}</version>
       <scope>test</scope>
     </dependency>
     <!-- springdoc-openapi for Swagger UI -->
     <dependency>
       <groupId>org.springdoc</groupId>
       <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-      <version>2.3.0</version>
+      <version>3.0.3</version>
     </dependency>
   </dependencies>
 

@@ -1,0 +1,304 @@
+# =============================================================================
+# CONFIGURACIÓN DE PLANTEL — Motor de Horarios genérico (ades-nevadi)
+# Caso: "Primaria Instituto Nevadi"
+#
+# Este archivo es a la vez:
+#   1) SEED  -> datos iniciales de un plantel para la BD (horario_config / reglas)
+#   2) FIXTURE de prueba del motor genérico (caso golden: debe dar FEASIBLE/OPTIMAL)
+#
+# Principio: NINGUNA regla está hardcodeada en el motor. Todo lo de aquí es
+# editable por plantel y por ciclo escolar. Las "reglas predefinidas" del sistema
+# son solo valores por defecto que este archivo puede sobrescribir o desactivar.
+# =============================================================================
+
+schema_version: "1.0"
+
+plantel:
+  id: "nevadi-primaria"
+  nombre: "Instituto Nevadi — Primaria"
+  ciclo_escolar: "2025-2026"
+  nivel: "primaria"            # primaria | secundaria | preparatoria
+  # Modelo de asignación docente del nivel:
+  #   "titular"        -> 1 docente titular por grupo + especialistas (primaria)
+  #   "por_materia"    -> cada materia tiene su docente que rota (secundaria/prepa)
+  modelo_docente: "titular"
+
+# -----------------------------------------------------------------------------
+# 1) ESTRUCTURA DE TIEMPO (configurable por día)
+# -----------------------------------------------------------------------------
+tiempo:
+  dias: [Lun, Mar, Mié, Jue, Vie]
+  duracion_bloque_min: 60          # bloque de clase estándar
+  acceso_alumnos: "07:45-08:00"
+
+  # Jornada por día (puede variar día a día)
+  jornada:
+    Lun: { inicio: "08:00", fin: "15:30" }
+    Mar: { inicio: "08:00", fin: "15:30" }
+    Mié: { inicio: "08:00", fin: "15:30" }
+    Jue: { inicio: "08:00", fin: "15:30" }
+    Vie: { inicio: "08:00", fin: "14:00" }   # viernes salida temprana
+
+  # El viernes 14:00-16:00 es desarrollo profesional docente (sin alumnos)
+  posterior_a_clases:
+    Vie: { desde: "14:00", hasta: "16:00", etiqueta: "Desarrollo profesional docente" }
+
+  # Recreos (uno o varios). Aplica a todos los grupos.
+  recreos:
+    - { inicio: "10:00", fin: "10:30", dias: [Lun, Mar, Mié, Jue, Vie] }
+
+  # Comidas: varios turnos. Cada turno se asigna a un conjunto de grados/subniveles.
+  # No hay comida el viernes (jornada corta).
+  comidas:
+    - { id: "turno_baja", inicio: "13:00", fin: "13:30", dias: [Lun, Mar, Mié, Jue], aplica_a: { subnivel: "baja" } }
+    - { id: "turno_alta", inicio: "14:00", fin: "14:30", dias: [Lun, Mar, Mié, Jue], aplica_a: { subnivel: "alta" } }
+
+  # Manejo de fracciones de hora: los descansos de 30 min dejan un hueco de 30 min
+  # por día que no completa un bloque de 1h. Se habilita para materias cortas.
+  huecos_30min:
+    habilitado: true
+    descripcion: >
+      Bloque residual de 30 min/día derivado de los descansos. Se usa para las
+      materias marcadas como 'sesion_fraccionada' (ver reglas). Sobra ~1 hueco/sem.
+
+# -----------------------------------------------------------------------------
+# 2) SUBNIVELES (para pools de docentes diferenciados)
+# -----------------------------------------------------------------------------
+subniveles:
+  baja: { grados: [1, 2, 3] }
+  alta: { grados: [4, 5, 6] }
+
+# -----------------------------------------------------------------------------
+# 3) GRUPOS
+# -----------------------------------------------------------------------------
+grupos:
+  - { id: "1A", grado: 1, seccion: A }
+  - { id: "1B", grado: 1, seccion: B }
+  - { id: "2A", grado: 2, seccion: A }
+  - { id: "2B", grado: 2, seccion: B }
+  - { id: "3A", grado: 3, seccion: A }
+  - { id: "3B", grado: 3, seccion: B }
+  - { id: "4A", grado: 4, seccion: A }
+  - { id: "4B", grado: 4, seccion: B }
+  - { id: "5A", grado: 5, seccion: A }
+  - { id: "5B", grado: 5, seccion: B }
+  - { id: "6A", grado: 6, seccion: A }
+  - { id: "6B", grado: 6, seccion: B }
+
+# -----------------------------------------------------------------------------
+# 4) MATERIAS (catálogo) — quién la imparte
+#   imparte: "titular" | "especialista"
+#   Las de especialista referencian un pool de docentes (ver seccion docentes).
+# -----------------------------------------------------------------------------
+materias:
+  Lecto:                   { imparte: titular }
+  Español:                 { imparte: titular }
+  Matemáticas:             { imparte: titular }
+  Conocimiento:            { imparte: titular }   # Conocimiento del medio
+  Artes:                   { imparte: titular }
+  Fábrica de lectura:      { imparte: titular }
+  Ortografía:              { imparte: titular }
+  Ciencias:                { imparte: titular }
+  Historia:                { imparte: titular }
+  Formación:               { imparte: titular }   # Formación Cívica y Ética
+  Entidad:                 { imparte: titular }
+  Geografía:               { imparte: titular }
+  Proyectos:               { imparte: titular }
+  Inglés:                  { imparte: especialista, pool: "ingles" }
+  Socioemocional:          { imparte: especialista, pool: "socioemocional" }
+  Educación Física:        { imparte: especialista, pool: "ef" }
+  Desarrollo Comunitario:  { imparte: especialista, pool: "desarrollo_com" }
+  Computación:             { imparte: especialista, pool: "computacion" }
+
+# -----------------------------------------------------------------------------
+# 5) PLAN DE ESTUDIOS — carga horaria semanal por grado y materia (horas)
+#    Cada grado suma EXACTAMENTE 31 horas efectivas.
+# -----------------------------------------------------------------------------
+plan_estudios:
+  1:  { Lecto: 7, Español: 1, Matemáticas: 7, Inglés: 4, Socioemocional: 1, Desarrollo Comunitario: 1, Educación Física: 2, Computación: 1, Artes: 1, Formación: 1, Conocimiento: 1, Proyectos: 2, Fábrica de lectura: 1, Ortografía: 1 }
+  2:  { Lecto: 5, Español: 3, Matemáticas: 7, Inglés: 4, Socioemocional: 1, Desarrollo Comunitario: 1, Educación Física: 2, Computación: 1, Artes: 1, Formación: 1, Conocimiento: 1, Proyectos: 2, Fábrica de lectura: 1, Ortografía: 1 }
+  3:  { Español: 6, Matemáticas: 7, Inglés: 4, Socioemocional: 1, Desarrollo Comunitario: 1, Educación Física: 2, Computación: 1, Artes: 1, Formación: 1, Entidad: 1, Conocimiento: 2, Proyectos: 2, Fábrica de lectura: 1, Ortografía: 1 }
+  4:  { Español: 5, Matemáticas: 6, Inglés: 4, Socioemocional: 1, Desarrollo Comunitario: 1, Educación Física: 2, Computación: 1, Artes: 1, Formación: 1, Conocimiento: 2, Proyectos: 3, Historia: 1, Geografía: 1, Fábrica de lectura: 1, Ortografía: 1 }
+  5:  { Español: 5, Matemáticas: 6, Inglés: 4, Socioemocional: 1, Desarrollo Comunitario: 1, Educación Física: 2, Computación: 1, Artes: 1, Formación: 1, Conocimiento: 2, Proyectos: 3, Historia: 1, Geografía: 1, Fábrica de lectura: 1, Ortografía: 1 }
+  6:  { Español: 5, Matemáticas: 6, Inglés: 4, Socioemocional: 1, Desarrollo Comunitario: 1, Educación Física: 2, Computación: 1, Artes: 1, Formación: 1, Conocimiento: 2, Proyectos: 3, Historia: 1, Geografía: 1, Fábrica de lectura: 1, Ortografía: 1 }
+
+# -----------------------------------------------------------------------------
+# 6) DOCENTES (pools). El motor solo necesita la cantidad y su ámbito;
+#    los nombres reales se enlazan con personas en la BD.
+#    "ambito" define el cupo simultáneo: un docente no puede estar en 2 grupos a la vez.
+# -----------------------------------------------------------------------------
+docentes:
+  titulares:
+    # 1 titular por grupo (12). El titular queda libre cuando su grupo está con especialista.
+    por_grupo: true
+  pools:
+    ingles:
+      - { id: "ing_baja", atiende_subnivel: "baja" }   # 1 docente para 1°-3°
+      - { id: "ing_alta", atiende_subnivel: "alta" }   # 1 docente para 4°-6°
+    socioemocional:
+      - { id: "soc_baja", atiende_subnivel: "baja" }
+      - { id: "soc_alta", atiende_subnivel: "alta" }
+    ef:
+      - { id: "ef_unico", atiende_subnivel: "todos" }  # 1 docente para toda la primaria
+    desarrollo_com:
+      - { id: "dc_unico", atiende_subnivel: "todos" }  # 1 docente para toda la primaria
+    computacion:
+      - { id: "comp_unico", atiende_subnivel: "todos" } # 1 docente para toda la primaria
+  # disponibilidad: opcional. Días/horas en que un docente NO puede dar clase.
+  # Ejemplo (desactivado):
+  # disponibilidad:
+  #   - { docente: "comp_unico", no_disponible: [{ dia: Lun }, { dia: Vie }] }
+
+# -----------------------------------------------------------------------------
+# 7) RECURSOS / AULAS con capacidad limitada (opcional)
+#    Si un recurso tiene capacidad 1, equivale a "docente único" por aula.
+# -----------------------------------------------------------------------------
+recursos:
+  - { id: "lab_computo", materia: "Computación", capacidad_simultanea: 1 }
+  - { id: "cancha_ef",   materia: "Educación Física", capacidad_simultanea: 1 }
+
+# -----------------------------------------------------------------------------
+# 8) REGLAS (catálogo tipado). Cada regla:
+#    - tipo: identifica al constraint del motor
+#    - dura: true (obligatoria) | false (suave, con 'peso' de penalización)
+#    - activa: permite encender/apagar sin borrar
+#    - params: parámetros específicos del tipo
+# -----------------------------------------------------------------------------
+reglas:
+
+  - id: cumplimiento_carga
+    tipo: carga_horaria_exacta
+    dura: true
+    activa: true
+    descripcion: "La suma semanal por materia debe coincidir exactamente con el plan de estudios."
+
+  # Ventanas horarias (NUEVAS reglas específicas de este plantel)
+  - id: mate_solo_manana
+    tipo: ventana_horaria
+    dura: true
+    activa: true
+    params: { materia: "Matemáticas", modo: "antes_de", hora: "12:00" }
+    descripcion: "Matemáticas no debe impartirse después de las 12:00 (solo bloques que inician antes)."
+
+  - id: lecto_solo_manana
+    tipo: ventana_horaria
+    dura: true
+    activa: true
+    params: { materia: "Lecto", modo: "antes_de", hora: "12:00" }
+
+  - id: proyectos_solo_tarde
+    tipo: ventana_horaria
+    dura: true
+    activa: true
+    params: { materia: "Proyectos", modo: "despues_de", hora: "12:00" }
+    descripcion: "Proyectos solo en la tarde (inicia a las 12:00 o después)."
+
+  # Continuidad: bloques de 2h contiguos hasta agotar; se permite 1 hora suelta como máximo.
+  - id: bloques_dobles_core
+    tipo: bloque_contiguo
+    dura: true
+    activa: true
+    params:
+      materias: ["Matemáticas", "Español", "Lecto"]
+      horas_bloque: 2
+      permitir_sobrante_1h: true
+      max_dias_con_sobrante: 1
+      no_cruza_descanso: true   # las 2h no pueden quedar separadas por recreo/comida
+
+  # Máximo de horas por día por materia.
+  - id: max_horas_dia
+    tipo: max_horas_dia
+    dura: true
+    activa: true
+    params:
+      default: 1                              # repartir la mayoría de materias
+      overrides: { Matemáticas: 2, Español: 2, Lecto: 2 }
+    descripcion: "No más de 2h seguidas de la misma materia el mismo día; el resto 1/día para distribuir."
+
+  # Educación Física: NO los viernes.
+  - id: ef_no_viernes
+    tipo: dias_permitidos
+    dura: true
+    activa: true
+    params: { materia: "Educación Física", dias: ["Lun", "Mar", "Mié", "Jue"] }
+
+  # Educación Física: NO en días consecutivos (mismo grupo).
+  - id: ef_no_consecutivos
+    tipo: dias_no_consecutivos
+    dura: true
+    activa: true
+    params: { materia: "Educación Física" }
+
+  # Distribución a lo largo de la semana (puede ser suave).
+  - id: distribucion_semanal
+    tipo: distribucion_minima
+    dura: false
+    peso: 10
+    activa: true
+    params: { aplicar_a: "todas", min_dias_si_horas_mayor_igual: 2 }
+
+  # Materias con docente único (sin traslapes en toda la escuela).
+  - id: docente_unico
+    tipo: docente_unico
+    dura: true
+    activa: true
+    params: { materias: ["Computación", "Educación Física", "Desarrollo Comunitario"] }
+
+  # Pools diferenciados por subnivel.
+  - id: pool_por_subnivel
+    tipo: pool_por_subnivel
+    dura: true
+    activa: true
+    params: { materias: ["Inglés", "Socioemocional"] }
+
+  # Días permitidos para una materia.
+  - id: computacion_dias
+    tipo: dias_permitidos
+    dura: true
+    activa: true
+    params: { materia: "Computación", dias: ["Mié", "Jue"] }
+    descripcion: "Computación: 1 docente, solo miércoles y jueves."
+
+  # Materias en sesiones de 30 min ubicadas en los huecos.
+  - id: sesiones_cortas
+    tipo: sesion_fraccionada
+    dura: true
+    activa: true
+    params:
+      materias: ["Fábrica de lectura", "Ortografía"]
+      duracion_min: 30
+      sesiones_por_semana: 2     # 2 x 30 min = 1 hora/semana c/u
+      ubicar_en: "huecos_30min"
+
+  # Horas administrativas comunes entre titulares del mismo grado.
+  - id: horas_administrativas
+    tipo: horas_administrativas
+    dura: true
+    activa: true
+    params:
+      veces_por_semana: 2
+      ambito: "titulares_mismo_grado"   # A y B del mismo grado libres a la misma hora
+      solo_modelo: "titular"            # no aplica a niveles 'por_materia'
+      dias_distintos: false             # true => las 2 horas en días diferentes
+    descripcion: "Los titulares A y B de cada grado quedan libres a la misma hora 2 veces/semana."
+
+# -----------------------------------------------------------------------------
+# 9) SALIDA esperada (para el fixture/golden test)
+# -----------------------------------------------------------------------------
+salida:
+  formato_excel: true            # una hoja por grupo + RESUMEN
+  formato_json: true             # JSON por grupo para Angular
+  marcar_horas_administrativas: true
+
+# -----------------------------------------------------------------------------
+# 10) EXPECTATIVAS DE PRUEBA (asserts del caso golden)
+# -----------------------------------------------------------------------------
+expectativas_test:
+  estado_esperado: ["OPTIMAL", "FEASIBLE"]
+  horas_por_grado: 31
+  sin_traslapes_docentes: true
+  computacion_solo_dias: ["Mié", "Jue"]
+  mate_lecto_antes_de: "12:00"
+  proyectos_despues_de: "12:00"
+  horas_admin_por_grado: 2
+  grupos_totales: 12

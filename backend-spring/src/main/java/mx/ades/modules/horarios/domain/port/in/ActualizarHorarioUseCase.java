@@ -18,8 +18,8 @@ public interface ActualizarHorarioUseCase {
             String origen, String motivoCambio, String usuario) {
         public Command {
             if (horarioId == null) throw new IllegalArgumentException("horario_id es requerido");
-            if (diaSemana != null && (diaSemana < 0 || diaSemana > 6))
-                throw new IllegalArgumentException("dia_semana debe estar entre 0 (Lunes) y 6 (Domingo)");
+            if (diaSemana != null && (diaSemana < 1 || diaSemana > 5))
+                throw new IllegalArgumentException("dia_semana debe estar entre 1 (Lunes) y 5 (Viernes)");
         }
     }
 

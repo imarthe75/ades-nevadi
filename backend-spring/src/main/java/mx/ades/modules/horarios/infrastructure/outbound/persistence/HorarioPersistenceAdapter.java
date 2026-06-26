@@ -29,12 +29,12 @@ public class HorarioPersistenceAdapter implements HorarioWriteRepositoryPort {
         UUID id = UUID.randomUUID();
         jdbc.update(
             "INSERT INTO ades_horarios " +
-            "(id, grupo_id, materia_id, profesor_id, aula_id, ciclo_escolar_id, " +
-            " dia_semana, hora_inicio, hora_fin, origen, usuario_creacion, usuario_modificacion) " +
-            "VALUES (?,?,?,?,?,?,?,CAST(? AS time),CAST(? AS time),?,?,?)",
+            "(id, grupo_id, materia_id, profesor_id, aula_id, ciclo_escolar_id, corrida_id, " +
+            " dia_semana, hora_inicio, hora_fin, origen, fijado, usuario_creacion, usuario_modificacion) " +
+            "VALUES (?,?,?,?,?,?,?, ?,CAST(? AS time),CAST(? AS time),?,?,?,?)",
             id, cmd.grupoId(), cmd.materiaId(), cmd.profesorId(), cmd.aulaId(),
-            cmd.cicloEscolarId(), cmd.diaSemana(),
-            cmd.horaInicio(), cmd.horaFin(), cmd.origen(),
+            cmd.cicloEscolarId(), null, cmd.diaSemana(),
+            cmd.horaInicio(), cmd.horaFin(), cmd.origen(), false,
             cmd.usuario(), cmd.usuario());
         return id;
     }

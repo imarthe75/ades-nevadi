@@ -1,6 +1,6 @@
 # ADES — Administración Escolar Instituto Nevadi
 # Contexto Cognitivo del Agente Residente
-# Última actualización: 2026-06-23
+# Última actualización: 2026-06-26
 
 ## Propósito del Sistema
 Sistema integral de control escolar para el **Instituto Nevadi**, con 3 planteles
@@ -103,6 +103,7 @@ Historia y Geografía, Formación Cívica, Educación Física, Tecnología.
 | **Boleta UAEMEX PDF** | ✅ Completa | /boletas/uaemex/{id} FastAPI→BFF proxy; template weasyprint |
 | **Director Dashboard** | ✅ Completa | KPIs generales, gráficas PrimeNG, roleGuard(2) |
 | **Classroom Gaps** | ✅ Completa | Detección plagio, feedback multimedia, adecuaciones NEE, Mig 093 |
+| **Horarios Solver Timefold** | ⏳ En integración | Configuración, corridas, entidades, constraints y endpoints backend presentes; frontend Angular ya tiene panel de corridas, polling, lock/regeneración parcial y verificación primaria golden por ciclo |
 
 ## ADRs Vigentes
 
@@ -144,7 +145,7 @@ Historia y Geografía, Formación Cívica, Educación Física, Tecnología.
 14. Comunicados con acuse digital
 
 ### FASE 3 (Completa)
-15. Horarios — aSc TimeTables XML import/export, CRUD conflictos
+15. Horarios — aSc TimeTables XML import/export, CRUD conflictos, solver Timefold en integración backend
 16. Expediente Médico — incidentes, condiciones crónicas, alerta emergencia
 17. Reportes de Conducta — sanciones, planes de mejora, seguimiento
 18. Reportes Académicos — boletas PDF WeasyPrint NEM + UAEMEX
@@ -209,9 +210,9 @@ Historia y Geografía, Formación Cívica, Educación Física, Tecnología.
 | Base de datos | PostgreSQL + pgvector | 18.4 + 0.8.2 |
 | PK estándar | UUID v7 uuidv7() nativo PG18 | — |
 | Caché | Valkey | 9.1.0 |
-| Backend BFF | Spring Boot + Java (hexagonal) | 3.x / 21 |
-| Backend IA | FastAPI + SQLAlchemy + Celery | 0.136 / 2.0.50 / 5.6.3 |
-| Frontend | Angular + PrimeNG | 22 / 21 |
+| Backend BFF | Spring Boot + Java (hexagonal) | 4.1.0 / 21 |
+| Backend IA | FastAPI + SQLAlchemy + Celery | 0.115.6 / 2.0.36 / 5.4.0 |
+| Frontend | Angular + PrimeNG | 21 LTS / 21 |
 | Auth IdP | Authentik OIDC/OAuth2 | 2026.5.2 |
 | Almacenamiento | SeaweedFS (compatible S3) | — |
 | BI | Apache Superset | 6.1.0 |
@@ -277,7 +278,7 @@ Historia y Geografía, Formación Cívica, Educación Física, Tecnología.
 ├── db/             (migrations 001-094, seeds 001-009, scripts)
 ├── backend/        (FastAPI: api/v1/, models/, schemas/, services/, worker/, tests/)
 ├── backend-spring/ (BFF Spring Boot: 62 módulos hexagonales, 76 controllers)
-├── frontend/       (Angular 22: 59 features lazy-loaded)
+├── frontend/       (Angular 21 LTS: 59 features lazy-loaded)
 ├── infrastructure/ (nginx, superset, grafana, h5p, vault)
 ├── integrations/   (asc_horarios, superset, cube)
 ├── memory/         (SemanticCache, LongTermMemory)
