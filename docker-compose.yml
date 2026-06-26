@@ -512,7 +512,7 @@ services:
       OIDC_DISCOVERY_URL:          ${OIDC_DISCOVERY_URL:-https://auth.ades.setag.mx/application/o/superset/.well-known/openid-configuration}
       OIDC_SCOPES:                 ${OIDC_SCOPES:-openid email profile}
       # Contraseña del usuario superset_ro (solo lectura a ades_bi)
-      SUPERSET_RO_PASSWORD:        ${SUPERSET_RO_PASSWORD:-superset_ro_changeme}
+      SUPERSET_RO_PASSWORD:        ${SUPERSET_RO_PASSWORD}
     volumes:
       - superset-data:/app/superset_home
     ports:
@@ -573,8 +573,8 @@ services:
     environment:
       PORT:                  3000
       FLOWISE_USERNAME:      ${FLOWISE_USERNAME:-admin}
-      FLOWISE_PASSWORD:      ${FLOWISE_PASSWORD:-cambia_esto_en_produccion}
-      FLOWISE_SECRETKEY_OVERWRITE: ${FLOWISE_SECRET_KEY:-}
+      FLOWISE_PASSWORD:      ${FLOWISE_PASSWORD}
+      FLOWISE_SECRETKEY_OVERWRITE: ${FLOWISE_SECRET_KEY}
       DATABASE_PATH:         /root/.flowise
       APIKEY_PATH:           /root/.flowise
       LOG_PATH:              /root/.flowise/logs
@@ -717,7 +717,7 @@ services:
     environment:
       GF_SERVER_ROOT_URL:                ${GRAFANA_URL:-http://monitor.ades.setag.mx}
       GF_SECURITY_ADMIN_USER:           ${GRAFANA_ADMIN_USER:-admin}
-      GF_SECURITY_ADMIN_PASSWORD:       ${GRAFANA_ADMIN_PASSWORD:-cambia_esto_en_produccion}
+      GF_SECURITY_ADMIN_PASSWORD:       ${GRAFANA_ADMIN_PASSWORD}
       GF_USERS_ALLOW_SIGN_UP:           "false"
       GF_AUTH_ANONYMOUS_ENABLED:        "true"
       GF_AUTH_ANONYMOUS_ORG_ROLE:       "Viewer"
@@ -754,24 +754,24 @@ services:
     container_name: ades-n8n
     restart: unless-stopped
     environment:
-      N8N_HOST:                  ${N8N_HOST:-0.0.0.0}
-      N8N_PORT:                  5678
+      N8N_HOST:                  ${N8N_HOST}
+      N8N_PORT:                  ${N8N_PORT}
       N8N_PROTOCOL:              http
-      N8N_EDITOR_BASE_URL:       ${N8N_URL:-http://localhost:5678}
-      WEBHOOK_URL:               ${N8N_WEBHOOK_URL:-http://ades-n8n:5678}
+      N8N_EDITOR_BASE_URL:       ${N8N_URL}
+      WEBHOOK_URL:               ${N8N_WEBHOOK_URL}
       DB_TYPE:                   postgresdb
       DB_POSTGRESDB_HOST:        ades-postgres
-      DB_POSTGRESDB_DATABASE:    ${N8N_DB:-n8n}
+      DB_POSTGRESDB_DATABASE:    ${N8N_DB}
       DB_POSTGRESDB_USER:        ${POSTGRES_USER:-ades_admin}
       DB_POSTGRESDB_PASSWORD:    ${POSTGRES_PASSWORD}
       N8N_BASIC_AUTH_ACTIVE:     "true"
-      N8N_BASIC_AUTH_USER:       ${N8N_USER:-admin}
-      N8N_BASIC_AUTH_PASSWORD:   ${N8N_PASSWORD:-cambia_esto_en_produccion}
-      N8N_ENCRYPTION_KEY:        ${N8N_ENCRYPTION_KEY:-cambia_esto_en_produccion}
+      N8N_BASIC_AUTH_USER:       ${N8N_USER}
+      N8N_BASIC_AUTH_PASSWORD:   ${N8N_PASSWORD}
+      N8N_ENCRYPTION_KEY:        ${N8N_ENCRYPTION_KEY}
       EXECUTIONS_PROCESS:        main
       # Acceso al backend ADES para webhooks
       ADES_API_URL:              http://ades-api:8000
-      ADES_API_KEY:              ${ADES_INTERNAL_API_KEY:-}
+      ADES_API_KEY:              ${ADES_INTERNAL_API_KEY}
       # Acceso a ntfy para notificaciones
       NTFY_URL:                  http://ades-ntfy:80
     volumes:

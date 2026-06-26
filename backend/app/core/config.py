@@ -113,7 +113,6 @@ class Settings(BaseSettings):
     OPENAI_BASE_URL: str = "https://integrate.api.nvidia.com/v1"
     OPENAI_API_KEY: str = ""
     OPENAI_MODEL: str = "meta/llama-3.1-70b-instruct"
-    ANTHROPIC_API_KEY: str = ""
 
     # BigBlueButton — Videoconferencias Institucionales (FASE 26)
     BBB_SERVER_URL: str = ""          # e.g. https://bbb.institutonevadi.edu.mx/bigbluebutton

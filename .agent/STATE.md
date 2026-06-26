@@ -1023,7 +1023,7 @@ Estimated fix time: 2-3 days for all P1 issues
 - **`ades_grupos` no tiene `plantel_id`** — la ruta es `grupos → grados → plantel_id`, o directamente `ades_estudiantes.plantel_id`
 - **Docker image base pinning:** `python:3.12-slim` ahora apunta a Debian trixie (13), donde `libpangocairo-1.0-0`, `libgdk-pixbuf2.0-0`, `libglib2.0-0` etc. no existen. Siempre usar `python:3.12-slim-bookworm` para estabilidad.
 - **redbeat no disponible en ARM64/Py3.12:** Solo existe `0.0.1` en este entorno. Eliminado de requirements.txt; Celery beat usa file-based schedule por defecto. Los `redbeat_*` config keys se ignoran silenciosamente.
-- **anthropic==0.49.0 incompatible con langchain-anthropic==0.3.15:** langchain-anthropic 0.3.15 requiere `anthropic>=0.52.0`. Actualizar anthropic a 0.52.0+.
+- **Anthropic SDK eliminado (2026-06-24):** Sistema migrado a NVIDIA NIM (compatible con OpenAI API). No se usa `anthropic` ni `langchain-anthropic`; usar `openai` package con `OPENAI_BASE_URL=https://integrate.api.nvidia.com/v1`.
 - **`FIRMA_CLAVE_PRIVADA_HEX` en `.env`:** La llave privada Ed25519 NUNCA va a BD. Generar con `firma_digital.generar_nuevo_par_de_llaves()` y guardar en `.env`.
 
 ### 🔧 Fix aplicado post-FASE 27 (2026-06-10 — sesión continuación):
