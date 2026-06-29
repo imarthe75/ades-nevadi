@@ -116,3 +116,9 @@ logging:
   level:
     root: INFO
     mx.ades: DEBUG
+
+timefold:
+  solver:
+    termination:
+      spent-limit: 10m
+      best-score-limit: 0hard/*soft

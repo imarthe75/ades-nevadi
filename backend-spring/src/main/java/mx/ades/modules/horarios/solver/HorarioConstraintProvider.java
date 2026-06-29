@@ -23,7 +23,10 @@ public class HorarioConstraintProvider implements ConstraintProvider {
                 consecutivasMax(factory),
                 sincronizarMateria(factory),
                 ventanaHorariaDocente(factory),
-                diasNoPermitidosDocente(factory)
+                diasNoPermitidosDocente(factory),
+                materiaFraccionada30Min(factory),
+                indisponibilidadRojo(factory),
+                indisponibilidadAmarillo(factory)
         };
     }
 
@@ -171,13 +174,25 @@ public class HorarioConstraintProvider implements ConstraintProvider {
     private Constraint huecosDocente(ConstraintFactory factory) {
         return factory.forEach(HorarioLeccion.class)
                 .filter(lesson -> lesson.getTimeslot() != null && lesson.getProfesorId() != null)
-                .join(HorarioLeccion.class,
-                        Joiners.equal(HorarioLeccion::getProfesorId),
-                        Joiners.equal(l -> l.getTimeslot().diaSemana()),
-                        Joiners.lessThan(HorarioLeccion::getId))
-                .filter((l1, l2) -> Math.abs(l1.getTimeslot().horaInicio().getHour() - l2.getTimeslot().horaInicio().getHour()) == 2)
-                .penalize(HardSoftScore.ONE_SOFT)
-                .asConstraint("Calidad - Huecos docente");
+                .groupBy(HorarioLeccion::getProfesorId,
+                         l -> l.getTimeslot().diaSemana(),
+                         ai.timefold.solver.core.api.score.stream.ConstraintCollectors.toList())
+                .penalize(HardSoftScore.ONE_SOFT, (profId, dia, lecciones) -> {
+                    if (lecciones.size() < 2) return 0;
+                    lecciones.sort(java.util.Comparator.comparing(l -> l.getTimeslot().horaInicio()));
+                    int totalGaps = 0;
+                    for (int i = 0; i < lecciones.size() - 1; i++) {
+                        java.time.LocalTime finActual = lecciones.get(i).getTimeslot().horaFin();
+                        java.time.LocalTime inicioSiguiente = lecciones.get(i + 1).getTimeslot().horaInicio();
+                        long minutosHueco = java.time.Duration.between(finActual, inicioSiguiente).toMinutes();
+                        // Un receso típico es de ~20 mins. Si es más de 30 mins, se considera hueco.
+                        if (minutosHueco > 30) {
+                            totalGaps += Math.max(1, (int)(minutosHueco / 50));
+                        }
+                    }
+                    return totalGaps;
+                })
+                .asConstraint("Calidad - Minimizar huecos docente");
     }
 
     private Constraint consecutivasMax(ConstraintFactory factory) {
@@ -209,6 +224,7 @@ public class HorarioConstraintProvider implements ConstraintProvider {
                             Object mat = regla.getParams().get("materia");
                             return mat != null && mat.equals(l1.getMateriaNombre());
                         }))
+                .penalize(HardSoftScore.ONE_HARD, (l1, l2, regla) -> regla.getPeso())
                 .asConstraint("Avanzado - Sincronizar materia");
     }
 
@@ -258,7 +274,57 @@ public class HorarioConstraintProvider implements ConstraintProvider {
                             }
                             return false;
                         }))
-                .penalize(HardSoftScore.ONE_HARD, (lesson, regla) -> regla.getPeso())
-                .asConstraint("Dinamica - Dias no permitidos docente");
+                .penalize(HardSoftScore.ONE_HARD, (l1, regla) -> regla.getPeso())
+                .asConstraint("Avanzado - Dias no permitidos docente");
+    }
+
+    private Constraint materiaFraccionada30Min(ConstraintFactory factory) {
+        return factory.forEach(HorarioLeccion.class)
+                .filter(lesson -> lesson.getTimeslot() != null)
+                .join(mx.ades.modules.horarios.config.HorarioRegla.class,
+                        Joiners.filtering((lesson, regla) -> {
+                            if (!"materia_fraccionada_30min".equals(regla.getTipo()) || !regla.getActiva()) return false;
+                            Object mat = regla.getParams().get("materia");
+                            return mat != null && mat.equals(lesson.getMateriaNombre());
+                        }))
+                .groupBy((lesson, regla) -> lesson.getGrupoId(),
+                         (lesson, regla) -> lesson.getMateriaNombre(),
+                         (lesson, regla) -> regla,
+                         ai.timefold.solver.core.api.score.stream.ConstraintCollectors.toList((lesson, regla) -> lesson))
+                .filter((grupoId, materia, regla, leccionesList) -> {
+                    long count30 = leccionesList.stream().filter(l -> {
+                        long mins = java.time.Duration.between(l.getTimeslot().horaInicio(), l.getTimeslot().horaFin()).toMinutes();
+                        return mins > 0 && mins <= 40;
+                    }).count();
+                    long count50 = leccionesList.stream().filter(l -> {
+                        long mins = java.time.Duration.between(l.getTimeslot().horaInicio(), l.getTimeslot().horaFin()).toMinutes();
+                        return mins > 40;
+                    }).count();
+                    return count30 != 1 || count50 != 1;
+                })
+                .penalize(HardSoftScore.ONE_HARD, (grupoId, materia, regla, list) -> regla.getPeso())
+                .asConstraint("Avanzado - Materia fraccionada debe tener un bloque de 50m y uno de 30m");
+    }
+
+    private Constraint indisponibilidadRojo(ConstraintFactory factory) {
+        return factory.forEach(HorarioLeccion.class)
+                .filter(lesson -> lesson.getTimeslot() != null && lesson.getProfesorId() != null && lesson.getTimeslot().id() != null)
+                .join(mx.ades.modules.horarios.config.HorarioIndisponibilidad.class,
+                        Joiners.equal(HorarioLeccion::getProfesorId, mx.ades.modules.horarios.config.HorarioIndisponibilidad::getProfesorId),
+                        Joiners.equal(lesson -> lesson.getTimeslot().id(), mx.ades.modules.horarios.config.HorarioIndisponibilidad::getFranjaId))
+                .filter((lesson, indisponibilidad) -> "NO_DISPONIBLE".equals(indisponibilidad.getTipo()))
+                .penalize(HardSoftScore.ONE_HARD)
+                .asConstraint("Profesor No Disponible en esta franja");
+    }
+
+    private Constraint indisponibilidadAmarillo(ConstraintFactory factory) {
+        return factory.forEach(HorarioLeccion.class)
+                .filter(lesson -> lesson.getTimeslot() != null && lesson.getProfesorId() != null && lesson.getTimeslot().id() != null)
+                .join(mx.ades.modules.horarios.config.HorarioIndisponibilidad.class,
+                        Joiners.equal(HorarioLeccion::getProfesorId, mx.ades.modules.horarios.config.HorarioIndisponibilidad::getProfesorId),
+                        Joiners.equal(lesson -> lesson.getTimeslot().id(), mx.ades.modules.horarios.config.HorarioIndisponibilidad::getFranjaId))
+                .filter((lesson, indisponibilidad) -> "CONDICIONAL".equals(indisponibilidad.getTipo()))
+                .penalize(HardSoftScore.ONE_SOFT)
+                .asConstraint("Profesor Condicional (Evitar asignar)");
     }
 }
