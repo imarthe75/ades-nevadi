@@ -29,11 +29,15 @@ public class AdesUserService {
     public AdesUser resolveUser(Jwt jwt) {
         String sub = jwt.getSubject();
         String email = jwt.getClaimAsString("email");
+        String username = jwt.getClaimAsString("preferred_username");
 
         Usuario usuario = usuarioRepo
-                .findByOidcSubOrEmailInstitucional(sub, email)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "Usuario no registrado en ADES. Contacta al administrador."));
+                .findByOidcSubOrEmailOrUsername(sub, email, username)
+                .orElseThrow(() -> {
+                    System.out.println("USER NOT FOUND IN DB. sub=" + sub + ", email=" + email + ", username=" + username);
+                    return new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Usuario no registrado en ADES. Contacta al administrador.");
+                });
 
         List<String> jwtGroups = jwt.getClaimAsStringList("groups");
         if (jwtGroups == null || jwtGroups.isEmpty()) {

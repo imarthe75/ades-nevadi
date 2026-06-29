@@ -27,6 +27,7 @@ public class HorarioCorrida extends AdesBaseEntity {
     @Column(name = "score_text")
     private String scoreText;
 
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
     @Column(name = "score_analysis_json", columnDefinition = "jsonb")
     private String scoreAnalysisJson;
 

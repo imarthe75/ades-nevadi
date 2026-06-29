@@ -23,6 +23,9 @@ public class HorarioPlan {
     @PlanningEntityCollectionProperty
     private List<HorarioLeccion> lecciones;
 
+    @ProblemFactCollectionProperty
+    private List<mx.ades.modules.horarios.config.HorarioRegla> reglas;
+
     @PlanningScore
     private HardSoftScore score;
 }

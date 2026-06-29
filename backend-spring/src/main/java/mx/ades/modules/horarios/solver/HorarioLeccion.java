@@ -24,6 +24,10 @@ public class HorarioLeccion {
     private UUID profesorId;
     private UUID aulaId;
 
+    // Metadatos para constraints
+    private String materiaNombre;
+    private Integer gradoNumero;
+
     @PlanningPin
     private boolean fijado;
 

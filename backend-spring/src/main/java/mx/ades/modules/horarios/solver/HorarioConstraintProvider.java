@@ -13,7 +13,17 @@ public class HorarioConstraintProvider implements ConstraintProvider {
         return new Constraint[] {
                 profesorEnDosClasesAlMismoTiempo(factory),
                 grupoEnDosClasesAlMismoTiempo(factory),
-                aulaEnDosClasesAlMismoTiempo(factory)
+                aulaEnDosClasesAlMismoTiempo(factory),
+                reglaDiasPermitidos(factory),
+                reglaDiasNoConsecutivos(factory),
+                reglaVentanaHoraria(factory),
+                bloqueContiguo(factory),
+                maxHorasDia(factory),
+                huecosDocente(factory),
+                consecutivasMax(factory),
+                sincronizarMateria(factory),
+                ventanaHorariaDocente(factory),
+                diasNoPermitidosDocente(factory)
         };
     }
 
@@ -48,5 +58,207 @@ public class HorarioConstraintProvider implements ConstraintProvider {
                         Joiners.lessThan(HorarioLeccion::getId))
                 .penalize(HardSoftScore.ONE_HARD)
                 .asConstraint("Aula en dos clases al mismo tiempo");
+    }
+
+    private Constraint reglaDiasPermitidos(ConstraintFactory factory) {
+        return factory.forEach(HorarioLeccion.class)
+                .filter(lesson -> lesson.getTimeslot() != null)
+                .join(mx.ades.modules.horarios.config.HorarioRegla.class,
+                        Joiners.filtering((lesson, regla) -> {
+                            if (!"dias_permitidos".equals(regla.getTipo()) || !regla.getActiva()) return false;
+                            Object mat = regla.getParams().get("materia");
+                            if (mat == null || !mat.equals(lesson.getMateriaNombre())) return false;
+                            
+                            Object diasObj = regla.getParams().get("dias");
+                            if (diasObj instanceof java.util.List diasList) {
+                                // Convert to integer comparison
+                                return !diasList.contains(lesson.getTimeslot().diaSemana()) 
+                                    && !diasList.contains(String.valueOf(lesson.getTimeslot().diaSemana()));
+                            }
+                            return false;
+                        }))
+                .penalize(HardSoftScore.ONE_HARD, (lesson, regla) -> regla.getPeso())
+                .asConstraint("Dinamica - Dias Permitidos");
+    }
+
+    private Constraint reglaDiasNoConsecutivos(ConstraintFactory factory) {
+        return factory.forEach(HorarioLeccion.class)
+                .filter(lesson -> lesson.getTimeslot() != null)
+                .join(HorarioLeccion.class,
+                        Joiners.equal(HorarioLeccion::getGrupoId),
+                        Joiners.equal(HorarioLeccion::getMateriaNombre),
+                        Joiners.lessThan(HorarioLeccion::getId))
+                .filter((l1, l2) -> l1.getTimeslot() != null && l2.getTimeslot() != null && 
+                                    Math.abs(l1.getTimeslot().diaSemana() - l2.getTimeslot().diaSemana()) == 1)
+                .join(mx.ades.modules.horarios.config.HorarioRegla.class,
+                        Joiners.filtering((l1, l2, regla) -> {
+                            if (!"dias_no_consecutivos".equals(regla.getTipo()) || !regla.getActiva()) return false;
+                            Object mat = regla.getParams().get("materia");
+                            return mat != null && mat.equals(l1.getMateriaNombre());
+                        }))
+                .penalize(HardSoftScore.ONE_HARD, (l1, l2, regla) -> regla.getPeso())
+                .asConstraint("Dinamica - Dias no consecutivos");
+    }
+
+    private Constraint reglaVentanaHoraria(ConstraintFactory factory) {
+        return factory.forEach(HorarioLeccion.class)
+                .filter(lesson -> lesson.getTimeslot() != null)
+                .join(mx.ades.modules.horarios.config.HorarioRegla.class,
+                        Joiners.filtering((lesson, regla) -> {
+                            if (!"ventana_horaria".equals(regla.getTipo()) || !regla.getActiva()) return false;
+                            Object mat = regla.getParams().get("materia");
+                            if (mat == null || !mat.equals(lesson.getMateriaNombre())) return false;
+                            
+                            String modo = (String) regla.getParams().get("modo");
+                            String horaStr = (String) regla.getParams().get("hora"); 
+                            if (modo == null || horaStr == null) return false;
+                            
+                            java.time.LocalTime limit = java.time.LocalTime.parse(horaStr);
+                            
+                            if ("antes_de".equals(modo)) {
+                                return !lesson.getTimeslot().horaInicio().isBefore(limit);
+                            } else if ("despues_de".equals(modo)) {
+                                return lesson.getTimeslot().horaInicio().isBefore(limit);
+                            }
+                            return false;
+                        }))
+                .penalize(HardSoftScore.ONE_HARD, (lesson, regla) -> regla.getPeso())
+                .asConstraint("Dinamica - Ventana horaria");
+    }
+
+    private Constraint bloqueContiguo(ConstraintFactory factory) {
+        return factory.forEach(HorarioLeccion.class)
+                .filter(lesson -> lesson.getTimeslot() != null)
+                .join(mx.ades.modules.horarios.config.HorarioRegla.class,
+                        Joiners.filtering((lesson, regla) -> {
+                            if (!"bloque_contiguo".equals(regla.getTipo()) || !regla.getActiva()) return false;
+                            Object matObj = regla.getParams().get("materias");
+                            if (matObj instanceof java.util.List) {
+                                return ((java.util.List<?>) matObj).contains(lesson.getMateriaNombre());
+                            }
+                            return false;
+                        }))
+                .join(HorarioLeccion.class,
+                        Joiners.equal((l1, r) -> l1.getGrupoId(), HorarioLeccion::getGrupoId),
+                        Joiners.equal((l1, r) -> l1.getMateriaNombre(), HorarioLeccion::getMateriaNombre),
+                        Joiners.lessThan((l1, r) -> l1.getId(), HorarioLeccion::getId))
+                .filter((l1, r, l2) -> l1.getTimeslot() != null && l2.getTimeslot() != null 
+                        && l1.getTimeslot().diaSemana() == l2.getTimeslot().diaSemana()
+                        && Math.abs(l1.getTimeslot().horaInicio().getHour() - l2.getTimeslot().horaInicio().getHour()) == 1)
+                .reward(HardSoftScore.ONE_SOFT, (l1, r, l2) -> r.getPeso())
+                .asConstraint("Dinamica - Bloque Contiguo");
+    }
+
+    private Constraint maxHorasDia(ConstraintFactory factory) {
+        return factory.forEach(HorarioLeccion.class)
+                .filter(lesson -> lesson.getTimeslot() != null)
+                .join(mx.ades.modules.horarios.config.HorarioRegla.class,
+                        Joiners.filtering((lesson, regla) -> "max_horas_dia".equals(regla.getTipo()) && regla.getActiva()))
+                .groupBy((lesson, regla) -> java.util.List.of(lesson.getGrupoId(), lesson.getMateriaNombre(), lesson.getTimeslot().diaSemana()),
+                         (lesson, regla) -> regla,
+                         ai.timefold.solver.core.api.score.stream.ConstraintCollectors.countBi())
+                .filter((key, regla, count) -> {
+                    Object maxObj = regla.getParams().get("default");
+                    if (maxObj instanceof Integer) {
+                        return count > (Integer) maxObj;
+                    }
+                    return false;
+                })
+                .penalize(HardSoftScore.ONE_HARD, (key, r, c) -> r.getPeso() * (c - (Integer) r.getParams().get("default")))
+                .asConstraint("Dinamica - Max Horas Dia");
+    }
+
+    private Constraint huecosDocente(ConstraintFactory factory) {
+        return factory.forEach(HorarioLeccion.class)
+                .filter(lesson -> lesson.getTimeslot() != null && lesson.getProfesorId() != null)
+                .join(HorarioLeccion.class,
+                        Joiners.equal(HorarioLeccion::getProfesorId),
+                        Joiners.equal(l -> l.getTimeslot().diaSemana()),
+                        Joiners.lessThan(HorarioLeccion::getId))
+                .filter((l1, l2) -> Math.abs(l1.getTimeslot().horaInicio().getHour() - l2.getTimeslot().horaInicio().getHour()) == 2)
+                .penalize(HardSoftScore.ONE_SOFT)
+                .asConstraint("Calidad - Huecos docente");
+    }
+
+    private Constraint consecutivasMax(ConstraintFactory factory) {
+        return factory.forEach(HorarioLeccion.class)
+                .filter(lesson -> lesson.getTimeslot() != null && lesson.getProfesorId() != null)
+                .join(HorarioLeccion.class,
+                        Joiners.equal(HorarioLeccion::getProfesorId),
+                        Joiners.equal(l -> l.getTimeslot().diaSemana()))
+                .filter((l1, l2) -> l2.getTimeslot().horaInicio().getHour() - l1.getTimeslot().horaInicio().getHour() == 1)
+                .join(HorarioLeccion.class,
+                        Joiners.equal((l1, l2) -> l1.getProfesorId(), HorarioLeccion::getProfesorId),
+                        Joiners.equal((l1, l2) -> l1.getTimeslot().diaSemana(), l -> l.getTimeslot().diaSemana()))
+                .filter((l1, l2, l3) -> l3.getTimeslot().horaInicio().getHour() - l2.getTimeslot().horaInicio().getHour() == 1)
+                .penalize(HardSoftScore.ONE_SOFT)
+                .asConstraint("Calidad - Demasiadas consecutivas");
+    }
+
+    private Constraint sincronizarMateria(ConstraintFactory factory) {
+        return factory.forEach(HorarioLeccion.class)
+                .filter(lesson -> lesson.getTimeslot() != null && lesson.getGradoNumero() != null)
+                .join(HorarioLeccion.class,
+                        Joiners.equal(HorarioLeccion::getMateriaNombre),
+                        Joiners.equal(HorarioLeccion::getGradoNumero),
+                        Joiners.lessThan(HorarioLeccion::getId))
+                .filter((l1, l2) -> !l1.getGrupoId().equals(l2.getGrupoId()) && !l1.getTimeslot().equals(l2.getTimeslot()))
+                .join(mx.ades.modules.horarios.config.HorarioRegla.class,
+                        Joiners.filtering((l1, l2, regla) -> {
+                            if (!"sincronizar_materia".equals(regla.getTipo()) || !regla.getActiva()) return false;
+                            Object mat = regla.getParams().get("materia");
+                            return mat != null && mat.equals(l1.getMateriaNombre());
+                        }))
+                .asConstraint("Avanzado - Sincronizar materia");
+    }
+
+    private Constraint ventanaHorariaDocente(ConstraintFactory factory) {
+        return factory.forEach(HorarioLeccion.class)
+                .filter(lesson -> lesson.getTimeslot() != null && lesson.getProfesorId() != null)
+                .join(mx.ades.modules.horarios.config.HorarioRegla.class,
+                        Joiners.filtering((lesson, regla) -> {
+                            if (!"ventana_horaria_docente".equals(regla.getTipo()) || !regla.getActiva()) return false;
+                            Object prof = regla.getParams().get("profesor_id");
+                            if (prof == null || !prof.toString().equals(lesson.getProfesorId().toString())) return false;
+                            
+                            // Si aplica solo a un dia especifico
+                            Object diaRegla = regla.getParams().get("dia");
+                            if (diaRegla != null && !diaRegla.toString().equals(String.valueOf(lesson.getTimeslot().diaSemana()))) return false;
+                            
+                            String modo = (String) regla.getParams().get("modo");
+                            String horaStr = (String) regla.getParams().get("hora"); 
+                            if (modo == null || horaStr == null) return false;
+                            
+                            java.time.LocalTime limit = java.time.LocalTime.parse(horaStr);
+                            
+                            if ("antes_de".equals(modo)) {
+                                return !lesson.getTimeslot().horaInicio().isBefore(limit);
+                            } else if ("despues_de".equals(modo)) {
+                                return lesson.getTimeslot().horaInicio().isBefore(limit);
+                            }
+                            return false;
+                        }))
+                .penalize(HardSoftScore.ONE_HARD, (lesson, regla) -> regla.getPeso())
+                .asConstraint("Dinamica - Ventana horaria docente");
+    }
+
+    private Constraint diasNoPermitidosDocente(ConstraintFactory factory) {
+        return factory.forEach(HorarioLeccion.class)
+                .filter(lesson -> lesson.getTimeslot() != null && lesson.getProfesorId() != null)
+                .join(mx.ades.modules.horarios.config.HorarioRegla.class,
+                        Joiners.filtering((lesson, regla) -> {
+                            if (!"dias_no_permitidos_docente".equals(regla.getTipo()) || !regla.getActiva()) return false;
+                            Object prof = regla.getParams().get("profesor_id");
+                            if (prof == null || !prof.toString().equals(lesson.getProfesorId().toString())) return false;
+                            
+                            Object diasObj = regla.getParams().get("dias");
+                            if (diasObj instanceof java.util.List diasList) {
+                                return diasList.contains(lesson.getTimeslot().diaSemana()) 
+                                    || diasList.contains(String.valueOf(lesson.getTimeslot().diaSemana()));
+                            }
+                            return false;
+                        }))
+                .penalize(HardSoftScore.ONE_HARD, (lesson, regla) -> regla.getPeso())
+                .asConstraint("Dinamica - Dias no permitidos docente");
     }
 }

@@ -49,8 +49,15 @@ import org.springframework.context.annotation.Configuration;
  * Los servicios de dominio NO llevan @Service — se instancian aquí
  * para que la capa de dominio permanezca libre de dependencias de Spring.
  */
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 @Configuration
 public class HexagonalConfig {
+
+    @Bean
+    public ObjectMapper objectMapper() {
+        return new ObjectMapper();
+    }
 
     // ── asistencias (FASE 1) ──────────────────────────────────────────────────
 
@@ -75,24 +82,6 @@ public class HexagonalConfig {
         return new CalificacionApplicationService(repository, events);
     }
 
-    @Bean
-    public CalcularCalificacionPeriodoUseCase calcularCalificacionPeriodo(
-            CalificacionApplicationService service) {
-        return service;
-    }
-
-    @Bean
-    public GuardarCalificacionManualUseCase guardarCalificacionManual(
-            CalificacionApplicationService service) {
-        return service;
-    }
-
-    @Bean
-    public ObtenerBoletaUseCase obtenerBoleta(
-            CalificacionApplicationService service) {
-        return service;
-    }
-
     // ── conducta (FASE 2) ─────────────────────────────────────────────────────
 
     @Bean
@@ -111,16 +100,6 @@ public class HexagonalConfig {
         return new TareaApplicationService(tareaRepository, events);
     }
 
-    @Bean
-    public CrearActividadUseCase crearActividad(TareaApplicationService service) {
-        return service;
-    }
-
-    @Bean
-    public CalificarMasivoUseCase calificarMasivo(TareaApplicationService service) {
-        return service;
-    }
-
     // ── gradebook (FASE 3) ────────────────────────────────────────────────────
 
     @Bean
@@ -128,16 +107,6 @@ public class HexagonalConfig {
             CalificacionPeriodoRepositoryPort calificacionRepository,
             ApplicationEventPublisher events) {
         return new GradebookApplicationService(calificacionRepository, events);
-    }
-
-    @Bean
-    public AplicarAjusteUseCase aplicarAjuste(GradebookApplicationService service) {
-        return service;
-    }
-
-    @Bean
-    public CerrarCalificacionUseCase cerrarCalificacion(GradebookApplicationService service) {
-        return service;
     }
 
     // ── expediente (FASE 5) ───────────────────────────────────────────────────
@@ -152,26 +121,6 @@ public class HexagonalConfig {
         return new ExpedienteApplicationService(bajaRepo, extraRepo, constanciaRepo, expedienteRepo, events);
     }
 
-    @Bean
-    public RegistrarBajaUseCase registrarBaja(ExpedienteApplicationService service) {
-        return service;
-    }
-
-    @Bean
-    public CalificarExtraordinarioUseCase calificarExtraordinario(ExpedienteApplicationService service) {
-        return service;
-    }
-
-    @Bean
-    public EmitirConstanciaUseCase emitirConstancia(ExpedienteApplicationService service) {
-        return service;
-    }
-
-    @Bean
-    public VerificarExpedienteUseCase verificarExpediente(ExpedienteApplicationService service) {
-        return service;
-    }
-
     // ── reinscripcion (FASE 6) ────────────────────────────────────────────────
 
     @Bean
@@ -181,22 +130,11 @@ public class HexagonalConfig {
         return new ReinscripcionApplicationService(repo, events);
     }
 
-    @Bean
-    public ProcesarAccionReinscripcionUseCase procesarAccionReinscripcion(
-            ReinscripcionApplicationService service) {
-        return service;
-    }
-
     // ── conducta (FASE 12) ────────────────────────────────────────────────────
 
     @Bean
     public ConductaApplicationService conductaApplicationService(PlanMejoraRepositoryPort planRepo) {
         return new ConductaApplicationService(planRepo);
-    }
-
-    @Bean
-    public CrearPlanMejoraUseCase crearPlanMejora(ConductaApplicationService service) {
-        return service;
     }
 
     // ── evaluaciones TIER 2 (FASE 9-11) ──────────────────────────────────────
@@ -209,26 +147,11 @@ public class HexagonalConfig {
         return new EvaluacionApplicationService(aulaRepo, calificacionRepo, events);
     }
 
-    @Bean
-    public AsignarAulaHoraUseCase asignarAulaHora(EvaluacionApplicationService service) {
-        return service;
-    }
-
-    @Bean
-    public CalificarEvaluacionMasivoUseCase calificarEvaluacionMasivo(EvaluacionApplicationService service) {
-        return service;
-    }
-
     // ── encuestas (FASE 17) ───────────────────────────────────────────────────
 
     @Bean
     public EncuestaApplicationService encuestaApplicationService(EncuestaRespuestaRepositoryPort repo) {
         return new EncuestaApplicationService(repo);
-    }
-
-    @Bean
-    public ResponderEncuestaUseCase responderEncuesta(EncuestaApplicationService service) {
-        return service;
     }
 
     // ── learning_paths (FASE 18 + FASE 53) ───────────────────────────────────
@@ -238,34 +161,11 @@ public class HexagonalConfig {
         return new LearningPathApplicationService(repo);
     }
 
-    @Bean
-    public RegistrarProgresoUseCase registrarProgreso(LearningPathApplicationService service) {
-        return service;
-    }
-
-    @Bean
-    public mx.ades.modules.learning_paths.domain.port.in.CrearLearningPathUseCase crearLearningPath(
-            LearningPathApplicationService service) {
-        return service;
-    }
-
-    @Bean
-    public mx.ades.modules.learning_paths.domain.port.in.AsignarPathUseCase asignarPath(
-            LearningPathApplicationService service) {
-        return service;
-    }
-
     // ── procesos (FASE 16) ────────────────────────────────────────────────────
     @Bean
     public mx.ades.modules.procesos.application.service.ProcesosApplicationService procesosApplicationService(
             mx.ades.modules.procesos.domain.port.out.PreinscripcionRepositoryPort repo) {
         return new mx.ades.modules.procesos.application.service.ProcesosApplicationService(repo);
-    }
-
-    @Bean
-    public mx.ades.modules.procesos.domain.port.in.ProcesarPreinscripcionUseCase procesarPreinscripcion(
-            mx.ades.modules.procesos.application.service.ProcesosApplicationService service) {
-        return service;
     }
 
     // ── movilidad (FASE 21) ───────────────────────────────────────────────────
@@ -275,35 +175,11 @@ public class HexagonalConfig {
         return new mx.ades.modules.movilidad.application.service.MovilidadApplicationService(repo);
     }
 
-    @Bean
-    public mx.ades.modules.movilidad.domain.port.in.RegistrarCambioGrupoUseCase registrarCambioGrupo(
-            mx.ades.modules.movilidad.application.service.MovilidadApplicationService service) {
-        return service;
-    }
-
-    @Bean
-    public mx.ades.modules.movilidad.domain.port.in.RegistrarBajaUseCase registrarBajaMovilidad(
-            mx.ades.modules.movilidad.application.service.MovilidadApplicationService service) {
-        return service;
-    }
-
     // ── justificaciones (FASE 22) ─────────────────────────────────────────────
     @Bean
     public mx.ades.modules.justificaciones.application.service.JustificacionApplicationService justificacionApplicationService(
             mx.ades.modules.justificaciones.domain.port.out.JustificacionRepositoryPort repo) {
         return new mx.ades.modules.justificaciones.application.service.JustificacionApplicationService(repo);
-    }
-
-    @Bean
-    public mx.ades.modules.justificaciones.domain.port.in.RegistrarJustificacionUseCase registrarJustificacion(
-            mx.ades.modules.justificaciones.application.service.JustificacionApplicationService service) {
-        return service;
-    }
-
-    @Bean
-    public mx.ades.modules.justificaciones.domain.port.in.ResolverJustificacionUseCase resolverJustificacion(
-            mx.ades.modules.justificaciones.application.service.JustificacionApplicationService service) {
-        return service;
     }
 
     // ── condiciones (FASE 23) ─────────────────────────────────────────────────
@@ -313,59 +189,11 @@ public class HexagonalConfig {
         return new mx.ades.modules.condiciones.application.service.CondicionCronicaApplicationService(repo);
     }
 
-    @Bean
-    public mx.ades.modules.condiciones.domain.port.in.RegistrarCondicionUseCase registrarCondicion(
-            mx.ades.modules.condiciones.application.service.CondicionCronicaApplicationService service) {
-        return service;
-    }
-
-    @Bean
-    public mx.ades.modules.condiciones.domain.port.in.ActualizarCondicionUseCase actualizarCondicion(
-            mx.ades.modules.condiciones.application.service.CondicionCronicaApplicationService service) {
-        return service;
-    }
-
-    @Bean
-    public mx.ades.modules.condiciones.domain.port.in.EliminarCondicionUseCase eliminarCondicion(
-            mx.ades.modules.condiciones.application.service.CondicionCronicaApplicationService service) {
-        return service;
-    }
-
     // ── biblioteca ─────────────────────────────────────────────────────────────
     @Bean
     public mx.ades.modules.biblioteca.application.service.BibliotecaApplicationService bibliotecaApplicationService(
             mx.ades.modules.biblioteca.domain.port.out.BibliotecaRepositoryPort repo) {
         return new mx.ades.modules.biblioteca.application.service.BibliotecaApplicationService(repo);
-    }
-
-    @Bean
-    public mx.ades.modules.biblioteca.domain.port.in.RegistrarLibroUseCase registrarLibro(
-            mx.ades.modules.biblioteca.application.service.BibliotecaApplicationService service) {
-        return service;
-    }
-
-    @Bean
-    public mx.ades.modules.biblioteca.domain.port.in.ActualizarLibroUseCase actualizarLibro(
-            mx.ades.modules.biblioteca.application.service.BibliotecaApplicationService service) {
-        return service;
-    }
-
-    @Bean
-    public mx.ades.modules.biblioteca.domain.port.in.EliminarLibroUseCase eliminarLibro(
-            mx.ades.modules.biblioteca.application.service.BibliotecaApplicationService service) {
-        return service;
-    }
-
-    @Bean
-    public mx.ades.modules.biblioteca.domain.port.in.RegistrarPrestamoUseCase registrarPrestamo(
-            mx.ades.modules.biblioteca.application.service.BibliotecaApplicationService service) {
-        return service;
-    }
-
-    @Bean
-    public mx.ades.modules.biblioteca.domain.port.in.DevolverPrestamoUseCase devolverPrestamo(
-            mx.ades.modules.biblioteca.application.service.BibliotecaApplicationService service) {
-        return service;
     }
 
     // ── licencias (FASE 24) ───────────────────────────────────────────────────
@@ -375,41 +203,11 @@ public class HexagonalConfig {
         return new mx.ades.modules.licencias.application.service.LicenciaApplicationService(repo);
     }
 
-    @Bean
-    public mx.ades.modules.licencias.domain.port.in.SolicitarLicenciaUseCase solicitar(
-            mx.ades.modules.licencias.application.service.LicenciaApplicationService service) {
-        return service;
-    }
-
-    @Bean
-    public mx.ades.modules.licencias.domain.port.in.ResolverLicenciaUseCase resolverLicencia(
-            mx.ades.modules.licencias.application.service.LicenciaApplicationService service) {
-        return service;
-    }
-
     // ── compliance (FASE 29) ─────────────────────────────────────────────────
     @Bean
     public mx.ades.modules.compliance.application.service.ComplianceApplicationService complianceApplicationService(
             mx.ades.modules.compliance.domain.port.out.ComplianceRepositoryPort repo) {
         return new mx.ades.modules.compliance.application.service.ComplianceApplicationService(repo);
-    }
-
-    @Bean
-    public mx.ades.modules.compliance.domain.port.in.RegistrarNormativaUseCase registrarNormativa(
-            mx.ades.modules.compliance.application.service.ComplianceApplicationService service) {
-        return service;
-    }
-
-    @Bean
-    public mx.ades.modules.compliance.domain.port.in.RegistrarRetencionUseCase registrarRetencion(
-            mx.ades.modules.compliance.application.service.ComplianceApplicationService service) {
-        return service;
-    }
-
-    @Bean
-    public mx.ades.modules.compliance.domain.port.in.CrearAlertaUseCase crearAlerta(
-            mx.ades.modules.compliance.application.service.ComplianceApplicationService service) {
-        return service;
     }
 
     // ── comunicados (FASE 28) ─────────────────────────────────────────────────
@@ -420,53 +218,11 @@ public class HexagonalConfig {
         return new mx.ades.modules.comunicados.application.service.ComunicadoApplicationService(repo, pushService);
     }
 
-    @Bean
-    public mx.ades.modules.comunicados.domain.port.in.CrearComunicadoUseCase crearComunicado(
-            mx.ades.modules.comunicados.application.service.ComunicadoApplicationService service) {
-        return service;
-    }
-
-    @Bean
-    public mx.ades.modules.comunicados.domain.port.in.AcusarComunicadoUseCase acusarComunicado(
-            mx.ades.modules.comunicados.application.service.ComunicadoApplicationService service) {
-        return service;
-    }
-
-    @Bean
-    public mx.ades.modules.comunicados.domain.port.in.ProgramarSiguienteUseCase programarSiguiente(
-            mx.ades.modules.comunicados.application.service.ComunicadoApplicationService service) {
-        return service;
-    }
-
     // ── badges (FASE 27) ─────────────────────────────────────────────────────
     @Bean
     public mx.ades.modules.badges.application.service.BadgeApplicationService badgeApplicationService(
             mx.ades.modules.badges.domain.port.out.BadgeRepositoryPort repo) {
         return new mx.ades.modules.badges.application.service.BadgeApplicationService(repo);
-    }
-
-    @Bean
-    public mx.ades.modules.badges.domain.port.in.CrearBadgeUseCase crearBadge(
-            mx.ades.modules.badges.application.service.BadgeApplicationService service) {
-        return service;
-    }
-
-    @Bean
-    public mx.ades.modules.badges.domain.port.in.OtorgarBadgeUseCase otorgarBadge(
-            mx.ades.modules.badges.application.service.BadgeApplicationService service) {
-        return service;
-    }
-
-    @Bean
-    public mx.ades.modules.badges.domain.port.in.RevocarBadgeUseCase revocarBadge(
-            mx.ades.modules.badges.application.service.BadgeApplicationService service) {
-        return service;
-    }
-
-    @Bean
-    public mx.ades.modules.badges.domain.port.in.AutoEvaluarBadgesUseCase autoEvaluarBadges(
-            mx.ades.modules.badges.application.service.BadgeApplicationService service) {
-        return service;
     }
 
     // ── disponibilidad (FASE 26) ──────────────────────────────────────────────
@@ -476,35 +232,11 @@ public class HexagonalConfig {
         return new mx.ades.modules.disponibilidad.application.service.DisponibilidadApplicationService(repo);
     }
 
-    @Bean
-    public mx.ades.modules.disponibilidad.domain.port.in.GuardarDisponibilidadUseCase guardarDisponibilidad(
-            mx.ades.modules.disponibilidad.application.service.DisponibilidadApplicationService service) {
-        return service;
-    }
-
-    @Bean
-    public mx.ades.modules.disponibilidad.domain.port.in.EliminarSlotUseCase eliminarSlot(
-            mx.ades.modules.disponibilidad.application.service.DisponibilidadApplicationService service) {
-        return service;
-    }
-
     // ── notificaciones (FASE 36) ─────────────────────────────────────────────
     @Bean
     public mx.ades.modules.notificaciones.application.service.NotificacionApplicationService notificacionApplicationService(
             mx.ades.modules.notificaciones.domain.port.out.NotificacionWriteRepositoryPort repo) {
         return new mx.ades.modules.notificaciones.application.service.NotificacionApplicationService(repo);
-    }
-
-    @Bean
-    public mx.ades.modules.notificaciones.domain.port.in.MarcarLeidaUseCase marcarLeidaUseCase(
-            mx.ades.modules.notificaciones.application.service.NotificacionApplicationService service) {
-        return service;
-    }
-
-    @Bean
-    public mx.ades.modules.notificaciones.domain.port.in.MarcarTodasLeidasUseCase marcarTodasLeidasUseCase(
-            mx.ades.modules.notificaciones.application.service.NotificacionApplicationService service) {
-        return service;
     }
 
     // ── personal_admin (FASE 35) ─────────────────────────────────────────────
@@ -514,35 +246,11 @@ public class HexagonalConfig {
         return new mx.ades.modules.personal_admin.application.service.PersonalAdminApplicationService(repo);
     }
 
-    @Bean
-    public mx.ades.modules.personal_admin.domain.port.in.RegistrarPersonalAdminUseCase registrarPersonalAdminUseCase(
-            mx.ades.modules.personal_admin.application.service.PersonalAdminApplicationService service) {
-        return service;
-    }
-
     // ── entregas (FASE 34) ────────────────────────────────────────────────────
     @Bean
     public mx.ades.modules.entregas.application.service.EntregaApplicationService entregaApplicationService(
             mx.ades.modules.entregas.domain.port.out.EntregaRepositoryPort repo) {
         return new mx.ades.modules.entregas.application.service.EntregaApplicationService(repo);
-    }
-
-    @Bean
-    public mx.ades.modules.entregas.domain.port.in.SubirEntregaUseCase subirEntregaUseCase(
-            mx.ades.modules.entregas.application.service.EntregaApplicationService service) {
-        return service;
-    }
-
-    @Bean
-    public mx.ades.modules.entregas.domain.port.in.CalificarEntregaUseCase calificarEntregaUseCase(
-            mx.ades.modules.entregas.application.service.EntregaApplicationService service) {
-        return service;
-    }
-
-    @Bean
-    public mx.ades.modules.entregas.domain.port.in.RegistrarExcusaUseCase registrarExcusaUseCase(
-            mx.ades.modules.entregas.application.service.EntregaApplicationService service) {
-        return service;
     }
 
     // ── esquemas_ponderacion (FASE 33) ───────────────────────────────────────
@@ -552,41 +260,11 @@ public class HexagonalConfig {
         return new mx.ades.modules.esquemas_ponderacion.application.service.EsquemaApplicationService(repo);
     }
 
-    @Bean
-    public mx.ades.modules.esquemas_ponderacion.domain.port.in.CrearEsquemaUseCase crearEsquemaUseCase(
-            mx.ades.modules.esquemas_ponderacion.application.service.EsquemaApplicationService service) {
-        return service;
-    }
-
-    @Bean
-    public mx.ades.modules.esquemas_ponderacion.domain.port.in.ActualizarEsquemaUseCase actualizarEsquemaUseCase(
-            mx.ades.modules.esquemas_ponderacion.application.service.EsquemaApplicationService service) {
-        return service;
-    }
-
     // ── expediente_laboral (FASE 32) ─────────────────────────────────────────
     @Bean
     public mx.ades.modules.expediente_laboral.application.service.ExpedienteLaboralApplicationService expedienteLaboralApplicationService(
             mx.ades.modules.expediente_laboral.domain.port.out.ExpedienteLaboralRepositoryPort repo) {
         return new mx.ades.modules.expediente_laboral.application.service.ExpedienteLaboralApplicationService(repo);
-    }
-
-    @Bean
-    public mx.ades.modules.expediente_laboral.domain.port.in.CrearExpedienteLaboralUseCase crearExpedienteLaboralUseCase(
-            mx.ades.modules.expediente_laboral.application.service.ExpedienteLaboralApplicationService service) {
-        return service;
-    }
-
-    @Bean
-    public mx.ades.modules.expediente_laboral.domain.port.in.ActualizarExpedienteLaboralUseCase actualizarExpedienteLaboralUseCase(
-            mx.ades.modules.expediente_laboral.application.service.ExpedienteLaboralApplicationService service) {
-        return service;
-    }
-
-    @Bean
-    public mx.ades.modules.expediente_laboral.domain.port.in.AgregarDocumentoLaboralUseCase agregarDocumentoLaboralUseCase(
-            mx.ades.modules.expediente_laboral.application.service.ExpedienteLaboralApplicationService service) {
-        return service;
     }
 
     // ── eval_docente (FASE 31) ────────────────────────────────────────────────
@@ -596,41 +274,11 @@ public class HexagonalConfig {
         return new mx.ades.modules.eval_docente.application.service.EvalDocenteApplicationService(repo);
     }
 
-    @Bean
-    public mx.ades.modules.eval_docente.domain.port.in.CrearEvaluacionUseCase crearEvaluacionUseCase(
-            mx.ades.modules.eval_docente.application.service.EvalDocenteApplicationService service) {
-        return service;
-    }
-
-    @Bean
-    public mx.ades.modules.eval_docente.domain.port.in.GuardarCriteriosUseCase guardarCriteriosUseCase(
-            mx.ades.modules.eval_docente.application.service.EvalDocenteApplicationService service) {
-        return service;
-    }
-
-    @Bean
-    public mx.ades.modules.eval_docente.domain.port.in.EnviarEvaluacionUseCase enviarEvaluacionUseCase(
-            mx.ades.modules.eval_docente.application.service.EvalDocenteApplicationService service) {
-        return service;
-    }
-
     // ── asistencia personal (FASE 30) ────────────────────────────────────────
     @Bean
     public mx.ades.modules.asistencia_personal.application.service.AsistenciaPersonalApplicationService asistenciaPersonalApplicationService(
             mx.ades.modules.asistencia_personal.domain.port.out.AsistenciaPersonalRepositoryPort repo) {
         return new mx.ades.modules.asistencia_personal.application.service.AsistenciaPersonalApplicationService(repo);
-    }
-
-    @Bean
-    public mx.ades.modules.asistencia_personal.domain.port.in.RegistrarAsistenciaUseCase registrarAsistenciaUseCase(
-            mx.ades.modules.asistencia_personal.application.service.AsistenciaPersonalApplicationService service) {
-        return service;
-    }
-
-    @Bean
-    public mx.ades.modules.asistencia_personal.domain.port.in.ActualizarAsistenciaUseCase actualizarAsistenciaUseCase(
-            mx.ades.modules.asistencia_personal.application.service.AsistenciaPersonalApplicationService service) {
-        return service;
     }
 
     // ── capacitaciones (FASE 25) ──────────────────────────────────────────────
@@ -640,35 +288,11 @@ public class HexagonalConfig {
         return new mx.ades.modules.capacitaciones.application.service.CapacitacionApplicationService(repo);
     }
 
-    @Bean
-    public mx.ades.modules.capacitaciones.domain.port.in.RegistrarCapacitacionUseCase registrarCapacitacion(
-            mx.ades.modules.capacitaciones.application.service.CapacitacionApplicationService service) {
-        return service;
-    }
-
-    @Bean
-    public mx.ades.modules.capacitaciones.domain.port.in.ValidarCapacitacionUseCase validarCapacitacion(
-            mx.ades.modules.capacitaciones.application.service.CapacitacionApplicationService service) {
-        return service;
-    }
-
     // ── personal_salud / medico (FASE 37) ────────────────────────────────────
     @Bean
     public mx.ades.modules.medico.application.service.PersonalSaludApplicationService personalSaludApplicationService(
             mx.ades.modules.medico.domain.port.out.PersonalSaludRepositoryPort repo) {
         return new mx.ades.modules.medico.application.service.PersonalSaludApplicationService(repo);
-    }
-
-    @Bean
-    public mx.ades.modules.medico.domain.port.in.RegistrarPersonalSaludUseCase registrarPersonalSaludUseCase(
-            mx.ades.modules.medico.application.service.PersonalSaludApplicationService service) {
-        return service;
-    }
-
-    @Bean
-    public mx.ades.modules.medico.domain.port.in.ActualizarPersonalSaludUseCase actualizarPersonalSaludUseCase(
-            mx.ades.modules.medico.application.service.PersonalSaludApplicationService service) {
-        return service;
     }
 
     // ── salud_avanzada (FASE 38) ─────────────────────────────────────────────
@@ -686,29 +310,11 @@ public class HexagonalConfig {
         return new mx.ades.modules.cierre.application.service.CierreApplicationService(repo, cierreCicloService);
     }
 
-    @Bean
-    public mx.ades.modules.cierre.domain.port.in.CerrarCicloUseCase cerrarCicloUseCase(
-            mx.ades.modules.cierre.application.service.CierreApplicationService service) {
-        return service;
-    }
-
     // ── horarios (FASE 42) ────────────────────────────────────────────────────
     @Bean
     public mx.ades.modules.horarios.application.service.HorarioApplicationService horarioApplicationService(
             mx.ades.modules.horarios.domain.port.out.HorarioWriteRepositoryPort repo) {
         return new mx.ades.modules.horarios.application.service.HorarioApplicationService(repo);
-    }
-
-    @Bean
-    public mx.ades.modules.horarios.domain.port.in.CrearHorarioUseCase crearHorarioUseCase(
-            mx.ades.modules.horarios.application.service.HorarioApplicationService service) {
-        return service;
-    }
-
-    @Bean
-    public mx.ades.modules.horarios.domain.port.in.ActualizarHorarioUseCase actualizarHorarioUseCase(
-            mx.ades.modules.horarios.application.service.HorarioApplicationService service) {
-        return service;
     }
 
     // ── planes_estudio (FASE 44) ──────────────────────────────────────────────
@@ -718,23 +324,11 @@ public class HexagonalConfig {
         return new mx.ades.modules.planes_estudio.application.service.PlanEstudioApplicationService(repo);
     }
 
-    @Bean
-    public mx.ades.modules.planes_estudio.domain.port.in.AsignarMateriaUseCase asignarMateriaUseCase(
-            mx.ades.modules.planes_estudio.application.service.PlanEstudioApplicationService service) {
-        return service;
-    }
-
     // ── admin promocion (FASE 58) ─────────────────────────────────────────────
     @Bean
     public mx.ades.modules.admin.application.service.PromocionApplicationService promocionApplicationService(
             mx.ades.modules.admin.domain.port.out.PromocionRepositoryPort repo) {
         return new mx.ades.modules.admin.application.service.PromocionApplicationService(repo);
-    }
-
-    @Bean
-    public mx.ades.modules.admin.domain.port.in.EvaluarPromocionUseCase evaluarPromocion(
-            mx.ades.modules.admin.application.service.PromocionApplicationService service) {
-        return service;
     }
 
     // ── contactos (FASE 52) ───────────────────────────────────────────────────
@@ -744,29 +338,11 @@ public class HexagonalConfig {
         return new mx.ades.modules.contactos.application.service.ContactosApplicationService(repo);
     }
 
-    @Bean
-    public mx.ades.modules.contactos.domain.port.in.RegistrarContactoUseCase registrarContactoUseCase(
-            mx.ades.modules.contactos.application.service.ContactosApplicationService service) {
-        return service;
-    }
-
-    @Bean
-    public mx.ades.modules.contactos.domain.port.in.ActualizarContactoUseCase actualizarContactoUseCase(
-            mx.ades.modules.contactos.application.service.ContactosApplicationService service) {
-        return service;
-    }
-
     // ── portal_familias (FASE 59) ─────────────────────────────────────────────
     @Bean
     public mx.ades.modules.portal_familias.application.service.PortalFamiliasApplicationService portalFamiliasApplicationService(
             mx.ades.modules.portal_familias.domain.port.out.PortalFamiliasRepositoryPort repo) {
         return new mx.ades.modules.portal_familias.application.service.PortalFamiliasApplicationService(repo);
-    }
-
-    @Bean
-    public mx.ades.modules.portal_familias.domain.port.in.AgregarTutorUseCase agregarTutorUseCase(
-            mx.ades.modules.portal_familias.application.service.PortalFamiliasApplicationService service) {
-        return service;
     }
 
     // alumnos, profesores, materias, planteles, certificados, aulas, boletas, foros:

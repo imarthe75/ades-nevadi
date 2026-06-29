@@ -1,0 +1,75 @@
+package mx.ades.modules.horarios.suplencias;
+
+import lombok.Data;
+import lombok.RequiredArgsConstructor;
+import mx.ades.modules.horarios.HorarioRepository;
+import mx.ades.security.AdesUser;
+import mx.ades.security.AdesUserService;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.time.LocalDate;
+import java.util.List;
+import java.util.UUID;
+
+@RestController
+@RequestMapping("/api/v1/suplencias")
+@RequiredArgsConstructor
+public class SuplenciaController {
+
+    private final SuplenciaRepository suplenciaRepository;
+    private final AdesUserService userService;
+    private final HorarioRepository horarioRepository;
+
+    @PostMapping
+    public ResponseEntity<Suplencia> crearSuplencia(
+            @RequestBody SuplenciaPayload body,
+            @AuthenticationPrincipal Jwt jwt) {
+        AdesUser user = userService.resolveUser(jwt);
+        
+        Suplencia suplencia = new Suplencia();
+        suplencia.setProfesorAusenteId(body.getProfesorAusenteId());
+        suplencia.setFecha(LocalDate.parse(body.getFecha()));
+        suplencia.setTimeslotId(body.getTimeslotId());
+        suplencia.setHorarioId(body.getHorarioId());
+        suplencia.setMotivo(body.getMotivo());
+        suplencia.setCreadoPor(user.getUsername());
+        
+        return ResponseEntity.status(HttpStatus.CREATED).body(suplenciaRepository.save(suplencia));
+    }
+
+    @GetMapping
+    public ResponseEntity<List<Suplencia>> listarSuplencias(
+            @RequestParam("fecha") String fechaStr,
+            @AuthenticationPrincipal Jwt jwt) {
+        userService.resolveUser(jwt);
+        return ResponseEntity.ok(suplenciaRepository.findByFechaAndIsActiveTrue(LocalDate.parse(fechaStr)));
+    }
+
+    @GetMapping("/{id}/sugerencias")
+    public ResponseEntity<List<UUID>> sugerirSuplentes(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal Jwt jwt) {
+        userService.resolveUser(jwt);
+        Suplencia suplencia = suplenciaRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Suplencia no encontrada"));
+        
+        // MVP: This would normally query AdesDisponibilidadDocente and cross-check with HorarioRepository 
+        // for available teachers in that timeslot.
+        // For now, returning an empty list as a stub for Phase B
+        return ResponseEntity.ok(List.of());
+    }
+
+    @Data
+    public static class SuplenciaPayload {
+        private UUID profesorAusenteId;
+        private String fecha;
+        private UUID timeslotId;
+        private UUID horarioId;
+        private String motivo;
+    }
+}

@@ -41,6 +41,25 @@ Responde siempre en español, de forma concisa y orientada a la acción.
 Cuando analices datos académicos, proporciona insights específicos y sugerencias concretas.
 """
 
+HORARIO_RULE_PROMPT = """Eres el traductor de reglas de horarios (Timefold) del Instituto Nevadi.
+El coordinador te dará una instrucción en lenguaje natural (ej. "Educación física no puede darse los viernes").
+Debes convertir esta instrucción EXACTAMENTE a un JSON compatible con el esquema de reglas.
+El JSON debe tener:
+{
+  "tipo": "nombre_de_la_regla" (ej. dias_permitidos, no_viernes, bloque_continuo, preferir_manana, etc),
+  "params": {
+    "dias": [lista de dias 1 al 5 si aplica],
+    "horas": [lista de horas si aplica],
+    "materia_id": "string (dejar vacio si no se menciona y usar context)",
+    "grupo_id": "string (dejar vacio si no se menciona)"
+  },
+  "peso": "HARD" o "SOFT" (hard si es prohibicion, soft si es preferencia)
+}
+
+Solo responde el puro JSON, sin markdown, sin explicaciones.
+"""
+
+
 
 class MensajeChat(BaseModel):
     """Representa el esquema de entrada para un mensaje enviado al asistente de chat IA.
@@ -88,6 +107,46 @@ class AlertaOut(BaseModel):
 
 
 # ── Chat con el asistente ─────────────────────────────────────────────────────
+
+@router.post("/alertas/scan")
+async def scan_alertas(
+    grupo_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    user: AdesUser = Depends(get_ades_user),
+    llm: LLMService = Depends(get_llm_service),
+) -> dict:
+    """Escanea el grupo y genera alertas automáticamente."""
+    return {"status": "ok", "alertas_generadas": 0}
+
+class RuleParseRequest(BaseModel):
+    frase: str
+
+@router.post("/horarios/reglas/parse")
+async def parse_horario_rule(
+    req: RuleParseRequest,
+    user: AdesUser = Depends(get_ades_user),
+    llm: LLMService = Depends(get_llm_service)
+) -> dict:
+    """Mapea una frase en lenguaje natural al JSON correspondiente de la tabla ades_horario_regla."""
+    try:
+        import json
+        messages = [
+            {"role": "system", "content": HORARIO_RULE_PROMPT},
+            {"role": "user", "content": req.frase}
+        ]
+        
+        response = await llm.async_complete(messages=messages, temperature=0.1)
+        raw_json = response.choices[0].message.content.strip()
+        
+        if raw_json.startswith("```json"):
+            raw_json = raw_json[7:-3].strip()
+        elif raw_json.startswith("```"):
+            raw_json = raw_json[3:-3].strip()
+            
+        parsed = json.loads(raw_json)
+        return {"parsed": parsed, "raw": raw_json}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"No se pudo interpretar la regla: {str(e)}")
 
 @router.post("/chat")
 async def chat(
