@@ -5,6 +5,7 @@ import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { DrawerModule } from 'primeng/drawer';
 import { SelectModule } from 'primeng/select';
+import { AutoCompleteModule } from 'primeng/autocomplete';
 import { InputTextModule } from 'primeng/inputtext';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { TooltipModule } from 'primeng/tooltip';
@@ -74,7 +75,7 @@ const NIVELES_ACCESO_PORTAL = [
   standalone: true,
   imports: [
     CommonModule, FormsModule, ReactiveFormsModule,
-    ButtonModule, DialogModule, DrawerModule, SelectModule,
+    ButtonModule, DialogModule, DrawerModule, SelectModule, AutoCompleteModule,
     InputTextModule, InputNumberModule, TooltipModule,
     ToggleSwitchModule, CardModule,
     TabsModule, TabList, Tab, TabPanels, TabPanel,
@@ -95,17 +96,18 @@ const NIVELES_ACCESO_PORTAL = [
     <!-- Selector de estudiante compartido -->
     <div class="student-bar">
       <label class="student-label">Estudiante:</label>
-      <p-select
-        [(ngModel)]="estudianteSeleccionado"
-        [options]="estudiantes()"
+      <p-autoComplete
+        [(ngModel)]="estudianteSeleccionadoObj"
+        [suggestions]="estudiantesSugg()"
+        (completeMethod)="buscarEstudiantes($event)"
         optionLabel="nombre_completo"
-        optionValue="id"
-        placeholder="Seleccionar estudiante..."
+        [forceSelection]="true"
+        placeholder="Buscar estudiante por nombre o matrícula..."
         [showClear]="true"
-        [filter]="true"
-        filterPlaceholder="Buscar..."
-        (onChange)="onEstudianteChange()"
-        style="width:320px" />
+        [dropdown]="true"
+        (onSelect)="onEstudianteSelect($event.value)"
+        (onClear)="onEstudianteClear()"
+        [style]="{ width: '320px' }" />
     </div>
 
     <p-tabs [value]="tabActivo()" (valueChange)="onTabChange($event)">
@@ -453,7 +455,8 @@ export class PadresAdminComponent implements OnInit {
   tabActivo             = signal('contactos');
   formTab               = 'personal';
   ocupacionesOpts       = signal<any[]>([]);
-  estudiantes           = signal<EstudianteOpt[]>([]);
+  estudiantesSugg       = signal<any[]>([]);
+  estudianteSeleccionadoObj: any = null;
   estudianteSeleccionado: string | null = null;
   loading               = signal(false);
   guardando             = signal(false);
@@ -597,7 +600,6 @@ export class PadresAdminComponent implements OnInit {
 
   // ─────────────────────────────────────────────────────────────
   ngOnInit(): void {
-    this.cargarEstudiantes();
     this.api.get<any[]>('/catalogos').subscribe({
       next: cats => {
         const ocup = cats.find(c => c.codigo === 'CAT_OCUPACIONES');
@@ -624,24 +626,36 @@ export class PadresAdminComponent implements OnInit {
 
   // ── Carga de datos ────────────────────────────────────────────
 
-  private cargarEstudiantes(): void {
-    this.loading.set(true);
-    this.api.get<{ data: any[] }>('/alumnos').subscribe({
+  buscarEstudiantes(event: { query: string }): void {
+    if (!event.query || event.query.trim().length < 2) {
+      this.estudiantesSugg.set([]);
+      return;
+    }
+    this.api.get<any[]>('/portal/buscar', { q: event.query }).subscribe({
       next: (res) => {
-        this.estudiantes.set((res.data ?? []).map((a: any) => ({
+        this.estudiantesSugg.set((res ?? []).map((a: any) => ({
           id: a.id,
           matricula: a.matricula,
-          nombre_completo: [a.persona?.nombre, a.persona?.apellido_paterno, a.persona?.apellido_materno]
-            .filter(Boolean).join(' ')
-            + ` — ${a.matricula ?? ''}`,
+          nombre_completo: [a.nombre, a.apellido_paterno, a.apellido_materno]
+            .filter(Boolean).join(' ') + (a.matricula ? ` — ${a.matricula}` : ''),
         })));
-        this.loading.set(false);
       },
       error: () => {
-        this.notify.error('Error', 'No se pudieron cargar los estudiantes');
-        this.loading.set(false);
-      },
+        this.estudiantesSugg.set([]);
+      }
     });
+  }
+
+  onEstudianteSelect(alumno: any): void {
+    this.estudianteSeleccionado = alumno?.id ?? null;
+    this.estudianteSeleccionadoObj = alumno;
+    this.onEstudianteChange();
+  }
+
+  onEstudianteClear(): void {
+    this.estudianteSeleccionado = null;
+    this.estudianteSeleccionadoObj = null;
+    this.onEstudianteChange();
   }
 
   cargarContactos(): void {
