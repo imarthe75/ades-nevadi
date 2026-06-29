@@ -16,6 +16,8 @@ import { InputTextModule } from 'primeng/inputtext';
 import { SelectButtonModule } from 'primeng/selectbutton';
 import { TooltipModule } from 'primeng/tooltip';
 import { TextareaModule } from 'primeng/textarea';
+import { DragDropModule, CdkDragDrop } from '@angular/cdk/drag-drop';
+import { HorarioGridComponent, HorarioGridEntry } from '../../shared/components/horario-grid/horario-grid.component';
 
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
@@ -133,6 +135,7 @@ const HORARIO_GOLDEN_REQUERIDO: Record<string, Record<string, number>> = {
     CommonModule, FormsModule,
     ButtonModule, SelectModule, TagModule, DialogModule,
     InputTextModule, SelectButtonModule, TooltipModule,
+    DragDropModule, HorarioGridComponent
   ],
   template: `
     <!-- ── Diálogo crear/editar entrada ── -->
@@ -191,6 +194,14 @@ const HORARIO_GOLDEN_REQUERIDO: Record<string, Record<string, number>> = {
               style="width:100%" [filter]="true" filterPlaceholder="Buscar…" placeholder="Aula…" [showClear]="true" />
           </div>
         </div>
+        <div class="dlg-row">
+          <div style="grid-column: 1 / -1; display:flex; align-items:center; gap:.5rem; margin-top:.5rem">
+            <input type="checkbox" id="fijadoCheck" [(ngModel)]="form.fijado" />
+            <label for="fijadoCheck" style="font-size:0.8rem; cursor:pointer">
+              Fijar este bloque (El motor automático no lo moverá)
+            </label>
+          </div>
+        </div>
       </div>
 
       <ng-template pTemplate="footer">
@@ -202,6 +213,33 @@ const HORARIO_GOLDEN_REQUERIDO: Record<string, Record<string, number>> = {
           (onClick)="showDialog.set(false)" />
         <p-button [label]="editEntry ? 'Guardar cambios' : 'Agregar al horario'"
           icon="pi pi-check" (onClick)="guardar()" [loading]="guardando()" />
+      </ng-template>
+    </p-dialog>
+
+
+    <!-- ── Diálogo Asistente IA de Reglas ── -->
+    <p-dialog
+      [visible]="mostrarReglasIA()"
+      (visibleChange)="mostrarReglasIA.set($event)"
+      header="Asistente IA para Reglas de Horario"
+      [modal]="true" [style]="{width:'600px'}" [draggable]="false">
+      <div style="display:flex; flex-direction:column; gap: 1rem; margin-top: 1rem;">
+        <p>Escribe la regla en lenguaje natural y la IA se encargará de traducirla.</p>
+        <textarea pTextarea [(ngModel)]="reglaFraseIA" rows="3" placeholder="Ej: Educación Física no se imparte los viernes para el grupo 2B" style="width:100%"></textarea>
+        <div style="display:flex; justify-content:flex-end;">
+          <p-button label="Interpretar regla" icon="pi pi-sparkles" (onClick)="parsearReglaIA()" [loading]="parseandoRegla()" [disabled]="!reglaFraseIA()"></p-button>
+        </div>
+        
+        @if (reglaInterpretada()) {
+          <div style="background: var(--surface-ground); padding: 1rem; border-radius: 6px; border: 1px solid var(--surface-border);">
+            <strong style="display:block; margin-bottom: 0.5rem; color: var(--primary-color);">Previsualización de regla:</strong>
+            <pre style="margin:0; white-space: pre-wrap; font-size: 0.9rem;">{{ reglaInterpretada() | json }}</pre>
+          </div>
+        }
+      </div>
+      <ng-template pTemplate="footer">
+        <p-button label="Cancelar" severity="secondary" [text]="true" (onClick)="mostrarReglasIA.set(false)" />
+        <p-button label="Guardar Regla" icon="pi pi-check" (onClick)="guardarReglaIA()" [loading]="guardandoRegla()" [disabled]="!reglaInterpretada()" />
       </ng-template>
     </p-dialog>
 
@@ -267,6 +305,12 @@ const HORARIO_GOLDEN_REQUERIDO: Record<string, Record<string, number>> = {
             (onClick)="cargarCorridas()"
             [loading]="cargandoCorridas()"
             [disabled]="!puedeUsarSolver()"
+          />
+          <p-button
+            label="Reglas IA"
+            icon="pi pi-sparkles"
+            severity="info"
+            (onClick)="mostrarReglasIA.set(true)"
           />
           <p-button
             label="Ejecutar solver"
@@ -350,8 +394,29 @@ const HORARIO_GOLDEN_REQUERIDO: Record<string, Record<string, number>> = {
               </div>
 
               <div class="solver-json-block">
-                <label>Análisis</label>
-                <textarea pTextarea rows="8" readonly [ngModel]="corridaAnalysisText()"></textarea>
+                <label>Análisis de Restricciones</label>
+                @if (corridaAnalysis()) {
+                  <div class="reporte-checks" style="margin-top: 0.5rem">
+                    @for (constraint of corridaAnalysis()?.constraints || []; track constraint.name) {
+                      @if (constraint.score !== '0hard/0soft') {
+                        <div class="reporte-check">
+                          <div>
+                            <strong>{{ constraint.name }}</strong>
+                            <p>Penalización: {{ constraint.score }}</p>
+                          </div>
+                          <span [class.ok]="!constraint.score.includes('-')">
+                            {{ constraint.score.includes('-') ? '❌' : '⚠️' }}
+                          </span>
+                        </div>
+                      }
+                    }
+                    @if ((corridaAnalysis()?.constraints?.length || 0) === 0) {
+                      <div class="solver-empty small">No hay violaciones de restricciones.</div>
+                    }
+                  </div>
+                } @else {
+                  <textarea pTextarea rows="8" readonly [ngModel]="corridaAnalysisText()"></textarea>
+                }
               </div>
 
               @if ((corridaDetalle()?.horarios?.length ?? 0) > 0) {
@@ -525,40 +590,14 @@ const HORARIO_GOLDEN_REQUERIDO: Record<string, Record<string, number>> = {
         <i class="pi pi-calendar-plus" style="font-size:2.5rem;color:#CBD5E1"></i>
         <p>No hay entradas de horario. Usa "Nueva entrada" para comenzar.</p>
       </div>
-    } @else {
-      <div class="horario-grid">
-        <!-- Cabecera días -->
-        <div class="grid-header">
-          <div class="hora-col"></div>
-          @for (dia of dias; track dia.num) {
-            <div class="dia-header">{{ dia.label }}</div>
-          }
-        </div>
-
-        <!-- Franjas horarias -->
-        @for (franja of franjas(); track franja) {
-          <div class="grid-row">
-            <div class="hora-col">{{ franja }}</div>
-            @for (dia of dias; track dia.num) {
-              <div class="dia-cell">
-                @for (e of entradasPor(dia.num, franja); track e.id) {
-                  <div class="clase-chip" [style.background]="colorMateria(e.nombre_materia)"
-                       (click)="abrirEditar(e)" pTooltip="Click para editar" style="cursor:pointer">
-                    <strong>{{ e.nombre_materia }}</strong>
-                    @if (modo === 'grupo') {
-                      <span>{{ e.nombre_profesor }}</span>
-                    } @else {
-                      <span>{{ e.nombre_grupo }}</span>
-                    }
-                    @if (e.nombre_aula) { <span class="aula-tag">{{ e.nombre_aula }}</span> }
-                    <span class="hora-tag">{{ e.hora_inicio | slice:0:5 }}–{{ e.hora_fin | slice:0:5 }}</span>
-                  </div>
-                }
-              </div>
-            }
-          </div>
-        }
-      </div>
+      <app-horario-grid
+        [dias]="dias"
+        [franjas]="franjas()"
+        [entradas]="entradas()"
+        [modo]="modo"
+        (claseDrop)="onClaseDrop($event)"
+        (claseClick)="abrirEditar($event)">
+      </app-horario-grid>
     }
   `,
   styles: [`
@@ -567,52 +606,6 @@ const HORARIO_GOLDEN_REQUERIDO: Record<string, Record<string, number>> = {
     .page-header h2 { margin:0; }
     .subtitle { margin:0; font-size:.82rem; color:var(--p-text-color-secondary); }
     .empty-state { display: flex; flex-direction: column; align-items: center; gap: 0.75rem; padding: 4rem; color: #94A3B8; }
-
-    /* Grid */
-    .horario-grid { overflow-x: auto; }
-    .grid-header, .grid-row {
-      display: grid;
-      grid-template-columns: 70px repeat(5, 1fr);
-      gap: 2px;
-    }
-    .grid-header { margin-bottom: 2px; }
-    .dia-header {
-      background: var(--nevadi-red);
-      color: #fff;
-      text-align: center;
-      padding: 0.4rem;
-      font-family: var(--font-display);
-      font-weight: 700;
-      font-size: 0.82rem;
-      border-radius: 4px;
-    }
-    .hora-col {
-      font-size: 0.75rem;
-      color: var(--text-secondary);
-      padding: 0.3rem 0.4rem;
-      display: flex; align-items: flex-start;
-      font-family: var(--font-body);
-    }
-    .dia-cell {
-      min-height: 52px;
-      background: var(--surface-hover);
-      border-radius: 4px;
-      padding: 2px;
-      display: flex; flex-direction: column; gap: 2px;
-    }
-    .clase-chip {
-      border-radius: 4px;
-      padding: 0.3rem 0.5rem;
-      font-size: 0.78rem;
-      display: flex; flex-direction: column;
-      border-left: 3px solid var(--nevadi-red);
-    }
-    .clase-chip:hover { filter: brightness(.95); }
-    .clase-chip strong { font-family: var(--font-display); font-size: 0.8rem; }
-    .clase-chip span { color: var(--text-secondary); font-size: 0.72rem; }
-    .aula-tag { font-weight: 600; color: var(--nevadi-red-dark) !important; }
-    .hora-tag { font-size: 0.68rem !important; color: var(--text-muted) !important; }
-    .grid-row { margin-bottom: 2px; }
 
     /* Diálogo */
     .dlg-grid { display:flex; flex-direction:column; gap:.75rem; padding:.5rem 0; }
@@ -714,6 +707,11 @@ export class HorariosComponent implements OnInit, OnDestroy {
   mutandoCorrida = signal(false);
   reportePrimaria = signal<HorarioReportePrimaria | null>(null);
   cargandoReporte = signal(false);
+  mostrarReglasIA = signal(false);
+  reglaFraseIA = signal('');
+  reglaInterpretada = signal<any>(null);
+  parseandoRegla = signal(false);
+  guardandoRegla = signal(false);
   private corridasPollHandle: ReturnType<typeof setInterval> | null = null;
   private horariosSeleccionados = new Set<string>();
 
@@ -741,6 +739,7 @@ export class HorariosComponent implements OnInit, OnDestroy {
     profesor_id: string | null;
     grupo_id: string | null;
     aula_id: string | null;
+    fijado: boolean;
   } = this.resetForm();
 
   modoLabel = computed(() => this.modo === 'grupo' ? 'Grupo' : 'Docente');
@@ -828,6 +827,16 @@ export class HorariosComponent implements OnInit, OnDestroy {
       return JSON.stringify(parsed, null, 2);
     } catch {
       return detalle.score_analysis_json;
+    }
+  }
+
+  corridaAnalysis(): any {
+    const detalle = this.corridaDetalle();
+    if (!detalle?.score_analysis_json) return null;
+    try {
+      return JSON.parse(detalle.score_analysis_json);
+    } catch {
+      return null;
     }
   }
 
@@ -1133,6 +1142,57 @@ export class HorariosComponent implements OnInit, OnDestroy {
     });
   }
 
+
+  parsearReglaIA(): void {
+    const frase = this.reglaFraseIA();
+    if (!frase) return;
+    this.parseandoRegla.set(true);
+    this.api.post<any>('/ai/horarios/reglas/parse', { frase }).subscribe({
+      next: (res) => {
+        this.parseandoRegla.set(false);
+        this.reglaInterpretada.set(res.parsed);
+        this.notify.success('IA', 'Regla interpretada correctamente.');
+      },
+      error: (err) => {
+        this.parseandoRegla.set(false);
+        this.notify.error('IA Error', err?.error?.detail ?? 'No se pudo interpretar la regla.');
+      }
+    });
+  }
+
+  guardarReglaIA(): void {
+    const parsed = this.reglaInterpretada();
+    const plantelId = this.ctx.plantel()?.id;
+    const cicloId = this.ctx.ciclo()?.id;
+    if (!parsed || !plantelId || !cicloId) return;
+    
+    const payload = {
+      plantelId,
+      cicloEscolarId: cicloId,
+      tipo: parsed.tipo,
+      params: parsed.params,
+      peso: parsed.peso === 'HARD' ? 100 : 10,
+      dura: parsed.peso === 'HARD',
+      activa: true
+    };
+    
+    this.guardandoRegla.set(true);
+    // Nota: Llama al API de Spring Boot (/api/v1/horarios/reglas)
+    this.api.post<any>('/horarios/reglas', payload).subscribe({
+      next: () => {
+        this.guardandoRegla.set(false);
+        this.mostrarReglasIA.set(false);
+        this.reglaFraseIA.set('');
+        this.reglaInterpretada.set(null);
+        this.notify.success('Reglas', 'Regla guardada en la base de datos.');
+      },
+      error: () => {
+        this.guardandoRegla.set(false);
+        this.notify.error('Error', 'No se pudo guardar la regla.');
+      }
+    });
+  }
+
   iniciarSolver(): void {
     const plantelId = this.ctx.plantel()?.id;
     const cicloId = this.ctx.ciclo()?.id;
@@ -1226,22 +1286,47 @@ export class HorariosComponent implements OnInit, OnDestroy {
   }
 
   private construirPayloadSolver(horarios: any[], plantelId: string, cicloId: string): Record<string, any> {
-    const timeslotsMap = new Map<string, Record<string, any>>();
     const leccionesMap = new Map<string, Record<string, any>>();
+
+    const diasNormales = [1, 2, 3, 4];
+    const franjasNormales = [
+      { hora_inicio: '07:00', hora_fin: '07:50' },
+      { hora_inicio: '07:50', hora_fin: '08:40' },
+      { hora_inicio: '08:40', hora_fin: '09:30' },
+      { hora_inicio: '10:00', hora_fin: '10:50' },
+      { hora_inicio: '10:50', hora_fin: '11:40' },
+      { hora_inicio: '11:40', hora_fin: '12:30' },
+      { hora_inicio: '12:30', hora_fin: '13:20' },
+      { hora_inicio: '13:50', hora_fin: '14:40' },
+      { hora_inicio: '14:40', hora_fin: '15:30' },
+      { hora_inicio: '15:30', hora_fin: '16:00' }
+    ];
+    
+    const franjasViernes = [
+      { hora_inicio: '07:00', hora_fin: '07:50' },
+      { hora_inicio: '07:50', hora_fin: '08:40' },
+      { hora_inicio: '08:40', hora_fin: '09:30' },
+      { hora_inicio: '10:00', hora_fin: '10:50' },
+      { hora_inicio: '10:50', hora_fin: '11:40' },
+      { hora_inicio: '11:40', hora_fin: '12:30' },
+      { hora_inicio: '12:30', hora_fin: '13:20' },
+      { hora_inicio: '13:20', hora_fin: '14:00' }
+    ];
+
+    const timeslots = [];
+    for (const dia of diasNormales) {
+      for (const f of franjasNormales) {
+        timeslots.push({ dia_semana: dia, hora_inicio: f.hora_inicio, hora_fin: f.hora_fin, turno: 'MATUTINO' });
+      }
+    }
+    for (const f of franjasViernes) {
+      timeslots.push({ dia_semana: 5, hora_inicio: f.hora_inicio, hora_fin: f.hora_fin, turno: 'MATUTINO' });
+    }
 
     for (const row of horarios) {
       const diaSemana = Number(row.dia_semana);
       const horaInicio = String(row.hora_inicio ?? '').slice(0, 5);
       const horaFin = String(row.hora_fin ?? '').slice(0, 5);
-      const timeslotKey = `${diaSemana}|${horaInicio}|${horaFin}`;
-      if (!timeslotsMap.has(timeslotKey)) {
-        timeslotsMap.set(timeslotKey, {
-          dia_semana: diaSemana,
-          hora_inicio: horaInicio,
-          hora_fin: horaFin,
-          turno: row.turno ?? null,
-        });
-      }
 
       const leccionKey = String(row.id ?? `${row.grupo_id}|${row.materia_id}|${row.profesor_id}|${row.aula_id}`);
       if (!leccionesMap.has(leccionKey)) {
@@ -1266,7 +1351,7 @@ export class HorariosComponent implements OnInit, OnDestroy {
     return {
       plantel_id: plantelId,
       ciclo_escolar_id: cicloId,
-      timeslots: Array.from(timeslotsMap.values()),
+      timeslots: timeslots,
       lecciones: Array.from(leccionesMap.values()),
     };
   }
@@ -1287,9 +1372,65 @@ export class HorariosComponent implements OnInit, OnDestroy {
   }
 
   colorMateria(nombre: string | null): string {
-    if (!nombre) return COLORS['default'];
-    const key = Object.keys(COLORS).find(k => nombre.includes(k));
-    return key ? COLORS[key] : COLORS['default'];
+    if (!nombre) return 'var(--surface-hover)';
+    const colorHash = nombre.split('').reduce((acc, char) => char.charCodeAt(0) + ((acc << 5) - acc), 0);
+    const h = Math.abs(colorHash) % 360;
+    return `hsl(${h}, 60%, 90%)`;
+  }
+
+  onClaseDrop(event: CdkDragDrop<any>) {
+    if (event.previousContainer === event.container) {
+      // Movimiento dentro de la misma celda, no hacer nada o reordenar si aplica
+      return;
+    }
+    const item: HorarioEntry = event.item.data;
+    const destino = event.container.data as {dia: number, franja: string};
+    
+    // Si la clase está fijada, no permitir moverla (validación extra)
+    if (item.fijado) {
+      this.notify.error('No se puede mover', 'La clase está fijada por el motor.');
+      return;
+    }
+    
+    // Aquí implementaremos la actualización en la API
+    // Por ahora, actualicemos el estado localmente para feedback inmediato
+    const oldDia = item.dia_semana;
+    const oldHora = item.hora_inicio;
+    
+    item.dia_semana = destino.dia;
+    item.hora_inicio = destino.franja;
+    // Calcular hora de fin basado en la duración original
+    const oldIni = new Date(`1970-01-01T${oldHora}`);
+    const oldFin = new Date(`1970-01-01T${item.hora_fin}`);
+    const diffMs = oldFin.getTime() - oldIni.getTime();
+    
+    const newIni = new Date(`1970-01-01T${destino.franja}:00`);
+    const newFin = new Date(newIni.getTime() + diffMs);
+    item.hora_fin = newFin.toTimeString().slice(0, 5) + ':00';
+    
+    // Si la actualización en BD falla, revertiríamos esto.
+    // Lógica para enviar a la API
+    const payload = {
+      dia_semana: item.dia_semana,
+      hora_inicio: item.hora_inicio,
+      hora_fin: item.hora_fin
+    };
+    
+    this.api.put(`/horarios/${item.id}`, payload).subscribe({
+      next: () => {
+        this.notify.success('Clase movida', 'El horario ha sido actualizado.');
+        // Trigger de regeneración del signal
+        this.entradas.set([...this.entradas()]); 
+      },
+      error: (err) => {
+        this.notify.error('Error al mover', err?.error?.message || 'Hubo un problema de validación de traslape');
+        // Revertir
+        item.dia_semana = oldDia;
+        item.hora_inicio = oldHora;
+        item.hora_fin = oldFin.toTimeString().slice(0, 5) + ':00';
+        this.entradas.set([...this.entradas()]);
+      }
+    });
   }
 
   abrirNuevo(): void {
@@ -1314,6 +1455,7 @@ export class HorariosComponent implements OnInit, OnDestroy {
       profesor_id: e.profesor_id,
       grupo_id: e.grupo_id,
       aula_id: e.aula_id,
+      fijado: e.fijado || false
     };
     this.showDialog.set(true);
   }
@@ -1337,6 +1479,7 @@ export class HorariosComponent implements OnInit, OnDestroy {
       aula_id: this.form.aula_id || null,
       ciclo_escolar_id: cicloId || null,
       origen: 'MANUAL',
+      fijado: this.form.fijado ?? false,
     };
 
     if (this.modo === 'grupo') {
@@ -1442,11 +1585,12 @@ export class HorariosComponent implements OnInit, OnDestroy {
     return {
       dia_semana: null as number | null,
       hora_inicio: '08:00',
-      duracion: 50,
+      duracion: 60,
       materia_id: null as string | null,
       profesor_id: null as string | null,
-      grupo_id: null as string | null,
+      grupo_id: this.selectedGrupoId || this.ctx.grupo()?.id || null,
       aula_id: null as string | null,
+      fijado: false
     };
   }
 

@@ -65,6 +65,18 @@ public class HorarioQueryService {
         return jdbc.queryForList(SELECT + where, params.toArray());
     }
 
+    public List<Map<String, Object>> porAula(UUID aulaId, UUID cicloId) {
+        StringBuilder where = new StringBuilder("WHERE h.aula_id = ? AND h.is_active = TRUE");
+        List<Object> params = new ArrayList<>();
+        params.add(aulaId);
+        if (cicloId != null) {
+            where.append(" AND h.ciclo_escolar_id = ?");
+            params.add(cicloId);
+        }
+        where.append(" ORDER BY h.dia_semana, h.hora_inicio");
+        return jdbc.queryForList(SELECT + where, params.toArray());
+    }
+
     public List<Map<String, Object>> listar(UUID grupoId, UUID plantelId, UUID cicloId) {
         StringBuilder where = new StringBuilder("WHERE h.is_active = TRUE");
         List<Object> params = new ArrayList<>();

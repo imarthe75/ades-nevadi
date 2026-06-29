@@ -5,4 +5,4 @@ TOKEN_FILE="/vault/init/root_token.txt"
 if [ -z "$VAULT_TOKEN" ] && [ -f "$TOKEN_FILE" ]; then
     export VAULT_TOKEN=$(cat "$TOKEN_FILE")
 fi
-exec java -jar /app/app.jar "$@"
+exec java -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true -jar /app/app.jar "$@"

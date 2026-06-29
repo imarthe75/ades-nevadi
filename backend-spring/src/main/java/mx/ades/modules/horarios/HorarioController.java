@@ -53,6 +53,7 @@ public class HorarioController {
     private final HorarioCorridaRepository horarioCorridaRepository;
     private final HorarioRepository horarioRepository;
     private final HorarioAscService ascService;
+    private final mx.ades.modules.horarios.application.export.HorarioExcelExporter excelExporter;
     @Value("${ades.horarios.asc-import.enabled:false}")
     private boolean ascImportEnabled;
 
@@ -398,6 +399,30 @@ public class HorarioController {
         return leccion;
     }
 
+
+    @GetMapping("/corridas/{id}/excel")
+    public ResponseEntity<byte[]> descargarExcelCorrida(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal Jwt jwt) {
+        userService.resolveUser(jwt);
+        var corrida = horarioCorridaRepository.findById(id)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Corrida no encontrada."));
+            
+        java.util.List<java.util.Map<String, Object>> horarios = queryService.porCorrida(id);
+        if (horarios.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La corrida no tiene horarios generados.");
+        }
+        
+        byte[] excelBytes = excelExporter.generarExcel(horarios, corrida.getId().toString());
+        
+        org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+        headers.setContentType(org.springframework.http.MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+        headers.setContentDispositionFormData("attachment", "Horario_Corrida_" + id.toString().substring(0, 8) + ".xlsx");
+        headers.setCacheControl("must-revalidate, post-check=0, pre-check=0");
+        
+        return new ResponseEntity<>(excelBytes, headers, HttpStatus.OK);
+    }
+
     private Map<String, Object> mapCorrida(HorarioCorrida corrida) {
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("id", corrida.getId());
@@ -409,10 +434,11 @@ public class HorarioController {
         response.put("tiempo_solving_ms", corrida.getTiempoSolvingMs());
         response.put("version", corrida.getVersion());
         response.put("generado_por", corrida.getGeneradoPor());
-        response.put("resultado_excel_url", corrida.getResultadoExcelUrl());
+        long count = horarioRepository.countByCorridaId(corrida.getId());
+        response.put("horarios_generados", count);
+        response.put("resultado_excel_url", count > 0 ? "/api/v1/horarios/corridas/" + corrida.getId() + "/excel" : null);
         response.put("fecha_creacion", corrida.getFechaCreacion());
         response.put("fecha_modificacion", corrida.getFechaModificacion());
-        response.put("horarios_generados", horarioRepository.countByCorridaId(corrida.getId()));
         return response;
     }
 }

@@ -14,13 +14,20 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import ai.timefold.solver.core.api.score.HardSoftScore;
+import ai.timefold.solver.core.api.solver.SolutionManager;
+import ai.timefold.solver.core.api.score.analysis.ScoreAnalysis;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @RequiredArgsConstructor
 public class HorarioSolverService {
 
     private final SolverManager<HorarioPlan> solverManager;
+    private final SolutionManager<HorarioPlan, HardSoftScore> solutionManager;
     private final HorarioCorridaRepository corridaRepository;
     private final HorarioRepository horarioRepository;
+    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final org.springframework.jdbc.core.JdbcTemplate jdbc;
 
         public void fijarHorariosDeCorrida(UUID corridaId, List<UUID> horarioIds) {
         if (horarioIds == null || horarioIds.isEmpty()) {
@@ -83,6 +90,8 @@ public class HorarioSolverService {
             lecciones);
         }
 
+    private final mx.ades.modules.horarios.config.HorarioReglaRepository reglaRepository;
+
     public UUID iniciarCorrida(UUID plantelId, UUID cicloEscolarId, String generadoPor,
             List<HorarioTimeslot> timeslots, List<HorarioLeccion> lecciones) {
         HorarioCorrida corrida = new HorarioCorrida();
@@ -90,6 +99,8 @@ public class HorarioSolverService {
         corrida.setCicloEscolarId(cicloEscolarId);
         corrida.setGeneradoPor(generadoPor);
         corrida.setEstado("PENDIENTE");
+        Integer maxVersion = corridaRepository.findMaxVersionByPlantelIdAndCicloEscolarId(plantelId, cicloEscolarId);
+        corrida.setVersion(maxVersion == null ? 1 : maxVersion + 1);
         corrida = corridaRepository.save(corrida);
 
         for (HorarioLeccion leccion : lecciones) {
@@ -97,11 +108,20 @@ public class HorarioSolverService {
             if (leccion.getCicloEscolarId() == null) {
                 leccion.setCicloEscolarId(cicloEscolarId);
             }
+            if (leccion.getMateriaNombre() == null && leccion.getMateriaId() != null) {
+                String matNombre = jdbc.queryForObject("SELECT nombre_materia FROM ades_materias WHERE id = ?", String.class, leccion.getMateriaId());
+                leccion.setMateriaNombre(matNombre);
+            }
+            if (leccion.getGradoNumero() == null && leccion.getGrupoId() != null) {
+                Integer gradoNum = jdbc.queryForObject("SELECT gr.numero_grado FROM ades_grados gr JOIN ades_grupos g ON g.grado_id = gr.id WHERE g.id = ?", Integer.class, leccion.getGrupoId());
+                leccion.setGradoNumero(gradoNum);
+            }
         }
 
         HorarioPlan plan = new HorarioPlan();
         plan.setTimeslots(timeslots);
         plan.setLecciones(lecciones);
+        plan.setReglas(reglaRepository.findByPlantelIdAndCicloEscolarIdAndActivaTrueAndIsActiveTrue(plantelId, cicloEscolarId));
 
         UUID corridaId = corrida.getId();
         solverManager.solveBuilder()
@@ -122,9 +142,20 @@ public class HorarioSolverService {
                 .toList();
         horarioRepository.saveAll(horarios);
 
+        String analysisJson = null;
+        try {
+            ScoreAnalysis<HardSoftScore> scoreAnalysis = solutionManager.analyze(solution);
+            analysisJson = objectMapper.writeValueAsString(scoreAnalysis);
+        } catch (Exception e) {
+            analysisJson = "{\"error\":\"" + escapeJson(e.getMessage()) + "\"}";
+        }
+        
+        final String finalAnalysisJson = analysisJson;
+
         corridaRepository.findById(corridaId).ifPresent(corrida -> {
             corrida.setEstado("SOLUCIONADA");
             corrida.setScoreText(solution.getScore() == null ? null : solution.getScore().toString());
+            corrida.setScoreAnalysisJson(finalAnalysisJson);
             corridaRepository.save(corrida);
         });
     }

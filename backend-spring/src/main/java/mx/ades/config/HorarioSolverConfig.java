@@ -10,6 +10,8 @@ import mx.ades.modules.horarios.HorarioRepository;
 import mx.ades.modules.horarios.solver.HorarioConstraintProvider;
 import mx.ades.modules.horarios.solver.HorarioLeccion;
 import mx.ades.modules.horarios.solver.HorarioPlan;
+import ai.timefold.solver.core.api.solver.SolutionManager;
+import ai.timefold.solver.core.api.score.HardSoftScore;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -21,7 +23,8 @@ public class HorarioSolverConfig {
         return new SolverConfig()
                 .withSolutionClass(HorarioPlan.class)
                 .withEntityClasses(HorarioLeccion.class)
-                .withConstraintProviderClass(HorarioConstraintProvider.class);
+                .withConstraintProviderClass(HorarioConstraintProvider.class)
+                .withTerminationSpentLimit(java.time.Duration.ofSeconds(30));
     }
 
     @Bean
@@ -35,8 +38,18 @@ public class HorarioSolverConfig {
     }
 
     @Bean
-    public HorarioSolverService horarioSolverService(SolverManager<HorarioPlan> horarioSolverManager,
-            HorarioCorridaRepository corridaRepository, HorarioRepository horarioRepository) {
-        return new HorarioSolverService(horarioSolverManager, corridaRepository, horarioRepository);
+    public SolutionManager<HorarioPlan, HardSoftScore> horarioSolutionManager(SolverFactory<HorarioPlan> horarioSolverFactory) {
+        return SolutionManager.create(horarioSolverFactory);
+    }
+
+    @Bean
+    public HorarioSolverService horarioSolverService(
+            SolverManager<HorarioPlan> horarioSolverManager,
+            SolutionManager<HorarioPlan, HardSoftScore> horarioSolutionManager,
+            HorarioCorridaRepository corridaRepository,
+            HorarioRepository horarioRepository,
+            mx.ades.modules.horarios.config.HorarioReglaRepository reglaRepository,
+            org.springframework.jdbc.core.JdbcTemplate jdbc) {
+        return new HorarioSolverService(horarioSolverManager, horarioSolutionManager, corridaRepository, horarioRepository, jdbc, reglaRepository);
     }
 }
