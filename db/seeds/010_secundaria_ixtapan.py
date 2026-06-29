@@ -250,6 +250,8 @@ add_regla("ventana_horaria_docente", f'{{"profesor_id": "{prof_carlos}", "dia": 
 # Proyectos al final del día (después de las 13:00)
 add_regla("ventana_horaria", '{"materia": "PROYECTOS", "modo": "despues_de", "hora": "13:00:00"}', "Proyectos al final del dia")
 
+if reglas:
+    exec_sql_text(f"""
     INSERT INTO ades_horario_regla (id, plantel_id, ciclo_escolar_id, nivel_educativo_id, tipo, dura, peso, activa, params, descripcion, is_active, usuario_creacion)
     VALUES {",".join(reglas)};
     """)
