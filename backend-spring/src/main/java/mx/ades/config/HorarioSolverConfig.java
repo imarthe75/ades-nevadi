@@ -49,7 +49,8 @@ public class HorarioSolverConfig {
             HorarioCorridaRepository corridaRepository,
             HorarioRepository horarioRepository,
             mx.ades.modules.horarios.config.HorarioReglaRepository reglaRepository,
+            mx.ades.modules.horarios.config.HorarioFranjaRepository franjaRepository,
             org.springframework.jdbc.core.JdbcTemplate jdbc) {
-        return new HorarioSolverService(horarioSolverManager, horarioSolutionManager, corridaRepository, horarioRepository, jdbc, reglaRepository);
+        return new HorarioSolverService(horarioSolverManager, horarioSolutionManager, corridaRepository, horarioRepository, jdbc, reglaRepository, franjaRepository);
     }
 }

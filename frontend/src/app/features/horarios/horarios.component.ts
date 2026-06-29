@@ -465,93 +465,55 @@ const HORARIO_GOLDEN_REQUERIDO: Record<string, Record<string, number>> = {
     <div class="solver-panel">
       <div class="solver-head">
         <div>
-          <h3>Verificación Primaria Nevadi</h3>
+          <h3>Análisis del Motor (Timefold)</h3>
           <p>
-            Calcula un reporte de cumplimiento con base en los horarios activos del plantel y ciclo actual.
-            Sirve para comparar la solución de Timefold contra la regla golden de primaria.
+            Calcula las infracciones a las reglas del motor basándose en el horario actualmente activo.
           </p>
         </div>
         <div class="solver-actions">
           <p-button
-            label="Generar verificación"
+            label="Verificar Reglas"
             icon="pi pi-shield"
-            (onClick)="cargarReportePrimaria()"
+            (onClick)="verificarHorarioBackend()"
             [loading]="cargandoReporte()"
             [disabled]="!ctx.plantel() || !ctx.ciclo()"
           />
         </div>
       </div>
 
-      @if (!reportePrimaria()) {
-        <div class="solver-empty">Pulsa "Generar verificación" para construir el reporte contra la configuración golden.</div>
+      @if (!reporteVerificacion()) {
+        <div class="solver-empty">Pulsa "Verificar Reglas" para analizar el horario actual con Timefold.</div>
       } @else {
-        <div class="reporte-summary">
-          <div><label>Estado del solver</label><strong>{{ reportePrimaria()?.estado_solver }}</strong></div>
-          <div><label>Score</label><strong>{{ reportePrimaria()?.score_text }}</strong></div>
-          <div><label>Resumen</label><strong>{{ reportePrimaria()?.resumen }}</strong></div>
-        </div>
-
         <div class="reporte-grid">
-          <section class="solver-card">
-            <div class="solver-card-head"><strong>Horas por grupo</strong></div>
+          <section class="solver-card" style="grid-column: 1 / -1">
+            <div class="solver-card-head"><strong>Desglose de Restricciones</strong></div>
             <div class="reporte-table-wrap">
               <table class="solver-table">
                 <thead>
                   <tr>
-                    <th>Grupo</th>
-                    <th>Grado</th>
-                    <th>Total h</th>
-                    <th>Materias</th>
+                    <th>Regla (Constraint)</th>
+                    <th>Penalización Parcial</th>
+                    <th>Incidencias (Matches)</th>
                   </tr>
                 </thead>
                 <tbody>
-                  @for (grupo of reportePrimaria()?.grupos || []; track grupo.grupo) {
+                  @for (c of reporteVerificacion()?.constraints; track c.name) {
                     <tr>
-                      <td>{{ grupo.grupo }}</td>
-                      <td>{{ grupo.grado ?? 'N/D' }}</td>
-                      <td>{{ grupo.totalHoras.toFixed(1) }}</td>
-                      <td>
-                        @for (m of grupo.materias; track m.materia) {
-                          <div>
-                            {{ m.materia }}: {{ m.obtenido.toFixed(1) }} / {{ m.requerido ?? 'N/D' }}
-                            @if (!m.cumple) { <strong style="color:#b91c1c">❌</strong> } @else { <strong style="color:#166534">✅</strong> }
-                          </div>
-                        }
+                      <td>{{ c.name }}</td>
+                      <td style="color: var(--pink-500); font-weight:600">{{ c.score }}</td>
+                      <td>{{ c.matchesCount }}</td>
+                    </tr>
+                  }
+                  @if (!reporteVerificacion()?.constraints?.length) {
+                    <tr>
+                      <td colspan="3" style="text-align:center; padding:2rem; color:var(--text-secondary)">
+                        No hay penalizaciones. ¡El horario es 100% óptimo!
                       </td>
                     </tr>
                   }
                 </tbody>
               </table>
             </div>
-          </section>
-
-          <section class="solver-card">
-            <div class="solver-card-head"><strong>Checks</strong></div>
-            <div class="reporte-checks">
-              @for (check of reportePrimaria()?.checks || []; track check.criterio) {
-                <div class="reporte-check">
-                  <div>
-                    <strong>{{ check.criterio }}</strong>
-                    <p>{{ check.detalle }}</p>
-                  </div>
-                  <span [class.ok]="check.ok">{{ check.ok ? '✅' : '❌' }}</span>
-                </div>
-              }
-            </div>
-
-            <div class="solver-card-head" style="margin-top:1rem"><strong>Traslapes docentes compartidos</strong></div>
-            @if ((reportePrimaria()?.conflictos_docentes?.length ?? 0) === 0) {
-              <div class="solver-empty small">No se detectaron traslapes.</div>
-            } @else {
-              <div class="reporte-conflicts">
-                @for (docente of reportePrimaria()?.conflictos_docentes || []; track docente.docente) {
-                  <div class="reporte-conflict">
-                    <strong>{{ docente.docente }}</strong>
-                    <p>{{ docente.conflictos.join(' · ') }}</p>
-                  </div>
-                }
-              </div>
-            }
           </section>
         </div>
       }
@@ -705,7 +667,7 @@ export class HorariosComponent implements OnInit, OnDestroy {
   cargandoCorridas = signal(false);
   ejecutandoSolver = signal(false);
   mutandoCorrida = signal(false);
-  reportePrimaria = signal<HorarioReportePrimaria | null>(null);
+  reporteVerificacion = signal<any>(null);
   cargandoReporte = signal(false);
   mostrarReglasIA = signal(false);
   reglaFraseIA = signal('');
@@ -912,18 +874,27 @@ export class HorariosComponent implements OnInit, OnDestroy {
     });
   }
 
-  cargarReportePrimaria(): void {
+  verificarHorarioBackend(): void {
     const plantelId = this.ctx.plantel()?.id;
     const cicloId = this.ctx.ciclo()?.id;
     if (!plantelId || !cicloId) {
-      this.notify.warning('Contexto requerido', 'Selecciona plantel y ciclo escolar para generar la verificación.');
+      this.notify.warning('Contexto requerido', 'Selecciona plantel y ciclo escolar para verificar el horario.');
       return;
     }
     this.cargandoReporte.set(true);
     this.api.get<any[]>('/horarios', { plantel_id: plantelId, ciclo_id: cicloId }).subscribe({
       next: horarios => {
-        this.reportePrimaria.set(this.construirReportePrimaria(horarios ?? []));
-        this.cargandoReporte.set(false);
+        const payload = this.construirPayloadSolver(horarios ?? [], plantelId, cicloId);
+        this.api.post<any>('/horarios/solver/verificar', payload).subscribe({
+          next: analysis => {
+            this.reporteVerificacion.set(analysis);
+            this.cargandoReporte.set(false);
+          },
+          error: (err) => {
+            this.cargandoReporte.set(false);
+            this.notify.error('Verificación', err?.error?.detail || 'No se pudo verificar el horario con Timefold.');
+          }
+        });
       },
       error: () => {
         this.cargandoReporte.set(false);
@@ -931,202 +902,6 @@ export class HorariosComponent implements OnInit, OnDestroy {
       },
     });
   }
-
-  private construirReportePrimaria(horarios: any[]): HorarioReportePrimaria {
-    const grupos = new Map<string, { grado: number | null; materias: Map<string, number>; total: number }>();
-    const conflictosDocentes = new Map<string, Set<string>>();
-    const checks: HorarioReporteCheck[] = [];
-    const rows = horarios.map((row: any) => ({
-      ...row,
-      nombre_materia: String(row.nombre_materia ?? ''),
-      nombre_grupo: String(row.nombre_grupo ?? ''),
-      nombre_profesor: String(row.nombre_profesor ?? ''),
-      numero_grado: row.numero_grado != null ? Number(row.numero_grado) : null,
-      inicioMin: this.toMinutes(String(row.hora_inicio ?? '00:00')),
-      finMin: this.toMinutes(String(row.hora_fin ?? '00:00')),
-    }));
-
-    for (const row of rows) {
-      const grupoKey = row.nombre_grupo || row.grupo_id || 'SIN_GRUPO';
-      if (!grupos.has(grupoKey)) {
-        grupos.set(grupoKey, { grado: row.numero_grado, materias: new Map<string, number>(), total: 0 });
-      }
-      const group = grupos.get(grupoKey)!;
-      const duracionMin = Math.max(0, row.finMin - row.inicioMin);
-      group.total += duracionMin;
-      const materia = row.nombre_materia || 'SIN_MATERIA';
-      group.materias.set(materia, (group.materias.get(materia) ?? 0) + duracionMin);
-
-      const keyConflicto = `${row.nombre_profesor}|${row.dia_semana}|${row.hora_inicio}|${row.hora_fin}`;
-      if (!conflictosDocentes.has(row.nombre_profesor)) conflictosDocentes.set(row.nombre_profesor, new Set<string>());
-      const bucket = conflictosDocentes.get(row.nombre_profesor)!;
-      if (bucket.has(keyConflicto)) {
-        bucket.add(`${this.labelDia(row.dia_semana)} ${String(row.hora_inicio).slice(0, 5)}-${String(row.hora_fin).slice(0, 5)} · ${row.nombre_grupo} · ${row.nombre_materia}`);
-      } else {
-        bucket.add(keyConflicto);
-      }
-    }
-
-    const gruposReporte = Array.from(grupos.entries()).map(([grupo, data]) => {
-      const materias = Array.from(data.materias.entries())
-        .filter(([materia]) => MATERIAS_REPORTE.some(ref => this.matchMateria(materia, ref)))
-        .map(([materia, mins]) => {
-          const requerido = this.requeridoPorGrupo(data.grado, materia);
-          return { materia, requerido, obtenido: mins / 60, cumple: requerido == null ? true : Math.abs(mins / 60 - requerido) < 0.01 };
-        });
-      return { grupo, grado: data.grado, totalHoras: data.total / 60, materias };
-    });
-
-    const conflictosResumen = Array.from(conflictosDocentes.entries())
-      .map(([docente, bucket]) => ({ docente, conflictos: Array.from(bucket).filter(x => x.includes('·')) }))
-      .filter(x => x.conflictos.length > 0);
-
-    const totalHorasOk = gruposReporte.length > 0 && gruposReporte.every(g => Math.abs(g.totalHoras - 31) < 0.01);
-    checks.push({ criterio: 'Carga horaria exacta 31h por grupo', ok: totalHorasOk, detalle: totalHorasOk ? 'Todos los grupos suman 31 horas.' : 'Hay grupos con carga distinta de 31 horas.' });
-    checks.push({ criterio: 'Computación solo Mié/Jue', ok: rows.every(r => !this.matchMateria(r.nombre_materia, 'computación') || [3, 4].includes(Number(r.dia_semana))), detalle: 'Se revisó toda la materia Computación contra Mié/Jue.' });
-    checks.push({ criterio: 'Matemáticas y Lecto solo antes de 12:00', ok: rows.every(r => !this.isMathOrLecto(r.nombre_materia) || this.toMinutes(String(r.hora_inicio)) < this.toMinutes('12:00')), detalle: 'Las materias de mañana se verificaron contra el umbral de 12:00.' });
-    checks.push({ criterio: 'Proyectos solo desde 12:00', ok: rows.every(r => !this.matchMateria(r.nombre_materia, 'proyectos') || this.toMinutes(String(r.hora_inicio)) >= this.toMinutes('12:00')), detalle: 'Todos los bloques de Proyectos empiezan al mediodía o después.' });
-    checks.push({ criterio: 'Educación Física sin viernes y sin consecutivos', ok: this.verificarEducacionFisica(rows), detalle: 'Se revisó por grupo, días de la semana y no consecutividad.' });
-    checks.push({ criterio: 'Lecto/Español/Matemáticas en bloques contiguos', ok: this.verificarBloquesContiguos(rows), detalle: 'Se validaron bloques de 120 min y una sola hora suelta por semana.' });
-    checks.push({ criterio: 'Fábrica de lectura y Ortografía en 2 sesiones de 30 min', ok: this.verificarMediasHoras(rows, 'fábrica de lectura') && this.verificarMediasHoras(rows, 'ortografía'), detalle: 'Cada materia debe aparecer en dos sesiones de 30 minutos.' });
-    checks.push({ criterio: 'Horas administrativas comunes por grado', ok: this.verificarHorasAdministrativas(rows), detalle: 'Se buscaron franjas donde 1A/1B, 2A/2B, etc. coinciden con especialistas.' });
-
-    const scoreText = this.corridaDetalle()?.score_text ?? 'N/D';
-    const estado = this.corridaDetalle()?.estado ?? 'SIN_CORRIDA';
-    const resumen = checks.every(x => x.ok) ? 'Cumple la regla golden de primaria.' : 'Hay reglas que no cumplen; revisar detallado.';
-
-    return {
-      estado_solver: estado,
-      score_text: scoreText,
-      grupos: gruposReporte,
-      conflictos_docentes: conflictosResumen,
-      checks,
-      resumen,
-    };
-  }
-
-  private matchMateria(nombre: string, needle: string): boolean {
-    return this.normalizar(nombre).includes(this.normalizar(needle));
-  }
-
-  private isMathOrLecto(nombre: string): boolean {
-    const n = this.normalizar(nombre);
-    return n.includes('matematic') || n.includes('lecto');
-  }
-
-  private requeridoPorGrupo(grado: number | null, materia: string): number | null {
-    if (grado == null) return null;
-    const plantilla = HORARIO_GOLDEN_REQUERIDO[String(grado)];
-    if (!plantilla) return null;
-    const exacta = Object.entries(plantilla).find(([nombre]) => this.matchMateria(materia, nombre));
-    return exacta ? exacta[1] : null;
-  }
-
-  private verificarEducacionFisica(rows: any[]): boolean {
-    const porGrupo = new Map<string, any[]>();
-    for (const row of rows) {
-      if (!this.matchMateria(row.nombre_materia, 'educación física')) continue;
-      const key = String(row.nombre_grupo ?? row.grupo_id ?? 'SIN_GRUPO');
-      if (!porGrupo.has(key)) porGrupo.set(key, []);
-      porGrupo.get(key)!.push(row);
-    }
-    return Array.from(porGrupo.values()).every(items => {
-      const dias = [...new Set(items.map(r => Number(r.dia_semana)))].sort((a, b) => a - b);
-      if (dias.includes(5)) return false;
-      return dias.every((dia, index) => index === 0 || dia - dias[index - 1] > 1);
-    });
-  }
-
-  private verificarMediasHoras(rows: any[], materiaNeedle: string): boolean {
-    const porGrupo = new Map<string, number[]>();
-    for (const row of rows) {
-      if (!this.matchMateria(row.nombre_materia, materiaNeedle)) continue;
-      const key = String(row.nombre_grupo ?? row.grupo_id ?? 'SIN_GRUPO');
-      if (!porGrupo.has(key)) porGrupo.set(key, []);
-      porGrupo.get(key)!.push(Math.max(0, this.toMinutes(String(row.hora_fin)) - this.toMinutes(String(row.hora_inicio))));
-    }
-    return Array.from(porGrupo.values()).every(sesiones => sesiones.length === 2 && sesiones.every(mins => mins === 30));
-  }
-
-  private verificarBloquesContiguos(rows: any[]): boolean {
-    const grupos = new Map<string, any[]>();
-    for (const row of rows) {
-      if (!this.isMathOrLecto(row.nombre_materia)) continue;
-      const key = `${row.nombre_grupo ?? row.grupo_id}`;
-      if (!grupos.has(key)) grupos.set(key, []);
-      grupos.get(key)!.push(row);
-    }
-    return Array.from(grupos.values()).every(items => {
-      const porDia = new Map<number, any[]>();
-      for (const row of items) {
-        const dia = Number(row.dia_semana);
-        if (!porDia.has(dia)) porDia.set(dia, []);
-        porDia.get(dia)!.push(row);
-      }
-      return Array.from(porDia.values()).every(dayRows => {
-        dayRows.sort((a, b) => this.toMinutes(String(a.hora_inicio)) - this.toMinutes(String(b.hora_inicio)));
-        let looseDays = 0;
-        for (let i = 0; i < dayRows.length; i++) {
-          const row = dayRows[i];
-          const duration = Math.max(0, this.toMinutes(String(row.hora_fin)) - this.toMinutes(String(row.hora_inicio)));
-          if (duration > 120) return false;
-          if (duration === 60) looseDays += 1;
-          if (duration === 120) {
-            const next = dayRows[i + 1];
-            if (!next) continue;
-            const contiguous = this.toMinutes(String(row.hora_fin)) === this.toMinutes(String(next.hora_inicio));
-            const combined = Math.max(0, this.toMinutes(String(next.hora_fin)) - this.toMinutes(String(row.hora_inicio)));
-            if (!contiguous || combined !== 120) return false;
-            i += 1;
-          }
-        }
-        return looseDays <= 1;
-      });
-    });
-  }
-
-  private verificarHorasAdministrativas(rows: any[]): boolean {
-    const porGrado = new Map<number, Map<string, any[]>>();
-    for (const row of rows) {
-      const grado = Number(row.numero_grado ?? 0);
-      if (!grado) continue;
-      const grupo = String(row.nombre_grupo ?? '');
-      if (!/^[1-6][AB]$/i.test(grupo)) continue;
-      if (!porGrado.has(grado)) porGrado.set(grado, new Map<string, any[]>());
-      const map = porGrado.get(grado)!;
-      if (!map.has(grupo)) map.set(grupo, []);
-      map.get(grupo)!.push(row);
-    }
-    return Array.from(porGrado.values()).every(map => {
-      const grupos = Array.from(map.keys()).sort();
-      if (grupos.length < 2) return false;
-      const a = map.get(grupos.find(g => g.endsWith('A')) ?? '') ?? [];
-      const b = map.get(grupos.find(g => g.endsWith('B')) ?? '') ?? [];
-      if (!a.length || !b.length) return false;
-      const slotsA = new Set(a.filter(r => this.materiaEsEspecialista(String(r.nombre_materia))).map(r => `${r.dia_semana}|${r.hora_inicio}|${r.hora_fin}`));
-      const slotsB = new Set(b.filter(r => this.materiaEsEspecialista(String(r.nombre_materia))).map(r => `${r.dia_semana}|${r.hora_inicio}|${r.hora_fin}`));
-      let comunes = 0;
-      for (const slot of slotsA) {
-        if (slotsB.has(slot)) comunes += 1;
-      }
-      return comunes >= 2;
-    });
-  }
-
-  private materiaEsEspecialista(nombre: string): boolean {
-    const n = this.normalizar(nombre);
-    return MATERIAS_ESPECIALISTAS.some(ref => n.includes(this.normalizar(ref)));
-  }
-
-  private normalizar(texto: string): string {
-    return texto.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '');
-  }
-
-  private toMinutes(hhmm: string): number {
-    const [h, m] = hhmm.split(':').map(Number);
-    return (Number.isFinite(h) ? h : 0) * 60 + (Number.isFinite(m) ? m : 0);
-  }
-
   seleccionarCorrida(id: string): void {
     this.api.get<SolverDetail>(`/horarios/solver/corridas/${id}`).subscribe({
       next: corrida => {
@@ -1287,42 +1062,6 @@ export class HorariosComponent implements OnInit, OnDestroy {
 
   private construirPayloadSolver(horarios: any[], plantelId: string, cicloId: string): Record<string, any> {
     const leccionesMap = new Map<string, Record<string, any>>();
-
-    const diasNormales = [1, 2, 3, 4];
-    const franjasNormales = [
-      { hora_inicio: '07:00', hora_fin: '07:50' },
-      { hora_inicio: '07:50', hora_fin: '08:40' },
-      { hora_inicio: '08:40', hora_fin: '09:30' },
-      { hora_inicio: '10:00', hora_fin: '10:50' },
-      { hora_inicio: '10:50', hora_fin: '11:40' },
-      { hora_inicio: '11:40', hora_fin: '12:30' },
-      { hora_inicio: '12:30', hora_fin: '13:20' },
-      { hora_inicio: '13:50', hora_fin: '14:40' },
-      { hora_inicio: '14:40', hora_fin: '15:30' },
-      { hora_inicio: '15:30', hora_fin: '16:00' }
-    ];
-    
-    const franjasViernes = [
-      { hora_inicio: '07:00', hora_fin: '07:50' },
-      { hora_inicio: '07:50', hora_fin: '08:40' },
-      { hora_inicio: '08:40', hora_fin: '09:30' },
-      { hora_inicio: '10:00', hora_fin: '10:50' },
-      { hora_inicio: '10:50', hora_fin: '11:40' },
-      { hora_inicio: '11:40', hora_fin: '12:30' },
-      { hora_inicio: '12:30', hora_fin: '13:20' },
-      { hora_inicio: '13:20', hora_fin: '14:00' }
-    ];
-
-    const timeslots = [];
-    for (const dia of diasNormales) {
-      for (const f of franjasNormales) {
-        timeslots.push({ dia_semana: dia, hora_inicio: f.hora_inicio, hora_fin: f.hora_fin, turno: 'MATUTINO' });
-      }
-    }
-    for (const f of franjasViernes) {
-      timeslots.push({ dia_semana: 5, hora_inicio: f.hora_inicio, hora_fin: f.hora_fin, turno: 'MATUTINO' });
-    }
-
     for (const row of horarios) {
       const diaSemana = Number(row.dia_semana);
       const horaInicio = String(row.hora_inicio ?? '').slice(0, 5);
@@ -1351,7 +1090,6 @@ export class HorariosComponent implements OnInit, OnDestroy {
     return {
       plantel_id: plantelId,
       ciclo_escolar_id: cicloId,
-      timeslots: timeslots,
       lecciones: Array.from(leccionesMap.values()),
     };
   }

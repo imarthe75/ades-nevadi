@@ -19,4 +19,8 @@ public interface HorarioFranjaRepository extends JpaRepository<HorarioFranja, UU
             @Param("cicloId") UUID cicloId,
             @Param("nivelId") UUID nivelId
     );
+
+    List<HorarioFranja> findByNivelEducativoIdOrderByDiaSemanaAscHoraInicioAsc(UUID nivelEducativoId);
+
+    List<HorarioFranja> findByPlantelIdOrderByDiaSemanaAscHoraInicioAsc(UUID plantelId);
 }

@@ -250,6 +250,9 @@ add_regla("ventana_horaria_docente", f'{{"profesor_id": "{prof_carlos}", "dia": 
 # Proyectos al final del día (después de las 13:00)
 add_regla("ventana_horaria", '{"materia": "PROYECTOS", "modo": "despues_de", "hora": "13:00:00"}', "Proyectos al final del dia")
 
+# Educación Socioemocional fraccionada en 50 y 30 min
+add_regla("materia_fraccionada_30min", '{"materia": "EDUCACIÓN SOCIOEMOCIONAL"}', "Socioemocional dividida en 50 y 30 minutos")
+
 if reglas:
     exec_sql_text(f"""
     INSERT INTO ades_horario_regla (id, plantel_id, ciclo_escolar_id, nivel_educativo_id, tipo, dura, peso, activa, params, descripcion, is_active, usuario_creacion)

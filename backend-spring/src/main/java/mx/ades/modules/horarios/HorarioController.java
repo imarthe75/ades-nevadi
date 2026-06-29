@@ -148,14 +148,15 @@ public class HorarioController {
         if (body.getCicloEscolarId() == null) {
             throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "ciclo_escolar_id es requerido");
         }
-        if (body.getTimeslots() == null || body.getTimeslots().isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Se requiere al menos un timeslot");
-        }
         if (body.getLecciones() == null || body.getLecciones().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Se requiere al menos una lección");
         }
 
-        List<HorarioTimeslot> timeslots = body.getTimeslots().stream().map(this::toTimeslot).toList();
+        List<HorarioTimeslot> timeslots = null;
+        if (body.getTimeslots() != null) {
+            timeslots = body.getTimeslots().stream().map(this::toTimeslot).toList();
+        }
+
         List<HorarioLeccion> lecciones = body.getLecciones().stream()
                 .map(payload -> toLeccion(payload, body.getCicloEscolarId()))
                 .toList();
@@ -172,7 +173,35 @@ public class HorarioController {
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(mapCorrida(corrida));
     }
 
-    @GetMapping("/solver/corridas")
+    @PostMapping("/solver/verificar")
+    public ResponseEntity<Map<String, Object>> verificarHorario(
+            @RequestBody SolverRunPayload body,
+            @AuthenticationPrincipal Jwt jwt) {
+        AdesUser user = userService.resolveUser(jwt);
+        UUID plantelId = resolverPlantel(body.getPlantelId(), user);
+        if (plantelId == null) {
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "plantel_id es requerido");
+        }
+        if (body.getCicloEscolarId() == null) {
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "ciclo_escolar_id es requerido");
+        }
+
+        List<HorarioTimeslot> timeslots = null;
+        if (body.getTimeslots() != null) {
+            timeslots = body.getTimeslots().stream().map(this::toTimeslot).toList();
+        }
+        List<HorarioLeccion> lecciones = body.getLecciones() != null ? 
+            body.getLecciones().stream().map(payload -> toLeccion(payload, body.getCicloEscolarId())).toList() : List.of();
+
+        Map<String, Object> analysis = horarioSolverService.verificarHorario(
+                plantelId,
+                body.getCicloEscolarId(),
+                timeslots,
+                lecciones);
+
+        return ResponseEntity.ok(analysis);
+    }
+
     public ResponseEntity<List<Map<String, Object>>> listarCorridasSolver(
             @RequestParam(name = "plantel_id", required = false) UUID plantelId,
             @RequestParam(name = "ciclo_id", required = false) UUID cicloId,

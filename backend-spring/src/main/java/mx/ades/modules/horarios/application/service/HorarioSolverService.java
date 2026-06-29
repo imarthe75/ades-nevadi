@@ -53,6 +53,7 @@ public class HorarioSolverService {
 
         List<HorarioTimeslot> timeslots = horariosBase.stream()
             .map(horario -> new HorarioTimeslot(
+                null,
                 horario.getDiaSemana().intValue(),
                 horario.getHoraInicio(),
                 horario.getHoraFin(),
@@ -73,6 +74,7 @@ public class HorarioSolverService {
                 leccion.setFijado(fijados.contains(horario.getId()));
                 leccion.setTimeslot(fijados.contains(horario.getId())
                     ? new HorarioTimeslot(
+                    null,
                     horario.getDiaSemana().intValue(),
                     horario.getHoraInicio(),
                     horario.getHoraFin(),
@@ -91,9 +93,10 @@ public class HorarioSolverService {
         }
 
     private final mx.ades.modules.horarios.config.HorarioReglaRepository reglaRepository;
+    private final mx.ades.modules.horarios.config.HorarioFranjaRepository franjaRepository;
 
     public UUID iniciarCorrida(UUID plantelId, UUID cicloEscolarId, String generadoPor,
-            List<HorarioTimeslot> timeslots, List<HorarioLeccion> lecciones) {
+            List<HorarioTimeslot> providedTimeslots, List<HorarioLeccion> lecciones) {
         HorarioCorrida corrida = new HorarioCorrida();
         corrida.setPlantelId(plantelId);
         corrida.setCicloEscolarId(cicloEscolarId);
@@ -118,10 +121,49 @@ public class HorarioSolverService {
             }
         }
 
+        // Extraer Nivel Educativo del primer grupo
+        UUID nivelId = null;
+        if (!lecciones.isEmpty() && lecciones.get(0).getGrupoId() != null) {
+            try {
+                nivelId = jdbc.queryForObject(
+                    "SELECT gr.nivel_educativo_id FROM ades_grados gr JOIN ades_grupos g ON g.grado_id = gr.id WHERE g.id = ?",
+                    UUID.class, lecciones.get(0).getGrupoId());
+            } catch (Exception ignored) {}
+        }
+
+        // Obtener Franjas de la BD
+        List<mx.ades.modules.horarios.config.HorarioFranja> franjasDb = franjaRepository.findFranjasAplicables(plantelId, cicloEscolarId, nivelId);
+        List<HorarioTimeslot> timeslots = franjasDb.stream()
+            .map(f -> new HorarioTimeslot(f.getId(), f.getDiaSemana().intValue(), f.getHoraInicio(), f.getHoraFin(), null))
+            .collect(Collectors.toList());
+
+        // Si no hay franjas en BD, usar las proveídas (fallback)
+        if (timeslots.isEmpty() && providedTimeslots != null) {
+            timeslots = providedTimeslots;
+        }
+
         HorarioPlan plan = new HorarioPlan();
         plan.setTimeslots(timeslots);
         plan.setLecciones(lecciones);
-        plan.setReglas(reglaRepository.findByPlantelIdAndCicloEscolarIdAndActivaTrueAndIsActiveTrue(plantelId, cicloEscolarId));
+
+        List<mx.ades.modules.horarios.config.HorarioIndisponibilidad> indisponibilidades = jdbc.query(
+            "SELECT profesor_id, franja_id, tipo FROM ades_horario_indisponibilidad WHERE ciclo_escolar_id = ?",
+            (rs, rowNum) -> {
+                var ind = new mx.ades.modules.horarios.config.HorarioIndisponibilidad();
+                ind.setProfesorId(rs.getObject("profesor_id", UUID.class));
+                ind.setFranjaId(rs.getObject("franja_id", UUID.class));
+                ind.setTipo(rs.getString("tipo"));
+                return ind;
+            },
+            cicloEscolarId
+        );
+        plan.setIndisponibilidades(indisponibilidades);
+
+        // Filtrar reglas por nivel
+        List<mx.ades.modules.horarios.config.HorarioRegla> reglas = reglaRepository.findByPlantelIdAndCicloEscolarIdAndActivaTrueAndIsActiveTrue(plantelId, cicloEscolarId);
+        final UUID nId = nivelId;
+        reglas = reglas.stream().filter(r -> r.getNivelEducativoId() == null || r.getNivelEducativoId().equals(nId)).toList();
+        plan.setReglas(reglas);
 
         UUID corridaId = corrida.getId();
         solverManager.solveBuilder()
@@ -133,6 +175,61 @@ public class HorarioSolverService {
                 .run();
 
         return corridaId;
+    }
+
+    public java.util.Map<String, Object> verificarHorario(UUID plantelId, UUID cicloEscolarId,
+            List<HorarioTimeslot> providedTimeslots, List<HorarioLeccion> lecciones) {
+        
+        // Extraer Nivel Educativo del primer grupo
+        UUID nivelId = null;
+        if (!lecciones.isEmpty() && lecciones.get(0).getGrupoId() != null) {
+            try {
+                nivelId = jdbc.queryForObject(
+                    "SELECT gr.nivel_educativo_id FROM ades_grados gr JOIN ades_grupos g ON g.grado_id = gr.id WHERE g.id = ?",
+                    UUID.class, lecciones.get(0).getGrupoId());
+            } catch (Exception ignored) {}
+        }
+
+        // Obtener Franjas de la BD
+        List<mx.ades.modules.horarios.config.HorarioFranja> franjasDb = franjaRepository.findFranjasAplicables(plantelId, cicloEscolarId, nivelId);
+        List<HorarioTimeslot> timeslots = franjasDb.stream()
+            .map(f -> new HorarioTimeslot(f.getId(), f.getDiaSemana().intValue(), f.getHoraInicio(), f.getHoraFin(), null))
+            .collect(Collectors.toList());
+
+        if (timeslots.isEmpty() && providedTimeslots != null) {
+            timeslots = providedTimeslots;
+        }
+
+        HorarioPlan plan = new HorarioPlan();
+        plan.setTimeslots(timeslots);
+        plan.setLecciones(lecciones);
+
+        List<mx.ades.modules.horarios.config.HorarioIndisponibilidad> indisponibilidades = jdbc.query(
+            "SELECT profesor_id, franja_id, tipo FROM ades_horario_indisponibilidad WHERE ciclo_escolar_id = ?",
+            (rs, rowNum) -> {
+                var ind = new mx.ades.modules.horarios.config.HorarioIndisponibilidad();
+                ind.setProfesorId(rs.getObject("profesor_id", UUID.class));
+                ind.setFranjaId(rs.getObject("franja_id", UUID.class));
+                ind.setTipo(rs.getString("tipo"));
+                return ind;
+            },
+            cicloEscolarId
+        );
+        plan.setIndisponibilidades(indisponibilidades);
+
+        List<mx.ades.modules.horarios.config.HorarioRegla> reglas = reglaRepository.findByPlantelIdAndCicloEscolarIdAndActivaTrueAndIsActiveTrue(plantelId, cicloEscolarId);
+        final UUID nId = nivelId;
+        reglas = reglas.stream().filter(r -> r.getNivelEducativoId() == null || r.getNivelEducativoId().equals(nId)).toList();
+        plan.setReglas(reglas);
+
+        solutionManager.update(plan);
+        ScoreAnalysis<HardSoftScore> analysis = solutionManager.analyze(plan);
+        
+        try {
+            return objectMapper.readValue(objectMapper.writeValueAsString(analysis), new com.fasterxml.jackson.core.type.TypeReference<java.util.Map<String, Object>>() {});
+        } catch (Exception e) {
+            throw new RuntimeException("Error parsing ScoreAnalysis", e);
+        }
     }
 
     private void persistirResultado(UUID corridaId, HorarioPlan solution) {

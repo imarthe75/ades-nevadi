@@ -125,6 +125,7 @@ interface Catalogo {
         <p-tab value="grupos"><i class="pi pi-th-large"></i> Grupos</p-tab>
         <p-tab value="variables"><i class="pi pi-cog"></i> Variables del Sistema</p-tab>
         <p-tab value="reglas"><i class="pi pi-graduation-cap"></i> Reglas de Promoción</p-tab>
+        <p-tab value="franjas"><i class="pi pi-clock"></i> Franjas Horarias</p-tab>
         <p-tab value="eval-cualitativa"><i class="pi pi-star"></i> Eval. Cualitativa</p-tab>
         <p-tab value="catalogos"><i class="pi pi-list"></i> Catálogos</p-tab>
         <p-tab value="geo"><i class="pi pi-map"></i> Geográficos</p-tab>
@@ -679,6 +680,98 @@ interface Catalogo {
               }
             </div>
           }
+        </p-tabpanel>
+
+        <!-- ══ FRANJAS HORARIAS ════════════════════════════════════════════════ -->
+        <p-tabpanel value="franjas">
+          <div class="tab-toolbar" style="margin-bottom:1rem; display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <h3 style="margin:0">Franjas Horarias del Motor</h3>
+              <p style="margin:0; font-size:0.9rem; color:var(--text-color-secondary)">
+                Define los bloques de tiempo que el motor usará para asignar clases, por nivel educativo o plantel.
+              </p>
+            </div>
+            <p-button label="Nueva Franja" icon="pi pi-plus" (onClick)="abrirFranjaDialog()" />
+          </div>
+
+          <p-table [value]="franjas()" [loading]="loadingFranjas()" [tableStyle]="{'min-width': '50rem'}">
+            <ng-template pTemplate="header">
+              <tr>
+                <th>Día</th>
+                <th>Turno</th>
+                <th>Hora Inicio</th>
+                <th>Hora Fin</th>
+                <th>Nivel</th>
+                <th>Plantel</th>
+                <th>Activo</th>
+                <th style="width:5rem"></th>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="body" let-f>
+              <tr>
+                <td>{{ f.dia_semana }}</td>
+                <td>{{ f.turno }}</td>
+                <td>{{ String(f.hora_inicio || '').slice(0,5) }}</td>
+                <td>{{ String(f.hora_fin || '').slice(0,5) }}</td>
+                <td>{{ f.nivel_educativo_id ? (nivelesMap()[f.nivel_educativo_id] ?? f.nivel_educativo_id) : 'Todos' }}</td>
+                <td>{{ f.plantel_id ? 'Específico' : 'Todos' }}</td>
+                <td>
+                  <p-tag [severity]="f.is_active ? 'success' : 'danger'" [value]="f.is_active ? 'SÍ' : 'NO'"></p-tag>
+                </td>
+                <td>
+                  <p-button icon="pi pi-pencil" [text]="true" (onClick)="abrirFranjaDialog(f)" />
+                  <p-button icon="pi pi-trash" [text]="true" severity="danger" (onClick)="eliminarFranja(f)" />
+                </td>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="emptymessage">
+              <tr><td colspan="8">No hay franjas configuradas.</td></tr>
+            </ng-template>
+          </p-table>
+
+          <p-dialog
+            [visible]="showFranjaDialog()"
+            (visibleChange)="showFranjaDialog.set($event)"
+            [header]="editFranjaEntry() ? 'Editar Franja' : 'Nueva Franja'"
+            [modal]="true" [style]="{width:'400px'}">
+            
+            <div style="display:flex; flex-direction:column; gap:1rem; padding-top:1rem">
+              <div class="field">
+                <label>Día de la semana (1-7)</label>
+                <p-select [options]="[{l:'Lunes',v:1},{l:'Martes',v:2},{l:'Miércoles',v:3},{l:'Jueves',v:4},{l:'Viernes',v:5}]" 
+                  optionLabel="l" optionValue="v" [(ngModel)]="franjaForm.dia_semana" appendTo="body" styleClass="w-full"></p-select>
+              </div>
+              <div class="field" style="display:flex; gap:1rem">
+                <div style="flex:1">
+                  <label>Hora Inicio</label>
+                  <input pInputText type="time" [(ngModel)]="franjaForm.hora_inicio" class="w-full" />
+                </div>
+                <div style="flex:1">
+                  <label>Hora Fin</label>
+                  <input pInputText type="time" [(ngModel)]="franjaForm.hora_fin" class="w-full" />
+                </div>
+              </div>
+              <div class="field">
+                <label>Turno</label>
+                <input pInputText type="text" [(ngModel)]="franjaForm.turno" class="w-full" />
+              </div>
+              <div class="field">
+                <label>Nivel Educativo</label>
+                <p-select [options]="niveles()" optionLabel="label" optionValue="value" 
+                  [(ngModel)]="franjaForm.nivel_educativo_id" appendTo="body" styleClass="w-full"
+                  [showClear]="true" placeholder="Todos los niveles"></p-select>
+              </div>
+              <div class="field" style="display:flex; align-items:center; gap:0.5rem; margin-top:0.5rem">
+                <p-toggleswitch [(ngModel)]="franjaForm.is_active" inputId="fAct"></p-toggleswitch>
+                <label for="fAct" style="margin:0">Activo</label>
+              </div>
+            </div>
+
+            <ng-template pTemplate="footer">
+              <p-button label="Cancelar" [text]="true" severity="secondary" (onClick)="showFranjaDialog.set(false)" />
+              <p-button label="Guardar" icon="pi pi-check" (onClick)="guardarFranja()" [loading]="guardandoFranja()" />
+            </ng-template>
+          </p-dialog>
         </p-tabpanel>
 
         <!-- ══ AUDITORÍA ═════════════════════════════════════════════════════ -->
@@ -1279,6 +1372,15 @@ export class AdminComponent implements OnInit {
   loadingPlanteles = signal(false);
   loadingGrupos    = signal(false);
 
+  franjas = signal<any[]>([]);
+  loadingFranjas = signal(false);
+  showFranjaDialog = signal(false);
+  guardandoFranja = signal(false);
+  editFranjaEntry = signal<any>(null);
+  franjaForm: any = {};
+  nivelesMap = signal<Record<string, string>>({});
+  String = String;
+
   // ── SEPOMEX sync ─────────────────────────────────────────────────────────────
   syncSepomexLoading  = signal(false);
   syncSepomexTaskId   = signal<string | null>(null);
@@ -1557,8 +1659,9 @@ export class AdminComponent implements OnInit {
     this.tabActivo.set(tab);
     if (tab === 'variables'        && this.variables().length === 0)     this.cargarVariables();
     if (tab === 'reglas'           && this.nivelesReglas().length === 0) this.cargarReglasPromocion();
-    if (tab === 'eval-cualitativa' && this.cualEscalas().length === 0)   this.cargarConfigCualitativa();
     if (tab === 'catalogos'        && this.catalogos().length === 0)     this.cargarCatalogos();
+    if (tab === 'eval-cualitativa' && this.cualEscalas().length === 0)   this.cargarConfigCualitativa();
+    if (tab === 'franjas'          && this.franjas().length === 0)       this.cargarFranjas();
     if (tab === 'marca')                                                  this.cargarMarca();
     if (tab === 'roles'            && this.roles().length === 0)         this.cargarRoles();
     if (tab === 'menus'            && this.menus().length === 0)         this.cargarMenusAdmin();
@@ -2372,5 +2475,70 @@ export class AdminComponent implements OnInit {
         },
       });
     }, 3000);
+  }
+
+  cargarFranjas(): void {
+    this.loadingFranjas.set(true);
+    if (Object.keys(this.nivelesMap()).length === 0) {
+      this.api.get<any[]>('/niveles-educativos').subscribe(n => {
+        const m: any = {};
+        n.forEach(x => m[x.value] = x.label);
+        this.nivelesMap.set(m);
+      });
+    }
+
+    this.api.get<any[]>('/horario-franjas').subscribe({
+      next: res => {
+        this.franjas.set(res || []);
+        this.loadingFranjas.set(false);
+      },
+      error: () => this.loadingFranjas.set(false)
+    });
+  }
+
+  abrirFranjaDialog(f?: any): void {
+    if (f) {
+      this.editFranjaEntry.set(f);
+      this.franjaForm = { ...f, hora_inicio: String(f.hora_inicio||'').slice(0,5), hora_fin: String(f.hora_fin||'').slice(0,5) };
+    } else {
+      this.editFranjaEntry.set(null);
+      this.franjaForm = { dia_semana: 1, turno: 'MATUTINO', is_active: true };
+    }
+    this.showFranjaDialog.set(true);
+  }
+
+  guardarFranja(): void {
+    if (!this.franjaForm.dia_semana || !this.franjaForm.hora_inicio || !this.franjaForm.hora_fin) {
+      this.notify.warning('Faltan datos', 'Completa día y horas.');
+      return;
+    }
+    this.guardandoFranja.set(true);
+    const body = { ...this.franjaForm };
+    const req = this.editFranjaEntry() 
+      ? this.api.put(`/horario-franjas/${this.editFranjaEntry().id}`, body)
+      : this.api.post(`/horario-franjas`, body);
+    
+    req.subscribe({
+      next: () => {
+        this.notify.success('Franja guardada correctamente.');
+        this.guardandoFranja.set(false);
+        this.showFranjaDialog.set(false);
+        this.cargarFranjas();
+      },
+      error: () => {
+        this.notify.error('Error', 'No se pudo guardar la franja.');
+        this.guardandoFranja.set(false);
+      }
+    });
+  }
+
+  eliminarFranja(f: any): void {
+    if (!confirm('¿Eliminar esta franja?')) return;
+    this.api.delete(`/horario-franjas/${f.id}`).subscribe({
+      next: () => {
+        this.notify.success('Franja eliminada.');
+        this.cargarFranjas();
+      }
+    });
   }
 }

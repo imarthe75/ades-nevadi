@@ -16,6 +16,7 @@ import { DatePickerModule } from 'primeng/datepicker';
 import { MessageService } from 'primeng/api';
 import { ApiService } from '../../../core/services/api.service';
 import { DomicilioComponent } from '../domicilio/domicilio.component';
+import { DisponibilidadGridComponent } from '../disponibilidad-grid/disponibilidad-grid.component';
 import type { Profesor } from '../../../core/models';
 
 const CONTRATOS       = ['BASE','INTERINO','CONTRATO','HONORARIOS','TIEMPO_COMPLETO','MEDIO_TIEMPO'];
@@ -33,7 +34,7 @@ const BANCOS          = ['BBVA','SANTANDER','BANAMEX','BANORTE','HSBC','SCOTIABA
     DrawerModule, ButtonModule, ToastModule,
     TabsModule, TabList, Tab, TabPanels, TabPanel,
     InputTextModule, SelectModule, DatePickerModule,
-    DomicilioComponent,
+    DomicilioComponent, DisponibilidadGridComponent
   ],
   providers: [MessageService],
   template: `
@@ -57,6 +58,7 @@ const BANCOS          = ['BBVA','SANTANDER','BANAMEX','BANORTE','HSBC','SCOTIABA
             <p-tab value="domicilio"><i class="pi pi-map-marker"></i> Domicilio</p-tab>
             <p-tab value="laboral"><i class="pi pi-briefcase"></i> Laboral</p-tab>
             <p-tab value="nomina"><i class="pi pi-credit-card"></i> Nómina</p-tab>
+            <p-tab value="disponibilidad"><i class="pi pi-clock"></i> Disponibilidad</p-tab>
           </p-tablist>
 
           <p-tabpanels>
@@ -227,6 +229,11 @@ const BANCOS          = ['BBVA','SANTANDER','BANAMEX','BANORTE','HSBC','SCOTIABA
                     style="font-family:monospace;text-transform:uppercase" />
                 </div>
               </div>
+            </p-tabpanel>
+
+            <!-- ── Tab 4: Disponibilidad Horaria ───────────────────────── -->
+            <p-tabpanel value="disponibilidad">
+              <app-disponibilidad-grid [profesorId]="profesor.id"></app-disponibilidad-grid>
             </p-tabpanel>
           </p-tabpanels>
         </p-tabs>
