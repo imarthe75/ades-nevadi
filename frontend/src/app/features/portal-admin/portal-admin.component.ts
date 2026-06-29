@@ -18,6 +18,7 @@ import { FileUploadModule }    from 'primeng/fileupload';
 import { ApiService }       from '../../core/services/api.service';
 import { ContextService }   from '../../core/services/context.service';
 import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
+import { compressImageIfNeeded } from '../../core/utils/file-compressor';
 
 type TagSeverity = 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' | undefined;
 
@@ -449,19 +450,26 @@ export class PortalAdminComponent implements OnInit {
     });
   }
 
-  onImagenSeleccionada(event: Event) {
+  async onImagenSeleccionada(event: Event) {
     const file = (event.target as HTMLInputElement).files?.[0];
     if (!file) return;
+
+    if (!file.type.startsWith('image/') && file.size > 2 * 1024 * 1024) {
+      alert('Las imágenes de portada no pueden superar los 2 MB.');
+      return;
+    }
+
+    const processedFile = await compressImageIfNeeded(file);
     const id = this.editando()?.id;
     if (!id) {
       // Para nueva convocatoria, preview local y subir después del save
       const reader = new FileReader();
       reader.onload = e => this.form.update(f => ({ ...f, imagenUrl: e.target?.result as string }));
-      reader.readAsDataURL(file);
+      reader.readAsDataURL(processedFile);
       return;
     }
     const fd = new FormData();
-    fd.append('imagen', file);
+    fd.append('imagen', processedFile);
     this.api.postForm<any>(`/api/v1/portal/admin/convocatorias/${id}/imagen`, fd)
       .subscribe({ next: r => {
         this.form.update(f => ({ ...f, imagenUrl: r.imagen_url }));

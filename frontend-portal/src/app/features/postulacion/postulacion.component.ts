@@ -7,6 +7,7 @@ import { ProgressBarModule } from 'primeng/progressbar';
 import { FileUploadModule } from 'primeng/fileupload';
 import { TooltipModule } from 'primeng/tooltip';
 import { PortalApiService } from '../../core/services/portal-api.service';
+import { compressImageIfNeeded } from '../../core/utils/file-compressor';
 
 const ESTADO_LABEL: Record<string, string> = {
   BORRADOR: 'Borrador', ENVIADA: 'Enviada', EN_REVISION: 'En Revisión',
@@ -204,12 +205,21 @@ export class PostulacionComponent implements OnInit {
     });
   }
 
-  subirArchivo(event: Event, tipo: string, requisitoId: string | null) {
+  async subirArchivo(event: Event, tipo: string, requisitoId: string | null) {
     const input = event.target as HTMLInputElement;
     const file  = input.files?.[0];
     if (!file) return;
+
+    if (!file.type.startsWith('image/') && file.size > 2 * 1024 * 1024) {
+      alert('Los archivos PDF o de texto no pueden superar los 2 MB.');
+      input.value = '';
+      return;
+    }
+
+    const processedFile = await compressImageIfNeeded(file);
+
     const fd = new FormData();
-    fd.append('archivo', file);
+    fd.append('archivo', processedFile);
     fd.append('tipo_documento', tipo);
     if (requisitoId) fd.append('requisito_id', requisitoId);
     this.api.uploadFile(`/usuario/postulaciones/${this.id}/documentos`, fd).subscribe({

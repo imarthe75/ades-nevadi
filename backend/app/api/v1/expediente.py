@@ -328,8 +328,8 @@ async def subir_documento(
     }
 
     contenido = await archivo.read()
-    if len(contenido) > 10 * 1024 * 1024:
-        raise HTTPException(status_code=413, detail="Archivo excede 10 MB")
+    if len(contenido) > 2 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="Archivo excede 2 MB")
 
     # Verificar MIME real por magic bytes — no confiar en Content-Type del cliente
     mime_real = magic.from_buffer(contenido, mime=True)
