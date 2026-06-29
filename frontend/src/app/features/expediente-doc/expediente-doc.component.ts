@@ -16,6 +16,7 @@ import { TableModule } from 'primeng/table';
 import { ApexNotificationService } from 'apex-component-library';
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
+import { compressImageIfNeeded } from '../../core/utils/file-compressor';
 
 interface DocumentoRequerido {
   tipo: string;
@@ -462,10 +463,18 @@ export class ExpedienteDocComponent implements OnInit {
     this.docSeleccionado.set(doc);
   }
 
-  onFileSelected(event: Event) {
+  async onFileSelected(event: Event) {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
-      this.archivoSeleccionado.set(input.files[0]);
+      const originalFile = input.files[0];
+      if (!originalFile.type.startsWith('image/') && originalFile.size > 2 * 1024 * 1024) {
+        this.notify.error('Archivo no permitido', 'Los archivos PDF o de texto no pueden superar los 2 MB.');
+        input.value = '';
+        this.archivoSeleccionado.set(null);
+        return;
+      }
+      const processedFile = await compressImageIfNeeded(originalFile);
+      this.archivoSeleccionado.set(processedFile);
     }
   }
 

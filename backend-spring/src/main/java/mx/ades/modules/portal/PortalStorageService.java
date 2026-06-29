@@ -29,7 +29,7 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class PortalStorageService {
 
-    private static final long MAX_FILE_BYTES = 10L * 1024 * 1024; // 10 MB hard limit
+    private static final long MAX_FILE_BYTES = 2L * 1024 * 1024; // 2 MB hard limit
     private static final Set<String> MIME_WHITELIST = Set.of(
             "application/pdf",
             "image/jpeg",
@@ -88,7 +88,7 @@ public class PortalStorageService {
         }
         if (archivo.getSize() > MAX_FILE_BYTES) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "El archivo supera el límite de 10 MB");
+                    "El archivo supera el límite de 2 MB");
         }
         String mime = archivo.getContentType();
         if (mime == null || !MIME_WHITELIST.contains(mime)) {
@@ -135,7 +135,7 @@ public class PortalStorageService {
     }
 
     private static final Set<String> IMAGE_MIMES = Set.of("image/jpeg", "image/png", "image/webp");
-    private static final long MAX_IMAGE_BYTES = 5L * 1024 * 1024; // 5 MB
+    private static final long MAX_IMAGE_BYTES = 2L * 1024 * 1024; // 2 MB
     private static final String BUCKET_IMAGENES = "portal-imagenes";
 
     /**

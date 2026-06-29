@@ -16,7 +16,7 @@ public enum TipoDocumentoExpediente {
     CURP, ACTA_NACIMIENTO, CERTIFICADO_PREV, COMPROBANTE_DOMICILIO, FOTOGRAFIA,
     NSS, CREDENCIAL_ESCOLAR, CONSTANCIA_INSCRIPCION, OTRO;
 
-    private static final long MAX_BYTES = 20L * 1024 * 1024;  // 20 MB
+    private static final long MAX_BYTES = 2L * 1024 * 1024;  // 2 MB
     private static final Set<String> MIME_PERMITIDOS = Set.of(
             "application/pdf", "image/jpeg", "image/png", "image/tiff", "image/webp");
 
@@ -36,8 +36,8 @@ public enum TipoDocumentoExpediente {
             throw new IllegalArgumentException("MIME no permitido: " + mime +
                     ". Permitidos: " + MIME_PERMITIDOS);
         if (bytes > MAX_BYTES)
-            throw new IllegalArgumentException("Archivo demasiado grande (máx 20 MB, recibido " +
-                    bytes / (1024 * 1024) + " MB)");
+            throw new IllegalArgumentException("Archivo demasiado grande (máx 2 MB, recibido " +
+                    String.format("%.2f", (double) bytes / (1024 * 1024)) + " MB)");
     }
 
     public boolean esRequerido() {
