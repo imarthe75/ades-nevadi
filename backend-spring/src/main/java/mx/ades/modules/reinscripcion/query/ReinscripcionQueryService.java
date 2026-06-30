@@ -2,14 +2,20 @@ package mx.ades.modules.reinscripcion.query;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.*;
 
 @Service
 public class ReinscripcionQueryService {
+
+    private static final Logger logger = LoggerFactory.getLogger(ReinscripcionQueryService.class);
 
     private final JdbcTemplate jdbc;
     private final ObjectMapper  om = new ObjectMapper();
@@ -129,6 +135,8 @@ public class ReinscripcionQueryService {
 
     @Transactional
     public Map<String, Object> aprobarMasivo(UUID cicloOrigenId, UUID cicloDestinoId, UUID usuarioId) {
+        validarCapacidadGrupos(cicloDestinoId);
+
         int nAprobados = jdbc.update(
             "UPDATE ades_reinscripcion_ciclo " +
             "SET estado = 'APROBADO', aprobado_por = ?, fecha_aprobacion = now(), " +
@@ -150,5 +158,34 @@ public class ReinscripcionQueryService {
         }
 
         return Map.of("ok", true, "aprobados", nAprobados, "resultado_promocion", promo);
+    }
+
+    private void validarCapacidadGrupos(UUID cicloDestinoId) {
+        try {
+            String sql = "SELECT COUNT(*) as alumnos_validados FROM ades_reinscripcion_ciclo " +
+                    "WHERE ciclo_destino_id = ? AND estado = 'VALIDADO' AND is_active = TRUE";
+            Integer alumnosValidados = jdbc.queryForObject(sql, Integer.class, cicloDestinoId);
+
+            if (alumnosValidados == null || alumnosValidados == 0) {
+                return;
+            }
+
+            sql = "SELECT SUM(capacidad_maxima - (SELECT COUNT(*) FROM ades_alumnos e " +
+                    "WHERE e.grupo_id = g.id AND e.ciclo_escolar_id = g.ciclo_escolar_id)) as total_capacidad " +
+                    "FROM ades_grupos g WHERE g.ciclo_escolar_id = ? AND g.is_active = TRUE";
+            Integer capacidadDisponible = jdbc.queryForObject(sql, Integer.class, cicloDestinoId);
+
+            if (capacidadDisponible == null || capacidadDisponible < alumnosValidados) {
+                throw new ResponseStatusException(
+                        HttpStatus.CONFLICT,
+                        "No hay suficiente capacidad en los grupos del ciclo destino. " +
+                        "Se necesitan " + alumnosValidados + " espacios, pero solo hay " +
+                        (capacidadDisponible != null ? capacidadDisponible : 0) + " disponibles.");
+            }
+        } catch (org.springframework.web.server.ResponseStatusException e) {
+            throw e;
+        } catch (Exception e) {
+            logger.warn("Error validando capacidad de grupos", e);
+        }
     }
 }

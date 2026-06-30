@@ -205,16 +205,63 @@ export class Estadistica911Component implements OnInit {
   cargar() {
     this.cargando.set(true);
     const params: any = {};
-    if (this.cicloId.trim()) params.ciclo_id = this.cicloId.trim();
+
+    if (this.cicloId.trim()) {
+      if (!this.isValidUUID(this.cicloId.trim())) {
+        this.cargando.set(false);
+        this.notify.error('Error', 'El UUID del ciclo no es válido');
+        return;
+      }
+      params.ciclo_id = this.cicloId.trim();
+    }
+
     this.api.get<any>('/reportes/911', params).subscribe({
       next: d => {
-        this.matriz.set(d.matricula_por_grado_sexo_ingreso_edad ?? []);
+        const matriz = d.matricula_por_grado_sexo_ingreso_edad ?? [];
+
+        if (!matriz || matriz.length === 0) {
+          this.notify.warn('Advertencia', 'No hay datos de alumnos para generar el reporte');
+          this.cargando.set(false);
+          return;
+        }
+
+        const validationIssues = this.validarMatriz(matriz);
+        if (validationIssues.length > 0) {
+          this.notify.warn('Advertencia', `${validationIssues.length} registros tienen datos incompletos. El reporte puede no ser exacto.`);
+        }
+
+        this.matriz.set(matriz);
         this.grupos.set(d.grupos_por_grado ?? []);
         this.discapacidad.set(d.discapacidad_por_grado_sexo ?? []);
         this.cargando.set(false);
+        this.notify.success('Éxito', 'Reporte generado correctamente');
       },
-      error: e => { this.cargando.set(false); this.notify.error(e.error?.message ?? 'Error al generar el reporte 911'); },
+      error: e => {
+        this.cargando.set(false);
+        this.notify.error('Error', e.error?.detail ?? e.error?.message ?? 'Error al generar el reporte 911');
+      },
     });
+  }
+
+  private isValidUUID(uuid: string): boolean {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(uuid);
+  }
+
+  private validarMatriz(matriz: MatrizRow[]): string[] {
+    const issues: string[] = [];
+    for (const row of matriz) {
+      if (!row.sexo || (row.sexo !== 'M' && row.sexo !== 'F')) {
+        issues.push(`Alumno sin sexo válido: ${row}`);
+      }
+      if (!row.tipo_ingreso || (row.tipo_ingreso !== 'NUEVO_INGRESO' && row.tipo_ingreso !== 'REPETIDOR')) {
+        issues.push(`Alumno sin tipo_ingreso válido: ${row}`);
+      }
+      if (row.edad == null || row.edad < 0) {
+        issues.push(`Alumno con edad inválida: ${row}`);
+      }
+    }
+    return issues.slice(0, 5); // Solo primeros 5 para no saturar
   }
 
   private bucket(nivel: string, edad: number): string {
