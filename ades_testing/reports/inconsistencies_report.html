@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ADES Testing Exploratorio - Reporte de Inconsistencias</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .severity-critico { background-color: #fecaca; color: #991b1b; }
+        .severity-alto { background-color: #fed7aa; color: #92400e; }
+        .severity-medio { background-color: #fef3c7; color: #78350f; }
+        .severity-bajo { background-color: #d1fae5; color: #065f46; }
+        
+        .badge-critico { background: #dc2626; color: white; }
+        .badge-alto { background: #ea580c; color: white; }
+        .badge-medio { background: #eab308; color: black; }
+        .badge-bajo { background: #10b981; color: white; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="bg-white shadow rounded-lg p-6 mb-6">
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">ADES Nevadi - Testing Exploratorio</h1>
+            <p class="text-gray-600">Reporte de Inconsistencias Detectadas</p>
+            <p class="text-sm text-gray-500 mt-4">Generado: 2026-06-30 08:24:17</p>
+        </div>
+        
+        <!-- Estadísticas -->
+        <div class="grid grid-cols-4 gap-4 mb-6">
+            <div class="bg-red-50 rounded-lg p-4">
+                <div class="text-3xl font-bold text-red-600">12</div>
+                <div class="text-sm text-gray-600 mt-1">Críticas</div>
+            </div>
+            <div class="bg-orange-50 rounded-lg p-4">
+                <div class="text-3xl font-bold text-orange-600">12</div>
+                <div class="text-sm text-gray-600 mt-1">Altas</div>
+            </div>
+            <div class="bg-yellow-50 rounded-lg p-4">
+                <div class="text-3xl font-bold text-yellow-600">3</div>
+                <div class="text-sm text-gray-600 mt-1">Medias</div>
+            </div>
+            <div class="bg-green-50 rounded-lg p-4">
+                <div class="text-3xl font-bold text-green-600">3</div>
+                <div class="text-sm text-gray-600 mt-1">Bajas</div>
+            </div>
+        </div>
+        
+        <!-- Tabla de Inconsistencias -->
+        <div class="bg-white shadow rounded-lg overflow-hidden mb-6">
+            <div class="px-6 py-4 bg-gray-100 border-b">
+                <h2 class="text-lg font-semibold text-gray-900">Inconsistencias Detectadas</h2>
+                <p class="text-sm text-gray-600 mt-1">Total: 30 inconsistencias</p>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50 border-b">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Severidad</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Módulo</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Tipo</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Descripción</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Ubicación</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Sugerencia</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y">
+
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium badge-crítico">
+                                    Crítico
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
+                                dashboard
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Data Not Rendered
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
+                                <details class="cursor-pointer">
+                                    <summary class="font-medium">Widgets no cargan datos...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">Widgets no cargan datos</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A Admini</p>
+                                </details>
+                            </td>
+                            <td class="px-6 py-4 text-sm font-mono text-gray-600">
+                                /dashboard → widgets de estadísticas
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Verificar la API que carga los datos de los widgets y asegurarse de que esté funcionando correctamente
+                            </td>
+                        </tr>
+
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium badge-crítico">
+                                    Crítico
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
+                                planes_estudio
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                SEP/Nevadi Ambiguity
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
+                                <details class="cursor-pointer">
+                                    <summary class="font-medium">No se distingue visualmente entre SEP y Nevadi en el mapa cu...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">No se distingue visualmente entre SEP y Nevadi en el mapa curricular</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible no muestra distinción clara entre SEP y Nevadi</p>
+                                </details>
+                            </td>
+                            <td class="px-6 py-4 text-sm font-mono text-gray-600">
+                                /planes-estudio → Mapa Curricular
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Agregar iconos o colores distintivos para SEP y Nevadi en el mapa curricular
+                            </td>
+                        </tr>
+
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium badge-crítico">
+                                    Crítico
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
+                                calificaciones
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                SEP/Nevadi Ambiguity
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
+                                <details class="cursor-pointer">
+                                    <summary class="font-medium">No se distingue visualmente entre SEP y Nevadi en la tabla d...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">No se distingue visualmente entre SEP y Nevadi en la tabla de calificaciones</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible no muestra distinción clara entre SEP y Nevadi</p>
+                                </details>
+                            </td>
+                            <td class="px-6 py-4 text-sm font-mono text-gray-600">
+                                /calificaciones → DataTable
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Agregar iconos o colores distintivos para SEP y Nevadi en la tabla de calificaciones
+                            </td>
+                        </tr>
+
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium badge-crítico">
+                                    Crítico
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
+                                evaluaciones
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Context Not Propagated
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
+                                <details class="cursor-pointer">
+                                    <summary class="font-medium">El contexto del top bar no se propaga al formulario de evalu...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">El contexto del top bar no se propaga al formulario de evaluaciones</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo...</p>
+                                </details>
+                            </td>
+                            <td class="px-6 py-4 text-sm font-mono text-gray-600">
+                                /evaluaciones → formulario → campos de materia y grupo
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Agregar código para propagar el contexto del top bar al formulario de evaluaciones
+                            </td>
+                        </tr>
+
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium badge-crítico">
+                                    Crítico
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
+                                reinscripcion
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Validation Missing
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
+                                <details class="cursor-pointer">
+                                    <summary class="font-medium">No se valida la capacidad del grupo destino en el proceso de...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">No se valida la capacidad del grupo destino en el proceso de reinscripción</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo...</p>
+                                </details>
+                            </td>
+                            <td class="px-6 py-4 text-sm font-mono text-gray-600">
+                                /reinscripcion → formulario de reinscripción → selector de nuevo grupo
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Agregar código para validar la capacidad del grupo destino en el proceso de reinscripción
+                            </td>
+                        </tr>
+
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium badge-crítico">
+                                    Crítico
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
+                                cierre_ciclo
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Validation Missing
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
+                                <details class="cursor-pointer">
+                                    <summary class="font-medium">No se valida que todas las calificaciones estén completas an...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">No se valida que todas las calificaciones estén completas antes de cerrar el ciclo</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo...</p>
+                                </details>
+                            </td>
+                            <td class="px-6 py-4 text-sm font-mono text-gray-600">
+                                /cierre-ciclo → wizard de cierre → checklist de validaciones
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Agregar código para validar que todas las calificaciones estén completas antes de cerrar el ciclo
+                            </td>
+                        </tr>
+
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium badge-crítico">
+                                    Crítico
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
+                                estadistica_911
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Validation Missing
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
+                                <details class="cursor-pointer">
+                                    <summary class="font-medium">No se validan los campos obligatorios antes de generar el re...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">No se validan los campos obligatorios antes de generar el reporte</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible: Error al generar el reporte 911</p>
+                                </details>
+                            </td>
+                            <td class="px-6 py-4 text-sm font-mono text-gray-600">
+                                /estadistica-911 → botón generar reporte
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Agregar validación de campos obligatorios antes de generar el reporte
+                            </td>
+                        </tr>
+
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium badge-crítico">
+                                    Crítico
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
+                                admision
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Validation Missing
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
+                                <details class="cursor-pointer">
+                                    <summary class="font-medium">No se valida el formato de la CURP...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">No se valida el formato de la CURP</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A</p>
+                                </details>
+                            </td>
+                            <td class="px-6 py-4 text-sm font-mono text-gray-600">
+                                /admision → formulario de admisión
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Agregar validación de formato de la CURP
+                            </td>
+                        </tr>
+
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium badge-crítico">
+                                    Crítico
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
+                                dashboards_bi
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Context Not Propagated
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
+                                <details class="cursor-pointer">
+                                    <summary class="font-medium">El contexto del top bar (Plantel/Ciclo/Grado) no se propaga ...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">El contexto del top bar (Plantel/Ciclo/Grado) no se propaga a diálogos y formularios</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A</p>
+                                </details>
+                            </td>
+                            <td class="px-6 py-4 text-sm font-mono text-gray-600">
+                                /bi → iframe de Superset
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Implementar la propagación del contexto del top bar a diálogos y formularios
+                            </td>
+                        </tr>
+
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium badge-crítico">
+                                    Crítico
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
+                                eval_docente
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Context Not Propagated
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
+                                <details class="cursor-pointer">
+                                    <summary class="font-medium">El contexto del top bar (Plantel/Ciclo/Grado) no se propaga ...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">El contexto del top bar (Plantel/Ciclo/Grado) no se propaga a diálogos y formularios</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A</p>
+                                </details>
+                            </td>
+                            <td class="px-6 py-4 text-sm font-mono text-gray-600">
+                                /eval-docente → formulario de evaluación
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Agregar el contexto del top bar a los diálogos y formularios
+                            </td>
+                        </tr>
+
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium badge-crítico">
+                                    Crítico
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
+                                expediente_laboral
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Validation Missing
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
+                                <details class="cursor-pointer">
+                                    <summary class="font-medium">RFC inválido aceptado...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">RFC inválido aceptado</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A Admini</p>
+                                </details>
+                            </td>
+                            <td class="px-6 py-4 text-sm font-mono text-gray-600">
+                                /expediente-laboral → formulario de RFC
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Agregar validación de RFC en el formulario
+                            </td>
+                        </tr>
+
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium badge-crítico">
+                                    Crítico
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
+                                condiciones_cronicas
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Validation Missing
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
+                                <details class="cursor-pointer">
+                                    <summary class="font-medium">Sin protocolo de emergencia registrado...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">Sin protocolo de emergencia registrado</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A Admini</p>
+                                </details>
+                            </td>
+                            <td class="px-6 py-4 text-sm font-mono text-gray-600">
+                                /condiciones-cronicas → formulario de protocolo de emergencia
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Agregar validación de protocolo de emergencia en el formulario
+                            </td>
+                        </tr>
+
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium badge-alto">
+                                    Alto
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
+                                alumnos
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Context Not Propagated
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
+                                <details class="cursor-pointer">
+                                    <summary class="font-medium">Filtros no propagan contexto del top bar...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">Filtros no propagan contexto del top bar</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A Admini</p>
+                                </details>
+                            </td>
+                            <td class="px-6 py-4 text-sm font-mono text-gray-600">
+                                /alumnos → filtros por plantel, grado, grupo, estado
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Verificar que los filtros estén configurados para propagar el contexto del top bar
+                            </td>
+                        </tr>
+
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium badge-alto">
+                                    Alto
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
+                                horarios
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Error Hidden
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
+                                <details class="cursor-pointer">
+                                    <summary class="font-medium">No se muestra error al intentar cargar las corridas del plan...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">No se muestra error al intentar cargar las corridas del plantel</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible muestra 'No se pudieron cargar las corridas del plantel' sin explicación</p>
+                                </details>
+                            </td>
+                            <td class="px-6 py-4 text-sm font-mono text-gray-600">
+                                /horarios → Solver
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Mostrar mensaje de error claro y conciso al intentar cargar las corridas del plantel
+                            </td>
+                        </tr>
+
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium badge-alto">
+                                    Alto
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
+                                ponderacion_config
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Validation Missing
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
+                                <details class="cursor-pointer">
+                                    <summary class="font-medium">No se valida que la suma de ponderaciones sea igual a 100%...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">No se valida que la suma de ponderaciones sea igual a 100%</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible no muestra validación de suma de ponderaciones</p>
+                                </details>
+                            </td>
+                            <td class="px-6 py-4 text-sm font-mono text-gray-600">
+                                /ponderacion-config → Formulario
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Agregar validación de suma de ponderaciones en el formulario
+                            </td>
+                        </tr>
+
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium badge-alto">
+                                    Alto
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
+                                asistencias
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Inline Editable Missing
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
+                                <details class="cursor-pointer">
+                                    <summary class="font-medium">La tabla de asistencias no es editable en línea...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">La tabla de asistencias no es editable en línea</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo...</p>
+                                </details>
+                            </td>
+                            <td class="px-6 py-4 text-sm font-mono text-gray-600">
+                                /asistencias → tabla de asistencias
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Agregar código para hacer que la tabla de asistencias sea editable en línea
+                            </td>
+                        </tr>
+
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium badge-alto">
+                                    Alto
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
+                                padres_admin
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Validation Missing
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
+                                <details class="cursor-pointer">
+                                    <summary class="font-medium">No se valida que el email de un padre sea único...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">No se valida que el email de un padre sea único</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo...</p>
+                                </details>
+                            </td>
+                            <td class="px-6 py-4 text-sm font-mono text-gray-600">
+                                /padres-admin → formulario de padre → campo de email
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Agregar código para validar que el email de un padre sea único
+                            </td>
+                        </tr>
+
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium badge-alto">
+                                    Alto
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
+                                kardex_uaemex
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Data Not Rendered
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
+                                <details class="cursor-pointer">
+                                    <summary class="font-medium">No se muestra el historial académico del alumno...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">No se muestra el historial académico del alumno</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A</p>
+                                </details>
+                            </td>
+                            <td class="px-6 py-4 text-sm font-mono text-gray-600">
+                                /kardex → sección de historial académico
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Verificar la consulta a la base de datos y renderizar los datos correctamente
+                            </td>
+                        </tr>
+
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium badge-alto">
+                                    Alto
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
+                                acta_evaluacion_uaemex
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Error Hidden
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
+                                <details class="cursor-pointer">
+                                    <summary class="font-medium">No se muestra un error cuando no se puede descargar el PDF...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">No se muestra un error cuando no se puede descargar el PDF</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A</p>
+                                </details>
+                            </td>
+                            <td class="px-6 py-4 text-sm font-mono text-gray-600">
+                                /acta-evaluacion → botón descargar PDF
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Agregar un mensaje de error cuando no se puede descargar el PDF
+                            </td>
+                        </tr>
+
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium badge-alto">
+                                    Alto
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
+                                reportes
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Data Not Rendered
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
+                                <details class="cursor-pointer">
+                                    <summary class="font-medium">No se muestra el visor de datos para el reporte...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">No se muestra el visor de datos para el reporte</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A</p>
+                                </details>
+                            </td>
+                            <td class="px-6 py-4 text-sm font-mono text-gray-600">
+                                /reportes → sección de visor de datos
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Verificar la consulta a la base de datos y renderizar los datos correctamente
+                            </td>
+                        </tr>
+
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium badge-alto">
+                                    Alto
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
+                                monitor_sistema
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Error Hidden
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
+                                <details class="cursor-pointer">
+                                    <summary class="font-medium">Errores de API no se muestran como errores, sino como 'sin r...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">Errores de API no se muestran como errores, sino como 'sin resultados'</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A</p>
+                                </details>
+                            </td>
+                            <td class="px-6 py-4 text-sm font-mono text-gray-600">
+                                /monitor → sección de logs
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Mostrar errores de API de manera explícita y clara
+                            </td>
+                        </tr>
+
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium badge-alto">
+                                    Alto
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
+                                planeacion
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Incomplete Flow
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
+                                <details class="cursor-pointer">
+                                    <summary class="font-medium">No hay flujo de aprobación visible...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">No hay flujo de aprobación visible</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A</p>
+                                </details>
+                            </td>
+                            <td class="px-6 py-4 text-sm font-mono text-gray-600">
+                                /planeacion → formulario de planeación
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Agregar el flujo de aprobación visible en el formulario de planeación
+                            </td>
+                        </tr>
+
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium badge-alto">
+                                    Alto
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
+                                director_dashboard
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Data Not Rendered
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
+                                <details class="cursor-pointer">
+                                    <summary class="font-medium">KPIs sin datos reales...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">KPIs sin datos reales</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A Admini</p>
+                                </details>
+                            </td>
+                            <td class="px-6 py-4 text-sm font-mono text-gray-600">
+                                /director-dashboard → KPIs
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Verificar la conexión a la base de datos y asegurarse de que los datos estén siendo cargados correctamente
+                            </td>
+                        </tr>
+
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium badge-alto">
+                                    Alto
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
+                                certificados
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Error Hidden
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
+                                <details class="cursor-pointer">
+                                    <summary class="font-medium">Verificador público no funciona...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">Verificador público no funciona</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A Admini</p>
+                                </details>
+                            </td>
+                            <td class="px-6 py-4 text-sm font-mono text-gray-600">
+                                /certificados → verificador público
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Revisar la configuración del verificador público y asegurarse de que esté funcionando correctamente
+                            </td>
+                        </tr>
+
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium badge-medio">
+                                    Medio
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
+                                profesores
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Modal/Drawer Issue
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
+                                <details class="cursor-pointer">
+                                    <summary class="font-medium">Drawer no abre o no muestra pestañas...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">Drawer no abre o no muestra pestañas</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A Admini</p>
+                                </details>
+                            </td>
+                            <td class="px-6 py-4 text-sm font-mono text-gray-600">
+                                /profesores → drawer con pestañas: Personal, Domicilio, Laboral
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Verificar que el drawer esté configurado correctamente y que las pestañas estén cargando correctamente
+                            </td>
+                        </tr>
+
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium badge-medio">
+                                    Medio
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
+                                administracion
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Validation Missing
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
+                                <details class="cursor-pointer">
+                                    <summary class="font-medium">Formularios sin campos requeridos marcados explícitamente...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">Formularios sin campos requeridos marcados explícitamente</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A</p>
+                                </details>
+                            </td>
+                            <td class="px-6 py-4 text-sm font-mono text-gray-600">
+                                /admin → formulario de creación de usuario
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Agregar marcadores de campos requeridos en formularios
+                            </td>
+                        </tr>
+
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium badge-medio">
+                                    Medio
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
+                                tareas
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Validation Missing
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
+                                <details class="cursor-pointer">
+                                    <summary class="font-medium">No hay validación de fecha límite de entrega...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">No hay validación de fecha límite de entrega</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A</p>
+                                </details>
+                            </td>
+                            <td class="px-6 py-4 text-sm font-mono text-gray-600">
+                                /tareas → formulario de tarea
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Agregar validación de fecha límite de entrega en el formulario de tarea
+                            </td>
+                        </tr>
+
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium badge-bajo">
+                                    Bajo
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
+                                grupos
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                SEP/Nevadi Ambiguity
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
+                                <details class="cursor-pointer">
+                                    <summary class="font-medium">Ambigüedad SEP vs Nevadi en el selector de mapa curricular...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">Ambigüedad SEP vs Nevadi en el selector de mapa curricular</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A Admini</p>
+                                </details>
+                            </td>
+                            <td class="px-6 py-4 text-sm font-mono text-gray-600">
+                                /grupos → diálogo con campos: Nombre, Nivel, Mapa Curricular, Turno, Capacidad
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Verificar que el selector de mapa curricular esté configurado correctamente y que distinga claramente entre SEP y Nevadi
+                            </td>
+                        </tr>
+
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium badge-bajo">
+                                    Bajo
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
+                                conducta
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                SEP/Nevadi Ambiguity
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
+                                <details class="cursor-pointer">
+                                    <summary class="font-medium">No se distingue visualmente entre SEP y Nevadi en el módulo ...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">No se distingue visualmente entre SEP y Nevadi en el módulo de conducta</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A</p>
+                                </details>
+                            </td>
+                            <td class="px-6 py-4 text-sm font-mono text-gray-600">
+                                /conducta → tabla de incidentes
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Agregar una columna o etiqueta para distinguir entre SEP y Nevadi
+                            </td>
+                        </tr>
+
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium badge-bajo">
+                                    Bajo
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
+                                portal
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Data Not Rendered
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
+                                <details class="cursor-pointer">
+                                    <summary class="font-medium">No se muestra la vista de asistencias con resumen...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">No se muestra la vista de asistencias con resumen</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A</p>
+                                </details>
+                            </td>
+                            <td class="px-6 py-4 text-sm font-mono text-gray-600">
+                                /portal → vista de asistencias
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Agregar la vista de asistencias con resumen en el portal
+                            </td>
+                        </tr>
+
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Distribuición por Tipo -->
+        <div class="bg-white shadow rounded-lg p-6 mb-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Inconsistencias por Tipo</h2>
+            <canvas id="typeChart"></canvas>
+        </div>
+        
+        <!-- Instrucciones de Corrección -->
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
+            <h2 class="text-lg font-semibold text-blue-900 mb-4">Próximos Pasos</h2>
+            <ol class="list-decimal list-inside space-y-2 text-blue-800">
+                <li>Priorizar por severidad: Críticas primero</li>
+                <li>Agrupar por módulo para correcciones coordinadas</li>
+                <li>Crear tasks en backlog (usar CSV para Jira)</li>
+                <li>Re-testear con este mismo framework después de correcciones</li>
+                <li>Generar baseline de "estado esperado" para futuras ejecuciones</li>
+            </ol>
+        </div>
+        
+    </div>
+    
+    <script>
+        const typeData = {json.dumps(self.report_data.get('by_type', {}))};
+        
+        const ctx = document.getElementById('typeChart');
+        if (ctx) {{
+            new Chart(ctx, {{
+                type: 'bar',
+                data: {{
+                    labels: Object.keys(typeData),
+                    datasets: [{{
+                        label: 'Número de Inconsistencias',
+                        data: Object.values(typeData),
+                        backgroundColor: [
+                            '#dc2626', '#ea580c', '#eab308', '#10b981', '#3b82f6'
+                        ]
+                    }}]
+                }},
+                options: {{
+                    responsive: true,
+                    plugins: {{
+                        legend: {{ display: false }}
+                    }},
+                    scales: {{
+                        y: {{ beginAtZero: true }}
+                    }}
+                }}
+            }});
+        }}
+    </script>
+</body>
+</html>

@@ -1,0 +1,1585 @@
+{
+  "system_config": {
+    "base_url": "https://ades.setag.mx",
+    "auth": {
+      "username_env": "ADES_USER",
+      "password_env": "ADES_PASSWORD"
+    },
+    "capture_delay_ms": 3000,
+    "timeout_ms": 45000,
+    "batch_size_qa": 5
+  },
+  "context_filters": {
+    "plantel": {
+      "options": ["Metepec", "Preparatoria", "Secundaria"],
+      "type": "select"
+    },
+    "ciclo_escolar": {
+      "options": ["2025-2026", "2026-2027"],
+      "type": "select"
+    },
+    "grado": {
+      "options": ["PRIMARIA - Primer grado", "PRIMARIA - Segundo grado", "SECUNDARIA - Primero", "PREPARATORIA - Primer semestre"],
+      "type": "select"
+    }
+  },
+  "modules": [
+    {
+      "id": "dashboard",
+      "path": "/dashboard",
+      "category": "Principal",
+      "risk": "critico",
+      "sequence": 1,
+      "context_required": [],
+      "description": "Panel principal, widgets de estadísticas",
+      "expected_elements": [
+        "Widgets de estadísticas (alumnos, calificaciones, asistencia)",
+        "Filtros de periodo",
+        "Acceso rápido a módulos"
+      ],
+      "heuristics": {
+        "must_have": ["Cargar en < 3 segundos", "Mostrar datos del periodo actual", "Filtros funcionales"],
+        "must_not_have": ["Widgets vacíos sin mensaje", "Errores de consola sin captura"]
+      },
+      "common_issues": ["Widgets no cargan datos", "Filtros no aplican", "Errores de API no comunicados"]
+    },
+    {
+      "id": "alumnos",
+      "path": "/alumnos",
+      "category": "Académico",
+      "risk": "critico",
+      "sequence": 2,
+      "context_required": ["plantel"],
+      "description": "CRUD de alumnos: crear, listar, editar, eliminar",
+      "expected_elements": [
+        "Tabla de alumnos paginada",
+        "Filtros por plantel, grado, grupo, estado",
+        "Botón crear alumno",
+        "Botones editar/eliminar por fila",
+        "Búsqueda por nombre/CURP"
+      ],
+      "heuristics": {
+        "must_have": [
+          "Tabla paginada con datos",
+          "Filtros pre-llenan con contexto top bar",
+          "Create/Update/Delete funcionales",
+          "Validaciones de CURP, RFC, email visibles"
+        ],
+        "must_not_have": [
+          "Tabla vacía sin indicar causa",
+          "Formulario sin indicar plantel actual",
+          "Cambios sin feedback (loading, toast)"
+        ]
+      },
+      "common_issues": ["Tabla vacía pero API retorna datos", "Filtros no propagan contexto", "Errores de validación no visibles"]
+    },
+    {
+      "id": "profesores",
+      "path": "/profesores",
+      "category": "RRHH",
+      "risk": "critico",
+      "sequence": 3,
+      "context_required": ["plantel"],
+      "description": "Gestión de profesores: perfil completo con pestañas Personal, Domicilio, Laboral",
+      "expected_elements": [
+        "Tabla de profesores con filtro por plantel",
+        "Botón crear profesor",
+        "Drawer/modal con pestañas: Personal, Domicilio, Laboral",
+        "Enlace a disponibilidad"
+      ],
+      "heuristics": {
+        "must_have": [
+          "Drawer con pestañas cargando correctamente",
+          "Pestaña Laboral muestra plantel asignado",
+          "Guardar datos persiste en BD"
+        ],
+        "must_not_have": [
+          "Pestañas vacías o con error",
+          "Drawer que no cierra correctamente"
+        ]
+      },
+      "common_issues": ["Drawer no abre o no muestra pestañas", "Datos de pestaña Laboral no cargados"]
+    },
+    {
+      "id": "disponibilidad_docente",
+      "path": "/disponibilidad",
+      "category": "RRHH",
+      "risk": "critico",
+      "sequence": 4,
+      "context_required": ["plantel"],
+      "description": "Disponibilidad horaria de docentes (vinculada a Timefold)",
+      "expected_elements": [
+        "Lista de profesores con selector",
+        "Grid horario (Lun-Viernes, bloques horarios)",
+        "Franjas horarias configuradas",
+        "Botón guardar disponibilidad"
+      ],
+      "heuristics": {
+        "must_have": [
+          "Grid interactivo: click para marcar disponible/no disponible",
+          "Franjas horarias pre-cargadas de BD",
+          "Guardar con feedback (loading + toast)"
+        ],
+        "must_not_have": [
+          "'No hay franjas horarias' si existen en BD",
+          "Grid no interactivo o cambios no persisten"
+        ]
+      },
+      "common_issues": ["Franjas no cargan (API 401/403)", "Grid vacío enmascarando error de API"]
+    },
+    {
+      "id": "grupos",
+      "path": "/grupos",
+      "category": "Académico",
+      "risk": "critico",
+      "sequence": 5,
+      "context_required": ["plantel", "ciclo_escolar", "grado"],
+      "description": "Crear y gestionar grupos académicos vinculados a mapa curricular",
+      "expected_elements": [
+        "Tabla de grupos (Nivel/Grado, Grupo, Ocupación, Estado)",
+        "Botón Nuevo grupo",
+        "Filtros por Nivel, Estado",
+        "Dialog con campos: Nombre, Nivel, Mapa Curricular, Turno, Capacidad"
+      ],
+      "heuristics": {
+        "must_have": [
+          "Diálogo pre-llena Plantel y Ciclo del top bar",
+          "Selector Mapa Curricular distingue SEP/Nevadi/UAEMEX",
+          "Validar capacidad > 0 y <= 50"
+        ],
+        "must_not_have": [
+          "Crear grupo sin vinculación a mapa curricular",
+          "Ambigüedad SEP vs Nevadi en el selector"
+        ]
+      },
+      "common_issues": ["Diálogo no pre-llena contexto", "Falta selector de mapa curricular"]
+    },
+    {
+      "id": "planes_estudio",
+      "path": "/planes-estudio",
+      "category": "Académico",
+      "risk": "critico",
+      "sequence": 6,
+      "context_required": ["ciclo_escolar"],
+      "description": "Mapas curriculares SEP (Primaria/Secundaria), UAEMEX (Preparatoria), Nevadi (optativas)",
+      "expected_elements": [
+        "Pestañas o vista: Mapa Curricular, Catálogo, Temario",
+        "Selector ciclo escolar funcional",
+        "Listado de grados configurados",
+        "Distinción visual SEP / UAEMEX / Nevadi"
+      ],
+      "heuristics": {
+        "must_have": [
+          "Distinción clara entre sistemas educativos",
+          "Listar grados disponibles para el ciclo",
+          "CRUD de planes funcional"
+        ],
+        "must_not_have": [
+          "'No hay grados' con datos en BD",
+          "Ciclo selector vacío (error 401)"
+        ]
+      },
+      "common_issues": ["Ciclo selector vacío (API 401)", "SEP/UAEMEX/Nevadi no diferenciados"]
+    },
+    {
+      "id": "calificaciones",
+      "path": "/calificaciones",
+      "category": "Académico",
+      "risk": "critico",
+      "sequence": 7,
+      "context_required": ["plantel", "ciclo_escolar", "grado"],
+      "description": "Gradebook: calificaciones por alumno, materias SEP/Nevadi distinguidas, promedios",
+      "expected_elements": [
+        "DataTable con alumnos (filas) y materias (columnas)",
+        "Distinción visual SEP vs Nevadi",
+        "Inputs inline para editar calificaciones",
+        "Columnas de promedios calculados"
+      ],
+      "heuristics": {
+        "must_have": [
+          "Edición inline funcional",
+          "Distinción visual SEP vs Nevadi",
+          "Promedios calculados automáticamente",
+          "Guardar sin reload con toast"
+        ],
+        "must_not_have": [
+          "SEP y Nevadi mezcladas sin distinción",
+          "Edición no funcional",
+          "Cambios sin feedback visual"
+        ]
+      },
+      "common_issues": ["Tabla no renderiza", "SEP/Nevadi mezcladas", "Edición inline no funciona"]
+    },
+    {
+      "id": "horarios",
+      "path": "/horarios",
+      "category": "Operaciones",
+      "risk": "critico",
+      "sequence": 8,
+      "context_required": ["ciclo_escolar"],
+      "description": "Horarios: integración con Timefold. Importar/exportar aSc TimeTables XML.",
+      "expected_elements": [
+        "Vista de horario semanal por grupo/profesor",
+        "Importar XML aSc",
+        "Exportar XML aSc",
+        "Estado Timefold si activo"
+      ],
+      "heuristics": {
+        "must_have": [
+          "Importar XML sin error",
+          "Exportar XML descargable",
+          "Horario visual por día/hora"
+        ],
+        "must_not_have": [
+          "Errores de importación XML no comunicados",
+          "Horario vacío sin explicación"
+        ]
+      },
+      "common_issues": ["Integración Timefold pendiente", "XML import/export sin validación"]
+    },
+    {
+      "id": "gradebook",
+      "path": "/gradebook",
+      "category": "Académico",
+      "risk": "critico",
+      "sequence": 9,
+      "context_required": ["plantel", "ciclo_escolar"],
+      "description": "Gradebook con cascada plantel→nivel→ciclo→grupo para selección de datos",
+      "expected_elements": [
+        "Cascada de filtros: Plantel → Nivel → Ciclo → Grupo",
+        "Vista calificaciones por alumno/grupo",
+        "Historial de cambios"
+      ],
+      "heuristics": {
+        "must_have": [
+          "Cascada de filtros funcional",
+          "Datos consistentes con /calificaciones",
+          "Misma distinción SEP/Nevadi"
+        ],
+        "must_not_have": [
+          "Datos inconsistentes entre /calificaciones y /gradebook",
+          "Cascada de filtros rota"
+        ]
+      },
+      "common_issues": ["Cascada de filtros no funciona", "Datos inconsistentes con módulo calificaciones"]
+    },
+    {
+      "id": "ponderacion_config",
+      "path": "/ponderacion-config",
+      "category": "Académico",
+      "risk": "alto",
+      "sequence": 10,
+      "context_required": ["ciclo_escolar"],
+      "description": "Configuración de ponderaciones: porcentajes Examen, Tareas, Participación, etc.",
+      "expected_elements": [
+        "Formulario de ponderaciones por materia/nivel",
+        "Campos: Examen %, Tareas %, Participación %, etc.",
+        "Validación: suma = 100%",
+        "Guardar configuración"
+      ],
+      "heuristics": {
+        "must_have": [
+          "Validar suma = 100%",
+          "Ponderaciones aplicadas en cálculo de calificaciones",
+          "Guardar con confirmación"
+        ],
+        "must_not_have": [
+          "Guardar ponderaciones que no suman 100%",
+          "Cambios sin efecto en gradebook"
+        ]
+      },
+      "common_issues": ["Validación de suma 100% no existe", "Ponderaciones no se aplican en gradebook"]
+    },
+    {
+      "id": "evaluaciones",
+      "path": "/evaluaciones",
+      "category": "Académico",
+      "risk": "alto",
+      "sequence": 11,
+      "context_required": ["plantel", "ciclo_escolar", "grado"],
+      "description": "Gestión de evaluaciones: crear exámenes, tareas, proyectos por grupo/materia",
+      "expected_elements": [
+        "Tabla de evaluaciones",
+        "Botón crear evaluación",
+        "Campos: Nombre, Tipo, Fecha, Materia, Grupo, Ponderación"
+      ],
+      "heuristics": {
+        "must_have": [
+          "Pre-llenar materia/grupo del contexto",
+          "Validar fechas válidas",
+          "Vincular con gradebook"
+        ],
+        "must_not_have": ["Evaluación sin materia/grupo asignada"]
+      },
+      "common_issues": ["Contexto de top bar no se propaga al formulario"]
+    },
+    {
+      "id": "asistencias",
+      "path": "/asistencias",
+      "category": "Académico",
+      "risk": "alto",
+      "sequence": 12,
+      "context_required": ["plantel", "ciclo_escolar", "grado"],
+      "description": "Registro de asistencias: marcar presente/ausente/justificado por fecha y grupo",
+      "expected_elements": [
+        "DataTable alumnos × fechas",
+        "Selector de grupo y fecha",
+        "Botones presencia (✓/✗/J)",
+        "Vista de resumen de asistencias"
+      ],
+      "heuristics": {
+        "must_have": [
+          "Inline editable: click para cambiar estado",
+          "Guardar sin reload",
+          "Distinción visual presente/ausente/justificado/retardo"
+        ],
+        "must_not_have": [
+          "No poder justificar ausencias",
+          "Sin feedback al guardar"
+        ]
+      },
+      "common_issues": ["Tabla no editable inline", "Justificaciones no disponibles"]
+    },
+    {
+      "id": "reinscripcion",
+      "path": "/reinscripcion",
+      "category": "Académico",
+      "risk": "critico",
+      "sequence": 13,
+      "context_required": ["ciclo_escolar"],
+      "description": "Proceso de reinscripción de alumnos: cambio de grupo validando requisitos",
+      "expected_elements": [
+        "Formulario o wizard de reinscripción",
+        "Selector de alumno",
+        "Selector de nuevo grupo",
+        "Validación de disponibilidad y requisitos"
+      ],
+      "heuristics": {
+        "must_have": [
+          "Validar capacidad del grupo destino",
+          "Mostrar historial de calificaciones para validación",
+          "Confirmar cambio con toast"
+        ],
+        "must_not_have": [
+          "Reinscribir sin validar requisitos académicos",
+          "Sin confirmación de cambio"
+        ]
+      },
+      "common_issues": ["Sin validación de capacidad de grupo", "Sin historial académico en pantalla"]
+    },
+    {
+      "id": "cierre_ciclo",
+      "path": "/cierre-ciclo",
+      "category": "Académico",
+      "risk": "critico",
+      "sequence": 14,
+      "context_required": ["ciclo_escolar"],
+      "description": "Cierre de ciclo: archivar calificaciones, promover alumnos, validaciones finales",
+      "expected_elements": [
+        "Wizard de cierre con checklist",
+        "Validaciones: calificaciones completas, promedios",
+        "Lista de alumnos pendientes",
+        "Botón archivar ciclo"
+      ],
+      "heuristics": {
+        "must_have": [
+          "No permitir cierre con calificaciones pendientes",
+          "Mostrar advertencias claras",
+          "Generar reporte de cierre"
+        ],
+        "must_not_have": [
+          "Cierre silencioso sin validaciones",
+          "Sin confirmación destructiva"
+        ]
+      },
+      "common_issues": ["Cierre sin validar calificaciones completas", "Sin confirmación de acción destructiva"]
+    },
+    {
+      "id": "padres_admin",
+      "path": "/padres-admin",
+      "category": "Académico",
+      "risk": "alto",
+      "sequence": 15,
+      "context_required": [],
+      "description": "Gestión de padres de familia: CRUD, vinculación con alumnos, envío de credenciales",
+      "expected_elements": [
+        "Tabla de padres con búsqueda",
+        "CRUD completo (crear, editar, eliminar)",
+        "Vinculación a alumnos (multi-alumno)",
+        "Opción enviar credenciales por email"
+      ],
+      "heuristics": {
+        "must_have": [
+          "Vincular múltiples alumnos a un padre",
+          "Enviar credenciales con confirmación",
+          "Validar email único"
+        ],
+        "must_not_have": [
+          "Crear padre sin vincular a ningún alumno",
+          "Email duplicado sin error"
+        ]
+      },
+      "common_issues": ["Sin validación de email único", "Vinculación a alumnos no funciona"]
+    },
+    {
+      "id": "estadistica_911",
+      "path": "/estadistica-911",
+      "category": "Reportes",
+      "risk": "critico",
+      "sequence": 16,
+      "context_required": ["ciclo_escolar"],
+      "description": "Reporte Formato 911 SEP: datos demográficos de alumnos, docentes, infraestructura",
+      "expected_elements": [
+        "Visor de datos para reporte 911",
+        "Botón generar/descargar reporte",
+        "Validaciones de campos obligatorios SEP",
+        "Sección IX: Discapacidad"
+      ],
+      "heuristics": {
+        "must_have": [
+          "Validar datos obligatorios antes de generar",
+          "Mostrar advertencias de datos faltantes",
+          "Exportar en formato SEP válido"
+        ],
+        "must_not_have": [
+          "Reporte vacío o inválido generado silenciosamente"
+        ]
+      },
+      "common_issues": ["Sin validación antes de generar", "Sección IX discapacidad vacía"]
+    },
+    {
+      "id": "kardex_uaemex",
+      "path": "/kardex",
+      "category": "Reportes",
+      "risk": "alto",
+      "sequence": 17,
+      "context_required": ["ciclo_escolar"],
+      "description": "Kardex UAEMEX: historial académico de preparatoria con escala 0-10, ord/extra/def",
+      "expected_elements": [
+        "Cascada de filtros para seleccionar alumno",
+        "Historial académico por semestre",
+        "Calificaciones ordinario, extraordinario, definitiva",
+        "Botón descargar PDF"
+      ],
+      "heuristics": {
+        "must_have": [
+          "Mostrar datos consistentes con /calificaciones",
+          "PDF descargable con formato UAEMEX RGEMS",
+          "Escala 0-10 mínimo 6.0"
+        ],
+        "must_not_have": [
+          "PDF vacío o mal formateado",
+          "Datos inconsistentes con gradebook"
+        ]
+      },
+      "common_issues": ["PDF no se genera o descarga", "Calificaciones definitivas incorrectas"]
+    },
+    {
+      "id": "acta_evaluacion_uaemex",
+      "path": "/acta-evaluacion",
+      "category": "Reportes",
+      "risk": "alto",
+      "sequence": 18,
+      "context_required": ["ciclo_escolar"],
+      "description": "Acta de evaluación UAEMEX: documento oficial de calificaciones por grupo/materia",
+      "expected_elements": [
+        "Visor de acta por grupo y materia",
+        "Botón generar/descargar PDF",
+        "Firma digital Ed25519 (si aplica)"
+      ],
+      "heuristics": {
+        "must_have": [
+          "Datos consistentes con /calificaciones",
+          "PDF con formato oficial UAEMEX",
+          "Folio de verificación en PDF"
+        ],
+        "must_not_have": [
+          "PDF con datos incorrectos",
+          "Sin folio de verificación"
+        ]
+      },
+      "common_issues": ["PDF no descarga", "Datos incorrectos en el acta"]
+    },
+    {
+      "id": "admision",
+      "path": "/admision",
+      "category": "Académico",
+      "risk": "critico",
+      "sequence": 19,
+      "context_required": ["plantel", "ciclo_escolar"],
+      "description": "Proceso de admisión de nuevos alumnos: registro, documentos, asignación de grupo",
+      "expected_elements": [
+        "Formulario de admisión (datos personales, documentos)",
+        "Selector de grupo/nivel",
+        "Estado de admisión (pendiente/aprobado/rechazado)",
+        "Lista de admisiones activas"
+      ],
+      "heuristics": {
+        "must_have": [
+          "Campos obligatorios: CURP, nombre, fecha nacimiento",
+          "Validar CURP con formato México",
+          "Asignar grupo con validación de capacidad",
+          "Generar expediente automáticamente"
+        ],
+        "must_not_have": [
+          "Admitir sin CURP válido",
+          "Asignar a grupo sin cupo disponible"
+        ]
+      },
+      "common_issues": ["CURP sin validación de formato", "Grupo sin verificación de cupo"]
+    },
+    {
+      "id": "comunicados",
+      "path": "/comunicados",
+      "category": "Comunicación",
+      "risk": "medio",
+      "sequence": 20,
+      "context_required": ["plantel"],
+      "description": "Crear y enviar comunicados a padres/alumnos/docentes con plantillas",
+      "expected_elements": [
+        "Editor de comunicados (texto enriquecido)",
+        "Selector de destinatarios (grupo/nivel/todos)",
+        "Plantillas de comunicados",
+        "Historial de comunicados enviados"
+      ],
+      "heuristics": {
+        "must_have": [
+          "Pre-llenar remitente con usuario actual",
+          "Poder agendar envío futuro",
+          "Registrar envío en audit trail"
+        ],
+        "must_not_have": [
+          "Enviar sin confirmación",
+          "Sin historial de envíos"
+        ]
+      },
+      "common_issues": ["Sin confirmación antes de enviar", "Historial de comunicados vacío"]
+    },
+    {
+      "id": "reportes",
+      "path": "/reportes",
+      "category": "Reportes",
+      "risk": "alto",
+      "sequence": 21,
+      "context_required": ["ciclo_escolar"],
+      "description": "Generador de reportes dinámicos: boletas, constancias, listas de asistencia, promedios",
+      "expected_elements": [
+        "Selector de tipo de reporte",
+        "Filtros dinámicos (plantel, grupo, periodo)",
+        "Visor de datos",
+        "Descarga Excel/PDF"
+      ],
+      "heuristics": {
+        "must_have": [
+          "Filtros funcionan correctamente",
+          "Descarga genera archivo válido",
+          "Boleta NEM con campos cualitativos para 1°-2° primaria"
+        ],
+        "must_not_have": [
+          "Descarga vacía sin error",
+          "Filtros que no afectan el resultado"
+        ]
+      },
+      "common_issues": ["Descarga genera archivo vacío", "Boleta NEM sin evaluación cualitativa"]
+    },
+    {
+      "id": "dashboards_bi",
+      "path": "/bi",
+      "category": "Inteligencia",
+      "risk": "alto",
+      "sequence": 22,
+      "context_required": ["ciclo_escolar"],
+      "description": "Dashboards BI (Superset): visualización de datos educativos con OIDC",
+      "expected_elements": [
+        "Embed de Superset o iframe",
+        "Gráficos interactivos",
+        "Filtros de ciclo/plantel",
+        "Acceso según rol"
+      ],
+      "heuristics": {
+        "must_have": [
+          "Superset carga con autenticación OIDC",
+          "Gráficos con datos reales",
+          "RLS por plantel funciona"
+        ],
+        "must_not_have": [
+          "Superset muestra error de autenticación",
+          "Datos de otros planteles visibles sin permiso"
+        ]
+      },
+      "common_issues": ["OIDC Superset pendiente de configurar", "Iframe no carga o da 403"]
+    },
+    {
+      "id": "grade_analytics",
+      "path": "/grade-analytics",
+      "category": "Inteligencia",
+      "risk": "medio",
+      "sequence": 23,
+      "context_required": ["ciclo_escolar"],
+      "description": "Análisis de calificaciones: distribución, desempeño por materia, alertas bajo rendimiento",
+      "expected_elements": [
+        "Gráficos de distribución de calificaciones",
+        "Tabla de alumnos en riesgo (promedio < 6)",
+        "Comparativa por grupo/materia",
+        "Alertas tempranas"
+      ],
+      "heuristics": {
+        "must_have": [
+          "Identificar alumnos en riesgo (< 6.0)",
+          "Gráficos con datos reales",
+          "Filtros por plantel/grupo/periodo"
+        ],
+        "must_not_have": [
+          "Gráficos vacíos con datos en BD",
+          "Sin distinción de alumnos en riesgo"
+        ]
+      },
+      "common_issues": ["Gráficos no cargan datos", "Umbral de riesgo no configurable"]
+    },
+    {
+      "id": "asistente_ia",
+      "path": "/ia",
+      "category": "Inteligencia",
+      "risk": "medio",
+      "sequence": 24,
+      "context_required": [],
+      "description": "Asistente IA: chatbot para queries educativas con historial de conversaciones",
+      "expected_elements": [
+        "Interfaz de chat",
+        "Historial de conversaciones",
+        "Preguntas sugeridas",
+        "Respuestas basadas en datos de BD"
+      ],
+      "heuristics": {
+        "must_have": [
+          "Respuestas basadas en datos reales de BD",
+          "Historial persistente entre sesiones",
+          "Rate limiting funcional"
+        ],
+        "must_not_have": [
+          "Respuestas inventadas sin datos reales",
+          "Chat sin historial"
+        ]
+      },
+      "common_issues": ["Respuestas no contextuales", "Historial no persiste"]
+    },
+    {
+      "id": "monitor_sistema",
+      "path": "/monitor",
+      "category": "Sistema",
+      "risk": "critico",
+      "sequence": 25,
+      "context_required": [],
+      "description": "Monitor del sistema: uptime, performance Grafana, logs, alertas de servicios",
+      "expected_elements": [
+        "Status de todos los servicios (PostgreSQL, Valkey, Authentik, etc.)",
+        "Métricas de performance (CPU, RAM, latencia API)",
+        "Logs recientes de errores",
+        "Alertas en tiempo real"
+      ],
+      "heuristics": {
+        "must_have": [
+          "Status correcto de todos los servicios",
+          "Métricas en tiempo real",
+          "Alertas configuradas"
+        ],
+        "must_not_have": [
+          "Servicios marcados como OK cuando están caídos",
+          "Métricas con datos obsoletos"
+        ]
+      },
+      "common_issues": ["Integración Grafana no embebida", "Status de servicios estático"]
+    },
+    {
+      "id": "administracion",
+      "path": "/admin",
+      "category": "Sistema",
+      "risk": "critico",
+      "sequence": 26,
+      "context_required": [],
+      "description": "Administración del sistema: usuarios, roles, permisos, configuraciones globales",
+      "expected_elements": [
+        "CRUD de usuarios con roles",
+        "Gestión de planteles",
+        "Configuraciones del sistema (ciclos vigentes, escalas)",
+        "Evaluación cualitativa NEM (1°-2° primaria)"
+      ],
+      "heuristics": {
+        "must_have": [
+          "Roles 1-5 funcionan correctamente",
+          "Cambios de rol aplican inmediatamente",
+          "Configuración de escala NEM cualitativa"
+        ],
+        "must_not_have": [
+          "Usuario sin permisos accede a módulo restringido",
+          "Cambios de rol sin efecto inmediato"
+        ]
+      },
+      "common_issues": ["RBAC no aplicado en todos los módulos", "Configuración de escalas incompleta"]
+    },
+    {
+      "id": "conducta",
+      "path": "/conducta",
+      "category": "Bienestar",
+      "risk": "alto",
+      "sequence": 28,
+      "context_required": ["plantel"],
+      "description": "Registro de conducta y sanciones: incidentes, amonestaciones, seguimiento",
+      "expected_elements": [
+        "Registro de incidentes por alumno",
+        "Tipos de sanción (amonestación, suspensión, etc.)",
+        "Historial de conducta",
+        "Notificación a padres"
+      ],
+      "heuristics": {
+        "must_have": [
+          "Registrar incidente con fecha, tipo y descripción",
+          "Vincular a alumno y profesor",
+          "Notificar a padre/tutor",
+          "Audit trail de cambios"
+        ],
+        "must_not_have": [
+          "Incidente sin fecha o responsable",
+          "Sin notificación al padre"
+        ]
+      },
+      "common_issues": ["Sin notificación automática al padre", "Tipos de sanción no configurados"]
+    },
+    {
+      "id": "medico",
+      "path": "/medico",
+      "category": "Bienestar",
+      "risk": "alto",
+      "sequence": 29,
+      "context_required": ["plantel"],
+      "description": "Expediente médico: historial de salud, alergias, medicamentos, visitas médicas",
+      "expected_elements": [
+        "Expediente médico por alumno",
+        "Campos: alergias, medicamentos, grupo sanguíneo",
+        "Registro de visitas a enfermería",
+        "Datos LFPDPPP (PII sensible)"
+      ],
+      "heuristics": {
+        "must_have": [
+          "Acceso restringido (datos sensibles LFPDPPP)",
+          "Historial de visitas médicas",
+          "Alerta de alergias visible en perfil del alumno"
+        ],
+        "must_not_have": [
+          "Datos médicos accesibles sin rol adecuado",
+          "Sin cifrado en tránsito (HTTPS)"
+        ]
+      },
+      "common_issues": ["RBAC insuficiente para datos médicos", "Alergias no visibles en perfil"]
+    },
+    {
+      "id": "eval_docente",
+      "path": "/eval-docente",
+      "category": "RRHH",
+      "risk": "alto",
+      "sequence": 30,
+      "context_required": ["ciclo_escolar"],
+      "description": "Evaluación Docente 360°: tipos DIRECTOR/COORDINADOR/PAR/AUTO, 7 criterios ponderados",
+      "expected_elements": [
+        "Lista de evaluaciones pendientes/completadas",
+        "Formulario con 7 criterios ponderados (escala 1-5)",
+        "Tipo de evaluador: DIRECTOR, COORDINADOR, PAR, AUTO",
+        "Resultados consolidados por docente"
+      ],
+      "heuristics": {
+        "must_have": [
+          "Escala 1-5 (no 7-10)",
+          "Tipo AUTO no AUTOEVALUACION",
+          "Ciclo opcional en el formulario",
+          "Resultados por tipo de evaluador"
+        ],
+        "must_not_have": [
+          "Escala incorrecta (7-10 o 0-5)",
+          "Permitir doble evaluación del mismo tipo"
+        ]
+      },
+      "common_issues": ["Tipo de evaluador incorrecto", "Escala de calificación errónea"]
+    },
+    {
+      "id": "planeacion",
+      "path": "/planeacion",
+      "category": "Académico",
+      "risk": "alto",
+      "sequence": 31,
+      "context_required": ["plantel", "ciclo_escolar"],
+      "description": "Planeación didáctica: vinculada a temarios y materias por docente",
+      "expected_elements": [
+        "Lista de planeaciones por docente/materia",
+        "Formulario: objetivo, actividades, recursos, evaluación",
+        "Vinculación a temario oficial",
+        "Estado: borrador/enviado/aprobado"
+      ],
+      "heuristics": {
+        "must_have": [
+          "Vincular a temario oficial de la materia",
+          "Flujo de aprobación visible",
+          "Exportar PDF de planeación"
+        ],
+        "must_not_have": [
+          "Planeación sin materia/grupo asignada",
+          "Sin flujo de revisión/aprobación"
+        ]
+      },
+      "common_issues": ["Sin vinculación a temario", "Sin flujo de aprobación"]
+    },
+    {
+      "id": "tareas",
+      "path": "/tareas",
+      "category": "Académico",
+      "risk": "alto",
+      "sequence": 32,
+      "context_required": ["plantel", "ciclo_escolar"],
+      "description": "Gestión de tareas y actividades: asignación, entrega, calificación",
+      "expected_elements": [
+        "Lista de tareas por materia/grupo",
+        "Crear tarea con fecha límite",
+        "Estado de entrega por alumno",
+        "Calificar entregas"
+      ],
+      "heuristics": {
+        "must_have": [
+          "Fecha límite de entrega visible",
+          "Estado por alumno (pendiente/entregado/calificado)",
+          "Calificación vinculada a gradebook"
+        ],
+        "must_not_have": [
+          "Tarea sin fecha límite",
+          "Calificación no vinculada a gradebook"
+        ]
+      },
+      "common_issues": ["Calificaciones de tareas no se reflejan en gradebook", "Sin notificación de tarea nueva"]
+    },
+    {
+      "id": "portal",
+      "path": "/portal",
+      "category": "Portal",
+      "risk": "alto",
+      "sequence": 33,
+      "context_required": [],
+      "description": "Portal familiar: padres y alumnos ven calificaciones, asistencias, comunicados",
+      "expected_elements": [
+        "Vista de calificaciones del alumno",
+        "Vista de asistencias con resumen",
+        "Comunicados recibidos",
+        "Datos del perfil del alumno"
+      ],
+      "heuristics": {
+        "must_have": [
+          "Acceso solo a datos del propio alumno (IDOR)",
+          "Calificaciones consistentes con admin",
+          "Comunicados recibidos visibles"
+        ],
+        "must_not_have": [
+          "Padre ve datos de otros alumnos (IDOR crítico)",
+          "Calificaciones no coinciden con admin"
+        ]
+      },
+      "common_issues": ["IDOR: padre puede ver datos de otros alumnos", "Datos desincronizados con admin"]
+    },
+    {
+      "id": "portal_admin",
+      "path": "/portal-admin",
+      "category": "Portal",
+      "risk": "alto",
+      "sequence": 34,
+      "context_required": [],
+      "description": "Administración del portal familiar: contenido, noticias, categorías publicadas",
+      "expected_elements": [
+        "CRUD de categorías del portal",
+        "Publicar/despublicar contenido",
+        "Vista previa de lo que ven los padres"
+      ],
+      "heuristics": {
+        "must_have": [
+          "Vista previa antes de publicar",
+          "Control de visibilidad por plantel",
+          "Audit trail de publicaciones"
+        ],
+        "must_not_have": [
+          "Publicar sin confirmación",
+          "Contenido visible en portal antes de aprobar"
+        ]
+      },
+      "common_issues": ["Sin vista previa antes de publicar", "Sin control de visibilidad por plantel"]
+    },
+    {
+      "id": "director_dashboard",
+      "path": "/director-dashboard",
+      "category": "Dirección",
+      "risk": "alto",
+      "sequence": 35,
+      "context_required": ["plantel"],
+      "description": "Dashboard de dirección: KPIs de plantel, asistencia global, alertas críticas",
+      "expected_elements": [
+        "KPIs: % asistencia, % alumnos en riesgo, comunicados pendientes",
+        "Gráficos de tendencia",
+        "Alertas críticas del plantel",
+        "Acceso rápido a reportes"
+      ],
+      "heuristics": {
+        "must_have": [
+          "KPIs con datos reales y actualizados",
+          "Scope por plantel (no mezclar datos)",
+          "Alertas de alumnos en riesgo"
+        ],
+        "must_not_have": [
+          "KPIs con datos de otros planteles",
+          "Gráficos vacíos con datos disponibles"
+        ]
+      },
+      "common_issues": ["KPIs sin datos reales", "Sin scope por plantel"]
+    },
+    {
+      "id": "expediente_laboral",
+      "path": "/expediente-laboral",
+      "category": "RRHH",
+      "risk": "alto",
+      "sequence": 36,
+      "context_required": ["plantel"],
+      "description": "Expediente laboral docente: contrato, RFC, CURP, datos bancarios, historial",
+      "expected_elements": [
+        "Datos laborales del docente: RFC, CURP, contrato",
+        "Historial de cambios laborales",
+        "Documentos adjuntos (PDF, imágenes)",
+        "Datos bancarios (acceso restringido)"
+      ],
+      "heuristics": {
+        "must_have": [
+          "Datos bancarios solo visibles con rol >= 2",
+          "RFC y CURP validados con ValidationUtils",
+          "Historial de cambios con audit trail"
+        ],
+        "must_not_have": [
+          "Datos bancarios accesibles sin rol adecuado",
+          "RFC inválido aceptado"
+        ]
+      },
+      "common_issues": ["Datos bancarios sin control de acceso", "RFC/CURP sin validación"]
+    },
+    {
+      "id": "certificados",
+      "path": "/certificados",
+      "category": "Reportes",
+      "risk": "alto",
+      "sequence": 37,
+      "context_required": ["ciclo_escolar"],
+      "description": "Certificados digitales con firma Ed25519: generación, verificación por folio",
+      "expected_elements": [
+        "Generar certificado por alumno",
+        "Firma digital Ed25519 integrada",
+        "Folio único verificable en /verificar/:folio",
+        "Descargar PDF del certificado"
+      ],
+      "heuristics": {
+        "must_have": [
+          "Folio único por certificado",
+          "Firma Ed25519 válida",
+          "URL /verificar/:folio pública y funcional"
+        ],
+        "must_not_have": [
+          "Certificado sin folio de verificación",
+          "Firma inválida o ausente"
+        ]
+      },
+      "common_issues": ["Verificador público no funciona", "Firma Ed25519 no incluida"]
+    },
+    {
+      "id": "condiciones_cronicas",
+      "path": "/condiciones-cronicas",
+      "category": "Bienestar",
+      "risk": "alto",
+      "sequence": 38,
+      "context_required": ["plantel"],
+      "description": "Condiciones crónicas de alumnos: diabetes, epilepsia, asma. Datos LFPDPPP",
+      "expected_elements": [
+        "Lista de alumnos con condición crónica",
+        "Tipo de condición, medicación, protocolo de emergencia",
+        "Acceso restringido (solo personal autorizado)",
+        "Alerta visible en ficha del alumno"
+      ],
+      "heuristics": {
+        "must_have": [
+          "RBAC estricto: solo rol >= 3 con acceso",
+          "Protocolo de emergencia legible",
+          "Alerta en perfil del alumno"
+        ],
+        "must_not_have": [
+          "Datos médicos sensibles accesibles sin rol",
+          "Sin protocolo de emergencia registrado"
+        ]
+      },
+      "common_issues": ["Sin RBAC en datos médicos sensibles", "Alerta no visible en perfil del alumno"]
+    },
+    {
+      "id": "padres",
+      "path": "/padres",
+      "category": "Portal",
+      "risk": "medio",
+      "sequence": 39,
+      "context_required": [],
+      "description": "Vista padre/tutor: calificaciones, asistencias y comunicados del alumno propio",
+      "expected_elements": [
+        "Calificaciones del alumno vinculado",
+        "Asistencias con porcentaje",
+        "Comunicados recibidos",
+        "Perfil del alumno"
+      ],
+      "heuristics": {
+        "must_have": [
+          "Solo datos del propio alumno (IDOR control)",
+          "Datos actualizados (no cacheados viejos)",
+          "Experiencia mobile-friendly"
+        ],
+        "must_not_have": [
+          "Ver datos de otros alumnos",
+          "Datos desactualizados"
+        ]
+      },
+      "common_issues": ["IDOR: acceso a datos de otros alumnos", "UI no mobile-friendly"]
+    },
+    {
+      "id": "calendario",
+      "path": "/calendario",
+      "category": "Operaciones",
+      "risk": "medio",
+      "sequence": 40,
+      "context_required": ["plantel", "ciclo_escolar"],
+      "description": "Calendario escolar: días inhábiles, periodos de evaluación, eventos institucionales",
+      "expected_elements": [
+        "Vista de calendario mensual/semanal",
+        "Eventos: días inhábiles, evaluaciones, eventos",
+        "CRUD de eventos",
+        "Integración con módulo de asistencias"
+      ],
+      "heuristics": {
+        "must_have": [
+          "Días inhábiles afectan asistencias",
+          "Periodos de evaluación visibles",
+          "CRUD de eventos con fecha/tipo"
+        ],
+        "must_not_have": [
+          "Días inhábiles no reflejados en asistencias",
+          "Sin distinción de tipos de evento"
+        ]
+      },
+      "common_issues": ["Días inhábiles no integrados con asistencias", "Calendario vacío sin datos iniciales"]
+    },
+    {
+      "id": "aulas",
+      "path": "/aulas",
+      "category": "Operaciones",
+      "risk": "medio",
+      "sequence": 41,
+      "context_required": ["plantel"],
+      "description": "Gestión de aulas: capacidad, nivel, disponibilidad para horarios",
+      "expected_elements": [
+        "Lista de aulas por plantel",
+        "Campos: nombre, capacidad, nivel, tipo (aula/lab/taller)",
+        "Estado: disponible/ocupada",
+        "Vinculación con horarios"
+      ],
+      "heuristics": {
+        "must_have": [
+          "CRUD completo de aulas",
+          "Capacidad validada > 0",
+          "Estado reflejado en módulo de horarios"
+        ],
+        "must_not_have": [
+          "Aula sin capacidad definida",
+          "Sin vinculación con horarios"
+        ]
+      },
+      "common_issues": ["Aulas no vinculadas a horarios", "Sin control de disponibilidad"]
+    },
+    {
+      "id": "personal_admin",
+      "path": "/personal-admin",
+      "category": "RRHH",
+      "risk": "medio",
+      "sequence": 42,
+      "context_required": ["plantel"],
+      "description": "Personal no-docente: administrativos, prefectos, intendencia. CRUD básico",
+      "expected_elements": [
+        "Lista de personal no-docente por plantel",
+        "CRUD: nombre, RFC, CURP, puesto, plantel",
+        "Expediente básico"
+      ],
+      "heuristics": {
+        "must_have": [
+          "RFC y CURP validados",
+          "Filtro por plantel y puesto",
+          "Vinculación a expediente laboral"
+        ],
+        "must_not_have": [
+          "RFC/CURP inválidos aceptados",
+          "Personal sin puesto asignado"
+        ]
+      },
+      "common_issues": ["Sin validación RFC/CURP", "No vinculado a expediente laboral"]
+    },
+    {
+      "id": "licencias",
+      "path": "/licencias",
+      "category": "RRHH",
+      "risk": "medio",
+      "sequence": 43,
+      "context_required": ["plantel"],
+      "description": "Licencias y permisos de personal: solicitud, aprobación, control de días",
+      "expected_elements": [
+        "Lista de licencias activas y pasadas",
+        "Formulario solicitud: tipo, fechas, motivo, documentos",
+        "Flujo aprobación: pendiente/aprobado/rechazado",
+        "Control de días disponibles"
+      ],
+      "heuristics": {
+        "must_have": [
+          "Flujo de aprobación con notificación",
+          "Validar días disponibles vs solicitados",
+          "Reducir días disponibles al aprobar"
+        ],
+        "must_not_have": [
+          "Aprobar sin validar días disponibles",
+          "Sin notificación al solicitante"
+        ]
+      },
+      "common_issues": ["Sin control de días disponibles", "Flujo de aprobación incompleto"]
+    },
+    {
+      "id": "capacitaciones",
+      "path": "/capacitaciones",
+      "category": "RRHH",
+      "risk": "medio",
+      "sequence": 44,
+      "context_required": [],
+      "description": "Capacitaciones de personal: registro, seguimiento, constancias",
+      "expected_elements": [
+        "Catálogo de capacitaciones disponibles",
+        "Inscripción de personal a capacitaciones",
+        "Seguimiento de asistencia y aprobación",
+        "Generación de constancia"
+      ],
+      "heuristics": {
+        "must_have": [
+          "Inscripción con confirmación",
+          "Registro de asistencia",
+          "Constancia PDF descargable al completar"
+        ],
+        "must_not_have": [
+          "Constancia sin datos del participante",
+          "Sin registro de asistencia"
+        ]
+      },
+      "common_issues": ["Constancia no se genera", "Sin control de asistencia"]
+    },
+    {
+      "id": "asistencia_personal",
+      "path": "/asistencia-personal",
+      "category": "RRHH",
+      "risk": "medio",
+      "sequence": 45,
+      "context_required": ["plantel"],
+      "description": "Asistencia del personal (docente y no-docente): registro diario, justificaciones",
+      "expected_elements": [
+        "DataTable personal × fechas",
+        "Marcar presente/ausente/retardo/justificado",
+        "Vinculación con licencias aprobadas",
+        "Resumen mensual"
+      ],
+      "heuristics": {
+        "must_have": [
+          "Licencias aprobadas deben verse como justificadas automáticamente",
+          "Retardo vs TARDE distinción correcta",
+          "Exportar reporte mensual"
+        ],
+        "must_not_have": [
+          "Licencia aprobada no reflejada como justificada",
+          "Confusión entre TARDE y TARDANZA"
+        ]
+      },
+      "common_issues": ["Licencias no integradas con asistencia", "Confusión semántica TARDE/TARDANZA"]
+    },
+    {
+      "id": "justificaciones",
+      "path": "/justificaciones",
+      "category": "Académico",
+      "risk": "medio",
+      "sequence": 46,
+      "context_required": ["plantel"],
+      "description": "Justificaciones de ausencias de alumnos: solicitud, documentos, aprobación",
+      "expected_elements": [
+        "Lista de justificaciones pendientes/aprobadas",
+        "Formulario: alumno, fechas, motivo, documento adjunto",
+        "Flujo aprobación por prefecto/dirección",
+        "Reflejo automático en asistencias"
+      ],
+      "heuristics": {
+        "must_have": [
+          "Reflejo automático en módulo de asistencias",
+          "Documento adjunto requerido",
+          "Notificación al padre del resultado"
+        ],
+        "must_not_have": [
+          "Justificación aprobada sin actualizar asistencias",
+          "Sin notificación al padre"
+        ]
+      },
+      "common_issues": ["Justificación aprobada no actualiza asistencias", "Sin notificación al padre"]
+    },
+    {
+      "id": "movilidad",
+      "path": "/movilidad",
+      "category": "Académico",
+      "risk": "medio",
+      "sequence": 47,
+      "context_required": ["plantel", "ciclo_escolar"],
+      "description": "Movilidad estudiantil: cambio de plantel, equivalencias de materias",
+      "expected_elements": [
+        "Registro de alumnos en movilidad",
+        "Plantel origen y destino",
+        "Equivalencias de materias",
+        "Estado del proceso"
+      ],
+      "heuristics": {
+        "must_have": [
+          "Equivalencias de materias documentadas",
+          "Historial en ambos planteles",
+          "Validar que alumno existe en plantel origen"
+        ],
+        "must_not_have": [
+          "Movilidad sin equivalencias definidas",
+          "Sin historial en plantel origen"
+        ]
+      },
+      "common_issues": ["Sin equivalencias de materias", "Historial no se mantiene en plantel origen"]
+    },
+    {
+      "id": "expediente_doc",
+      "path": "/expediente-doc",
+      "category": "RRHH",
+      "risk": "medio",
+      "sequence": 48,
+      "context_required": ["plantel"],
+      "description": "Expediente docente de documentos: certificados, títulos, comprobantes",
+      "expected_elements": [
+        "Lista de documentos por docente",
+        "Subir documento: tipo, fecha, vigencia",
+        "Estado: pendiente/validado/vencido",
+        "Alerta de documentos próximos a vencer"
+      ],
+      "heuristics": {
+        "must_have": [
+          "Validar tipo de archivo (PDF/imagen)",
+          "Compresión automática de imágenes",
+          "Alerta antes de vencimiento"
+        ],
+        "must_not_have": [
+          "Subir archivos > 2MB sin compresión",
+          "Sin alerta de vencimiento"
+        ]
+      },
+      "common_issues": ["Archivos grandes sin compresión", "Sin alertas de vencimiento de documentos"]
+    },
+    {
+      "id": "optativas",
+      "path": "/optativas",
+      "category": "Académico",
+      "risk": "medio",
+      "sequence": 49,
+      "context_required": ["plantel", "ciclo_escolar"],
+      "description": "Materias optativas/Nevadi: gestión de materias institucionales adicionales al plan SEP",
+      "expected_elements": [
+        "Catálogo de optativas disponibles por plantel",
+        "Inscripción de alumnos a optativas",
+        "Cupo disponible por materia",
+        "Vinculación con gradebook"
+      ],
+      "heuristics": {
+        "must_have": [
+          "Cupo máximo configurable",
+          "Calificaciones en gradebook distinción Nevadi",
+          "Inscripción con confirmación de cupo"
+        ],
+        "must_not_have": [
+          "Inscribir sin validar cupo",
+          "Calificaciones mezcladas con SEP"
+        ]
+      },
+      "common_issues": ["Sin control de cupo", "Calificaciones mezcladas con materias SEP"]
+    },
+    {
+      "id": "rubricas",
+      "path": "/rubricas",
+      "category": "Académico",
+      "risk": "medio",
+      "sequence": 50,
+      "context_required": ["ciclo_escolar"],
+      "description": "Rúbricas de evaluación: criterios, niveles de desempeño, vinculación a evaluaciones",
+      "expected_elements": [
+        "CRUD de rúbricas",
+        "Criterios con niveles de desempeño",
+        "Vinculación a evaluaciones y gradebook",
+        "Aplicar rúbrica a trabajo de alumno"
+      ],
+      "heuristics": {
+        "must_have": [
+          "Niveles de desempeño configurables",
+          "Conversión de nivel a calificación numérica",
+          "Vincular a evaluación en gradebook"
+        ],
+        "must_not_have": [
+          "Rúbrica sin conversión a calificación",
+          "Sin vinculación a evaluaciones"
+        ]
+      },
+      "common_issues": ["Sin conversión a calificación numérica", "No vinculada a gradebook"]
+    },
+    {
+      "id": "encuestas",
+      "path": "/encuestas",
+      "category": "Comunidad",
+      "risk": "medio",
+      "sequence": 51,
+      "context_required": ["plantel"],
+      "description": "Encuestas a padres/alumnos/docentes: crear, publicar, analizar resultados",
+      "expected_elements": [
+        "Crear encuesta con preguntas (opción múltiple, escala, texto)",
+        "Publicar a grupo de destinatarios",
+        "Respuestas anónimas con análisis",
+        "Reporte de resultados"
+      ],
+      "heuristics": {
+        "must_have": [
+          "Respuestas anónimas cuando se configura así",
+          "Resultados con gráficos",
+          "Exportar resultados"
+        ],
+        "must_not_have": [
+          "Encuesta 'anónima' que expone identidad",
+          "Sin análisis de resultados"
+        ]
+      },
+      "common_issues": ["Anonimato no garantizado", "Sin análisis visual de resultados"]
+    },
+    {
+      "id": "learning_paths",
+      "path": "/learning-paths",
+      "category": "Académico",
+      "risk": "medio",
+      "sequence": 52,
+      "context_required": ["ciclo_escolar"],
+      "description": "Rutas de aprendizaje personalizadas por alumno vinculadas a materias y objetivos",
+      "expected_elements": [
+        "Ruta de aprendizaje por alumno",
+        "Objetivos y hitos con progreso",
+        "Recursos vinculados (H5P, documentos)",
+        "Progreso visual (barra, porcentaje)"
+      ],
+      "heuristics": {
+        "must_have": [
+          "Progreso actualizado automáticamente",
+          "Recursos vinculados funcionan",
+          "Vista del alumno (mi-progreso)"
+        ],
+        "must_not_have": [
+          "Progreso estático sin actualización",
+          "Recursos con links rotos"
+        ]
+      },
+      "common_issues": ["Progreso no se actualiza", "Recursos H5P no cargan"]
+    },
+    {
+      "id": "mi_progreso",
+      "path": "/mi-progreso",
+      "category": "Portal",
+      "risk": "medio",
+      "sequence": 53,
+      "context_required": [],
+      "description": "Vista de progreso del alumno: calificaciones, asistencias, ruta de aprendizaje",
+      "expected_elements": [
+        "Resumen de calificaciones actuales",
+        "Porcentaje de asistencia",
+        "Progreso en ruta de aprendizaje",
+        "Logros/badges obtenidos"
+      ],
+      "heuristics": {
+        "must_have": [
+          "Datos solo del alumno autenticado (IDOR)",
+          "Calificaciones consistentes con admin",
+          "Badges ganados visibles"
+        ],
+        "must_not_have": [
+          "Ver datos de otros alumnos",
+          "Calificaciones incorrectas"
+        ]
+      },
+      "common_issues": ["IDOR: acceso a datos de otros", "Calificaciones desincronizadas"]
+    },
+    {
+      "id": "biblioteca",
+      "path": "/biblioteca",
+      "category": "Recursos",
+      "risk": "bajo",
+      "sequence": 54,
+      "context_required": [],
+      "description": "Biblioteca: catálogo de libros, préstamos, devoluciones, disponibilidad",
+      "expected_elements": [
+        "Catálogo de libros con búsqueda",
+        "Estado: disponible/prestado/reservado",
+        "Registrar préstamo y devolución",
+        "Historial por alumno"
+      ],
+      "heuristics": {
+        "must_have": [
+          "Decremento atómico de ejemplares disponibles",
+          "Registro de quién tiene cada libro",
+          "Alerta de devolución vencida"
+        ],
+        "must_not_have": [
+          "Prestar cuando no hay ejemplares",
+          "Sin registro de préstamos activos"
+        ]
+      },
+      "common_issues": ["Sin decremento de ejemplares disponibles", "Sin alerta de vencimiento"]
+    },
+    {
+      "id": "foros",
+      "path": "/foros",
+      "category": "Comunidad",
+      "risk": "bajo",
+      "sequence": 55,
+      "context_required": [],
+      "description": "Foros académicos: discusión por materia/grupo, moderación",
+      "expected_elements": [
+        "Lista de foros por materia/grupo",
+        "Crear hilo de discusión",
+        "Respuestas anidadas",
+        "Moderación (eliminar/ocultar mensajes)"
+      ],
+      "heuristics": {
+        "must_have": [
+          "Moderación disponible para docentes",
+          "Notificación de respuesta nueva",
+          "Adjuntar archivos en respuestas"
+        ],
+        "must_not_have": [
+          "Sin moderación de contenido",
+          "Contenido inapropiado sin control"
+        ]
+      },
+      "common_issues": ["Sin moderación activa", "Notificaciones no funcionan"]
+    },
+    {
+      "id": "badges",
+      "path": "/badges",
+      "category": "Gamificación",
+      "risk": "bajo",
+      "sequence": 56,
+      "context_required": [],
+      "description": "Insignias digitales: definición de badges, criterios de otorgamiento, asignación",
+      "expected_elements": [
+        "Catálogo de badges disponibles",
+        "Criterios de otorgamiento",
+        "Asignar badge a alumno",
+        "Vista alumno: badges obtenidos"
+      ],
+      "heuristics": {
+        "must_have": [
+          "Criterios claros por badge",
+          "Badges visibles en perfil del alumno",
+          "Historial de otorgamiento"
+        ],
+        "must_not_have": [
+          "Badge sin criterios definidos",
+          "Sin notificación al obtener badge"
+        ]
+      },
+      "common_issues": ["Badges sin criterios", "No visibles en perfil del alumno"]
+    },
+    {
+      "id": "h5p",
+      "path": "/h5p",
+      "category": "Recursos",
+      "risk": "bajo",
+      "sequence": 57,
+      "context_required": [],
+      "description": "Contenido H5P interactivo: videos interactivos, cuestionarios, presentaciones",
+      "expected_elements": [
+        "Catálogo de contenido H5P",
+        "Visor de contenido interactivo",
+        "Progreso del alumno en cada contenido",
+        "Vinculación a learning paths"
+      ],
+      "heuristics": {
+        "must_have": [
+          "H5P Node.js :8091 accesible",
+          "JsonStorage inicializado correctamente",
+          "Progreso guardado por alumno"
+        ],
+        "must_not_have": [
+          "Contenido H5P no carga (servicio caído)",
+          "Progreso no persiste"
+        ]
+      },
+      "common_issues": ["Servicio H5P :8091 no disponible", "JsonStorage sin inicializar"]
+    },
+    {
+      "id": "videoconferencias",
+      "path": "/videoconferencias",
+      "category": "Recursos",
+      "risk": "bajo",
+      "sequence": 58,
+      "context_required": [],
+      "description": "Videoconferencias BigBlueButton (BBB): salas por grupo/materia, grabaciones",
+      "expected_elements": [
+        "Lista de salas BBB activas",
+        "Crear sala por grupo/materia",
+        "Unirse a sala (link BBB)",
+        "Grabaciones disponibles"
+      ],
+      "heuristics": {
+        "must_have": [
+          "BBB API accesible con checksum SHA-1",
+          "Link de sala funcional",
+          "Grabaciones listadas después de sesión"
+        ],
+        "must_not_have": [
+          "Error de checksum BBB (BBB_SECRET incorrecto)",
+          "Salas activas sin posibilidad de unirse"
+        ]
+      },
+      "common_issues": ["BBB_SECRET incorrecto (checksum falla)", "Grabaciones no disponibles"]
+    },
+    {
+      "id": "ayuda",
+      "path": "/ayuda",
+      "category": "Sistema",
+      "risk": "bajo",
+      "sequence": 59,
+      "context_required": [],
+      "description": "Módulo de ayuda y documentación integrada del sistema",
+      "expected_elements": [
+        "Documentación por módulo/rol",
+        "Búsqueda de ayuda",
+        "FAQ frecuentes",
+        "Contacto de soporte"
+      ],
+      "heuristics": {
+        "must_have": [
+          "Contenido de ayuda visible",
+          "Búsqueda funcional",
+          "Información actualizada"
+        ],
+        "must_not_have": [
+          "Ayuda vacía o con placeholders",
+          "Links de documentación rotos"
+        ]
+      },
+      "common_issues": ["Contenido de ayuda incompleto", "Sección vacía sin contenido real"]
+    }
+  ]
+}

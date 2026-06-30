@@ -1,6 +1,7 @@
 package mx.ades.modules.condiciones;
 
 import lombok.RequiredArgsConstructor;
+import mx.ades.common.ValidationUtils;
 import mx.ades.modules.condiciones.domain.model.TipoCondicion;
 import mx.ades.modules.condiciones.domain.port.in.ActualizarCondicionUseCase;
 import mx.ades.modules.condiciones.domain.port.in.EliminarCondicionUseCase;
@@ -13,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Map;
@@ -57,6 +59,9 @@ public class CondicionCronicaController {
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         int nivel = user.getNivelAcceso() != null ? user.getNivelAcceso() : 5;
+
+        validarCondicionCronica(body);
+
         var cmd = new RegistrarCondicionUseCase.Command(
                 body.getAlumnoId(),
                 TipoCondicion.of(body.getTipoCondicion()),
@@ -96,6 +101,9 @@ public class CondicionCronicaController {
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         int nivel = user.getNivelAcceso() != null ? user.getNivelAcceso() : 5;
+
+        validarCondicionCronica(body);
+
         var cmd = new ActualizarCondicionUseCase.Command(
                 id,
                 body.getDescripcion(),
@@ -120,5 +128,32 @@ public class CondicionCronicaController {
         AdesUser user = userService.resolveUser(jwt);
         int nivel = user.getNivelAcceso() != null ? user.getNivelAcceso() : 5;
         eliminarCondicion.eliminar(id, nivel);
+    }
+
+    private void validarCondicionCronica(CondicionCronica body) {
+        if (body.getAlumnoId() == null) {
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "alumno_id es obligatorio.");
+        }
+        if (body.getTipoCondicion() == null || body.getTipoCondicion().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "tipo_condicion es obligatorio.");
+        }
+        if (body.getDescripcion() == null || body.getDescripcion().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "descripcion es obligatoria.");
+        }
+        if (body.getTelefonoMedico() != null && !body.getTelefonoMedico().isBlank()) {
+            ValidationUtils.validarTelefono(body.getTelefonoMedico());
+        }
+        if (body.getDosis() != null && !body.getDosis().isBlank()) {
+            if (!body.getDosis().matches("^\\d+(\\.\\d+)?(mg|g|ml|mcg|IU)$")) {
+                throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
+                    "dosis debe tener formato válido: número + unidad (mg, g, ml, mcg, IU). Ej: 500mg, 2.5ml");
+            }
+        }
+        if (body.getFrecuencia() != null && !body.getFrecuencia().isBlank()) {
+            if (!body.getFrecuencia().matches("^Cada \\d+ (horas|minutos|días)$")) {
+                throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
+                    "frecuencia debe estar en formato: 'Cada X horas/minutos/días'. Ej: 'Cada 8 horas'");
+            }
+        }
     }
 }

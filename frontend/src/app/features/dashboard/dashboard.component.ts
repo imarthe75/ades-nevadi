@@ -11,6 +11,7 @@ import { InputTextModule } from 'primeng/inputtext';
 import { TooltipModule } from 'primeng/tooltip';
 import { TagModule } from 'primeng/tag';
 import { CheckboxModule } from 'primeng/checkbox';
+import { MessageModule } from 'primeng/message';
 
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
@@ -78,7 +79,7 @@ const NIVEL_ICON: Record<string, string> = {
   imports: [
     CommonModule, RouterModule, FormsModule, CardModule, SkeletonModule,
     ButtonModule, DividerModule, DialogModule, InputTextModule, TooltipModule, TagModule, CheckboxModule,
-    ApexChartComponent
+    MessageModule, ApexChartComponent
   ],
   template: `
     <div class="dashboard">
@@ -116,6 +117,13 @@ const NIVEL_ICON: Record<string, string> = {
         <div class="mini-welcome-bar">
           <span class="mini-title">Dashboard</span>
         </div>
+      }
+
+      <!-- ── Error KPI Cards ── -->
+      @if (visibleWidgets().kpi && errorResumen()) {
+        <p-message severity="error" [text]="true"
+          [innerHTML]="'Error al cargar estadísticas: ' + errorResumen()"></p-message>
+        <p-button label="Reintentar" icon="pi pi-refresh" size="small" (onClick)="recargarResumen()" />
       }
 
       <!-- ── KPI Cards ── -->
@@ -206,6 +214,13 @@ const NIVEL_ICON: Record<string, string> = {
             </div>
           </div>
         </div>
+      }
+
+      <!-- ── Error Planteles ── -->
+      @if (visibleWidgets().planteles && ctx.esAdminGlobal() && errorPlanteles()) {
+        <p-message severity="error" [text]="true"
+          [innerHTML]="'Error al cargar planteles: ' + errorPlanteles()"></p-message>
+        <p-button label="Reintentar" icon="pi pi-refresh" size="small" (onClick)="recargarPlanteles()" />
       }
 
       <!-- ── Planteles del Instituto (Administradores Globales — siempre visible) ── -->
@@ -529,14 +544,17 @@ export class DashboardComponent {
   readonly ctx = inject(ContextService);
   private readonly notify = inject(ApexNotificationService);
 
-  resumen      = signal<ResumenPlantel | null>(null);
-  distribucion = signal<DistribucionNivel[]>([]);
-  loading      = signal(true);
-  loadingChart = signal(true);
+  resumen        = signal<ResumenPlantel | null>(null);
+  distribucion   = signal<DistribucionNivel[]>([]);
+  loading        = signal(true);
+  loadingChart   = signal(true);
+  errorResumen   = signal<string | null>(null);
+  errorDistribucion = signal<string | null>(null);
 
   // Planteles properties
   stats            = signal<PlantelStats[]>([]);
   loadingPlanteles = signal(true);
+  errorPlanteles   = signal<string | null>(null);
   dlgPlantel       = false;
   plantelEdit: { id: string; nombre_plantel: string; clave_ct: string | null } | null = null;
   saving           = signal(false);
@@ -591,24 +609,54 @@ export class DashboardComponent {
       const params = plantelId ? { plantel_id: plantelId } : {};
 
       this.loading.set(true);
+      this.errorResumen.set(null);
       this.api.get<ResumenPlantel>('/stats/resumen', params).subscribe({
-        next: (r) => { this.resumen.set(r); this.loading.set(false); },
-        error: () => this.loading.set(false),
+        next: (r) => {
+          this.resumen.set(r);
+          this.loading.set(false);
+          this.errorResumen.set(null);
+        },
+        error: (err) => {
+          this.loading.set(false);
+          const errorMsg = err?.error?.detail ?? 'No se pudieron cargar las estadísticas';
+          this.errorResumen.set(errorMsg);
+          this.notify.error('Error', errorMsg);
+        },
       });
 
       this.loadingChart.set(true);
+      this.errorDistribucion.set(null);
       this.api.get<DistribucionNivel[]>('/stats/distribucion', params).subscribe({
-        next: (d) => { this.distribucion.set(d); this.loadingChart.set(false); },
-        error: () => { this.distribucion.set([]); this.loadingChart.set(false); },
-        });
+        next: (d) => {
+          this.distribucion.set(d);
+          this.loadingChart.set(false);
+          this.errorDistribucion.set(null);
+        },
+        error: (err) => {
+          this.distribucion.set([]);
+          this.loadingChart.set(false);
+          const errorMsg = err?.error?.detail ?? 'No se pudo cargar la distribución';
+          this.errorDistribucion.set(errorMsg);
+        },
+      });
     });
 
     // Load planteles stats if user is global admin
     if (this.ctx.esAdminGlobal()) {
       this.loadingPlanteles.set(true);
+      this.errorPlanteles.set(null);
       this.api.get<PlantelStats[]>('/planteles/stats').subscribe({
-        next: s => { this.stats.set(s); this.loadingPlanteles.set(false); },
-        error: () => this.loadingPlanteles.set(false),
+        next: s => {
+          this.stats.set(s);
+          this.loadingPlanteles.set(false);
+          this.errorPlanteles.set(null);
+        },
+        error: (err) => {
+          this.loadingPlanteles.set(false);
+          const errorMsg = err?.error?.detail ?? 'No se pudieron cargar los planteles';
+          this.errorPlanteles.set(errorMsg);
+          this.notify.error('Error', errorMsg);
+        },
       });
     }
   }
@@ -695,6 +743,44 @@ export class DashboardComponent {
       localStorage.removeItem('ades_dashboard_min_kpi');
     } catch (e) {}
     this.notify.info('Restablecido', 'Preferencias de visualización restablecidas');
+  }
+
+  recargarResumen(): void {
+    const plantelId = this.ctx.plantel()?.id;
+    const params = plantelId ? { plantel_id: plantelId } : {};
+    this.loading.set(true);
+    this.errorResumen.set(null);
+    this.api.get<ResumenPlantel>('/stats/resumen', params).subscribe({
+      next: (r) => {
+        this.resumen.set(r);
+        this.loading.set(false);
+        this.notify.success('Éxito', 'Datos recargados');
+      },
+      error: (err) => {
+        this.loading.set(false);
+        const errorMsg = err?.error?.detail ?? 'Error al recargar';
+        this.errorResumen.set(errorMsg);
+        this.notify.error('Error', errorMsg);
+      },
+    });
+  }
+
+  recargarPlanteles(): void {
+    this.loadingPlanteles.set(true);
+    this.errorPlanteles.set(null);
+    this.api.get<PlantelStats[]>('/planteles/stats').subscribe({
+      next: s => {
+        this.stats.set(s);
+        this.loadingPlanteles.set(false);
+        this.notify.success('Éxito', 'Planteles recargados');
+      },
+      error: (err) => {
+        this.loadingPlanteles.set(false);
+        const errorMsg = err?.error?.detail ?? 'Error al recargar';
+        this.errorPlanteles.set(errorMsg);
+        this.notify.error('Error', errorMsg);
+      },
+    });
   }
 
   color(n: string): string { return NIVEL_COLOR[n] ?? '#94a3b8'; }

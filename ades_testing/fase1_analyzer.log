@@ -1,0 +1,47 @@
+2026-06-30 08:14:34,826 [INFO] Modelo NIM: meta/llama-3.1-70b-instruct
+2026-06-30 08:14:34,827 [INFO] Base URL: https://integrate.api.nvidia.com/v1
+2026-06-30 08:14:34,827 [INFO] Analizando 34 capturas con meta/llama-3.1-70b-instruct
+2026-06-30 08:14:34,827 [INFO] 
+Batch 1/7
+2026-06-30 08:14:34,827 [INFO]   Llamando NIM API (5 módulos)...
+2026-06-30 08:17:03,104 [INFO] HTTP Request: POST https://integrate.api.nvidia.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-06-30 08:17:03,113 [INFO]   ✓ Batch 1: 4 inconsistencias detectadas
+2026-06-30 08:17:03,113 [INFO] 
+Batch 2/7
+2026-06-30 08:17:03,113 [INFO]   Llamando NIM API (5 módulos)...
+2026-06-30 08:17:37,930 [INFO] HTTP Request: POST https://integrate.api.nvidia.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-06-30 08:17:37,931 [INFO]   ✓ Batch 2: 4 inconsistencias detectadas
+2026-06-30 08:17:37,931 [INFO] 
+Batch 3/7
+2026-06-30 08:17:37,931 [INFO]   Llamando NIM API (5 módulos)...
+2026-06-30 08:18:59,522 [INFO] HTTP Request: POST https://integrate.api.nvidia.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-06-30 08:18:59,523 [INFO]   ✓ Batch 3: 5 inconsistencias detectadas
+2026-06-30 08:18:59,523 [INFO] 
+Batch 4/7
+2026-06-30 08:18:59,523 [INFO]   Llamando NIM API (5 módulos)...
+2026-06-30 08:19:38,856 [INFO] HTTP Request: POST https://integrate.api.nvidia.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-06-30 08:19:38,857 [INFO]   ✓ Batch 4: 5 inconsistencias detectadas
+2026-06-30 08:19:38,857 [INFO] 
+Batch 5/7
+2026-06-30 08:19:38,857 [INFO]   Llamando NIM API (5 módulos)...
+2026-06-30 08:20:55,323 [INFO] HTTP Request: POST https://integrate.api.nvidia.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-06-30 08:20:55,323 [INFO]   ✓ Batch 5: 4 inconsistencias detectadas
+2026-06-30 08:20:55,323 [INFO] 
+Batch 6/7
+2026-06-30 08:20:55,324 [INFO]   Llamando NIM API (5 módulos)...
+2026-06-30 08:22:20,333 [INFO] HTTP Request: POST https://integrate.api.nvidia.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-06-30 08:22:20,334 [INFO]   ✓ Batch 6: 4 inconsistencias detectadas
+2026-06-30 08:22:20,334 [INFO] 
+Batch 7/7
+2026-06-30 08:22:20,334 [INFO]   Llamando NIM API (4 módulos)...
+2026-06-30 08:23:40,544 [INFO] HTTP Request: POST https://integrate.api.nvidia.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-06-30 08:23:40,545 [INFO]   ✓ Batch 7: 4 inconsistencias detectadas
+2026-06-30 08:23:40,546 [INFO] 
+✓ Resultados guardados en /opt/ades/ades_testing/analysis
+2026-06-30 08:23:40,546 [INFO]   - Total inconsistencias: 30
+2026-06-30 08:23:40,546 [INFO]   - Críticas: 12
+2026-06-30 08:23:40,546 [INFO]   - Altas: 12
+2026-06-30 08:23:40,546 [INFO]   - Medias: 3
+2026-06-30 08:23:40,546 [INFO]   - Bajas: 3
+2026-06-30 08:23:40,546 [INFO]   - JSON: /opt/ades/ades_testing/analysis/inconsistencies_report.json
+2026-06-30 08:23:40,546 [INFO]   - CSV:  /opt/ades/ades_testing/analysis/inconsistencies_report.csv

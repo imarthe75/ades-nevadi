@@ -1,0 +1,46 @@
+
+╔═════════════════════════════════════════════════════════════════════════════╗
+║                   ADES NEVADI - TESTING EXPLORATORIO                         ║
+║                      REPORTE DE INCONSISTENCIAS                              ║
+╚═════════════════════════════════════════════════════════════════════════════╝
+
+Generado: 2026-06-30 08:24:17
+
+─────────────────────────────────────────────────────────────────────────────
+RESUMEN DE SEVERIDAD
+─────────────────────────────────────────────────────────────────────────────
+  🔴 CRÍTICAS:   12  (Bloquean funcionalidad)
+  🟠 ALTAS:      12  (Afectan UX significativamente)
+  🟡 MEDIAS:      3  (Mejoras necesarias)
+  🟢 BAJAS:       3  (Sugerencias)
+  ─────────────
+  TOTAL:         30
+
+─────────────────────────────────────────────────────────────────────────────
+TIPOS DE INCONSISTENCIAS
+─────────────────────────────────────────────────────────────────────────────
+  • Validation Missing: 10
+  • Data Not Rendered: 5
+  • SEP/Nevadi Ambiguity: 4
+  • Context Not Propagated: 4
+  • Error Hidden: 4
+  • Inline Editable Missing: 1
+  • Incomplete Flow: 1
+  • Modal/Drawer Issue: 1
+
+─────────────────────────────────────────────────────────────────────────────
+PRÓXIMOS PASOS
+─────────────────────────────────────────────────────────────────────────────
+  1. Revisar HTML ejecutivo: inconsistencies_report.html
+  2. Descargar CSV para Jira: jira_issues.csv
+  3. Analizar matriz de trazabilidad: traceability_matrix.csv
+  4. Priorizar correcciones por severidad
+  5. Crear tasks en backlog
+  6. Re-ejecutar testing después de correcciones
+
+Reportes generados:
+  ✓ HTML interactivo: inconsistencies_report.html
+  ✓ CSV para Jira: jira_issues.csv
+  ✓ Matriz trazabilidad: traceability_matrix.csv
+
+═════════════════════════════════════════════════════════════════════════════

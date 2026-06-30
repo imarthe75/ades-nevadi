@@ -40,10 +40,10 @@ Ver ADR-0011 para el plan de boleta NEM.
 | **FastAPI (IA + Render Docs)** | Capa de agente/embeddings/insights + generación PDF boletas |
 | Frontend Angular 22 | Standalone components + signals + PrimeNG (estilo APEX) |
 | Superset 6.1.0 | Levantado — pendiente configurar OIDC final |
-| Migraciones | 3 dígitos hasta **092** + date-based. Próxima 3-díg: 093 |
+| Migraciones | 3 dígitos hasta **093** + date-based. Próxima 3-díg: 094 |
 | Regla ciclo escolar | 1 año vigente por sistema (SEP/UAEMEX). Mig 083: `sistema_educativo` + trigger `fn_ciclo_sistema_vigente` |
 | Biblioteca | Mig 084: `ades_biblioteca_libros` + `ades_biblioteca_prestamos`; módulo hexagonal `/api/v1/biblioteca`; 60 libros + 74 préstamos seeded |
-| Reporte 911 SEP | `/api/v1/reportes/911` (Spring hexagonal); matriz edad×grado×sexo×ingreso + grupos + Sección IX discapacidad |
+| Reporte 911 SEP | `/api/v1/reportes/911` (Spring hexagonal); matriz edad×grado×sexo×ingreso + grupos + Sección IX discapacidad. ⚠️ Retorna HTTP 500 en producción — pendiente fix |
 | Boleta NEM | Mig 085: `ades_materias.campo_formativo` (4 campos NEM). FastAPI (`tasks/boletas.py` + Jinja `boleta.html`). Soporte numérico (6-10) y cualitativo |
 | Boleta UAEMEX | FastAPI `/boletas/uaemex/{id}` → BFF proxy; template `boleta_uaemex.html` weasyprint; ordinario/extra/definitiva RGEMS |
 | Kardex UAEMEX | `/api/v1/reportes/kardex/{id}` (Spring hexagonal); prepa CBU, escala 0-10 mín 6.0, ordinario→extraordinario→definitiva |
@@ -52,6 +52,10 @@ Ver ADR-0011 para el plan de boleta NEM.
 | Seguridad (IDOR, HTTPS, Limiting) | 5 vulnerabilidades corregidas, HTTPSRedirectMiddleware, rate limiting slowapi, IDOR fixes |
 | Filtros en Cascada y Búsqueda | Filtro global en cascada Toolbar y inputs de búsqueda rápida integrados en todos los módulos clave |
 | LOV Global Fix | `overlayAppendTo: 'body'` en `providePrimeNG()` (app.config.ts) — todos los p-select dentro de p-dialog/p-drawer muestran correctamente |
+| **Franjas Horarias** | Mig 068: `ades_horario_franjas` seeded — PRIM/SEC L-J 10 franjas 07:00-16:00, V 8 franjas 07:00-14:00; PREP L-V 7 franjas 07:00-14:30. MATUTINO. Endpoints `/api/v1/horario-franjas` + `/api/v1/horario-indisponibilidad` (DISPONIBLE/CONDICIONAL/NO_DISPONIBLE) |
+| **Testing Exploratorio IA** | `ades_testing/` — Playwright + NVIDIA NIM; Fase 1: 34 módulos capturados, 30 inconsistencias detectadas; ejecutar: `python 01_ades_explorer_v4_complete.py && python 02_claude_qa_analyzer.py && python 03_report_generator.py` |
+| **Autocomplete Alumnos** | `p-autocomplete` (búsqueda dinámica) reemplaza `p-select` en movilidad, optativas, padres-admin, padres, conducta, certificados, expediente-doc, learning-paths |
+| **Compresión Imágenes** | Compresión automática + límite 2MB global en todas las cargas de archivos/imágenes del frontend |
 
 ---
 

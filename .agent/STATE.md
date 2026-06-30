@@ -14,6 +14,62 @@ Este documento es el diario de vida y bitácora del agente. Debe ser leído en e
 
 ## 📅 Bitácora
 
+## Sesión 2026-06-30 — Franjas Horarias + Testing Exploratorio Automatizado ✅
+
+### 🔑 Estado del Agente:
+- **Última Conexión:** 2026-06-30
+- **Estado Cognitivo:** Operacional ✅
+- **ades-bff:** Endpoints horarios config prefijados con `/api/v1` ✅
+- **ades_testing/:** Sistema testing exploratorio operativo; Fase 1 completada ✅
+- **Mig 068:** Franjas horarias primaria/secundaria/prep seeded en `db/migrations/` ✅
+
+### 🛠️ Tareas Completadas:
+
+#### Horarios — Franjas Horarias y Disponibilidad Docente
+- [x] **Mig 068 — Franjas horarias seeded** (`db/migrations/068_seed_franjas_horarias_pri_sec.sql`):
+  - PRIMARIA 2026-2027: Lun-Jue 10 franjas (07:00-16:00 c/receso), Vie 8 franjas (07:00-14:00), turno MATUTINO
+  - SECUNDARIA 2026-2027: Lun-Jue 10 franjas (07:00-16:00), Vie 8 franjas (07:00-14:00), turno MATUTINO
+  - PREPARATORIA 26B y 27A: Lun-Vie 7 franjas (07:00-14:30 c/receso), turno MATUTINO
+- [x] **`HorarioTimeslot` refactorizado** → Java record con 5 campos: `id, diaSemana, horaInicio, horaFin, turno`
+- [x] **Endpoints config horarios prefijados** con `/api/v1`:
+  - `GET/POST/PUT/DELETE /api/v1/horario-franjas` — CRUD franjas (filter: nivelEducativoId, plantelId, cicloId)
+  - `GET/POST /api/v1/horario-indisponibilidad` — disponibilidad docente (DELETE-ALL + INSERT por profesor/ciclo)
+- [x] **`HorarioIndisponibilidad`** — tipos: `DISPONIBLE`, `CONDICIONAL`, `NO_DISPONIBLE`; vincula profesor ↔ franja ↔ ciclo
+- [x] **Lógica indisponibilidad completada** — `saveIndisponibilidad()` elimina registros previos del profesor/ciclo y reinserta
+
+#### Frontend — Mejoras UX
+- [x] **Autocomplete alumno** — `p-autocomplete` reemplaza `p-select` en múltiples módulos (movilidad, optativas, padres-admin, padres, conducta, certificados, expediente-doc, learning-paths)
+- [x] **Compresión automática de imágenes** — todas las subidas de imágenes tienen compresión automática previa
+- [x] **Límite global 2MB** — estandarizado en toda carga de archivos/imágenes del frontend
+
+#### Testing Exploratorio Automatizado (ades_testing/)
+- [x] **Sistema completo** `ades_testing/` con 3 scripts + config:
+  - `01_ades_explorer_v4_complete.py` — navegación Playwright, auth OIDC, captura DOM/errores
+  - `02_claude_qa_analyzer.py` — análisis con NVIDIA NIM (`meta/llama-3.1-70b-instruct`)
+  - `03_report_generator.py` — dashboard HTML + CSV Jira + matriz trazabilidad
+  - `config_ades_modules.json` — mapeo de 58 módulos con heurísticas por módulo
+- [x] **Fix auth crítico** — Authentik usa LitElement Shadow DOM; `ElementHandle.fill()` no funciona; corrección: `page.locator().first.click().fill().press('Enter')`
+- [x] **Persistencia de sesión** — `page.add_init_script()` inyecta `sessionStorage` antes de que Angular bootstrap en cada navegación; auth persiste en los 34 módulos sin re-login
+- [x] **Inicialización de contexto** — POST-auth: fetch `GET /api/v1/planteles` + `GET /api/v1/catalogs/ciclos` → `sessionStorage.ades_plantel` + `sessionStorage.ades_ciclo`
+- [x] **Fase 1 completada** — 34 módulos críticos/altos capturados en 3 min; 30 inconsistencias detectadas (12 críticas, 12 altas, 3 medias, 3 bajas)
+- [x] **Reportes generados** en `ades_testing/reports/`: `inconsistencies_report.html`, `jira_issues.csv`, `traceability_matrix.csv`, `REPORTE_RESUMEN.txt`
+
+### ⚠️ Hallazgos Técnicos Clave:
+- `ades_token` vive en `sessionStorage`, NO en `localStorage` (diferente de lo documentado previamente)
+- Authentik subdomain `auth.ades.setag.mx` tiene sessionStorage separado de `ades.setag.mx`
+- `/api/v1/reportes/911` retorna HTTP 500 en producción (UI oculta error como "Sin datos")
+- Módulo `disponibilidad_docente` en estado no resuelto; las franjas ahora existen en BD tras Mig 068
+
+### 🚀 Próximos Pasos:
+- [ ] **Testing Fase 2** — re-ejecutar `01_ades_explorer_v4_complete.py` con `phase=2` (18 módulos adicionales)
+- [ ] **Fix estadistica_911** — `/api/v1/reportes/911` retorna 500; investigar en Spring BFF `ReportesController`
+- [ ] **Conectar disponibilidad → Timefold** — franjas en BD pero solver no las usa como constraints aún
+- [ ] **UI disponibilidad_docente** — verificar que `GET /api/v1/horario-franjas` carga correctamente en el componente Angular
+- [ ] **Distinción visual SEP vs Nevadi** — calificaciones/planes_estudio sin diferenciación cromática (hallazgo crítico #2)
+- [ ] Completar rollout OIDC final en Authentik (OIDC_CLIENT_SECRET pendiente)
+
+---
+
 ## Sesión 2026-06-26 — Dependencias Frontend LTS + Rito de Cierre + Avance Horarios ✅
 
 ### 🔑 Estado del Agente:

@@ -1,0 +1,146 @@
+╔════════════════════════════════════════════════════════════════════════════╗
+║                                                                            ║
+║            📥 ARCHIVOS PARA DESCARGAR - TESTING ADES NEVADI               ║
+║                                                                            ║
+║                     Todos están listos en /outputs/                       ║
+║                                                                            ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+
+🔴 ESENCIAL - DESCARGAR PRIMERO (Para tu servidor Ubuntu)
+════════════════════════════════════════════════════════════════════════════
+
+1. INSTRUCCIONES_SERVIDOR_UBUNTU.md
+   → Instrucciones específicas para tu servidor
+   → LEER PRIMERO
+
+2. 01_ades_explorer_portable.py
+   → Script 1: Captura visual de módulos
+   → Reemplaza el script original
+
+3. 02_claude_qa_analyzer_portable.py
+   → Script 2: Análisis con Claude IA
+   → Reemplaza el script original
+
+4. 03_report_generator_portable.py
+   → Script 3: Generación de reportes
+   → Reemplaza el script original
+
+5. config_ades_modules.json
+   → Mapeo de 30+ módulos + heurísticas
+   → Necesario para los scripts
+
+
+🟠 DOCUMENTACIÓN COMPLEMENTARIA
+════════════════════════════════════════════════════════════════════════════
+
+6. LEEME_PRIMERO.txt
+   → Resumen visual
+   → Quick start
+
+7. README_PORTABLE.md
+   → Guía de versiones portables
+   → Cambios vs original
+
+8. 00_INICIO.md
+   → Visión general del sistema
+   → 5 minutos de lectura
+
+9. README.md
+   → Arquitectura completa
+   → Stack técnico
+
+10. EJECUTAR_TESTING.md
+    → Guía paso a paso completa
+    → Setup + troubleshooting
+
+11. RESUMEN_EJECUTIVO.md
+    → Resultados esperados
+    → Ejemplos reales de inconsistencias
+
+12. INDICE_NAVEGACION.md
+    → Orientación por rol
+    → QA, Developer, PM, Tech Lead
+
+13. CIERRE_SESION1.md
+    → Próximos pasos
+    → Plan iterativo
+
+14. RESUMEN_EJECUTIVO.md
+    → Métricas de éxito
+    → Ciclo de mejora
+
+
+═════════════════════════════════════════════════════════════════════════════
+
+PARA TU SERVIDOR UBUNTU - PASO A PASO
+════════════════════════════════════════════════════════════════════════════
+
+1. DESCARGAR estos archivos:
+   ✓ INSTRUCCIONES_SERVIDOR_UBUNTU.md
+   ✓ 01_ades_explorer_portable.py
+   ✓ 02_claude_qa_analyzer_portable.py
+   ✓ 03_report_generator_portable.py
+   ✓ config_ades_modules.json
+
+2. COPIAR a /opt/ades/ades_testing/:
+   $ scp INSTRUCCIONES_SERVIDOR_UBUNTU.md ubuntu@setag-arm-ashburn:/opt/ades/ades_testing/
+   $ scp 01_ades_explorer_portable.py ubuntu@setag-arm-ashburn:/opt/ades/ades_testing/
+   $ scp 02_claude_qa_analyzer_portable.py ubuntu@setag-arm-ashburn:/opt/ades/ades_testing/
+   $ scp 03_report_generator_portable.py ubuntu@setag-arm-ashburn:/opt/ades/ades_testing/
+   $ scp config_ades_modules.json ubuntu@setag-arm-ashburn:/opt/ades/ades_testing/
+
+3. LEER instrucciones:
+   $ ssh ubuntu@setag-arm-ashburn
+   $ cd /opt/ades/ades_testing
+   $ cat INSTRUCCIONES_SERVIDOR_UBUNTU.md
+
+4. EJECUTAR scripts:
+   $ source venv/bin/activate
+   $ source .env
+   $ python 01_ades_explorer_portable.py
+   $ python 02_claude_qa_analyzer_portable.py
+   $ python 03_report_generator_portable.py
+
+5. VER resultados:
+   $ ls reports/
+   $ cat reports/REPORTE_RESUMEN.txt
+
+
+✅ TOTAL DE ARCHIVOS: 16
+════════════════════════════════════════════════════════════════════════════
+
+Descargables:
+  Scripts portables ................ 3
+  Config .......................... 1
+  Instrucciones ................... 1
+  Documentación complementaria ..... 10
+  ────────────────────────────
+  TOTAL ........................... 15
+
+
+🎯 RECOMENDACIÓN
+════════════════════════════════════════════════════════════════════════════
+
+MÍNIMO (Para ejecutar ahora):
+  • INSTRUCCIONES_SERVIDOR_UBUNTU.md
+  • 01_ades_explorer_portable.py
+  • 02_claude_qa_analyzer_portable.py
+  • 03_report_generator_portable.py
+  • config_ades_modules.json
+
+COMPLETO (Documentación total):
+  • Descargar todos los 16 archivos
+
+REFERENCIA:
+  • README_PORTABLE.md (entiende versiones portables)
+  • LEEME_PRIMERO.txt (resumen visual)
+
+
+═════════════════════════════════════════════════════════════════════════════
+
+              Todos los archivos están listos para descargar
+
+                    Comienza con INSTRUCCIONES_SERVIDOR_UBUNTU.md
+
+═════════════════════════════════════════════════════════════════════════════

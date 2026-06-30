@@ -1,0 +1,310 @@
+╔════════════════════════════════════════════════════════════════════════════╗
+║                                                                            ║
+║     🎯 ADES NEVADI - TESTING EXPLORATORIO AUTOMATIZADO - SESIÓN 1         ║
+║                                                                            ║
+║                      ✅ PLAN COMPLETADO Y ENTREGADO                        ║
+║                                                                            ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+
+📦 ¿QUÉ RECIBISTE? (10 ARCHIVOS)
+════════════════════════════════════════════════════════════════════════════
+
+📄 DOCUMENTACIÓN (6 archivos - LEER EN ESTE ORDEN):
+   
+   1️⃣  00_INICIO.md ...................... Comienza aquí (5 min)
+   2️⃣  README.md ......................... Visión + arquitectura (5 min)
+   3️⃣  EJECUTAR_TESTING.md ............... Paso a paso (10 min)
+   4️⃣  RESUMEN_EJECUTIVO.md .............. Resultados esperados (5 min)
+   5️⃣  INDICE_NAVEGACION.md .............. Por rol: QA, Dev, PM, Tech (3 min)
+   6️⃣  CIERRE_SESION1.md ................. Próximos pasos (5 min)
+
+⚙️  SCRIPTS EJECUTABLES (4 archivos - EJECUTAR EN ORDEN):
+
+   1️⃣  config_ades_modules.json .......... Mapeo 30+ módulos + heurísticas
+   2️⃣  01_ades_explorer.py .............. Script 1: Captura visual (15 min)
+   3️⃣  02_claude_qa_analyzer.py ......... Script 2: Análisis con Claude (10 min)
+   4️⃣  03_report_generator.py ........... Script 3: Reportes HTML/CSV (2 min)
+
+
+🚀 QUICK START (SIN LEER NADA)
+════════════════════════════════════════════════════════════════════════════
+
+$ cd /home/claude/ades_testing
+
+# Setup (primera vez)
+$ pip install playwright python-dotenv anthropic
+$ playwright install chromium
+
+# Variables de entorno
+$ echo "ADES_USER=admin
+ADES_PASSWORD=***REDACTED-ROTATED***
+ANTHROPIC_API_KEY=sk-ant-..." > .env
+$ source .env
+
+# Ejecutar (45 minutos total)
+$ python 01_ades_explorer.py    # 15 min: captura
+$ python 02_claude_qa_analyzer.py # 10 min: análisis
+$ python 03_report_generator.py   # 2 min: reportes
+
+# Ver resultados
+$ open reports/inconsistencies_report.html
+
+
+📊 QUÉ VAS A OBTENER
+════════════════════════════════════════════════════════════════════════════
+
+Después de ejecutar los 3 scripts (45 minutos):
+
+✅ Dashboard HTML interactivo (abrir en navegador)
+   - Gráficos de severidad
+   - Tabla de 50-80 inconsistencias
+   - Filtros por módulo/tipo/severidad
+   - Detalles al click
+
+✅ CSV para Jira (importable)
+   - ~60 issues listos
+   - Priority automático
+   - Story points asignados
+   - Labels y componentes
+
+✅ Matriz de Trazabilidad (Excel)
+   - Qué módulos tienen más problemas
+   - Priorización clara
+   - Tracking de mejora
+
+
+🎯 TIPOS DE INCONSISTENCIAS DETECTADAS
+════════════════════════════════════════════════════════════════════════════
+
+🔴 Datos No Renderizados
+   "No hay franjas horarias" pero existen en BD
+
+🔴 Contexto No Propagado
+   Selecciono Plantel en top bar, diálogo no lo pre-llena
+
+🔴 Campos Requeridos Faltantes
+   Crear grupo sin selector de mapa curricular
+
+🔴 Errores API Enmascarados
+   API falla 401 pero UI dice "Sin resultados"
+
+🔴 Distinción Ambigua
+   Materias SEP/Nevadi/UAEMEX no diferenciadas
+
+🟠 Flujos Incompletos
+   Disponibilidad guardada pero Timefold no la usa
+
+🟠 Validaciones Ocultas
+   Error en API sin feedback visual
+
+
+⏱️  DURACIÓN POR PASO
+════════════════════════════════════════════════════════════════════════════
+
+Leer documentación:    5-28 minutos (opcional)
+Setup (una sola vez):  5 minutos
+Ejecutar scripts:      45 minutos (automatizado)
+Revisar reportes:      15 minutos
+TOTAL SESIÓN 1:        65-75 minutos
+
+
+📈 RESULTADOS ESPERADOS (BASELINE FASE 1)
+════════════════════════════════════════════════════════════════════════════
+
+Severidad de Inconsistencias:
+  🔴 CRÍTICAS:  12-18   (Bloquean funcionalidad)
+  🟠 ALTAS:     18-25   (Afectan UX)
+  🟡 MEDIAS:    15-20   (Mejoras)
+  🟢 BAJAS:     8-15    (Sugerencias)
+  ─────────────────────
+  TOTAL:        50-80   inconsistencias
+
+
+🔄 ITERACIÓN (PRÓXIMAS SESIONES)
+════════════════════════════════════════════════════════════════════════════
+
+Sesión 1 (Hoy):
+  → Baseline: 50-80 inconsistencias
+  → Developers planean correcciones
+
+Sesión 2 (Semana 1):
+  → Correcciones implementadas
+  → Re-ejecutar scripts (45 min)
+  → Validar: ¿bajó -50%?
+
+Sesión 3 (Semana 2):
+  → Fase 1 completada (<10 críticas)
+  → Explorar Fase 2 (módulos medio riesgo)
+
+Sesión 4 (Semana 3-4):
+  → Sistema completo testeado
+  → <20 inconsistencias críticas+altas
+  → Baseline documentado
+
+
+🎓 SEGÚN TU ROL
+════════════════════════════════════════════════════════════════════════════
+
+👨‍💻 QA/TESTER:
+   1. Ejecuta scripts (45 min)
+   2. Abre HTML en navegador
+   3. Analiza tabla de inconsistencias
+   4. Exporta CSV a Jira
+
+👨‍💼 DEVELOPER:
+   1. Recibe CSV importado en Jira
+   2. Lee: descripción + impacto + sugerencia
+   3. Corrige en código
+   4. QA valida en próxima sesión
+
+🏢 PRODUCT MANAGER:
+   1. Abre HTML, ve gráficos
+   2. Analiza matriz (qué módulos problemáticos)
+   3. Prioriza sprints
+   4. Comunica al team
+
+🏗️  TECH LEAD:
+   1. Entiende architecture (3 scripts)
+   2. Customiza heurísticas en config
+   3. Define qué sigue en Fase 2
+
+
+📚 LECTURA RECOMENDADA (EN ORDEN)
+════════════════════════════════════════════════════════════════════════════
+
+1. Este archivo (LEEME_PRIMERO.txt) ....... 3 minutos
+2. 00_INICIO.md ........................... 5 minutos
+3. EJECUTAR_TESTING.md ................... 10 minutos
+4. RESUMEN_EJECUTIVO.md .................. 5 minutos
+5. Ejecutar scripts ....................... 45 minutos
+6. Revisar reports ........................ 15 minutos
+
+TOTAL: 83 minutos (incluyendo ejecución)
+
+
+⚙️  TECH STACK
+════════════════════════════════════════════════════════════════════════════
+
+Captura Visual:     Playwright + Python
+Análisis Cognitivo: Claude Sonnet API (IA como QA Senior)
+Reportes:           HTML + Tailwind CSS, CSV, Pandas
+Lenguaje:           Python 3.8+
+
+
+✅ CHECKLIST PRE-EJECUCIÓN
+════════════════════════════════════════════════════════════════════════════
+
+[ ] Python 3.8+ instalado
+[ ] pip actualizado
+[ ] ADES accesible desde tu red (https://ades.setag.mx)
+[ ] Anthropic API key activa
+[ ] Credenciales ADES disponibles (admin/***REDACTED-ROTATED***)
+
+
+❓ FAQ RÁPIDO
+════════════════════════════════════════════════════════════════════════════
+
+P: ¿Por dónde comienzo?
+R: Lee 00_INICIO.md, luego EJECUTAR_TESTING.md
+
+P: ¿Cuánto tiempo toma?
+R: 45 minutos por ciclo completo (completamente automatizado)
+
+P: ¿Qué necesito instalar?
+R: pip install playwright python-dotenv anthropic
+
+P: ¿Cómo importo a Jira?
+R: Descarga reports/jira_issues.csv → Jira Importar → CSV
+
+P: ¿Cómo re-testeo después de correcciones?
+R: Re-ejecuta los 3 scripts (45 min), compara métricas
+
+P: ¿Qué detecta?
+R: Inconsistencias cognitivas (UX, flujos, contexto)
+
+P: ¿Qué NO detecta?
+R: Performance, security, accesibilidad (herramientas especializadas)
+
+
+🚀 COMENZAR AHORA
+════════════════════════════════════════════════════════════════════════════
+
+OPCIÓN 1: ULTRA RÁPIDO
+  $ cd /home/claude/ades_testing
+  $ source .env
+  $ python 01_ades_explorer.py && python 02_claude_qa_analyzer.py && \
+    python 03_report_generator.py
+  $ open reports/inconsistencies_report.html
+
+OPCIÓN 2: CON LECTURA (RECOMENDADO)
+  1. Lee 00_INICIO.md (5 min)
+  2. Lee EJECUTAR_TESTING.md (10 min)
+  3. Ejecuta scripts (45 min)
+  4. Revisa reportes (15 min)
+
+OPCIÓN 3: ENTENDER PRIMERO
+  1. Lee todos los .md (25 min)
+  2. Revisa código (10 min)
+  3. Ejecuta scripts (45 min)
+  4. Revisa reportes (15 min)
+
+
+📊 ESTRUCTURA FINAL
+════════════════════════════════════════════════════════════════════════════
+
+/home/claude/ades_testing/
+├── [DOCUMENTACIÓN]
+│   ├── 00_INICIO.md
+│   ├── README.md
+│   ├── EJECUTAR_TESTING.md
+│   ├── RESUMEN_EJECUTIVO.md
+│   ├── INDICE_NAVEGACION.md
+│   └── CIERRE_SESION1.md
+│
+├── [SCRIPTS]
+│   ├── config_ades_modules.json
+│   ├── 01_ades_explorer.py
+│   ├── 02_claude_qa_analyzer.py
+│   └── 03_report_generator.py
+│
+└── [SALIDA AUTOMÁTICA]
+    ├── captures/
+    │   └── captures_summary.json
+    ├── analysis/
+    │   └── inconsistencies_report.json
+    └── reports/
+        ├── inconsistencies_report.html  ← ABRIR AQUÍ
+        ├── jira_issues.csv              ← IMPORTAR A JIRA
+        └── traceability_matrix.csv
+
+
+🎯 MÉTRICAS DE ÉXITO
+════════════════════════════════════════════════════════════════════════════
+
+Sesión 1: 50-80 inconsistencias detectadas ✅
+Sesión 2: Reducción a 30-40 (-50%)          📈
+Sesión 3: Fase 1 completada (<10 críticas)  📈
+Sesión 4: <20 inconsistencias totales       ✅
+
+
+📞 SOPORTE
+════════════════════════════════════════════════════════════════════════════
+
+Problemas:    Ver sección Troubleshooting en EJECUTAR_TESTING.md
+Dudas:        Revisar FAQ en este archivo
+Customizar:   Ver INDICE_NAVEGACION.md
+
+
+═════════════════════════════════════════════════════════════════════════════
+
+                    🎉 ¡LISTO PARA EMPEZAR!
+
+        Siguiente paso: Abre 00_INICIO.md y comienza
+
+═════════════════════════════════════════════════════════════════════════════
+
+Generado para: Israel
+Sistema:       ADES Nevadi
+Fecha:         2024
+Duración:      Sesión 1 completada

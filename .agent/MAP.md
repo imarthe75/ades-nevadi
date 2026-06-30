@@ -201,6 +201,24 @@
 │   ├── superset/                  # Scripts creación datasets/charts/RLS
 │   └── asc_horarios/              # Exportador/importador XML aSc TimeTables
 │
+├── ades_testing/                  # Testing exploratorio automatizado (2026-06-30)
+│   ├── 01_ades_explorer_v4_complete.py  # Playwright: navega módulos, auth Authentik, captura DOM
+│   ├── 02_claude_qa_analyzer.py         # NVIDIA NIM QA analysis (meta/llama-3.1-70b-instruct)
+│   ├── 03_report_generator.py           # HTML dashboard + Jira CSV + traceability matrix
+│   ├── config_ades_modules.json         # 58 módulos ADES con heurísticas, risk level, expected_elements
+│   ├── venv/                            # Python venv (playwright, openai, python-dotenv)
+│   ├── captures/                        # Screenshots + DOM captures (output de script 01)
+│   │   └── captures_summary.json        # Resumen 34 módulos con errores API/consola
+│   ├── analysis/                        # Output del analizador NIM (script 02)
+│   │   ├── inconsistencies_report.json  # 30 inconsistencias estructuradas
+│   │   └── inconsistencies_report.csv   # CSV para importar a Jira
+│   ├── reports/                         # Reportes finales (output de script 03)
+│   │   ├── inconsistencies_report.html  # Dashboard interactivo (60 KB)
+│   │   ├── jira_issues.csv              # Importable a Jira/Linear
+│   │   ├── traceability_matrix.csv      # Módulo × severidad
+│   │   └── REPORTE_RESUMEN.txt          # Resumen ejecutivo en texto
+│   └── fase1_run.log                    # Log detallado ejecución Fase 1
+│
 ├── docs/
 │   ├── manual-usuario.md          # Manual completo v2.0 (1526 líneas, 29 módulos)
 │   └── plan_pruebas_integral.md   # 341 tests e2e suites 01-17 (74.8% pass rate)
@@ -271,6 +289,8 @@
 | Geo                 | ades_codigos_postales (uq_cp_localidad), ades_colonias, ades_municipios         |
 | Menús               | ades_menus (UUID PK), ades_menus_permisos_rol                                   |
 | NEM Cualitativa     | ades_config, ades_escalas_evaluacion (A/B/C/D + equiv_num)                      |
+| **Horarios Config** | `ades_horario_franjas` (plantelId, cicloId, nivelId, diaSemana 1-5, horaInicio/Fin, turno MATUTINO) |
+|                     | `ades_horario_indisponibilidad` (profesorId, cicloId, franjaId, tipo: DISPONIBLE/CONDICIONAL/NO_DISPONIBLE) |
 
 ---
 

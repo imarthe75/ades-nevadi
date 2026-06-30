@@ -103,7 +103,8 @@ Historia y Geografía, Formación Cívica, Educación Física, Tecnología.
 | **Boleta UAEMEX PDF** | ✅ Completa | /boletas/uaemex/{id} FastAPI→BFF proxy; template weasyprint |
 | **Director Dashboard** | ✅ Completa | KPIs generales, gráficas PrimeNG, roleGuard(2) |
 | **Classroom Gaps** | ✅ Completa | Detección plagio, feedback multimedia, adecuaciones NEE, Mig 093 |
-| **Horarios Solver Timefold** | ⏳ En integración | Configuración, corridas, entidades, constraints y endpoints backend presentes; frontend Angular ya tiene panel de corridas, polling, lock/regeneración parcial y verificación primaria golden por ciclo |
+| **Horarios Solver Timefold** | ⏳ En integración | Config+corridas+constraints backend; franjas Lun-Jue(10)/Vie(8) PRIMARIA+SEC y Lun-Vie(7) PREP seeded (Mig 068); `/api/v1/horario-franjas` + `/api/v1/horario-indisponibilidad` operativos; frontend: panel corridas, lock/regeneración, golden; pendiente: conectar disponibilidad docente a constraints Timefold |
+| **Testing Exploratorio IA** | ✅ Fase 1 completa | `ades_testing/` — Playwright+NVIDIA NIM (`meta/llama-3.1-70b-instruct`); 34 módulos Fase 1 capturados; 30 inconsistencias detectadas (12 críticas, 12 altas); reportes HTML+CSV+Matriz en `ades_testing/reports/` |
 
 ## ADRs Vigentes
 
