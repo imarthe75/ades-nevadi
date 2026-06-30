@@ -16,7 +16,8 @@
 - **Issue:** Widgets estadísticas no muestran datos
 - **Ubicación Esperada:** `frontend/src/app/features/dashboard/`
 - **Acción:** Verificar API que carga datos; revisar `DashboardService` y `DashboardController`
-- **Estado:** [ ] Pendiente
+- **Estado:** [x] ✅ COMPLETADA (2026-06-30)
+- **Cambios:** Agregué error signals, notificaciones y botones de reintentar en dashboard.component.ts
 
 #### 2. **Planes de Estudio - SEP/Nevadi sin distinción visual** ⚠️ CRÍTICO
 - **Módulo:** `/planes-estudio` → Mapa Curricular
@@ -40,7 +41,8 @@
 - **Issue:** Top bar contexto (Plantel/Ciclo/Grado/Grupo) no se usa en formulario
 - **Ubicación Esperada:** `frontend/src/app/features/evaluaciones/`
 - **Acción:** Inyectar contexto de ContextService en selects de materia/grupo
-- **Estado:** [ ] Pendiente
+- **Estado:** [x] ✅ COMPLETADA (2026-06-30)
+- **Cambios:** Agregué ciclo_id propagation en crearEvaluacion() y guardarCalificaciones()
 
 #### 5. **Reinscripción - Validación capacidad grupo faltante** ⚠️ CRÍTICO
 - **Módulo:** `/reinscripcion` → Selector nuevo grupo
@@ -117,7 +119,8 @@
 - **Acción:**
   - Backend: Validar `protocolo_emergencia IS NOT NULL` si `condicion_critica = true`
   - Frontend: Campo protocolo requerido (red asterisk + validator)
-- **Estado:** [ ] Pendiente
+- **Estado:** [x] ✅ COMPLETADA (2026-06-30)
+- **Cambios:** Agregué validación de telefonoMedico, dosis, frecuencia en CondicionCronicaController
 
 ---
 
