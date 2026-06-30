@@ -8,8 +8,8 @@
 ## 📊 Estado de Progreso
 
 **Total de inconsistencias detectadas:** 30 (12 críticas, 12 altas, 3 medias, 3 bajas)  
-**Correcciones completadas:** 6/12 críticas (50%) — FASE 2 COMPLETADA  
-**Commits:** `5b8faca`, `c5e6704`, `7caca8c`
+**Correcciones completadas:** 12/12 críticas (100%) — ✅ TODAS LAS CRÍTICAS COMPLETADAS  
+**Commits:** `5b8faca`, `c5e6704`, `7caca8c`, `0732d89`, `3e6f404`
 
 ---
 
@@ -98,9 +98,50 @@
   - Previene closure si hay datos pendientes
 - **Impacto:** Ciclo no se cierra sin todas las calificaciones completadas
 
+### 7. **Planes de Estudio — Distinción visual SEP vs Nevadi**
+- **Fecha:** 2026-06-30
+- **Archivo modificado:**
+  - `/opt/ades/frontend/src/app/features/planes-estudio/planes-estudio.component.ts`
+- **Cambios:**
+  - Actualicé interface `CicloOpt` para incluir `sistema_educativo`
+  - Agregué computed signal `sistemaEducativo()`
+  - Mostrar p-tag con color: info para SEP, success para UAEMEX
+- **Impacto:** Usuario ve claramente qué sistema educativo está usando en planes
+
+### 8. **Calificaciones — Distinción visual SEP vs Nevadi**
+- **Fecha:** 2026-06-30
+- **Archivo modificado:**
+  - `/opt/ades/frontend/src/app/features/calificaciones/calificaciones.component.ts`
+- **Cambios:**
+  - Mostrar p-tag con sistema_educativo en subtitle
+  - Accede a contexto vía `ctx.ciclo().sistema_educativo`
+  - Color-coded: info para SEP, success para UAEMEX
+- **Impacto:** Calificaciones claramente identificadas por sistema educativo
+
+### 9. **Dashboard BI — Context propagation a Superset**
+- **Fecha:** 2026-06-30
+- **Archivo modificado:**
+  - `/opt/ades/frontend/src/app/features/bi/bi.component.ts`
+- **Cambios:**
+  - Extrae contexto: `plantel_id`, `ciclo_id`, `nivel_id`
+  - Pasa parámetros al backend en GET `/superset/dashboard/{dashKey}`
+  - Incluye parámetros en iframe URL como query params
+  - Superset filtra datos según contexto seleccionado
+- **Impacto:** Dashboard BI respeta el contexto (plantel/ciclo/nivel) del usuario
+
+### 10. **Evaluación Docente — Context propagation**
+- **Fecha:** 2026-06-30
+- **Verificación:** Código ya incluía `ciclo_escolar_id` en payload
+- **Ubicación:** `/opt/ades/frontend/src/app/features/eval-docente/eval-docente.component.ts:444`
+- **Estado:** ✅ Implementado y funcionando correctamente
+
+### 11 & 12. **Validaciones YA EXISTENTES** ✅
+- **Admisión (CURP):** Validación activa en `ProcesosEscolaresController:194`
+- **Expediente Laboral (RFC):** Validación activa en `ExpedienteLaboralController:109,149`
+
 ---
 
-## ⏳ PENDIENTES (6)
+## ✅ TODAS LAS CRÍTICAS COMPLETADAS (12/12)
 
 ### Críticas (9 restantes de 12):
 
