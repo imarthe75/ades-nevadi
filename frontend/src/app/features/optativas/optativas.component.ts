@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
+import { AutoCompleteModule } from 'primeng/autocomplete';
 import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
 import { DividerModule } from 'primeng/divider';
@@ -47,7 +48,7 @@ const TIPO_LABELS: Record<string, string> = {
   selector: 'app-optativas',
   standalone: true,
   imports: [
-    CommonModule, FormsModule, ButtonModule, SelectModule,
+    CommonModule, FormsModule, ButtonModule, SelectModule, AutoCompleteModule,
     TagModule, TooltipModule, DividerModule, InteractiveGridComponent,
   ],
   template: `
@@ -62,16 +63,17 @@ const TIPO_LABELS: Record<string, string> = {
       <!-- Selector de alumno -->
       <div class="student-bar">
         <label class="student-label">Alumno:</label>
-        <p-select
-          [options]="alumnosLov()"
-          optionLabel="label"
-          optionValue="value"
-          [(ngModel)]="alumnoSeleccionado"
-          [filter]="true"
-          filterBy="label"
-          placeholder="Seleccionar alumno..."
+        <p-autoComplete
+          [(ngModel)]="alumnoSeleccionadoObj"
+          [suggestions]="estudiantesSugg()"
+          (completeMethod)="buscarEstudiantes($event)"
+          optionLabel="nombre_completo"
+          [forceSelection]="true"
+          placeholder="Buscar alumno por nombre o matrícula..."
           [showClear]="true"
-          (onChange)="onAlumnoChange()"
+          [dropdown]="true"
+          (onSelect)="onAlumnoSelect($event.value)"
+          (onClear)="onAlumnoClear()"
           [style]="{width:'360px'}" />
         @if (ctx.ciclo()) {
           <span class="ciclo-badge">Ciclo: {{ ctx.ciclo()!.nombre_ciclo ?? ctx.ciclo()!.id }}</span>
@@ -150,7 +152,8 @@ export class OptativasComponent implements OnInit {
   private readonly notify = inject(ApexNotificationService);
   readonly ctx            = inject(ContextService);
 
-  alumnos            = signal<AlumnoOpt[]>([]);
+  estudiantesSugg    = signal<any[]>([]);
+  alumnoSeleccionadoObj: any = null;
   alumnoSeleccionado: string | null = null;
 
   inscritas          = signal<Inscripcion[]>([]);
@@ -158,13 +161,6 @@ export class OptativasComponent implements OnInit {
   cargandoInscritas  = signal(false);
   cargandoCatalogo   = signal(false);
   guardando          = signal(false);
-
-  readonly alumnosLov = computed(() =>
-    this.alumnos().map(a => ({
-      label: `${a.persona.nombre} ${a.persona.apellido_paterno} — ${a.matricula}`,
-      value: a.id,
-    }))
-  );
 
   // Exclude materias already enrolled
   readonly inscritasIds = computed(() => new Set(this.inscritas().map(i => i.materia_id ?? '')));
@@ -202,15 +198,39 @@ export class OptativasComponent implements OnInit {
   ];
 
   ngOnInit(): void {
-    this.cargarAlumnos();
     this.cargarCatalogo();
   }
 
-  private cargarAlumnos(): void {
-    this.api.get<{ data: AlumnoOpt[] }>('/alumnos').subscribe({
-      next: r => this.alumnos.set(r.data ?? []),
-      error: () => {},
+  buscarEstudiantes(event: { query: string }): void {
+    if (!event.query || event.query.trim().length < 2) {
+      this.estudiantesSugg.set([]);
+      return;
+    }
+    this.api.get<any[]>('/portal/buscar', { q: event.query }).subscribe({
+      next: (res) => {
+        this.estudiantesSugg.set((res ?? []).map((a: any) => ({
+          id: a.id,
+          matricula: a.matricula,
+          nombre_completo: [a.nombre, a.apellido_paterno, a.apellido_materno]
+            .filter(Boolean).join(' ') + (a.matricula ? ` — ${a.matricula}` : ''),
+        })));
+      },
+      error: () => {
+        this.estudiantesSugg.set([]);
+      }
     });
+  }
+
+  onAlumnoSelect(alumno: any): void {
+    this.alumnoSeleccionado = alumno?.id ?? null;
+    this.alumnoSeleccionadoObj = alumno;
+    this.onAlumnoChange();
+  }
+
+  onAlumnoClear(): void {
+    this.alumnoSeleccionado = null;
+    this.alumnoSeleccionadoObj = null;
+    this.onAlumnoChange();
   }
 
   cargarCatalogo(): void {

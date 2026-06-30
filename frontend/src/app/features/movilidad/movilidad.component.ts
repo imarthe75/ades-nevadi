@@ -5,6 +5,7 @@ import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
+import { AutoCompleteModule } from 'primeng/autocomplete';
 import { TextareaModule } from 'primeng/textarea';
 import { DatePickerModule } from 'primeng/datepicker';
 import { TagModule } from 'primeng/tag';
@@ -57,7 +58,7 @@ interface CambioGrupo {
   standalone: true,
   imports: [
     CommonModule, FormsModule, ButtonModule, DialogModule,
-    InputTextModule, SelectModule, TextareaModule, DatePickerModule,
+    InputTextModule, SelectModule, TextareaModule, DatePickerModule, AutoCompleteModule,
     TagModule, TabsModule, TabList, TabPanels, Tab, TabPanel,
     InteractiveGridComponent,
   ],
@@ -107,7 +108,7 @@ interface CambioGrupo {
               <div></div>
               <div class="tab-actions">
                 <p-button label="Nuevo Cambio de Grupo" icon="pi pi-arrows-h" severity="secondary" size="small"
-                  (onClick)="dlgCambioGrupo = true" />
+                   (onClick)="dlgCambioGrupo = true; cambioGrupoForm = { estudianteId: '', grupoDestinoId: '', motivo: '' }; cambioGrupoAlumnoObj = null" />
               </div>
             </div>
             <app-interactive-grid
@@ -124,7 +125,7 @@ interface CambioGrupo {
               <div></div>
               <div class="tab-actions">
                 <p-button label="Registrar Traslado" icon="pi pi-send" severity="secondary" size="small"
-                  (onClick)="dlgTraslado = true" />
+                   (onClick)="dlgTraslado = true; trasladoForm = { estudianteId: '', plantelDestinoNombre: '', motivo: '' }; trasladoAlumnoObj = null" />
               </div>
             </div>
             <app-interactive-grid
@@ -145,9 +146,18 @@ interface CambioGrupo {
       <div class="dlg-grid">
         <div class="field">
           <label>Alumno *</label>
-          <p-select [options]="alumnosLov()" optionLabel="label" optionValue="value"
-            [(ngModel)]="bajaTemporalForm.estudianteId" [filter]="true" filterBy="label"
-            placeholder="Buscar alumno..." [style]="{width:'100%'}" />
+          <p-autoComplete
+            [(ngModel)]="bajaTemporalAlumnoObj"
+            [suggestions]="estudiantesSugg()"
+            (completeMethod)="buscarEstudiantes($event)"
+            optionLabel="nombre_completo"
+            [forceSelection]="true"
+            placeholder="Buscar alumno..."
+            [showClear]="true"
+            [dropdown]="true"
+            (onSelect)="bajaTemporalForm.estudianteId = $event.value.id"
+            (onClear)="bajaTemporalForm.estudianteId = ''; bajaTemporalAlumnoObj = null"
+            [style]="{ width: '100%' }" />
         </div>
         <div class="field">
           <label>Motivo *</label>
@@ -191,9 +201,18 @@ interface CambioGrupo {
       <div class="dlg-grid">
         <div class="field">
           <label>Alumno *</label>
-          <p-select [options]="alumnosLov()" optionLabel="label" optionValue="value"
-            [(ngModel)]="bajaDefinitivaForm.estudianteId" [filter]="true" filterBy="label"
-            placeholder="Buscar alumno..." [style]="{width:'100%'}" />
+          <p-autoComplete
+            [(ngModel)]="bajaDefinitivaAlumnoObj"
+            [suggestions]="estudiantesSugg()"
+            (completeMethod)="buscarEstudiantes($event)"
+            optionLabel="nombre_completo"
+            [forceSelection]="true"
+            placeholder="Buscar alumno..."
+            [showClear]="true"
+            [dropdown]="true"
+            (onSelect)="bajaDefinitivaForm.estudianteId = $event.value.id"
+            (onClear)="bajaDefinitivaForm.estudianteId = ''; bajaDefinitivaAlumnoObj = null"
+            [style]="{ width: '100%' }" />
         </div>
         <div class="field">
           <label>Motivo *</label>
@@ -225,9 +244,18 @@ interface CambioGrupo {
       <div class="dlg-grid">
         <div class="field">
           <label>Alumno *</label>
-          <p-select [options]="alumnosLov()" optionLabel="label" optionValue="value"
-            [(ngModel)]="cambioGrupoForm.estudianteId" [filter]="true" filterBy="label"
-            placeholder="Buscar alumno..." [style]="{width:'100%'}" />
+          <p-autoComplete
+            [(ngModel)]="cambioGrupoAlumnoObj"
+            [suggestions]="estudiantesSugg()"
+            (completeMethod)="buscarEstudiantes($event)"
+            optionLabel="nombre_completo"
+            [forceSelection]="true"
+            placeholder="Buscar alumno..."
+            [showClear]="true"
+            [dropdown]="true"
+            (onSelect)="cambioGrupoForm.estudianteId = $event.value.id"
+            (onClear)="cambioGrupoForm.estudianteId = ''; cambioGrupoAlumnoObj = null"
+            [style]="{ width: '100%' }" />
         </div>
         <div class="field">
           <label>Grupo Destino *</label>
@@ -253,9 +281,18 @@ interface CambioGrupo {
       <div class="dlg-grid">
         <div class="field">
           <label>Alumno *</label>
-          <p-select [options]="alumnosLov()" optionLabel="label" optionValue="value"
-            [(ngModel)]="trasladoForm.estudianteId" [filter]="true" filterBy="label"
-            placeholder="Buscar alumno..." [style]="{width:'100%'}" />
+          <p-autoComplete
+            [(ngModel)]="trasladoAlumnoObj"
+            [suggestions]="estudiantesSugg()"
+            (completeMethod)="buscarEstudiantes($event)"
+            optionLabel="nombre_completo"
+            [forceSelection]="true"
+            placeholder="Buscar alumno..."
+            [showClear]="true"
+            [dropdown]="true"
+            (onSelect)="trasladoForm.estudianteId = $event.value.id"
+            (onClear)="trasladoForm.estudianteId = ''; trasladoAlumnoObj = null"
+            [style]="{ width: '100%' }" />
         </div>
         <div class="field">
           <label>Plantel Destino *</label>
@@ -324,7 +361,11 @@ export class MovilidadComponent implements OnInit {
   tabActivo       = signal('bajas');
   bajas           = signal<Baja[]>([]);
   cambiosGrupo    = signal<CambioGrupo[]>([]);
-  alumnos         = signal<Alumno[]>([]);
+  estudiantesSugg = signal<any[]>([]);
+  bajaTemporalAlumnoObj: any = null;
+  bajaDefinitivaAlumnoObj: any = null;
+  cambioGrupoAlumnoObj: any = null;
+  trasladoAlumnoObj: any = null;
   grupos          = signal<Grupo[]>([]);
   cargando        = signal(false);
   cargandoCambios = signal(false);
@@ -346,12 +387,7 @@ export class MovilidadComponent implements OnInit {
     return !!ef && !!re && re < ef;
   }
 
-  readonly alumnosLov = computed(() =>
-    this.alumnos().map(a => ({
-      label: `${a.persona.nombre} ${a.persona.apellido_paterno} — ${a.matricula}`,
-      value: a.id,
-    }))
-  );
+
 
   readonly gruposLov = computed(() =>
     this.grupos().map(g => ({ label: grupoLabel(g as any) || g.nombre_grupo, value: g.id }))
@@ -438,10 +474,6 @@ export class MovilidadComponent implements OnInit {
   }
 
   cargarCatalogos(): void {
-    this.api.get<{ data: Alumno[] }>('/alumnos').subscribe({
-      next: r => this.alumnos.set(r.data ?? []),
-      error: () => {},
-    });
     this.api.get<any[]>('/grupos').subscribe({
       next: g => this.grupos.set(g ?? []),
       error: () => {},
@@ -481,13 +513,35 @@ export class MovilidadComponent implements OnInit {
 
   abrirBajaTemporal(): void {
     this.bajaTemporalForm = { estudianteId: '', motivo: '', fechaEfectiva: null, fechaReingreso: null, observaciones: '' };
+    this.bajaTemporalAlumnoObj = null;
     this.btIntento.set(false);
     this.dlgBajaTemporal = true;
   }
 
   abrirBajaDefinitiva(): void {
     this.bajaDefinitivaForm = { estudianteId: '', motivo: '', fechaEfectiva: null, plantelDestino: '', observaciones: '' };
+    this.bajaDefinitivaAlumnoObj = null;
     this.dlgBajaDefinitiva = true;
+  }
+
+  buscarEstudiantes(event: { query: string }): void {
+    if (!event.query || event.query.trim().length < 2) {
+      this.estudiantesSugg.set([]);
+      return;
+    }
+    this.api.get<any[]>('/portal/buscar', { q: event.query }).subscribe({
+      next: (res) => {
+        this.estudiantesSugg.set((res ?? []).map((a: any) => ({
+          id: a.id,
+          matricula: a.matricula,
+          nombre_completo: [a.nombre, a.apellido_paterno, a.apellido_materno]
+            .filter(Boolean).join(' ') + (a.matricula ? ` — ${a.matricula}` : ''),
+        })));
+      },
+      error: () => {
+        this.estudiantesSugg.set([]);
+      }
+    });
   }
 
   onBajaSelected(baja: any): void {
