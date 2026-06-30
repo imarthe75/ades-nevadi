@@ -30,4 +30,39 @@ public class CierreQueryService {
             "SELECT * FROM v_indicadores_cierre_ciclo WHERE ciclo_escolar_id = ?", cicloId);
         return rows.isEmpty() ? Optional.empty() : Optional.of(rows.get(0));
     }
+
+    public Map<String, Object> validarCalificacionesCompletas(UUID cicloId) {
+        Integer gruposSinCalificar = jdbc.queryForObject(
+            "SELECT COUNT(DISTINCT g.id) FROM ades_grupos g " +
+            "WHERE g.ciclo_escolar_id = ? AND g.is_active = TRUE " +
+            "AND NOT EXISTS (SELECT 1 FROM ades_calificaciones c " +
+            "WHERE c.grupo_id = g.id AND c.ciclo_escolar_id = g.ciclo_escolar_id)",
+            Integer.class, cicloId);
+
+        Integer materiasSinCalificar = jdbc.queryForObject(
+            "SELECT COUNT(DISTINCT m.id) FROM ades_grupos g " +
+            "JOIN ades_materias m ON m.id IN (SELECT materia_id FROM ades_grupo_materias WHERE grupo_id = g.id) " +
+            "WHERE g.ciclo_escolar_id = ? AND g.is_active = TRUE " +
+            "AND NOT EXISTS (SELECT 1 FROM ades_calificaciones c " +
+            "WHERE c.materia_id = m.id AND c.grupo_id = g.id)",
+            Integer.class, cicloId);
+
+        Integer alumnosSinCalificar = jdbc.queryForObject(
+            "SELECT COUNT(DISTINCT a.id) FROM ades_alumnos a " +
+            "WHERE a.ciclo_escolar_id = ? AND a.is_active = TRUE " +
+            "AND NOT EXISTS (SELECT 1 FROM ades_calificaciones c " +
+            "WHERE c.estudiante_id = a.id AND c.ciclo_escolar_id = a.ciclo_escolar_id)",
+            Integer.class, cicloId);
+
+        boolean esValido = (gruposSinCalificar == null || gruposSinCalificar == 0) &&
+                          (materiasSinCalificar == null || materiasSinCalificar == 0) &&
+                          (alumnosSinCalificar == null || alumnosSinCalificar == 0);
+
+        return Map.of(
+            "valido", esValido,
+            "grupos_sin_calificar", gruposSinCalificar != null ? gruposSinCalificar : 0,
+            "materias_sin_calificar", materiasSinCalificar != null ? materiasSinCalificar : 0,
+            "alumnos_sin_calificar", alumnosSinCalificar != null ? alumnosSinCalificar : 0
+        );
+    }
 }

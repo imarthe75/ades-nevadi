@@ -61,6 +61,17 @@ public class CierreCicloController {
                 "No se encontraron datos para el ciclo escolar especificado.")));
     }
 
+    @GetMapping("/{ciclo_id}/validacion-completa")
+    public ResponseEntity<Map<String, Object>> validarCompletitud(
+            @PathVariable("ciclo_id") UUID cicloId,
+            @AuthenticationPrincipal Jwt jwt) {
+        AdesUser user = userService.resolveUser(jwt);
+        if (user.getNivelAcceso() == null || user.getNivelAcceso() > 2) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado.");
+        }
+        return ResponseEntity.ok(queryService.validarCalificacionesCompletas(cicloId));
+    }
+
     @PostMapping("/{ciclo_id}/acta-inicio")
     public ResponseEntity<byte[]> actaInicio(
             @PathVariable("ciclo_id") UUID cicloId,
@@ -91,6 +102,19 @@ public class CierreCicloController {
             @RequestBody CierreCicloRequest payload,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+
+        Map<String, Object> validacion = queryService.validarCalificacionesCompletas(cicloId);
+        if (validacion != null) {
+            Boolean esValido = (Boolean) validacion.get("valido");
+            if (esValido != null && !esValido) {
+                throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "No se puede cerrar el ciclo porque hay calificaciones incompletas. " +
+                    "Grupos sin calificar: " + validacion.get("grupos_sin_calificar") + ", " +
+                    "Materias sin calificar: " + validacion.get("materias_sin_calificar"));
+            }
+        }
+
         try {
             String resultadoPromo = cerrarCicloUseCase.cerrar(
                 new CerrarCicloUseCase.Command(cicloId, payload.getCicloDestinoId(), user.getNivelAcceso(), user.getUsername()));

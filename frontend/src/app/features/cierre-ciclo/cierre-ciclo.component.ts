@@ -293,18 +293,39 @@ export class CierreCicloComponent implements OnInit {
     if (!ciclo?.id) return;
 
     this.cerrandoCiclo.set(true);
-    this.api.post(`/cierre-ciclo/${ciclo.id}/ejecutar`, {
-      ciclo_destino_id: this.cicloDestinoId || undefined
-    }).subscribe({
-      next: (res: any) => {
-        this.notify.success('Ciclo Cerrado', 'El ciclo escolar ha sido cerrado de forma definitiva.');
-        this.showConfirmDialog.set(false);
-        this.cerrandoCiclo.set(false);
-        this.cargarIndicadores(ciclo.id);
+
+    // Validar primero que todas las calificaciones estén completas
+    this.api.get<any>(`/cierre-ciclo/${ciclo.id}/validacion-completa`).subscribe({
+      next: (validacion) => {
+        if (!validacion.valido) {
+          this.cerrandoCiclo.set(false);
+          const msg = `Calificaciones incompletas:\n` +
+            `- Grupos: ${validacion.grupos_sin_calificar}\n` +
+            `- Materias: ${validacion.materias_sin_calificar}\n` +
+            `- Alumnos: ${validacion.alumnos_sin_calificar}`;
+          this.notify.error('No se puede cerrar', msg);
+          return;
+        }
+
+        // Si todo está válido, proceder con el cierre
+        this.api.post(`/cierre-ciclo/${ciclo.id}/ejecutar`, {
+          ciclo_destino_id: this.cicloDestinoId || undefined
+        }).subscribe({
+          next: (res: any) => {
+            this.notify.success('Ciclo Cerrado', 'El ciclo escolar ha sido cerrado de forma definitiva.');
+            this.showConfirmDialog.set(false);
+            this.cerrandoCiclo.set(false);
+            this.cargarIndicadores(ciclo.id);
+          },
+          error: (e) => {
+            this.notify.error('Error al cerrar ciclo', e.error?.detail ?? 'Ocurrió un error inesperado al cerrar el ciclo.');
+            this.cerrandoCiclo.set(false);
+          }
+        });
       },
       error: (e) => {
-        this.notify.error('Error al cerrar ciclo', e.error?.detail ?? 'Ocurrió un error inesperado al cerrar el ciclo.');
         this.cerrandoCiclo.set(false);
+        this.notify.error('Error de validación', e.error?.detail ?? 'No se pudo validar el estado del ciclo.');
       }
     });
   }
