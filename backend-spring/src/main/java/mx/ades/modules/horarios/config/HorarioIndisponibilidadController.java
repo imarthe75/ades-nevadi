@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/horario-indisponibilidad")
+@RequestMapping("/api/v1/horario-indisponibilidad")
 @RequiredArgsConstructor
 public class HorarioIndisponibilidadController {
 

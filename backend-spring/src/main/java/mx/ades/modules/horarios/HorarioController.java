@@ -400,6 +400,7 @@ public class HorarioController {
             throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "dia_semana debe estar entre 1 y 5");
         }
         return new HorarioTimeslot(
+                null,
                 payload.getDiaSemana(),
                 LocalTime.parse(payload.getHoraInicio()),
                 LocalTime.parse(payload.getHoraFin()),

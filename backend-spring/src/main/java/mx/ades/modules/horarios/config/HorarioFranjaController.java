@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/horario-franjas")
+@RequestMapping("/api/v1/horario-franjas")
 @RequiredArgsConstructor
 public class HorarioFranjaController {
 
