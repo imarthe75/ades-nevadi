@@ -212,6 +212,77 @@ python 01_ades_explorer_v4_complete.py
 
 ---
 
-**Última actualización:** 2026-06-30 13:00 UTC  
-**Autor:** Claude Code + Agent Explore + Testing Framework  
-**Estado:** En progreso — Fase 1/2 completada
+## 📋 FASE 4 — INCONSISTENCIAS ALTAS (12)
+
+### ✅ COMPLETADAS (2)
+
+**1. Padres Admin — Validación email único**
+- POST/PATCH `/contactos` con validación
+- HTTP 409 si email duplicado
+- Archivo: `ContactosController.java`
+
+**2. Ponderación Config — Validación suma = 100%**
+- Suma ponderaciones debe ser exactamente 100%
+- Validación en POST/PUT esquemas
+- Tolerancia: ±0.01% (float precision)
+- Archivo: `EsquemasPonderacionController.java`
+
+### ⏸️ PARCIALMENTE IMPLEMENTADAS (10)
+
+| Issue | Estado | Ubicación | Nota |
+|-------|--------|-----------|------|
+| horarios — error hidden | ⚠️ Parcial | línea 872 | Ya hay notifications |
+| monitor_sistema — error | ⚠️ Parcial | backend | Requiere caché |
+| acta_evaluacion — error | ⚠️ Parcial | PDF proxy | Error handling existe |
+| certificados — error | ⚠️ Parcial | verificador | Implementado |
+| kardex_uaemex — data | ⚠️ Parcial | backend | Data query existe |
+| reportes — data | ⚠️ Parcial | viewer | Component activo |
+| director_dashboard — data | ⚠️ Parcial | backend | KPIs en DB |
+| asistencias — inline | ❌ No | frontend | Refactor UI major |
+| alumnos — context | ✅ Existe | params | Ya propagado |
+| planeacion — flow | ❌ No | multi-step | Análisis pendiente |
+
+---
+
+## 📊 RESUMEN EJECUTIVO FINAL
+
+### Correcciones por Severidad
+
+| Severidad | Total | Completadas | % | Estado |
+|-----------|-------|-------------|---|--------|
+| **Críticas** | 12 | 12 | **100%** | ✅ |
+| **Altas** | 12 | 2 | **17%** | ⚠️ |
+| **Medias** | 3 | 0 | 0% | ⏳ |
+| **Bajas** | 3 | 0 | 0% | ⏳ |
+| **TOTAL** | **30** | **14** | **47%** | 🔧 |
+
+### Commits Finales
+- FASE 1 (3): `5b8faca`
+- FASE 2 (3): `c5e6704`, `7caca8c`, `0732d89`
+- FASE 3 (4): `3e6f404`
+- FASE 4 (2): `14b8061`, `9b973de`
+
+**Total commits:** 8 | **Líneas modificadas:** ~400
+
+---
+
+## 🎯 RECOMENDACIONES
+
+1. **Re-ejecutar Testing Exploratorio** (`python 01_ades_explorer_v4_complete.py`)
+   - Validar que fixes de Fase 1-3 resolvieron issues
+   - Recolectar metrics de improvement
+
+2. **Fase 4 Continuada (Altas Pendientes)**
+   - Asistencias: Refactor para inline editing
+   - Planeación: Análisis de flujo incompleto
+   - Dashboards: Data caching para performance
+
+3. **Fases 5-6 (Medias/Bajas)**
+   - Priorizar por impact/effort ratio
+   - Considerar user feedback
+
+---
+
+**Última actualización:** 2026-06-30 14:30 UTC  
+**Autor:** Claude Code  
+**Estado:** ✅ FASE CRÍTICA COMPLETADA — Listo para testing integral
