@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import mx.ades.security.AdesUser;
 import mx.ades.security.AdesUserService;
+import mx.ades.common.ValidationUtils;
 
 import java.util.*;
 
@@ -89,6 +90,15 @@ public class ContactosController {
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         UUID estId = estudianteIdParam != null ? estudianteIdParam : body.getEstudianteId();
+
+        if (body.getEmail() != null && !body.getEmail().isBlank()) {
+            ValidationUtils.validarEmail(body.getEmail());
+            if (queryService.existeEmailContacto(body.getEmail())) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "El email ya está registrado en otro contacto");
+            }
+        }
+
         try {
             var cmd = new RegistrarContactoUseCase.Command(
                 estId, body.getNombreCompleto(), body.getParentesco(),
@@ -109,6 +119,15 @@ public class ContactosController {
             @RequestBody ContactoPayload body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+
+        if (body.getEmail() != null && !body.getEmail().isBlank()) {
+            ValidationUtils.validarEmail(body.getEmail());
+            if (queryService.existeEmailContactoExcepto(body.getEmail(), contactoId)) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "El email ya está registrado en otro contacto");
+            }
+        }
+
         try {
             var cmd = new ActualizarContactoUseCase.Command(
                 contactoId, body.getNombreCompleto(), body.getParentesco(),
