@@ -97,6 +97,14 @@ public class EsquemasPonderacionController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
         }
 
+        double suma = items.stream()
+                .mapToDouble(i -> i.getPesoPorcentaje() != null ? i.getPesoPorcentaje() : 0.0)
+                .sum();
+        if (Math.abs(suma - 100.0) > 0.01) {
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
+                    "La suma de ponderaciones debe ser exactamente 100%. Suma actual: " + String.format("%.2f", suma) + "%");
+        }
+
         CrearEsquemaUseCase.Command cmd;
         try {
             cmd = new CrearEsquemaUseCase.Command(
@@ -122,6 +130,14 @@ public class EsquemasPonderacionController {
             items = toItems(body.getItems());
         } catch (IllegalArgumentException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+        }
+
+        double suma = items.stream()
+                .mapToDouble(i -> i.getPesoPorcentaje() != null ? i.getPesoPorcentaje() : 0.0)
+                .sum();
+        if (Math.abs(suma - 100.0) > 0.01) {
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
+                    "La suma de ponderaciones debe ser exactamente 100%. Suma actual: " + String.format("%.2f", suma) + "%");
         }
 
         ActualizarEsquemaUseCase.Command cmd;
