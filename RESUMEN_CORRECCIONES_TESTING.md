@@ -8,8 +8,8 @@
 ## 📊 Estado de Progreso
 
 **Total de inconsistencias detectadas:** 30 (12 críticas, 12 altas, 3 medias, 3 bajas)  
-**Correcciones completadas:** 3/12 críticas (25%)  
-**Commit:** `5b8faca`
+**Correcciones completadas:** 6/12 críticas (50%) — FASE 2 COMPLETADA  
+**Commits:** `5b8faca`, `c5e6704`, `7caca8c`
 
 ---
 
@@ -54,9 +54,53 @@
   - `POST /api/v1/evaluaciones`: Agregué validaciones de campos obligatorios
 - **Impacto:** Contexto del top bar (ciclo seleccionado) ahora se respeta en evaluaciones
 
+### 4. **Estadística 911 — Validación de campos obligatorios**
+- **Fecha:** 2026-06-30
+- **Archivos modificados:**
+  - `/opt/ades/frontend/src/app/features/estadistica-911/estadistica-911.component.ts`
+  - `/opt/ades/backend-spring/src/main/java/mx/ades/modules/estadistica911/Estadistica911Controller.java`
+- **Cambios Frontend:**
+  - Valida UUID format del ciclo
+  - Valida que sexo, tipo_ingreso, edad sean válidos
+  - Muestra data quality warnings si hay registros incompletos
+- **Cambios Backend:**
+  - Rechaza reporte si no hay datos (HTTP 400)
+  - Calcula data_quality score (% de completitud)
+  - Devuelve información de registros incompletos
+- **Impacto:** Reporte 911 solo genera con datos válidos y completos
+
+### 5. **Reinscripción — Validación de capacidad de grupo**
+- **Fecha:** 2026-06-30
+- **Archivo modificado:**
+  - `/opt/ades/backend-spring/src/main/java/mx/ades/modules/reinscripcion/query/ReinscripcionQueryService.java`
+- **Cambios:**
+  - Nuevo método `validarCapacidadGrupos()` antes de aprobar masivo
+  - Query suma la capacidad disponible de todos los grupos
+  - Compara con cantidad de alumnos a validados → aprobado
+  - Rechaza con HTTP 409 si capacidad insuficiente
+  - Logger para debugging
+- **Impacto:** Previene asignación de alumnos a grupos sin espacio
+
+### 6. **Cierre de Ciclo — Validación de calificaciones completas**
+- **Fecha:** 2026-06-30
+- **Archivos modificados:**
+  - `/opt/ades/backend-spring/src/main/java/mx/ades/modules/cierre/CierreCicloController.java`
+  - `/opt/ades/backend-spring/src/main/java/mx/ades/modules/cierre/query/CierreQueryService.java`
+  - `/opt/ades/frontend/src/app/features/cierre-ciclo/cierre-ciclo.component.ts`
+- **Cambios Backend:**
+  - Nuevo endpoint GET `/cierre-ciclo/{ciclo_id}/validacion-completa`
+  - Queries verifican grupos, materias, alumnos sin calificaciones
+  - Retorna validación status + conteos
+  - POST `/ejecutar` rechaza si no está completamente calificado
+- **Cambios Frontend:**
+  - Pre-valida antes de confirmar cierre
+  - Muestra breakdown de qué está incompleto
+  - Previene closure si hay datos pendientes
+- **Impacto:** Ciclo no se cierra sin todas las calificaciones completadas
+
 ---
 
-## ⏳ PENDIENTES (9)
+## ⏳ PENDIENTES (6)
 
 ### Críticas (9 restantes de 12):
 
@@ -64,13 +108,12 @@
 |---|-------|-----------|--------|--------|
 | 2 | SEP/Nevadi ambigüedad | Crítico | planes_estudio | [ ] |
 | 3 | SEP/Nevadi ambigüedad | Crítico | calificaciones | [ ] |
-| 5 | Capacidad grupo | Crítico | reinscripcion | [ ] |
-| 6 | Validación calificaciones | Crítico | cierre_ciclo | [ ] |
-| 7 | Validación campos | Crítico | estadistica_911 | [ ] |
-| 8 | CURP validation | Crítico | admision | [ ] (YA EXISTE - verificar) |
+| 8 | CURP validation | Crítico | admision | [✓] YA EXISTE |
 | 9 | Context propagation | Crítico | dashboards_bi | [ ] |
 | 10 | Context propagation | Crítico | eval_docente | [ ] |
-| 11 | RFC validation | Crítico | expediente_laboral | [ ] (YA EXISTE - verificar) |
+| 11 | RFC validation | Crítico | expediente_laboral | [✓] YA EXISTE |
+
+**Nota:** CURP y RFC validation ya existen en controladores; se verificó que las validaciones están activas.
 
 ---
 
