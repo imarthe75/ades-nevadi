@@ -44,7 +44,14 @@ import { ApexNotificationService } from 'apex-component-library';
     <div class="page-header">
       <div>
         <h2>Calificaciones</h2>
-        <p class="subtitle">Libreta de calificaciones — edición inline</p>
+        <p class="subtitle">
+          Libreta de calificaciones — edición inline
+          @if (ctx.ciclo()?.sistema_educativo) {
+            <p-tag [value]="ctx.ciclo()!.sistema_educativo"
+                   [severity]="ctx.ciclo()!.sistema_educativo === 'SEP' ? 'info' : 'success'"
+                   [style]="{'margin-left': '1rem'}"></p-tag>
+          }
+        </p>
       </div>
       <app-help-button modulo="calificaciones" />
     </div>

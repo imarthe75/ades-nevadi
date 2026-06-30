@@ -109,10 +109,28 @@ export class BiComponent implements OnInit, OnDestroy {
     this.error.set(null);
     this.iframeUrl.set(null);
 
-    this.api.get<GuestTokenResp>(`/superset/dashboard/${this.dashKey}`).subscribe({
+    const params: any = {};
+    const plantel = this.ctx.plantel();
+    const ciclo = this.ctx.ciclo();
+    const nivel = this.ctx.nivel();
+
+    if (plantel?.id) params['plantel_id'] = plantel.id;
+    if (ciclo?.id) params['ciclo_id'] = ciclo.id;
+    if (nivel?.id) params['nivel_id'] = nivel.id;
+
+    this.api.get<GuestTokenResp>(`/superset/dashboard/${this.dashKey}`, params).subscribe({
       next: resp => {
         this.embedUrl.set(resp.embed_url);
-        const url = `${resp.embed_url}?token=${resp.token}&standalone=3&hide_title=true`;
+        const contextParams = new URLSearchParams();
+        contextParams.append('token', resp.token);
+        contextParams.append('standalone', '3');
+        contextParams.append('hide_title', 'true');
+
+        if (plantel?.id) contextParams.append('plantel_id', plantel.id);
+        if (ciclo?.id) contextParams.append('ciclo_id', ciclo.id);
+        if (nivel?.id) contextParams.append('nivel_id', nivel.id);
+
+        const url = `${resp.embed_url}?${contextParams.toString()}`;
         this.iframeUrl.set(this.san.bypassSecurityTrustResourceUrl(url));
         this.cargando.set(false);
       },

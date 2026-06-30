@@ -51,7 +51,7 @@ interface MateriaPlan {
   es_obligatoria: boolean;
   is_active: boolean;
 }
-interface CicloOpt  { id: string; nombre_ciclo: string; es_vigente: boolean; }
+interface CicloOpt  { id: string; nombre_ciclo: string; es_vigente: boolean; sistema_educativo?: string; }
 interface Tema {
   id: string;
   materia_id: string;
@@ -90,7 +90,14 @@ const NIVEL_ORDER = ['PRIMARIA', 'SECUNDARIA', 'PREPARATORIA'];
     <div class="page-header">
       <div>
         <h2>Planes y Programas de Estudio</h2>
-        <p class="subtitle">CBU 2024 UAEMEX · NEM 2022 SEP — {{ cicloNombre() }}</p>
+        <p class="subtitle">
+          {{ cicloNombre() }}
+          @if (sistemaEducativo()) {
+            <p-tag [value]="sistemaEducativo()"
+                   [severity]="sistemaEducativo() === 'SEP' ? 'info' : 'success'"
+                   [style]="{'margin-left': '1rem'}"></p-tag>
+          }
+        </p>
       </div>
       <div style="display:flex;gap:.5rem;align-items:center">
         <p-select [options]="ciclos()" [(ngModel)]="selectedCicloId"
@@ -644,6 +651,10 @@ export class PlanesEstudioComponent implements OnInit {
 
   readonly cicloNombre = computed(() =>
     this.ciclos().find(c => c.id === this.selectedCicloId)?.nombre_ciclo ?? ''
+  );
+
+  readonly sistemaEducativo = computed(() =>
+    this.ciclos().find(c => c.id === this.selectedCicloId)?.sistema_educativo ?? ''
   );
 
   readonly temarioTituloActual = computed(() => {
