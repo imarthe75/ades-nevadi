@@ -59,7 +59,7 @@ plantel_id = plantel[0][0]
 nivel = q("SELECT id FROM ades_niveles_educativos WHERE nombre_nivel ILIKE '%SECUNDARIA%' LIMIT 1")
 nivel_id = nivel[0][0] if nivel else plantel_id # fallback
 
-ciclo = q("SELECT id FROM ades_ciclos_escolares WHERE es_vigente=TRUE LIMIT 1")
+ciclo = q(f"SELECT id FROM ades_ciclos_escolares WHERE es_vigente=TRUE AND nivel_educativo_id='{nivel_id}' LIMIT 1")
 if not ciclo:
     sys.exit("No hay ciclo escolar vigente")
 ciclo_id = ciclo[0][0]

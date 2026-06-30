@@ -610,15 +610,15 @@ export class LearningPathsComponent implements OnInit {
   }
 
   buscarAlumnosAsig(event: { query: string }): void {
+    const params: Record<string, any> = { q: event.query };
     const plantelId = this.ctx.plantel()?.id;
-    const params: Record<string, any> = { buscar: event.query, por_pagina: 10 };
     if (plantelId) params['plantel_id'] = plantelId;
-    this.api.get<any>('/alumnos', params).subscribe({
+    this.api.get<any[]>('/portal/buscar', params).subscribe({
       next: (r: any) => {
-        const lista = r?.data ?? r;
-        this.alumnosSuggAsig.set(lista.map((a: any) => ({
-          ...a,
-          nombre_completo: a.persona?.nombre_completo ?? a.matricula,
+        this.alumnosSuggAsig.set((r ?? []).map((a: any) => ({
+          id: a.id,
+          nombre_completo: [a.nombre, a.apellido_paterno, a.apellido_materno]
+            .filter(Boolean).join(' ') + (a.matricula ? ` — ${a.matricula}` : ''),
         })));
       },
       error: () => this.alumnosSuggAsig.set([]),

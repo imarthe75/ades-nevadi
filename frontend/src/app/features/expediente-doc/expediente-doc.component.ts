@@ -424,14 +424,13 @@ export class ExpedienteDocComponent implements OnInit {
   ngOnInit() {}
 
   buscarAlumnos(event: { query: string }) {
-    this.api.get<any>(`/alumnos?buscar=${encodeURIComponent(event.query)}&por_pagina=20`)
+    this.api.get<any[]>('/portal/buscar', { q: event.query })
       .subscribe({
         next: (res) => {
-          const items = (res.items || res.data || []) as any[];
           this.alumnosSugeridos.set(
-            items.map((a: any) => ({
+            (res || []).map((a: any) => ({
               id: a.id,
-              label: `${a.nombre_completo || [a.nombre, a.apellido_paterno, a.apellido_materno].filter(Boolean).join(' ')} — ${a.matricula || ''}`,
+              label: `${[a.nombre, a.apellido_paterno, a.apellido_materno].filter(Boolean).join(' ')} — ${a.matricula || ''}`,
             }))
           );
         },

@@ -419,12 +419,15 @@ export class CertificadosComponent implements OnInit {
 
   buscarAlumnos(query: string): void {
     if (query.length < 2) return;
-    this.api.get<any[]>('/alumnos', { q: query, limit: 10 }).subscribe({
+    this.api.get<any[]>('/portal/buscar', { q: query }).subscribe({
       next: (data) => {
-        this.alumnoOpts.set(data.map(a => ({
-          id:    a.id,
-          label: `${a.nombre_completo} (${a.matricula ?? a.curp})`,
-        })));
+        this.alumnoOpts.set((data ?? []).map(a => {
+          const nom = [a.nombre, a.apellido_paterno, a.apellido_materno].filter(Boolean).join(' ');
+          return {
+            id:    a.id,
+            label: `${nom} (${a.matricula ?? ''})`,
+          };
+        }));
       },
       error: () => {},
     });

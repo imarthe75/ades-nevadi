@@ -11,6 +11,7 @@ import { TooltipModule } from 'primeng/tooltip';
 import { SkeletonModule } from 'primeng/skeleton';
 import { CardModule } from 'primeng/card';
 import { SelectModule } from 'primeng/select';
+import { AutoCompleteModule } from 'primeng/autocomplete';
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
 import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
@@ -53,7 +54,7 @@ interface CalificacionResumen {
   imports: [
     CommonModule, RouterModule, FormsModule, ButtonModule, TagModule, TooltipModule,
     TabsModule, TabList, Tab, TabPanels, TabPanel,
-    ProgressBarModule, SkeletonModule, CardModule, SelectModule,
+    ProgressBarModule, SkeletonModule, CardModule, SelectModule, AutoCompleteModule,
     InteractiveGridComponent,
   ],
   template: `
@@ -68,16 +69,18 @@ interface CalificacionResumen {
     @if (isAdmin()) {
       <div class="admin-sim-bar">
         <div class="sim-label"><i class="pi pi-shield"></i> Vista de administrador — Seleccionar alumno:</div>
-        <p-select
-          [options]="todosAlumnos()"
-          [(ngModel)]="simulatedAlumno"
+        <p-autoComplete
+          [(ngModel)]="simulatedAlumnoObj"
+          [suggestions]="estudiantesSugg()"
+          (completeMethod)="buscarEstudiantes($event)"
           optionLabel="nombre_completo"
+          [forceSelection]="true"
           placeholder="Buscar alumno..."
-          [filter]="true"
-          filterBy="nombre_completo,matricula"
-          styleClass="sim-select"
-          (onChange)="onSimulateChange($event.value)"
-        />
+          [showClear]="true"
+          [dropdown]="true"
+          (onSelect)="onSimulateChange($event.value)"
+          (onClear)="onSimulateClear()"
+          styleClass="sim-select" />
       </div>
     }
 
@@ -313,7 +316,8 @@ export class PadresComponent implements OnInit {
   private readonly ctx = inject(ContextService);
 
   alumnos        = signal<AlumnoVinculado[]>([]);
-  todosAlumnos   = signal<any[]>([]);
+  estudiantesSugg = signal<any[]>([]);
+  simulatedAlumnoObj: any = null;
   alumnoActivo   = signal<AlumnoVinculado | null>(null);
   resumen        = signal<ResumenAlumno | null>(null);
   calificaciones = signal<CalificacionResumen[]>([]);
@@ -368,27 +372,6 @@ export class PadresComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    if (this.isAdmin()) {
-      // Cargar lista de alumnos para simulación
-      this.api.get<{ data: any[] }>('/alumnos', { por_pagina: 1000 }).subscribe({
-        next: resp => {
-          this.todosAlumnos.set(
-            resp.data.map(x => ({
-              estudiante_id: x.id,
-              nombre_completo: `${x.persona?.apellido_paterno || ''} ${x.persona?.apellido_materno || ''} ${x.persona?.nombre || ''}`.trim(),
-              matricula: x.matricula,
-              nivel: x.grupo?.nivel_nombre || 'Primaria',
-              grado: String(x.grupo?.grado || '1'),
-              grupo: x.grupo?.nombre_grupo || 'A',
-              plantel: x.plantel?.nombre_plantel || 'Nevadi',
-              parentesco: 'Admin',
-              es_tutor_legal: true
-            }))
-          );
-        }
-      });
-    }
-
     this.api.get<AlumnoVinculado[]>('/padres/mis-alumnos').subscribe({
       next: lista => {
         this.alumnos.set(lista);
@@ -399,10 +382,44 @@ export class PadresComponent implements OnInit {
     });
   }
 
-  onSimulateChange(alumno: AlumnoVinculado): void {
+  onSimulateChange(alumno: any): void {
     if (alumno) {
+      this.simulatedAlumno = alumno;
+      this.simulatedAlumnoObj = alumno;
       this.seleccionarAlumno(alumno);
     }
+  }
+
+  buscarEstudiantes(event: { query: string }): void {
+    if (!event.query || event.query.trim().length < 2) {
+      this.estudiantesSugg.set([]);
+      return;
+    }
+    this.api.get<any[]>('/portal/buscar', { q: event.query }).subscribe({
+      next: (res) => {
+        this.estudiantesSugg.set((res ?? []).map((a: any) => ({
+          estudiante_id: a.id,
+          nombre_completo: [a.nombre, a.apellido_paterno, a.apellido_materno]
+            .filter(Boolean).join(' ') + (a.matricula ? ` — ${a.matricula}` : ''),
+          matricula: a.matricula,
+          nivel: a.nivel || 'Primaria',
+          grado: '1',
+          grupo: a.nombre_grupo || 'A',
+          plantel: a.nombre_plantel || 'Nevadi',
+          parentesco: 'Admin',
+          es_tutor_legal: true
+        })));
+      },
+      error: () => {
+        this.estudiantesSugg.set([]);
+      }
+    });
+  }
+
+  onSimulateClear(): void {
+    this.simulatedAlumnoObj = null;
+    this.simulatedAlumno = null;
+    this.alumnoActivo.set(null);
   }
 
   seleccionarAlumno(alumno: AlumnoVinculado): void {
