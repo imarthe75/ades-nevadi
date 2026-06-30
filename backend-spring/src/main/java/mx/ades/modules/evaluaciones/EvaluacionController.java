@@ -38,9 +38,10 @@ public class EvaluacionController {
     @GetMapping
     public ResponseEntity<List<Map<String, Object>>> list(
             @RequestParam(name = "grupo_id", required = false) UUID grupoId,
+            @RequestParam(name = "ciclo_id", required = false) UUID cicloId,
             @AuthenticationPrincipal Jwt jwt) {
         userService.resolveUser(jwt);
-        return ResponseEntity.ok(queryService.listar(grupoId));
+        return ResponseEntity.ok(queryService.listar(grupoId, cicloId));
     }
 
     @GetMapping("/{id}")
@@ -66,6 +67,11 @@ public class EvaluacionController {
             @AuthenticationPrincipal Jwt jwt) {
         var user = userService.resolveUser(jwt);
 
+        Object cicloIdObj = body.get("ciclo_id");
+        if (cicloIdObj != null) {
+            UUID cicloId = UUID.fromString(cicloIdObj.toString());
+        }
+
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> rawCalifs = (List<Map<String, Object>>) body.get("calificaciones");
         if (rawCalifs == null || rawCalifs.isEmpty()) {
@@ -89,7 +95,19 @@ public class EvaluacionController {
     }
 
     @PostMapping
-    public ResponseEntity<Evaluacion> create(@RequestBody Evaluacion evaluacion) {
+    public ResponseEntity<Evaluacion> create(
+            @RequestBody Evaluacion evaluacion,
+            @AuthenticationPrincipal Jwt jwt) {
+        userService.resolveUser(jwt);
+        if (evaluacion.getNombreEvaluacion() == null || evaluacion.getNombreEvaluacion().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "nombre_evaluacion es obligatorio");
+        }
+        if (evaluacion.getGrupoId() == null) {
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "grupo_id es obligatorio");
+        }
+        if (evaluacion.getFechaEvaluacion() == null) {
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "fecha_evaluacion es obligatoria");
+        }
         return ResponseEntity.status(HttpStatus.CREATED).body(repository.save(evaluacion));
     }
 

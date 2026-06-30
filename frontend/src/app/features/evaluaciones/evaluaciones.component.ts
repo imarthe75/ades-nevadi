@@ -430,11 +430,17 @@ export class EvaluacionesComponent implements OnInit {
     if (!editadas.length) return;
 
     this.saving.set(true);
-    const payload = { calificaciones: editadas.map(a => ({
-      estudiante_id: a.estudiante_id,
-      calificacion:  a.calificacion,
-      comentarios:   a.comentarios,
-    })) };
+    const ciclo = this.ctx.ciclo();
+    const payload: any = {
+      calificaciones: editadas.map(a => ({
+        estudiante_id: a.estudiante_id,
+        calificacion:  a.calificacion,
+        comentarios:   a.comentarios,
+      }))
+    };
+    if (ciclo) {
+      payload['ciclo_id'] = ciclo.id;
+    }
 
     this.api.post(`/evaluaciones/${this.selEval!.id}/calificaciones/bulk`, payload).subscribe({
       next: () => {
@@ -480,6 +486,10 @@ export class EvaluacionesComponent implements OnInit {
     }
     this.saving.set(true);
     const { _nivelId, _gradoId, ...payload } = this.form;
+    const ciclo = this.ctx.ciclo();
+    if (ciclo) {
+      payload['ciclo_id'] = ciclo.id;
+    }
     this.api.post('/evaluaciones', payload).subscribe({
       next: () => {
         this.saving.set(false);
