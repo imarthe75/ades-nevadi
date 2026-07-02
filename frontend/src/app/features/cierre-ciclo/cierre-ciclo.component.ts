@@ -1,9 +1,10 @@
-import { Component, inject, signal, OnInit, effect } from '@angular/core';
+import { Component, inject, signal, OnInit, effect, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { SelectModule } from 'primeng/select';
+import { SelectButtonModule } from 'primeng/selectbutton';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { TooltipModule } from 'primeng/tooltip';
 import { ApexNotificationService } from 'apex-component-library';
@@ -33,19 +34,17 @@ interface CicloOpt {
   _label?: string;
 }
 
-/**
- * Operación de cierre de ciclo escolar — acción irreversible y de alto impacto.
- * Muestra indicadores del ciclo (matrícula, promedio, tasa de aprobación) antes
- * de confirmar el cierre. El BFF ejecuta la transición de estado ACTIVO → CERRADO
- * y aplica las reglas de promoción automáticas. Requiere nivelAcceso = 5
- * (AdminSistema); muestra advertencia explícita sobre la irreversibilidad.
- */
+interface PlantelOpt {
+  id: string;
+  nombre_plantel: string;
+}
+
 @Component({
   selector: 'app-cierre-ciclo',
   standalone: true,
   imports: [
     CommonModule, FormsModule, ButtonModule, DialogModule,
-    SelectModule, ProgressSpinnerModule, TooltipModule
+    SelectModule, SelectButtonModule, ProgressSpinnerModule, TooltipModule
   ],
   template: `
     <div class="page-header">
@@ -66,7 +65,7 @@ interface CicloOpt {
               Ciclo Seleccionado: <span style="color:var(--color-primary)">{{ ciclo.nombre_ciclo }}</span>
             </h3>
             <p style="margin:.2rem 0 0 0; font-size:.9rem; color:var(--text-secondary)">
-              Nivel Académico: {{ ciclo.nombre_nivel || '—' }}
+              Nivel Académico: {{ nivelNombre() || '—' }}
             </p>
           </div>
           <div>
@@ -82,14 +81,39 @@ interface CicloOpt {
           </div>
         </div>
 
+        <!-- Selector de alcance: Instituto completo o por plantel -->
+        <div style="display:flex; align-items:center; gap:1rem; margin-bottom:1.5rem; flex-wrap:wrap;">
+          <span style="font-weight:600; color:var(--text-primary); font-size:.9rem;">Ver indicadores de:</span>
+          <p-selectButton
+            [options]="alcanceOpciones"
+            [ngModel]="alcance()"
+            optionLabel="label"
+            optionValue="value"
+            (ngModelChange)="setAlcance($event)" />
+
+          @if (alcance() === 'plantel') {
+            <p-select
+              [options]="planteles()"
+              optionLabel="nombre_plantel"
+              optionValue="id"
+              [ngModel]="plantelId()"
+              placeholder="Seleccionar plantel"
+              styleClass="w-14rem"
+              (ngModelChange)="setPlantel($event)" />
+          }
+        </div>
+
         @if (indicadores(); as ind) {
           <!-- KPI Cards Grid -->
           <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:1.5rem; margin-bottom:2rem;">
-            
+
             <div class="kpi-card" style="background:var(--surface-card); border-left:4px solid var(--color-primary); padding:1.25rem; border-radius:6px; box-shadow:0 2px 4px rgba(0,0,0,0.05)">
               <div style="font-size:.8rem; text-transform:uppercase; font-weight:bold; color:var(--text-muted)">Matrícula Total</div>
               <div style="font-size:1.8rem; font-weight:bold; margin-top:.5rem; color:var(--text-primary)">
                 {{ ind.matricula_total }} <span style="font-size:1rem; font-weight:normal; color:var(--text-secondary)">alumnos</span>
+              </div>
+              <div style="font-size:.75rem; color:var(--text-muted); margin-top:.25rem">
+                {{ alcance() === 'plantel' ? plantelNombre() : 'Todo el Instituto' }}
               </div>
             </div>
 
@@ -124,7 +148,7 @@ interface CicloOpt {
                         [loading]="descargandoInicio()" (onClick)="descargarActa('inicio')" />
               <p-button label="Descargar Acta de Cierre" icon="pi pi-file-pdf" severity="secondary" [outlined]="true"
                         [loading]="descargandoCierre()" (onClick)="descargarActa('cierre')" />
-              
+
               @if (ind.estado !== 'CERRADO') {
                 <p-button label="Ejecutar Cierre Definitivo de Calificaciones" icon="pi pi-lock" severity="danger"
                           (onClick)="abrirConfirmarCierre()" />
@@ -148,7 +172,7 @@ interface CicloOpt {
     }
 
     <!-- Dialogo de confirmación de cierre definitivo -->
-    <p-dialog header="Confirmar Cierre de Ciclo Escolar" [(visible)]="showConfirmDialog" 
+    <p-dialog header="Confirmar Cierre de Ciclo Escolar" [(visible)]="showConfirmDialog"
               [modal]="true" [style]="{width: '450px'}" [draggable]="false" [resizable]="false">
       <div style="padding:1rem 0;">
         <p style="margin-top:0; color:var(--text-primary); text-align:justify;">
@@ -157,21 +181,21 @@ interface CicloOpt {
         <p style="color:var(--text-secondary); text-align:justify;">
           Opcionalmente, selecciona el <strong>Ciclo Escolar Destino</strong> para realizar la reinscripción y promoción masiva automática de alumnos egresados/aprobados:
         </p>
-        
+
         <div style="margin:1.5rem 0;">
           <label for="cicloDestino" style="display:block; font-weight:bold; margin-bottom:.5rem; color:var(--text-primary)">
             Ciclo de Destino (Promoción)
           </label>
           <p-select id="cicloDestino" [options]="ciclosDisponibles()" optionLabel="_label" optionValue="id"
-                    [(ngModel)]="cicloDestinoId" placeholder="Seleccionar ciclo de destino (Opcional)" 
+                    [(ngModel)]="cicloDestinoId" placeholder="Seleccionar ciclo de destino (Opcional)"
                     styleClass="w-full" [showClear]="true" />
         </div>
       </div>
-      
+
       <ng-template pTemplate="footer">
-        <p-button label="Cancelar" icon="pi pi-times" severity="secondary" [outlined]="true" 
+        <p-button label="Cancelar" icon="pi pi-times" severity="secondary" [outlined]="true"
                   (onClick)="showConfirmDialog.set(false)" />
-        <p-button label="Confirmar y Cerrar Ciclo" icon="pi pi-lock" severity="danger" 
+        <p-button label="Confirmar y Cerrar Ciclo" icon="pi pi-lock" severity="danger"
                   [loading]="cerrandoCiclo()" (onClick)="confirmarCierreDefinitivo()" />
       </ng-template>
     </p-dialog>
@@ -181,21 +205,38 @@ export class CierreCicloComponent implements OnInit {
   private readonly api = inject(ApiService);
   private readonly ctx = inject(ContextService);
   private readonly notify = inject(ApexNotificationService);
-
   readonly cicloActivo = this.ctx.ciclo;
   readonly indicadores = signal<IndicadoresCiclo | null>(null);
   readonly ciclosDisponibles = signal<CicloOpt[]>([]);
-  
+  readonly planteles = signal<PlantelOpt[]>([]);
+
   readonly cargando = signal<boolean>(false);
   readonly descargandoInicio = signal<boolean>(false);
   readonly descargandoCierre = signal<boolean>(false);
   readonly cerrandoCiclo = signal<boolean>(false);
-  
   readonly showConfirmDialog = signal<boolean>(false);
+
+  // Signals para el selector de alcance — necesarios para que @if() reaccione
+  readonly alcance = signal<'instituto' | 'plantel'>('instituto');
+  readonly plantelId = signal<string | null>(null);
+
   cicloDestinoId: string | null = null;
 
+  readonly alcanceOpciones = [
+    { label: 'Todo el Instituto', value: 'instituto' },
+    { label: 'Por Plantel',       value: 'plantel'    }
+  ];
+
+  readonly nivelNombre = computed(() =>
+    this.ctx.nivel()?.nombre_nivel ?? this.indicadores()?.nombre_nivel ?? ''
+  );
+
+  readonly plantelNombre = computed(() => {
+    const pid = this.plantelId();
+    return this.planteles().find(p => p.id === pid)?.nombre_plantel ?? '';
+  });
+
   constructor() {
-    // Reaccionar a cambios del ciclo activo de la barra superior
     effect(() => {
       const ciclo = this.cicloActivo();
       if (ciclo?.id) {
@@ -207,20 +248,45 @@ export class CierreCicloComponent implements OnInit {
   }
 
   ngOnInit() {
-    const ciclo = this.cicloActivo();
-    if (ciclo?.id) {
-      this.cargarIndicadores(ciclo.id);
+    this.cargarPlanteles();
+    // Pre-seleccionar el plantel del contexto
+    const ctxPlantel = this.ctx.plantel();
+    if (ctxPlantel?.id) {
+      this.plantelId.set(ctxPlantel.id);
     }
+  }
+
+  cargarPlanteles() {
+    this.api.get<PlantelOpt[]>('/catalogs/planteles').subscribe({
+      next: (data) => this.planteles.set(data),
+      error: () => {}
+    });
+  }
+
+  setAlcance(valor: 'instituto' | 'plantel') {
+    this.alcance.set(valor);
+    const ciclo = this.cicloActivo();
+    if (ciclo?.id) this.cargarIndicadores(ciclo.id);
+  }
+
+  setPlantel(id: string | null) {
+    this.plantelId.set(id);
+    const ciclo = this.cicloActivo();
+    if (ciclo?.id) this.cargarIndicadores(ciclo.id);
   }
 
   cargarIndicadores(cicloId: string) {
     this.cargando.set(true);
-    this.api.get<IndicadoresCiclo>(`/cierre-ciclo/${cicloId}/indicadores`).subscribe({
+    let url = `/cierre-ciclo/${cicloId}/indicadores`;
+    if (this.alcance() === 'plantel' && this.plantelId()) {
+      url += `?plantel_id=${this.plantelId()}`;
+    }
+    this.api.get<IndicadoresCiclo>(url).subscribe({
       next: (data) => {
         this.indicadores.set(data);
         this.cargando.set(false);
       },
-      error: (e) => {
+      error: () => {
         this.notify.error('Error', 'No se pudieron cargar los indicadores del ciclo.');
         this.cargando.set(false);
       }
@@ -245,7 +311,6 @@ export class CierreCicloComponent implements OnInit {
         a.download = `acta_${tipo}_${ciclo.nombre_ciclo}.pdf`;
         a.click();
         URL.revokeObjectURL(url);
-        
         if (tipo === 'inicio') {
           this.descargandoInicio.set(false);
         } else {
@@ -253,7 +318,7 @@ export class CierreCicloComponent implements OnInit {
         }
         this.notify.success('Descarga exitosa', `El acta de ${tipo} ha sido descargada.`);
       },
-      error: (e) => {
+      error: () => {
         this.notify.error('Error', `No se pudo generar el acta de ${tipo}.`);
         if (tipo === 'inicio') {
           this.descargandoInicio.set(false);
@@ -270,7 +335,6 @@ export class CierreCicloComponent implements OnInit {
     this.api.get<CicloOpt[]>('/catalogs/ciclos').subscribe({
       next: (ciclos) => {
         const cicloActual = this.cicloActivo();
-        // Filtrar para no mostrar el ciclo actual como destino y formatear etiqueta
         const filtrados = ciclos
           .filter(c => c.id !== cicloActual?.id)
           .map(c => ({
@@ -294,7 +358,6 @@ export class CierreCicloComponent implements OnInit {
 
     this.cerrandoCiclo.set(true);
 
-    // Validar primero que todas las calificaciones estén completas
     this.api.get<any>(`/cierre-ciclo/${ciclo.id}/validacion-completa`).subscribe({
       next: (validacion) => {
         if (!validacion.valido) {
@@ -307,23 +370,22 @@ export class CierreCicloComponent implements OnInit {
           return;
         }
 
-        // Si todo está válido, proceder con el cierre
         this.api.post(`/cierre-ciclo/${ciclo.id}/ejecutar`, {
           ciclo_destino_id: this.cicloDestinoId || undefined
         }).subscribe({
-          next: (res: any) => {
+          next: () => {
             this.notify.success('Ciclo Cerrado', 'El ciclo escolar ha sido cerrado de forma definitiva.');
             this.showConfirmDialog.set(false);
             this.cerrandoCiclo.set(false);
             this.cargarIndicadores(ciclo.id);
           },
-          error: (e) => {
+          error: (e: any) => {
             this.notify.error('Error al cerrar ciclo', e.error?.detail ?? 'Ocurrió un error inesperado al cerrar el ciclo.');
             this.cerrandoCiclo.set(false);
           }
         });
       },
-      error: (e) => {
+      error: (e: any) => {
         this.cerrandoCiclo.set(false);
         this.notify.error('Error de validación', e.error?.detail ?? 'No se pudo validar el estado del ciclo.');
       }

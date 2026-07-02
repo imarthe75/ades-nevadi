@@ -51,12 +51,13 @@ public class CierreCicloController {
     @GetMapping("/{ciclo_id}/indicadores")
     public ResponseEntity<Map<String, Object>> obtenerIndicadores(
             @PathVariable("ciclo_id") UUID cicloId,
+            @RequestParam(value = "plantel_id", required = false) UUID plantelId,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         if (user.getNivelAcceso() == null || user.getNivelAcceso() > 2) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado.");
         }
-        return ResponseEntity.ok(queryService.indicadores(cicloId)
+        return ResponseEntity.ok(queryService.indicadores(cicloId, plantelId)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                 "No se encontraron datos para el ciclo escolar especificado.")));
     }

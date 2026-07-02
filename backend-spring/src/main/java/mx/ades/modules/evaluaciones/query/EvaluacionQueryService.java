@@ -45,12 +45,16 @@ public class EvaluacionQueryService {
         this.jdbc = jdbc;
     }
 
-    public List<Map<String, Object>> listar(UUID grupoId) {
+    public List<Map<String, Object>> listar(UUID grupoId, UUID cicloId) {
         StringBuilder sql = new StringBuilder(EVAL_SELECT + "WHERE e.is_active = TRUE ");
         List<Object> params = new ArrayList<>();
         if (grupoId != null) {
             sql.append("AND e.grupo_id = ? ");
             params.add(grupoId);
+        }
+        if (cicloId != null) {
+            sql.append("AND g.ciclo_escolar_id = ? ");
+            params.add(cicloId);
         }
         sql.append("GROUP BY e.id, g.nombre_grupo, m.nombre_materia, pe.nombre_periodo, pe.numero_periodo ");
         sql.append("ORDER BY e.fecha_evaluacion DESC");

@@ -220,14 +220,14 @@ export class Estadistica911Component implements OnInit {
         const matriz = d.matricula_por_grado_sexo_ingreso_edad ?? [];
 
         if (!matriz || matriz.length === 0) {
-          this.notify.warn('Advertencia', 'No hay datos de alumnos para generar el reporte');
+          this.notify.warning('Advertencia', 'No hay datos de alumnos para generar el reporte');
           this.cargando.set(false);
           return;
         }
 
         const validationIssues = this.validarMatriz(matriz);
         if (validationIssues.length > 0) {
-          this.notify.warn('Advertencia', `${validationIssues.length} registros tienen datos incompletos. El reporte puede no ser exacto.`);
+          this.notify.warning('Advertencia', `${validationIssues.length} registros tienen datos incompletos. El reporte puede no ser exacto.`);
         }
 
         this.matriz.set(matriz);

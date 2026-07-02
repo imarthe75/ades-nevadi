@@ -46,6 +46,20 @@ public class ContactosQueryService {
         return result;
     }
 
+    public boolean existeEmailContacto(String email) {
+        Integer count = jdbc.queryForObject(
+            "SELECT COUNT(*) FROM ades_contactos_familiares WHERE email = ? AND is_active = TRUE",
+            Integer.class, email);
+        return count != null && count > 0;
+    }
+
+    public boolean existeEmailContactoExcepto(String email, UUID contactoId) {
+        Integer count = jdbc.queryForObject(
+            "SELECT COUNT(*) FROM ades_contactos_familiares WHERE email = ? AND id != ? AND is_active = TRUE",
+            Integer.class, email, contactoId);
+        return count != null && count > 0;
+    }
+
     public List<Map<String, Object>> listarExpedienteDocs(UUID estudianteId, UUID cicloId) {
         List<Map<String, Object>> tipos = jdbc.queryForList(
             "SELECT id, nombre_documento, descripcion, obligatorio FROM ades_documentos_tipo WHERE is_active = TRUE ORDER BY orden");

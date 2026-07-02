@@ -4,6 +4,7 @@
  */
 import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { PopoverModule } from 'primeng/popover';
 
@@ -98,7 +99,7 @@ const AYUDA: Record<string, HelpContent> = {
 @Component({
   selector: 'app-help-button',
   standalone: true,
-  imports: [CommonModule, ButtonModule, PopoverModule],
+  imports: [CommonModule, RouterLink, ButtonModule, PopoverModule],
   template: `
     <p-button
       icon="pi pi-question-circle"

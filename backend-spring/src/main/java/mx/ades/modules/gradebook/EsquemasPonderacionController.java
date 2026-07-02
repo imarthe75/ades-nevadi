@@ -98,7 +98,7 @@ public class EsquemasPonderacionController {
         }
 
         double suma = items.stream()
-                .mapToDouble(i -> i.getPesoPorcentaje() != null ? i.getPesoPorcentaje() : 0.0)
+                .mapToDouble(i -> i.pesoPorcentaje() != null ? i.pesoPorcentaje() : 0.0)
                 .sum();
         if (Math.abs(suma - 100.0) > 0.01) {
             throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
@@ -133,7 +133,7 @@ public class EsquemasPonderacionController {
         }
 
         double suma = items.stream()
-                .mapToDouble(i -> i.getPesoPorcentaje() != null ? i.getPesoPorcentaje() : 0.0)
+                .mapToDouble(i -> i.pesoPorcentaje() != null ? i.pesoPorcentaje() : 0.0)
                 .sum();
         if (Math.abs(suma - 100.0) > 0.01) {
             throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,

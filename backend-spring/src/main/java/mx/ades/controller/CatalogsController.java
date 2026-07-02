@@ -6,6 +6,7 @@ import mx.ades.modules.catalogos.Grado;
 import mx.ades.modules.catalogos.NivelEducativo;
 import mx.ades.modules.catalogos.domain.port.out.CatalogReadPort;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -37,6 +38,7 @@ import java.util.UUID;
 public class CatalogsController {
 
     private final CatalogReadPort catalogPort;
+    private final JdbcTemplate jdbc;
 
     @GetMapping("/niveles")
     public ResponseEntity<List<NivelEducativo>> niveles() {
@@ -105,5 +107,11 @@ public class CatalogsController {
     @GetMapping("/niveles-ingles")
     public ResponseEntity<List<Map<String, Object>>> nivelesIngles() {
         return ResponseEntity.ok(catalogPort.nivelesIngles());
+    }
+
+    @GetMapping("/planteles")
+    public ResponseEntity<List<Map<String, Object>>> planteles() {
+        return ResponseEntity.ok(jdbc.queryForList(
+            "SELECT id, nombre_plantel FROM ades_planteles WHERE is_active = true ORDER BY nombre_plantel"));
     }
 }
