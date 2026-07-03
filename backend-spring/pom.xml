@@ -204,46 +204,6 @@
           </compilerArgs>
         </configuration>
       </plugin>
-      <!-- ===== Análisis estático de código (temporal, solo reporte) ===== -->
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-checkstyle-plugin</artifactId>
-        <version>3.6.0</version>
-        <configuration>
-          <configLocation>sun_checks.xml</configLocation>
-          <failOnViolation>false</failOnViolation>
-          <failsOnError>false</failsOnError>
-          <violationSeverity>info</violationSeverity>
-          <sourceDirectories>
-            <sourceDirectory>${project.build.sourceDirectory}</sourceDirectory>
-          </sourceDirectories>
-        </configuration>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-pmd-plugin</artifactId>
-        <version>3.28.0</version>
-        <configuration>
-          <rulesets>
-            <ruleset>category/java/bestpractices.xml</ruleset>
-            <ruleset>category/java/errorprone.xml</ruleset>
-            <ruleset>category/java/design.xml</ruleset>
-          </rulesets>
-          <failOnViolation>false</failOnViolation>
-          <printFailingErrors>false</printFailingErrors>
-        </configuration>
-      </plugin>
-      <plugin>
-        <groupId>com.github.spotbugs</groupId>
-        <artifactId>spotbugs-maven-plugin</artifactId>
-        <version>4.9.8.5</version>
-        <configuration>
-          <effort>Max</effort>
-          <threshold>Medium</threshold>
-          <failOnError>false</failOnError>
-        </configuration>
-      </plugin>
-      <!-- ===== Fin análisis estático temporal ===== -->
       <plugin>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
