@@ -1,0 +1,59 @@
+MYPY - Reporte de type checking (backend FastAPI)
+Comando: mypy app/ --ignore-missing-imports
+Archivos analizados: 73 (todo app/)
+Found 27 errors in 11 files (checked 73 source files)
+Total errores: 27
+Total notas informativas: 3
+
+NOTA: sin type hints completos / sin mypy.ini configurado en el proyecto,
+por lo que este conteo puede incluir falsos positivos y no refleja aun
+una base de tipado estricta (no habia linter/type-checker configurado previamente).
+
+=== CATEGORIAS DE ERROR (codigo mypy) ===
+  attr-defined         13
+  call-arg             6
+  assignment           4
+  operator             3
+  valid-type           1
+
+=== ARCHIVOS CON ERRORES ===
+    9  app/main.py
+    6  app/worker/tasks/boletas.py
+    3  app/core/optimistic_locking.py
+    2  app/api/v1/sepomex.py
+    1  app/schemas/personas.py
+    1  app/core/encryption.py
+    1  app/api/v1/ia_avanzada.py
+    1  app/api/v1/h5p.py
+    1  app/api/v1/boletas.py
+    1  app/api/v1/bbb.py
+    1  app/api/v1/ai_assistant.py
+
+=== DETALLE COMPLETO ===
+app/core/optimistic_locking.py:34: error: Function "builtins.any" is not valid as a type  [valid-type]
+app/core/optimistic_locking.py:55: error: any? has no attribute "row_version"  [attr-defined]
+app/core/optimistic_locking.py:57: error: any? has no attribute "row_version"  [attr-defined]
+app/schemas/personas.py:80: error: Incompatible types in assignment (expression has type "str | None", base class "PersonaBase" defined the type as "str")  [assignment]
+app/core/encryption.py:26: error: Incompatible types in assignment (expression has type "bytes", variable has type "str")  [assignment]
+app/worker/tasks/boletas.py:361: error: Unexpected keyword argument "estudiante_id" for "warning" of "Logger"  [call-arg]
+app/worker/tasks/boletas.py:361: error: Unexpected keyword argument "error" for "warning" of "Logger"  [call-arg]
+app/worker/tasks/boletas.py:380: error: Unexpected keyword argument "grupo_id" for "info" of "Logger"  [call-arg]
+app/worker/tasks/boletas.py:380: error: Unexpected keyword argument "total" for "info" of "Logger"  [call-arg]
+app/worker/tasks/boletas.py:380: error: Unexpected keyword argument "errores" for "info" of "Logger"  [call-arg]
+app/worker/tasks/boletas.py:380: error: Unexpected keyword argument "url" for "info" of "Logger"  [call-arg]
+app/api/v1/sepomex.py:23: error: "bool" not callable  [operator]
+app/api/v1/sepomex.py:33: error: "bool" not callable  [operator]
+app/api/v1/ia_avanzada.py:165: error: Incompatible types in assignment (expression has type "UUID", variable has type "str | None")  [assignment]
+app/api/v1/h5p.py:176: error: "AdesUser" has no attribute "nombre"  [attr-defined]
+app/api/v1/boletas.py:201: error: Incompatible types in assignment (expression has type "float | None", variable has type "float")  [assignment]
+app/api/v1/bbb.py:280: error: "AdesUser" has no attribute "nombre"  [attr-defined]
+app/api/v1/ai_assistant.py:357: error: Unsupported operand types for > ("float" and "object")  [operator]
+app/main.py:41: error: Module has no attribute "add_middleware"  [attr-defined]
+app/main.py:45: error: Module has no attribute "add_middleware"  [attr-defined]
+app/main.py:94: error: Module has no attribute "add_middleware"  [attr-defined]
+app/main.py:97: error: Module has no attribute "add_middleware"  [attr-defined]
+app/main.py:106: error: Module has no attribute "add_middleware"  [attr-defined]
+app/main.py:109: error: Module has no attribute "exception_handler"  [attr-defined]
+app/main.py:119: error: Module has no attribute "state"  [attr-defined]
+app/main.py:120: error: Module has no attribute "include_router"  [attr-defined]
+app/main.py:126: error: Module has no attribute "middleware"  [attr-defined]

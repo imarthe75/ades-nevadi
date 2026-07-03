@@ -70,7 +70,8 @@ public class PortalFamiliasController {
     public ResponseEntity<List<Map<String, Object>>> listarTutores(
             @PathVariable("alumno_id") UUID alumnoId,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        AdesUser user = userService.resolveUser(jwt);
+        verificarAccesoAlumno(user, alumnoId);
         return ResponseEntity.ok(queryService.listarTutores(alumnoId));
     }
 
@@ -172,7 +173,24 @@ public class PortalFamiliasController {
     public ResponseEntity<Map<String, Object>> resumenAcademico(
             @PathVariable("alumno_id") UUID alumnoId,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        AdesUser user = userService.resolveUser(jwt);
+        verificarAccesoAlumno(user, alumnoId);
         return ResponseEntity.ok(queryService.resumenAcademico(alumnoId));
+    }
+
+    /**
+     * Personal escolar (nivelAcceso &le;4: admin/director/coordinador/docente) puede consultar
+     * cualquier alumno de su ámbito. Padres/alumnos (nivelAcceso &gt;=5) solo pueden consultar
+     * alumnos donde son tutor activo — previene IDOR (OWASP API1 BOLA) sobre datos de menores.
+     */
+    private void verificarAccesoAlumno(AdesUser user, UUID alumnoId) {
+        Integer nivelAcceso = user.getNivelAcceso();
+        if (nivelAcceso != null && nivelAcceso <= 4) {
+            return;
+        }
+        String email = user.getEmail();
+        if (email == null || !queryService.esTutorDeAlumno(email, alumnoId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No tienes acceso a este alumno");
+        }
     }
 }

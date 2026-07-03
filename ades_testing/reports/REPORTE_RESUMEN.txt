@@ -4,29 +4,31 @@
 ║                      REPORTE DE INCONSISTENCIAS                              ║
 ╚═════════════════════════════════════════════════════════════════════════════╝
 
-Generado: 2026-06-30 18:20:57
+Generado: 2026-07-02 22:19:25
 
 ─────────────────────────────────────────────────────────────────────────────
 RESUMEN DE SEVERIDAD
 ─────────────────────────────────────────────────────────────────────────────
-  🔴 CRÍTICAS:   12  (Bloquean funcionalidad)
-  🟠 ALTAS:      12  (Afectan UX significativamente)
-  🟡 MEDIAS:      3  (Mejoras necesarias)
-  🟢 BAJAS:       3  (Sugerencias)
+  🔴 CRÍTICAS:   15  (Bloquean funcionalidad)
+  🟠 ALTAS:      24  (Afectan UX significativamente)
+  🟡 MEDIAS:     15  (Mejoras necesarias)
+  🟢 BAJAS:       4  (Sugerencias)
   ─────────────
-  TOTAL:         30
+  TOTAL:         58
 
 ─────────────────────────────────────────────────────────────────────────────
 TIPOS DE INCONSISTENCIAS
 ─────────────────────────────────────────────────────────────────────────────
-  • Validation Missing: 10
-  • Data Not Rendered: 5
+  • Validation Missing: 13
+  • Error Hidden: 11
+  • Data Not Rendered: 9
+  • Context Not Propagated: 6
+  • Incomplete Flow: 6
+  • API Error: 5
   • SEP/Nevadi Ambiguity: 4
-  • Context Not Propagated: 4
-  • Error Hidden: 4
+  • Modal/Drawer Issue: 2
+  • Data Inconsistent: 1
   • Inline Editable Missing: 1
-  • Incomplete Flow: 1
-  • Modal/Drawer Issue: 1
 
 ─────────────────────────────────────────────────────────────────────────────
 PRÓXIMOS PASOS

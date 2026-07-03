@@ -1,0 +1,241 @@
+2026-07-02 22:03:27,707 [INFO] ✓ Archivo .env cargado
+2026-07-02 22:03:27,707 [INFO] Working directory: /opt/ades/ades_testing
+2026-07-02 22:03:27,708 [INFO] === OPCIONES DE EJECUCIÓN ===
+2026-07-02 22:03:27,708 [INFO] Smoke test (3 módulos):     phase=1, limit=3   →  ~3-5 min
+2026-07-02 22:03:27,709 [INFO] Fase 1 (critico+alto):      phase=1, limit=None → ~30-40 min (34 módulos)
+2026-07-02 22:03:27,709 [INFO] Fase 2 (+medio):            phase=2, limit=None → +18 módulos
+2026-07-02 22:03:27,709 [INFO] Completo (58 módulos):      phase=3, limit=None → ~60-80 min
+2026-07-02 22:03:27,709 [INFO] === EJECUTANDO phase=2 limit=None ===
+
+2026-07-02 22:03:28,095 [INFO] Iniciando Playwright en https://ades.setag.mx
+2026-07-02 22:03:28,220 [INFO] Autenticando en ADES (Authentik - 3 pasos)...
+2026-07-02 22:03:28,220 [INFO] Paso 1: Navegando a login y buscando botón de institucion...
+2026-07-02 22:03:30,422 [INFO]   ✓ Botón encontrado
+2026-07-02 22:03:32,612 [INFO] Paso 2: Ingresando username...
+2026-07-02 22:03:35,883 [INFO] Paso 3: Ingresando contraseña...
+2026-07-02 22:03:38,941 [INFO] Paso 3.5: Verificando pantalla de consentimiento OAuth2...
+2026-07-02 22:03:46,944 [INFO]   Sin pantalla de consentimiento (o ya autorizado previamente)
+2026-07-02 22:03:46,944 [INFO] Esperando dashboard y token OIDC...
+2026-07-02 22:03:46,962 [INFO]   ✓ Token OIDC (ades_token) confirmado en sessionStorage
+2026-07-02 22:03:46,966 [INFO]   ✓ Sesión guardada — keys: ['ades_usuario', 'ades_id_token', 'ades_token']
+2026-07-02 22:03:46,984 [INFO]   ✓ Plantel: Metepec
+2026-07-02 22:03:46,986 [INFO]   ✓ Ciclo: 2026-2027
+2026-07-02 22:03:46,989 [INFO]   ✓ Init script de sesión registrado
+2026-07-02 22:03:47,990 [INFO] ✓ Autenticación exitosa
+2026-07-02 22:03:47,990 [INFO] Testeando 52 módulos (Fase 2)
+2026-07-02 22:03:47,990 [INFO] 
+[1/52] dashboard
+2026-07-02 22:03:47,990 [INFO]   Navegando a https://ades.setag.mx/dashboard
+2026-07-02 22:03:52,095 [INFO]   ✓ Capturado | 1 errores API | 1 errores consola
+2026-07-02 22:03:52,596 [INFO] 
+[2/52] alumnos
+2026-07-02 22:03:52,596 [INFO]   Navegando a https://ades.setag.mx/alumnos
+2026-07-02 22:03:57,043 [INFO]   ✓ Capturado | 1 errores API | 1 errores consola
+2026-07-02 22:03:57,544 [INFO] 
+[3/52] profesores
+2026-07-02 22:03:57,544 [INFO]   Navegando a https://ades.setag.mx/profesores
+2026-07-02 22:04:01,716 [INFO]   ✓ Capturado | 1 errores API | 1 errores consola
+2026-07-02 22:04:02,216 [INFO] 
+[4/52] disponibilidad_docente
+2026-07-02 22:04:02,216 [INFO]   Navegando a https://ades.setag.mx/disponibilidad
+2026-07-02 22:04:06,250 [INFO]   ✓ Capturado | 1 errores API | 1 errores consola
+2026-07-02 22:04:06,751 [INFO] 
+[5/52] grupos
+2026-07-02 22:04:06,751 [INFO]   Navegando a https://ades.setag.mx/grupos
+2026-07-02 22:04:10,963 [INFO]   ✓ Capturado | 1 errores API | 1 errores consola
+2026-07-02 22:04:11,464 [INFO] 
+[6/52] planes_estudio
+2026-07-02 22:04:11,464 [INFO]   Navegando a https://ades.setag.mx/planes-estudio
+2026-07-02 22:04:15,966 [INFO]   ✓ Capturado | 3 errores API | 3 errores consola
+2026-07-02 22:04:16,468 [INFO] 
+[7/52] calificaciones
+2026-07-02 22:04:16,468 [INFO]   Navegando a https://ades.setag.mx/calificaciones
+2026-07-02 22:04:20,390 [INFO]   ✓ Capturado | 1 errores API | 1 errores consola
+2026-07-02 22:04:20,890 [INFO] 
+[8/52] horarios
+2026-07-02 22:04:20,891 [INFO]   Navegando a https://ades.setag.mx/horarios
+2026-07-02 22:04:24,924 [INFO]   ✓ Capturado | 2 errores API | 3 errores consola
+2026-07-02 22:04:25,424 [INFO] 
+[9/52] gradebook
+2026-07-02 22:04:25,425 [INFO]   Navegando a https://ades.setag.mx/gradebook
+2026-07-02 22:04:29,409 [INFO]   ✓ Capturado | 1 errores API | 1 errores consola
+2026-07-02 22:04:29,910 [INFO] 
+[10/52] ponderacion_config
+2026-07-02 22:04:29,910 [INFO]   Navegando a https://ades.setag.mx/ponderacion-config
+2026-07-02 22:04:34,113 [INFO]   ✓ Capturado | 1 errores API | 1 errores consola
+2026-07-02 22:04:34,614 [INFO] 
+[11/52] evaluaciones
+2026-07-02 22:04:34,614 [INFO]   Navegando a https://ades.setag.mx/evaluaciones
+2026-07-02 22:04:38,890 [INFO]   ✓ Capturado | 1 errores API | 1 errores consola
+2026-07-02 22:04:39,391 [INFO] 
+[12/52] asistencias
+2026-07-02 22:04:39,392 [INFO]   Navegando a https://ades.setag.mx/asistencias
+2026-07-02 22:04:43,256 [INFO]   ✓ Capturado | 1 errores API | 1 errores consola
+2026-07-02 22:04:43,756 [INFO] 
+[13/52] reinscripcion
+2026-07-02 22:04:43,756 [INFO]   Navegando a https://ades.setag.mx/reinscripcion
+2026-07-02 22:04:47,811 [INFO]   ✓ Capturado | 1 errores API | 1 errores consola
+2026-07-02 22:04:48,312 [INFO] 
+[14/52] cierre_ciclo
+2026-07-02 22:04:48,312 [INFO]   Navegando a https://ades.setag.mx/cierre-ciclo
+2026-07-02 22:04:52,263 [INFO]   ✓ Capturado | 1 errores API | 1 errores consola
+2026-07-02 22:04:52,764 [INFO] 
+[15/52] padres_admin
+2026-07-02 22:04:52,764 [INFO]   Navegando a https://ades.setag.mx/padres-admin
+2026-07-02 22:04:56,485 [INFO]   ✓ Capturado | 1 errores API | 1 errores consola
+2026-07-02 22:04:56,986 [INFO] 
+[16/52] estadistica_911
+2026-07-02 22:04:56,986 [INFO]   Navegando a https://ades.setag.mx/estadistica-911
+2026-07-02 22:05:00,899 [INFO]   ✓ Capturado | 2 errores API | 2 errores consola
+2026-07-02 22:05:01,399 [INFO] 
+[17/52] kardex_uaemex
+2026-07-02 22:05:01,399 [INFO]   Navegando a https://ades.setag.mx/kardex
+2026-07-02 22:05:05,345 [INFO]   ✓ Capturado | 1 errores API | 1 errores consola
+2026-07-02 22:05:05,846 [INFO] 
+[18/52] acta_evaluacion_uaemex
+2026-07-02 22:05:05,846 [INFO]   Navegando a https://ades.setag.mx/acta-evaluacion
+2026-07-02 22:05:09,766 [INFO]   ✓ Capturado | 1 errores API | 1 errores consola
+2026-07-02 22:05:10,267 [INFO] 
+[19/52] admision
+2026-07-02 22:05:10,267 [INFO]   Navegando a https://ades.setag.mx/admision
+2026-07-02 22:05:14,566 [INFO]   ✓ Capturado | 1 errores API | 1 errores consola
+2026-07-02 22:05:15,067 [INFO] 
+[20/52] comunicados
+2026-07-02 22:05:15,067 [INFO]   Navegando a https://ades.setag.mx/comunicados
+2026-07-02 22:05:19,205 [INFO]   ✓ Capturado | 1 errores API | 1 errores consola
+2026-07-02 22:05:19,706 [INFO] 
+[21/52] reportes
+2026-07-02 22:05:19,706 [INFO]   Navegando a https://ades.setag.mx/reportes
+2026-07-02 22:05:23,863 [INFO]   ✓ Capturado | 2 errores API | 3 errores consola
+2026-07-02 22:05:24,364 [INFO] 
+[22/52] dashboards_bi
+2026-07-02 22:05:24,364 [INFO]   Navegando a https://ades.setag.mx/bi
+2026-07-02 22:05:28,279 [INFO]   ✓ Capturado | 2 errores API | 2 errores consola
+2026-07-02 22:05:28,780 [INFO] 
+[23/52] grade_analytics
+2026-07-02 22:05:28,780 [INFO]   Navegando a https://ades.setag.mx/grade-analytics
+2026-07-02 22:05:33,185 [INFO]   ✓ Capturado | 1 errores API | 1 errores consola
+2026-07-02 22:05:33,686 [INFO] 
+[24/52] asistente_ia
+2026-07-02 22:05:33,686 [INFO]   Navegando a https://ades.setag.mx/ia
+2026-07-02 22:05:37,855 [INFO]   ✓ Capturado | 2 errores API | 2 errores consola
+2026-07-02 22:05:38,356 [INFO] 
+[25/52] monitor_sistema
+2026-07-02 22:05:38,356 [INFO]   Navegando a https://ades.setag.mx/monitor
+2026-07-02 22:05:42,781 [INFO]   ✓ Capturado | 4 errores API | 5 errores consola
+2026-07-02 22:05:43,283 [INFO] 
+[26/52] administracion
+2026-07-02 22:05:43,283 [INFO]   Navegando a https://ades.setag.mx/admin
+2026-07-02 22:05:47,289 [INFO]   ✓ Capturado | 1 errores API | 1 errores consola
+2026-07-02 22:05:47,791 [INFO] 
+[27/52] conducta
+2026-07-02 22:05:47,791 [INFO]   Navegando a https://ades.setag.mx/conducta
+2026-07-02 22:05:51,860 [INFO]   ✓ Capturado | 1 errores API | 1 errores consola
+2026-07-02 22:05:52,361 [INFO] 
+[28/52] medico
+2026-07-02 22:05:52,361 [INFO]   Navegando a https://ades.setag.mx/medico
+2026-07-02 22:05:56,291 [INFO]   ✓ Capturado | 1 errores API | 1 errores consola
+2026-07-02 22:05:56,791 [INFO] 
+[29/52] eval_docente
+2026-07-02 22:05:56,792 [INFO]   Navegando a https://ades.setag.mx/eval-docente
+2026-07-02 22:06:00,757 [INFO]   ✓ Capturado | 1 errores API | 8 errores consola
+2026-07-02 22:06:01,257 [INFO] 
+[30/52] planeacion
+2026-07-02 22:06:01,257 [INFO]   Navegando a https://ades.setag.mx/planeacion
+2026-07-02 22:06:05,147 [INFO]   ✓ Capturado | 1 errores API | 1 errores consola
+2026-07-02 22:06:05,648 [INFO] 
+[31/52] tareas
+2026-07-02 22:06:05,648 [INFO]   Navegando a https://ades.setag.mx/tareas
+2026-07-02 22:06:09,558 [INFO]   ✓ Capturado | 1 errores API | 1 errores consola
+2026-07-02 22:06:10,058 [INFO] 
+[32/52] portal
+2026-07-02 22:06:10,058 [INFO]   Navegando a https://ades.setag.mx/portal
+2026-07-02 22:06:14,036 [INFO]   ✓ Capturado | 1 errores API | 1 errores consola
+2026-07-02 22:06:14,536 [INFO] 
+[33/52] portal_admin
+2026-07-02 22:06:14,536 [INFO]   Navegando a https://ades.setag.mx/portal-admin
+2026-07-02 22:06:18,861 [INFO]   ✓ Capturado | 1 errores API | 1 errores consola
+2026-07-02 22:06:19,363 [INFO] 
+[34/52] director_dashboard
+2026-07-02 22:06:19,363 [INFO]   Navegando a https://ades.setag.mx/director-dashboard
+2026-07-02 22:06:23,279 [INFO]   ✓ Capturado | 2 errores API | 2 errores consola
+2026-07-02 22:06:23,779 [INFO] 
+[35/52] expediente_laboral
+2026-07-02 22:06:23,779 [INFO]   Navegando a https://ades.setag.mx/expediente-laboral
+2026-07-02 22:06:28,260 [INFO]   ✓ Capturado | 1 errores API | 1 errores consola
+2026-07-02 22:06:28,761 [INFO] 
+[36/52] certificados
+2026-07-02 22:06:28,761 [INFO]   Navegando a https://ades.setag.mx/certificados
+2026-07-02 22:06:33,248 [INFO]   ✓ Capturado | 2 errores API | 2 errores consola
+2026-07-02 22:06:33,748 [INFO] 
+[37/52] condiciones_cronicas
+2026-07-02 22:06:33,748 [INFO]   Navegando a https://ades.setag.mx/condiciones-cronicas
+2026-07-02 22:06:38,115 [INFO]   ✓ Capturado | 1 errores API | 1 errores consola
+2026-07-02 22:06:38,618 [INFO] 
+[38/52] padres
+2026-07-02 22:06:38,618 [INFO]   Navegando a https://ades.setag.mx/padres
+2026-07-02 22:06:42,574 [INFO]   ✓ Capturado | 1 errores API | 1 errores consola
+2026-07-02 22:06:43,075 [INFO] 
+[39/52] calendario
+2026-07-02 22:06:43,075 [INFO]   Navegando a https://ades.setag.mx/calendario
+2026-07-02 22:06:47,346 [INFO]   ✓ Capturado | 1 errores API | 1 errores consola
+2026-07-02 22:06:47,847 [INFO] 
+[40/52] aulas
+2026-07-02 22:06:47,847 [INFO]   Navegando a https://ades.setag.mx/aulas
+2026-07-02 22:06:51,601 [INFO]   ✓ Capturado | 1 errores API | 1 errores consola
+2026-07-02 22:06:52,101 [INFO] 
+[41/52] personal_admin
+2026-07-02 22:06:52,102 [INFO]   Navegando a https://ades.setag.mx/personal-admin
+2026-07-02 22:06:55,831 [INFO]   ✓ Capturado | 1 errores API | 1 errores consola
+2026-07-02 22:06:56,332 [INFO] 
+[42/52] licencias
+2026-07-02 22:06:56,332 [INFO]   Navegando a https://ades.setag.mx/licencias
+2026-07-02 22:07:00,780 [INFO]   ✓ Capturado | 1 errores API | 1 errores consola
+2026-07-02 22:07:01,281 [INFO] 
+[43/52] capacitaciones
+2026-07-02 22:07:01,281 [INFO]   Navegando a https://ades.setag.mx/capacitaciones
+2026-07-02 22:07:05,782 [INFO]   ✓ Capturado | 1 errores API | 1 errores consola
+2026-07-02 22:07:06,283 [INFO] 
+[44/52] asistencia_personal
+2026-07-02 22:07:06,283 [INFO]   Navegando a https://ades.setag.mx/asistencia-personal
+2026-07-02 22:07:10,061 [INFO]   ✓ Capturado | 1 errores API | 1 errores consola
+2026-07-02 22:07:10,562 [INFO] 
+[45/52] justificaciones
+2026-07-02 22:07:10,562 [INFO]   Navegando a https://ades.setag.mx/justificaciones
+2026-07-02 22:07:14,675 [INFO]   ✓ Capturado | 1 errores API | 1 errores consola
+2026-07-02 22:07:15,176 [INFO] 
+[46/52] movilidad
+2026-07-02 22:07:15,176 [INFO]   Navegando a https://ades.setag.mx/movilidad
+2026-07-02 22:07:18,889 [INFO]   ✓ Capturado | 1 errores API | 1 errores consola
+2026-07-02 22:07:19,390 [INFO] 
+[47/52] expediente_doc
+2026-07-02 22:07:19,390 [INFO]   Navegando a https://ades.setag.mx/expediente-doc
+2026-07-02 22:07:23,284 [INFO]   ✓ Capturado | 1 errores API | 1 errores consola
+2026-07-02 22:07:23,785 [INFO] 
+[48/52] optativas
+2026-07-02 22:07:23,785 [INFO]   Navegando a https://ades.setag.mx/optativas
+2026-07-02 22:07:27,703 [INFO]   ✓ Capturado | 1 errores API | 1 errores consola
+2026-07-02 22:07:28,204 [INFO] 
+[49/52] rubricas
+2026-07-02 22:07:28,204 [INFO]   Navegando a https://ades.setag.mx/rubricas
+2026-07-02 22:07:32,172 [INFO]   ✓ Capturado | 1 errores API | 1 errores consola
+2026-07-02 22:07:32,673 [INFO] 
+[50/52] encuestas
+2026-07-02 22:07:32,673 [INFO]   Navegando a https://ades.setag.mx/encuestas
+2026-07-02 22:07:36,763 [INFO]   ✓ Capturado | 1 errores API | 1 errores consola
+2026-07-02 22:07:37,264 [INFO] 
+[51/52] learning_paths
+2026-07-02 22:07:37,264 [INFO]   Navegando a https://ades.setag.mx/learning-paths
+2026-07-02 22:07:41,586 [INFO]   ✓ Capturado | 1 errores API | 1 errores consola
+2026-07-02 22:07:42,088 [INFO] 
+[52/52] mi_progreso
+2026-07-02 22:07:42,088 [INFO]   Navegando a https://ades.setag.mx/mi-progreso
+2026-07-02 22:07:46,257 [INFO]   ✓ Capturado | 1 errores API | 1 errores consola
+2026-07-02 22:07:46,877 [INFO] 
+✓ Resultados guardados
+2026-07-02 22:07:46,877 [INFO]   - Módulos: 52/52
+2026-07-02 22:07:46,877 [INFO]   - Con errores API:     52
+2026-07-02 22:07:46,877 [INFO]   - Con errores consola: 52
+2026-07-02 22:07:46,877 [INFO]   - Con modales: 0
+2026-07-02 22:07:46,877 [INFO]   - Con side panels: 0
+2026-07-02 22:07:46,877 [INFO]   - Con pestañas: 0

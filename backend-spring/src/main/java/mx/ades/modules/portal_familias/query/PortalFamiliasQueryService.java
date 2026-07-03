@@ -27,6 +27,16 @@ public class PortalFamiliasQueryService {
         return jdbc.queryForList(sql, alumnoId);
     }
 
+    /** Verifica que el email dado corresponda a un tutor activo vinculado al alumno. */
+    public boolean esTutorDeAlumno(String email, UUID alumnoId) {
+        Integer count = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM ades_tutores_alumnos ta " +
+                "JOIN ades_personas p ON p.id = ta.persona_id " +
+                "WHERE p.email = ? AND ta.alumno_id = ? AND ta.is_active = TRUE",
+                Integer.class, email, alumnoId);
+        return count != null && count > 0;
+    }
+
     public List<Map<String, Object>> misAlumnos(String email) {
         String sql = "SELECT e.id AS alumno_id, e.matricula AS numero_control, " +
                 "p.nombre, p.apellido_paterno, p.apellido_materno, " +
@@ -66,7 +76,7 @@ public class PortalFamiliasQueryService {
 
         List<Map<String, Object>> cond = jdbc.queryForList(
                 "SELECT COUNT(*) AS total_incidentes " +
-                "FROM ades_incidentes_conducta " +
+                "FROM ades_reportes_conducta " +
                 "WHERE estudiante_id = ? AND is_active = TRUE",
                 alumnoId
         );

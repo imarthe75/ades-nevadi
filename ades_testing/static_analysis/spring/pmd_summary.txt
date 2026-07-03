@@ -1,0 +1,42 @@
+======================================================================
+PMD — Resumen de análisis estático
+Rulesets: bestpractices, errorprone, design
+======================================================================
+
+Total de violaciones: 1029
+Archivos con violaciones: 303
+
+Por ruleset:
+     424  Design
+     305  Best Practices
+     300  Error Prone
+
+Por prioridad (1=alta ... 5=baja):
+  P1: 24
+  P2: 136
+  P3: 853
+  P4: 16
+
+Top 10 reglas más violadas:
+     132  PreserveStackTrace
+     123  AvoidCatchingGenericException
+      98  ImplicitFunctionalInterface
+      92  UseLocaleWithCaseConversions
+      83  AvoidDuplicateLiterals
+      65  CyclomaticComplexity
+      59  AvoidLiteralsInIfCondition
+      35  TooManyMethods
+      34  UseObjectForClearerAPI
+      31  GuardLogStatement
+
+Top 10 clases con más issues:
+      58  mx.ades.modules.imports.ImportsController
+      31  mx.ades.modules.procesos.ProcesosEscolaresController
+      25  mx.ades.modules.imports.ImportsWriteService
+      24  mx.ades.modules.imports.ImportadorUtil
+      23  mx.ades.modules.expediente_laboral.ExpedienteLaboralController
+      20  mx.ades.modules.expediente.ExpedienteController
+      19  mx.ades.modules.expediente.PaperlessService
+      19  mx.ades.modules.portal.PortalStorageService
+      17  mx.ades.config.VaultInitializer
+      16  mx.ades.modules.horarios.HorarioController

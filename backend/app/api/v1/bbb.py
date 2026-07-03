@@ -59,7 +59,7 @@ async def _bbb_call(action: str, params: dict | None = None) -> dict:
     checksum = _bbb_checksum(action, qs, bbb_secret)
     url = f"{bbb_url.rstrip('/')}/api/{action}?{qs}&checksum={checksum}"
 
-    async with httpx.AsyncClient(timeout=15.0, verify=False) as client:
+    async with httpx.AsyncClient(timeout=15.0, verify=settings.BBB_SSL_VERIFY) as client:
         r = await client.get(url)
         r.raise_for_status()
 

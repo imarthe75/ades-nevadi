@@ -1,0 +1,31 @@
+[global-setup] Token + perfil reutilizados (1475 chars)
+
+
+Running 11 tests using 1 worker
+
+  ✓   1 [chromium] › e2e/tests/18-topbar-sidebar.spec.ts:70:7 › A. Topbar — cascada institucional Plantel→Nivel→Ciclo→Grado→Grupo › NAV-01 | admin global ve los 5 selectores de cascada (no labels fijos) @smoke (2.0s)
+[FINDING][P1] NAV-02: tras cambiar Plantel a "— Todo el Instituto —", Nivel/Grado no cambiaron (Nivel: "Nivel..."→"Nivel...", Grado: "Grado..."→"Grado...") — puede indicar que la cascada no recarga o el nuevo plantel comparte los mismos catálogos
+  ✓   2 [chromium] › e2e/tests/18-topbar-sidebar.spec.ts:86:7 › A. Topbar — cascada institucional Plantel→Nivel→Ciclo→Grado→Grupo › NAV-02 | cambiar Plantel resetea y recarga Nivel/Ciclo/Grado/Grupo sin errores @smoke (4.8s)
+[FINDING][P2] NAV-03: tras cambiar Nivel a "Todos los Niveles", Grupo no cambió de "Grupo..." — verificar que loadGrupos() se dispare en cascada completa desde Nivel
+  ✓   3 [chromium] › e2e/tests/18-topbar-sidebar.spec.ts:123:7 › A. Topbar — cascada institucional Plantel→Nivel→Ciclo→Grado→Grupo › NAV-03 | cambiar Nivel recarga Ciclo/Grado/Grupo (4.7s)
+  ✓   4 [chromium] › e2e/tests/18-topbar-sidebar.spec.ts:153:7 › A. Topbar — cascada institucional Plantel→Nivel→Ciclo→Grado→Grupo › NAV-04 | cambiar Ciclo recarga Grado/Grupo (4.4s)
+[FINDING][P2] NAV-05: tras cambiar Grado a "— Todos —", la lista de Grupos no cambió (73 opciones idénticas antes/después) — revisar filtro grado_id en loadGrupos()
+  ✓   5 [chromium] › e2e/tests/18-topbar-sidebar.spec.ts:167:7 › A. Topbar — cascada institucional Plantel→Nivel→Ciclo→Grado→Grupo › NAV-05 | cambiar Grado filtra Grupo a opciones del nuevo grado (6.3s)
+[FINDING][P2] NAV-06: click en campanita no abrió el panel de notificaciones
+  ✓   6 [chromium] › e2e/tests/18-topbar-sidebar.spec.ts:202:7 › B. Topbar — notificaciones y menú de usuario › NAV-06 | campanita abre panel de notificaciones y cierra al click fuera @smoke (1.9s)
+[FINDING][P2] NAV-07: click en avatar no abrió el menú de usuario
+  ✓   7 [chromium] › e2e/tests/18-topbar-sidebar.spec.ts:227:7 › B. Topbar — notificaciones y menú de usuario › NAV-07 | avatar abre menú de usuario con nombre y rol correctos (2.0s)
+[FINDING][P1] NAV-08: 4 módulo(s) del sidenav con error 5xx:
+  Planes de Estudio (/planes-estudio): 500 https://ades.setag.mx/api/v1/planes-estudio?ciclo_id=019e8f74-d148-7c7c-94de-f1500e73faed
+  Formato 911 SEP (/estadistica-911): 500 https://ades.setag.mx/api/v1/reportes/911
+  Videoconferencias (/videoconferencias): 503 https://ades.setag.mx/api/v1/bbb/info
+  Administración (/admin): 500 https://ades.setag.mx/api/v1/superset/dashboards
+[FINDING][P2] NAV-08: 1 módulo(s) del sidenav con errores de consola:
+  Administración (/admin): 1 error(es) — Error loading dashboard: TypeError: Failed to fetch
+    at U._subscribe (http://localhost:3003/public/build/522.e579a60f
+  ✓   8 [chromium] › e2e/tests/18-topbar-sidebar.spec.ts:253:7 › C. Sidebar — integridad de TODOS los links visibles › NAV-08 | cada link del sidenav navega sin 5xx, sin caer a /login y sin pantalla en blanco (1.0m)
+  ✓   9 [chromium] › e2e/tests/18-topbar-sidebar.spec.ts:322:7 › C. Sidebar — integridad de TODOS los links visibles › NAV-09 | solo el link de la ruta activa tiene clase .active (4.7s)
+  ✓  10 [chromium] › e2e/tests/18-topbar-sidebar.spec.ts:353:7 › D. Persistencia de contexto entre módulos › NAV-10 | selección de Grado/Grupo en topbar persiste al navegar entre módulos vía sidebar (7.0s)
+  ✓  11 [chromium] › e2e/tests/18-topbar-sidebar.spec.ts:405:7 › E. Breadcrumbs › NAV-11 | breadcrumb refleja la ruta actual y "Home" regresa a dashboard (2.8s)
+
+  11 passed (1.7m)

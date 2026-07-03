@@ -719,9 +719,9 @@ export class HorariosComponent implements OnInit, OnDestroy {
     effect(() => {
       const plantel = this.ctx.plantel();
       if (plantel?.id) {
-        this.api.get<any[]>('/profesores', { plantel_id: plantel.id })
-          .subscribe(p => this.profesores.set(
-            p.map((x: any) => ({ ...x, _label: `${x.nombre ?? ''} ${x.apellido_paterno ?? ''}`.trim() || x.numero_empleado }))
+        this.api.get<{ data: any[]; total: number }>('/profesores', { plantel_id: plantel.id })
+          .subscribe(resp => this.profesores.set(
+            resp.data.map((x: any) => ({ ...x, _label: `${x.nombre ?? ''} ${x.apellido_paterno ?? ''}`.trim() || x.numero_empleado }))
           ));
         this.api.get<AulaOpt[]>('/aulas', { plantel_id: plantel.id })
           .subscribe(a => this.aulas.set(

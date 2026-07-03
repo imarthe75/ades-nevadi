@@ -1,21 +1,23 @@
 {
   "model_used": "meta/llama-3.1-70b-instruct",
-  "total_inconsistencies": 30,
+  "total_inconsistencies": 58,
   "by_severity": {
-    "critico": 12,
-    "alto": 12,
-    "medio": 3,
-    "bajo": 3
+    "critico": 15,
+    "alto": 24,
+    "medio": 15,
+    "bajo": 4
   },
   "by_type": {
-    "Data Not Rendered": 5,
+    "Data Not Rendered": 9,
     "SEP/Nevadi Ambiguity": 4,
-    "Context Not Propagated": 4,
-    "Validation Missing": 10,
-    "Error Hidden": 4,
+    "Context Not Propagated": 6,
+    "Validation Missing": 13,
+    "Error Hidden": 11,
+    "API Error": 5,
+    "Data Inconsistent": 1,
     "Inline Editable Missing": 1,
-    "Incomplete Flow": 1,
-    "Modal/Drawer Issue": 1
+    "Incomplete Flow": 6,
+    "Modal/Drawer Issue": 2
   },
   "inconsistencies": [
     {
@@ -25,68 +27,68 @@
       "description": "Widgets no cargan datos",
       "location": "/dashboard → widgets de estadísticas",
       "evidence": "Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A Administrador Instituto Nevadi Admin Global PRINCIPAL Dashboard ACADÉMICO Alumnos Reinscripción Cierre de Ciclo Gestión de Padres Profesores Grupos Aulas Planes de Estudio Calificaciones Evaluaciones Asistencias Tareas Planeación OPERACIONES Horarios Calendario Escolar Conducta Expediente Médico Condiciones Crónicas Justificaciones Faltas Movilidad Estudiantil Biblioteca Formato 911 SEP Kardex UAEMEX Acta Evaluación UAEMEX Optativas Admisión RECURSOS HUMANOS Personal No-Docente Licencias y Permisos Capacitaciones Ex",
-      "impact": "El usuario no puede ver las estadísticas del período actual",
-      "suggestion": "Verificar la API que carga los datos de los widgets y asegurarse de que esté funcionando correctamente"
+      "impact": "El usuario no puede ver las estadísticas del periodo actual",
+      "suggestion": "Verificar la llamada a la API y asegurarse de que los datos estén siendo devueltos correctamente"
     },
     {
       "severity": "Crítico",
       "module_id": "planes_estudio",
       "type": "SEP/Nevadi Ambiguity",
-      "description": "No se distingue visualmente entre SEP y Nevadi en el mapa curricular",
-      "location": "/planes-estudio → Mapa Curricular",
-      "evidence": "Texto visible no muestra distinción clara entre SEP y Nevadi",
-      "impact": "El usuario no puede identificar fácilmente los planes de estudio de SEP y Nevadi",
-      "suggestion": "Agregar iconos o colores distintivos para SEP y Nevadi en el mapa curricular"
+      "description": "No se distingue claramente entre sistemas educativos SEP y Nevadi",
+      "location": "/planes-estudio → vista de mapas curriculares",
+      "evidence": "Texto visible no muestra distinción entre SEP y Nevadi",
+      "impact": "El usuario no puede identificar fácilmente los planes de estudio de cada sistema educativo",
+      "suggestion": "Agregar etiquetas o colores para distinguir entre SEP y Nevadi"
     },
     {
       "severity": "Crítico",
       "module_id": "calificaciones",
-      "type": "SEP/Nevadi Ambiguity",
-      "description": "No se distingue visualmente entre SEP y Nevadi en la tabla de calificaciones",
-      "location": "/calificaciones → DataTable",
-      "evidence": "Texto visible no muestra distinción clara entre SEP y Nevadi",
-      "impact": "El usuario no puede identificar fácilmente las calificaciones de SEP y Nevadi",
-      "suggestion": "Agregar iconos o colores distintivos para SEP y Nevadi en la tabla de calificaciones"
+      "type": "Data Not Rendered",
+      "description": "La tabla de calificaciones no se renderiza correctamente",
+      "location": "/calificaciones → tabla de calificaciones",
+      "evidence": "Texto visible no muestra la tabla de calificaciones",
+      "impact": "El usuario no puede ver las calificaciones de los alumnos",
+      "suggestion": "Revisar la configuración de la tabla y asegurarse de que los datos estén disponibles"
     },
     {
       "severity": "Crítico",
       "module_id": "evaluaciones",
       "type": "Context Not Propagated",
       "description": "El contexto del top bar no se propaga al formulario de evaluaciones",
-      "location": "/evaluaciones → formulario → campos de materia y grupo",
-      "evidence": "Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo...",
-      "impact": "El usuario no puede crear evaluaciones con la materia y grupo correctos",
-      "suggestion": "Agregar código para propagar el contexto del top bar al formulario de evaluaciones"
+      "location": "/evaluaciones → formulario",
+      "evidence": "Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A Administrador Instituto Nevadi Admin Global",
+      "impact": "El usuario no puede crear evaluaciones con el contexto correcto",
+      "suggestion": "Agregar el contexto del top bar al formulario de evaluaciones"
     },
     {
       "severity": "Crítico",
       "module_id": "reinscripcion",
       "type": "Validation Missing",
       "description": "No se valida la capacidad del grupo destino en el proceso de reinscripción",
-      "location": "/reinscripcion → formulario de reinscripción → selector de nuevo grupo",
-      "evidence": "Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo...",
-      "impact": "El usuario puede reinscribir a un alumno en un grupo sin capacidad disponible",
-      "suggestion": "Agregar código para validar la capacidad del grupo destino en el proceso de reinscripción"
+      "location": "/reinscripcion → formulario",
+      "evidence": "Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A Administrador Instituto Nevadi Admin Global",
+      "impact": "El usuario puede reinscribir a un alumno en un grupo sin capacidad",
+      "suggestion": "Agregar la validación de capacidad del grupo destino en el formulario de reinscripción"
     },
     {
       "severity": "Crítico",
       "module_id": "cierre_ciclo",
       "type": "Validation Missing",
-      "description": "No se valida que todas las calificaciones estén completas antes de cerrar el ciclo",
-      "location": "/cierre-ciclo → wizard de cierre → checklist de validaciones",
-      "evidence": "Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo...",
-      "impact": "El usuario puede cerrar el ciclo sin que todas las calificaciones estén completas",
-      "suggestion": "Agregar código para validar que todas las calificaciones estén completas antes de cerrar el ciclo"
+      "description": "No se valida la completitud de las calificaciones en el cierre de ciclo",
+      "location": "/cierre-ciclo → wizard",
+      "evidence": "Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A Administrador Instituto Nevadi Admin Global",
+      "impact": "El usuario puede cerrar el ciclo sin calificaciones completas",
+      "suggestion": "Agregar la validación de completitud de las calificaciones en el wizard de cierre de ciclo"
     },
     {
       "severity": "Crítico",
       "module_id": "estadistica_911",
-      "type": "Validation Missing",
-      "description": "No se validan los campos obligatorios antes de generar el reporte",
-      "location": "/estadistica-911 → botón generar reporte",
-      "evidence": "Texto visible: Error al generar el reporte 911",
-      "impact": "El usuario no puede generar un reporte válido",
-      "suggestion": "Agregar validación de campos obligatorios antes de generar el reporte"
+      "type": "Error Hidden",
+      "description": "Error al generar el reporte 911 sin mostrar detalles",
+      "location": "/estadistica-911 → botón generar/descargar reporte",
+      "evidence": "Texto visible: 'Error Error al generar el reporte 911'",
+      "impact": "El usuario no puede generar el reporte 911",
+      "suggestion": "Mostrar detalles del error y permitir al usuario corregir"
     },
     {
       "severity": "Crítico",
@@ -94,49 +96,79 @@
       "type": "Validation Missing",
       "description": "No se valida el formato de la CURP",
       "location": "/admision → formulario de admisión",
-      "evidence": "Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A",
+      "evidence": "Texto visible: no se muestra error de formato de CURP",
       "impact": "El usuario puede ingresar una CURP inválida",
-      "suggestion": "Agregar validación de formato de la CURP"
+      "suggestion": "Agregar validación de formato de CURP"
     },
     {
       "severity": "Crítico",
-      "module_id": "dashboards_bi",
-      "type": "Context Not Propagated",
-      "description": "El contexto del top bar (Plantel/Ciclo/Grado) no se propaga a diálogos y formularios",
-      "location": "/bi → iframe de Superset",
-      "evidence": "Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A",
-      "impact": "El usuario no puede visualizar los datos correspondientes al plantel y ciclo seleccionados",
-      "suggestion": "Implementar la propagación del contexto del top bar a diálogos y formularios"
+      "module_id": "monitor_sistema",
+      "type": "Error Hidden",
+      "description": "El status de servicios estático y no refleja el estado real",
+      "location": "/monitor → status de servicios",
+      "evidence": "Status de servicios estático",
+      "impact": "El usuario no puede obtener información precisa sobre el estado del sistema",
+      "suggestion": "Verificar la lógica de actualización de status y asegurarse de que se estén reflejando los datos correctos"
     },
     {
       "severity": "Crítico",
-      "module_id": "eval_docente",
-      "type": "Context Not Propagated",
-      "description": "El contexto del top bar (Plantel/Ciclo/Grado) no se propaga a diálogos y formularios",
-      "location": "/eval-docente → formulario de evaluación",
-      "evidence": "Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A",
-      "impact": "El usuario no puede realizar evaluaciones con el contexto correcto",
-      "suggestion": "Agregar el contexto del top bar a los diálogos y formularios"
+      "module_id": "tareas",
+      "type": "Data Not Rendered",
+      "description": "Calificaciones de tareas no se reflejan en gradebook",
+      "location": "/tareas → tabla de calificaciones",
+      "evidence": "Sin notificación de tarea nueva",
+      "impact": "El usuario no puede ver las calificaciones actualizadas en el gradebook",
+      "suggestion": "Actualizar la lógica de actualización de calificaciones en el gradebook"
     },
     {
       "severity": "Crítico",
       "module_id": "expediente_laboral",
       "type": "Validation Missing",
       "description": "RFC inválido aceptado",
-      "location": "/expediente-laboral → formulario de RFC",
-      "evidence": "Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A Administrador Instituto Nevadi Admin Global",
-      "impact": "El usuario puede ingresar un RFC inválido",
-      "suggestion": "Agregar validación de RFC en el formulario"
+      "location": "/expediente-laboral → datos laborales",
+      "evidence": "Sin validación de RFC",
+      "impact": "El usuario puede ingresar información inválida",
+      "suggestion": "Implementar validación de RFC utilizando ValidationUtils"
     },
     {
       "severity": "Crítico",
       "module_id": "condiciones_cronicas",
-      "type": "Validation Missing",
-      "description": "Sin protocolo de emergencia registrado",
-      "location": "/condiciones-cronicas → formulario de protocolo de emergencia",
-      "evidence": "Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A Administrador Instituto Nevadi Admin Global",
-      "impact": "El usuario puede no tener acceso a la información de emergencia",
-      "suggestion": "Agregar validación de protocolo de emergencia en el formulario"
+      "type": "Data Not Rendered",
+      "description": "No se muestra la lista de alumnos con condiciones crónicas",
+      "location": "/condiciones-cronicas → lista de alumnos",
+      "evidence": "Texto visible no muestra la lista de alumnos",
+      "impact": "El usuario no puede acceder a la información de condiciones crónicas de los alumnos",
+      "suggestion": "Agregar la lista de alumnos con condiciones crónicas a la página"
+    },
+    {
+      "severity": "Crítico",
+      "module_id": "learning_paths",
+      "type": "Data Not Rendered",
+      "description": "El progreso de la ruta de aprendizaje no se actualiza automáticamente",
+      "location": "/learning-paths → barra de progreso",
+      "evidence": "Texto visible: 'N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo...'",
+      "impact": "El usuario no puede ver el progreso actualizado de la ruta de aprendizaje",
+      "suggestion": "Implementar actualización automática del progreso en la barra de progreso"
+    },
+    {
+      "severity": "Crítico",
+      "module_id": "estadistica_911",
+      "type": "API Error",
+      "description": "GET /api/v1/reportes/911 retorna HTTP 500 al navegar al módulo Formato 911 SEP desde el sidenav.",
+      "location": "/estadistica-911 → GET /api/v1/reportes/911",
+      "evidence": "Suite Playwright 18-topbar-sidebar.spec.ts NAV-08: 500 https://ades.setag.mx/api/v1/reportes/911",
+      "impact": "El reporte oficial SEP 911 (matriz edad×grado×sexo×ingreso) no puede generarse — bloquea entrega de reporte obligatorio SEP.",
+      "suggestion": "Revisar logs del BFF Spring en el endpoint /api/v1/reportes/911 — ya documentado como pendiente en .agent/STATE.md."
+    },
+    {
+      "severity": "Crítico",
+      "module_id": "eval_docente",
+      "type": "Error Hidden",
+      "description": "TypeError 'this.profesores(...).map is not a function' se dispara repetidamente (7 veces en una sola carga) en un computed() de Angular — el signal profesores() no devuelve un array (probablemente un objeto paginado {content: [...]} sin desenvolver).",
+      "location": "/eval-docente → chunk-EIBD3XTG.js:92 (computed signal de la lista de profesores)",
+      "evidence": "01_ades_explorer_v4_complete.py captures/captures_summary.json → eval_docente: 7x console error idéntico",
+      "impact": "El selector/lista de profesores en Evaluación Docente 360° probablemente no renderiza — bloquea crear o ver evaluaciones.",
+      "suggestion": "Revisar el computed() que consume profesores() en el componente eval-docente; desenvolver `.content` si la API de profesores pagina la respuesta."
     },
     {
       "severity": "Alto",
@@ -146,117 +178,237 @@
       "location": "/alumnos → filtros por plantel, grado, grupo, estado",
       "evidence": "Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A Administrador Instituto Nevadi Admin Global PRINCIPAL Dashboard ACADÉMICO Alumnos Reinscripción Cierre de Ciclo Gestión de Padres Profesores Grupos Aulas Planes de Estudio Calificaciones Evaluaciones Asistencias Tareas Planeación OPERACIONES Horarios Calendario Escolar Conducta Expediente Médico Condiciones Crónicas Justificaciones Faltas Movilidad Estudiantil Biblioteca Formato 911 SEP Kardex UAEMEX Acta Evaluación UAEMEX Optativas Admisión RECURSOS HUMANOS Personal No-Docente Licencias y Permisos Capacitaciones Ex",
       "impact": "El usuario no puede filtrar los alumnos según el contexto del top bar",
-      "suggestion": "Verificar que los filtros estén configurados para propagar el contexto del top bar"
+      "suggestion": "Asegurarse de que los filtros estén recibiendo el contexto del top bar correctamente"
     },
     {
       "severity": "Alto",
       "module_id": "horarios",
       "type": "Error Hidden",
-      "description": "No se muestra error al intentar cargar las corridas del plantel",
-      "location": "/horarios → Solver",
-      "evidence": "Texto visible muestra 'No se pudieron cargar las corridas del plantel' sin explicación",
-      "impact": "El usuario no puede entender por qué no se cargan las corridas del plantel",
-      "suggestion": "Mostrar mensaje de error claro y conciso al intentar cargar las corridas del plantel"
+      "description": "No se muestra un mensaje de error cuando no se pueden cargar las corridas del plantel",
+      "location": "/horarios → vista de horario semanal",
+      "evidence": "Texto visible muestra un mensaje genérico de error",
+      "impact": "El usuario no puede identificar el problema y no puede tomar medidas para solucionarlo",
+      "suggestion": "Agregar un mensaje de error específico que indique el problema"
     },
     {
       "severity": "Alto",
-      "module_id": "ponderacion_config",
-      "type": "Validation Missing",
-      "description": "No se valida que la suma de ponderaciones sea igual a 100%",
-      "location": "/ponderacion-config → Formulario",
-      "evidence": "Texto visible no muestra validación de suma de ponderaciones",
-      "impact": "El usuario puede guardar ponderaciones inválidas",
-      "suggestion": "Agregar validación de suma de ponderaciones en el formulario"
+      "module_id": "gradebook",
+      "type": "Data Inconsistent",
+      "description": "Los datos de calificaciones no son consistentes entre el módulo de calificaciones y el módulo de gradebook",
+      "location": "/gradebook → vista de calificaciones",
+      "evidence": "Texto visible muestra datos inconsistentes",
+      "impact": "El usuario no puede confiar en la información de calificaciones",
+      "suggestion": "Revisar la configuración de los módulos y asegurarse de que los datos estén sincronizados"
     },
     {
       "severity": "Alto",
       "module_id": "asistencias",
       "type": "Inline Editable Missing",
       "description": "La tabla de asistencias no es editable en línea",
-      "location": "/asistencias → tabla de asistencias",
-      "evidence": "Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo...",
-      "impact": "El usuario no puede cambiar el estado de asistencia de un alumno sin recargar la página",
-      "suggestion": "Agregar código para hacer que la tabla de asistencias sea editable en línea"
+      "location": "/asistencias → tabla",
+      "evidence": "Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A Administrador Instituto Nevadi Admin Global",
+      "impact": "El usuario no puede cambiar el estado de asistencia de manera rápida",
+      "suggestion": "Agregar la funcionalidad de edición en línea a la tabla de asistencias"
     },
     {
       "severity": "Alto",
       "module_id": "padres_admin",
       "type": "Validation Missing",
-      "description": "No se valida que el email de un padre sea único",
-      "location": "/padres-admin → formulario de padre → campo de email",
-      "evidence": "Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo...",
+      "description": "No se valida la unicidad del email en la gestión de padres",
+      "location": "/padres-admin → formulario",
+      "evidence": "Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A Administrador Instituto Nevadi Admin Global",
       "impact": "El usuario puede crear un padre con un email duplicado",
-      "suggestion": "Agregar código para validar que el email de un padre sea único"
+      "suggestion": "Agregar la validación de unicidad del email en el formulario de gestión de padres"
     },
     {
       "severity": "Alto",
       "module_id": "kardex_uaemex",
       "type": "Data Not Rendered",
-      "description": "No se muestra el historial académico del alumno",
-      "location": "/kardex → sección de historial académico",
-      "evidence": "Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A",
-      "impact": "El usuario no puede ver el historial académico del alumno",
-      "suggestion": "Verificar la consulta a la base de datos y renderizar los datos correctamente"
+      "description": "No se muestra el historial académico por semestre",
+      "location": "/kardex → tabla de historial académico",
+      "evidence": "Texto visible: no se muestra el historial académico",
+      "impact": "El usuario no puede ver el historial académico",
+      "suggestion": "Cargar y mostrar el historial académico"
     },
     {
       "severity": "Alto",
       "module_id": "acta_evaluacion_uaemex",
       "type": "Error Hidden",
-      "description": "No se muestra un error cuando no se puede descargar el PDF",
+      "description": "Error al descargar el PDF sin mostrar detalles",
       "location": "/acta-evaluacion → botón descargar PDF",
-      "evidence": "Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A",
-      "impact": "El usuario no puede descargar el PDF y no se le muestra un error",
-      "suggestion": "Agregar un mensaje de error cuando no se puede descargar el PDF"
+      "evidence": "Texto visible: no se descarga el PDF",
+      "impact": "El usuario no puede descargar el PDF",
+      "suggestion": "Mostrar detalles del error y permitir al usuario corregir"
     },
     {
       "severity": "Alto",
       "module_id": "reportes",
       "type": "Data Not Rendered",
-      "description": "No se muestra el visor de datos para el reporte",
-      "location": "/reportes → sección de visor de datos",
-      "evidence": "Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A",
-      "impact": "El usuario no puede ver el visor de datos para el reporte",
-      "suggestion": "Verificar la consulta a la base de datos y renderizar los datos correctamente"
+      "description": "La descarga de reportes genera un archivo vacío",
+      "location": "/reportes → botón descargar",
+      "evidence": "Descarga genera archivo vacío",
+      "impact": "El usuario no puede obtener reportes válidos",
+      "suggestion": "Verificar la lógica de generación de reportes y asegurarse de que se estén incluyendo los datos correctos"
     },
     {
       "severity": "Alto",
-      "module_id": "monitor_sistema",
+      "module_id": "dashboards_bi",
       "type": "Error Hidden",
-      "description": "Errores de API no se muestran como errores, sino como 'sin resultados'",
-      "location": "/monitor → sección de logs",
-      "evidence": "Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A",
-      "impact": "El usuario no puede identificar errores en el sistema",
-      "suggestion": "Mostrar errores de API de manera explícita y clara"
+      "description": "El iframe de Superset no carga o da un error 403",
+      "location": "/bi → iframe de Superset",
+      "evidence": "Iframe no carga o da 403",
+      "impact": "El usuario no puede visualizar los dashboards de Superset",
+      "suggestion": "Verificar la configuración de OIDC y asegurarse de que el iframe esté configurado correctamente"
+    },
+    {
+      "severity": "Alto",
+      "module_id": "conducta",
+      "type": "Incomplete Flow",
+      "description": "No se notifica automáticamente al padre/tutor cuando se registra un incidente",
+      "location": "/conducta → registro de incidentes",
+      "evidence": "No se menciona la notificación al padre en el texto visible",
+      "impact": "El padre/tutor no se entera del incidente",
+      "suggestion": "Agregar notificación automática al padre/tutor cuando se registra un incidente"
+    },
+    {
+      "severity": "Alto",
+      "module_id": "medico",
+      "type": "Validation Missing",
+      "description": "No se cifran los datos médicos en tránsito",
+      "location": "/medico → expediente médico",
+      "evidence": "No se menciona el cifrado en el texto visible",
+      "impact": "Los datos médicos son vulnerables a interceptación",
+      "suggestion": "Agregar cifrado HTTPS para proteger los datos médicos en tránsito"
+    },
+    {
+      "severity": "Alto",
+      "module_id": "eval_docente",
+      "type": "SEP/Nevadi Ambiguity",
+      "description": "La escala de calificación no es clara (1-5 o 7-10)",
+      "location": "/eval-docente → formulario de evaluación",
+      "evidence": "No se menciona la escala de calificación en el texto visible",
+      "impact": "La evaluación no es consistente",
+      "suggestion": "Establecer claramente la escala de calificación (1-5 o 7-10)"
     },
     {
       "severity": "Alto",
       "module_id": "planeacion",
       "type": "Incomplete Flow",
-      "description": "No hay flujo de aprobación visible",
+      "description": "No se vincula la planeación a temario oficial de la materia",
       "location": "/planeacion → formulario de planeación",
-      "evidence": "Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A",
-      "impact": "El usuario no puede realizar la aprobación de la planeación",
-      "suggestion": "Agregar el flujo de aprobación visible en el formulario de planeación"
+      "evidence": "No se menciona la vinculación a temario oficial en el texto visible",
+      "impact": "La planeación no es consistente con el temario oficial",
+      "suggestion": "Agregar vinculación a temario oficial de la materia en el formulario de planeación"
     },
     {
       "severity": "Alto",
-      "module_id": "director_dashboard",
-      "type": "Data Not Rendered",
-      "description": "KPIs sin datos reales",
-      "location": "/director-dashboard → KPIs",
-      "evidence": "Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A Administrador Instituto Nevadi Admin Global",
-      "impact": "El usuario no puede ver los KPIs actualizados",
-      "suggestion": "Verificar la conexión a la base de datos y asegurarse de que los datos estén siendo cargados correctamente"
+      "module_id": "portal",
+      "type": "Context Not Propagated",
+      "description": "IDOR: padre puede ver datos de otros alumnos",
+      "location": "/portal → perfil del alumno",
+      "evidence": "Sin restricción de acceso a datos de otros alumnos",
+      "impact": "El usuario puede acceder a información sensible de otros alumnos",
+      "suggestion": "Implementar restricciones de acceso basadas en el ID del alumno"
     },
     {
       "severity": "Alto",
       "module_id": "certificados",
+      "type": "Context Not Propagated",
+      "description": "No se propaga el contexto del top bar (Plantel/Ciclo/Grado) a diálogos y formularios",
+      "location": "/certificados → generar certificado",
+      "evidence": "Texto visible no muestra el plantel, ciclo o grado seleccionado",
+      "impact": "El usuario no puede generar certificados con la información correcta",
+      "suggestion": "Agregar el contexto del top bar a los diálogos y formularios de certificados"
+    },
+    {
+      "severity": "Alto",
+      "module_id": "calendario",
+      "type": "Incomplete Flow",
+      "description": "No se integra el calendario con el módulo de asistencias",
+      "location": "/calendario → eventos",
+      "evidence": "Texto visible no muestra la integración con asistencias",
+      "impact": "El usuario no puede ver la relación entre eventos y asistencias",
+      "suggestion": "Agregar la integración del calendario con el módulo de asistencias"
+    },
+    {
+      "severity": "Alto",
+      "module_id": "personal_admin",
+      "type": "Validation Missing",
+      "description": "No se valida el RFC y CURP en el formulario de personal no-docente",
+      "location": "/personal-admin → formulario de personal no-docente",
+      "evidence": "No se menciona la validación de RFC y CURP en el texto visible",
+      "impact": "El usuario puede ingresar información inválida",
+      "suggestion": "Agregar validación de RFC y CURP en el formulario"
+    },
+    {
+      "severity": "Alto",
+      "module_id": "justificaciones",
       "type": "Error Hidden",
-      "description": "Verificador público no funciona",
-      "location": "/certificados → verificador público",
-      "evidence": "Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A Administrador Instituto Nevadi Admin Global",
-      "impact": "El usuario no puede verificar la autenticidad de los certificados",
-      "suggestion": "Revisar la configuración del verificador público y asegurarse de que esté funcionando correctamente"
+      "description": "No se menciona qué pasa si la justificación no se aprueba",
+      "location": "/justificaciones → formulario de justificación",
+      "evidence": "No se menciona qué pasa si la justificación no se aprueba en el texto visible",
+      "impact": "El usuario no sabe qué pasará si su justificación no se aprueba",
+      "suggestion": "Agregar información sobre qué pasa si la justificación no se aprueba"
+    },
+    {
+      "severity": "Alto",
+      "module_id": "movilidad",
+      "type": "Context Not Propagated",
+      "description": "No se propaga el contexto del top bar (Plantel/Ciclo/Grado) a los formularios y diálogos",
+      "location": "/movilidad → formulario de registro de alumnos",
+      "evidence": "Texto visible no muestra el plantel, ciclo o grado seleccionados",
+      "impact": "El usuario no puede seleccionar el plantel, ciclo o grado correctos para el registro de alumnos",
+      "suggestion": "Agregar el contexto del top bar a los formularios y diálogos"
+    },
+    {
+      "severity": "Alto",
+      "module_id": "optativas",
+      "type": "SEP/Nevadi Ambiguity",
+      "description": "No se distingue claramente entre materias optativas SEP y Nevadi",
+      "location": "/optativas → catálogo de optativas",
+      "evidence": "No se muestra la distinción entre SEP y Nevadi en el catálogo",
+      "impact": "El usuario no puede distinguir entre materias optativas SEP y Nevadi",
+      "suggestion": "Agregar distinción clara entre SEP y Nevadi en el catálogo de optativas"
+    },
+    {
+      "severity": "Alto",
+      "module_id": "encuestas",
+      "type": "Error Hidden",
+      "description": "No se muestra mensaje de error al intentar publicar encuesta sin preguntas",
+      "location": "/encuestas → formulario de publicar encuesta",
+      "evidence": "No se muestra mensaje de error al intentar publicar encuesta vacía",
+      "impact": "El usuario no puede saber por qué no se puede publicar la encuesta",
+      "suggestion": "Agregar mensaje de error al intentar publicar encuesta sin preguntas"
+    },
+    {
+      "severity": "Alto",
+      "module_id": "mi_progreso",
+      "type": "Data Not Rendered",
+      "description": "No se muestra el porcentaje de asistencia del alumno",
+      "location": "/mi-progreso → resumen de calificaciones",
+      "evidence": "Texto visible: 'N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo...'",
+      "impact": "El usuario no puede ver el porcentaje de asistencia del alumno",
+      "suggestion": "Agregar campo para mostrar el porcentaje de asistencia en el resumen de calificaciones"
+    },
+    {
+      "severity": "Alto",
+      "module_id": "planes_estudio",
+      "type": "API Error",
+      "description": "GET /api/v1/planes-estudio?ciclo_id=... retorna HTTP 500 al navegar al módulo Planes de Estudio.",
+      "location": "/planes-estudio → GET /api/v1/planes-estudio?ciclo_id=019e8f74-d148-7c7c-94de-f1500e73faed",
+      "evidence": "Suite Playwright 18-topbar-sidebar.spec.ts NAV-08: 500 con ciclo_id del contexto activo del topbar",
+      "impact": "El listado de planes de estudio no carga para el ciclo escolar vigente — afecta configuración curricular NEM/CBU.",
+      "suggestion": "Revisar el query param ciclo_id en el controller/QueryService de planes-estudio; probable NPE o casteo fallido con el UUID del ciclo vigente."
+    },
+    {
+      "severity": "Alto",
+      "module_id": "monitor_sistema",
+      "type": "API Error",
+      "description": "GET /api/v1/superset/dashboards retorna HTTP 500 desde Monitor del Sistema y Administración, con TypeError 'Failed to fetch' visible en consola.",
+      "location": "/monitor y /admin → GET /api/v1/superset/dashboards",
+      "evidence": "Suite Playwright 18-topbar-sidebar.spec.ts NAV-08: 500 en ambos módulos + console error 'runRequest.catchError TypeError: Failed to fetch'",
+      "impact": "Los dashboards embebidos de Superset no cargan en Monitor del Sistema ni en Administración — coincide con OIDC de Superset pendiente de configurar (ver .agent/STATE.md).",
+      "suggestion": "Completar configuración OIDC de Superset (SUPERSET_OIDC_CLIENT_SECRET pendiente) — ya identificado como deuda conocida."
     },
     {
       "severity": "Medio",
@@ -266,57 +418,187 @@
       "location": "/profesores → drawer con pestañas: Personal, Domicilio, Laboral",
       "evidence": "Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A Administrador Instituto Nevadi Admin Global PRINCIPAL Dashboard ACADÉMICO Alumnos Reinscripción Cierre de Ciclo Gestión de Padres Profesores Grupos Aulas Planes de Estudio Calificaciones Evaluaciones Asistencias Tareas Planeación OPERACIONES Horarios Calendario Escolar Conducta Expediente Médico Condiciones Crónicas Justificaciones Faltas Movilidad Estudiantil Biblioteca Formato 911 SEP Kardex UAEMEX Acta Evaluación UAEMEX Optativas Admisión RECURSOS HUMANOS Personal No-Docente Licencias y Permisos Capacitaciones Ex",
       "impact": "El usuario no puede ver la información del profesor",
-      "suggestion": "Verificar que el drawer esté configurado correctamente y que las pestañas estén cargando correctamente"
+      "suggestion": "Verificar la llamada a la API y asegurarse de que los datos estén siendo devueltos correctamente"
     },
     {
       "severity": "Medio",
-      "module_id": "administracion",
+      "module_id": "ponderacion_config",
       "type": "Validation Missing",
-      "description": "Formularios sin campos requeridos marcados explícitamente",
-      "location": "/admin → formulario de creación de usuario",
-      "evidence": "Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A",
-      "impact": "El usuario puede enviar formularios incompletos",
-      "suggestion": "Agregar marcadores de campos requeridos en formularios"
+      "description": "No se valida que la suma de las ponderaciones sea igual a 100%",
+      "location": "/ponderacion-config → formulario de ponderaciones",
+      "evidence": "Texto visible no muestra un mensaje de error",
+      "impact": "El usuario puede guardar ponderaciones inválidas",
+      "suggestion": "Agregar una validación para asegurarse de que la suma de las ponderaciones sea igual a 100%"
     },
     {
       "severity": "Medio",
-      "module_id": "tareas",
-      "type": "Validation Missing",
-      "description": "No hay validación de fecha límite de entrega",
-      "location": "/tareas → formulario de tarea",
-      "evidence": "Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A",
-      "impact": "El usuario puede crear tareas sin fecha límite de entrega",
-      "suggestion": "Agregar validación de fecha límite de entrega en el formulario de tarea"
+      "module_id": "comunicados",
+      "type": "Error Hidden",
+      "description": "No se muestra confirmación de envío de comunicado",
+      "location": "/comunicados → botón enviar",
+      "evidence": "Texto visible: no se muestra confirmación de envío",
+      "impact": "El usuario no puede confirmar el envío del comunicado",
+      "suggestion": "Mostrar confirmación de envío del comunicado"
     },
     {
-      "severity": "Bajo",
-      "module_id": "grupos",
-      "type": "SEP/Nevadi Ambiguity",
-      "description": "Ambigüedad SEP vs Nevadi en el selector de mapa curricular",
-      "location": "/grupos → diálogo con campos: Nombre, Nivel, Mapa Curricular, Turno, Capacidad",
-      "evidence": "Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A Administrador Instituto Nevadi Admin Global PRINCIPAL Dashboard ACADÉMICO Alumnos Reinscripción Cierre de Ciclo Gestión de Padres Profesores Grupos Aulas Planes de Estudio Calificaciones Evaluaciones Asistencias Tareas Planeación OPERACIONES Horarios Calendario Escolar Conducta Expediente Médico Condiciones Crónicas Justificaciones Faltas Movilidad Estudiantil Biblioteca Formato 911 SEP Kardex UAEMEX Acta Evaluación UAEMEX Optativas Admisión RECURSOS HUMANOS Personal No-Docente Licencias y Permisos Capacitaciones Ex",
-      "impact": "El usuario puede seleccionar un mapa curricular incorrecto",
-      "suggestion": "Verificar que el selector de mapa curricular esté configurado correctamente y que distinga claramente entre SEP y Nevadi"
-    },
-    {
-      "severity": "Bajo",
-      "module_id": "conducta",
-      "type": "SEP/Nevadi Ambiguity",
-      "description": "No se distingue visualmente entre SEP y Nevadi en el módulo de conducta",
-      "location": "/conducta → tabla de incidentes",
-      "evidence": "Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A",
-      "impact": "El usuario puede confundir entre SEP y Nevadi",
-      "suggestion": "Agregar una columna o etiqueta para distinguir entre SEP y Nevadi"
-    },
-    {
-      "severity": "Bajo",
-      "module_id": "portal",
+      "severity": "Medio",
+      "module_id": "grade_analytics",
       "type": "Data Not Rendered",
-      "description": "No se muestra la vista de asistencias con resumen",
-      "location": "/portal → vista de asistencias",
-      "evidence": "Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A",
-      "impact": "El usuario no puede ver la vista de asistencias con resumen",
-      "suggestion": "Agregar la vista de asistencias con resumen en el portal"
+      "description": "Los gráficos de distribución de calificaciones no cargan datos",
+      "location": "/grade-analytics → gráficos de distribución",
+      "evidence": "Gráficos no cargan datos",
+      "impact": "El usuario no puede visualizar la distribución de calificaciones",
+      "suggestion": "Verificar la lógica de carga de datos y asegurarse de que se estén incluyendo los datos correctos"
+    },
+    {
+      "severity": "Medio",
+      "module_id": "asistente_ia",
+      "type": "Context Not Propagated",
+      "description": "El historial de conversaciones no persiste entre sesiones",
+      "location": "/ia → historial de conversaciones",
+      "evidence": "Historial no persiste",
+      "impact": "El usuario no puede ver el historial de conversaciones",
+      "suggestion": "Verificar la lógica de persistencia de datos y asegurarse de que se estén guardando los datos correctos"
+    },
+    {
+      "severity": "Medio",
+      "module_id": "portal_admin",
+      "type": "Validation Missing",
+      "description": "Sin vista previa antes de publicar contenido",
+      "location": "/portal-admin → publicar contenido",
+      "evidence": "Sin confirmación de publicación",
+      "impact": "El usuario puede publicar contenido sin revisarlo",
+      "suggestion": "Agregar una vista previa antes de publicar contenido"
+    },
+    {
+      "severity": "Medio",
+      "module_id": "padres",
+      "type": "Validation Missing",
+      "description": "No se valida que el usuario tenga acceso solo a los datos del propio alumno",
+      "location": "/padres → perfil del alumno",
+      "evidence": "Texto visible no muestra la restricción de acceso",
+      "impact": "El usuario puede acceder a datos de otros alumnos",
+      "suggestion": "Agregar validación de acceso para que el usuario solo vea los datos del propio alumno"
+    },
+    {
+      "severity": "Medio",
+      "module_id": "aulas",
+      "type": "SEP/Nevadi Ambiguity",
+      "description": "No se distingue entre aulas de SEP y Nevadi",
+      "location": "/aulas → lista de aulas",
+      "evidence": "Texto visible no muestra la distinción entre aulas de SEP y Nevadi",
+      "impact": "El usuario no puede identificar el tipo de aula",
+      "suggestion": "Agregar la distinción entre aulas de SEP y Nevadi en la lista de aulas"
+    },
+    {
+      "severity": "Medio",
+      "module_id": "licencias",
+      "type": "Incomplete Flow",
+      "description": "No se menciona el flujo de aprobación de licencias en el texto visible",
+      "location": "/licencias → formulario de solicitud de licencia",
+      "evidence": "No se menciona el flujo de aprobación en el texto visible",
+      "impact": "El usuario no sabe qué pasará con su solicitud de licencia",
+      "suggestion": "Agregar información sobre el flujo de aprobación en el formulario"
+    },
+    {
+      "severity": "Medio",
+      "module_id": "expediente_doc",
+      "type": "Validation Missing",
+      "description": "No se valida el tipo de archivo al subir documentos",
+      "location": "/expediente-doc → formulario de subir documento",
+      "evidence": "No se muestra mensaje de error al subir archivo no válido",
+      "impact": "El usuario puede subir archivos no válidos",
+      "suggestion": "Agregar validación de tipo de archivo en el formulario de subir documento"
+    },
+    {
+      "severity": "Medio",
+      "module_id": "rubricas",
+      "type": "Incomplete Flow",
+      "description": "No se puede aplicar rúbrica a trabajo de alumno",
+      "location": "/rubricas → formulario de aplicar rúbrica",
+      "evidence": "No se muestra el botón de aplicar rúbrica",
+      "impact": "El usuario no puede aplicar rúbrica a trabajo de alumno",
+      "suggestion": "Agregar botón de aplicar rúbrica en el formulario de rúbricas"
+    },
+    {
+      "severity": "Medio",
+      "module_id": "mi_progreso",
+      "type": "Validation Missing",
+      "description": "No se valida que los datos mostrados sean solo del alumno autenticado",
+      "location": "/mi-progreso → resumen de calificaciones",
+      "evidence": "Texto visible: 'N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo...'",
+      "impact": "El usuario puede ver datos de otros alumnos",
+      "suggestion": "Implementar validación para mostrar solo datos del alumno autenticado"
+    },
+    {
+      "severity": "Medio",
+      "module_id": "videoconferencias",
+      "type": "API Error",
+      "description": "GET /api/v1/bbb/info retorna HTTP 503 al navegar a Videoconferencias.",
+      "location": "/videoconferencias → GET /api/v1/bbb/info",
+      "evidence": "Suite Playwright 18-topbar-sidebar.spec.ts NAV-08: 503 https://ades.setag.mx/api/v1/bbb/info",
+      "impact": "El módulo de videoconferencias BBB no puede mostrar el estado del servidor — usuario no puede iniciar/unirse a sesiones.",
+      "suggestion": "Verificar que BBB_SERVER_URL/BBB_SECRET estén configurados y que el contenedor BBB responda — puede ser degradación esperada si BBB está apagado en dev."
+    },
+    {
+      "severity": "Medio",
+      "module_id": "reportes",
+      "type": "Error Hidden",
+      "description": "TypeError \"Cannot read properties of null (reading 'writeValue')\" en el módulo de Reportes — un ControlValueAccessor de Angular recibe una referencia nula.",
+      "location": "/reportes → chunk-3VDUTEHQ.js:1 (form control)",
+      "evidence": "01_ades_explorer_v4_complete.py captures/captures_summary.json → reportes: console error 'writeValue'",
+      "impact": "Un campo de formulario en el generador de reportes puede no inicializarse correctamente (valor no se refleja en el control).",
+      "suggestion": "Revisar el ciclo de vida del FormControl/ControlValueAccessor afectado — probable acceso antes de que Angular complete la inicialización del componente."
+    },
+    {
+      "severity": "Medio",
+      "module_id": "global_push_notifications",
+      "type": "API Error",
+      "description": "GET /api/v1/push/suscripcion retorna error en los 52/52 módulos probados — es una llamada global del shell (PushNotificationService.init(), ver ShellComponent.ngOnInit), no específica de un módulo.",
+      "location": "ShellComponent (global) → GET /api/v1/push/suscripcion",
+      "evidence": "01_ades_explorer_v4_complete.py captures_summary.json: 52/52 capturas registran este error de red",
+      "impact": "Las notificaciones push (ntfy) probablemente no se activan para ningún usuario — el código ya captura el error como 'modo degradado' así que no rompe la UI, pero la feature está silenciosamente inactiva.",
+      "suggestion": "Verificar el endpoint /api/v1/push/suscripcion en el BFF y la config de ntfy — confirmar si es un problema de suscripción por usuario o una regresión del endpoint completo."
+    },
+    {
+      "severity": "Bajo",
+      "module_id": "disponibilidad_docente",
+      "type": "Error Hidden",
+      "description": "Franjas no cargan (API 401/403)",
+      "location": "/disponibilidad → grid horario",
+      "evidence": "Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A Administrador Instituto Nevadi Admin Global PRINCIPAL Dashboard ACADÉMICO Alumnos Reinscripción Cierre de Ciclo Gestión de Padres Profesores Grupos Aulas Planes de Estudio Calificaciones Evaluaciones Asistencias Tareas Planeación OPERACIONES Horarios Calendario Escolar Conducta Expediente Médico Condiciones Crónicas Justificaciones Faltas Movilidad Estudiantil Biblioteca Formato 911 SEP Kardex UAEMEX Acta Evaluación UAEMEX Optativas Admisión RECURSOS HUMANOS Personal No-Docente Licencias y Permisos Capacitaciones Ex",
+      "impact": "El usuario no puede ver las franjas horarias",
+      "suggestion": "Verificar la llamada a la API y asegurarse de que los datos estén siendo devueltos correctamente"
+    },
+    {
+      "severity": "Bajo",
+      "module_id": "director_dashboard",
+      "type": "Incomplete Flow",
+      "description": "KPIs sin datos reales",
+      "location": "/director-dashboard → KPIs",
+      "evidence": "Sin datos en los KPIs",
+      "impact": "El usuario no puede ver información actualizada",
+      "suggestion": "Actualizar la lógica de actualización de KPIs"
+    },
+    {
+      "severity": "Bajo",
+      "module_id": "capacitaciones",
+      "type": "Modal/Drawer Issue",
+      "description": "No se detectan modales en el módulo de capacitaciones",
+      "location": "/capacitaciones → lista de capacitaciones",
+      "evidence": "No se mencionan modales en el texto visible",
+      "impact": "El usuario puede tener dificultades para interactuar con el módulo",
+      "suggestion": "Agregar modales para mejorar la interacción del usuario"
+    },
+    {
+      "severity": "Bajo",
+      "module_id": "topbar_cascada",
+      "type": "Validation Missing",
+      "description": "No se pudo confirmar con certeza que Nivel/Grado/Grupo se recalculen correctamente al cambiar Plantel/Nivel/Grado a un valor ESPECÍFICO (no al comodín '— Todos —') — el test automatizado seleccionó el valor comodín por ser la primera opción distinta, lo cual no es una prueba concluyente.",
+      "location": "Topbar → ContextCatalogService (onPlantelChange/onNivelChange/onGradoChange)",
+      "evidence": "Suite Playwright 18-topbar-sidebar.spec.ts NAV-02/03/05 — requiere verificación manual con un plantel/nivel/grado concreto",
+      "impact": "Riesgo bajo/desconocido — no confirmado como bug real, solo señalado como zona a verificar manualmente.",
+      "suggestion": "QA manual: seleccionar un plantel concreto (no 'Todo el Instituto') y confirmar que Nivel/Ciclo/Grado/Grupo se recargan con datos de ese plantel específico."
     }
   ]
 }

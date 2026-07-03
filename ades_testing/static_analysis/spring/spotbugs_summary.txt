@@ -1,0 +1,41 @@
+======================================================================
+SPOTBUGS — Resumen de análisis estático (effort=Max, threshold=Medium)
+======================================================================
+
+Total de bugs reportados: 302
+Clases con hallazgos: 197
+
+Por prioridad:
+  Medium    : 299
+  High      : 3
+
+Por categoría:
+     276  MALICIOUS_CODE
+      16  STYLE
+       6  BAD_PRACTICE
+       3  PERFORMANCE
+       1  CORRECTNESS
+
+Top 10 tipos de bug más frecuentes:
+     212  EI_EXPOSE_REP2
+      64  EI_EXPOSE_REP
+       5  REC_CATCH_EXCEPTION
+       4  DE_MIGHT_IGNORE
+       4  DCN_NULLPOINTER_EXCEPTION
+       3  DMI_HARDCODED_ABSOLUTE_FILENAME
+       2  BX_UNBOXING_IMMEDIATELY_REBOXED
+       2  SF_SWITCH_NO_DEFAULT
+       2  DLS_DEAD_LOCAL_STORE
+       1  VA_FORMAT_STRING_USES_NEWLINE
+
+Top 10 clases con más issues:
+       8  mx.ades.modules.horarios.solver.HorarioPlan
+       6  mx.ades.modules.conducta.ConductaController$PlanMejoraCreateRequest
+       6  mx.ades.modules.conducta.PlanMejora
+       6  mx.ades.modules.conducta.domain.port.in.CrearPlanMejoraUseCase$Command
+       6  mx.ades.modules.imports.ImportadorUtil$ParsedFile
+       4  mx.ades.modules.alumnos.domain.port.in.ActualizarAlumnoUseCase$Command
+       4  mx.ades.modules.catalogos.Grado
+       4  mx.ades.modules.expediente.ExpedienteController
+       4  mx.ades.modules.horarios.HorarioController$SolverRunPayload
+       4  mx.ades.modules.horarios.application.service.HorarioSolverService

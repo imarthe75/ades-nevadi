@@ -100,7 +100,7 @@ public class Estadistica911QueryService {
                    p.genero                         AS sexo,
                    COUNT(DISTINCT e.id)             AS alumnos
             FROM ades_condiciones_cronicas cc
-            JOIN ades_estudiantes e         ON e.id  = cc.estudiante_id
+            JOIN ades_estudiantes e         ON e.id  = cc.alumno_id
             JOIN ades_inscripciones i       ON i.estudiante_id = e.id AND i.is_active = true
             JOIN ades_grupos g              ON g.id  = i.grupo_id
             JOIN ades_grados gr             ON gr.id = g.grado_id
@@ -108,7 +108,7 @@ public class Estadistica911QueryService {
             JOIN ades_ciclos_escolares c    ON c.id  = i.ciclo_escolar_id
             JOIN ades_personas p            ON p.id  = e.persona_id
             WHERE cc.tipo_condicion LIKE 'DISCAPACIDAD_%'
-              AND cc.activo = true
+              AND cc.activa = true
               AND n.autoridad_educativa = 'SEP'
               AND (CAST(:ciclo AS uuid) IS NULL AND c.es_vigente
                    OR c.id = CAST(:ciclo AS uuid))

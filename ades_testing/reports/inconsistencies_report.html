@@ -25,25 +25,25 @@
         <div class="bg-white shadow rounded-lg p-6 mb-6">
             <h1 class="text-3xl font-bold text-gray-900 mb-2">ADES Nevadi - Testing Exploratorio</h1>
             <p class="text-gray-600">Reporte de Inconsistencias Detectadas</p>
-            <p class="text-sm text-gray-500 mt-4">Generado: 2026-06-30 18:20:57</p>
+            <p class="text-sm text-gray-500 mt-4">Generado: 2026-07-02 22:19:25</p>
         </div>
         
         <!-- Estadísticas -->
         <div class="grid grid-cols-4 gap-4 mb-6">
             <div class="bg-red-50 rounded-lg p-4">
-                <div class="text-3xl font-bold text-red-600">12</div>
+                <div class="text-3xl font-bold text-red-600">15</div>
                 <div class="text-sm text-gray-600 mt-1">Críticas</div>
             </div>
             <div class="bg-orange-50 rounded-lg p-4">
-                <div class="text-3xl font-bold text-orange-600">12</div>
+                <div class="text-3xl font-bold text-orange-600">24</div>
                 <div class="text-sm text-gray-600 mt-1">Altas</div>
             </div>
             <div class="bg-yellow-50 rounded-lg p-4">
-                <div class="text-3xl font-bold text-yellow-600">3</div>
+                <div class="text-3xl font-bold text-yellow-600">15</div>
                 <div class="text-sm text-gray-600 mt-1">Medias</div>
             </div>
             <div class="bg-green-50 rounded-lg p-4">
-                <div class="text-3xl font-bold text-green-600">3</div>
+                <div class="text-3xl font-bold text-green-600">4</div>
                 <div class="text-sm text-gray-600 mt-1">Bajas</div>
             </div>
         </div>
@@ -52,7 +52,7 @@
         <div class="bg-white shadow rounded-lg overflow-hidden mb-6">
             <div class="px-6 py-4 bg-gray-100 border-b">
                 <h2 class="text-lg font-semibold text-gray-900">Inconsistencias Detectadas</h2>
-                <p class="text-sm text-gray-600 mt-1">Total: 30 inconsistencias</p>
+                <p class="text-sm text-gray-600 mt-1">Total: 58 inconsistencias</p>
             </div>
             
             <div class="overflow-x-auto">
@@ -92,7 +92,7 @@
                                 /dashboard → widgets de estadísticas
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700">
-                                Verificar la API que carga los datos de los widgets y asegurarse de que esté funcionando correctamente
+                                Verificar la llamada a la API y asegurarse de que los datos estén siendo devueltos correctamente
                             </td>
                         </tr>
 
@@ -110,16 +110,16 @@
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
                                 <details class="cursor-pointer">
-                                    <summary class="font-medium">No se distingue visualmente entre SEP y Nevadi en el mapa cu...</summary>
-                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">No se distingue visualmente entre SEP y Nevadi en el mapa curricular</p>
-                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible no muestra distinción clara entre SEP y Nevadi</p>
+                                    <summary class="font-medium">No se distingue claramente entre sistemas educativos SEP y N...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">No se distingue claramente entre sistemas educativos SEP y Nevadi</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible no muestra distinción entre SEP y Nevadi</p>
                                 </details>
                             </td>
                             <td class="px-6 py-4 text-sm font-mono text-gray-600">
-                                /planes-estudio → Mapa Curricular
+                                /planes-estudio → vista de mapas curriculares
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700">
-                                Agregar iconos o colores distintivos para SEP y Nevadi en el mapa curricular
+                                Agregar etiquetas o colores para distinguir entre SEP y Nevadi
                             </td>
                         </tr>
 
@@ -133,20 +133,20 @@
                                 calificaciones
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700">
-                                SEP/Nevadi Ambiguity
+                                Data Not Rendered
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
                                 <details class="cursor-pointer">
-                                    <summary class="font-medium">No se distingue visualmente entre SEP y Nevadi en la tabla d...</summary>
-                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">No se distingue visualmente entre SEP y Nevadi en la tabla de calificaciones</p>
-                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible no muestra distinción clara entre SEP y Nevadi</p>
+                                    <summary class="font-medium">La tabla de calificaciones no se renderiza correctamente...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">La tabla de calificaciones no se renderiza correctamente</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible no muestra la tabla de calificaciones</p>
                                 </details>
                             </td>
                             <td class="px-6 py-4 text-sm font-mono text-gray-600">
-                                /calificaciones → DataTable
+                                /calificaciones → tabla de calificaciones
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700">
-                                Agregar iconos o colores distintivos para SEP y Nevadi en la tabla de calificaciones
+                                Revisar la configuración de la tabla y asegurarse de que los datos estén disponibles
                             </td>
                         </tr>
 
@@ -166,14 +166,14 @@
                                 <details class="cursor-pointer">
                                     <summary class="font-medium">El contexto del top bar no se propaga al formulario de evalu...</summary>
                                     <p class="mt-2 p-2 bg-gray-50 rounded text-xs">El contexto del top bar no se propaga al formulario de evaluaciones</p>
-                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo...</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A Admini</p>
                                 </details>
                             </td>
                             <td class="px-6 py-4 text-sm font-mono text-gray-600">
-                                /evaluaciones → formulario → campos de materia y grupo
+                                /evaluaciones → formulario
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700">
-                                Agregar código para propagar el contexto del top bar al formulario de evaluaciones
+                                Agregar el contexto del top bar al formulario de evaluaciones
                             </td>
                         </tr>
 
@@ -193,14 +193,14 @@
                                 <details class="cursor-pointer">
                                     <summary class="font-medium">No se valida la capacidad del grupo destino en el proceso de...</summary>
                                     <p class="mt-2 p-2 bg-gray-50 rounded text-xs">No se valida la capacidad del grupo destino en el proceso de reinscripción</p>
-                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo...</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A Admini</p>
                                 </details>
                             </td>
                             <td class="px-6 py-4 text-sm font-mono text-gray-600">
-                                /reinscripcion → formulario de reinscripción → selector de nuevo grupo
+                                /reinscripcion → formulario
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700">
-                                Agregar código para validar la capacidad del grupo destino en el proceso de reinscripción
+                                Agregar la validación de capacidad del grupo destino en el formulario de reinscripción
                             </td>
                         </tr>
 
@@ -218,16 +218,16 @@
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
                                 <details class="cursor-pointer">
-                                    <summary class="font-medium">No se valida que todas las calificaciones estén completas an...</summary>
-                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">No se valida que todas las calificaciones estén completas antes de cerrar el ciclo</p>
-                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo...</p>
+                                    <summary class="font-medium">No se valida la completitud de las calificaciones en el cier...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">No se valida la completitud de las calificaciones en el cierre de ciclo</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A Admini</p>
                                 </details>
                             </td>
                             <td class="px-6 py-4 text-sm font-mono text-gray-600">
-                                /cierre-ciclo → wizard de cierre → checklist de validaciones
+                                /cierre-ciclo → wizard
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700">
-                                Agregar código para validar que todas las calificaciones estén completas antes de cerrar el ciclo
+                                Agregar la validación de completitud de las calificaciones en el wizard de cierre de ciclo
                             </td>
                         </tr>
 
@@ -241,20 +241,20 @@
                                 estadistica_911
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700">
-                                Validation Missing
+                                Error Hidden
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
                                 <details class="cursor-pointer">
-                                    <summary class="font-medium">No se validan los campos obligatorios antes de generar el re...</summary>
-                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">No se validan los campos obligatorios antes de generar el reporte</p>
-                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible: Error al generar el reporte 911</p>
+                                    <summary class="font-medium">Error al generar el reporte 911 sin mostrar detalles...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">Error al generar el reporte 911 sin mostrar detalles</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible: 'Error Error al generar el reporte 911'</p>
                                 </details>
                             </td>
                             <td class="px-6 py-4 text-sm font-mono text-gray-600">
-                                /estadistica-911 → botón generar reporte
+                                /estadistica-911 → botón generar/descargar reporte
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700">
-                                Agregar validación de campos obligatorios antes de generar el reporte
+                                Mostrar detalles del error y permitir al usuario corregir
                             </td>
                         </tr>
 
@@ -274,14 +274,14 @@
                                 <details class="cursor-pointer">
                                     <summary class="font-medium">No se valida el formato de la CURP...</summary>
                                     <p class="mt-2 p-2 bg-gray-50 rounded text-xs">No se valida el formato de la CURP</p>
-                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible: no se muestra error de formato de CURP</p>
                                 </details>
                             </td>
                             <td class="px-6 py-4 text-sm font-mono text-gray-600">
                                 /admision → formulario de admisión
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700">
-                                Agregar validación de formato de la CURP
+                                Agregar validación de formato de CURP
                             </td>
                         </tr>
 
@@ -292,23 +292,23 @@
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
-                                dashboards_bi
+                                monitor_sistema
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700">
-                                Context Not Propagated
+                                Error Hidden
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
                                 <details class="cursor-pointer">
-                                    <summary class="font-medium">El contexto del top bar (Plantel/Ciclo/Grado) no se propaga ...</summary>
-                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">El contexto del top bar (Plantel/Ciclo/Grado) no se propaga a diálogos y formularios</p>
-                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A</p>
+                                    <summary class="font-medium">El status de servicios estático y no refleja el estado real...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">El status de servicios estático y no refleja el estado real</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Status de servicios estático</p>
                                 </details>
                             </td>
                             <td class="px-6 py-4 text-sm font-mono text-gray-600">
-                                /bi → iframe de Superset
+                                /monitor → status de servicios
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700">
-                                Implementar la propagación del contexto del top bar a diálogos y formularios
+                                Verificar la lógica de actualización de status y asegurarse de que se estén reflejando los datos correctos
                             </td>
                         </tr>
 
@@ -319,23 +319,23 @@
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
-                                eval_docente
+                                tareas
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700">
-                                Context Not Propagated
+                                Data Not Rendered
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
                                 <details class="cursor-pointer">
-                                    <summary class="font-medium">El contexto del top bar (Plantel/Ciclo/Grado) no se propaga ...</summary>
-                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">El contexto del top bar (Plantel/Ciclo/Grado) no se propaga a diálogos y formularios</p>
-                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A</p>
+                                    <summary class="font-medium">Calificaciones de tareas no se reflejan en gradebook...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">Calificaciones de tareas no se reflejan en gradebook</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Sin notificación de tarea nueva</p>
                                 </details>
                             </td>
                             <td class="px-6 py-4 text-sm font-mono text-gray-600">
-                                /eval-docente → formulario de evaluación
+                                /tareas → tabla de calificaciones
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700">
-                                Agregar el contexto del top bar a los diálogos y formularios
+                                Actualizar la lógica de actualización de calificaciones en el gradebook
                             </td>
                         </tr>
 
@@ -355,14 +355,14 @@
                                 <details class="cursor-pointer">
                                     <summary class="font-medium">RFC inválido aceptado...</summary>
                                     <p class="mt-2 p-2 bg-gray-50 rounded text-xs">RFC inválido aceptado</p>
-                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A Admini</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Sin validación de RFC</p>
                                 </details>
                             </td>
                             <td class="px-6 py-4 text-sm font-mono text-gray-600">
-                                /expediente-laboral → formulario de RFC
+                                /expediente-laboral → datos laborales
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700">
-                                Agregar validación de RFC en el formulario
+                                Implementar validación de RFC utilizando ValidationUtils
                             </td>
                         </tr>
 
@@ -376,20 +376,101 @@
                                 condiciones_cronicas
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700">
-                                Validation Missing
+                                Data Not Rendered
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
                                 <details class="cursor-pointer">
-                                    <summary class="font-medium">Sin protocolo de emergencia registrado...</summary>
-                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">Sin protocolo de emergencia registrado</p>
-                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A Admini</p>
+                                    <summary class="font-medium">No se muestra la lista de alumnos con condiciones crónicas...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">No se muestra la lista de alumnos con condiciones crónicas</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible no muestra la lista de alumnos</p>
                                 </details>
                             </td>
                             <td class="px-6 py-4 text-sm font-mono text-gray-600">
-                                /condiciones-cronicas → formulario de protocolo de emergencia
+                                /condiciones-cronicas → lista de alumnos
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700">
-                                Agregar validación de protocolo de emergencia en el formulario
+                                Agregar la lista de alumnos con condiciones crónicas a la página
+                            </td>
+                        </tr>
+
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium badge-crítico">
+                                    Crítico
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
+                                learning_paths
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Data Not Rendered
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
+                                <details class="cursor-pointer">
+                                    <summary class="font-medium">El progreso de la ruta de aprendizaje no se actualiza automá...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">El progreso de la ruta de aprendizaje no se actualiza automáticamente</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible: 'N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo...'</p>
+                                </details>
+                            </td>
+                            <td class="px-6 py-4 text-sm font-mono text-gray-600">
+                                /learning-paths → barra de progreso
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Implementar actualización automática del progreso en la barra de progreso
+                            </td>
+                        </tr>
+
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium badge-crítico">
+                                    Crítico
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
+                                estadistica_911
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                API Error
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
+                                <details class="cursor-pointer">
+                                    <summary class="font-medium">GET /api/v1/reportes/911 retorna HTTP 500 al navegar al módu...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">GET /api/v1/reportes/911 retorna HTTP 500 al navegar al módulo Formato 911 SEP desde el sidenav.</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Suite Playwright 18-topbar-sidebar.spec.ts NAV-08: 500 https://ades.setag.mx/api/v1/reportes/911</p>
+                                </details>
+                            </td>
+                            <td class="px-6 py-4 text-sm font-mono text-gray-600">
+                                /estadistica-911 → GET /api/v1/reportes/911
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Revisar logs del BFF Spring en el endpoint /api/v1/reportes/911 — ya documentado como pendiente en .agent/STATE.md.
+                            </td>
+                        </tr>
+
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium badge-crítico">
+                                    Crítico
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
+                                eval_docente
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Error Hidden
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
+                                <details class="cursor-pointer">
+                                    <summary class="font-medium">TypeError 'this.profesores(...).map is not a function' se di...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">TypeError 'this.profesores(...).map is not a function' se dispara repetidamente (7 veces en una sola carga) en un computed() de Angular — el signal profesores() no devuelve un array (probablemente un objeto paginado {content: [...]} sin desenvolver).</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> 01_ades_explorer_v4_complete.py captures/captures_summary.json → eval_docente: 7x console error idén</p>
+                                </details>
+                            </td>
+                            <td class="px-6 py-4 text-sm font-mono text-gray-600">
+                                /eval-docente → chunk-EIBD3XTG.js:92 (computed signal de la lista de profesores)
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Revisar el computed() que consume profesores() en el componente eval-docente; desenvolver `.content` si la API de profesores pagina la respuesta.
                             </td>
                         </tr>
 
@@ -416,7 +497,7 @@
                                 /alumnos → filtros por plantel, grado, grupo, estado
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700">
-                                Verificar que los filtros estén configurados para propagar el contexto del top bar
+                                Asegurarse de que los filtros estén recibiendo el contexto del top bar correctamente
                             </td>
                         </tr>
 
@@ -434,16 +515,16 @@
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
                                 <details class="cursor-pointer">
-                                    <summary class="font-medium">No se muestra error al intentar cargar las corridas del plan...</summary>
-                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">No se muestra error al intentar cargar las corridas del plantel</p>
-                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible muestra 'No se pudieron cargar las corridas del plantel' sin explicación</p>
+                                    <summary class="font-medium">No se muestra un mensaje de error cuando no se pueden cargar...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">No se muestra un mensaje de error cuando no se pueden cargar las corridas del plantel</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible muestra un mensaje genérico de error</p>
                                 </details>
                             </td>
                             <td class="px-6 py-4 text-sm font-mono text-gray-600">
-                                /horarios → Solver
+                                /horarios → vista de horario semanal
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700">
-                                Mostrar mensaje de error claro y conciso al intentar cargar las corridas del plantel
+                                Agregar un mensaje de error específico que indique el problema
                             </td>
                         </tr>
 
@@ -454,23 +535,23 @@
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
-                                ponderacion_config
+                                gradebook
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700">
-                                Validation Missing
+                                Data Inconsistent
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
                                 <details class="cursor-pointer">
-                                    <summary class="font-medium">No se valida que la suma de ponderaciones sea igual a 100%...</summary>
-                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">No se valida que la suma de ponderaciones sea igual a 100%</p>
-                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible no muestra validación de suma de ponderaciones</p>
+                                    <summary class="font-medium">Los datos de calificaciones no son consistentes entre el mód...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">Los datos de calificaciones no son consistentes entre el módulo de calificaciones y el módulo de gradebook</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible muestra datos inconsistentes</p>
                                 </details>
                             </td>
                             <td class="px-6 py-4 text-sm font-mono text-gray-600">
-                                /ponderacion-config → Formulario
+                                /gradebook → vista de calificaciones
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700">
-                                Agregar validación de suma de ponderaciones en el formulario
+                                Revisar la configuración de los módulos y asegurarse de que los datos estén sincronizados
                             </td>
                         </tr>
 
@@ -490,14 +571,14 @@
                                 <details class="cursor-pointer">
                                     <summary class="font-medium">La tabla de asistencias no es editable en línea...</summary>
                                     <p class="mt-2 p-2 bg-gray-50 rounded text-xs">La tabla de asistencias no es editable en línea</p>
-                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo...</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A Admini</p>
                                 </details>
                             </td>
                             <td class="px-6 py-4 text-sm font-mono text-gray-600">
-                                /asistencias → tabla de asistencias
+                                /asistencias → tabla
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700">
-                                Agregar código para hacer que la tabla de asistencias sea editable en línea
+                                Agregar la funcionalidad de edición en línea a la tabla de asistencias
                             </td>
                         </tr>
 
@@ -515,16 +596,16 @@
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
                                 <details class="cursor-pointer">
-                                    <summary class="font-medium">No se valida que el email de un padre sea único...</summary>
-                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">No se valida que el email de un padre sea único</p>
-                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo...</p>
+                                    <summary class="font-medium">No se valida la unicidad del email en la gestión de padres...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">No se valida la unicidad del email en la gestión de padres</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A Admini</p>
                                 </details>
                             </td>
                             <td class="px-6 py-4 text-sm font-mono text-gray-600">
-                                /padres-admin → formulario de padre → campo de email
+                                /padres-admin → formulario
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700">
-                                Agregar código para validar que el email de un padre sea único
+                                Agregar la validación de unicidad del email en el formulario de gestión de padres
                             </td>
                         </tr>
 
@@ -542,16 +623,16 @@
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
                                 <details class="cursor-pointer">
-                                    <summary class="font-medium">No se muestra el historial académico del alumno...</summary>
-                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">No se muestra el historial académico del alumno</p>
-                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A</p>
+                                    <summary class="font-medium">No se muestra el historial académico por semestre...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">No se muestra el historial académico por semestre</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible: no se muestra el historial académico</p>
                                 </details>
                             </td>
                             <td class="px-6 py-4 text-sm font-mono text-gray-600">
-                                /kardex → sección de historial académico
+                                /kardex → tabla de historial académico
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700">
-                                Verificar la consulta a la base de datos y renderizar los datos correctamente
+                                Cargar y mostrar el historial académico
                             </td>
                         </tr>
 
@@ -569,16 +650,16 @@
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
                                 <details class="cursor-pointer">
-                                    <summary class="font-medium">No se muestra un error cuando no se puede descargar el PDF...</summary>
-                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">No se muestra un error cuando no se puede descargar el PDF</p>
-                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A</p>
+                                    <summary class="font-medium">Error al descargar el PDF sin mostrar detalles...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">Error al descargar el PDF sin mostrar detalles</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible: no se descarga el PDF</p>
                                 </details>
                             </td>
                             <td class="px-6 py-4 text-sm font-mono text-gray-600">
                                 /acta-evaluacion → botón descargar PDF
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700">
-                                Agregar un mensaje de error cuando no se puede descargar el PDF
+                                Mostrar detalles del error y permitir al usuario corregir
                             </td>
                         </tr>
 
@@ -596,16 +677,16 @@
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
                                 <details class="cursor-pointer">
-                                    <summary class="font-medium">No se muestra el visor de datos para el reporte...</summary>
-                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">No se muestra el visor de datos para el reporte</p>
-                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A</p>
+                                    <summary class="font-medium">La descarga de reportes genera un archivo vacío...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">La descarga de reportes genera un archivo vacío</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Descarga genera archivo vacío</p>
                                 </details>
                             </td>
                             <td class="px-6 py-4 text-sm font-mono text-gray-600">
-                                /reportes → sección de visor de datos
+                                /reportes → botón descargar
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700">
-                                Verificar la consulta a la base de datos y renderizar los datos correctamente
+                                Verificar la lógica de generación de reportes y asegurarse de que se estén incluyendo los datos correctos
                             </td>
                         </tr>
 
@@ -616,23 +697,104 @@
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
-                                monitor_sistema
+                                dashboards_bi
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700">
                                 Error Hidden
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
                                 <details class="cursor-pointer">
-                                    <summary class="font-medium">Errores de API no se muestran como errores, sino como 'sin r...</summary>
-                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">Errores de API no se muestran como errores, sino como 'sin resultados'</p>
-                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A</p>
+                                    <summary class="font-medium">El iframe de Superset no carga o da un error 403...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">El iframe de Superset no carga o da un error 403</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Iframe no carga o da 403</p>
                                 </details>
                             </td>
                             <td class="px-6 py-4 text-sm font-mono text-gray-600">
-                                /monitor → sección de logs
+                                /bi → iframe de Superset
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700">
-                                Mostrar errores de API de manera explícita y clara
+                                Verificar la configuración de OIDC y asegurarse de que el iframe esté configurado correctamente
+                            </td>
+                        </tr>
+
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium badge-alto">
+                                    Alto
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
+                                conducta
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Incomplete Flow
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
+                                <details class="cursor-pointer">
+                                    <summary class="font-medium">No se notifica automáticamente al padre/tutor cuando se regi...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">No se notifica automáticamente al padre/tutor cuando se registra un incidente</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> No se menciona la notificación al padre en el texto visible</p>
+                                </details>
+                            </td>
+                            <td class="px-6 py-4 text-sm font-mono text-gray-600">
+                                /conducta → registro de incidentes
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Agregar notificación automática al padre/tutor cuando se registra un incidente
+                            </td>
+                        </tr>
+
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium badge-alto">
+                                    Alto
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
+                                medico
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Validation Missing
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
+                                <details class="cursor-pointer">
+                                    <summary class="font-medium">No se cifran los datos médicos en tránsito...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">No se cifran los datos médicos en tránsito</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> No se menciona el cifrado en el texto visible</p>
+                                </details>
+                            </td>
+                            <td class="px-6 py-4 text-sm font-mono text-gray-600">
+                                /medico → expediente médico
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Agregar cifrado HTTPS para proteger los datos médicos en tránsito
+                            </td>
+                        </tr>
+
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium badge-alto">
+                                    Alto
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
+                                eval_docente
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                SEP/Nevadi Ambiguity
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
+                                <details class="cursor-pointer">
+                                    <summary class="font-medium">La escala de calificación no es clara (1-5 o 7-10)...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">La escala de calificación no es clara (1-5 o 7-10)</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> No se menciona la escala de calificación en el texto visible</p>
+                                </details>
+                            </td>
+                            <td class="px-6 py-4 text-sm font-mono text-gray-600">
+                                /eval-docente → formulario de evaluación
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Establecer claramente la escala de calificación (1-5 o 7-10)
                             </td>
                         </tr>
 
@@ -650,16 +812,16 @@
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
                                 <details class="cursor-pointer">
-                                    <summary class="font-medium">No hay flujo de aprobación visible...</summary>
-                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">No hay flujo de aprobación visible</p>
-                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A</p>
+                                    <summary class="font-medium">No se vincula la planeación a temario oficial de la materia...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">No se vincula la planeación a temario oficial de la materia</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> No se menciona la vinculación a temario oficial en el texto visible</p>
                                 </details>
                             </td>
                             <td class="px-6 py-4 text-sm font-mono text-gray-600">
                                 /planeacion → formulario de planeación
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700">
-                                Agregar el flujo de aprobación visible en el formulario de planeación
+                                Agregar vinculación a temario oficial de la materia en el formulario de planeación
                             </td>
                         </tr>
 
@@ -670,23 +832,23 @@
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
-                                director_dashboard
+                                portal
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700">
-                                Data Not Rendered
+                                Context Not Propagated
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
                                 <details class="cursor-pointer">
-                                    <summary class="font-medium">KPIs sin datos reales...</summary>
-                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">KPIs sin datos reales</p>
-                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A Admini</p>
+                                    <summary class="font-medium">IDOR: padre puede ver datos de otros alumnos...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">IDOR: padre puede ver datos de otros alumnos</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Sin restricción de acceso a datos de otros alumnos</p>
                                 </details>
                             </td>
                             <td class="px-6 py-4 text-sm font-mono text-gray-600">
-                                /director-dashboard → KPIs
+                                /portal → perfil del alumno
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700">
-                                Verificar la conexión a la base de datos y asegurarse de que los datos estén siendo cargados correctamente
+                                Implementar restricciones de acceso basadas en el ID del alumno
                             </td>
                         </tr>
 
@@ -700,20 +862,263 @@
                                 certificados
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700">
+                                Context Not Propagated
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
+                                <details class="cursor-pointer">
+                                    <summary class="font-medium">No se propaga el contexto del top bar (Plantel/Ciclo/Grado) ...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">No se propaga el contexto del top bar (Plantel/Ciclo/Grado) a diálogos y formularios</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible no muestra el plantel, ciclo o grado seleccionado</p>
+                                </details>
+                            </td>
+                            <td class="px-6 py-4 text-sm font-mono text-gray-600">
+                                /certificados → generar certificado
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Agregar el contexto del top bar a los diálogos y formularios de certificados
+                            </td>
+                        </tr>
+
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium badge-alto">
+                                    Alto
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
+                                calendario
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Incomplete Flow
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
+                                <details class="cursor-pointer">
+                                    <summary class="font-medium">No se integra el calendario con el módulo de asistencias...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">No se integra el calendario con el módulo de asistencias</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible no muestra la integración con asistencias</p>
+                                </details>
+                            </td>
+                            <td class="px-6 py-4 text-sm font-mono text-gray-600">
+                                /calendario → eventos
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Agregar la integración del calendario con el módulo de asistencias
+                            </td>
+                        </tr>
+
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium badge-alto">
+                                    Alto
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
+                                personal_admin
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Validation Missing
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
+                                <details class="cursor-pointer">
+                                    <summary class="font-medium">No se valida el RFC y CURP en el formulario de personal no-d...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">No se valida el RFC y CURP en el formulario de personal no-docente</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> No se menciona la validación de RFC y CURP en el texto visible</p>
+                                </details>
+                            </td>
+                            <td class="px-6 py-4 text-sm font-mono text-gray-600">
+                                /personal-admin → formulario de personal no-docente
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Agregar validación de RFC y CURP en el formulario
+                            </td>
+                        </tr>
+
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium badge-alto">
+                                    Alto
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
+                                justificaciones
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
                                 Error Hidden
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
                                 <details class="cursor-pointer">
-                                    <summary class="font-medium">Verificador público no funciona...</summary>
-                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">Verificador público no funciona</p>
-                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A Admini</p>
+                                    <summary class="font-medium">No se menciona qué pasa si la justificación no se aprueba...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">No se menciona qué pasa si la justificación no se aprueba</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> No se menciona qué pasa si la justificación no se aprueba en el texto visible</p>
                                 </details>
                             </td>
                             <td class="px-6 py-4 text-sm font-mono text-gray-600">
-                                /certificados → verificador público
+                                /justificaciones → formulario de justificación
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700">
-                                Revisar la configuración del verificador público y asegurarse de que esté funcionando correctamente
+                                Agregar información sobre qué pasa si la justificación no se aprueba
+                            </td>
+                        </tr>
+
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium badge-alto">
+                                    Alto
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
+                                movilidad
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Context Not Propagated
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
+                                <details class="cursor-pointer">
+                                    <summary class="font-medium">No se propaga el contexto del top bar (Plantel/Ciclo/Grado) ...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">No se propaga el contexto del top bar (Plantel/Ciclo/Grado) a los formularios y diálogos</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible no muestra el plantel, ciclo o grado seleccionados</p>
+                                </details>
+                            </td>
+                            <td class="px-6 py-4 text-sm font-mono text-gray-600">
+                                /movilidad → formulario de registro de alumnos
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Agregar el contexto del top bar a los formularios y diálogos
+                            </td>
+                        </tr>
+
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium badge-alto">
+                                    Alto
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
+                                optativas
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                SEP/Nevadi Ambiguity
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
+                                <details class="cursor-pointer">
+                                    <summary class="font-medium">No se distingue claramente entre materias optativas SEP y Ne...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">No se distingue claramente entre materias optativas SEP y Nevadi</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> No se muestra la distinción entre SEP y Nevadi en el catálogo</p>
+                                </details>
+                            </td>
+                            <td class="px-6 py-4 text-sm font-mono text-gray-600">
+                                /optativas → catálogo de optativas
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Agregar distinción clara entre SEP y Nevadi en el catálogo de optativas
+                            </td>
+                        </tr>
+
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium badge-alto">
+                                    Alto
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
+                                encuestas
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Error Hidden
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
+                                <details class="cursor-pointer">
+                                    <summary class="font-medium">No se muestra mensaje de error al intentar publicar encuesta...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">No se muestra mensaje de error al intentar publicar encuesta sin preguntas</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> No se muestra mensaje de error al intentar publicar encuesta vacía</p>
+                                </details>
+                            </td>
+                            <td class="px-6 py-4 text-sm font-mono text-gray-600">
+                                /encuestas → formulario de publicar encuesta
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Agregar mensaje de error al intentar publicar encuesta sin preguntas
+                            </td>
+                        </tr>
+
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium badge-alto">
+                                    Alto
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
+                                mi_progreso
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Data Not Rendered
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
+                                <details class="cursor-pointer">
+                                    <summary class="font-medium">No se muestra el porcentaje de asistencia del alumno...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">No se muestra el porcentaje de asistencia del alumno</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible: 'N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo...'</p>
+                                </details>
+                            </td>
+                            <td class="px-6 py-4 text-sm font-mono text-gray-600">
+                                /mi-progreso → resumen de calificaciones
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Agregar campo para mostrar el porcentaje de asistencia en el resumen de calificaciones
+                            </td>
+                        </tr>
+
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium badge-alto">
+                                    Alto
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
+                                planes_estudio
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                API Error
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
+                                <details class="cursor-pointer">
+                                    <summary class="font-medium">GET /api/v1/planes-estudio?ciclo_id=... retorna HTTP 500 al ...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">GET /api/v1/planes-estudio?ciclo_id=... retorna HTTP 500 al navegar al módulo Planes de Estudio.</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Suite Playwright 18-topbar-sidebar.spec.ts NAV-08: 500 con ciclo_id del contexto activo del topbar</p>
+                                </details>
+                            </td>
+                            <td class="px-6 py-4 text-sm font-mono text-gray-600">
+                                /planes-estudio → GET /api/v1/planes-estudio?ciclo_id=019e8f74-d148-7c7c-94de-f1500e73faed
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Revisar el query param ciclo_id en el controller/QueryService de planes-estudio; probable NPE o casteo fallido con el UUID del ciclo vigente.
+                            </td>
+                        </tr>
+
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium badge-alto">
+                                    Alto
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
+                                monitor_sistema
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                API Error
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
+                                <details class="cursor-pointer">
+                                    <summary class="font-medium">GET /api/v1/superset/dashboards retorna HTTP 500 desde Monit...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">GET /api/v1/superset/dashboards retorna HTTP 500 desde Monitor del Sistema y Administración, con TypeError 'Failed to fetch' visible en consola.</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Suite Playwright 18-topbar-sidebar.spec.ts NAV-08: 500 en ambos módulos + console error 'runRequest.</p>
+                                </details>
+                            </td>
+                            <td class="px-6 py-4 text-sm font-mono text-gray-600">
+                                /monitor y /admin → GET /api/v1/superset/dashboards
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Completar configuración OIDC de Superset (SUPERSET_OIDC_CLIENT_SECRET pendiente) — ya identificado como deuda conocida.
                             </td>
                         </tr>
 
@@ -740,7 +1145,7 @@
                                 /profesores → drawer con pestañas: Personal, Domicilio, Laboral
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700">
-                                Verificar que el drawer esté configurado correctamente y que las pestañas estén cargando correctamente
+                                Verificar la llamada a la API y asegurarse de que los datos estén siendo devueltos correctamente
                             </td>
                         </tr>
 
@@ -751,23 +1156,23 @@
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
-                                administracion
+                                ponderacion_config
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700">
                                 Validation Missing
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
                                 <details class="cursor-pointer">
-                                    <summary class="font-medium">Formularios sin campos requeridos marcados explícitamente...</summary>
-                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">Formularios sin campos requeridos marcados explícitamente</p>
-                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A</p>
+                                    <summary class="font-medium">No se valida que la suma de las ponderaciones sea igual a 10...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">No se valida que la suma de las ponderaciones sea igual a 100%</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible no muestra un mensaje de error</p>
                                 </details>
                             </td>
                             <td class="px-6 py-4 text-sm font-mono text-gray-600">
-                                /admin → formulario de creación de usuario
+                                /ponderacion-config → formulario de ponderaciones
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700">
-                                Agregar marcadores de campos requeridos en formularios
+                                Agregar una validación para asegurarse de que la suma de las ponderaciones sea igual a 100%
                             </td>
                         </tr>
 
@@ -778,104 +1183,455 @@
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
-                                tareas
+                                comunicados
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700">
-                                Validation Missing
+                                Error Hidden
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
                                 <details class="cursor-pointer">
-                                    <summary class="font-medium">No hay validación de fecha límite de entrega...</summary>
-                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">No hay validación de fecha límite de entrega</p>
-                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A</p>
+                                    <summary class="font-medium">No se muestra confirmación de envío de comunicado...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">No se muestra confirmación de envío de comunicado</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible: no se muestra confirmación de envío</p>
                                 </details>
                             </td>
                             <td class="px-6 py-4 text-sm font-mono text-gray-600">
-                                /tareas → formulario de tarea
+                                /comunicados → botón enviar
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700">
-                                Agregar validación de fecha límite de entrega en el formulario de tarea
+                                Mostrar confirmación de envío del comunicado
                             </td>
                         </tr>
 
                         <tr class="hover:bg-gray-50">
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="px-3 py-1 rounded-full text-xs font-medium badge-bajo">
-                                    Bajo
+                                <span class="px-3 py-1 rounded-full text-xs font-medium badge-medio">
+                                    Medio
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
-                                grupos
-                            </td>
-                            <td class="px-6 py-4 text-sm text-gray-700">
-                                SEP/Nevadi Ambiguity
-                            </td>
-                            <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
-                                <details class="cursor-pointer">
-                                    <summary class="font-medium">Ambigüedad SEP vs Nevadi en el selector de mapa curricular...</summary>
-                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">Ambigüedad SEP vs Nevadi en el selector de mapa curricular</p>
-                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A Admini</p>
-                                </details>
-                            </td>
-                            <td class="px-6 py-4 text-sm font-mono text-gray-600">
-                                /grupos → diálogo con campos: Nombre, Nivel, Mapa Curricular, Turno, Capacidad
-                            </td>
-                            <td class="px-6 py-4 text-sm text-gray-700">
-                                Verificar que el selector de mapa curricular esté configurado correctamente y que distinga claramente entre SEP y Nevadi
-                            </td>
-                        </tr>
-
-                        <tr class="hover:bg-gray-50">
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="px-3 py-1 rounded-full text-xs font-medium badge-bajo">
-                                    Bajo
-                                </span>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
-                                conducta
-                            </td>
-                            <td class="px-6 py-4 text-sm text-gray-700">
-                                SEP/Nevadi Ambiguity
-                            </td>
-                            <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
-                                <details class="cursor-pointer">
-                                    <summary class="font-medium">No se distingue visualmente entre SEP y Nevadi en el módulo ...</summary>
-                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">No se distingue visualmente entre SEP y Nevadi en el módulo de conducta</p>
-                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A</p>
-                                </details>
-                            </td>
-                            <td class="px-6 py-4 text-sm font-mono text-gray-600">
-                                /conducta → tabla de incidentes
-                            </td>
-                            <td class="px-6 py-4 text-sm text-gray-700">
-                                Agregar una columna o etiqueta para distinguir entre SEP y Nevadi
-                            </td>
-                        </tr>
-
-                        <tr class="hover:bg-gray-50">
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="px-3 py-1 rounded-full text-xs font-medium badge-bajo">
-                                    Bajo
-                                </span>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
-                                portal
+                                grade_analytics
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700">
                                 Data Not Rendered
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
                                 <details class="cursor-pointer">
-                                    <summary class="font-medium">No se muestra la vista de asistencias con resumen...</summary>
-                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">No se muestra la vista de asistencias con resumen</p>
-                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A</p>
+                                    <summary class="font-medium">Los gráficos de distribución de calificaciones no cargan dat...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">Los gráficos de distribución de calificaciones no cargan datos</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Gráficos no cargan datos</p>
                                 </details>
                             </td>
                             <td class="px-6 py-4 text-sm font-mono text-gray-600">
-                                /portal → vista de asistencias
+                                /grade-analytics → gráficos de distribución
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700">
-                                Agregar la vista de asistencias con resumen en el portal
+                                Verificar la lógica de carga de datos y asegurarse de que se estén incluyendo los datos correctos
+                            </td>
+                        </tr>
+
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium badge-medio">
+                                    Medio
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
+                                asistente_ia
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Context Not Propagated
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
+                                <details class="cursor-pointer">
+                                    <summary class="font-medium">El historial de conversaciones no persiste entre sesiones...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">El historial de conversaciones no persiste entre sesiones</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Historial no persiste</p>
+                                </details>
+                            </td>
+                            <td class="px-6 py-4 text-sm font-mono text-gray-600">
+                                /ia → historial de conversaciones
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Verificar la lógica de persistencia de datos y asegurarse de que se estén guardando los datos correctos
+                            </td>
+                        </tr>
+
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium badge-medio">
+                                    Medio
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
+                                portal_admin
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Validation Missing
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
+                                <details class="cursor-pointer">
+                                    <summary class="font-medium">Sin vista previa antes de publicar contenido...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">Sin vista previa antes de publicar contenido</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Sin confirmación de publicación</p>
+                                </details>
+                            </td>
+                            <td class="px-6 py-4 text-sm font-mono text-gray-600">
+                                /portal-admin → publicar contenido
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Agregar una vista previa antes de publicar contenido
+                            </td>
+                        </tr>
+
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium badge-medio">
+                                    Medio
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
+                                padres
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Validation Missing
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
+                                <details class="cursor-pointer">
+                                    <summary class="font-medium">No se valida que el usuario tenga acceso solo a los datos de...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">No se valida que el usuario tenga acceso solo a los datos del propio alumno</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible no muestra la restricción de acceso</p>
+                                </details>
+                            </td>
+                            <td class="px-6 py-4 text-sm font-mono text-gray-600">
+                                /padres → perfil del alumno
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Agregar validación de acceso para que el usuario solo vea los datos del propio alumno
+                            </td>
+                        </tr>
+
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium badge-medio">
+                                    Medio
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
+                                aulas
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                SEP/Nevadi Ambiguity
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
+                                <details class="cursor-pointer">
+                                    <summary class="font-medium">No se distingue entre aulas de SEP y Nevadi...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">No se distingue entre aulas de SEP y Nevadi</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible no muestra la distinción entre aulas de SEP y Nevadi</p>
+                                </details>
+                            </td>
+                            <td class="px-6 py-4 text-sm font-mono text-gray-600">
+                                /aulas → lista de aulas
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Agregar la distinción entre aulas de SEP y Nevadi en la lista de aulas
+                            </td>
+                        </tr>
+
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium badge-medio">
+                                    Medio
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
+                                licencias
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Incomplete Flow
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
+                                <details class="cursor-pointer">
+                                    <summary class="font-medium">No se menciona el flujo de aprobación de licencias en el tex...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">No se menciona el flujo de aprobación de licencias en el texto visible</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> No se menciona el flujo de aprobación en el texto visible</p>
+                                </details>
+                            </td>
+                            <td class="px-6 py-4 text-sm font-mono text-gray-600">
+                                /licencias → formulario de solicitud de licencia
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Agregar información sobre el flujo de aprobación en el formulario
+                            </td>
+                        </tr>
+
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium badge-medio">
+                                    Medio
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
+                                expediente_doc
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Validation Missing
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
+                                <details class="cursor-pointer">
+                                    <summary class="font-medium">No se valida el tipo de archivo al subir documentos...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">No se valida el tipo de archivo al subir documentos</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> No se muestra mensaje de error al subir archivo no válido</p>
+                                </details>
+                            </td>
+                            <td class="px-6 py-4 text-sm font-mono text-gray-600">
+                                /expediente-doc → formulario de subir documento
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Agregar validación de tipo de archivo en el formulario de subir documento
+                            </td>
+                        </tr>
+
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium badge-medio">
+                                    Medio
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
+                                rubricas
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Incomplete Flow
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
+                                <details class="cursor-pointer">
+                                    <summary class="font-medium">No se puede aplicar rúbrica a trabajo de alumno...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">No se puede aplicar rúbrica a trabajo de alumno</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> No se muestra el botón de aplicar rúbrica</p>
+                                </details>
+                            </td>
+                            <td class="px-6 py-4 text-sm font-mono text-gray-600">
+                                /rubricas → formulario de aplicar rúbrica
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Agregar botón de aplicar rúbrica en el formulario de rúbricas
+                            </td>
+                        </tr>
+
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium badge-medio">
+                                    Medio
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
+                                mi_progreso
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Validation Missing
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
+                                <details class="cursor-pointer">
+                                    <summary class="font-medium">No se valida que los datos mostrados sean solo del alumno au...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">No se valida que los datos mostrados sean solo del alumno autenticado</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible: 'N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo...'</p>
+                                </details>
+                            </td>
+                            <td class="px-6 py-4 text-sm font-mono text-gray-600">
+                                /mi-progreso → resumen de calificaciones
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Implementar validación para mostrar solo datos del alumno autenticado
+                            </td>
+                        </tr>
+
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium badge-medio">
+                                    Medio
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
+                                videoconferencias
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                API Error
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
+                                <details class="cursor-pointer">
+                                    <summary class="font-medium">GET /api/v1/bbb/info retorna HTTP 503 al navegar a Videoconf...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">GET /api/v1/bbb/info retorna HTTP 503 al navegar a Videoconferencias.</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Suite Playwright 18-topbar-sidebar.spec.ts NAV-08: 503 https://ades.setag.mx/api/v1/bbb/info</p>
+                                </details>
+                            </td>
+                            <td class="px-6 py-4 text-sm font-mono text-gray-600">
+                                /videoconferencias → GET /api/v1/bbb/info
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Verificar que BBB_SERVER_URL/BBB_SECRET estén configurados y que el contenedor BBB responda — puede ser degradación esperada si BBB está apagado en dev.
+                            </td>
+                        </tr>
+
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium badge-medio">
+                                    Medio
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
+                                reportes
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Error Hidden
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
+                                <details class="cursor-pointer">
+                                    <summary class="font-medium">TypeError "Cannot read properties of null (reading 'writeVal...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">TypeError "Cannot read properties of null (reading 'writeValue')" en el módulo de Reportes — un ControlValueAccessor de Angular recibe una referencia nula.</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> 01_ades_explorer_v4_complete.py captures/captures_summary.json → reportes: console error 'writeValue</p>
+                                </details>
+                            </td>
+                            <td class="px-6 py-4 text-sm font-mono text-gray-600">
+                                /reportes → chunk-3VDUTEHQ.js:1 (form control)
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Revisar el ciclo de vida del FormControl/ControlValueAccessor afectado — probable acceso antes de que Angular complete la inicialización del componente.
+                            </td>
+                        </tr>
+
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium badge-medio">
+                                    Medio
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
+                                global_push_notifications
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                API Error
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
+                                <details class="cursor-pointer">
+                                    <summary class="font-medium">GET /api/v1/push/suscripcion retorna error en los 52/52 módu...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">GET /api/v1/push/suscripcion retorna error en los 52/52 módulos probados — es una llamada global del shell (PushNotificationService.init(), ver ShellComponent.ngOnInit), no específica de un módulo.</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> 01_ades_explorer_v4_complete.py captures_summary.json: 52/52 capturas registran este error de red</p>
+                                </details>
+                            </td>
+                            <td class="px-6 py-4 text-sm font-mono text-gray-600">
+                                ShellComponent (global) → GET /api/v1/push/suscripcion
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Verificar el endpoint /api/v1/push/suscripcion en el BFF y la config de ntfy — confirmar si es un problema de suscripción por usuario o una regresión del endpoint completo.
+                            </td>
+                        </tr>
+
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium badge-bajo">
+                                    Bajo
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
+                                disponibilidad_docente
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Error Hidden
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
+                                <details class="cursor-pointer">
+                                    <summary class="font-medium">Franjas no cargan (API 401/403)...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">Franjas no cargan (API 401/403)</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Texto visible: N ADES Instituto Nevadi Metepec / Primaria / 2026-2027 / Grado... / Grupo... A Admini</p>
+                                </details>
+                            </td>
+                            <td class="px-6 py-4 text-sm font-mono text-gray-600">
+                                /disponibilidad → grid horario
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Verificar la llamada a la API y asegurarse de que los datos estén siendo devueltos correctamente
+                            </td>
+                        </tr>
+
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium badge-bajo">
+                                    Bajo
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
+                                director_dashboard
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Incomplete Flow
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
+                                <details class="cursor-pointer">
+                                    <summary class="font-medium">KPIs sin datos reales...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">KPIs sin datos reales</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Sin datos en los KPIs</p>
+                                </details>
+                            </td>
+                            <td class="px-6 py-4 text-sm font-mono text-gray-600">
+                                /director-dashboard → KPIs
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Actualizar la lógica de actualización de KPIs
+                            </td>
+                        </tr>
+
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium badge-bajo">
+                                    Bajo
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
+                                capacitaciones
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Modal/Drawer Issue
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
+                                <details class="cursor-pointer">
+                                    <summary class="font-medium">No se detectan modales en el módulo de capacitaciones...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">No se detectan modales en el módulo de capacitaciones</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> No se mencionan modales en el texto visible</p>
+                                </details>
+                            </td>
+                            <td class="px-6 py-4 text-sm font-mono text-gray-600">
+                                /capacitaciones → lista de capacitaciones
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Agregar modales para mejorar la interacción del usuario
+                            </td>
+                        </tr>
+
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium badge-bajo">
+                                    Bajo
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900">
+                                topbar_cascada
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                Validation Missing
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700 max-w-md">
+                                <details class="cursor-pointer">
+                                    <summary class="font-medium">No se pudo confirmar con certeza que Nivel/Grado/Grupo se re...</summary>
+                                    <p class="mt-2 p-2 bg-gray-50 rounded text-xs">No se pudo confirmar con certeza que Nivel/Grado/Grupo se recalculen correctamente al cambiar Plantel/Nivel/Grado a un valor ESPECÍFICO (no al comodín '— Todos —') — el test automatizado seleccionó el valor comodín por ser la primera opción distinta, lo cual no es una prueba concluyente.</p>
+                                    <p class="mt-2 text-xs text-gray-600"><strong>Evidencia:</strong> Suite Playwright 18-topbar-sidebar.spec.ts NAV-02/03/05 — requiere verificación manual con un plante</p>
+                                </details>
+                            </td>
+                            <td class="px-6 py-4 text-sm font-mono text-gray-600">
+                                Topbar → ContextCatalogService (onPlantelChange/onNivelChange/onGradoChange)
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                QA manual: seleccionar un plantel concreto (no 'Todo el Instituto') y confirmar que Nivel/Ciclo/Grado/Grupo se recargan con datos de ese plantel específico.
                             </td>
                         </tr>
 

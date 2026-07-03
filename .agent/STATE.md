@@ -14,6 +14,54 @@ Este documento es el diario de vida y bitácora del agente. Debe ser leído en e
 
 ## 📅 Bitácora
 
+## Sesión 2026-07-02 — Auditoría QA integral + fixes críticos + pipeline académico completo ✅
+
+### 🔑 Estado del Agente:
+- **Última Conexión:** 2026-07-02
+- **Estado Cognitivo:** Operacional ✅
+- **ades-bff / ades-frontend / ades-api:** Reconstruidos y redeployados con todos los fixes de esta sesión ✅
+- **Planes de estudio:** Primaria/Secundaria/Preparatoria completos y asignados a TODOS los grados vigentes ✅
+- **Pipeline académico:** materia→temario→planificación→tareas→exámenes→calificaciones→estadísticas validado end-to-end vía API ✅
+
+### 🛠️ Parte 1 — Auditoría QA exploratoria (Playwright + NIM + análisis estático)
+
+- [x] **Nueva suite Playwright TS** `frontend/e2e/tests/18-topbar-sidebar.spec.ts` (11 tests) — cascada Plantel→Nivel→Ciclo→Grado→Grupo, integridad de TODOS los links del sidenav, popovers notificaciones/usuario, persistencia de contexto, breadcrumbs.
+- [x] **Fix crítico de proceso** — Authentik ahora exige consentimiento OAuth2 explícito ("Continue") tras el password; rompía silenciosamente `01_ades_explorer_v4_complete.py` (todas las capturas caían a `/login`). Corregido con paso 3.5 en `_authenticate_authentik()`. Ver memoria `feedback-authentik-oauth2-consent`.
+- [x] **Fase 2 exploratoria** (52 módulos, NIM) — 50 inconsistencias cognitivas + 8 hallazgos deterministas (network/console) fusionados = 58 total. Ver `ades_testing/reports/REPORTE_QA_CONSOLIDADO_2026-07-02.md`.
+- [x] **Análisis estático 3 stacks** (sin servidor SonarQube, solo CLI) en `ades_testing/static_analysis/`: ESLint (frontend, 1492 issues), Checkstyle+PMD+SpotBugs (backend-spring, plugins en pom.xml sin commit), ruff+bandit+mypy (backend FastAPI). Bandit: 3 HIGH + 9 MEDIUM (B608, confirmados falsos positivos — queries parametrizadas con WHERE dinámico de columnas hardcoded).
+
+### 🛠️ Parte 2 — Fixes de seguridad y bugs confirmados
+
+- [x] **IDOR crítico corregido** — `PortalFamiliasController` (`/tutores/{alumno_id}`, `/resumen/{alumno_id}`) no validaba que el alumno perteneciera al tutor autenticado; cualquier padre podía leer datos de cualquier alumno. Fix: `verificarAccesoAlumno()` con excepción para staff (nivelAcceso≤4).
+- [x] **SSL verify=False en bbb.py** → nuevo flag `BBB_SSL_VERIFY` (default `True`) en `app/core/config.py`.
+- [x] **Jinja2 autoescape=False en certificados.py** → `select_autoescape(["html","xml"])` (riesgo XSS en certificados/PDFs oficiales).
+- [x] **500 en `/api/v1/reportes/911`** — `Estadistica911QueryService.discapacidadPorGrado()` usaba columnas inexistentes (`cc.estudiante_id`→`cc.alumno_id`, `cc.activo`→`cc.activa`).
+- [x] **500 en `/api/v1/planes-estudio`** — `PlanesEstudioQueryService` referenciaba tabla inexistente `ades_nivel_educativo` (singular) en vez de `ades_niveles_educativos`.
+- [x] **NPE en `/api/v1/superset/dashboards`** — `SupersetController.listAvailableDashboards()` usaba `Map.of()` con valor `null` (Java no lo permite); reemplazado por `LinkedHashMap`.
+- [x] **`this.profesores(...).map is not a function`** en `eval-docente.component.ts` y `horarios.component.ts` — `GET /profesores` devuelve `{data, total}`, no un array crudo; ambos componentes asumían array. Corregido para desenvolver `.data`.
+- [x] **`Cannot read properties of null (reading 'writeValue')`** en `reportes.component.ts` — `ToggleSwitchModule` nunca se importó pese a usar `<p-toggleswitch [(ngModel)]>`; Angular no encontraba ControlValueAccessor. Diagnosticado por bisección sistemática del template (7 rebuilds).
+- [x] **`Ambiguous handler methods` (500 real) en `/api/v1/entregas/alumno/{id}`** — dos controllers (`evaluaciones.TareaEntregaController` y `gradebook.EntregasController`, este último la versión hexagonal correcta) mapeaban las mismas 5 rutas. Se eliminaron los duplicados del controller antiguo, dejando solo sus 3 endpoints únicos (plagio-check, feedback-multimedia, media).
+
+### 🛠️ Parte 3 — Planes de estudio + pipeline académico completo
+
+- [x] **Mig 100** (`db/migrations/100_completar_planes_estudio_sec_prep.sql`) — hallazgo raíz: TODAS las materias de Preparatoria (101) y las 11 materias reales de Secundaria (NEM 4 campos + 3 Nevadi + Bio/Fis/Quim por grado) estaban `is_active=FALSE` en `ades_materias`, invisibles para cualquier selector, a pesar de tener calificaciones reales en `ades_calificaciones_periodo`. Reactivadas + desactivado 1 duplicado accidental (`SEC-PRY`). Luego se completó `ades_materias_plan` (antes: Secundaria 18/~100 filas correctas is_active=false, Preparatoria solo 1/12 grados) para los 3 niveles — ahora **100% de grados con plan activo** en su ciclo vigente (Primaria 18/18, Secundaria 9/9, Preparatoria 12/12).
+- [x] **Mig 101** (`db/migrations/101_generar_examenes_faltantes.sql`) — `ades_tareas` tenía 6,144 filas pero CERO `tipo_item='examen'`. Generados 2,322 exámenes (1 por combinación grupo+materia+periodo con actividad real) + 60,372 entregas + 60,372 calificaciones (trigger `trg_recalcular_desde_entrega` recalculó automáticamente `ades_calificaciones_periodo`).
+- [x] **Pipeline validado end-to-end vía API real**: materia (`/planes-estudio`) → temario (`/planeacion/temas`) → planificación (`/planeacion/clases`, `/planeacion/semana/{grupo_id}`) → tareas (`/tareas`) → exámenes (tipo_item=examen) → entregas (`/entregas/alumno/{id}`) → calificaciones (`/gradebook/periodo/{id}/grupo/{id}`) → estadísticas (`/gradebook/grupo/{id}/concentrado`). Todos 200 OK con datos coherentes.
+
+### ⚠️ Hallazgos abiertos / pendientes de decisión:
+- **27 materias "clásicas" de Secundaria** (SEC-MAT-1, SEC-ESP, etc.) activas pero sin uso real — catálogo paralelo, candidato a limpieza futura (no tocado, fuera de alcance).
+- **Plugins Checkstyle/PMD/SpotBugs** agregados a `backend-spring/pom.xml` sin commitear — decidir si conservarlos como parte del build permanente.
+- **Semestres 5-6 de Preparatoria** ahora tienen plan de estudio activo pero SIN calificaciones reales aún (a diferencia de sem 1-4) — considerar si se debe generar actividad de gradebook ahí también.
+- Ver `ades_testing/reports/REPORTE_QA_CONSOLIDADO_2026-07-02.md` para el detalle completo de la auditoría y recomendaciones priorizadas.
+
+### 🚀 Próximos Pasos:
+- [ ] Revisar manualmente los 13 hallazgos "Validation Missing" y 4 "SEP/Nevadi Ambiguity" de la exploración cognitiva NIM (leads, no confirmados).
+- [ ] Decidir sobre limpieza del catálogo paralelo de 27 materias clásicas de Secundaria.
+- [ ] Considerar generar calificaciones de prueba para semestres 5-6 de Preparatoria.
+- [ ] Aplicar mismo patrón de auditoría (is_active desincronizado) a otros catálogos del sistema si se sospecha recurrencia.
+
+---
+
 ## Sesión 2026-06-30 — Franjas Horarias + Testing Exploratorio Automatizado ✅
 
 ### 🔑 Estado del Agente:

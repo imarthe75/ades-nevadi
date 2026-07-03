@@ -12,6 +12,7 @@ Soporta:
 """
 
 import os
+import sys
 import json
 import asyncio
 import base64
@@ -148,6 +149,17 @@ class AdesExplorerV4:
             await password_locator.fill(ADES_PASSWORD)
             await password_locator.press('Enter')
             await asyncio.sleep(3)
+
+            logger.info("Paso 3.5: Verificando pantalla de consentimiento OAuth2...")
+            try:
+                continue_btn = page.locator('button:has-text("Continue"), button:has-text("Continuar")').first
+                await continue_btn.wait_for(state="visible", timeout=8000)
+                await continue_btn.click()
+                logger.info("  ✓ Consentimiento OAuth2 confirmado (botón Continue)")
+                await asyncio.sleep(2)
+            except Exception:
+                logger.info("  Sin pantalla de consentimiento (o ya autorizado previamente)")
+
             logger.info("Esperando dashboard y token OIDC...")
             try:
                 await page.wait_for_url(lambda url: "/dashboard" in str(url), timeout=60000)
@@ -567,23 +579,26 @@ class AdesExplorerV4:
 async def main():
     if not ADES_PASSWORD:
         raise ValueError("ADES_PASSWORD no configurada")
-    
+
     explorer = AdesExplorerV4()
-    
-    # OPCIONES DE EJECUCIÓN:
+
+    # OPCIONES DE EJECUCIÓN (override via CLI: python 01_ades_explorer_v4_complete.py [phase] [limit]):
     # phase=1, limit=None  → Todos los módulos críticos/altos (~25) → 30-40 min
     # phase=1, limit=25    → Primeros 25 módulos → 30-40 min
     # phase=1, limit=5     → Test rápido (5 módulos) → 5-10 min
     # phase=1, limit=10    → Test medio (10 módulos) → 15-20 min
-    
+
+    phase = int(sys.argv[1]) if len(sys.argv) > 1 else 1
+    limit = int(sys.argv[2]) if len(sys.argv) > 2 else None
+
     logger.info("=== OPCIONES DE EJECUCIÓN ===")
     logger.info("Smoke test (3 módulos):     phase=1, limit=3   →  ~3-5 min")
     logger.info("Fase 1 (critico+alto):      phase=1, limit=None → ~30-40 min (34 módulos)")
     logger.info("Fase 2 (+medio):            phase=2, limit=None → +18 módulos")
     logger.info("Completo (58 módulos):      phase=3, limit=None → ~60-80 min")
-    logger.info("=== EJECUTANDO FASE 1 COMPLETA (34 módulos críticos/altos) ===\n")
+    logger.info(f"=== EJECUTANDO phase={phase} limit={limit} ===\n")
 
-    await explorer.run(phase=1, limit=None)
+    await explorer.run(phase=phase, limit=limit)
 
 
 if __name__ == "__main__":

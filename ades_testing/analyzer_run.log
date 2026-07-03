@@ -1,0 +1,67 @@
+2026-07-02 22:08:23,938 [INFO] Modelo NIM: meta/llama-3.1-70b-instruct
+2026-07-02 22:08:23,939 [INFO] Base URL: https://integrate.api.nvidia.com/v1
+2026-07-02 22:08:23,939 [INFO] Analizando 52 capturas con meta/llama-3.1-70b-instruct
+2026-07-02 22:08:23,939 [INFO] 
+Batch 1/11
+2026-07-02 22:08:23,939 [INFO]   Llamando NIM API (5 módulos)...
+2026-07-02 22:09:26,601 [INFO] HTTP Request: POST https://integrate.api.nvidia.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-07-02 22:09:26,610 [INFO]   ✓ Batch 1: 4 inconsistencias detectadas
+2026-07-02 22:09:26,610 [INFO] 
+Batch 2/11
+2026-07-02 22:09:26,610 [INFO]   Llamando NIM API (5 módulos)...
+2026-07-02 22:10:10,943 [INFO] HTTP Request: POST https://integrate.api.nvidia.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-07-02 22:10:10,943 [INFO]   ✓ Batch 2: 5 inconsistencias detectadas
+2026-07-02 22:10:10,944 [INFO] 
+Batch 3/11
+2026-07-02 22:10:10,944 [INFO]   Llamando NIM API (5 módulos)...
+2026-07-02 22:10:38,762 [INFO] HTTP Request: POST https://integrate.api.nvidia.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-07-02 22:10:38,762 [INFO]   ✓ Batch 3: 5 inconsistencias detectadas
+2026-07-02 22:10:38,762 [INFO] 
+Batch 4/11
+2026-07-02 22:10:38,762 [INFO]   Llamando NIM API (5 módulos)...
+2026-07-02 22:11:40,374 [INFO] HTTP Request: POST https://integrate.api.nvidia.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-07-02 22:11:40,375 [INFO]   ✓ Batch 4: 5 inconsistencias detectadas
+2026-07-02 22:11:40,375 [INFO] 
+Batch 5/11
+2026-07-02 22:11:40,375 [INFO]   Llamando NIM API (5 módulos)...
+2026-07-02 22:12:13,856 [INFO] HTTP Request: POST https://integrate.api.nvidia.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-07-02 22:12:13,857 [INFO]   ✓ Batch 5: 5 inconsistencias detectadas
+2026-07-02 22:12:13,857 [INFO] 
+Batch 6/11
+2026-07-02 22:12:13,857 [INFO]   Llamando NIM API (5 módulos)...
+2026-07-02 22:13:30,930 [INFO] HTTP Request: POST https://integrate.api.nvidia.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-07-02 22:13:30,931 [INFO]   ✓ Batch 6: 4 inconsistencias detectadas
+2026-07-02 22:13:30,931 [INFO] 
+Batch 7/11
+2026-07-02 22:13:30,931 [INFO]   Llamando NIM API (5 módulos)...
+2026-07-02 22:13:56,235 [INFO] HTTP Request: POST https://integrate.api.nvidia.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-07-02 22:13:56,235 [INFO]   ✓ Batch 7: 5 inconsistencias detectadas
+2026-07-02 22:13:56,235 [INFO] 
+Batch 8/11
+2026-07-02 22:13:56,235 [INFO]   Llamando NIM API (5 módulos)...
+2026-07-02 22:16:34,064 [INFO] HTTP Request: POST https://integrate.api.nvidia.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-07-02 22:16:34,065 [INFO]   ✓ Batch 8: 5 inconsistencias detectadas
+2026-07-02 22:16:34,065 [INFO] 
+Batch 9/11
+2026-07-02 22:16:34,065 [INFO]   Llamando NIM API (5 módulos)...
+2026-07-02 22:17:01,067 [INFO] HTTP Request: POST https://integrate.api.nvidia.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-07-02 22:17:01,067 [INFO]   ✓ Batch 9: 4 inconsistencias detectadas
+2026-07-02 22:17:01,067 [INFO] 
+Batch 10/11
+2026-07-02 22:17:01,068 [INFO]   Llamando NIM API (5 módulos)...
+2026-07-02 22:17:49,667 [INFO] HTTP Request: POST https://integrate.api.nvidia.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-07-02 22:17:49,667 [INFO]   ✓ Batch 10: 5 inconsistencias detectadas
+2026-07-02 22:17:49,668 [INFO] 
+Batch 11/11
+2026-07-02 22:17:49,668 [INFO]   Llamando NIM API (2 módulos)...
+2026-07-02 22:18:10,152 [INFO] HTTP Request: POST https://integrate.api.nvidia.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-07-02 22:18:10,153 [INFO]   ✓ Batch 11: 3 inconsistencias detectadas
+2026-07-02 22:18:10,155 [INFO] 
+✓ Resultados guardados en /opt/ades/ades_testing/analysis
+2026-07-02 22:18:10,155 [INFO]   - Total inconsistencias: 50
+2026-07-02 22:18:10,155 [INFO]   - Críticas: 13
+2026-07-02 22:18:10,155 [INFO]   - Altas: 22
+2026-07-02 22:18:10,155 [INFO]   - Medias: 12
+2026-07-02 22:18:10,155 [INFO]   - Bajas: 3
+2026-07-02 22:18:10,155 [INFO]   - JSON: /opt/ades/ades_testing/analysis/inconsistencies_report.json
+2026-07-02 22:18:10,155 [INFO]   - CSV:  /opt/ades/ades_testing/analysis/inconsistencies_report.csv

@@ -1,0 +1,59 @@
+======================================================================
+ESLint Static Analysis Report — ADES Frontend (Angular 21.2.17)
+======================================================================
+Generated: 2026-07-02
+Config: eslint.config.js (flat config) — angular-eslint 21.4.0 + typescript-eslint 8.59.2
+Scope: src/**/*.ts, src/**/*.html, projects/**/*.ts, projects/**/*.html
+
+Total files analyzed: 142
+Files with issues: 109
+TOTAL ERRORS:   1492
+TOTAL WARNINGS: 0
+TOTAL ISSUES:   1492
+
+----------------------------------------------------------------------
+TOP 15 REGLAS MAS VIOLADAS
+----------------------------------------------------------------------
+  671  (err: 671 warn:   0)  @typescript-eslint/no-explicit-any
+  560  (err: 560 warn:   0)  @angular-eslint/template/label-has-associated-control
+   72  (err:  72 warn:   0)  @angular-eslint/template/prefer-control-flow
+   68  (err:  68 warn:   0)  @typescript-eslint/no-unused-vars
+   38  (err:  38 warn:   0)  @angular-eslint/template/elements-content
+   17  (err:  17 warn:   0)  @angular-eslint/no-empty-lifecycle-method
+   17  (err:  17 warn:   0)  @angular-eslint/template/click-events-have-key-events
+   15  (err:  15 warn:   0)  @angular-eslint/template/interactive-supports-focus
+    9  (err:   9 warn:   0)  @angular-eslint/template/eqeqeq
+    8  (err:   8 warn:   0)  no-useless-escape
+    5  (err:   5 warn:   0)  @angular-eslint/no-output-on-prefix
+    3  (err:   3 warn:   0)  @angular-eslint/no-output-native
+    3  (err:   3 warn:   0)  @angular-eslint/prefer-inject
+    2  (err:   2 warn:   0)  no-case-declarations
+    2  (err:   2 warn:   0)  @angular-eslint/template/no-autofocus
+
+----------------------------------------------------------------------
+TOP 10 ARCHIVOS CON MAS ISSUES
+----------------------------------------------------------------------
+  122  src/app/features/admin/admin.component.ts
+  100  src/app/shared/components/alumno-perfil/alumno-perfil.component.ts
+   56  src/app/features/conducta/conducta.component.ts
+   50  src/app/features/horarios/horarios.component.ts
+   49  src/app/features/padres-admin/padres-admin.component.ts
+   44  src/app/features/portal-admin/portal-admin.component.ts
+   42  src/app/shared/components/profesor-perfil/profesor-perfil.component.ts
+   37  src/app/features/aulas/aulas.component.ts
+   35  src/app/features/movilidad/movilidad.component.ts
+   34  src/app/features/gradebook/gradebook.component.ts
+
+----------------------------------------------------------------------
+NOTAS
+----------------------------------------------------------------------
+- @typescript-eslint/no-explicit-any (671): uso extensivo de 'any' en vez de tipos
+  concretos/interfaces — reduce seguridad de tipos, típico en proyectos migrados
+  rápido o con muchos DTOs de API sin tipar.
+- @angular-eslint/template/label-has-associated-control (560): <label> sin 'for'
+  vinculado a un control de formulario — hallazgo de accesibilidad (a11y),
+  volumen alto sugiere patrón repetido en formularios PrimeNG (p-select, etc).
+- @angular-eslint/template/prefer-control-flow (72): uso de *ngIf/*ngFor en vez de
+  @if/@for (control flow nativo Angular 17+) — deuda de modernización de templates.
+- No se detectaron errores fatales de parseo en ningún archivo.
+

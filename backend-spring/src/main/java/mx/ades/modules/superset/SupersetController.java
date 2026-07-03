@@ -201,16 +201,17 @@ public class SupersetController {
         for (String k : List.of("instituto", "plantel", "docente", "alumno")) {
             String dbId = getDashboardId(k);
             boolean configured = dbId != null && !dbId.isBlank();
-            dashboards.put(k, Map.of(
-                    "id", configured ? dbId : null,
-                    "configured", configured
-            ));
+            // Map.of() no acepta valores null (dbId es null cuando el dashboard no está
+            // configurado aún) — usar HashMap mutable en su lugar para no lanzar NPE.
+            Map<String, Object> entry = new LinkedHashMap<>();
+            entry.put("id", configured ? dbId : null);
+            entry.put("configured", configured);
+            dashboards.put(k, entry);
         }
 
-        Map<String, Object> result = Map.of(
-                "rol_key", rolKey,
-                "dashboards", dashboards
-        );
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("rol_key", rolKey);
+        result.put("dashboards", dashboards);
         return ResponseEntity.ok(result);
     }
 }

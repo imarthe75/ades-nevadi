@@ -18,6 +18,7 @@ import { TooltipModule } from 'primeng/tooltip';
 import { FileUploadModule } from 'primeng/fileupload';
 import { MessageModule } from 'primeng/message';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
+import { ToggleSwitchModule } from 'primeng/toggleswitch';
 
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
@@ -58,7 +59,7 @@ const TIPOS_DOC = [
     CommonModule, FormsModule,
     ButtonModule, SelectModule, TagModule,
     TabsModule,
-    TooltipModule, FileUploadModule, MessageModule, ProgressSpinnerModule,
+    TooltipModule, FileUploadModule, MessageModule, ProgressSpinnerModule, ToggleSwitchModule,
     InteractiveGridComponent,
   ],
   template: `
@@ -73,7 +74,7 @@ const TIPOS_DOC = [
       </div>
     </div>
 
-    <p-tabs [value]="tabActivo()">
+    <p-tabs [value]="tabActivo()" [lazy]="true">
       <p-tablist>
         <p-tab value="generar"><i class="pi pi-file-pdf"></i> Reporte Individual</p-tab>
         <p-tab value="grupo"><i class="pi pi-users"></i> Boletas Grupo</p-tab>
@@ -112,7 +113,7 @@ const TIPOS_DOC = [
                   optionLabel="nombre"
                   optionValue="id"
                   placeholder="Seleccionar plantilla..."
-                  style="width:320px" 
+                  style="width:320px"
  [filter]="true" filterPlaceholder="Buscar..."/>
               </div>
 
@@ -123,22 +124,23 @@ const TIPOS_DOC = [
                   [(ngModel)]="tipoDocSel"
                   optionLabel="label"
                   optionValue="value"
-                  style="width:220px" 
+                  style="width:220px"
  [filter]="true" filterPlaceholder="Buscar..."/>
               </div>
 
-              @if (tipoDocSel === 'BOLETA') {
-                <div class="form-row">
-                  <label>Periodo</label>
-                  <p-select
-                    [options]="[{label:'Todos los periodos',value:null},{label:'Periodo 1',value:1},{label:'Periodo 2',value:2},{label:'Periodo 3',value:3}]"
-                    [(ngModel)]="periodoSel"
-                    optionLabel="label"
-                    optionValue="value"
-                    style="width:200px" 
+              <!-- [hidden] en vez de @if: crear el p-select junto con sus hermanos en el
+                   mismo ciclo de detección de cambios evita que NgModel dispare
+                   ngOnChanges antes de que el ControlValueAccessor de PrimeNG se registre. -->
+              <div class="form-row" [hidden]="tipoDocSel !== 'BOLETA'">
+                <label>Periodo</label>
+                <p-select
+                  [options]="periodoOptions"
+                  [(ngModel)]="periodoSel"
+                  optionLabel="label"
+                  optionValue="value"
+                  style="width:200px"
  [filter]="true" filterPlaceholder="Buscar..."/>
-                </div>
-              }
+              </div>
 
               <div class="form-row">
                 <label></label>
@@ -179,7 +181,7 @@ const TIPOS_DOC = [
                   [(ngModel)]="plantillaGrupoSel"
                   optionLabel="nombre" optionValue="id"
                   placeholder="Plantilla de tipo BOLETA..."
-                  style="width:320px" 
+                  style="width:320px"
  [filter]="true" filterPlaceholder="Buscar..."/>
               </div>
 
@@ -189,7 +191,7 @@ const TIPOS_DOC = [
                   [options]="[{label:'Todos',value:null},{label:'Periodo 1',value:1},{label:'Periodo 2',value:2},{label:'Periodo 3',value:3}]"
                   [(ngModel)]="periodoGrupoSel"
                   optionLabel="label" optionValue="value"
-                  style="width:180px" 
+                  style="width:180px"
  [filter]="true" filterPlaceholder="Buscar..."/>
               </div>
 
@@ -325,6 +327,12 @@ export class ReportesComponent implements OnInit {
   plantillaSel: string | null = null;
   tipoDocSel = 'BOLETA';
   periodoSel: number | null = null;
+  readonly periodoOptions = [
+    { label: 'Todos los periodos', value: null },
+    { label: 'Periodo 1', value: 1 },
+    { label: 'Periodo 2', value: 2 },
+    { label: 'Periodo 3', value: 3 },
+  ];
 
   // Boletas de grupo (FASE 21 — Stirling-PDF)
   grupoSel: string | null = null;

@@ -1,0 +1,37 @@
+======================================================================
+CHECKSTYLE — Resumen de análisis estático (sun_checks.xml)
+======================================================================
+
+Total de violaciones: 17962
+Archivos con violaciones: 627
+
+Por severidad:
+  error     : 17962
+
+Top 10 reglas más violadas:
+    5335  LineLengthCheck
+    3504  FinalParametersCheck
+    2158  JavadocVariableCheck
+    1730  MissingJavadocMethodCheck
+    1364  DesignForExtensionCheck
+    1352  OperatorWrapCheck
+     636  NeedBracesCheck
+     335  JavadocPackageCheck
+     270  MagicNumberCheck
+     264  LeftCurlyCheck
+
+Top 10 clases con más issues:
+     307  mx.ades.modules.procesos.ProcesosEscolaresController
+     283  mx.ades.modules.admin.AdminController
+     255  mx.ades.config.HexagonalConfig
+     247  mx.ades.modules.imports.ImportsController
+     221  mx.ades.modules.imports.ImportsWriteService
+     213  mx.ades.modules.expediente.ExpedienteController
+     207  mx.ades.modules.horarios.HorarioController
+     206  mx.ades.modules.procesos.ProcesosWriteService
+     201  mx.ades.modules.portal.PortalAdminService
+     183  mx.ades.modules.conducta.ConductaController
+
+Nota: sun_checks.xml es un ruleset muy estricto orientado a Javadoc y
+estilo de formato (line length 80, javadoc obligatorio, final params, etc).
+Muchos hallazgos son de estilo/documentación, no bugs funcionales.

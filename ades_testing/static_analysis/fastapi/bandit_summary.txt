@@ -1,0 +1,87 @@
+BANDIT - Reporte de seguridad (backend FastAPI) - OWASP/NIST
+Total lineas de codigo analizadas: 9438
+Total hallazgos: 53
+
+=== CONTEO POR SEVERIDAD ===
+  HIGH     3
+  MEDIUM   9
+  LOW      41
+
+=== CONTEO POR SEVERIDAD x CONFIANZA ===
+  HIGH     / HIGH     : 3
+  MEDIUM   / LOW      : 9
+  LOW      / HIGH     : 40
+  LOW      / MEDIUM   : 1
+
+=== TOP REGLAS (test_id) MAS FRECUENTES ===
+     31  B101 assert_used
+      9  B110 try_except_pass
+      9  B608 hardcoded_sql_expressions
+      1  B324 hashlib
+      1  B501 request_with_no_cert_validation
+      1  B701 jinja2_autoescape_false
+      1  B105 hardcoded_password_string
+
+======================================================================
+=== DETALLE COMPLETO: HALLAZGOS SEVERIDAD HIGH ===
+======================================================================
+
+--- app/api/v1/bbb.py:47 ---
+  Test: B324 (hashlib)
+  Confianza: HIGH
+  CWE: 327 - https://cwe.mitre.org/data/definitions/327.html
+  Descripcion: Use of weak SHA1 hash for security. Consider usedforsecurity=False
+  Codigo:
+    46     raw = f"{action}{params}{secret}"
+    47     return hashlib.sha1(raw.encode()).hexdigest()  # noqa: S324 — BBB requiere SHA-1
+    48 
+
+--- app/api/v1/bbb.py:62 ---
+  Test: B501 (request_with_no_cert_validation)
+  Confianza: HIGH
+  CWE: 295 - https://cwe.mitre.org/data/definitions/295.html
+  Descripcion: Call to httpx with verify=False disabling SSL certificate checks, security issue.
+  Codigo:
+    61 
+    62     async with httpx.AsyncClient(timeout=15.0, verify=False) as client:
+    63         r = await client.get(url)
+
+--- app/api/v1/certificados.py:133 ---
+  Test: B701 (jinja2_autoescape_false)
+  Confianza: HIGH
+  CWE: 94 - https://cwe.mitre.org/data/definitions/94.html
+  Descripcion: By default, jinja2 sets autoescape to False. Consider using autoescape=True or use the select_autoescape function to mitigate XSS vulnerabilities.
+  Codigo:
+    132 
+    133     env = Environment(loader=FileSystemLoader(str(_TEMPLATES_DIR)))
+    134     template = env.get_template("certificado.html")
+
+======================================================================
+=== DETALLE: HALLAZGOS SEVERIDAD MEDIUM (resumen por archivo) ===
+======================================================================
+      2  app/api/v1/h5p.py
+      1  app/api/v1/ai_assistant.py
+      1  app/api/v1/bbb.py
+      1  app/api/v1/certificados.py
+      1  app/api/v1/ia_avanzada.py
+      1  app/api/v1/webhooks.py
+      1  app/services/notification_triggers.py
+      1  app/tests/test_sprint3_optimization.py
+
+Hallazgos MEDIUM individuales (test_id, archivo:linea, descripcion breve):
+  [B608] app/api/v1/ai_assistant.py:253 - Possible SQL injection vector through string-based query construction.
+  [B608] app/api/v1/bbb.py:148 - Possible SQL injection vector through string-based query construction.
+  [B608] app/api/v1/certificados.py:192 - Possible SQL injection vector through string-based query construction.
+  [B608] app/api/v1/h5p.py:121 - Possible SQL injection vector through string-based query construction.
+  [B608] app/api/v1/h5p.py:320 - Possible SQL injection vector through string-based query construction.
+  [B608] app/api/v1/ia_avanzada.py:172 - Possible SQL injection vector through string-based query construction.
+  [B608] app/api/v1/webhooks.py:111 - Possible SQL injection vector through string-based query construction.
+  [B608] app/services/notification_triggers.py:187 - Possible SQL injection vector through string-based query construction.
+  [B608] app/tests/test_sprint3_optimization.py:70 - Possible SQL injection vector through string-based query construction.
+
+======================================================================
+=== SEVERIDAD LOW: 41 hallazgos (agregado, no detallado) ===
+======================================================================
+     31  B101 assert_used
+      9  B110 try_except_pass
+      1  B105 hardcoded_password_string

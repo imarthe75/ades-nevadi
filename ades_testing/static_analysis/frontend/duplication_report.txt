@@ -1,0 +1,284 @@
+======================================================================
+jscpd Duplication Report — ADES Frontend
+======================================================================
+Comando: npx jscpd src projects --min-lines 5 --min-tokens 50
+Alcance: src/ (app principal) + projects/ (apex-component-library)
+
+RESUMEN POR FORMATO
+  typescript: 125 archivos, 174,922 tokens, 73 clones, 724 líneas dup (1.71%), 6493 tokens dup (3.71%)
+  markup(html inline): 11 bloques, 3,032 tokens, 3 clones, 25 líneas dup (5.13%)
+  scss: 11 archivos, 0 clones
+  TOTAL: 148 archivos, 43,948 líneas, 76 clones, 749 líneas duplicadas (1.70%), 6666 tokens dup (3.62%)
+
+TOP ARCHIVOS EN DUPLICACION (por num. de clones involucrados)
+   9  app/features/asistencia-personal/asistencia-personal.component.ts
+   9  app/shared/components/alumno-perfil/alumno-perfil.component.ts
+   7  app/shared/components/profesor-perfil/profesor-perfil.component.ts
+   6  apex-component-library/src/lib/navigation/navigation.component.html
+   6  app/features/admision/admision.component.ts
+   6  app/features/capacitaciones/capacitaciones.component.ts
+   6  app/features/conducta/conducta.component.ts
+   6  app/features/movilidad/movilidad.component.ts
+   5  apex-component-library/src/lib/interactive-grid/interactive-grid.component.ts
+   5  app/features/alumnos/alumnos.component.ts
+
+NOTA: alumno-perfil.component.ts / profesor-perfil.component.ts comparten el
+clon mas grande detectado (71 lineas, 597 tokens) — fuerte candidato a extraer
+un componente/servicio base compartido "persona-perfil".
+
+Tambien: apex-component-library/interactive-grid vs
+app/shared/components/interactive-grid parecen ser una duplicacion completa
+del mismo componente en dos ubicaciones (posible copia no consolidada tras
+migrar a la libreria apex-component-library).
+
+----------------------------------------------------------------------
+DETALLE DE CLONES (jscpd console output)
+----------------------------------------------------------------------
+Clone found (typescript)
+ - apex-component-library/src/lib/breadcrumb/breadcrumb.component.ts [189:26 - 198:14] (10 lines, 51 tokens)
+   apex-component-library/src/lib/navigation/navigation.component.ts [357:28 - 365:14]
+Clone found (typescript)
+ - apex-component-library/src/lib/interactive-grid/interactive-grid.component.ts [4:1 - 14:17] (11 lines, 62 tokens)
+   app/shared/components/interactive-grid/interactive-grid.component.ts [13:1 - 23:17]
+Clone found (typescript)
+ - apex-component-library/src/lib/interactive-grid/interactive-grid.component.ts [202:15 - 217:17] (16 lines, 117 tokens)
+   app/shared/components/interactive-grid/interactive-grid.component.ts [237:24 - 255:17]
+Clone found (typescript)
+ - apex-component-library/src/lib/interactive-grid/interactive-grid.component.ts [235:24 - 247:22] (13 lines, 111 tokens)
+   app/shared/components/interactive-grid/interactive-grid.component.ts [280:35 - 295:22]
+Clone found (typescript)
+ - apex-component-library/src/lib/interactive-grid/interactive-grid.component.ts [247:17 - 253:10] (7 lines, 64 tokens)
+   app/shared/components/interactive-grid/interactive-grid.component.ts [295:52 - 303:10]
+Clone found (typescript)
+ - apex-component-library/src/lib/interactive-grid/interactive-grid.component.ts [304:73 - 310:31] (7 lines, 69 tokens)
+   app/features/calificaciones/calificaciones.component.ts [510:6 - 515:31]
+Clone found (markup)
+ - apex-component-library/src/lib/navigation/navigation.component.html [17:14 - 29:13] (13 lines, 67 tokens)
+   apex-component-library/src/lib/navigation/navigation.component.html [33:14 - 45:13]
+Clone found (markup)
+ - apex-component-library/src/lib/navigation/navigation.component.html [19:14 - 24:67] (6 lines, 51 tokens)
+   apex-component-library/src/lib/navigation/navigation.component.html [52:14 - 57:67]
+Clone found (markup)
+ - apex-component-library/src/lib/navigation/navigation.component.html [80:22 - 88:18] (9 lines, 55 tokens)
+   apex-component-library/src/lib/navigation/navigation.component.html [92:22 - 100:18]
+Clone found (typescript)
+ - app/common/workflow-utils.ts [48:27 - 55:11] (8 lines, 62 tokens)
+   app/common/workflow-utils.ts [62:18 - 68:11]
+Clone found (typescript)
+ - app/core/services/api.service.ts [15:101 - 22:25] (8 lines, 67 tokens)
+   app/core/services/api.service.ts [49:95 - 56:25]
+Clone found (typescript)
+ - app/core/services/api.service.ts [15:6 - 22:32] (8 lines, 100 tokens)
+   app/core/services/api.service.ts [64:9 - 71:32]
+Clone found (typescript)
+ - app/features/acta-evaluacion/acta-evaluacion.component.ts [1:54 - 10:9] (10 lines, 62 tokens)
+   app/features/kardex/kardex.component.ts [1:54 - 10:9]
+Clone found (typescript)
+ - app/features/acta-evaluacion/acta-evaluacion.component.ts [244:38 - 267:5] (24 lines, 256 tokens)
+   app/features/kardex/kardex.component.ts [194:80 - 217:5]
+Clone found (typescript)
+ - app/features/acta-evaluacion/acta-evaluacion.component.ts [334:49 - 341:17] (8 lines, 90 tokens)
+   app/features/kardex/kardex.component.ts [296:41 - 303:17]
+Clone found (typescript)
+ - app/features/admision/admision.component.ts [1:54 - 9:9] (9 lines, 55 tokens)
+   app/features/asistencia-personal/asistencia-personal.component.ts [1:54 - 9:9]
+Clone found (typescript)
+ - app/features/admision/admision.component.ts [1:1 - 9:9] (9 lines, 66 tokens)
+   app/features/capacitaciones/capacitaciones.component.ts [1:1 - 9:9]
+Clone found (typescript)
+ - app/features/admision/admision.component.ts [1:1 - 11:9] (11 lines, 80 tokens)
+   app/features/disponibilidad/disponibilidad.component.ts [1:1 - 11:9]
+Clone found (typescript)
+ - app/features/admision/admision.component.ts [4:61 - 13:9] (10 lines, 59 tokens)
+   app/features/foros/foros.component.ts [5:44 - 14:9]
+Clone found (typescript)
+ - app/features/admision/admision.component.ts [383:68 - 389:18] (7 lines, 61 tokens)
+   app/features/admision/admision.component.ts [390:64 - 396:15]
+Clone found (typescript)
+ - app/features/alumnos/alumnos.component.ts [144:42 - 149:67] (6 lines, 50 tokens)
+   app/features/profesores/profesores.component.ts [137:42 - 142:67]
+Clone found (typescript)
+ - app/features/alumnos/alumnos.component.ts [168:59 - 175:13] (8 lines, 65 tokens)
+   app/features/profesores/profesores.component.ts [159:50 - 166:13]
+Clone found (typescript)
+ - app/features/alumnos/alumnos.component.ts [211:6 - 217:10] (7 lines, 107 tokens)
+   app/features/conducta/conducta.component.ts [664:97 - 671:10]
+Clone found (typescript)
+ - app/features/alumnos/alumnos.component.ts [211:5 - 218:25] (8 lines, 124 tokens)
+   app/features/profesores/profesores.component.ts [191:70 - 198:25]
+Clone found (typescript)
+ - app/features/alumnos/alumnos.component.ts [307:7 - 315:19] (9 lines, 63 tokens)
+   app/features/profesores/profesores.component.ts [260:7 - 268:19]
+Clone found (typescript)
+ - app/features/asistencia-personal/asistencia-personal.component.ts [1:1 - 8:9] (8 lines, 59 tokens)
+   app/features/biblioteca/biblioteca.component.ts [1:1 - 8:9]
+Clone found (typescript)
+ - app/features/asistencia-personal/asistencia-personal.component.ts [1:1 - 10:9] (10 lines, 73 tokens)
+   app/features/condiciones-cronicas/condiciones-cronicas.component.ts [1:1 - 10:9]
+Clone found (typescript)
+ - app/features/asistencia-personal/asistencia-personal.component.ts [1:1 - 10:9] (10 lines, 73 tokens)
+   app/features/justificaciones/justificaciones.component.ts [1:1 - 10:9]
+Clone found (typescript)
+ - app/features/asistencia-personal/asistencia-personal.component.ts [276:117 - 287:18] (12 lines, 67 tokens)
+   app/features/capacitaciones/capacitaciones.component.ts [338:43 - 350:18]
+Clone found (typescript)
+ - app/features/asistencia-personal/asistencia-personal.component.ts [276:117 - 288:43] (13 lines, 81 tokens)
+   app/features/licencias/licencias.component.ts [245:45 - 258:14]
+Clone found (typescript)
+ - app/features/asistencia-personal/asistencia-personal.component.ts [293:93 - 303:99] (11 lines, 128 tokens)
+   app/features/expediente-laboral/expediente-laboral.component.ts [285:95 - 295:99]
+Clone found (typescript)
+ - app/features/asistencia-personal/asistencia-personal.component.ts [302:32 - 307:25] (6 lines, 73 tokens)
+   app/features/asistencia-personal/asistencia-personal.component.ts [316:31 - 321:25]
+Clone found (typescript)
+ - app/features/aulas/aulas.component.ts [10:53 - 17:9] (8 lines, 50 tokens)
+   app/features/gradebook/gradebook.component.ts [1:53 - 8:9]
+Clone found (typescript)
+ - app/features/badges/badges.component.ts [15:56 - 24:10] (10 lines, 51 tokens)
+   app/features/grade-analytics/grade-analytics.component.ts [11:42 - 20:10]
+Clone found (typescript)
+ - app/features/bbb/bbb.component.ts [2:57 - 14:9] (13 lines, 80 tokens)
+   app/features/h5p/h5p.component.ts [5:60 - 17:9]
+Clone found (typescript)
+ - app/features/bbb/bbb.component.ts [348:40 - 358:4] (11 lines, 104 tokens)
+   app/features/h5p/h5p.component.ts [344:41 - 354:4]
+Clone found (typescript)
+ - app/features/calendario/calendario.component.ts [1:27 - 8:9] (8 lines, 56 tokens)
+   app/features/horarios/horarios.component.ts [8:38 - 15:9]
+Clone found (typescript)
+ - app/features/calendario/calendario.component.ts [1:1 - 7:9] (7 lines, 54 tokens)
+   app/features/reinscripcion/reinscripcion.component.ts [1:1 - 7:9]
+Clone found (typescript)
+ - app/features/calificaciones/calificaciones.component.ts [509:18 - 515:31] (7 lines, 73 tokens)
+   app/features/evaluaciones/evaluaciones.component.ts [462:21 - 469:17]
+Clone found (typescript)
+ - app/features/capacitaciones/capacitaciones.component.ts [5:46 - 13:9] (9 lines, 52 tokens)
+   app/features/licencias/licencias.component.ts [6:125 - 14:9]
+Clone found (typescript)
+ - app/features/capacitaciones/capacitaciones.component.ts [360:3 - 374:4] (15 lines, 175 tokens)
+   app/features/disponibilidad/disponibilidad.component.ts [246:15 - 260:4]
+Clone found (typescript)
+ - app/features/capacitaciones/capacitaciones.component.ts [363:79 - 376:13] (14 lines, 141 tokens)
+   app/features/disponibilidad/disponibilidad.component.ts [249:79 - 262:24]
+Clone found (typescript)
+ - app/features/capacitaciones/capacitaciones.component.ts [367:32 - 372:25] (6 lines, 79 tokens)
+   app/features/licencias/licencias.component.ts [272:33 - 277:25]
+Clone found (typescript)
+ - app/features/comunicados/comunicados.component.ts [2:33 - 12:9] (11 lines, 71 tokens)
+   app/features/encuestas/encuestas.component.ts [2:23 - 12:9]
+Clone found (typescript)
+ - app/features/conducta/conducta.component.ts [692:46 - 705:10] (14 lines, 108 tokens)
+   app/features/conducta/conducta.component.ts [947:45 - 959:10]
+Clone found (typescript)
+ - app/features/conducta/conducta.component.ts [911:16 - 917:14] (7 lines, 84 tokens)
+   app/features/learning-paths/learning-paths.component.ts [612:20 - 618:14]
+Clone found (typescript)
+ - app/features/conducta/conducta.component.ts [917:25 - 923:25] (7 lines, 80 tokens)
+   app/features/learning-paths/learning-paths.component.ts [618:29 - 624:25]
+Clone found (typescript)
+ - app/features/conducta/conducta.component.ts [918:19 - 923:19] (6 lines, 53 tokens)
+   app/features/movilidad/movilidad.component.ts [536:33 - 541:19]
+Clone found (typescript)
+ - app/features/dashboard/dashboard.component.ts [607:18 - 617:16] (11 lines, 90 tokens)
+   app/features/dashboard/dashboard.component.ts [748:27 - 757:14]
+Clone found (typescript)
+ - app/features/dashboard/dashboard.component.ts [645:35 - 652:16] (8 lines, 61 tokens)
+   app/features/dashboard/dashboard.component.ts [768:29 - 775:14]
+Clone found (typescript)
+ - app/features/expediente-doc/expediente-doc.component.ts [515:40 - 520:4] (6 lines, 50 tokens)
+   app/features/expediente-doc/expediente-doc.component.ts [546:89 - 551:4]
+Clone found (typescript)
+ - app/features/expediente-laboral/expediente-laboral.component.ts [1:44 - 12:9] (12 lines, 76 tokens)
+   app/features/foros/foros.component.ts [1:54 - 12:9]
+Clone found (typescript)
+ - app/features/grade-analytics/grade-analytics.component.ts [401:24 - 410:15] (10 lines, 99 tokens)
+   app/features/planeacion/planeacion.component.ts [338:18 - 345:48]
+Clone found (typescript)
+ - app/features/gradebook/gradebook.component.ts [1:62 - 9:9] (9 lines, 55 tokens)
+   app/features/ponderacion-config/ponderacion-config.component.ts [1:54 - 9:9]
+Clone found (typescript)
+ - app/features/gradebook/gradebook.component.ts [723:90 - 733:4] (11 lines, 70 tokens)
+   app/features/mi-progreso/mi-progreso.component.ts [269:21 - 279:4]
+Clone found (typescript)
+ - app/features/grupos/grupos.component.ts [178:54 - 186:10] (9 lines, 67 tokens)
+   app/features/grupos/grupos.component.ts [186:10 - 194:4]
+Clone found (typescript)
+ - app/features/horarios/horarios.component.ts [30:24 - 44:2] (15 lines, 71 tokens)
+   app/shared/components/horario-grid/horario-grid.component.ts [6:35 - 20:2]
+Clone found (typescript)
+ - app/features/horarios/horarios.component.ts [1109:86 - 1117:4] (9 lines, 78 tokens)
+   app/shared/components/horario-grid/horario-grid.component.ts [148:94 - 156:4]
+Clone found (typescript)
+ - app/features/movilidad/movilidad.component.ts [524:34 - 545:4] (22 lines, 183 tokens)
+   app/features/optativas/optativas.component.ts [201:26 - 222:4]
+Clone found (typescript)
+ - app/features/movilidad/movilidad.component.ts [525:3 - 545:4] (21 lines, 182 tokens)
+   app/features/padres-admin/padres-admin.component.ts [625:3 - 647:4]
+Clone found (typescript)
+ - app/features/movilidad/movilidad.component.ts [537:29 - 547:17] (11 lines, 65 tokens)
+   app/features/optativas/optativas.component.ts [214:29 - 224:17]
+Clone found (typescript)
+ - app/features/movilidad/movilidad.component.ts [576:103 - 584:4] (9 lines, 57 tokens)
+   app/features/movilidad/movilidad.component.ts [602:107 - 610:4]
+Clone found (typescript)
+ - app/features/padres-admin/padres-admin.component.ts [623:26 - 636:64] (14 lines, 105 tokens)
+   app/features/padres/padres.component.ts [389:36 - 400:64]
+Clone found (typescript)
+ - app/features/personal-admin/personal-admin.component.ts [361:49 - 366:5] (6 lines, 64 tokens)
+   app/features/personal-admin/personal-admin.component.ts [371:58 - 376:5]
+Clone found (typescript)
+ - app/features/personal-admin/personal-admin.component.ts [437:24 - 442:56] (6 lines, 61 tokens)
+   app/features/personal-admin/personal-admin.component.ts [466:27 - 471:56]
+Clone found (typescript)
+ - app/features/planeacion/planeacion.component.ts [1:35 - 8:9] (8 lines, 54 tokens)
+   app/features/reinscripcion/reinscripcion.component.ts [1:35 - 8:9]
+Clone found (typescript)
+ - app/features/reportes/reportes.component.ts [400:60 - 405:75] (6 lines, 54 tokens)
+   app/features/reportes/reportes.component.ts [439:36 - 444:75]
+Clone found (typescript)
+ - app/shared/components/alumno-perfil/alumno-perfil.component.ts [6:1 - 11:9] (6 lines, 55 tokens)
+   app/shared/components/profesor-perfil/profesor-perfil.component.ts [5:1 - 10:9]
+Clone found (typescript)
+ - app/shared/components/alumno-perfil/alumno-perfil.component.ts [532:31 - 538:18] (7 lines, 52 tokens)
+   app/shared/components/profesor-perfil/profesor-perfil.component.ts [273:31 - 279:18]
+Clone found (typescript)
+ - app/shared/components/alumno-perfil/alumno-perfil.component.ts [582:62 - 601:25] (20 lines, 195 tokens)
+   app/shared/components/profesor-perfil/profesor-perfil.component.ts [288:33 - 307:25]
+Clone found (typescript)
+ - app/shared/components/alumno-perfil/alumno-perfil.component.ts [612:9 - 682:17] (71 lines, 597 tokens)
+   app/shared/components/profesor-perfil/profesor-perfil.component.ts [304:73 - 372:17]
+Clone found (typescript)
+ - app/shared/components/alumno-perfil/alumno-perfil.component.ts [842:21 - 850:34] (9 lines, 53 tokens)
+   app/shared/components/profesor-perfil/profesor-perfil.component.ts [424:23 - 432:34]
+Clone found (typescript)
+ - app/shared/components/alumno-perfil/alumno-perfil.component.ts [877:43 - 884:87] (8 lines, 84 tokens)
+   app/shared/components/profesor-perfil/profesor-perfil.component.ts [456:48 - 463:87]
+Clone found (typescript)
+ - app/shared/components/alumno-perfil/alumno-perfil.component.ts [900:39 - 911:15] (12 lines, 57 tokens)
+   app/shared/components/domicilio/domicilio.component.ts [752:36 - 763:15]
+Clone found (typescript)
+ - app/shared/components/alumno-perfil/alumno-perfil.component.ts [950:38 - 961:21] (12 lines, 72 tokens)
+   app/shared/components/domicilio/domicilio.component.ts [803:31 - 814:21]
+Clone found (typescript)
+ - app/shared/components/alumno-perfil/alumno-perfil.component.ts [961:79 - 972:2] (12 lines, 80 tokens)
+   app/shared/components/profesor-perfil/profesor-perfil.component.ts [466:6 - 477:2]
+┌────────────┬────────────────┬─────────────┬──────────────┬──────────────┬──────────────────┬───────────────────┐
+│ Format     │ Files analyzed │ Total lines │ Total tokens │ Clones found │ Duplicated lines │ Duplicated tokens │
+├────────────┼────────────────┼─────────────┼──────────────┼──────────────┼──────────────────┼───────────────────┤
+│ json       │ 1              │ 16          │ 57           │ 0            │ 0 (0.00%)        │ 0 (0.00%)         │
+├────────────┼────────────────┼─────────────┼──────────────┼──────────────┼──────────────────┼───────────────────┤
+│ markup     │ 11             │ 487         │ 3032         │ 3            │ 25 (5.13%)       │ 173 (5.71%)       │
+├────────────┼────────────────┼─────────────┼──────────────┼──────────────┼──────────────────┼───────────────────┤
+│ scss       │ 11             │ 1149        │ 6040         │ 0            │ 0 (0.00%)        │ 0 (0.00%)         │
+├────────────┼────────────────┼─────────────┼──────────────┼──────────────┼──────────────────┼───────────────────┤
+│ typescript │ 125            │ 42296       │ 174922       │ 73           │ 724 (1.71%)      │ 6493 (3.71%)      │
+├────────────┼────────────────┼─────────────┼──────────────┼──────────────┼──────────────────┼───────────────────┤
+│ Total:     │ 148            │ 43948       │ 184051       │ 76           │ 749 (1.70%)      │ 6666 (3.62%)      │
+└────────────┴────────────────┴─────────────┴──────────────┴──────────────┴──────────────────┴───────────────────┘
+Found 76 clones.
+JSON report saved to /tmp/claude-1001/-opt-ades/e0d08da2-b62a-4bbf-a027-f195413025f6/scratchpad/jscpd/jscpd-report.json
+time: 59.042ms
+
+💡 Auto-refactor with AI: npx skills add https://github.com/kucherenko/jscpd --skill dry-refactoring
+🎩 New: Gangsta Agents — discipline your AI coding → gangsta.page
+💖 Support jscpd project → https://opencollective.com/jscpd

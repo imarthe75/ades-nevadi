@@ -127,10 +127,13 @@ async def _get_llave_activa_pub(db: AsyncSession) -> Optional[str]:
 
 
 def _render_pdf(context: dict) -> bytes:
-    from jinja2 import Environment, FileSystemLoader
+    from jinja2 import Environment, FileSystemLoader, select_autoescape
     from weasyprint import HTML
 
-    env = Environment(loader=FileSystemLoader(str(_TEMPLATES_DIR)))
+    env = Environment(
+        loader=FileSystemLoader(str(_TEMPLATES_DIR)),
+        autoescape=select_autoescape(["html", "xml"]),
+    )
     template = env.get_template("certificado.html")
     html_str = template.render(**context)
     return HTML(string=html_str, base_url=str(_TEMPLATES_DIR)).write_pdf()

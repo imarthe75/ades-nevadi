@@ -1,0 +1,61 @@
+RUFF - Reporte de calidad de codigo (backend FastAPI)
+Herramienta: ruff ruff 0.15.20
+Reglas: E,F,W,C90 (complejidad McCabe),B (bugbear),S (security/bandit-like)
+Total de hallazgos: 1011
+
+=== TOP 20 REGLAS MAS VIOLADAS ===
+  E501       603
+  B008       156
+  W293        90
+  F401        62
+  S101        31
+  B904        13
+  S110         9
+  S608         9
+  E701         8
+  E712         7
+  W291         6
+  C901         5
+  F821         2
+  B007         2
+  F841         1
+  S501         1
+  S701         1
+  E741         1
+  B905         1
+  E702         1
+
+=== TOP 15 ARCHIVOS CON MAS HALLAZGOS ===
+     74  app/api/v1/ai_assistant.py
+     58  app/models/personas.py
+     51  app/worker/tasks/sepomex.py
+     48  app/models/fase3.py
+     46  app/api/v1/bbb.py
+     46  app/api/v1/h5p.py
+     43  app/api/v1/chatbot.py
+     42  app/models/operacion.py
+     39  app/api/v1/expediente.py
+     38  app/api/v1/certificados.py
+     37  app/api/v1/ia_avanzada.py
+     36  app/api/v1/boletas.py
+     32  app/tests/test_casos_uso.py
+     31  app/api/v1/carbone.py
+     31  app/api/v1/pdf_tools.py
+
+=== DESGLOSE REGLAS DE SEGURIDAD (S-xxx, bandit-equivalentes en ruff) ===
+  S101        31
+  S110         9
+  S608         9
+  S501         1
+  S701         1
+  S105         1
+
+=== DESGLOSE COMPLEJIDAD (C901) ===
+  C901         5
+
+Funciones que exceden complejidad (detalle):
+  app/api/v1/ia_avanzada.py:28 - `prediccion_abandono` is too complex (12 > 10)
+  app/api/v1/pdf_tools.py:182 - `boletas_grupo_fusionadas` is too complex (14 > 10)
+  app/tests/test_sprint3_optimization.py:29 - `run_sprint3_validation` is too complex (11 > 10)
+  app/worker/tasks/boletas.py:59 - `_generar_pdf_alumno` is too complex (19 > 10)
+  app/worker/tasks/sepomex.py:24 - `sync_sepomex_weekly` is too complex (21 > 10)

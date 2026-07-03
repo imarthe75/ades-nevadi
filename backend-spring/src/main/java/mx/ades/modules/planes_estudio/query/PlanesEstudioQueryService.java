@@ -27,7 +27,7 @@ public class PlanesEstudioQueryService {
             JOIN ades_materias m ON m.id = mp.materia_id
             JOIN ades_grados g ON g.id = mp.grado_id
             JOIN ades_ciclos_escolares ce ON ce.id = mp.ciclo_escolar_id
-            JOIN ades_nivel_educativo ne ON ne.id = g.nivel_educativo_id
+            JOIN ades_niveles_educativos ne ON ne.id = g.nivel_educativo_id
             WHERE mp.is_active = TRUE
             """);
 

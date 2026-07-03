@@ -402,8 +402,8 @@ export class EvalDocenteComponent implements OnInit {
     const params: Record<string, any> = {};
     if (plantelId) params['plantel_id'] = plantelId;
     this.loadingProfesores.set(true);
-    this.api.get<Profesor[]>('/profesores', params).subscribe({
-      next: p => { this.profesores.set(p); this.loadingProfesores.set(false); },
+    this.api.get<{ data: Profesor[]; total: number }>('/profesores', params).subscribe({
+      next: resp => { this.profesores.set(resp.data); this.loadingProfesores.set(false); },
       error: () => this.loadingProfesores.set(false),
     });
     this.api.get<Criterio[]>('/eval-docente/criterios').subscribe(c => {

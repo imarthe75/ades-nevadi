@@ -117,6 +117,7 @@ class Settings(BaseSettings):
     # BigBlueButton — Videoconferencias Institucionales (FASE 26)
     BBB_SERVER_URL: str = ""          # e.g. https://bbb.institutonevadi.edu.mx/bigbluebutton
     BBB_SHARED_SECRET: str = ""       # Shared secret del servidor BBB
+    BBB_SSL_VERIFY: bool = True       # False solo si el servidor BBB usa certificado autofirmado interno
 
     # Paperless-ngx — Gestión Documental OCR (FASE 28)
     PAPERLESS_URL: str = "http://ades-paperless:8000"
