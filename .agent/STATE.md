@@ -3282,11 +3282,10 @@ Total cambios: 8 files changed, 906 insertions(+)
 - [x] **Gotcha de bind-mount redescubierto:** editar `prometheus.yml` (archivo, no directorio) no se refleja en el contenedor con solo `POST /-/reload` — el bind mount de un solo archivo queda apuntando al inode viejo. Se requirió `docker compose up -d --force-recreate --no-deps prometheus`. Los archivos **nuevos** dentro de un directorio bind-mounted (como `rules/node.yml`) sí aparecen sin recrear el contenedor.
 - [x] **Confirmado ya hecho (sin trabajo adicional):** conexión disponibilidad docente → Timefold (ver corrección de TODO obsoleto arriba); actas de inicio/cierre de ciclo (`CierreCicloController.java` + `cierre-ciclo.component.ts` ya completos y conectados).
 
-### ⚠️ Hallazgo fuera de alcance (no corregido, solo documentado):
-- El *scrape target* `postgresql` en Prometheus apunta a `ades-postgres-exporter:9187`, pero ese servicio **nunca fue definido** en `docker-compose.yml` (solo existe `pgbouncer-exporter`) — el contenedor no existe. El target aparece "down" en `/targets`. No estaba en el alcance de las FASES 33/34/35 aprobadas; queda como hallazgo para una sesión futura.
+### ✅ Hallazgo corregido en la misma sesión (follow-up inmediato):
+- El *scrape target* `postgresql` en Prometheus apuntaba a `ades-postgres-exporter:9187`, pero ese servicio **nunca había sido definido** en `docker-compose.yml` (solo existía `pgbouncer-exporter`) — el contenedor no existía y el target aparecía "down" en silencio, probablemente desde SPRINT 5. El archivo de queries personalizadas `infrastructure/postgres_exporter/queries.yml` (con las métricas `pg_ades_*` que usan las reglas de alerta de `postgresql.yml`) sí existía, solo le faltaba el servicio real. Corregido: agregado servicio `postgres-exporter` (imagen `prometheuscommunity/postgres-exporter`, conecta directo a `ades-postgres` — no vía PgBouncer, porque `pg_stat_activity`/`pg_stat_user_tables` necesitan ver la actividad real del servidor). Verificado: `pg_up=1`, métricas `pg_ades_cache_hit_cache_hit_pct`/`pg_ades_long_queries_count` expuestas correctamente, target `up` en Prometheus, las 8 reglas del grupo `postgresql` + 2 de `pgbouncer` evaluando `ok` con datos reales.
 
 ### 🚀 Próximos Pasos (Siguiente Sesión):
-- [ ] Definir el servicio `postgres-exporter` real en `docker-compose.yml` (hallazgo de esta sesión, ver arriba).
 - [ ] Rebuild + deploy de `ades-bff` (ZipService, CatalogsController) y `ades-frontend` (admision.component.ts) si no se hizo aún en esta misma sesión.
 - [ ] Migración a ApiService en el Frontend (heredado de sesión 2026-06-24, sigue pendiente).
 - [ ] Google SSO, Big Blue Button externo, Blockchain Polygon PoS — sin cambios, siguen pendientes de insumos externos.

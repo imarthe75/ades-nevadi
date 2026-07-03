@@ -971,6 +971,36 @@ services:
 
 
   # ---------------------------------------------------------------------------
+  # postgres_exporter — métricas PostgreSQL para Prometheus
+  # SPRINT 5: referenciado en prometheus.yml (job "postgresql") y en las reglas
+  # de alerta rules/postgresql.yml desde su creación, pero nunca se definió
+  # como servicio real — el target aparecía "down" en silencio. Corregido
+  # 2026-07-03. Conecta directo a ades-postgres (no vía PgBouncer) porque
+  # pg_stat_activity/pg_stat_user_tables necesitan ver la actividad real del
+  # servidor, no solo las conexiones pooleadas.
+  # ---------------------------------------------------------------------------
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    container_name: ades-postgres-exporter
+    restart: unless-stopped
+    environment:
+      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER:-ades_admin}:${POSTGRES_PASSWORD}@ades-postgres:5432/ades?sslmode=disable"
+      PG_EXPORTER_EXTEND_QUERY_PATH: /etc/postgres_exporter/queries.yml
+    volumes:
+      - ./infrastructure/postgres_exporter/queries.yml:/etc/postgres_exporter/queries.yml:ro
+    ports:
+      - "127.0.0.1:9187:9187"
+    networks:
+      - ades-internal
+    depends_on:
+      postgres:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+
+  # ---------------------------------------------------------------------------
   # pgbouncer_exporter — métricas PgBouncer para Prometheus
   # SPRINT 5: pool saturation, wait time, query rates desde SHOW STATS
   # Scrapeado por Prometheus en job "pgbouncer"
