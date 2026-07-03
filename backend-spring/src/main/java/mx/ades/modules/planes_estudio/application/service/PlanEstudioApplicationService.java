@@ -48,4 +48,14 @@ public class PlanEstudioApplicationService implements AsignarMateriaUseCase {
         int rows = repo.softDelete(id);
         if (rows == 0) throw new IllegalStateException("Plan de estudio no encontrado: " + id);
     }
+
+    /** AC-015: publica una versión de plan (visible en vistas operativas). */
+    public void publicar(UUID id) {
+        repo.patchEstadoPublicacion(id, "PUBLICADO");
+    }
+
+    /** AC-015: archiva una versión de plan (histórico, ya no editable ni operativo). */
+    public void archivar(UUID id) {
+        repo.patchEstadoPublicacion(id, "ARCHIVADO");
+    }
 }

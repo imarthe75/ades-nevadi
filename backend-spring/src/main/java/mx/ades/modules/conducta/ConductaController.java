@@ -9,7 +9,10 @@ import mx.ades.modules.conducta.domain.port.in.CrearPlanMejoraUseCase;
 import mx.ades.modules.conducta.query.ConductaQueryService;
 import mx.ades.security.AdesUser;
 import mx.ades.security.AdesUserService;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.web.client.RestClient;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -44,6 +47,10 @@ public class ConductaController {
     private final AplicarSancionUseCase aplicarSancion;
     private final CrearPlanMejoraUseCase crearPlanMejora;
     private final ConductaQueryService queryService;
+    private final RiesgoConductualService riesgoConductualService;
+    private final RestClient restClient = RestClient.builder().build();
+
+    private static final String API_BASE_URL = "http://ades-api:8000/api/v1/conducta";
 
     @Data
     public static class ReporteCreateRequest {
@@ -321,5 +328,54 @@ public class ConductaController {
                 .filter(ReporteConducta::getIsActive)
                 .map(ReporteConducta::getEstudianteId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Reporte no encontrado"));
+    }
+
+    // ── SB-016: Análisis de patrones de conducta (riesgo) ─────────────────────
+
+    @GetMapping("/riesgo/{estudianteId}")
+    public ResponseEntity<Map<String, Object>> riesgoConductual(
+            @PathVariable UUID estudianteId,
+            @AuthenticationPrincipal Jwt jwt) {
+        userService.resolveUser(jwt);
+        return ResponseEntity.ok(riesgoConductualService.obtenerUltimo(estudianteId));
+    }
+
+    @PostMapping("/riesgo/{estudianteId}/calcular")
+    public ResponseEntity<Map<String, Object>> calcularRiesgo(
+            @PathVariable UUID estudianteId,
+            @AuthenticationPrincipal Jwt jwt) {
+        AdesUser user = userService.resolveUser(jwt);
+        requireNivel(user, 4);
+        return ResponseEntity.ok(riesgoConductualService.calcular(estudianteId));
+    }
+
+    @PostMapping("/riesgo/grupo/{grupoId}/recalcular")
+    public ResponseEntity<List<Map<String, Object>>> recalcularRiesgoGrupo(
+            @PathVariable UUID grupoId,
+            @AuthenticationPrincipal Jwt jwt) {
+        AdesUser user = userService.resolveUser(jwt);
+        requireNivel(user, 3);
+        return ResponseEntity.ok(riesgoConductualService.recalcularGrupo(grupoId));
+    }
+
+    // ── SB-017: Acta de evaluación de conducta en PDF ─────────────────────────
+
+    @GetMapping("/{reporteId}/acta-pdf")
+    public ResponseEntity<byte[]> descargarActaConducta(
+            @PathVariable UUID reporteId,
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authHeader,
+            @AuthenticationPrincipal Jwt jwt) {
+        userService.resolveUser(jwt);
+        try {
+            RestClient.RequestHeadersSpec<?> request = restClient.get().uri(API_BASE_URL + "/" + reporteId + "/acta-pdf");
+            if (authHeader != null) request.header(HttpHeaders.AUTHORIZATION, authHeader);
+            ResponseEntity<byte[]> response = request.retrieve().toEntity(byte[].class);
+            return ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_PDF)
+                    .header("Content-Disposition", "attachment; filename=acta_conducta_" + reporteId + ".pdf")
+                    .body(response.getBody());
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Error al generar el acta: " + e.getMessage());
+        }
     }
 }

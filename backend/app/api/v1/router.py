@@ -15,6 +15,7 @@ from .bbb import router as bbb_router
 from .boletas import router as boletas_router
 from .sepomex import router as sepomex_router
 from .salud_avanzada import router as salud_avanzada_router
+from .conducta import router as conducta_router
 
 api_router = APIRouter()
 
@@ -34,3 +35,4 @@ api_router.include_router(bbb_router)
 api_router.include_router(boletas_router)
 api_router.include_router(sepomex_router)
 api_router.include_router(salud_avanzada_router)
+api_router.include_router(conducta_router)

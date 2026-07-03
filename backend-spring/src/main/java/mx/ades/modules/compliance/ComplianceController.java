@@ -44,6 +44,7 @@ public class ComplianceController {
     private final RegistrarRetencionUseCase   registrarRetencion;
     private final CrearAlertaUseCase          crearAlerta;
     private final ComplianceQueryService      queryService;
+    private final CumplimientoDashboardService dashboardService;
 
     private static final int NIVEL_ADMIN    = 2;
     private static final int NIVEL_DIRECTOR = 3;
@@ -194,5 +195,15 @@ public class ComplianceController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         return ResponseEntity.ok(queryService.alertas(plantelId, severidad, estado, skip, limit));
+    }
+
+    /** AD-014: dashboard de cumplimiento SEP/UAEMEX — agrega piezas ya existentes. */
+    @GetMapping("/dashboard-cumplimiento")
+    public ResponseEntity<Map<String, Object>> dashboardCumplimiento(@AuthenticationPrincipal Jwt jwt) {
+        AdesUser user = userService.resolveUser(jwt);
+        if (user.getNivelAcceso() == null || user.getNivelAcceso() > NIVEL_DIRECTOR) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        return ResponseEntity.ok(dashboardService.resumen());
     }
 }

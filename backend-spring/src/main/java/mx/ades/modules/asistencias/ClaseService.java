@@ -1,6 +1,7 @@
 package mx.ades.modules.asistencias;
 
 import lombok.RequiredArgsConstructor;
+import mx.ades.modules.planeacion.command.PlaneacionCommandService;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -18,6 +19,7 @@ public class ClaseService {
 
     private final ClaseRepository claseRepository;
     private final JdbcTemplate jdbc;
+    private final PlaneacionCommandService planeacionCommands;
 
     public List<Clase> listar(UUID grupoId, UUID materiaId, UUID profesorId,
                               LocalDate fechaDesde, LocalDate fechaHasta, String estatus) {
@@ -44,10 +46,20 @@ public class ClaseService {
         Clase clase = obtener(id);
         if (update.getTemaVisto() != null) clase.setTemaVisto(update.getTemaVisto());
         if (update.getObservaciones() != null) clase.setObservaciones(update.getObservaciones());
+        boolean seSuspendio = update.getEstatusClase() != null
+                && "SUSPENDIDA".equalsIgnoreCase(update.getEstatusClase())
+                && !"SUSPENDIDA".equalsIgnoreCase(clase.getEstatusClase());
         if (update.getEstatusClase() != null) clase.setEstatusClase(update.getEstatusClase());
+        if (update.getModalidad() != null) clase.setModalidad(update.getModalidad());
         if (update.getHoraInicio() != null) clase.setHoraInicio(update.getHoraInicio());
         if (update.getHoraFin() != null) clase.setHoraFin(update.getHoraFin());
-        return claseRepository.save(clase);
+        Clase saved = claseRepository.save(clase);
+
+        // OA-012: al suspender una clase, marcar los temas planeados de ese día para reprogramar.
+        if (seSuspendio) {
+            planeacionCommands.marcarPendientesPorSuspension(saved.getGrupoId(), saved.getFechaClase());
+        }
+        return saved;
     }
 
     /** Alumnos inscritos en el grupo de la clase + su estado de asistencia si ya fue registrado. */

@@ -7,6 +7,8 @@ FASE 38 — IA Avanzada
   IA-015  POST /ia-avanzada/analizar-grupo/{grupo_id}       — análisis grupal con IA
 """
 from __future__ import annotations
+import json
+import logging
 import uuid
 from typing import Optional
 
@@ -16,6 +18,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.security import get_ades_user, AdesUser
+from app.services.llm_service import LLMService, get_llm_service
+
+log = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/ia-avanzada", tags=["ia-avanzada"])
 
@@ -233,6 +238,94 @@ async def recomendaciones_pedagogicas(
         "recomendaciones": recomendaciones,
         "total": len(recomendaciones),
     }
+
+
+# ── IA-014: Narrativa de recomendación para una asignación de learning path ──
+# Proxeada desde Spring BFF (LearningPathsController.recomendarIa) por asig_id.
+
+_NARRATIVA_FALLBACK = {
+    "resumen": "No fue posible generar una recomendación personalizada en este momento.",
+    "fortalezas": [],
+    "areas_mejora": [],
+    "estrategias": ["Continuar con la ruta de aprendizaje asignada a tu propio ritmo."],
+    "recursos_priorizados": [],
+    "mensaje_motivacional": "¡Sigue adelante, cada paso cuenta!",
+}
+
+
+@router.post("/learning-path-narrativa/{asignacion_id}")
+async def learning_path_narrativa(
+    asignacion_id: uuid.UUID,
+    user: AdesUser = Depends(get_ades_user),
+    db: AsyncSession = Depends(get_db),
+    llm: LLMService = Depends(get_llm_service),
+):
+    """IA-014: genera una recomendación pedagógica narrativa (resumen, fortalezas,
+    áreas de mejora, estrategias, recursos priorizados, mensaje motivacional) para
+    una asignación de learning path, usando el progreso registrado como contexto."""
+    if user.nivel_acceso > _NIVEL_DOCENTE:
+        raise HTTPException(status_code=403, detail="Acceso denegado")
+
+    asig_r = await db.execute(text("""
+        SELECT a.id, a.estudiante_id, a.pct_completado, lp.nombre AS path_nombre,
+               COALESCE(p.nombre_social, p.nombre) || ' ' || p.apellido_paterno AS alumno_nombre
+        FROM ades_lp_asignaciones a
+        JOIN ades_learning_paths lp ON lp.id = a.path_id
+        JOIN ades_estudiantes e ON e.id = a.estudiante_id
+        JOIN ades_personas p ON p.id = e.persona_id
+        WHERE a.id = :aid AND a.is_active = TRUE
+        """), {"aid": str(asignacion_id)})
+    asig = asig_r.mappings().first()
+    if not asig:
+        raise HTTPException(status_code=404, detail="Asignación no encontrada")
+
+    progreso_r = await db.execute(text("""
+        SELECT r.titulo, r.tipo, pr.completado, pr.calificacion
+        FROM ades_lp_recursos r
+        LEFT JOIN ades_lp_progreso pr ON pr.recurso_id = r.id AND pr.asignacion_id = :aid
+        WHERE r.path_id = (SELECT path_id FROM ades_lp_asignaciones WHERE id = :aid) AND r.is_active = TRUE
+        ORDER BY r.orden
+        """), {"aid": str(asignacion_id)})
+    recursos = [dict(r._mapping) for r in progreso_r.fetchall()]
+
+    if not llm.available:
+        log.warning("LLM no disponible para learning-path-narrativa — usando fallback por reglas")
+        return _NARRATIVA_FALLBACK
+
+    contexto = {
+        "alumno": asig["alumno_nombre"],
+        "ruta": asig["path_nombre"],
+        "pct_completado": float(asig["pct_completado"] or 0),
+        "recursos": recursos,
+    }
+
+    try:
+        completion = await llm.async_complete(
+            messages=[
+                {"role": "system", "content": (
+                    "Eres un asesor pedagógico. Responde ÚNICAMENTE con un objeto JSON válido, "
+                    "sin texto adicional, con las claves exactas: resumen (string), "
+                    "fortalezas (lista de strings), areas_mejora (lista de strings), "
+                    "estrategias (lista de strings), recursos_priorizados (lista de strings), "
+                    "mensaje_motivacional (string). Tono breve, cálido y accionable para un "
+                    "alumno de educación básica/media superior en México."
+                )},
+                {"role": "user", "content": json.dumps(contexto, ensure_ascii=False, default=str)},
+            ],
+            temperature=0.6,
+            max_tokens=600,
+        )
+        texto = completion.choices[0].message.content or ""
+        inicio, fin = texto.find("{"), texto.rfind("}")
+        if inicio == -1 or fin == -1:
+            raise ValueError("Respuesta del LLM sin JSON detectable")
+        data = json.loads(texto[inicio:fin + 1])
+        for clave in _NARRATIVA_FALLBACK:
+            data.setdefault(clave, _NARRATIVA_FALLBACK[clave])
+        return data
+    except Exception as exc:
+        log.error("Error generando narrativa IA-014, usando fallback: %s", exc)
+        return _NARRATIVA_FALLBACK
 
 
 # ── IA-015: Análisis grupal ───────────────────────────────────────────────────

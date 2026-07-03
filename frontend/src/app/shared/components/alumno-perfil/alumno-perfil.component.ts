@@ -8,6 +8,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DrawerModule } from 'primeng/drawer';
 import { ButtonModule } from 'primeng/button';
+import { TooltipModule } from 'primeng/tooltip';
 import { TabsModule } from 'primeng/tabs';
 import { TabList, Tab, TabPanels, TabPanel } from 'primeng/tabs';
 import { InputTextModule } from 'primeng/inputtext';
@@ -58,7 +59,7 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
   standalone: true,
   imports: [
     CommonModule, FormsModule,
-    DrawerModule, ButtonModule, ToastModule, TagModule,
+    DrawerModule, ButtonModule, ToastModule, TagModule, TooltipModule,
     TabsModule, TabList, Tab, TabPanels, TabPanel,
     InputTextModule, SelectModule, DatePickerModule,
     InputNumberModule, TextareaModule,
@@ -83,6 +84,8 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
           } @else {
             <p-tag value="ACTIVO" severity="success" />
           }
+          <p-button label="Credencial" icon="pi pi-id-card" [text]="true" size="small"
+            (onClick)="descargarCredencial()" pTooltip="Descargar credencial de alumno (PDF)" />
         </div>
 
         <p-tabs [(value)]="tabActivo">
@@ -872,6 +875,25 @@ export class AlumnoPerfilComponent implements OnInit, OnChanges {
         this.savingMedico.set(false);
       },
     });
+  }
+
+  /** PE-014: credencial de alumno en PDF — plantilla administrada en Reportes → Plantillas. */
+  descargarCredencial(): void {
+    if (!this.alumno?.id) return;
+    this.api.getBlob(`/alumnos/${this.alumno.id}/credencial`, { template_id: 'credencial_alumno' }).subscribe({
+      next: blob => this._downloadBlob(blob, `credencial_${this.alumno!.matricula}.pdf`),
+      error: () => this.msg.add({ severity: 'error', summary: 'Error',
+        detail: 'No se pudo generar la credencial. Verifica que exista la plantilla "credencial_alumno" en Reportes → Plantillas.' }),
+    });
+  }
+
+  private _downloadBlob(blob: Blob, filename: string): void {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   guardar(): void {

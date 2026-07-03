@@ -40,9 +40,11 @@ public class LearningPathsController {
     private final AsignarPathUseCase asignarPath;
     private final LearningPathApplicationService learningPathService;
     private final LearningPathQueryService queryService;
+    private final AjusteDinamicoService ajusteDinamicoService;
 
     private final RestClient restClient = RestClient.builder().build();
     private static final String API_BASE_URL = "http://ades-api:8000/api/v1/learning-paths";
+    private static final String IA_AVANZADA_URL = "http://ades-api:8000/api/v1/ia-avanzada";
 
     @Data
     public static class PathRequest {
@@ -191,6 +193,11 @@ public class LearningPathsController {
         return ResponseEntity.ok(Map.of("asignadas", asignadas, "grupo_id", grupoId.toString()));
     }
 
+    /**
+     * IA-014: proxy al endpoint real de narrativa pedagógica en FastAPI
+     * (antes apuntaba a una ruta de FastAPI que nunca se implementó — corregido
+     * 2026-07-03, ver app/api/v1/ia_avanzada.py#learning_path_narrativa).
+     */
     @PostMapping("/asignaciones/{asig_id}/recomendar-ia")
     public ResponseEntity<Map<String, Object>> recomendarIa(
             @PathVariable("asig_id") UUID asigId,
@@ -199,29 +206,28 @@ public class LearningPathsController {
         userService.resolveUser(jwt);
         try {
             RestClient.RequestBodySpec request = restClient.post()
-                    .uri(API_BASE_URL + "/asignaciones/" + asigId + "/recomendar-ia");
+                    .uri(IA_AVANZADA_URL + "/learning-path-narrativa/" + asigId);
             if (authHeader != null) request.header(HttpHeaders.AUTHORIZATION, authHeader);
-            return ResponseEntity.ok(request.retrieve().body(Map.class));
+            Map narrativa = request.retrieve().body(Map.class);
+            ajusteDinamicoService.guardarNarrativa(asigId, narrativa);
+            return ResponseEntity.ok(Map.of("ia_recomendacion", narrativa));
         } catch (Exception e) {
             throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
                     "Error al recomendar IA en microservicio FastAPI: " + e.getMessage());
         }
     }
 
+    /**
+     * IA-009: ajuste dinámico de la ruta según desempeño — implementado localmente
+     * en Spring (basado en reglas sobre ades_lp_progreso, sin IA/LLM), no requiere
+     * FastAPI. Antes este endpoint proxeaba a una ruta de FastAPI que nunca se
+     * implementó — corregido 2026-07-03.
+     */
     @PostMapping("/ajustar-dinamico/{estudiante_id}")
     public ResponseEntity<Map<String, Object>> ajustarDinamico(
             @PathVariable("estudiante_id") UUID estudianteId,
-            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authHeader,
             @AuthenticationPrincipal Jwt jwt) {
         userService.resolveUser(jwt);
-        try {
-            RestClient.RequestBodySpec request = restClient.post()
-                    .uri(API_BASE_URL + "/ajustar-dinamico/" + estudianteId);
-            if (authHeader != null) request.header(HttpHeaders.AUTHORIZATION, authHeader);
-            return ResponseEntity.ok(request.retrieve().body(Map.class));
-        } catch (Exception e) {
-            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
-                    "Error al ajustar dinámicamente en microservicio FastAPI: " + e.getMessage());
-        }
+        return ResponseEntity.ok(ajusteDinamicoService.ajustar(estudianteId));
     }
 }

@@ -41,6 +41,7 @@ public class EvalDocenteController {
     private final GuardarCriteriosUseCase guardarCriteriosUseCase;
     private final EnviarEvaluacionUseCase enviarEvaluacionUseCase;
     private final EvalDocenteQueryService queryService;
+    private final PlanMejoraService planMejoraService;
 
     @Data
     public static class EvaluacionCreate {
@@ -132,5 +133,33 @@ public class EvalDocenteController {
         } catch (IllegalStateException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
         }
+    }
+
+    // ── DP-016: Plan de mejora (basado en reglas, no IA) ──────────────────────
+
+    @PostMapping("/{evalId}/plan-mejora")
+    public ResponseEntity<List<Map<String, Object>>> generarPlanMejora(
+            @PathVariable("evalId") UUID evalId,
+            @AuthenticationPrincipal Jwt jwt) {
+        userService.resolveUser(jwt);
+        return ResponseEntity.ok(planMejoraService.generar(evalId));
+    }
+
+    @GetMapping("/{evalId}/plan-mejora")
+    public ResponseEntity<List<Map<String, Object>>> obtenerPlanMejora(
+            @PathVariable("evalId") UUID evalId,
+            @AuthenticationPrincipal Jwt jwt) {
+        userService.resolveUser(jwt);
+        return ResponseEntity.ok(planMejoraService.listar(evalId));
+    }
+
+    @PatchMapping("/plan-mejora/{id}")
+    public ResponseEntity<Map<String, Object>> actualizarEstadoPlanMejora(
+            @PathVariable("id") UUID id,
+            @RequestBody Map<String, String> body,
+            @AuthenticationPrincipal Jwt jwt) {
+        userService.resolveUser(jwt);
+        planMejoraService.actualizarEstado(id, body.get("estado"));
+        return ResponseEntity.ok(Map.of("id", id.toString(), "estado", body.get("estado")));
     }
 }

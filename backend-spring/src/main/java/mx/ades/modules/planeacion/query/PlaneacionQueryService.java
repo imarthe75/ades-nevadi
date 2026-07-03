@@ -124,6 +124,19 @@ public class PlaneacionQueryService {
         return jdbc.queryForList(query, params.toArray());
     }
 
+    /** OA-012: temas planeados que quedaron pendientes de reprogramar por clase suspendida. */
+    public List<Map<String, Object>> getPendientesReprogramar(UUID grupoId) {
+        return jdbc.queryForList("""
+            SELECT pc.id, pc.grupo_id, pc.tema_id, pc.fecha_planeada,
+                   t.nombre_tema, m.nombre_materia
+            FROM ades_planeacion_clases pc
+            JOIN ades_temas t    ON t.id = pc.tema_id
+            JOIN ades_materias m ON m.id = t.materia_id
+            WHERE pc.grupo_id = ?::uuid AND pc.is_active = TRUE AND pc.pendiente_reprogramar = TRUE
+            ORDER BY pc.fecha_planeada
+            """, grupoId.toString());
+    }
+
     @Transactional(readOnly = true)
     public Map<String, Object> getAlertasRezago(UUID cicloId, Double umbralPct) {
         List<Map<String, Object>> grupos = jdbc.queryForList("""

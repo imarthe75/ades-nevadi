@@ -17,5 +17,7 @@ public interface PlanEstudioRepositoryPort {
 
     void patchOrden(UUID id, int orden);
 
+    void patchEstadoPublicacion(UUID id, String estado);
+
     int softDelete(UUID id);
 }

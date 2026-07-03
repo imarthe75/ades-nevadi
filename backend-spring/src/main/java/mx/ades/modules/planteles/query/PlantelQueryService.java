@@ -66,4 +66,15 @@ public class PlantelQueryService {
             "WHERE gr.plantel_id = ? AND gr.is_active = TRUE AND ne.is_active = TRUE " +
             "ORDER BY ne.nombre_nivel", plantelId);
     }
+
+    /** Claves oficiales (CCT SEP / incorporación UAEMEX) por nivel educativo del plantel. */
+    public List<Map<String, Object>> clavesPorPlantel(UUID plantelId) {
+        return jdbc.queryForList(
+            "SELECT c.id, c.nivel_educativo_id, ne.nombre_nivel, c.tipo_clave, c.clave, " +
+            "c.vigente_desde, c.observaciones " +
+            "FROM ades_plantel_nivel_clave c " +
+            "JOIN ades_niveles_educativos ne ON ne.id = c.nivel_educativo_id " +
+            "WHERE c.plantel_id = ? AND c.is_active = TRUE " +
+            "ORDER BY ne.nombre_nivel, c.tipo_clave", plantelId);
+    }
 }

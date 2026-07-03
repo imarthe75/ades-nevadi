@@ -28,7 +28,7 @@ public class ClaseQueryService {
     private static final String BASE_SELECT =
         "SELECT c.id, c.horario_id, c.grupo_id, c.materia_id, c.profesor_id, " +
         "c.fecha_clase, c.hora_inicio, c.hora_fin, c.tema_visto, c.observaciones, " +
-        "c.estatus_clase, c.is_active, c.row_version, c.fecha_creacion, c.fecha_modificacion, " +
+        "c.estatus_clase, c.modalidad, c.is_active, c.row_version, c.fecha_creacion, c.fecha_modificacion, " +
         "c.usuario_creacion, c.usuario_modificacion, " +
         "g.nombre_grupo AS grupo_nombre, m.nombre_materia AS materia_nombre " +
         "FROM ades_clases c " +

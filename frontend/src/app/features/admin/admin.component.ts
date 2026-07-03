@@ -1210,6 +1210,20 @@ interface Catalogo {
             <input type="checkbox" [(ngModel)]="plantelEdit()!.is_active" id="plt-active" />
             <label for="plt-active" style="font-size:.85rem">Plantel Activo</label>
           </div>
+          <div style="border-top:1px solid var(--surface-200); padding-top:.6rem; margin-top:.25rem">
+            <label class="dlg-lbl" style="display:block;margin-bottom:.4rem">
+              Claves oficiales por nivel (CCT SEP / incorporación UAEMEX)
+            </label>
+            @for (c of clavesPlantel(); track c.id) {
+              <div style="display:flex; gap:.5rem; align-items:center; margin-bottom:.4rem">
+                <span style="font-size:.78rem; width:110px; color:var(--text-color-secondary)">{{ c.nombre_nivel }}</span>
+                <input pInputText [(ngModel)]="c.clave" [placeholder]="c.tipo_clave === 'CCT_SEP' ? 'Ej. 15PPR0000X' : 'Clave incorporación UAEMEX'" style="flex:1" />
+                <p-button icon="pi pi-save" [text]="true" size="small" (onClick)="guardarClavePlantel(c)" />
+              </div>
+            } @empty {
+              <p class="dlg-note">Sin claves registradas para este plantel.</p>
+            }
+          </div>
         </div>
         <ng-template pTemplate="footer">
           <p-button label="Cancelar" severity="secondary" [text]="true" (onClick)="dlgPlantelVisible.set(false)" />
@@ -1303,6 +1317,7 @@ interface Catalogo {
     /* Shared */
     .empty-msg { color:var(--text-secondary); font-size:.88rem; padding:1rem; text-align:center; }
     .dlg-lbl { display:block; font-size:.85rem; margin-bottom:.25rem; color:var(--text-secondary); }
+    .dlg-note { font-size:.78rem; color:var(--text-color-secondary); margin:0; }
     :deep(.w-full) { width:100% !important; }
     /* Reglas de Promoción */
     .regla-card { background:var(--surface-card,#fff); border:1px solid var(--surface-border,#e2e8f0);
@@ -1361,6 +1376,7 @@ export class AdminComponent implements OnInit {
   guardandoCiclo       = signal(false);
   dlgPlantelVisible    = signal(false);
   plantelEdit          = signal<PlantelAdmin | null>(null);
+  clavesPlantel        = signal<any[]>([]);
   guardandoPlantel     = signal(false);
   dlgGrupoAdminVisible = signal(false);
   grupoAdminEdit       = signal<GrupoAdmin | null>(null);
@@ -2011,6 +2027,26 @@ export class AdminComponent implements OnInit {
     const p: PlantelAdmin = row._original ?? row;
     this.plantelEdit.set({ ...p });
     this.dlgPlantelVisible.set(true);
+    this.cargarClavesPlantel(p.id);
+  }
+
+  cargarClavesPlantel(plantelId: string): void {
+    this.clavesPlantel.set([]);
+    this.api.get<any[]>(`/planteles/${plantelId}/claves`).subscribe({
+      next: c => this.clavesPlantel.set(c),
+      error: () => this.clavesPlantel.set([]),
+    });
+  }
+
+  guardarClavePlantel(c: any): void {
+    const p = this.plantelEdit();
+    if (!p?.id) return;
+    this.api.patch(`/planteles/${p.id}/claves/${c.nivel_educativo_id}`, {
+      tipo_clave: c.tipo_clave, clave: c.clave, observaciones: c.observaciones,
+    }).subscribe({
+      next: () => this.notify.success('Clave actualizada', c.nombre_nivel),
+      error: e => this.notify.error('Error', e.error?.detail ?? 'No se pudo guardar la clave'),
+    });
   }
 
   guardarPlantel(): void {

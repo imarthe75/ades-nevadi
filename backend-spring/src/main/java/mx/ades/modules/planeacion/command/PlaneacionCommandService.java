@@ -74,4 +74,30 @@ public class PlaneacionCommandService {
         jdbc.update("UPDATE ades_planeacion_clases SET is_active = FALSE WHERE id = ?::uuid",
                 planeacionId.toString());
     }
+
+    /**
+     * OA-012: cuando una clase se marca SUSPENDIDA, marca como pendiente_reprogramar
+     * los temas planeados para esa fecha+grupo — en vez de perderse silenciosamente.
+     * Llamado desde ClaseService al detectar el cambio de estatus_clase.
+     */
+    @Transactional
+    public void marcarPendientesPorSuspension(UUID grupoId, LocalDate fecha) {
+        jdbc.update("""
+            UPDATE ades_planeacion_clases
+               SET pendiente_reprogramar = TRUE
+             WHERE grupo_id = ?::uuid AND fecha_planeada = ? AND is_active = TRUE
+            """, grupoId.toString(), fecha);
+    }
+
+    /** OA-012: reprograma un tema pendiente a una nueva fecha, limpiando el flag. */
+    @Transactional
+    public void reprogramar(UUID planeacionId, LocalDate nuevaFecha) {
+        int rows = jdbc.update("""
+            UPDATE ades_planeacion_clases
+               SET fecha_planeada = ?, pendiente_reprogramar = FALSE
+             WHERE id = ?::uuid AND is_active = TRUE
+            """, nuevaFecha, planeacionId.toString());
+        if (rows == 0) throw new ResponseStatusException(HttpStatus.NOT_FOUND,
+                "Planeacion clase no encontrada: " + planeacionId);
+    }
 }

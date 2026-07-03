@@ -34,10 +34,25 @@ public class PlantelController {
     private final ActualizarPlantelUseCase actualizarUseCase;
     private final PlantelRepositoryPort repositoryPort;
     private final PlantelQueryService queryService;
+    private final PlantelClaveWriteService claveWriteService;
 
     @GetMapping("/stats")
     public ResponseEntity<List<Map<String, Object>>> stats() {
         return ResponseEntity.ok(queryService.stats());
+    }
+
+    @GetMapping("/{id}/claves")
+    public ResponseEntity<List<Map<String, Object>>> claves(@PathVariable UUID id) {
+        return ResponseEntity.ok(queryService.clavesPorPlantel(id));
+    }
+
+    @PatchMapping("/{id}/claves/{nivelEducativoId}")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    public ResponseEntity<Map<String, Object>> actualizarClave(
+            @PathVariable UUID id, @PathVariable UUID nivelEducativoId,
+            @RequestBody Map<String, Object> body) {
+        claveWriteService.actualizar(id, nivelEducativoId, body);
+        return ResponseEntity.ok(Map.of("updated", true));
     }
 
     @GetMapping("/{id}/niveles")

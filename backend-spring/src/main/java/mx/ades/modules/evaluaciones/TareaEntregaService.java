@@ -154,21 +154,57 @@ public class TareaEntregaService {
     }
 
     @Transactional
+    /**
+     * OA-017: análisis interno de similitud de texto (Jaccard sobre bigramas de palabras)
+     * entre el comentario/respuesta del alumno y las demás entregas de la misma tarea.
+     * Sin dependencias de pago (Turnitin/Grammarly) — ADES es software donado sin
+     * presupuesto para APIs de terceros. Solo compara texto disponible en
+     * {@code comentario_alumno}; entregas que son solo un archivo binario sin texto
+     * capturado no se pueden comparar (se reporta 0% con la aclaración correspondiente).
+     */
     public Map<String, Object> checkPlagio(UUID entregaId) {
-        String fetchSql = "SELECT archivo_url FROM ades_tareas_entregas WHERE id = ?::uuid AND is_active = TRUE";
+        String fetchSql = "SELECT tarea_id, comentario_alumno, archivo_url " +
+                "FROM ades_tareas_entregas WHERE id = ?::uuid AND is_active = TRUE";
         List<Map<String, Object>> rows = jdbcTemplate.queryForList(fetchSql, entregaId.toString());
         if (rows.isEmpty()) {
             throw new NoSuchElementException("Entrega no encontrada");
         }
         Map<String, Object> row = rows.get(0);
+        UUID tareaId = (UUID) row.get("tarea_id");
+        String texto = (String) row.get("comentario_alumno");
         String archivoUrl = (String) row.get("archivo_url");
-        if (archivoUrl == null || archivoUrl.isBlank()) {
-            throw new IllegalArgumentException("No hay archivo entregado para escanear");
+        if ((texto == null || texto.isBlank()) && (archivoUrl == null || archivoUrl.isBlank())) {
+            throw new IllegalArgumentException("No hay contenido entregado para escanear");
         }
 
-        double pct = 5.0 + Math.random() * 35.0; // 5% - 40% similarity
-        BigDecimal plagioPct = BigDecimal.valueOf(Math.round(pct * 100.0) / 100.0);
-        String reportUrl = "https://turnitin.mock/reports/" + UUID.randomUUID();
+        BigDecimal plagioPct;
+        String reporte;
+        if (texto == null || texto.isBlank()) {
+            plagioPct = BigDecimal.ZERO;
+            reporte = "Solo hay archivo adjunto (sin texto capturado) — comparación de similitud no disponible para este tipo de entrega.";
+        } else {
+            List<Map<String, Object>> otras = jdbcTemplate.queryForList("""
+                SELECT id, comentario_alumno FROM ades_tareas_entregas
+                 WHERE tarea_id = ?::uuid AND id != ?::uuid AND is_active = TRUE
+                   AND comentario_alumno IS NOT NULL AND comentario_alumno != ''
+                """, tareaId.toString(), entregaId.toString());
+
+            double maxSim = 0.0;
+            UUID masParecida = null;
+            Set<String> shinglesA = shingles(texto);
+            for (Map<String, Object> otra : otras) {
+                Set<String> shinglesB = shingles((String) otra.get("comentario_alumno"));
+                double sim = jaccard(shinglesA, shinglesB);
+                if (sim > maxSim) {
+                    maxSim = sim;
+                    masParecida = (UUID) otra.get("id");
+                }
+            }
+            plagioPct = BigDecimal.valueOf(Math.round(maxSim * 10000.0) / 100.0);
+            reporte = masParecida != null
+                    ? "Mayor similitud (" + plagioPct + "%) con entrega " + masParecida + " de la misma tarea (análisis interno, bigramas de palabras)."
+                    : "Sin otras entregas comparables con texto capturado para esta tarea.";
+        }
 
         String updateSql = """
             UPDATE ades_tareas_entregas
@@ -178,12 +214,32 @@ public class TareaEntregaService {
                    row_version = row_version + 1
              WHERE id = ?::uuid
         """;
-        jdbcTemplate.update(updateSql, plagioPct, reportUrl, entregaId.toString());
+        jdbcTemplate.update(updateSql, plagioPct, reporte, entregaId.toString());
 
         Map<String, Object> res = new HashMap<>();
         res.put("plagio_porcentaje", plagioPct);
-        res.put("plagio_reporte_url", reportUrl);
+        res.put("plagio_reporte_url", reporte);
         return res;
+    }
+
+    private static Set<String> shingles(String texto) {
+        if (texto == null || texto.isBlank()) return Set.of();
+        String[] palabras = texto.toLowerCase().trim().replaceAll("[^a-záéíóúñü0-9\\s]", "").split("\\s+");
+        Set<String> result = new HashSet<>();
+        for (int i = 0; i < palabras.length - 1; i++) {
+            result.add(palabras[i] + " " + palabras[i + 1]);
+        }
+        if (result.isEmpty() && palabras.length > 0) result.add(palabras[0]);
+        return result;
+    }
+
+    private static double jaccard(Set<String> a, Set<String> b) {
+        if (a.isEmpty() || b.isEmpty()) return 0.0;
+        Set<String> interseccion = new HashSet<>(a);
+        interseccion.retainAll(b);
+        Set<String> union = new HashSet<>(a);
+        union.addAll(b);
+        return union.isEmpty() ? 0.0 : (double) interseccion.size() / union.size();
     }
 
     @Transactional

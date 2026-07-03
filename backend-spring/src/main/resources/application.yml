@@ -92,6 +92,11 @@ ntfy:
   url: ${NTFY_URL:http://ades-ntfy:80}
   admin-token: ${NTFY_ADMIN_TOKEN:}
 
+authentik:
+  # AD-007: token de solo-lectura (intent=api) para consultar la API de
+  # Eventos de Authentik y auditar intentos de login fallidos.
+  api-token: ${AUTHENTIK_API_TOKEN:}
+
 superset:
   url: ${SUPERSET_URL:http://ades-superset:8088}
   admin-user: ${SUPERSET_ADMIN_USER:admin}

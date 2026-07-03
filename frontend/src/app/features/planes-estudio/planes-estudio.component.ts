@@ -18,6 +18,8 @@ import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { TagModule } from 'primeng/tag';
 import { SelectModule } from 'primeng/select';
+import { MultiSelectModule } from 'primeng/multiselect';
+import { TextareaModule } from 'primeng/textarea';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { InputTextModule } from 'primeng/inputtext';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
@@ -85,7 +87,7 @@ const NIVEL_ORDER = ['PRIMARIA', 'SECUNDARIA', 'PREPARATORIA'];
   standalone: true,
   imports: [
     CommonModule, FormsModule,
-    TabsModule, ButtonModule, TagModule, SelectModule,
+    TabsModule, ButtonModule, TagModule, SelectModule, MultiSelectModule, TextareaModule,
     InputNumberModule, InputTextModule, ToggleSwitchModule,
     DialogModule, DrawerModule, TooltipModule,
     ProgressBarModule, MessageModule, ImportButtonComponent,
@@ -118,6 +120,7 @@ const NIVEL_ORDER = ['PRIMARIA', 'SECUNDARIA', 'PREPARATORIA'];
         <p-tab value="mapa"><i class="pi pi-table"></i> Mapa Curricular</p-tab>
         <p-tab value="catalogo"><i class="pi pi-list"></i> Catálogo</p-tab>
         <p-tab value="temario"><i class="pi pi-book"></i> Temario</p-tab>
+        <p-tab value="nee"><i class="pi pi-heart"></i> Planes NEE</p-tab>
       </p-tablist>
 
       <p-tabpanels>
@@ -195,7 +198,17 @@ const NIVEL_ORDER = ['PRIMARIA', 'SECUNDARIA', 'PREPARATORIA'];
                             {{ p.horas_semana ?? '?' }}h
                           </div>
                         }
+                        @if (p.estado_publicacion && p.estado_publicacion !== 'PUBLICADO') {
+                          <span class="estado-badge" [pTooltip]="'v' + (p.version ?? 1)">{{ p.estado_publicacion }}</span>
+                        }
                         @if (esAdmin()) {
+                          @if (p.estado_publicacion === 'ARCHIVADO') {
+                            <button class="cell-del" pTooltip="Publicar de nuevo"
+                              (click)="publicarPlan(p.id)">↺</button>
+                          } @else {
+                            <button class="cell-del" pTooltip="Archivar (histórico)"
+                              (click)="archivarPlan(p.id)">🗄</button>
+                          }
                           <button class="cell-del" pTooltip="Quitar asignación"
                             (click)="quitarAsignacion(p.id, m.id, g.id)">×</button>
                         }
@@ -262,6 +275,40 @@ const NIVEL_ORDER = ['PRIMARIA', 'SECUNDARIA', 'PREPARATORIA'];
             [columns]="materiasColumns"
             (rowSelected)="abrirDetalle($event)"
           />
+        </p-tabpanel>
+
+        <!-- ════════════════ PLANES NEE (AC-014) ════════════════ -->
+        <p-tabpanel value="nee">
+          <div class="nee-toolbar">
+            <p class="dlg-note" style="margin:0">
+              Planes alternativos/reducidos para el grupo seleccionado en la barra superior
+              @if (ctx.grupo()?.nombre_grupo) { — <strong>{{ ctx.grupo()?.nombre_grupo }}</strong> }
+            </p>
+            @if (esAdmin() && ctx.grupo()?.id) {
+              <p-button label="Nuevo plan NEE" icon="pi pi-plus" size="small" (onClick)="abrirNuevoPlanNee()" />
+            }
+          </div>
+
+          @if (!ctx.grupo()?.id) {
+            <p-message severity="info" text="Selecciona un grupo en la barra superior para ver/crear planes NEE." />
+          } @else if (planesNee().length === 0) {
+            <p-message severity="info" text="Sin planes NEE registrados para este grupo." />
+          } @else {
+            @for (pn of planesNee(); track pn.id) {
+              <div class="nee-card">
+                <div style="flex:1">
+                  <strong>{{ pn.motivo }}</strong>
+                  <div style="font-size:.78rem;color:var(--text-color-secondary)">
+                    Registrado {{ pn.fecha_creacion | date:'short' }}
+                  </div>
+                </div>
+                @if (esAdmin()) {
+                  <p-button icon="pi pi-trash" [text]="true" severity="danger" size="small"
+                    (onClick)="eliminarPlanNee(pn.id)" />
+                }
+              </div>
+            }
+          }
         </p-tabpanel>
 
         <!-- ════════════════ TEMARIO ════════════════ -->
@@ -351,6 +398,24 @@ const NIVEL_ORDER = ['PRIMARIA', 'SECUNDARIA', 'PREPARATORIA'];
           <p-button label="Guardar" icon="pi pi-save" [loading]="savingTema()" (onClick)="guardarTema()" />
         </ng-template>
       }
+    </p-dialog>
+
+    <!-- ════ DIALOG PLAN NEE (AC-014) ════ -->
+    <p-dialog [(visible)]="dlgPlanNee" header="Nuevo plan alternativo/reducido (NEE)"
+      [modal]="true" [style]="{width:'480px'}">
+      <div class="form-grid">
+        <label>Motivo *</label>
+        <textarea pTextarea [(ngModel)]="planNeeForm.motivo" rows="3"
+          placeholder="Ej. Alumno con discapacidad intelectual, plan reducido de 6 materias"></textarea>
+        <label>Materias del plan alternativo *</label>
+        <p-multiselect [options]="materiasNivelActual()" [(ngModel)]="planNeeForm.materiaIds"
+          optionLabel="nombre_materia" optionValue="id" display="chip"
+          placeholder="Selecciona las materias que sí aplican" style="width:100%" />
+      </div>
+      <ng-template pTemplate="footer">
+        <p-button label="Cancelar" severity="secondary" [text]="true" (onClick)="dlgPlanNee=false" />
+        <p-button label="Guardar" icon="pi pi-save" [loading]="savingPlanNee()" (onClick)="guardarPlanNee()" />
+      </ng-template>
     </p-dialog>
 
     <!-- ════ DRAWER DETALLE MATERIA ════ -->
@@ -451,12 +516,18 @@ const NIVEL_ORDER = ['PRIMARIA', 'SECUNDARIA', 'PREPARATORIA'];
     .cell-del { background:none; border:none; color:#fca5a5; cursor:pointer; font-size:.9rem; padding:0 2px;
       opacity:0; transition:opacity .15s; }
     .mapa-cell:hover .cell-del { opacity:1; }
+    .estado-badge { font-size:.58rem; font-weight:700; text-transform:uppercase; background:var(--yellow-100);
+      color:var(--yellow-800); border-radius:3px; padding:1px 3px; margin-left:2px; }
     .horas-input { width:48px; border:1px solid var(--primary-color); border-radius:4px;
       text-align:center; font-size:.82rem; padding:.15rem .2rem; background:white; }
     .mapa-leyenda { font-size:.78rem; color:var(--text-muted); padding:.5rem; display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; }
 
     /* ── Catálogo ── */
     .cat-toolbar { display:flex; gap:.5rem; align-items:center; margin-bottom:1rem; flex-wrap:wrap; }
+    .nee-toolbar { display:flex; gap:.5rem; align-items:center; justify-content:space-between; margin-bottom:1rem; flex-wrap:wrap; }
+    .nee-card { display:flex; align-items:center; gap:.5rem; padding:.6rem .75rem; border:1px solid var(--surface-200);
+      border-radius:6px; margin-bottom:.5rem; }
+    .dlg-note { font-size:.78rem; color:var(--text-color-secondary); }
     .mat-link { cursor:pointer; font-weight:500; }
     .mat-link:hover { color:var(--primary-color); text-decoration:underline; }
     .row-inactiva { opacity:.5; }
@@ -518,6 +589,12 @@ export class PlanesEstudioComponent implements OnInit {
   temaEdit: any          = null;
   materiaDetalle  = signal<Materia | null>(null);
   estadisticasDetalle = signal<Estadisticas | null>(null);
+
+  // ── Planes NEE (AC-014) ────────────────────────────────────────────────────
+  planesNee       = signal<any[]>([]);
+  dlgPlanNee      = false;
+  savingPlanNee   = signal(false);
+  planNeeForm: { motivo: string; materiaIds: string[] } = { motivo: '', materiaIds: [] };
 
   // ── Temario selectors (backing signals + getter/setter for [(ngModel)]) ─────
   private readonly _temarioNivelId   = signal('');
@@ -682,6 +759,59 @@ export class PlanesEstudioComponent implements OnInit {
       const c = this.ctx.ciclo();
       this.cargarTodo();
     });
+    effect(() => {
+      const grupoId = this.ctx.grupo()?.id;
+      if (grupoId) this.cargarPlanesNee(grupoId);
+      else this.planesNee.set([]);
+    });
+  }
+
+  // ── Planes NEE (AC-014) ────────────────────────────────────────────────────
+
+  cargarPlanesNee(grupoId: string): void {
+    this.api.get<any[]>('/planes-estudio/alternativos', { grupo_id: grupoId }).subscribe({
+      next: l => this.planesNee.set(l),
+      error: () => this.planesNee.set([]),
+    });
+  }
+
+  abrirNuevoPlanNee(): void {
+    this.planNeeForm = { motivo: '', materiaIds: [] };
+    this.dlgPlanNee = true;
+  }
+
+  guardarPlanNee(): void {
+    const grupoId = this.ctx.grupo()?.id;
+    if (!grupoId) return;
+    if (!this.planNeeForm.motivo.trim() || this.planNeeForm.materiaIds.length === 0) {
+      this.notify.warning('Motivo y al menos una materia son obligatorios');
+      return;
+    }
+    this.savingPlanNee.set(true);
+    this.api.post('/planes-estudio/alternativos', {
+      grupo_id: grupoId,
+      motivo: this.planNeeForm.motivo.trim(),
+      materias: this.planNeeForm.materiaIds.map(id => ({ materia_id: id })),
+    }).subscribe({
+      next: () => {
+        this.savingPlanNee.set(false);
+        this.dlgPlanNee = false;
+        this.notify.success('Plan NEE creado');
+        this.cargarPlanesNee(grupoId);
+      },
+      error: e => {
+        this.savingPlanNee.set(false);
+        this.notify.error('Error', e.error?.detail ?? 'No se pudo crear el plan');
+      },
+    });
+  }
+
+  eliminarPlanNee(id: string): void {
+    const grupoId = this.ctx.grupo()?.id;
+    this.api.delete(`/planes-estudio/alternativos/${id}`).subscribe({
+      next: () => { if (grupoId) this.cargarPlanesNee(grupoId); },
+      error: e => this.notify.error('Error', e.error?.detail),
+    });
   }
 
   onFiltroNivelChange(): void {
@@ -808,6 +938,27 @@ export class PlanesEstudioComponent implements OnInit {
   quitarAsignacion(planId: string, materiaId: string, gradoId: string): void {
     this.api.delete(`/planes-estudio/${planId}`).subscribe({
       next: () => this.plan.update(l => l.filter(p => p.id !== planId)),
+      error: e => this.notify.error('Error', e.error?.detail),
+    });
+  }
+
+  /** AC-015: publicar/archivar una versión del plan de estudio (materia+grado+ciclo). */
+  publicarPlan(planId: string): void {
+    this.api.patch(`/planes-estudio/${planId}/publicar`, {}).subscribe({
+      next: () => {
+        this.plan.update(l => l.map(p => p.id === planId ? { ...p, estado_publicacion: 'PUBLICADO' } : p));
+        this.notify.success('Plan publicado');
+      },
+      error: e => this.notify.error('Error', e.error?.detail),
+    });
+  }
+
+  archivarPlan(planId: string): void {
+    this.api.patch(`/planes-estudio/${planId}/archivar`, {}).subscribe({
+      next: () => {
+        this.plan.update(l => l.map(p => p.id === planId ? { ...p, estado_publicacion: 'ARCHIVADO' } : p));
+        this.notify.success('Plan archivado');
+      },
       error: e => this.notify.error('Error', e.error?.detail),
     });
   }

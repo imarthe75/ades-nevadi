@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import mx.ades.modules.entregas.domain.port.in.CalificarEntregaUseCase;
 import mx.ades.modules.entregas.domain.port.in.RegistrarExcusaUseCase;
 import mx.ades.modules.entregas.domain.port.in.SubirEntregaUseCase;
+import mx.ades.modules.entregas.domain.port.out.EntregaRepositoryPort;
 import mx.ades.modules.entregas.query.EntregaQueryService;
 import mx.ades.modules.evaluaciones.MinioService;
 import mx.ades.security.AdesUser;
@@ -40,6 +41,7 @@ public class EntregasController {
     private final CalificarEntregaUseCase calificarEntregaUseCase;
     private final RegistrarExcusaUseCase registrarExcusaUseCase;
     private final EntregaQueryService queryService;
+    private final EntregaRepositoryPort entregaRepositoryPort;
 
     @Data
     public static class CalificarIn {
@@ -133,5 +135,17 @@ public class EntregasController {
         } catch (IllegalArgumentException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }
+    }
+
+    /** OA-020: reabre una entrega calificada/excusada para permitir una nueva entrega. */
+    @PatchMapping("/{entregaId}/reabrir")
+    public ResponseEntity<Map<String, Object>> reabrirEntrega(
+            @PathVariable("entregaId") UUID entregaId,
+            @RequestParam("motivo") String motivo,
+            @AuthenticationPrincipal Jwt jwt) {
+        AdesUser user = userService.resolveUser(jwt);
+        int rows = entregaRepositoryPort.reabrir(entregaId, motivo, user.getUsername());
+        if (rows == 0) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Entrega no encontrada");
+        return ResponseEntity.ok(Map.of("id", entregaId.toString(), "estatus_entrega", "PENDIENTE"));
     }
 }

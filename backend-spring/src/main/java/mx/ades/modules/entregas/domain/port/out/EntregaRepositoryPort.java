@@ -19,4 +19,7 @@ public interface EntregaRepositoryPort {
     void upsertEntrega(SubirEntregaUseCase.Command cmd);
     int calificar(CalificarEntregaUseCase.Command cmd);
     int registrarExcusa(UUID entregaId, String motivo, String usuario);
+
+    /** OA-020: reabre una entrega calificada/excusada para permitir una nueva entrega. */
+    int reabrir(UUID entregaId, String motivo, String usuario);
 }

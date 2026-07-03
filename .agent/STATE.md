@@ -3363,4 +3363,132 @@ completos (incluida reinscripción masiva — el usuario pidió puntualmente rev
 - [ ] Migración a ApiService en el Frontend (heredado de sesión 2026-06-24, sigue pendiente).
 - [ ] Google SSO, Big Blue Button externo, Blockchain Polygon PoS — sin cambios, siguen pendientes de insumos externos.
 
+---
+
+## Sesión 2026-07-03 (cont.) — Implementación de 19 CU pendientes/incompletos + fix crítico credenciales Superset ✅
+
+### 🔑 Contexto:
+Auditoría directa del catálogo `docs/use_case/ADES_Nevadi_Catalogo_Casos_Uso_v1.md` (desactualizado
+desde 2026-06-11, marcaba 173/230) contra el código real identificó 14 CU genuinamente pendientes y
+7 parcialmente implementados. Implementados los 19 (ID-008 ya estaba cubierto por Reportes→Plantillas;
+PE-011 "código ADEN" se descartó — no es un requisito real) más un requisito adicional de Claves de
+Centro de Trabajo (CCT) por plantel/nivel. Migraciones **103-113** aplicadas.
+
+### 🚀 Grupo A — Planes de estudio y credencial:
+- [x] **AC-014** Planes alternativos/reducidos NEE — tablas `ades_planes_estudio_alt(_materias)`,
+  endpoints `/planes-estudio/alternativos` (CRUD), tab "Planes NEE" en `planes-estudio.component.ts`.
+- [x] **AC-015** Publicar/archivar versiones de plan — columnas `estado_publicacion`/`version` en
+  `ades_materias_plan`, endpoints `PATCH /planes-estudio/{id}/publicar|archivar`, badge + botones en
+  el Mapa Curricular.
+- [x] **PE-014** Credencial de alumno PDF — `GET /alumnos/{id}/credencial` (proxy Carbone, mismo
+  patrón que carta de admisión), botón "Credencial" en `alumno-perfil.component.ts`. Requiere que el
+  Instituto suba la plantilla `credencial_alumno` vía Reportes → Plantillas.
+
+### 🚀 Grupo B — Operación diaria y evaluación:
+- [x] **OA-006** Modalidad de clase (PRESENCIAL/REMOTA/HIBRIDA) — columna en `ades_clases`.
+- [x] **OA-012** Ajuste dinámico de planeación ante suspensión — `ades_planeacion_clases.pendiente_reprogramar`,
+  se marca automáticamente cuando `ClaseService` detecta transición a SUSPENDIDA; endpoints
+  `/planeacion/pendientes-reprogramar/{grupo_id}` + `/clases/{id}/reprogramar`.
+- [x] **OA-020** Reasignación/reapertura de tarea — `PATCH /entregas/{id}/reabrir`.
+- [x] **OA-017** Detección de plagio interna real — reemplazado el % aleatorio simulado por
+  similitud Jaccard real (bigramas de palabras) entre `comentario_alumno` de la misma tarea. Sin
+  dependencias de pago (Turnitin/Grammarly descartados por decisión del usuario).
+- [x] **DP-016** Plan de mejora docente — tabla `ades_planes_mejora_docente`, generado por reglas
+  (mapeo criterio→recomendación) cuando `calificacion <= 3` en una evaluación 360°, no IA.
+- [x] **PE-003** Evaluación diagnóstica automatizada — config `ades_config` clave
+  `h5p_diagnostico_contenido_ids` (grupo `admision`) lista para vincular cuestionarios H5P; sin
+  código nuevo, reusa el endpoint genérico `/admin/config`.
+- [x] **PE-006** Timeline de expediente de admisión — **se evaluó reusar `auditoria.log_auditoria`
+  pero se descartó**: guarda volcado de fila como texto ROW compuesto (no JSON) y `audit_aiud` solo
+  se activa en producción — no hubiera sido verificable en desarrollo. Se implementó tabla dedicada
+  `ades_admision_historial_estados` poblada por trigger (`fn_registrar_historial_admision`) en cada
+  cambio de `estado`; backfill de 220 solicitudes existentes aplicado.
+
+### 🚀 Grupo C — IA y analítica:
+- [x] **IA-009 / IA-014 — hallazgo importante:** `LearningPathsController.ajustarDinamico()` y
+  `.recomendarIa()` ya existían pero **proxeaban a rutas de FastAPI que nunca se implementaron**
+  (`/learning-paths/ajustar-dinamico/*`, `/learning-paths/asignaciones/*/recomendar-ia`) — siempre
+  devolvían 502. Corregido:
+  - IA-009: implementado en Spring (`AjusteDinamicoService`, sin IA/LLM) — reordena recursos tipo
+    REFUERZO pendientes cuando el promedio de `ades_lp_progreso` cae bajo 7.0.
+  - IA-014: nuevo endpoint real en FastAPI `POST /ia-avanzada/learning-path-narrativa/{asignacion_id}`
+    (reusa `llm_service.py`, mismo patrón que `chatbot.py`) generando narrativa JSON (resumen,
+    fortalezas, áreas de mejora, estrategias, recursos priorizados, mensaje motivacional) vía NIM/Claude,
+    con fallback por reglas si el LLM no está disponible. Resultado persistido en
+    `ades_lp_asignaciones.ia_recomendacion`.
+- [x] **IA-020** Exportación de reportes BI — `GET /superset/dashboard/{key}/export-csv` (ZIP de CSVs,
+  uno por chart del dashboard, vía la API REST de Superset).
+- [x] **🔒 Hallazgo crítico de seguridad/config (no relacionado a IA-020, descubierto al implementarlo):**
+  `docker-compose.yml` **nunca pasaba `SUPERSET_ADMIN_USER`/`SUPERSET_ADMIN_PASSWORD`** a los
+  contenedores `superset` ni `ades-bff` — ambos caían en el fallback `admin`/`admin` de
+  `docker-init.sh`/`application.yml`, ignorando el valor real generado en `.env`. Esto significa que
+  la cuenta admin de Superset y la autenticación del BFF para guest tokens (dashboards BI en
+  producción) llevaban usando credenciales default débiles. **Corregido:** variables agregadas a
+  ambos servicios en `docker-compose.yml`, contraseña admin de Superset reseteada para coincidir con
+  `.env` (`superset fab reset-password`), contenedores recreados y verificados healthy.
+- [x] **⚠️ Incidente de seguridad menor durante la sesión:** al intentar verificar credenciales de
+  Superset con `source .env` en bash, un valor de `AUTHENTIK_BOOTSTRAP_PASSWORD` se filtró en la
+  salida de un comando (exposición contenida a la conversación, no a git/logs externos). Rotado de
+  nuevo por precaución con el mismo script atómico seguro ya usado en la sesión anterior.
+
+### 🚀 Grupo D — Salud, conducta, bienestar, compliance, seguridad:
+- [x] **SB-016** Análisis de patrones de conducta — tabla `ades_riesgo_conductual`, score por
+  frecuencia/severidad de faltas (LEVE=1/GRAVE=3/MUY_GRAVE=6) en ventana de 90 días, mismo patrón
+  que el riesgo académico (IA-005).
+- [x] **SB-017** Acta de conducta en PDF — nuevo router FastAPI `app/api/v1/conducta.py` +
+  plantilla `acta_conducta.html` (mismo estilo que `acta_incidente.html`), proxy
+  `GET /conducta/{id}/acta-pdf`.
+- [x] **SB-023** Eventos de bienestar — tabla `ades_eventos_bienestar`, CRUD simple en nuevo módulo
+  `modules/bienestar`.
+- [x] **AD-007** Auditoría de intentos de login fallidos — token de servicio Authentik (`intent=api`,
+  solo lectura) creado y guardado en `.env` (`AUTHENTIK_API_TOKEN`), endpoint
+  `GET /auditoria/intentos-fallidos` consulta `GET /api/v3/events/events/?action=login_failed`.
+- [x] **AD-013** Compliance LFPDPPP — 3 normativas + 2 alertas sembradas en
+  `ades_normatividad`/`ades_alertas_cumplimiento` (ya existentes, sin tabla nueva).
+- [x] **AD-014** Dashboard de cumplimiento SEP/UAEMEX — `GET /compliance/dashboard-cumplimiento`,
+  agrega calificaciones capturadas, alertas de compliance pendientes, normativas vigentes y claves
+  UAEMEX pendientes de captura — vista de solo lectura, sin datos nuevos.
+
+### 🚀 Grupo E — Claves de Centro de Trabajo (requisito añadido a mitad de sesión):
+- [x] **Hallazgo confirmado:** `ades_planteles.clave_ct` contenía valores placeholder
+  (`MET-NVD-001` etc.), no CCT oficiales, y solo soportaba 1 clave por plantel físico (SEP asigna
+  CCT por nivel educativo, no por plantel — un plantel con Primaria+Secundaria tiene 2 CCT distintos).
+- [x] **Corregido:** nueva tabla `ades_plantel_nivel_clave` (plantel_id + nivel_educativo_id +
+  tipo_clave). **6 CCT SEP reales investigados y verificados** (múltiples directorios educativos
+  independientes coinciden): Metepec Primaria 15PPR7068F / Secundaria 15PES0124F, Tenancingo
+  Primaria 15PPR7106S / Secundaria 15PES0143U, Ixtapan de la Sal Primaria 15PPR0088Y / Secundaria
+  15PES0169B. Código de incorporación UAEMEX (Preparatoria, Metepec/Tenancingo) **no encontrado en
+  registros públicos** — queda pendiente, requiere que el Instituto proporcione su oficio de
+  incorporación.
+- [x] Endpoint `GET/PATCH /planteles/{id}/claves` + UI editable en Admin → Planteles.
+- [x] `ades_planteles.clave_ct` se dejó sin tocar (deprecado en comentario) por compatibilidad.
+
+### ✅ Verificación:
+- Compilación Java limpia en cada punto de control (múltiples pasadas incrementales por grupo).
+- Sintaxis Python validada (`ast.parse`) para `conducta.py`, `router.py`, `ia_avanzada.py`.
+- Build Angular producción limpio (admin, planes-estudio, alumno-perfil, horarios, alumnos ya
+  reconstruidos en la sesión anterior).
+- **14 endpoints nuevos verificados por ruta** (401 sin auth, no 404) tras el despliegue: claves de
+  plantel, planes NEE, publicar/archivar plan, credencial, reabrir entrega, plan de mejora docente,
+  historial de admisión, ajuste dinámico de rutas, exportación BI, riesgo conductual, acta de
+  conducta, eventos de bienestar, intentos fallidos de login, dashboard de cumplimiento.
+- Nuevas rutas FastAPI confirmadas registradas (403/405, no 404): `conducta.py`,
+  `ia_avanzada.py#learning_path_narrativa`.
+- 7 tablas nuevas confirmadas con cobertura de auditoría (`audit_biu` activo, `PENDIENTE_AIUD`
+  esperado en desarrollo) vía `auditoria.reporte_cobertura()`.
+- **No se realizó prueba E2E en navegador** con usuario real — mismas razones que la sesión
+  anterior (requiere login OIDC completo). Se recomienda smoke-test específico post-deploy para:
+  AD-007 (probar con un login fallido real), IA-020 (exportar un dashboard real y confirmar que el
+  ZIP contiene CSVs válidos), PE-014/SB-017 (requieren que el Instituto suba las plantillas Carbone
+  correspondientes antes de poder generarse).
+
+### 🚀 Próximos Pasos (Siguiente Sesión):
+- [ ] Smoke-test en navegador de AD-007, IA-020, PE-014, SB-017 (ver nota de verificación arriba).
+- [ ] Instituto debe proporcionar: plantillas Carbone `credencial_alumno` y confirmar diseño de
+  `acta_conducta`; código de incorporación UAEMEX para Preparatoria (Metepec, Tenancingo); contenido
+  H5P de cuestionarios diagnósticos por nivel (PE-003).
+- [ ] Prueba E2E en navegador de los flujos P2 de la sesión anterior + los 19 CU de esta sesión.
+- [ ] Migración a ApiService en el Frontend (heredado, sigue pendiente).
+- [ ] Google SSO, Big Blue Button externo, Blockchain Polygon PoS — sin cambios.
+
 

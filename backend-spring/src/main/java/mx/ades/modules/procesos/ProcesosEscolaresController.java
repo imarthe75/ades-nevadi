@@ -698,6 +698,16 @@ public class ProcesosEscolaresController {
         }
     }
 
+    // ── PE-006: Timeline de expediente de admisión ────────────────────────────
+
+    @GetMapping("/admision/{id}/historial")
+    public ResponseEntity<List<Map<String, Object>>> historialAdmision(
+            @PathVariable("id") UUID id,
+            @AuthenticationPrincipal Jwt jwt) {
+        userService.resolveUser(jwt);
+        return ResponseEntity.ok(queryService.fetchHistorialAdmision(id));
+    }
+
     // ── PE-020: Workflow de Bajas ────────────────────────────────────────────
 
     @Data

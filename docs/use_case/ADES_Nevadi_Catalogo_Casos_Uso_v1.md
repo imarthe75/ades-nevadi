@@ -12,7 +12,8 @@ Este catálogo consolida **todos los casos de uso operacionales, académicos, ad
 
 Está estructurado en **10 dominios funcionales**, con identificación de casos implementados (✅) y casos pendientes (⏳), facilitando la priorización de desarrollo futuro.
 
-> **Cobertura al 2026-06-11 (sesión 4):** 173/230 CUs implementados (75.2%) — Fases 1-31 completas. Última actualización: sesión 2026-06-11.
+> **Cobertura al 2026-07-03:** 192/230 CUs implementados (83.5%) — Grupos A-D (19 CU) + corrección de
+> claves CCT/UAEMEX (Grupo E) completados. Última actualización: sesión 2026-07-03.
 
 ---
 
@@ -32,7 +33,7 @@ Está estructurado en **10 dominios funcionales**, con identificación de casos 
 |-------|------------|-------|--------|------|
 | ID-006 | Carga de logo institucional y configuración de paleta de colores por plantel | Admin Plantel | ✅ | 1 |
 | ID-007 | Administración de templates de comunicados (encabezado, pie, firma) | Admin Plantel | ✅ | 5 |
-| ID-008 | Configuración de plantillas de boletas PDF (tipo de letra, espacios, firmas) | Admin Plantel | ⏳ | 18 |
+| ID-008 | Configuración de plantillas de boletas PDF (tipo de letra, espacios, firmas) | Admin Plantel | ✅ | 18 |
 | ID-009 | Gestión de firma digital institucional (CEO/Director) | Admin Global | ✅ | 27 |
 
 ### 1.3 Calendario Institucional
@@ -70,8 +71,8 @@ Está estructurado en **10 dominios funcionales**, con identificación de casos 
 | AC-011 | Asignar materias a plan de estudio (materia-plan-nivel-grado) | Coord Académico | ✅ | 1 |
 | AC-012 | Visualizar mapa curricular (vista árbol: nivel → grado → materia → horas) | Coord Académico | ✅ | 19 |
 | AC-013 | CRUD de temas/contenidos por materia (orden secuencial, horas estimadas) | Docente/Coord | ✅ | 1 |
-| AC-014 | Crear planes de estudio alternativos o reducidos (ej: alumnos con NEE) | Coord Académico | ⏳ | 29 |
-| AC-015 | Publicar/archivar versiones de planes de estudio | Admin Plantel | ⏳ | 28 |
+| AC-014 | Crear planes de estudio alternativos o reducidos (ej: alumnos con NEE) | Coord Académico | ✅ | 29 |
+| AC-015 | Publicar/archivar versiones de planes de estudio | Admin Plantel | ✅ | 28 |
 
 ### 2.3 Programación de Horarios
 | CU ID | Descripción | Actor | Estado | Fase |
@@ -90,10 +91,10 @@ Está estructurado en **10 dominios funcionales**, con identificación de casos 
 |-------|------------|-------|--------|------|
 | PE-001 | Crear solicitud de admisión (datos personales, nivel solicitado, documentos) | Solicitante/Admin | ✅ | 1 |
 | PE-002 | Carga de documentos (CURP, acta de nacimiento, certificado previo, foto) | Solicitante | ✅ | 28 |
-| PE-003 | Evaluación diagnóstica automatizada (cuestionarios por nivel) | Evaluador | ⏳ | 30 |
+| PE-003 | Evaluación diagnóstica automatizada (cuestionarios por nivel) | Evaluador | ✅ | 30 |
 | PE-004 | Asignación de estatus de solicitud (pendiente, evaluado, aprobado, rechazado) | Admin Plantel | ✅ | 1 |
 | PE-005 | Generación de carta de aceptación/rechazo en PDF | Sistema | ⏳ | 28 |
-| PE-006 | Seguimiento de expediente de admisión (timeline de estados) | Solicitante | ⏳ | 28 |
+| PE-006 | Seguimiento de expediente de admisión (timeline de estados) | Solicitante | ✅ | 28 |
 | PE-007 | Importar listados de admitidos desde portal SEP (si aplica) | Admin Plantel | ⏳ | 30 |
 
 ### 3.2 Inscripción y Alta de Alumnos
@@ -105,7 +106,7 @@ Está estructurado en **10 dominios funcionales**, con identificación de casos 
 | PE-011 | Generación de matrícula única y código ADEN (si aplica SEP) | Sistema | ⏳ | 28 |
 | PE-012 | Inscripción en materias específicas (secundaria/preparatoria optativas) | Sistema/Docente | ⏳ | 29 |
 | PE-013 | Crear expediente académico inicial con fotocopia de CURP, acta, certificado anterior | Secretaria | ✅ | 1 |
-| PE-014 | Generar y enviar credencial de alumno (digital/física) | Sistema | ⏳ | 28 |
+| PE-014 | Generar y enviar credencial de alumno (digital/física) | Sistema | ✅ | 28 |
 
 ### 3.3 Reinscripción y Cambios de Estatus
 | CU ID | Descripción | Actor | Estado | Fase |
@@ -168,7 +169,7 @@ Está estructurado en **10 dominios funcionales**, con identificación de casos 
 | DP-013 | Evaluación 360° de docentes (directivos, pares, alumnos, padres) | Evaluador | ✅ | 3 |
 | DP-014 | Cálculo automático de promedio por criterio y general | Sistema | ✅ | 3 |
 | DP-015 | Visualización de histórico de evaluaciones por ciclo | Director/Coord | ✅ | 3 |
-| DP-016 | Generación de plan de mejora basado en evaluación | Coord Académico | ⏳ | 30 |
+| DP-016 | Generación de plan de mejora basado en evaluación | Coord Académico | ✅ | 30 |
 | DP-017 | Observación pedagógica en aula (con estatus semáforo: verde/amarilla/roja) | Observador | ✅ | Nuevas |
 | DP-018 | Reporte de retroalimentación pedagógica (PDF con dimensiones y compromisos) | Sistema | ✅ | Nuevas |
 
@@ -184,7 +185,7 @@ Está estructurado en **10 dominios funcionales**, con identificación de casos 
 | OA-003 | Justificación de faltas (certificado médico, evento especial) | Padre/Estudiante | ✅ | 31 |
 | OA-004 | Generar reporte de asistencia (por alumno, grupo, docente, período) | Coord Académico | ✅ | 2 |
 | OA-005 | Alertas de ausentismo (>20% inasistencia) | Sistema | ✅ | 4 |
-| OA-006 | Visualización de clase presencial vs remota (post-COVID) | Docente | ⏳ | 31 |
+| OA-006 | Visualización de clase presencial vs remota (post-COVID) | Docente | ✅ | 31 |
 | OA-007 | Exportar reporte de asistencia (CSV, Excel, PDF) | Docente | ✅ | 2 |
 
 ### 5.2 Planificación Docente y Avance Curricular
@@ -194,7 +195,7 @@ Está estructurado en **10 dominios funcionales**, con identificación de casos 
 | OA-009 | Registrar temas impartidos vs planeados (estado: impartido/pendiente) | Docente | ✅ | 6 |
 | OA-010 | Cálculo automático de % de cobertura curricular | Sistema | ✅ | 6 |
 | OA-011 | Alertas de rezago (menos del 80% de temas cubiertos) | Sistema | ✅ | 30 |
-| OA-012 | Ajuste dinámico de plan ante suspensiones o eventos | Docente | ⏳ | 27 |
+| OA-012 | Ajuste dinámico de plan ante suspensiones o eventos | Docente | ✅ | 27 |
 | OA-013 | Visualización de avance por grado/materia a nivel plantel | Director | ⏳ | 28 |
 
 ### 5.3 Tareas, Proyectos y Entregas
@@ -203,10 +204,10 @@ Está estructurado en **10 dominios funcionales**, con identificación de casos 
 | OA-014 | Asignar tarea (descripción, fecha de entrega, rubrica, peso en calificación) | Docente | ✅ | 2 |
 | OA-015 | Subida de archivos por alumno (MinIO: PDF, Word, imágenes, video) | Estudiante | ✅ | 2 |
 | OA-016 | Validación automática de extensión/tamaño de archivo | Sistema | ✅ | 2 |
-| OA-017 | Detección de plagio (Turnitin, Grammarly, análisis interno) | Sistema | ⏳ | 30 |
+| OA-017 | Detección de plagio (Turnitin, Grammarly, análisis interno) | Sistema | ✅ | 30 |
 | OA-018 | Calificación de tarea con rúbrica (criterios, niveles de logro) | Docente | ✅ | 2 |
 | OA-019 | Retroalimentación escrita/vídeo en tarea | Docente | ⏳ | 29 |
-| OA-020 | Reasignación de tarea (por error o necesidad) | Docente | ⏳ | 27 |
+| OA-020 | Reasignación de tarea (por error o necesidad) | Docente | ✅ | 27 |
 | OA-021 | Reporte de tareas pendientes (alumno, grupo, docente) | Todos | ✅ | 2 |
 | OA-022 | Exportar historial de tareas y calificaciones | Docente | ✅ | 2 |
 
@@ -274,7 +275,7 @@ Está estructurado en **10 dominios funcionales**, con identificación de casos 
 | IA-006 | Generación automática de ruta de refuerzo por alumno | IA Claude | ✅ | 4B |
 | IA-007 | Recomendación de recursos (videos, ejercicios, lecturas) | IA Claude | ✅ | 4B |
 | IA-008 | Seguimiento de progreso en learning path (% completado) | Estudiante | ✅ | 4B |
-| IA-009 | Ajuste dinámico de ruta según desempeño | IA Claude | ⏳ | 32 |
+| IA-009 | Ajuste dinámico de ruta según desempeño | IA Claude | ✅ | 32 |
 | IA-010 | Asignación manual de ruta por docente | Docente | ✅ | 4B |
 
 ### 7.3 Asistente Pedagógico (Chatbot NL→SQL)
@@ -283,7 +284,7 @@ Está estructurado en **10 dominios funcionales**, con identificación de casos 
 | IA-011 | Consulta en lenguaje natural: "¿Quién aprobó matemáticas?" | Docente/Admin | ✅ | 17 |
 | IA-012 | Generación automática de consultas SQL desde texto | IA Claude | ✅ | 17 |
 | IA-013 | Contexto académico (plantel, ciclo, grupo activo) en respuestas | Sistema | ✅ | 17 |
-| IA-014 | Recomendaciones pedagógicas basadas en datos (ej: estudiantes con similar perfil) | IA Claude | ⏳ | 32 |
+| IA-014 | Recomendaciones pedagógicas basadas en datos (ej: estudiantes con similar perfil) | IA Claude | ✅ | 32 |
 | IA-015 | Historial de conversaciones persistente | Sistema | ⏳ | 28 |
 
 ### 7.4 Análisis Estadístico y BI
@@ -293,7 +294,7 @@ Está estructurado en **10 dominios funcionales**, con identificación de casos 
 | IA-017 | Gráficos de distribución de calificaciones por materia/grupo | Coord Académico | ✅ | 4 |
 | IA-018 | Análisis de tendencias (mejoría/empeoramiento ciclo a ciclo) | Director | ✅ | 4 |
 | IA-019 | Comparativa entre planteles (KPI relativo) | Admin Global | ✅ | 16 |
-| IA-020 | Exportación de reportes BI (PDF, PowerPoint, Excel) | Admin | ⏳ | 28 |
+| IA-020 | Exportación de reportes BI (PDF, PowerPoint, Excel) | Admin | ✅ | 28 |
 | IA-021 | Dashboards personalizados por rol (docente, director, padre) | Sistema | ✅ | 16 |
 
 ---
@@ -365,8 +366,8 @@ Está estructurado en **10 dominios funcionales**, con identificación de casos 
 | SB-013 | Plan de mejora (compromisos del alumno y padre) | Orientador | ✅ | 27 |
 | SB-014 | Seguimiento de cumplimiento de plan | Tutor | ✅ | 27 |
 | SB-015 | Historial conductual por alumno (ciclo actual + histórico) | Director/Padre | ✅ | 3 |
-| SB-016 | Análisis de patrones de conducta (factores de riesgo) | IA Claude | ⏳ | 32 |
-| SB-017 | Generación de acta de evaluación de conducta | Sistema | ⏳ | 28 |
+| SB-016 | Análisis de patrones de conducta (factores de riesgo) | IA Claude | ✅ | 32 |
+| SB-017 | Generación de acta de evaluación de conducta | Sistema | ✅ | 28 |
 
 ### 9.3 Programa de Bienestar Integral
 | CU ID | Descripción | Actor | Estado | Fase |
@@ -376,7 +377,7 @@ Está estructurado en **10 dominios funcionales**, con identificación de casos 
 | SB-020 | Alertas de potencial bullying (análisis de encuestas) | Sistema | ⏳ | 32 |
 | SB-021 | Seguimiento de casos de riesgo psicosocial | Psicólogo | ⏳ | 30 |
 | SB-022 | Programa de tutoría académica y emocional | Tutor | ⏳ | 29 |
-| SB-023 | Eventos de bienestar (día de la amabilidad, actividades lúdicas) | Coord Social | ⏳ | 31 |
+| SB-023 | Eventos de bienestar (día de la amabilidad, actividades lúdicas) | Coord Social | ✅ | 31 |
 
 ---
 
@@ -391,7 +392,7 @@ Está estructurado en **10 dominios funcionales**, con identificación de casos 
 | AD-004 | Filtrado dinámico de menú según permisos | Sistema | ✅ | 26B |
 | AD-005 | Bloqueo de endpoints según rol (middleware FastAPI) | Sistema | ✅ | Nuevas |
 | AD-006 | Desactivación de usuario (soft delete, mantener historial) | RH | ✅ | 1 |
-| AD-007 | Auditoría de intentos fallidos de login | Sistema | ⏳ | 28 |
+| AD-007 | Auditoría de intentos fallidos de login | Sistema | ✅ | 28 |
 | AD-008 | Reset de contraseña (vía Authentik o email) | Usuario/Admin | ✅ | 1 |
 
 ### 10.2 Auditoría y Cumplimiento
@@ -401,8 +402,8 @@ Está estructurado en **10 dominios funcionales**, con identificación de casos 
 | AD-010 | Registro de quién, qué, cuándo y justificación en cambios | Sistema | ✅ | 15 |
 | AD-011 | Imposibilidad de eliminar registros (soft delete + auditoría) | Sistema | ✅ | 15 |
 | AD-012 | Reporte de auditoría (acceso a expedientes, cambios de calificación) | Admin | ✅ | 15 |
-| AD-013 | Conformidad LRFD (Ley de Reglamentación Federal de Datos) | Sistema | ⏳ | 33 |
-| AD-014 | Cumplimiento de normas de SEP/UAEMEX (archivos, informes) | Admin | ⏳ | 28 |
+| AD-013 | Conformidad LRFD (Ley de Reglamentación Federal de Datos) | Sistema | ✅ | 33 |
+| AD-014 | Cumplimiento de normas de SEP/UAEMEX (archivos, informes) | Admin | ✅ | 28 |
 
 ### 10.3 Backup y Recuperación
 | CU ID | Descripción | Actor | Estado | Fase |
@@ -448,7 +449,7 @@ Estos afectan operación diaria y cumplimiento normativo:
 | 5 | AD-015 | Backup automático diario BD | 6 h | 27 | ✅ 2026-06-11 |
 | 6 | DP-006 | Gestión de licencias/permisos personal | 10 h | 29 | ✅ 2026-06-11 |
 | 7 | PE-016 | Verificación de no-adeudo en reinscripción | 8 h | 31 | ⏳ |
-| 8 | AD-013 | Conformidad LRFD (datos personales) | 16 h | 32 | ⏳ |
+| 8 | AD-013 | Conformidad LRFD (datos personales) | 16 h | 32 | ✅ 2026-07-03 |
 
 ### 🟡 **Altos** (Impacto Medio-Alto, Esfuerzo Medio)
 Mejoran la experiencia y eficiencia:
@@ -528,8 +529,13 @@ La priorización recomendada asegura que las **funcionalidades críticas** se im
 | 2026-06-11 (sesión 2) | 1–28 + FASE 29 parcial | **158** | **72** | **230** | **68.7%** |
 | 2026-06-11 (sesión 3) | 1–30 completas | **165** | **65** | **230** | **71.7%** |
 | 2026-06-11 (sesión 4) | 1–31 completas | **173** | **57** | **230** | **75.2%** |
+| 2026-07-03 (sesión 5) | 1–39 + Grupos A-E (auditoría de brecha) | **192** | **38** | **230** | **83.5%** |
 
 > Nota: El total pasó de 195 a 230 porque el catálogo fue expandido con CUs adicionales en los dominios PE, DP, SB y AD durante el análisis de brecha completo.
+> Nota (sesión 5): el salto de 173→192 incluye tanto los 19 CU implementados directamente en esta
+> sesión (Grupos A-D del plan de auditoría 2026-07-03) como CUs de las Fases 32-39 (sesión
+> 2026-06-12, ver `.agent/STATE.md`) que ya estaban completos en código pero nunca se reflejaron en
+> este catálogo — la tabla no se actualizaba en cada sesión intermedia.
 
 **Nuevos CUs completados en sesión 2 (2026-06-11):**  
 AC-006 (aulas), PE-002 (carga docs), PE-024 (expediente), PE-025 (histórico), AD-015/016 (backups), AD-027 (emails), AD-023 (MFA), AD-024 (Vault), DP-006 (licencias), DP-007 (capacitaciones) + Auditoría v2 (038+039, 90 tablas).

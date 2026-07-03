@@ -166,6 +166,29 @@ public class AlumnoQueryService {
         return rows.get(0);
     }
 
+    /** Datos aplanados para la credencial de alumno (PE-014) — nombre, foto, plantel, grado/grupo. */
+    @Transactional(readOnly = true)
+    public Map<String, Object> datosCredencial(UUID id) {
+        List<Map<String, Object>> rows = jdbc.queryForList("""
+            SELECT e.id, e.matricula,
+                   COALESCE(p.nombre_social, p.nombre) AS nombre, p.apellido_paterno, p.apellido_materno,
+                   p.curp, p.foto_url,
+                   pl.nombre_plantel,
+                   gr.nombre_grado, g.nombre_grupo, ne.nombre_nivel
+            FROM ades_estudiantes e
+            JOIN ades_personas p ON p.id = e.persona_id
+            LEFT JOIN ades_planteles pl ON pl.id = e.plantel_id
+            LEFT JOIN ades_inscripciones ins ON ins.estudiante_id = e.id AND ins.is_active = TRUE
+            LEFT JOIN ades_grupos g ON g.id = ins.grupo_id AND g.is_active = TRUE
+            LEFT JOIN ades_grados gr ON gr.id = g.grado_id
+            LEFT JOIN ades_niveles_educativos ne ON ne.id = gr.nivel_educativo_id
+            WHERE e.id = ?
+            """, id);
+        if (rows.isEmpty())
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Alumno no encontrado");
+        return rows.get(0);
+    }
+
     @Transactional(readOnly = true)
     public UUID resolverPersonaId(UUID alumnoId) {
         List<Map<String, Object>> rows = jdbc.queryForList(

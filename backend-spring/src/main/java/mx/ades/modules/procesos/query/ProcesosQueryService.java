@@ -156,6 +156,13 @@ public class ProcesosQueryService {
                 "FROM ades_solicitudes_admision WHERE id = ?", id);
     }
 
+    /** PE-006: timeline de cambios de estado de una solicitud de admisión. */
+    public List<Map<String, Object>> fetchHistorialAdmision(UUID id) {
+        return jdbc.queryForList(
+                "SELECT id, estado_anterior, estado_nuevo, usuario, fecha " +
+                "FROM ades_admision_historial_estados WHERE solicitud_id = ? ORDER BY fecha ASC", id);
+    }
+
     public List<Map<String, Object>> fetchSolicitudListaEspera(UUID id) {
         return jdbc.queryForList(
                 "SELECT email_tutor, nombre FROM ades_solicitudes_admision WHERE id = ? AND estado='LISTA_ESPERA'", id);

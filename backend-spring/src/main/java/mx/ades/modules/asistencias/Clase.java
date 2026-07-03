@@ -47,6 +47,9 @@ public class Clase extends AdesBaseEntity {
     @Column(name = "estatus_clase", nullable = false)
     private String estatusClase = "PROGRAMADA";
 
+    @Column(name = "modalidad", nullable = false)
+    private String modalidad = "PRESENCIAL";
+
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
 }

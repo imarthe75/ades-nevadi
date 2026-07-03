@@ -110,4 +110,22 @@ public class PlaneacionController {
             @PathVariable("grupo_id") UUID grupoId) {
         return ResponseEntity.ok(queries.getInsightsGrupo(grupoId));
     }
+
+    // ── OA-012: Ajuste dinámico ante suspensión de clase ──────────────────────
+
+    @GetMapping("/pendientes-reprogramar/{grupo_id}")
+    public ResponseEntity<List<Map<String, Object>>> pendientesReprogramar(
+            @PathVariable("grupo_id") UUID grupoId) {
+        return ResponseEntity.ok(queries.getPendientesReprogramar(grupoId));
+    }
+
+    public record ReprogramarRequest(@DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate nueva_fecha) {}
+
+    @PatchMapping("/clases/{planeacion_id}/reprogramar")
+    public ResponseEntity<Map<String, Object>> reprogramar(
+            @PathVariable("planeacion_id") UUID planeacionId,
+            @RequestBody ReprogramarRequest body) {
+        commands.reprogramar(planeacionId, body.nueva_fecha());
+        return ResponseEntity.ok(Map.of("id", planeacionId.toString(), "fecha_planeada", body.nueva_fecha().toString()));
+    }
 }

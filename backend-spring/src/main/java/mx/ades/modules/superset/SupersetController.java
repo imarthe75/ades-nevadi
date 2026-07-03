@@ -191,6 +191,88 @@ public class SupersetController {
         throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Error al obtener token del dashboard");
     }
 
+    /**
+     * IA-020: exporta a CSV los datos de todos los charts de un dashboard, empacados
+     * en un ZIP (uno por chart). Reusa el mismo login admin que el guest token;
+     * para cada chart obtiene su query_context ya guardado (vía GET /chart/{id})
+     * y lo reenvía a POST /chart/data con result_format=csv — el mismo mecanismo
+     * que usa la propia UI de Superset para "Download as CSV" por chart.
+     */
+    @GetMapping("/dashboard/{key}/export-csv")
+    public ResponseEntity<byte[]> exportarCsv(
+            @PathVariable("key") String key,
+            @AuthenticationPrincipal Jwt jwt) {
+        AdesUser user = userService.resolveUser(jwt);
+        String rolKey = NIVEL_A_KEY.getOrDefault(user.getNivelAcceso(), "alumno");
+        String effectiveKey = "instituto".equals(key) && (user.getNivelAcceso() == null || user.getNivelAcceso() > 0)
+                ? rolKey : key;
+        String dashboardId = getDashboardId(effectiveKey);
+        if (dashboardId == null || dashboardId.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Dashboard '" + effectiveKey + "' no configurado.");
+        }
+
+        String accessToken = supersetLogin();
+
+        List<Map<String, Object>> charts;
+        try {
+            Map<?, ?> resp = restClient.get()
+                    .uri(supersetUrl + "/api/v1/dashboard/" + dashboardId + "/charts")
+                    .header("Authorization", "Bearer " + accessToken)
+                    .retrieve()
+                    .body(Map.class);
+            charts = resp != null ? (List<Map<String, Object>>) resp.get("result") : List.of();
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Error al listar charts del dashboard: " + e.getMessage());
+        }
+
+        java.io.ByteArrayOutputStream zipBytes = new java.io.ByteArrayOutputStream();
+        try (java.util.zip.ZipOutputStream zos = new java.util.zip.ZipOutputStream(zipBytes)) {
+            for (Map<String, Object> chart : charts) {
+                Object chartIdObj = chart.get("id");
+                String nombreChart = String.valueOf(chart.getOrDefault("slice_name", "chart_" + chartIdObj));
+                try {
+                    Map<?, ?> chartDetail = restClient.get()
+                            .uri(supersetUrl + "/api/v1/chart/" + chartIdObj)
+                            .header("Authorization", "Bearer " + accessToken)
+                            .retrieve()
+                            .body(Map.class);
+                    Object result = chartDetail != null ? chartDetail.get("result") : null;
+                    if (!(result instanceof Map)) continue;
+                    Object queryContextRaw = ((Map<?, ?>) result).get("query_context");
+                    if (queryContextRaw == null) continue;
+
+                    Map<String, Object> queryContext = new com.fasterxml.jackson.databind.ObjectMapper()
+                            .readValue((String) queryContextRaw, Map.class);
+                    queryContext.put("result_format", "csv");
+                    queryContext.put("result_type", "full");
+
+                    byte[] csv = restClient.post()
+                            .uri(supersetUrl + "/api/v1/chart/data")
+                            .header("Authorization", "Bearer " + accessToken)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .body(queryContext)
+                            .retrieve()
+                            .body(byte[].class);
+                    if (csv == null) continue;
+
+                    String entryName = (nombreChart.replaceAll("[^a-zA-Z0-9 _-]", "") + ".csv").trim();
+                    zos.putNextEntry(new java.util.zip.ZipEntry(entryName));
+                    zos.write(csv);
+                    zos.closeEntry();
+                } catch (Exception chartEx) {
+                    log.warn("No se pudo exportar chart {} ({}): {}", chartIdObj, nombreChart, chartEx.getMessage());
+                }
+            }
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error al generar ZIP de exportación: " + e.getMessage());
+        }
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType("application/zip"))
+                .header("Content-Disposition", "attachment; filename=reporte_bi_" + effectiveKey + ".zip")
+                .body(zipBytes.toByteArray());
+    }
+
     @GetMapping("/dashboards")
     public ResponseEntity<Map<String, Object>> listAvailableDashboards(
             @AuthenticationPrincipal Jwt jwt) {

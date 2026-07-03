@@ -104,4 +104,15 @@ public class EntregaPersistenceAdapter implements EntregaRepositoryPort {
             "WHERE id = ?",
             motivo, usuario, entregaId);
     }
+
+    @Override
+    public int reabrir(UUID entregaId, String motivo, String usuario) {
+        return jdbc.update(
+            "UPDATE ades_tareas_entregas " +
+            "SET estatus_entrega = 'PENDIENTE', calificacion_obtenida = NULL, " +
+            "    comentario_profesor = ?, fecha_calificacion_docente = NULL, " +
+            "    fecha_modificacion = CURRENT_TIMESTAMP, usuario_modificacion = ? " +
+            "WHERE id = ?",
+            motivo, usuario, entregaId);
+    }
 }

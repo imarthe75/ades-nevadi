@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Jost:wght@400;600;700;800&family=Inter:wght@400;500&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  @page { size: A4 portrait; margin: 15mm; }
+  body { font-family: 'Inter', Arial, sans-serif; color: #1a1a1a; line-height: 1.5; }
+  .header { border-bottom: 3px solid #1E5FA8; padding-bottom: 5mm; margin-bottom: 8mm; display: flex; align-items: center; justify-content: space-between; }
+  .logo-area { display: flex; align-items: center; gap: 4mm; }
+  .logo { width: 14mm; height: 14mm; border-radius: 50%; background: #1E5FA8; display: flex; align-items: center; justify-content: center; color: #fff; font-family: 'Jost', sans-serif; font-weight: 800; font-size: 14pt; }
+  .title-area h1 { font-family: 'Jost', sans-serif; font-size: 18pt; font-weight: 800; color: #1E5FA8; }
+  .title-area p { font-size: 8pt; color: #555; text-transform: uppercase; letter-spacing: 1px; }
+  .doc-title { font-family: 'Jost', sans-serif; font-size: 16pt; font-weight: 700; text-align: center; margin-bottom: 6mm; text-transform: uppercase; letter-spacing: 1px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm; margin-bottom: 6mm; }
+  .field-box { border: 1px solid #ddd; padding: 3mm; border-radius: 6px; }
+  .field-label { font-size: 8pt; font-weight: 600; color: #777; text-transform: uppercase; margin-bottom: 1mm; }
+  .field-val { font-size: 10pt; font-weight: 500; }
+  .section-title { font-family: 'Jost', sans-serif; font-size: 11pt; font-weight: 700; border-left: 3px solid #1E5FA8; padding-left: 2mm; margin: 5mm 0 3mm; color: #1E5FA8; text-transform: uppercase; }
+  .text-block { border: 1px solid #ddd; padding: 4mm; border-radius: 6px; font-size: 10pt; background: #fafafa; min-height: 20mm; white-space: pre-wrap; }
+  .footer-signatures { margin-top: 25mm; display: flex; justify-content: space-between; }
+  .signature-line { width: 55mm; border-top: 1px solid #333; text-align: center; padding-top: 2mm; font-size: 9pt; }
+  .signature-line span { display: block; font-size: 7.5pt; color: #777; }
+  .slogan { font-size: 7.5pt; color: #aaa; text-align: center; margin-top: 15mm; font-style: italic; }
+</style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo-area">
+      <div class="logo">N</div>
+      <div class="title-area">
+        <h1>Instituto Nevadi</h1>
+        <p>Departamento de Orientación y Conducta</p>
+      </div>
+    </div>
+    <div style="text-align: right; font-size: 9pt; color: #555;">
+      <strong>Fecha:</strong> {{ fecha_registro }}<br>
+      <strong>Folio Acta:</strong> {{ folio_acta }}
+    </div>
+  </div>
+
+  <div class="doc-title">Acta de Evaluación de Conducta</div>
+
+  <div class="grid">
+    <div class="field-box">
+      <div class="field-label">Alumno(a)</div>
+      <div class="field-val">{{ nombre_alumno }}</div>
+    </div>
+    <div class="field-box">
+      <div class="field-label">Matrícula / Grupo</div>
+      <div class="field-val">{{ matricula }} — {{ grupo }}</div>
+    </div>
+    <div class="field-box">
+      <div class="field-label">Tipo de Falta</div>
+      <div class="field-val">{{ tipo_falta }}</div>
+    </div>
+    <div class="field-box">
+      <div class="field-label">Fecha del Reporte</div>
+      <div class="field-val">{{ fecha_reporte }}</div>
+    </div>
+  </div>
+
+  <div class="section-title">Descripción del Incidente</div>
+  <div class="text-block">{{ descripcion }}</div>
+
+  <div class="section-title">Medida Aplicada</div>
+  <div class="text-block">{{ medida_aplicada }}</div>
+
+  {% if compromiso_mejora %}
+  <div class="section-title">Compromiso de Mejora</div>
+  <div class="text-block">{{ compromiso_mejora }}</div>
+  {% endif %}
+
+  <div class="grid" style="margin-top: 5mm;">
+    <div class="field-box">
+      <div class="field-label">¿Requiere Seguimiento?</div>
+      <div class="field-val">{% if requiere_seguimiento %}SÍ{% else %}NO{% endif %}</div>
+    </div>
+    <div class="field-box">
+      <div class="field-label">Reportado por</div>
+      <div class="field-val">{{ reportado_por or '—' }}</div>
+    </div>
+  </div>
+
+  <div class="footer-signatures">
+    <div class="signature-line">
+      <strong>{{ reportado_por or 'Docente/Coordinador' }}</strong>
+      <span>Quien reporta</span>
+    </div>
+    <div class="signature-line">
+      <strong>Firma de Recibido</strong>
+      <span>Padre de Familia / Tutor Legal</span>
+    </div>
+    <div class="signature-line">
+      <strong>Dirección del Plantel</strong>
+      <span>Voz y Sello de Autoridad</span>
+    </div>
+  </div>
+
+  <div class="slogan">EL ÚNICO CAMINO PARA SALIR ADELANTE ES LA EDUCACIÓN.</div>
+</body>
+</html>

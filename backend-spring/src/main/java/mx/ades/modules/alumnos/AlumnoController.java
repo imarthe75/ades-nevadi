@@ -8,13 +8,17 @@ import mx.ades.modules.alumnos.domain.port.out.AlumnoRepositoryPort;
 import mx.ades.modules.alumnos.query.AlumnoQueryService;
 import mx.ades.security.AdesUser;
 import mx.ades.security.AdesUserService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestClient;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
@@ -39,6 +43,10 @@ public class AlumnoController {
     private final CrearAlumnoUseCase      crear;
     private final ActualizarAlumnoUseCase actualizar;
     private final AlumnoRepositoryPort    repositoryPort;
+    private final RestClient restClient = RestClient.builder().build();
+
+    @Value("${carbone.url:http://ades-carbone:3000}")
+    private String carboneUrl;
 
     @GetMapping
     public ResponseEntity<Map<String, Object>> list(
@@ -114,5 +122,53 @@ public class AlumnoController {
         est.setFechaIngreso(update.getFechaIngreso());
         est.setIsActive(update.getIsActive());
         return ResponseEntity.ok(repositoryPort.save(est));
+    }
+
+    /**
+     * PE-014: credencial de alumno en PDF vía Carbone. El template (diseño gráfico
+     * institucional, con formatter de QR sobre la matrícula) se administra desde
+     * el módulo de Reportes → Plantillas, mismo flujo ya usado por boletas/actas.
+     */
+    @GetMapping("/{id}/credencial")
+    public ResponseEntity<byte[]> credencial(
+            @PathVariable UUID id,
+            @RequestParam("template_id") String templateId,
+            @AuthenticationPrincipal Jwt jwt) {
+        userService.resolveUser(jwt);
+
+        Map<String, Object> a = query.datosCredencial(id);
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("matricula", a.get("matricula"));
+        payload.put("nombre_completo", (a.get("nombre") + " " + a.get("apellido_paterno") + " " +
+                (a.get("apellido_materno") != null ? a.get("apellido_materno") : "")).trim());
+        payload.put("curp", a.get("curp"));
+        payload.put("foto_url", a.get("foto_url"));
+        payload.put("plantel", a.get("nombre_plantel"));
+        payload.put("nivel", a.get("nombre_nivel"));
+        payload.put("grado", a.get("nombre_grado"));
+        payload.put("grupo", a.get("nombre_grupo"));
+        payload.put("verificacion", a.get("matricula"));
+
+        try {
+            Map<String, Object> reqBody = Map.of("data", payload);
+            ResponseEntity<byte[]> response = restClient.post()
+                    .uri(carboneUrl + "/render/" + templateId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(reqBody)
+                    .retrieve()
+                    .toEntity(byte[].class);
+
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                return ResponseEntity.ok()
+                        .contentType(MediaType.APPLICATION_PDF)
+                        .header("Content-Disposition", "attachment; filename=Credencial_" + a.get("matricula") + ".pdf")
+                        .body(response.getBody());
+            }
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Error al generar la credencial");
+        } catch (ResponseStatusException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Error al renderizar con Carbone: " + e.getMessage());
+        }
     }
 }
