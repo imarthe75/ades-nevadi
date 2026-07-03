@@ -52,6 +52,15 @@ public class ProcesosEscolaresController {
 
     // ── FASE 34: Importación SEP & Descarga ZIP Expediente ─────────────────────
 
+    /**
+     * @deprecated sin consumidores en el frontend (verificado 2026-07-03) — la
+     * importación de preinscripciones SEP vive ahora en el módulo genérico
+     * {@code mx.ades.modules.imports} vía {@code TipoEntidadImport.PREINSCRITOS_SEP}
+     * (mismo flujo de plantilla/CSV que usan alumnos, profesores, etc.), consumido
+     * desde {@code admision.component.ts} con {@code <app-import-button entidad="preinscritos-sep">}.
+     * Se deja sin eliminar por ahora para no romper integraciones externas no documentadas.
+     */
+    @Deprecated
     @PostMapping(value = "/importar-sep", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Map<String, Object>> importarSep(
             @RequestParam("archivo") org.springframework.web.multipart.MultipartFile file,
@@ -137,8 +146,9 @@ public class ProcesosEscolaresController {
         }
 
         String filename = "expediente_" + estudianteId + ".zip";
+        String bearerToken = jwt.getTokenValue();
         org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody responseBody =
-                outputStream -> zipService.compressDocuments(documentos, outputStream);
+                outputStream -> zipService.compressDocuments(documentos, outputStream, bearerToken);
 
         return ResponseEntity.ok()
                 .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + filename)

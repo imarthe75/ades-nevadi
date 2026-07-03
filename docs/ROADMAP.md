@@ -40,17 +40,18 @@ Este documento unifica, limpia y secuencia de forma definitiva el plan de desarr
 ---
 
 ## 🚀 Bloque D: Consolidación, Gaps e Integraciones (Fases 33-35)
-*Estado: ⏳ PENDIENTES / ROADMAP FUTURO*
+*Estado: ✅ COMPLETADO (2026-07-03) — salvo 1 ítem explícitamente deprioritizado*
 
 *   **FASE 33: Consolidación de Infraestructura y HA (Gaps Identificados)**:
-    - **HashiCorp Vault**: Automatizar el unseal (desellado) y la inyección dinámica del token de secretos en `ades-api` (quitando texto plano de `.env`).
-    - **Apache Superset**: Automatizar la inicialización del contenedor inyectando la conexión a la base de datos `ades` y la creación del usuario administrador.
-    - **Grafana**: Pre-aprovisionar dashboards de telemetría a través de plantillas JSON.
-    - **ntfy**: Habilitar volumen de persistencia para la base de datos SQLite.
-    - **Celery Flower**: Levantar interfaz web para telemetría de tareas asíncronas en segundo plano.
-*   **FASE 34: Integraciones SEP y Documentación ZIP**:
-    - Importación de preinscripciones desde portal SEP.
-    - Generación y descarga de expedientes completos de alumnos consolidados en archivos ZIP (Stirling-PDF).
-*   **FASE 35: Cierre de Ciclo Escolar e Indicadores de Uso**:
-    - Actas de inicio y cierre de ciclo en PDF.
-    - Monitoreo en Prometheus de almacenamiento en disco e informes finales del ciclo escolar.
+    - ⏸️ **HashiCorp Vault**: unseal automático + AppRole auth **deprioritizado** — el token sigue leyéndose de `root_token.txt` como fallback en `backend/app/core/vault.py`. Es una mejora de endurecimiento (no bloqueante); se deja fuera de alcance por el riesgo de romper el arranque si se hace mal, hasta que se solicite explícitamente.
+    - ✅ **Apache Superset**: `integrations/superset/docker-init.sh` ya automatiza la conexión a `ades` y la creación del admin; **2026-07-03** se agregó además la llamada a `create_dashboards.py` (idempotente) en el mismo arranque, para que un volumen recreado desde cero quede con los dashboards ya aprovisionados sin pasos manuales.
+    - ✅ **Grafana**: 7 dashboards JSON pre-aprovisionados y montados vía provisioning.
+    - ✅ **ntfy**: volúmenes `ntfy-data`/`ntfy-cache` declarados y persistiendo la base SQLite.
+    - ✅ **Celery Flower**: interfaz web activa en `/flower/` (proxied por nginx); **2026-07-03** se agregó healthcheck al servicio en `docker-compose.yml`.
+*   **FASE 34: Integraciones SEP y Documentación ZIP** — ✅ completado 2026-07-03:
+    - ✅ Importación de preinscripciones desde portal SEP: conectada al frontend (`admision.component.ts` usaba una clave de entidad inexistente `"admision"`, corregida a `"preinscritos-sep"` — bug real que causaba 404 en el botón de plantilla/importación).
+    - ✅ Generación y descarga de expedientes completos de alumnos consolidados en archivos ZIP, ahora con compresión real vía Stirling-PDF (`common/ZipService.java` invoca el proxy FastAPI `/api/v1/pdf/comprimir` antes de empaquetar cada PDF, con fallback transparente al original si Stirling falla).
+*   **FASE 35: Cierre de Ciclo Escolar e Indicadores de Uso** — ✅ completado 2026-07-03:
+    - ✅ Actas de inicio y cierre de ciclo en PDF: ya implementadas end-to-end (`CierreCicloController.java` + `cierre-ciclo.component.ts`, proxy a FastAPI).
+    - ✅ Monitoreo en Prometheus de almacenamiento en disco: servicio `node-exporter` + scrape config + reglas de alerta (`DiskSpaceLow`/`DiskSpaceCritical`) + panel en el dashboard `infrastructure_overview.json` de Grafana.
+    - Informes finales de ciclo escolar: cubiertos por los indicadores + actas de cierre de ciclo ya mencionados — no se identificó trabajo adicional de infraestructura pendiente en este rubro.

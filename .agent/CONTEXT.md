@@ -103,7 +103,7 @@ Historia y Geografía, Formación Cívica, Educación Física, Tecnología.
 | **Boleta UAEMEX PDF** | ✅ Completa | /boletas/uaemex/{id} FastAPI→BFF proxy; template weasyprint |
 | **Director Dashboard** | ✅ Completa | KPIs generales, gráficas PrimeNG, roleGuard(2) |
 | **Classroom Gaps** | ✅ Completa | Detección plagio, feedback multimedia, adecuaciones NEE, Mig 093 |
-| **Horarios Solver Timefold** | ⏳ En integración | Config+corridas+constraints backend; franjas Lun-Jue(10)/Vie(8) PRIMARIA+SEC y Lun-Vie(7) PREP seeded (Mig 068); `/api/v1/horario-franjas` + `/api/v1/horario-indisponibilidad` operativos; frontend: panel corridas, lock/regeneración, golden; pendiente: conectar disponibilidad docente a constraints Timefold |
+| **Horarios Solver Timefold** | ✅ Completa | Config+corridas+constraints backend; franjas Lun-Jue(10)/Vie(8) PRIMARIA+SEC y Lun-Vie(7) PREP seeded (Mig 068); `/api/v1/horario-franjas` + `/api/v1/horario-indisponibilidad` operativos; frontend: panel corridas, lock/regeneración, golden; disponibilidad docente conectada a constraints Timefold (`indisponibilidadRojo` HARD + `indisponibilidadAmarillo` SOFT en `HorarioConstraintProvider`) |
 | **Testing Exploratorio IA** | ✅ Fase 1 completa | `ades_testing/` — Playwright+NVIDIA NIM (`meta/llama-3.1-70b-instruct`); 34 módulos Fase 1 capturados; 30 inconsistencias detectadas (12 críticas, 12 altas); reportes HTML+CSV+Matriz en `ades_testing/reports/` |
 
 ## ADRs Vigentes
@@ -361,7 +361,8 @@ Seeds aplicados: 001 (institución), 002 (usuarios/alumnos), 003 (académico),
 | Angular Frontend | ✅ healthy | 4200 | 59 features lazy-loaded |
 | nginx | ✅ running | 80/443 | TLS Let's Encrypt 2026-09-01 |
 | Superset | ✅ healthy | 8088 | 4 dashboards con RLS por plantel |
-| Prometheus | ✅ healthy | 9090 | scraping api+bff+pg+pgbouncer |
+| Prometheus | ✅ healthy | 9090 | scraping api+bff+pg+pgbouncer+node-exporter (disco) |
+| Node Exporter | ✅ healthy | 9100 | métricas de host; alertas DiskSpaceLow/Critical |
 | Grafana | ✅ healthy | 3003 | 5 dashboards |
 | H5P Node | ✅ healthy | 8091 | 10 tipos contenido interactivo |
 | n8n | ✅ starting | 5678 | automatizaciones webhooks |

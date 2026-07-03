@@ -1,0 +1,41 @@
+# Alertas de host — FASE 35: monitoreo de disco
+# El servidor ARM OCI ha llegado a 95-99% de uso de disco varias veces durante
+# builds de Docker; esta regla avisa con margen antes de que vuelva a pasar.
+groups:
+  - name: node
+    interval: 30s
+    rules:
+
+      - alert: NodeExporterDown
+        expr: up{job="node-exporter"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          team: infra
+        annotations:
+          summary: "Node Exporter no responde"
+          description: "Sin métricas de host (disco/CPU/mem) — exporter caído o inaccesible."
+
+      - alert: DiskSpaceLow
+        expr: |
+          node_filesystem_avail_bytes{mountpoint="/",fstype!="tmpfs"} /
+          node_filesystem_size_bytes{mountpoint="/",fstype!="tmpfs"} < 0.15
+        for: 5m
+        labels:
+          severity: warning
+          team: infra
+        annotations:
+          summary: "Espacio en disco < 15% en /"
+          description: "Disponible: {{ $value | humanizePercentage }}. Revisar docker builder prune / logs / volúmenes huérfanos."
+
+      - alert: DiskSpaceCritical
+        expr: |
+          node_filesystem_avail_bytes{mountpoint="/",fstype!="tmpfs"} /
+          node_filesystem_size_bytes{mountpoint="/",fstype!="tmpfs"} < 0.05
+        for: 2m
+        labels:
+          severity: critical
+          team: infra
+        annotations:
+          summary: "Espacio en disco crítico (< 5%) en /"
+          description: "Disponible: {{ $value | humanizePercentage }}. Riesgo inminente de fallo de escritura (BD, logs, Docker)."

@@ -66,7 +66,7 @@
       "targets": [{ "expr": "avg_over_time(up{job=\"ades-bff\"}[24h]) * 100", "legendFormat": "" }],
       "fieldConfig": { "defaults": { "unit": "percent",
         "thresholds": { "mode": "absolute", "steps": [
-          { "color": "red", "value": null }, { "color": "yellow", "value": 99 }, { "color": "green", "value", 99.9 }
+          { "color": "red", "value": null }, { "color": "yellow", "value": 99 }, { "color": "green", "value": 99.9 }
         ]}
       }}
     },
@@ -89,6 +89,31 @@
           ]
         }
       }
+    },
+    {
+      "id": 7, "title": "Espacio en Disco Disponible (/)",
+      "type": "gauge", "gridPos": { "h": 8, "w": 8, "x": 0, "y": 20 },
+      "targets": [
+        { "expr": "node_filesystem_avail_bytes{mountpoint=\"/\",fstype!=\"tmpfs\"} / node_filesystem_size_bytes{mountpoint=\"/\",fstype!=\"tmpfs\"} * 100", "legendFormat": "" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100,
+        "thresholds": { "mode": "absolute", "steps": [
+          { "color": "red", "value": null }, { "color": "yellow", "value": 15 }, { "color": "green", "value": 30 }
+        ]}
+      }}
+    },
+    {
+      "id": 8, "title": "Uso de Disco Histórico (/)",
+      "type": "timeseries", "gridPos": { "h": 8, "w": 16, "x": 8, "y": 20 },
+      "targets": [
+        { "expr": "(1 - node_filesystem_avail_bytes{mountpoint=\"/\",fstype!=\"tmpfs\"} / node_filesystem_size_bytes{mountpoint=\"/\",fstype!=\"tmpfs\"}) * 100", "legendFormat": "Uso de disco %" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100,
+        "custom": { "lineWidth": 2 },
+        "thresholds": { "mode": "absolute", "steps": [
+          { "color": "green", "value": null }, { "color": "yellow", "value": 70 }, { "color": "red", "value": 85 }
+        ]}
+      }}
     }
   ],
   "refresh": "30s",
@@ -98,5 +123,5 @@
   "timezone": "America/Mexico_City",
   "title": "Infrastructure Overview — ADES",
   "uid": "ades-infra-overview",
-  "version": 1
+  "version": 2
 }

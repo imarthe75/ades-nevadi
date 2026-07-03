@@ -456,6 +456,12 @@ services:
       - ades-internal
     depends_on:
       - celery-worker
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5555/flower/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
     deploy:
       resources:
         limits:
@@ -684,6 +690,28 @@ services:
       resources:
         limits:
           memory: 1.5G
+
+  # ---------------------------------------------------------------------------
+  # Node Exporter — métricas de host (CPU, memoria, disco) para Prometheus
+  # FASE 35: monitoreo de disco — el servidor solo tenía métricas a nivel de BD
+  # (pg_database_size_bytes); esto añade visibilidad real del disco del host.
+  # ---------------------------------------------------------------------------
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: ades-node-exporter
+    restart: unless-stopped
+    command:
+      - '--path.rootfs=/host'
+      - '--collector.filesystem.mount-points-exclude=^/(dev|proc|sys|var/lib/docker/.+)($$|/)'
+    volumes:
+      - /:/host:ro,rslave
+    pid: host
+    networks:
+      - ades-internal
+    deploy:
+      resources:
+        limits:
+          memory: 128M
 
   # ---------------------------------------------------------------------------
   # Prometheus — recolección de métricas

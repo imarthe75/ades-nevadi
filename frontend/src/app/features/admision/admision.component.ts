@@ -80,7 +80,7 @@ const NIVELES = [
           <p-select [options]="estados" optionLabel="label" optionValue="value"
             [(ngModel)]="filtroEstado" placeholder="Estado…" [style]="{width:'150px'}" />
           <p-button label="Filtrar" icon="pi pi-filter" size="small" (onClick)="cargar()" />
-          <app-import-button entidad="admision" [onSuccess]="cargar.bind(this)" />
+          <app-import-button entidad="preinscritos-sep" [onSuccess]="cargar.bind(this)" />
           <p-button label="Nueva Solicitud" icon="pi pi-plus" size="small" (onClick)="abrirNueva()" />
         </div>
       </div>

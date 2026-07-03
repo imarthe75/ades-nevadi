@@ -111,7 +111,7 @@ Este documento es el diario de vida y bitácora del agente. Debe ser leído en e
 ### 🚀 Próximos Pasos:
 - [ ] **Testing Fase 2** — re-ejecutar `01_ades_explorer_v4_complete.py` con `phase=2` (18 módulos adicionales)
 - [ ] **Fix estadistica_911** — `/api/v1/reportes/911` retorna 500; investigar en Spring BFF `ReportesController`
-- [ ] **Conectar disponibilidad → Timefold** — franjas en BD pero solver no las usa como constraints aún
+- [x] **Conectar disponibilidad → Timefold** — verificado 2026-07-03: `HorarioConstraintProvider.java` ya implementa `indisponibilidadRojo()` (HARD, bloquea NO_DISPONIBLE) e `indisponibilidadAmarillo()` (SOFT, penaliza CONDICIONAL); `HorarioSolverService.iniciarCorrida()` ya carga `ades_horario_indisponibilidad` al `HorarioPlan`. Este TODO quedó obsoleto, la integración ya existía.
 - [ ] **UI disponibilidad_docente** — verificar que `GET /api/v1/horario-franjas` carga correctamente en el componente Angular
 - [ ] **Distinción visual SEP vs Nevadi** — calificaciones/planes_estudio sin diferenciación cromática (hallazgo crítico #2)
 - [ ] Completar rollout OIDC final en Authentik (OIDC_CLIENT_SECRET pendiente)
@@ -3234,5 +3234,61 @@ Total cambios: 8 files changed, 906 insertions(+)
 - [ ] **Big Blue Button:** Pendiente de configuración de servidor BBB externo por parte de la institución.
 - [ ] **Blockchain Polygon PoS:** Pendiente del despliegue del contrato inteligente y anclaje a la red pública.
 
+---
+
+## Sesión 2026-07-02/03 — Incidente de Seguridad (Secretos Filtrados) + Fixes Planes de Estudio + FASES 33/34/35 ✅
+
+### 🔑 Estado del Agente:
+- **Última Conexión:** 2026-07-03
+- **Estado Cognitivo:** Operacional ✅
+- **Incidente de seguridad:** Resuelto — 3 secretos rotados, historia de git purgada en las 7 ramas ✅
+- **Planes de Estudio:** Bugs de Mapa Curricular/Catálogo/Temario corregidos de raíz ✅
+- **FASE 33/34/35:** Implementadas (alcance real, verificado archivo por archivo — ver detalle abajo) ✅
+
+### 🛡️ Incidente de seguridad — clave NVIDIA/NIM filtrada en GitHub:
+- [x] **Verificación del reporte externo** (investigador "Robin"): confirmado y ampliado — no era 1 secreto sino 3 (clave NVIDIA/NIM, secreto OIDC de Superset, contraseña `akadmin` de Authentik) expuestos en texto plano dentro de documentos markdown de sprints/testing (copy-paste de salida de `.env`, no filtrado por `.gitignore` porque el `.env` en sí nunca se subió).
+- [x] **Redacción de archivos actuales:** 5 cadenas literales reemplazadas por `***REDACTED-ROTATED***` en 8 archivos de `docs/sprints/` y `ades_testing/`.
+- [x] **Purga de historia completa:** `git-filter-repo` sobre `git clone --mirror`, `--replace-text` con las 5 cadenas, force-push verificado y aplicado en las 7 ramas del repo (`main` + 5 ramas `pr/security-*` + 1 worktree).
+- [x] **Rotación de credenciales** (con scripts atómicos que nunca imprimen el secreto en claro, solo hash SHA256 para verificar que cambió):
+  - Clave NVIDIA/NIM: actualizada en `.env` por el usuario, y migrada a Vault (`secret/ades`, vía `os.environ.setdefault()` en `backend/app/core/config.py`) — es consumida solo por FastAPI, que ya tenía el patrón Vault-first establecido.
+  - Secreto OIDC de Superset: rotado vía `ak shell` (`OAuth2Provider.objects.get(client_id='superset').client_secret`), permanece en `.env` (Superset no tiene integración Vault).
+  - Contraseña `akadmin`: rotada vía `ak shell` (`User.objects.get(username='akadmin').set_password()`), permanece en `.env` (`AUTHENTIK_BOOTSTRAP_PASSWORD`).
+- [x] **Decisión Vault vs .env documentada:** Vault solo para secretos consumidos por FastAPI (patrón ya existente); `.env` + docker-compose para Superset/Authentik ya es seguro dado que no está en el repo y no tienen integración Vault propia — evaluado y confirmado con el usuario.
+- [x] **Memoria persistente creada:** `feedback_secrets_management.md` documenta el incidente completo y las reglas de decisión.
+
+### 📚 Fixes Planes de Estudio (bugs reportados en vivo con capturas de pantalla):
+- [x] **Root cause #1 — fuga de entidad JPA:** `/catalogs/grados` devolvía `ResponseEntity<List<Grado>>` directo (Jackson serializando proxies de Hibernate en `@ManyToOne`), rompiendo el Mapa Curricular. Fix: `GradoDto` (record) + mapper `toDto()` en `CatalogsController.java`, más parámetro `todos_planteles` para no deduplicar por (numero_grado, nivel) cuando la vista necesita ver todos los planteles.
+- [x] **Root cause #2 — un solo `ciclo_id` global:** `planes-estudio.component.ts` solo cargaba el plan de un ciclo a la vez, pero Primaria/Secundaria/Preparatoria tienen ciclos escolares independientes — cualquier materia de un nivel distinto al ciclo seleccionado se mostraba como "sin asignar". Fix: `cargarPlan()` reescrito para usar `forkJoin` y fusionar el plan de **todos** los ciclos vigentes (uno por nivel) en un solo arreglo.
+- [x] Fixes menores relacionados: `cicloIdParaNivel()`, relajación del filtro de `ciclo_escolar_id` en `cargarTemas()`, corrección de `asignarMateria()` para usar el ciclo del nivel activo.
+- [x] Endpoint nuevo `GET /materias/{id}/estadisticas` (grados asignados, tareas, calificaciones, rúbricas, promedio) + soporte `PATCH` además de `PUT` en `MateriaController`.
+- [x] Verificado con scripts Playwright/node fetch (temporales, eliminados tras la verificación) y commit `09715ac` pusheado a `main`.
+
+### 🚀 FASE 33 — Automatización de Infraestructura:
+- [x] **Superset dashboards auto-aprovisionados:** `integrations/superset/docker-init.sh` ahora llama a `create_dashboards.py` (idempotente) en cada arranque — antes solo se había ejecutado manualmente una vez; si el volumen de Superset se recrea, los dashboards ya no se pierden.
+- [x] **Healthcheck de Celery Flower:** agregado a `docker-compose.yml` (antes era el único servicio principal sin healthcheck).
+
+### 🚀 FASE 34 — Compresión Stirling-PDF en expedientes ZIP:
+- [x] `common/ZipService.java`: nuevo método `comprimirSiEsPosible()` que envía cada PDF al proxy FastAPI de Stirling-PDF (`/api/v1/pdf/comprimir`, nivel 3) antes de empaquetarlo en el ZIP; si Stirling falla o no está disponible, usa el original sin bloquear la descarga. `ProcesosEscolaresController.descargarZip()` ahora propaga el JWT del usuario (`bearerToken`) hacia el servicio.
+- [x] **Bug real encontrado y corregido:** el botón de importación en Admisión (`admision.component.ts`) usaba `entidad="admision"`, una clave que **nunca existió** en `TipoEntidadImport` del backend — siempre tiraba 404. Corregido a `entidad="preinscritos-sep"` (la clave real, con plantilla de columnas ya definida pero nunca conectada al frontend).
+- [x] Endpoint duplicado `/procesos/importar-sep` documentado como `@Deprecated` (no eliminado, por conservadurismo — superado por el módulo genérico de imports).
+
+### 🚀 FASE 35 — Monitoreo de disco (Prometheus + Grafana):
+- [x] **Servicio `node-exporter`** agregado a `docker-compose.yml` (imagen `prom/node-exporter`, host `/` montado solo-lectura vía `--path.rootfs=/host`, `pid: host`, límite 128M).
+- [x] **Scrape config** agregado en `infrastructure/prometheus/prometheus.yml` (`job_name: node-exporter`, target `ades-node-exporter:9100`).
+- [x] **Reglas de alerta** nuevas en `infrastructure/prometheus/rules/node.yml`: `NodeExporterDown`, `DiskSpaceLow` (< 15% disponible), `DiskSpaceCritical` (< 5% disponible) — motivado por el historial de este servidor llegando a 95-99% de uso durante builds de Docker.
+- [x] **Panel de disco** agregado a `infrastructure/grafana/dashboards/infrastructure_overview.json` (gauge de espacio disponible + timeseries histórico) — dashboard existente, no se creó uno nuevo.
+- [x] **Bug de JSON pre-existente corregido en el mismo archivo:** línea con `{ "color": "green", "value", 99.9 }` (coma en vez de dos puntos) rompía el parseo JSON del dashboard completo — nadie lo había notado porque Grafana probablemente lo cargaba con ese panel simplemente fallando en silencio o el archivo nunca se re-provisionó tras esa edición.
+- [x] **Verificado en vivo:** `node-exporter` up, target visible en Prometheus `/targets`, grupo de reglas `node` visible en `/rules`, métrica `node_filesystem_avail_bytes{mountpoint="/"}` consultable.
+- [x] **Gotcha de bind-mount redescubierto:** editar `prometheus.yml` (archivo, no directorio) no se refleja en el contenedor con solo `POST /-/reload` — el bind mount de un solo archivo queda apuntando al inode viejo. Se requirió `docker compose up -d --force-recreate --no-deps prometheus`. Los archivos **nuevos** dentro de un directorio bind-mounted (como `rules/node.yml`) sí aparecen sin recrear el contenedor.
+- [x] **Confirmado ya hecho (sin trabajo adicional):** conexión disponibilidad docente → Timefold (ver corrección de TODO obsoleto arriba); actas de inicio/cierre de ciclo (`CierreCicloController.java` + `cierre-ciclo.component.ts` ya completos y conectados).
+
+### ⚠️ Hallazgo fuera de alcance (no corregido, solo documentado):
+- El *scrape target* `postgresql` en Prometheus apunta a `ades-postgres-exporter:9187`, pero ese servicio **nunca fue definido** en `docker-compose.yml` (solo existe `pgbouncer-exporter`) — el contenedor no existe. El target aparece "down" en `/targets`. No estaba en el alcance de las FASES 33/34/35 aprobadas; queda como hallazgo para una sesión futura.
+
+### 🚀 Próximos Pasos (Siguiente Sesión):
+- [ ] Definir el servicio `postgres-exporter` real en `docker-compose.yml` (hallazgo de esta sesión, ver arriba).
+- [ ] Rebuild + deploy de `ades-bff` (ZipService, CatalogsController) y `ades-frontend` (admision.component.ts) si no se hizo aún en esta misma sesión.
+- [ ] Migración a ApiService en el Frontend (heredado de sesión 2026-06-24, sigue pendiente).
+- [ ] Google SSO, Big Blue Button externo, Blockchain Polygon PoS — sin cambios, siguen pendientes de insumos externos.
 
 

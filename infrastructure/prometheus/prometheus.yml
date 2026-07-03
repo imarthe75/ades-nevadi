@@ -16,6 +16,7 @@ alerting:
 
 rule_files:
   - "rules/postgresql.yml"
+  - "rules/node.yml"
 
 scrape_configs:
 
@@ -56,3 +57,9 @@ scrape_configs:
       - targets: ['ades-carbone:3000']
     metrics_path: '/health'
     scrape_interval: 60s
+
+  # ── Node Exporter — métricas de host (disco/CPU/mem) — FASE 35 ────────
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['ades-node-exporter:9100']
+    scrape_interval: 30s

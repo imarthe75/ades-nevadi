@@ -67,5 +67,8 @@ with app.app_context():
         print(f"ℹ️ Datasource 'ADES BI' actualizado con nueva URI")
 PYEOF
 
+echo "=== [5/5] Aprovisionando dashboards ADES BI (idempotente) ==="
+python3 /app/pythonpath/create_dashboards.py || echo "⚠️  No se pudieron aprovisionar los dashboards — revisar manualmente con: docker compose exec superset python3 /app/pythonpath/create_dashboards.py"
+
 echo "=== Iniciando servidor web de Superset ==="
 exec /app/docker/entrypoints/run-server.sh
