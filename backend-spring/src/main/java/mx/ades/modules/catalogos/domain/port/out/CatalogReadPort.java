@@ -24,6 +24,9 @@ public interface CatalogReadPort {
 
     List<Grado> findGrados(UUID nivelId, UUID plantelId);
 
+    /** Grados de un nivel en TODOS los planteles, sin deduplicar por (numero_grado, nivel). */
+    List<Grado> findGradosSinDeduplicar(UUID nivelId);
+
     List<CicloEscolar> findAllCiclos();
 
     List<CicloEscolar> findCiclosVigentes();

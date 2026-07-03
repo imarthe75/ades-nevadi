@@ -10,6 +10,7 @@
  * Principios: Oracle APEX Interactive Report + Moodle Course Outline.
  */
 import { Component, OnInit, inject, signal, computed, effect } from '@angular/core';
+import { forkJoin } from 'rxjs';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TabsModule } from 'primeng/tabs';
@@ -51,7 +52,12 @@ interface MateriaPlan {
   es_obligatoria: boolean;
   is_active: boolean;
 }
-interface CicloOpt  { id: string; nombre_ciclo: string; es_vigente: boolean; sistema_educativo?: string; }
+interface CicloOpt  {
+  id: string; nombre_ciclo: string; es_vigente: boolean;
+  // El endpoint /catalogs/ciclos devuelve la entidad JPA con nivel_educativo anidado
+  // (lo consume así también el topbar — ver ContextCatalogService) — no aplanar aquí.
+  nivel_educativo?: { id: string; nombre_nivel: string; autoridad_educativa: string };
+}
 interface Tema {
   id: string;
   materia_id: string;
@@ -654,8 +660,15 @@ export class PlanesEstudioComponent implements OnInit {
   );
 
   readonly sistemaEducativo = computed(() =>
-    this.ciclos().find(c => c.id === this.selectedCicloId)?.sistema_educativo ?? ''
+    this.ciclos().find(c => c.id === this.selectedCicloId)?.nivel_educativo?.autoridad_educativa ?? ''
   );
+
+  /** Cada nivel educativo tiene su PROPIO ciclo vigente (Primaria/Secundaria comparten
+   *  nombre "2026-2027" pero son ciclos distintos; Preparatoria usa "26B") — nunca asumir
+   *  que el ciclo seleccionado globalmente aplica a todos los niveles. */
+  cicloIdParaNivel(nivelId: string): string | undefined {
+    return this.ciclos().find(c => c.nivel_educativo?.id === nivelId)?.id;
+  }
 
   readonly temarioTituloActual = computed(() => {
     const mat = this.materias().find(m => m.id === this._temarioMateriaId());
@@ -712,24 +725,30 @@ export class PlanesEstudioComponent implements OnInit {
   }
 
   cargarGrados(): void {
-    const plantelId = this.ctx.plantel()?.id;
-    const params: any = {};
-    if (plantelId) params['plantel_id'] = plantelId;
-    this.api.get<GradoOpt[]>('/catalogs/grados', params).subscribe({
+    // Planes de Estudio siempre necesita ver los grados de TODOS los planteles
+    // (Mapa Curricular los distingue por columna con plantel_nombre) — no filtrar
+    // por el plantel del topbar, y pedir explícitamente sin deduplicar.
+    this.api.get<GradoOpt[]>('/catalogs/grados', { todos_planteles: true }).subscribe({
       next: g => this.grados.set(g),
-      error: () => {
-        if (plantelId) {
-          this.api.get<GradoOpt[]>(`/planteles/${plantelId}/grados`).subscribe(g => this.grados.set(g));
-        }
-      },
+      error: () => {},
     });
   }
 
   cargarPlan(): void {
-    if (!this.selectedCicloId) return;
+    // Primaria/Secundaria/Preparatoria tienen cada una su PROPIO ciclo vigente
+    // (Primaria y Secundaria comparten el nombre "2026-2027" pero son ciclos
+    // distintos; Preparatoria usa "26B"). El Catálogo mezcla materias de los 3
+    // niveles a la vez, así que hay que cargar el plan de TODOS los ciclos
+    // vigentes y fusionarlos — filtrar por un solo ciclo_id dejaba "sin asignar"
+    // cualquier materia que no perteneciera al primer ciclo cargado.
+    const ciclosVigentes = this.ciclos().length ? this.ciclos() : [];
+    if (!ciclosVigentes.length) return;
     this.loading.set(true);
-    this.api.get<MateriaPlan[]>('/planes-estudio', { ciclo_id: this.selectedCicloId }).subscribe({
-      next: p => { this.plan.set(p); this.loading.set(false); },
+    const requests = ciclosVigentes.map(c =>
+      this.api.get<MateriaPlan[]>('/planes-estudio', { ciclo_id: c.id })
+    );
+    forkJoin(requests).subscribe({
+      next: results => { this.plan.set(results.flat()); this.loading.set(false); },
       error: () => this.loading.set(false),
     });
   }
@@ -737,10 +756,7 @@ export class PlanesEstudioComponent implements OnInit {
   seleccionarNivel(n: NivelOpt): void {
     this.nivelActivo.set(n.id);
     if (!this.gradosActuales().length) {
-      const plantelId = this.ctx.plantel()?.id;
-      const params: any = { nivel_id: n.id };
-      if (plantelId) params['plantel_id'] = plantelId;
-      this.api.get<GradoOpt[]>('/catalogs/grados', params).subscribe(g => {
+      this.api.get<GradoOpt[]>('/catalogs/grados', { nivel_id: n.id, todos_planteles: true }).subscribe(g => {
         this.grados.update(cur => [...cur.filter(x => x.nivel_educativo_id !== n.id), ...g]);
       });
     }
@@ -765,10 +781,13 @@ export class PlanesEstudioComponent implements OnInit {
   // ── Asignaciones inline ───────────────────────────────────────────────────
 
   asignarMateria(materiaId: string, gradoId: string): void {
-    if (!this.selectedCicloId) return;
+    // El "+" vive en el mapa curricular del nivel activo — usar SU ciclo vigente,
+    // no el selector global (que puede corresponder a otro nivel).
+    const cicloId = this.cicloIdParaNivel(this.nivelActivo());
+    if (!cicloId) { this.notify.error('No hay ciclo vigente configurado para este nivel'); return; }
     this.api.post<MateriaPlan>('/planes-estudio', {
       materia_id: materiaId, grado_id: gradoId,
-      ciclo_escolar_id: this.selectedCicloId,
+      ciclo_escolar_id: cicloId,
       horas_semana: 4, es_obligatoria: true,
     }).subscribe({
       next: p => { this.plan.update(l => [...l, p]); },
@@ -879,10 +898,11 @@ export class PlanesEstudioComponent implements OnInit {
 
   cargarTemas(): void {
     if (!this._temarioMateriaId() || !this._temarioGradoId()) return;
+    // No filtrar por selectedCicloId: plan() ya trae los 3 ciclos vigentes fusionados
+    // (uno por nivel) y la combinación materia_id+grado_id ya es única por nivel.
     const p = this.plan().find(x =>
       x.materia_id === this._temarioMateriaId() &&
       x.grado_id === this._temarioGradoId() &&
-      x.ciclo_escolar_id === this.selectedCicloId &&
       x.is_active
     );
     if (!p) {

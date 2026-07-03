@@ -63,6 +63,7 @@ public class MateriaController {
     }
 
     @PutMapping("/{id}")
+    @PatchMapping("/{id}")
     public ResponseEntity<Map<String, Object>> update(@PathVariable("id") UUID id, @RequestBody Map<String, Object> body) {
         ActualizarMateriaUseCase.Command cmd = new ActualizarMateriaUseCase.Command(
                 id,
@@ -74,5 +75,10 @@ public class MateriaController {
                 body.get("is_active") != null ? Boolean.valueOf(body.get("is_active").toString()) : null
         );
         return ResponseEntity.ok(actualizarUseCase.actualizar(cmd));
+    }
+
+    @GetMapping("/{id}/estadisticas")
+    public ResponseEntity<Map<String, Object>> estadisticas(@PathVariable("id") UUID id) {
+        return ResponseEntity.ok(queryService.estadisticas(id));
     }
 }

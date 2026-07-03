@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Adaptador de entrada REST que expone los catálogos de referencia de ADES
@@ -45,13 +46,47 @@ public class CatalogsController {
         return ResponseEntity.ok(catalogPort.findAllNiveles());
     }
 
+    /**
+     * DTO plano para Grado — evita serializar la entidad JPA directamente
+     * (que expone {@code nivel_educativo}/{@code plantel} como objetos anidados
+     * con metadata de proxy de Hibernate en vez de los ids/nombres planos que
+     * espera el frontend, p. ej. {@code nivel_educativo_id}, {@code plantel_id}).
+     */
+    public record GradoDto(
+            UUID id, Integer numeroGrado, String nombreGrado,
+            UUID nivelEducativoId, String nombreNivel,
+            UUID plantelId, String plantelNombre,
+            Boolean isActive) {
+    }
+
+    private GradoDto toDto(Grado g) {
+        return new GradoDto(
+                g.getId(), g.getNumeroGrado(), g.getNombreGrado(),
+                g.getNivelEducativo() != null ? g.getNivelEducativo().getId() : null,
+                g.getNivelEducativo() != null ? g.getNivelEducativo().getNombreNivel() : null,
+                g.getPlantel() != null ? g.getPlantel().getId() : null,
+                g.getPlantel() != null ? g.getPlantel().getNombrePlantel() : null,
+                g.getIsActive());
+    }
+
     @GetMapping("/grados")
-    public ResponseEntity<List<Grado>> grados(
+    public ResponseEntity<List<GradoDto>> grados(
             @RequestParam(name = "nivel_id", required = false) UUID nivelId,
-            @RequestParam(name = "plantel_id", required = false) UUID plantelId) {
-        return ResponseEntity.ok((nivelId != null || plantelId != null)
+            @RequestParam(name = "plantel_id", required = false) UUID plantelId,
+            @RequestParam(name = "todos_planteles", required = false, defaultValue = "false") boolean todosPlanteles) {
+        // todos_planteles=true evita la deduplicación por (numero_grado, nivel) que
+        // aplica CatalogReadAdapter.findGrados() cuando plantel_id es null — esa
+        // deduplicación sirve al topbar (selector simplificado), pero Planes de
+        // Estudio necesita ver la asignación real de cada plantel por separado.
+        List<Grado> grados = (nivelId != null || plantelId != null)
                 ? catalogPort.findGrados(nivelId, plantelId)
-                : catalogPort.findAllGrados());
+                : catalogPort.findAllGrados();
+        if (todosPlanteles && plantelId == null) {
+            grados = (nivelId != null)
+                    ? catalogPort.findGradosSinDeduplicar(nivelId)
+                    : catalogPort.findAllGrados();
+        }
+        return ResponseEntity.ok(grados.stream().map(this::toDto).collect(Collectors.toList()));
     }
 
     @GetMapping("/ciclos")
@@ -79,8 +114,8 @@ public class CatalogsController {
     }
 
     @GetMapping("/niveles/{nivelId}/grados")
-    public ResponseEntity<List<Grado>> gradosPorNivel(@PathVariable UUID nivelId) {
-        return ResponseEntity.ok(catalogPort.findGrados(nivelId, null));
+    public ResponseEntity<List<GradoDto>> gradosPorNivel(@PathVariable UUID nivelId) {
+        return ResponseEntity.ok(catalogPort.findGrados(nivelId, null).stream().map(this::toDto).collect(Collectors.toList()));
     }
 
     @GetMapping("/paises")

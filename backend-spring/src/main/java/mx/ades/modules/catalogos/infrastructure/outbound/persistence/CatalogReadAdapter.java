@@ -65,6 +65,7 @@ public class CatalogReadAdapter implements CatalogReadPort {
         }
         return list;
     }
+    @Override public List<Grado> findGradosSinDeduplicar(UUID nivelId) { return gradoRepo.findByNivelEducativoId(nivelId); }
     @Override public List<CicloEscolar> findAllCiclos()                  { return cicloRepo.findAll(); }
     @Override public List<CicloEscolar> findCiclosVigentes()             { return cicloRepo.findByEsVigenteTrue(); }
     @Override public List<CicloEscolar> findCiclosVigentesByNivel(UUID nivelId) { return cicloRepo.findByNivelEducativoIdAndEsVigenteTrue(nivelId); }

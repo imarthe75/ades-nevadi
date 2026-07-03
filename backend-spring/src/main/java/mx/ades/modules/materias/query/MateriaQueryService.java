@@ -49,4 +49,41 @@ public class MateriaQueryService {
         sql.append("ORDER BY m.tipo_materia, m.nombre_materia");
         return jdbc.queryForList(sql.toString(), params.toArray());
     }
+
+    public Map<String, Object> estadisticas(UUID materiaId) {
+        Map<String, Object> materia = jdbc.queryForMap(
+            "SELECT id AS materia_id, nombre_materia FROM ades_materias WHERE id = ?", materiaId);
+
+        Integer gradosAsignados = jdbc.queryForObject(
+            "SELECT COUNT(*) FROM ades_materias_plan WHERE materia_id = ? AND is_active = TRUE",
+            Integer.class, materiaId);
+
+        Integer totalTareas = jdbc.queryForObject(
+            "SELECT COUNT(*) FROM ades_tareas WHERE materia_id = ? AND is_active = TRUE",
+            Integer.class, materiaId);
+
+        Integer totalCalificaciones = jdbc.queryForObject(
+            "SELECT COUNT(*) FROM ades_calificaciones_periodo WHERE materia_id = ? AND is_active = TRUE",
+            Integer.class, materiaId);
+
+        Integer totalRubricas = jdbc.queryForObject(
+            "SELECT COUNT(DISTINCT rubrica_id) FROM ades_tareas " +
+            "WHERE materia_id = ? AND rubrica_id IS NOT NULL AND is_active = TRUE",
+            Integer.class, materiaId);
+
+        java.math.BigDecimal promedio = jdbc.queryForObject(
+            "SELECT ROUND(AVG(calificacion_final), 2) FROM ades_calificaciones_periodo " +
+            "WHERE materia_id = ? AND is_active = TRUE",
+            java.math.BigDecimal.class, materiaId);
+
+        Map<String, Object> result = new java.util.HashMap<>();
+        result.put("materia_id", materia.get("materia_id"));
+        result.put("nombre_materia", materia.get("nombre_materia"));
+        result.put("grados_asignados", gradosAsignados);
+        result.put("total_tareas", totalTareas);
+        result.put("total_calificaciones", totalCalificaciones);
+        result.put("total_rubricas", totalRubricas);
+        result.put("promedio_calificaciones", promedio);
+        return result;
+    }
 }
