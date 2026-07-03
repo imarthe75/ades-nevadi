@@ -8,6 +8,8 @@ import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { ToastModule } from 'primeng/toast';
+import { SelectModule } from 'primeng/select';
+import { MultiSelectModule } from 'primeng/multiselect';
 import { throttleTime, Subject } from 'rxjs';
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
@@ -25,7 +27,7 @@ import { ApexNotificationService, ApexSearchComponent, ApexModalDialogComponent 
   standalone: true,
   imports: [
     CommonModule, FormsModule,
-    ButtonModule, InputTextModule, ToastModule,
+    ButtonModule, InputTextModule, ToastModule, SelectModule, MultiSelectModule,
     InteractiveGridComponent, ImportButtonComponent, AlumnoPerfilComponent, HelpButtonComponent,
     ApexSearchComponent, ApexModalDialogComponent,
   ],
@@ -51,6 +53,7 @@ import { ApexNotificationService, ApexSearchComponent, ApexModalDialogComponent 
         <p-button label="CSV"   icon="pi pi-file"       severity="secondary" [text]="true" (onClick)="exportCSV()"  pTooltip="Exportar CSV" />
         <p-button label="Excel" icon="pi pi-file-excel" severity="secondary" [text]="true" (onClick)="exportXLSX()" pTooltip="Exportar Excel" />
         <app-import-button entidad="alumnos" [onSuccess]="recargar" />
+        <p-button label="Asignar grupo" icon="pi pi-users" severity="secondary" [text]="true" (onClick)="abrirAsignacionMasiva()" pTooltip="Asignación masiva de grupo" />
         <p-button label="Nuevo alumno" icon="pi pi-plus" (onClick)="openDialog()" />
       </div>
     </div>
@@ -109,6 +112,46 @@ import { ApexNotificationService, ApexSearchComponent, ApexModalDialogComponent 
         <p-button label="Crear alumno" (onClick)="crearAlumno()" [loading]="loading()" [disabled]="loading()" />
       </ng-template>
     </apex-modal-dialog>
+
+    <!-- Diálogo de asignación masiva de grupo -->
+    <apex-modal-dialog
+      [visible]="dlgAsignacionMasiva()"
+      (visibleChange)="dlgAsignacionMasiva.set($event)"
+      title="Asignación masiva de grupo"
+      size="md">
+      <div style="display:flex;flex-direction:column;gap:1rem">
+        <div>
+          <label class="dlg-lbl">Alumnos a mover *</label>
+          <p-multiselect
+            [options]="opcionesAlumnosMasivo()"
+            [(ngModel)]="masivoSeleccionIds"
+            optionLabel="label"
+            optionValue="value"
+            display="chip"
+            filter="true"
+            placeholder="Selecciona uno o más alumnos"
+            style="width:100%" />
+        </div>
+        <div>
+          <label class="dlg-lbl">Grupo destino *</label>
+          <p-select
+            [options]="opcionesGrupoDestino()"
+            [(ngModel)]="masivoForm.grupoDestinoId"
+            optionLabel="label"
+            optionValue="value"
+            placeholder="Selecciona el grupo destino"
+            style="width:100%" />
+        </div>
+        <div>
+          <label class="dlg-lbl">Motivo *</label>
+          <input pInputText [(ngModel)]="masivoForm.motivo" style="width:100%" placeholder="Ej. Reorganización de grupos" />
+        </div>
+        <p class="dlg-note">Cada alumno se registra individualmente en el historial de movilidad; si alguno falla, los demás se procesan igual.</p>
+      </div>
+      <ng-template #footer>
+        <p-button label="Asignar" (onClick)="confirmarAsignacionMasiva()" [loading]="asignandoMasivo()" [disabled]="asignandoMasivo()" />
+      </ng-template>
+    </apex-modal-dialog>
   `,
   styles: [`
     .page-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem; }
@@ -147,6 +190,25 @@ export class AlumnosComponent implements OnInit {
   loading = signal(false);
   loadingTabla = signal(false);
   form = { nombre: '', apellido_paterno: '', apellido_materno: '', curp: '' };
+
+  // ── Asignación masiva de grupo (PE-009/010) ─────────────────────────────
+  dlgAsignacionMasiva = signal(false);
+  asignandoMasivo = signal(false);
+  masivoSeleccionIds: string[] = [];
+  masivoForm: { grupoDestinoId: string | null; motivo: string } = { grupoDestinoId: null, motivo: '' };
+
+  readonly opcionesAlumnosMasivo = computed(() =>
+    this.alumnosFiltrados().map(a => ({
+      label: `${a.nombre_completo} — ${a.matricula} (${a.grupo ?? '—'})`,
+      value: a.id,
+    }))
+  );
+
+  readonly opcionesGrupoDestino = computed(() =>
+    this.catalog.grupos()
+      .filter(g => g.id)
+      .map(g => ({ label: g.nombre_grupo, value: g.id }))
+  );
 
   readonly recargar = () => this.cargarAlumnos();
 
@@ -274,6 +336,53 @@ export class AlumnosComponent implements OnInit {
   openDialog(): void {
     this.showDialog.set(true);
     this.form = { nombre: '', apellido_paterno: '', apellido_materno: '', curp: '' };
+  }
+
+  abrirAsignacionMasiva(): void {
+    this.masivoSeleccionIds = [];
+    this.masivoForm = { grupoDestinoId: null, motivo: '' };
+    this.dlgAsignacionMasiva.set(true);
+  }
+
+  confirmarAsignacionMasiva(): void {
+    if (this.masivoSeleccionIds.length === 0) {
+      this.notify.warning('Selección requerida', 'Selecciona al menos un alumno');
+      return;
+    }
+    if (!this.masivoForm.grupoDestinoId) {
+      this.notify.warning('Grupo requerido', 'Selecciona el grupo destino');
+      return;
+    }
+    if (!this.masivoForm.motivo.trim()) {
+      this.notify.warning('Motivo requerido', 'Indica el motivo del cambio');
+      return;
+    }
+
+    this.asignandoMasivo.set(true);
+    const payload = {
+      estudianteIds: this.masivoSeleccionIds,
+      grupoDestinoId: this.masivoForm.grupoDestinoId,
+      motivo: this.masivoForm.motivo.trim(),
+      cicloEscolarId: this.ctx.ciclo()?.id ?? null,
+    };
+    this.api.post<{ total: number; exitosos: number; fallidos: { estudianteId: string; error: string }[] }>(
+      '/movilidad/cambio-grupo-masivo', payload
+    ).subscribe({
+      next: (resp) => {
+        this.asignandoMasivo.set(false);
+        this.dlgAsignacionMasiva.set(false);
+        if (resp.fallidos.length === 0) {
+          this.notify.success('Asignación completada', `${resp.exitosos} de ${resp.total} alumnos movidos`);
+        } else {
+          this.notify.warning('Asignación parcial', `${resp.exitosos} de ${resp.total} movidos, ${resp.fallidos.length} con error`);
+        }
+        this.cargarAlumnos();
+      },
+      error: (e) => {
+        this.asignandoMasivo.set(false);
+        this.notify.error('Error', e.error?.detail ?? e.error?.message ?? 'No se pudo asignar el grupo');
+      },
+    });
   }
 
   exportCSV(): void  { this.exp.toCSV(this.alumnosDatos(), this.exportCols, 'alumnos'); }

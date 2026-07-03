@@ -97,6 +97,27 @@ public class ExpedienteQueryService {
         return out;
     }
 
+    /**
+     * Variante "lite" de {@link #detalleExpediente} — reusa la misma consulta pero devuelve
+     * solo el checklist de documentos requeridos + completitud_pct, sin los metadatos OCR/IA
+     * ni el detalle completo de cada documento cargado (payload pesado innecesario para
+     * vistas resumidas, p.ej. un panel inline dentro del perfil del alumno).
+     */
+    public Map<String, Object> detalleExpedienteLite(UUID estudianteId, UUID cicloId) {
+        Map<String, Object> completo = detalleExpediente(estudianteId, cicloId);
+        Map<String, Object> lite = new HashMap<>();
+        lite.put("id", completo.get("id"));
+        lite.put("estudiante_id", completo.get("estudiante_id"));
+        lite.put("ciclo_escolar_id", completo.get("ciclo_escolar_id"));
+        lite.put("estado", completo.get("estado"));
+        lite.put("completitud_pct", completo.get("completitud_pct"));
+        lite.put("documentos_requeridos", completo.get("documentos_requeridos"));
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> documentos = (List<Map<String, Object>>) completo.get("documentos");
+        lite.put("documentos_count", documentos != null ? documentos.size() : 0);
+        return lite;
+    }
+
     public List<Map<String, Object>> listarBajas(UUID estudianteId) {
         return jdbc.queryForList(
             "SELECT * FROM ades_bajas WHERE estudiante_id = ? AND is_active = TRUE ORDER BY fecha_efectiva DESC",

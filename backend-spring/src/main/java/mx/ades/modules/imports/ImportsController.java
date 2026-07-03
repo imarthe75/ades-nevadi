@@ -107,6 +107,37 @@ public class ImportsController {
         return idx == -1 ? "" : filename.substring(idx + 1).toLowerCase();
     }
 
+    /**
+     * Verifica que el archivo tenga todas las columnas obligatorias de la entidad antes de
+     * procesar filas — evita errores ambiguos fila-por-fila cuando falta una columna completa.
+     */
+    private void validarColumnasObligatorias(List<String> headers, TipoEntidadImport tipo) {
+        List<String> faltantes = new ArrayList<>();
+        for (String campo : tipo.camposObligatorios()) {
+            if (!headers.contains(ImportadorUtil.normalizeHeader(campo))) {
+                faltantes.add(campo);
+            }
+        }
+        if (!faltantes.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Faltan columnas obligatorias en el archivo: " + String.join(", ", faltantes));
+        }
+    }
+
+    /**
+     * Valida el formato de CURP delegando en {@link mx.ades.common.ValidationUtils#validarCURP}.
+     * Devuelve el mensaje de error si el formato es inválido, o {@code null} si es válido —
+     * permite acumular el error por fila en vez de abortar todo el archivo.
+     */
+    private String validarFormatoCurpFila(String curp) {
+        try {
+            mx.ades.common.ValidationUtils.validarCURP(curp);
+            return null;
+        } catch (ResponseStatusException e) {
+            return e.getReason();
+        }
+    }
+
     private UUID resolverPlantel(String clave, Map<String, UUID> plantelesClave, Map<String, UUID> plantelesNombre) {
         if (clave == null || clave.isBlank()) {
             return null;
@@ -146,6 +177,7 @@ public class ImportsController {
         if (parsed.getRows().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El archivo no contiene datos");
         }
+        validarColumnasObligatorias(parsed.getHeaders(), TipoEntidadImport.ALUMNOS);
 
         Map<String, UUID> plantelesClave = importWrite.loadPlantelesByClave();
         Map<String, UUID> plantelesNombre = importWrite.loadPlantelesByNombre();
@@ -163,6 +195,12 @@ public class ImportsController {
 
             if (curp.isEmpty() || nombre.isEmpty()) {
                 errores.add(new ErrorFila(rowNum, "fila " + rowNum, "'nombre' y 'curp' son obligatorios"));
+                continue;
+            }
+
+            String errorCurp = validarFormatoCurpFila(curp);
+            if (errorCurp != null) {
+                errores.add(new ErrorFila(rowNum, curp, errorCurp));
                 continue;
             }
 
@@ -279,6 +317,7 @@ public class ImportsController {
         if (parsed.getRows().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El archivo no contiene datos");
         }
+        validarColumnasObligatorias(parsed.getHeaders(), TipoEntidadImport.PROFESORES);
 
         Map<String, UUID> plantelesClave = importWrite.loadPlantelesByClave();
         Map<String, UUID> plantelesNombre = importWrite.loadPlantelesByNombre();
@@ -296,6 +335,12 @@ public class ImportsController {
 
             if (curp.isEmpty() || nombre.isEmpty() || numEmp.isEmpty()) {
                 errores.add(new ErrorFila(rowNum, "fila " + rowNum, "'nombre', 'curp' y 'numero_empleado' son obligatorios"));
+                continue;
+            }
+
+            String errorCurp = validarFormatoCurpFila(curp);
+            if (errorCurp != null) {
+                errores.add(new ErrorFila(rowNum, curp, errorCurp));
                 continue;
             }
 
@@ -377,6 +422,7 @@ public class ImportsController {
         if (parsed.getRows().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El archivo no contiene datos");
         }
+        validarColumnasObligatorias(parsed.getHeaders(), TipoEntidadImport.MATERIAS);
 
         Map<String, UUID> niveles = importWrite.loadNiveles();
 
@@ -447,6 +493,7 @@ public class ImportsController {
         if (parsed.getRows().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El archivo no contiene datos");
         }
+        validarColumnasObligatorias(parsed.getHeaders(), TipoEntidadImport.GRUPOS);
 
         Map<String, UUID> grados = importWrite.loadGrados();
         Map<String, UUID> ciclos = importWrite.loadCiclos();
@@ -530,6 +577,7 @@ public class ImportsController {
         if (parsed.getRows().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El archivo no contiene datos");
         }
+        validarColumnasObligatorias(parsed.getHeaders(), TipoEntidadImport.AULAS);
 
         Map<String, UUID> plantelesClave = importWrite.loadPlantelesByClave();
 
@@ -638,6 +686,7 @@ public class ImportsController {
         if (parsed.getRows().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El archivo no contiene datos");
         }
+        validarColumnasObligatorias(parsed.getHeaders(), TipoEntidadImport.PREINSCRITOS_SEP);
 
         Map<String, UUID> plantelesClave = importWrite.loadPlantelesByClave();
         Map<String, UUID> plantelesNombre = importWrite.loadPlantelesByNombre();
@@ -664,6 +713,12 @@ public class ImportsController {
 
             if (curp.isEmpty() || nombre.isEmpty() || apellidoP.isEmpty() || fechaNac.isEmpty() || nivel.isEmpty() || gradoStr.isEmpty() || nombreCiclo.isEmpty()) {
                 errores.add(new ErrorFila(rowNum, "fila " + rowNum, "Campos obligatorios faltantes (nombre, apellido_p, curp, fecha_nac, nivel, grado, ciclo)"));
+                continue;
+            }
+
+            String errorCurp = validarFormatoCurpFila(curp);
+            if (errorCurp != null) {
+                errores.add(new ErrorFila(rowNum, curp, errorCurp));
                 continue;
             }
 

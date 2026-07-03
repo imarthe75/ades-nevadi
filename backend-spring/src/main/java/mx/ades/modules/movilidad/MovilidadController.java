@@ -54,6 +54,14 @@ public class MovilidadController {
     }
 
     @Data
+    public static class CambioGrupoMasivoRequest {
+        private List<UUID> estudianteIds;
+        private UUID grupoDestinoId;
+        private String motivo;
+        private UUID cicloEscolarId;
+    }
+
+    @Data
     public static class TrasladoRequest {
         private UUID plantelDestinoId;
         private UUID grupoDestinoId;
@@ -108,6 +116,46 @@ public class MovilidadController {
                 "grupo_anterior", result.grupoAnterior(),
                 "grupo_nuevo", result.grupoNuevo(),
                 "cambio_id", result.cambioId().toString()
+        ));
+    }
+
+    /**
+     * Asigna un lote de alumnos al mismo grupo destino en una sola operación. Reusa
+     * {@link RegistrarCambioGrupoUseCase} por alumno (mismo camino que el cambio individual,
+     * con su propio registro de auditoría en ades_cambio_grupo) para no duplicar reglas de
+     * negocio; un fallo en un alumno no aborta el resto del lote.
+     */
+    @PostMapping("/cambio-grupo-masivo")
+    public ResponseEntity<Map<String, Object>> cambioGrupoMasivo(
+            @RequestBody CambioGrupoMasivoRequest body,
+            @AuthenticationPrincipal Jwt jwt) {
+
+        AdesUser user = userService.resolveUser(jwt);
+        requireAcceso(user, TipoMovilidad.CAMBIO_GRUPO);
+
+        if (body.getEstudianteIds() == null || body.getEstudianteIds().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "estudianteIds no puede estar vacío");
+        }
+
+        List<Map<String, Object>> fallidos = new java.util.ArrayList<>();
+        int exitosos = 0;
+
+        for (UUID estudianteId : body.getEstudianteIds()) {
+            try {
+                registrarCambioGrupo.ejecutar(new RegistrarCambioGrupoUseCase.Command(
+                        estudianteId, body.getGrupoDestinoId(), body.getMotivo(),
+                        body.getCicloEscolarId(), user.getId(), user.getUsername()));
+                exitosos++;
+            } catch (Exception e) {
+                fallidos.add(Map.of("estudianteId", estudianteId.toString(),
+                        "error", e.getMessage() != null ? e.getMessage() : "Error desconocido"));
+            }
+        }
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
+                "total", body.getEstudianteIds().size(),
+                "exitosos", exitosos,
+                "fallidos", fallidos
         ));
     }
 

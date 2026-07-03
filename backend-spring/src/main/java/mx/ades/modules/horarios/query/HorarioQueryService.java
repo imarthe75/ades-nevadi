@@ -65,6 +65,18 @@ public class HorarioQueryService {
         return jdbc.queryForList(SELECT + where, params.toArray());
     }
 
+    /**
+     * Resuelve el profesor_id ligado a la persona del usuario autenticado — usado por
+     * "Mi Horario" (self-service) para que el docente no tenga que buscarse en un selector.
+     * Devuelve null si el usuario autenticado no tiene un registro en ades_profesores.
+     */
+    public UUID resolverProfesorIdPorPersona(UUID personaId) {
+        List<UUID> ids = jdbc.query(
+                "SELECT id FROM ades_profesores WHERE persona_id = ? AND is_active = TRUE",
+                (rs, i) -> (UUID) rs.getObject("id"), personaId);
+        return ids.isEmpty() ? null : ids.get(0);
+    }
+
     public List<Map<String, Object>> porAula(UUID aulaId, UUID cicloId) {
         StringBuilder where = new StringBuilder("WHERE h.aula_id = ? AND h.is_active = TRUE");
         List<Object> params = new ArrayList<>();

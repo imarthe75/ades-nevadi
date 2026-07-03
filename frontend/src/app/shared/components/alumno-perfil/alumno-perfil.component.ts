@@ -38,6 +38,14 @@ interface ExpedienteMedico {
   requiere_medicacion: boolean;
 }
 
+/** Resumen ligero del expediente digital — checklist + completitud, sin OCR/IA (PE-023). */
+interface ExpedienteLite {
+  estado: string;
+  completitud_pct: number;
+  documentos_requeridos: { tipo: string; label: string; presente: boolean }[];
+  documentos_count: number;
+}
+
 const TIPOS_SANGRE  = ['A+','A-','B+','B-','O+','O-','AB+','AB-'];
 const ESTADOS_CIVIL = ['SOLTERO','CASADO','UNION_LIBRE','DIVORCIADO','VIUDO'];
 const NIVELES_SOCIO = ['BAJO','MEDIO_BAJO','MEDIO','MEDIO_ALTO','ALTO'];
@@ -265,6 +273,22 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
                     placeholder="Seleccionar nivel…" />
                 </div>
               </div>
+
+              @if (expedienteLite(); as exp) {
+                <div class="form-section">
+                  <h4 class="sec-title">Expediente digital <p-tag [value]="exp.estado" [severity]="exp.estado === 'COMPLETO' ? 'success' : 'warn'" /></h4>
+                  <p class="dlg-note">Completitud: {{ exp.completitud_pct }}% — {{ exp.documentos_count }} documento(s) cargado(s)</p>
+                  <ul class="expediente-checklist">
+                    @for (doc of exp.documentos_requeridos; track doc.tipo) {
+                      <li>
+                        <i class="pi" [class.pi-check]="doc.presente" [class.pi-times]="!doc.presente"
+                           [style.color]="doc.presente ? 'var(--p-green-600)' : 'var(--p-red-500)'"></i>
+                        {{ doc.label }}
+                      </li>
+                    }
+                  </ul>
+                </div>
+              }
             </p-tabpanel>
 
             <!-- ── Tab 3: Salud ──────────────────────────────────────── -->
@@ -503,6 +527,9 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
       padding: .2rem .6rem; border-radius: 4px; color: #475569;
     }
     .form-section { margin-bottom: 1.25rem; }
+    .expediente-checklist { list-style: none; margin: .5rem 0 0; padding: 0; display: flex; flex-direction: column; gap: .35rem; }
+    .expediente-checklist li { display: flex; align-items: center; gap: .5rem; font-size: .85rem; }
+    .dlg-note { font-size: .78rem; color: var(--text-color-secondary); margin: 0 0 .3rem; }
     .sec-title { font-size: .82rem; font-weight: 700; text-transform: uppercase;
       letter-spacing: .05em; color: var(--primary-color); margin: 0 0 .6rem; border-bottom: 1px solid var(--surface-200); padding-bottom: .3rem; }
     .form-row { display: grid; grid-template-columns: 140px 1fr; gap: .5rem; align-items: center; margin-bottom: .5rem; }
@@ -539,6 +566,7 @@ export class AlumnoPerfilComponent implements OnInit, OnChanges {
 
   contactos        = signal<ContactoEmergencia[]>([]);
   expedienteMedico = signal<ExpedienteMedico | null>(null);
+  expedienteLite   = signal<ExpedienteLite | null>(null);
   saving           = signal(false);
   savingContacto   = signal(false);
   savingMedico     = signal(false);
@@ -686,6 +714,7 @@ export class AlumnoPerfilComponent implements OnInit, OnChanges {
       this.cargarContactos();
       this.cargarExpedienteMedico();
       this.cargarUltimaBaja();
+      this.cargarExpedienteLite();
     }
   }
 
@@ -762,6 +791,13 @@ export class AlumnoPerfilComponent implements OnInit, OnChanges {
         },
         error: () => {},
       });
+  }
+
+  /** Resumen ligero del expediente digital (PE-023) — checklist + completitud, sin OCR/IA. */
+  private cargarExpedienteLite(): void {
+    if (!this.alumno?.id) return;
+    this.api.get<ExpedienteLite>(`/expediente/alumno/${this.alumno.id}`, { lite: 'true' })
+      .subscribe({ next: exp => this.expedienteLite.set(exp), error: () => this.expedienteLite.set(null) });
   }
 
   cargarUltimaBaja(): void {

@@ -529,7 +529,7 @@ const HORARIO_GOLDEN_REQUERIDO: Record<string, Record<string, number>> = {
         (onChange)="onModoChange()"
       />
 
-      @if (modo === 'profesor') {
+      @if (modo === 'profesor' && !esDocenteSelf()) {
         <p-select
           [options]="profesores()"
           [(ngModel)]="selectedProfesor"
@@ -539,10 +539,13 @@ const HORARIO_GOLDEN_REQUERIDO: Record<string, Record<string, number>> = {
           [showClear]="true"
           [filter]="true" filterPlaceholder="Buscar..."/>
       }
+      @if (modo === 'profesor' && esDocenteSelf()) {
+        <span class="mi-horario-badge"><i class="pi pi-user"></i> Mi Horario</span>
+      }
     </div>
 
     <!-- ── Grid semanal ── -->
-    @if ((modo === 'grupo' && !selectedGrupoId) || (modo === 'profesor' && !selectedProfesor)) {
+    @if ((modo === 'grupo' && !selectedGrupoId) || (modo === 'profesor' && !esDocenteSelf() && !selectedProfesor)) {
       <div class="empty-state">
         <i class="pi pi-calendar" style="font-size:2.5rem;color:#CBD5E1"></i>
         <p>Selecciona un {{ modo === 'grupo' ? 'grupo' : 'docente' }} para ver el horario.</p>
@@ -564,6 +567,7 @@ const HORARIO_GOLDEN_REQUERIDO: Record<string, Record<string, number>> = {
   `,
   styles: [`
     .filter-bar { display: flex; gap: 0.75rem; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; }
+    .mi-horario-badge { display:inline-flex; align-items:center; gap:.4rem; padding:.4rem .75rem; border-radius:6px; background:var(--p-primary-50); color:var(--p-primary-700); font-size:.85rem; font-weight:500; }
     .page-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1.25rem; }
     .page-header h2 { margin:0; }
     .subtitle { margin:0; font-size:.82rem; color:var(--p-text-color-secondary); }
@@ -706,6 +710,9 @@ export class HorariosComponent implements OnInit, OnDestroy {
 
   modoLabel = computed(() => this.modo === 'grupo' ? 'Grupo' : 'Docente');
 
+  /** El docente ve "Mi Horario" self-service — sin buscarse en el selector de profesores. */
+  readonly esDocenteSelf = computed(() => this.ctx.usuario()?.rol === 'DOCENTE');
+
   readonly franjas = computed(() => {
     const horas = [...new Set(this.entradas().map(e => e.hora_inicio))];
     return horas.sort();
@@ -748,6 +755,11 @@ export class HorariosComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     // Catálogos cargados reactivamente desde effects.
     this.cargarCorridas();
+    // Docente: entra directo a su propio horario, sin buscarse en el selector.
+    if (this.esDocenteSelf()) {
+      this.modo = 'profesor';
+      this.cargarMiHorario();
+    }
   }
 
   ngOnDestroy(): void {
@@ -758,6 +770,9 @@ export class HorariosComponent implements OnInit, OnDestroy {
     this.selectedGrupoId = null;
     this.selectedProfesor = null;
     this.entradas.set([]);
+    if (this.modo === 'profesor' && this.esDocenteSelf()) {
+      this.cargarMiHorario();
+    }
   }
 
   onGrupoChange(): void {
@@ -1099,10 +1114,22 @@ export class HorariosComponent implements OnInit, OnDestroy {
     if (this.modo === 'grupo' && this.selectedGrupoId) {
       this.api.get<any>(`/horarios/grupo/${this.selectedGrupoId}`, cicloId ? { ciclo_id: cicloId } : undefined)
         .subscribe(r => this.entradas.set(r.entradas || r || []));
+    } else if (this.modo === 'profesor' && this.esDocenteSelf()) {
+      this.cargarMiHorario();
     } else if (this.modo === 'profesor' && this.selectedProfesor) {
       this.api.get<any>(`/horarios/profesor/${this.selectedProfesor.id}`, cicloId ? { ciclo_id: cicloId } : undefined)
         .subscribe(r => this.entradas.set(r.entradas || r || []));
     }
+  }
+
+  /** Self-service: carga el horario del docente autenticado, sin selector de profesor. */
+  cargarMiHorario(): void {
+    const cicloId = this.ctx.ciclo()?.id;
+    this.api.get<any>('/horarios/mi-horario', cicloId ? { ciclo_id: cicloId } : undefined)
+      .subscribe({
+        next: r => this.entradas.set(r.entradas || r || []),
+        error: () => this.notify.error('Mi Horario', 'No se encontró un registro de profesor asociado a tu cuenta'),
+      });
   }
 
   entradasPor(dia: number, hora: string): HorarioEntry[] {

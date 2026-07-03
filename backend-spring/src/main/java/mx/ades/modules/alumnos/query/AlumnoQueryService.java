@@ -31,11 +31,15 @@ public class AlumnoQueryService {
     public Map<String, Object> listar(UUID plantelId, UUID nivelId, UUID gradoId, UUID grupoId) {
         StringBuilder sql = new StringBuilder("""
             SELECT e.id, e.matricula, e.nss, e.fecha_ingreso, e.is_active, e.tipo_alumno,
-                   e.escuela_procedencia, e.promedio_procedencia, e.beca_tipo, e.folio_sep,
+                   e.escuela_procedencia, e.clave_ct_procedencia, e.promedio_procedencia,
+                   e.beca_tipo, e.beca_monto, e.folio_sep, e.discapacidad,
+                   e.nivel_socioeconomico, e.etnia, e.lengua_indigena_id, e.nivel_ingles_id,
                    e.plantel_id, e.persona_id,
                    COALESCE(p.nombre_social, p.nombre) AS nombre,
-                   p.apellido_paterno, p.apellido_materno, p.curp, p.rfc, p.genero,
+                   p.nombre_social, p.apellido_paterno, p.apellido_materno, p.curp, p.rfc, p.genero,
+                   p.genero_autopercibido, p.pronombres, p.estado_civil,
                    p.fecha_nacimiento, p.telefono, p.email_personal, p.nacionalidad,
+                   p.pais_nacimiento, p.municipio_nacimiento, p.estado_nacimiento, p.foto_url,
                    pl.nombre_plantel,
                    g.id AS grupo_id, g.nombre_grupo,
                    gr.id AS grado_id, gr.nombre_grado,
@@ -74,15 +78,23 @@ public class AlumnoQueryService {
         org.springframework.jdbc.core.RowMapper<Map<String, Object>> mapper = (rs, i) -> {
             Map<String, Object> persona = new LinkedHashMap<>();
             persona.put("nombre",           rs.getString("nombre"));
+            persona.put("nombre_social",    rs.getString("nombre_social"));
             persona.put("apellido_paterno", rs.getString("apellido_paterno"));
             persona.put("apellido_materno", rs.getString("apellido_materno"));
             persona.put("curp",             rs.getString("curp"));
             persona.put("rfc",              rs.getString("rfc"));
             persona.put("genero",           rs.getString("genero"));
+            persona.put("genero_autopercibido", rs.getString("genero_autopercibido"));
+            persona.put("pronombres",       rs.getString("pronombres"));
+            persona.put("estado_civil",     rs.getString("estado_civil"));
             persona.put("fecha_nacimiento", rs.getObject("fecha_nacimiento"));
             persona.put("telefono",         rs.getString("telefono"));
             persona.put("email_personal",   rs.getString("email_personal"));
             persona.put("nacionalidad",     rs.getString("nacionalidad"));
+            persona.put("pais_nacimiento",  rs.getString("pais_nacimiento"));
+            persona.put("municipio_nacimiento", rs.getString("municipio_nacimiento"));
+            persona.put("estado_nacimiento", rs.getString("estado_nacimiento"));
+            persona.put("foto_url",         rs.getString("foto_url"));
 
             Map<String, Object> row = new LinkedHashMap<>();
             row.put("id",                  rs.getObject("id", UUID.class));
@@ -92,9 +104,16 @@ public class AlumnoQueryService {
             row.put("is_active",           rs.getBoolean("is_active"));
             row.put("tipo_alumno",         rs.getString("tipo_alumno"));
             row.put("escuela_procedencia", rs.getString("escuela_procedencia"));
+            row.put("clave_ct_procedencia",rs.getString("clave_ct_procedencia"));
             row.put("promedio_procedencia",rs.getObject("promedio_procedencia"));
             row.put("beca_tipo",           rs.getString("beca_tipo"));
+            row.put("beca_monto",          rs.getObject("beca_monto"));
             row.put("folio_sep",           rs.getString("folio_sep"));
+            row.put("discapacidad",        rs.getString("discapacidad"));
+            row.put("nivel_socioeconomico",rs.getString("nivel_socioeconomico"));
+            row.put("etnia",               rs.getString("etnia"));
+            row.put("lengua_indigena_id",  rs.getObject("lengua_indigena_id", UUID.class));
+            row.put("nivel_ingles_id",     rs.getObject("nivel_ingles_id", UUID.class));
             row.put("plantel_id",          rs.getObject("plantel_id", UUID.class));
             row.put("plantel_nombre",      rs.getString("nombre_plantel"));
             row.put("persona_id",          rs.getObject("persona_id", UUID.class));
@@ -130,9 +149,13 @@ public class AlumnoQueryService {
         List<Map<String, Object>> rows = jdbc.queryForList("""
             SELECT e.id, e.matricula, e.nss, e.fecha_ingreso, e.is_active, e.tipo_alumno,
                    e.plantel_id, e.persona_id, e.row_version,
+                   e.escuela_procedencia, e.clave_ct_procedencia, e.promedio_procedencia,
+                   e.beca_tipo, e.beca_monto, e.folio_sep, e.discapacidad,
+                   e.nivel_socioeconomico, e.etnia, e.lengua_indigena_id, e.nivel_ingles_id,
                    p.nombre, p.apellido_paterno, p.apellido_materno, p.curp, p.rfc,
-                   p.genero, p.nombre_social, p.fecha_nacimiento,
-                   p.telefono, p.email_personal, p.estado_civil, p.nacionalidad, p.foto_url
+                   p.genero, p.genero_autopercibido, p.pronombres, p.nombre_social, p.fecha_nacimiento,
+                   p.telefono, p.email_personal, p.estado_civil, p.nacionalidad, p.foto_url,
+                   p.pais_nacimiento, p.municipio_nacimiento, p.estado_nacimiento
             FROM ades_estudiantes e
             JOIN ades_personas p ON p.id = e.persona_id
             WHERE e.id = ?

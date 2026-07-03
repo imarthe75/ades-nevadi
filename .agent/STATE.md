@@ -3286,7 +3286,80 @@ Total cambios: 8 files changed, 906 insertions(+)
 - El *scrape target* `postgresql` en Prometheus apuntaba a `ades-postgres-exporter:9187`, pero ese servicio **nunca había sido definido** en `docker-compose.yml` (solo existía `pgbouncer-exporter`) — el contenedor no existía y el target aparecía "down" en silencio, probablemente desde SPRINT 5. El archivo de queries personalizadas `infrastructure/postgres_exporter/queries.yml` (con las métricas `pg_ades_*` que usan las reglas de alerta de `postgresql.yml`) sí existía, solo le faltaba el servicio real. Corregido: agregado servicio `postgres-exporter` (imagen `prometheuscommunity/postgres-exporter`, conecta directo a `ades-postgres` — no vía PgBouncer, porque `pg_stat_activity`/`pg_stat_user_tables` necesitan ver la actividad real del servidor). Verificado: `pg_up=1`, métricas `pg_ades_cache_hit_cache_hit_pct`/`pg_ades_long_queries_count` expuestas correctamente, target `up` en Prometheus, las 8 reglas del grupo `postgresql` + 2 de `pgbouncer` evaluando `ok` con datos reales.
 
 ### 🚀 Próximos Pasos (Siguiente Sesión):
-- [ ] Rebuild + deploy de `ades-bff` (ZipService, CatalogsController) y `ades-frontend` (admision.component.ts) si no se hizo aún en esta misma sesión.
+- [ ] Migración a ApiService en el Frontend (heredado de sesión 2026-06-24, sigue pendiente).
+- [ ] Google SSO, Big Blue Button externo, Blockchain Polygon PoS — sin cambios, siguen pendientes de insumos externos.
+
+---
+
+## Sesión 2026-07-03 (cont.) — Gaps reales vs. gap-analysis MVP externo (INC-00x + PE-009/010/023 + AC-017) ✅
+
+### 🔑 Contexto:
+El usuario compartió dos documentos HTML de planeación externos (`CA-PGO-D-P-01-Plan_MVP_Gantt.html`,
+`CA-PGO-D-P-02-Roadmap_Fases.html`) que describían un "MVP en 6 semanas" asumiendo backend FastAPI
+puro y solo 10/230 CU implementados. Verificación con 3 agentes de exploración + revisión manual
+directa del código confirmó que **ambos documentos están desactualizados** (describen una etapa muy
+anterior, antes de FASES 27-34): el backend principal ya es Spring Boot (62 módulos), y el conteo
+real es 194/230 CU (84.3%). De los 10 CU que el documento marcaba como pendientes, 7 ya estaban
+completos (incluida reinscripción masiva — el usuario pidió puntualmente revisar esto).
+
+### 🛠️ P0 — Bug real confirmado y corregido ("INC-002 SELECT campos"):
+- [x] `AlumnoQueryService.java` (`listar()` y `obtener()`) omitía **14 columnas** de
+  `ades_estudiantes`/`ades_personas` en el SELECT (no solo `beca_monto` — también `discapacidad`,
+  `clave_ct_procedencia`, `nivel_socioeconomico`, `etnia`, `lengua_indigena_id`, `nivel_ingles_id`,
+  `nombre_social`, `genero_autopercibido`, `pronombres`, `pais_nacimiento`, `municipio_nacimiento`,
+  `estado_nacimiento`, `foto_url`). Confirmado que `abrirPerfil()` en `alumnos.component.ts:259`
+  llama `GET /alumnos/{id}` (→ `obtener()`) antes de abrir el editor — cualquier campo faltante en
+  el SELECT se guardaba como `null` silenciosamente al editar. El lado de escritura
+  (`PersonaUpdateHelper`, `AlumnoComplementariosService`) ya persistía todo correctamente — el bug
+  era puramente de lectura. Fix: ambos métodos ahora seleccionan y mapean los 14 campos.
+
+### 🛠️ P1 — Endurecimiento de imports masivos ("INC-001 XLS parser" + "INC-003 CURP validation"):
+- [x] `TipoEntidadImport.java` ya tenía `camposObligatorios()` y `tieneValidacionCurp()` definidos
+  por entidad, pero nunca se invocaban en `ImportsController`. Agregado `validarColumnasObligatorias()`
+  (falla rápido con 400 listando columnas faltantes, antes de procesar filas) a los 6 endpoints de
+  import, y `validarFormatoCurpFila()` (reusa `ValidationUtils.validarCURP()`, acumula error por fila
+  sin abortar el lote) a los 3 endpoints con CURP (alumnos, profesores, preinscritos-sep).
+
+### 🛠️ P2 — Funcionalidad nueva confirmada en alcance por el usuario:
+- [x] **PE-009/010 Asignación masiva de grupo:** `POST /movilidad/cambio-grupo-masivo` (reusa
+  `RegistrarCambioGrupoUseCase` en loop, acumula éxitos/fallos por alumno sin abortar el lote) +
+  UI en `alumnos.component.ts` (botón "Asignar grupo", diálogo con `p-multiselect` + `p-select` de
+  grupo destino sourced de `catalog.grupos()`).
+- [x] **AC-017 "Mi Horario" self-service docente:** `GET /horarios/mi-horario` (resuelve
+  `profesor_id` desde `persona_id` del JWT vía nuevo `HorarioQueryService.resolverProfesorIdPorPersona()`)
+  + frontend: `horarios.component.ts` detecta rol DOCENTE (`ctx.usuario()?.rol === 'DOCENTE'`),
+  oculta el selector de profesor y auto-carga el horario propio al entrar al módulo.
+- [x] **PE-023 Expediente lite:** `GET /expediente/alumno/{id}?lite=true` (nuevo
+  `ExpedienteQueryService.detalleExpedienteLite()`, reusa `detalleExpediente()` y recorta metadatos
+  OCR/IA pesados, dejando solo checklist + completitud_pct) + panel inline en la pestaña Académico
+  de `alumno-perfil.component.ts` (checklist con iconos check/times por documento requerido).
+
+### 🐛 Bug preexistente descubierto durante verificación (no relacionado a P0-P2, bloqueaba P2.3):
+- [x] **`ades_expediente_documentos` sin columna `is_active`** — la migración 037 nunca la agregó a
+  esta tabla (sí a la tabla padre `ades_expedientes_alumno` y a las hermanas `ades_bajas`/
+  `ades_extraordinarias`/`ades_constancias`). Como resultado, **`GET /expediente/alumno/{id}` lanzaba
+  500 en cada llamada desde que existe el módulo** — nunca funcionó en producción. Corregido con
+  migración **102** (`ADD COLUMN is_active BOOLEAN NOT NULL DEFAULT TRUE`), aplicada y verificada:
+  la query que antes fallaba con "column does not exist" ahora devuelve datos reales.
+
+### ✅ Verificación:
+- Compilación Java limpia (Maven, 4 archivos backend modificados + 1 nuevo endpoint en 3 controllers).
+- Build Angular limpio (`npm run build` producción, 3 componentes frontend modificados, sin errores TS).
+- Rebuild + redeploy `ades-bff` y `ades-frontend` (patrón contenedor Maven efímero + imagen
+  runtime-only, disco del servidor en 93-96% durante la sesión).
+- Verificación de rutas: los 4 endpoints nuevos responden 401 (no 404) sin auth — confirma wiring
+  correcto en Spring. Verificación a nivel BD (solo lectura, sin mutar datos reales de alumnos):
+  las 14 columnas nuevas de `AlumnoQueryService` se consultan sin error contra el schema real; la
+  query de expediente (antes rota) ahora ejecuta y devuelve el shape esperado con datos reales
+  (alumno con 1 documento, 20% completitud); tabla `ades_cambios_grupo` (JPA `@Table`) confirmada
+  con la estructura que `RegistrarCambioGrupoUseCase` espera.
+- No se realizó prueba E2E autenticada en navegador (requeriría credenciales reales de login OIDC,
+  fuera de alcance de esta verificación) — la cobertura combinada de compilación + revisión de
+  código + verificación de datos a nivel BD se consideró suficiente dado el perfil de riesgo bajo
+  de los cambios (nuevos endpoints aditivos, ningún endpoint existente modificado en su contrato).
+
+### 🚀 Próximos Pasos (Siguiente Sesión):
+- [ ] Prueba E2E en navegador (Playwright o manual) de los 3 flujos P2 nuevos con un usuario real.
 - [ ] Migración a ApiService en el Frontend (heredado de sesión 2026-06-24, sigue pendiente).
 - [ ] Google SSO, Big Blue Button externo, Blockchain Polygon PoS — sin cambios, siguen pendientes de insumos externos.
 

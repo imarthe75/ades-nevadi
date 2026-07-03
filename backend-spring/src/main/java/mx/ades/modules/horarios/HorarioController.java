@@ -77,6 +77,24 @@ public class HorarioController {
         return ResponseEntity.ok(queryService.porProfesor(profesorId, cicloId));
     }
 
+    /**
+     * Self-service: resuelve el profesor ligado al usuario autenticado (por persona_id del
+     * JWT) y devuelve su propio horario, sin requerir que busque su nombre en un selector.
+     */
+    @GetMapping("/mi-horario")
+    public ResponseEntity<List<Map<String, Object>>> miHorario(
+            @RequestParam(name = "ciclo_id", required = false) UUID cicloId,
+            @AuthenticationPrincipal Jwt jwt) {
+        AdesUser user = userService.resolveUser(jwt);
+        UUID profesorId = queryService.resolverProfesorIdPorPersona(user.getPersonaId());
+        if (profesorId == null) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.NOT_FOUND,
+                    "El usuario autenticado no tiene un registro de profesor asociado");
+        }
+        return ResponseEntity.ok(queryService.porProfesor(profesorId, cicloId));
+    }
+
     @GetMapping
     public ResponseEntity<List<Map<String, Object>>> list(
             @RequestParam(name = "grupo_id", required = false) UUID grupoId,

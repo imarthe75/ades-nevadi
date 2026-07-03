@@ -216,10 +216,13 @@ public class ExpedienteController {
     public ResponseEntity<Map<String, Object>> obtenerExpediente(
             @PathVariable("estudiante_id") UUID estudianteId,
             @RequestParam(value = "ciclo_id", required = false) UUID cicloId,
+            @RequestParam(value = "lite", required = false, defaultValue = "false") boolean lite,
             @AuthenticationPrincipal Jwt jwt) {
         userService.resolveUser(jwt);
         UUID cicloRef = cicloId != null ? cicloId : queryService.cicloActivoId();
-        return ResponseEntity.ok(queryService.detalleExpediente(estudianteId, cicloRef));
+        return ResponseEntity.ok(lite
+                ? queryService.detalleExpedienteLite(estudianteId, cicloRef)
+                : queryService.detalleExpediente(estudianteId, cicloRef));
     }
 
     @PostMapping(value = "/expediente/alumno/{estudiante_id}/documentos", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
