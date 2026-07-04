@@ -365,7 +365,8 @@ public class ConductaController {
             @PathVariable UUID reporteId,
             @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authHeader,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        AdesUser user = userService.resolveUser(jwt);
+        requireNivel(user, 3);
         try {
             RestClient.RequestHeadersSpec<?> request = restClient.get().uri(API_BASE_URL + "/" + reporteId + "/acta-pdf");
             if (authHeader != null) request.header(HttpHeaders.AUTHORIZATION, authHeader);

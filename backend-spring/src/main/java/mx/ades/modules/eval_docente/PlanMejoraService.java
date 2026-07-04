@@ -68,6 +68,10 @@ public class PlanMejoraService {
     }
 
     public void actualizarEstado(UUID id, String estado) {
-        jdbc.update("UPDATE ades_planes_mejora_docente SET estado = ? WHERE id = ?", estado, id);
+        int filas = jdbc.update("UPDATE ades_planes_mejora_docente SET estado = ? WHERE id = ? AND is_active = TRUE", estado, id);
+        if (filas == 0) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.NOT_FOUND, "Plan de mejora no encontrado");
+        }
     }
 }

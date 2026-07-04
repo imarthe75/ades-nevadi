@@ -1,7 +1,9 @@
 package mx.ades.modules.planes_estudio;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Map;
@@ -36,6 +38,7 @@ public class PlanAltWriteService {
     }
 
     public void eliminar(UUID id) {
-        jdbc.update("UPDATE ades_planes_estudio_alt SET is_active = FALSE WHERE id = ?", id);
+        int rows = jdbc.update("UPDATE ades_planes_estudio_alt SET is_active = FALSE WHERE id = ? AND is_active = TRUE", id);
+        if (rows == 0) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Plan alternativo no encontrado");
     }
 }

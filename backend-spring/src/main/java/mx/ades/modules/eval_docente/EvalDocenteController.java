@@ -136,12 +136,21 @@ public class EvalDocenteController {
     }
 
     // ── DP-016: Plan de mejora (basado en reglas, no IA) ──────────────────────
+    // Datos de desempeño de personal — restringido a Coordinador Académico o superior.
+
+    private static final int NIVEL_COORD_ACADEMICO = 3;
+
+    private void requireCoordAcademico(AdesUser user) {
+        if (user.getNivelAcceso() != null && user.getNivelAcceso() > NIVEL_COORD_ACADEMICO) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo Coordinador Académico o superior");
+        }
+    }
 
     @PostMapping("/{evalId}/plan-mejora")
     public ResponseEntity<List<Map<String, Object>>> generarPlanMejora(
             @PathVariable("evalId") UUID evalId,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        requireCoordAcademico(userService.resolveUser(jwt));
         return ResponseEntity.ok(planMejoraService.generar(evalId));
     }
 
@@ -149,7 +158,7 @@ public class EvalDocenteController {
     public ResponseEntity<List<Map<String, Object>>> obtenerPlanMejora(
             @PathVariable("evalId") UUID evalId,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        requireCoordAcademico(userService.resolveUser(jwt));
         return ResponseEntity.ok(planMejoraService.listar(evalId));
     }
 
@@ -158,7 +167,7 @@ public class EvalDocenteController {
             @PathVariable("id") UUID id,
             @RequestBody Map<String, String> body,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        requireCoordAcademico(userService.resolveUser(jwt));
         planMejoraService.actualizarEstado(id, body.get("estado"));
         return ResponseEntity.ok(Map.of("id", id.toString(), "estado", body.get("estado")));
     }

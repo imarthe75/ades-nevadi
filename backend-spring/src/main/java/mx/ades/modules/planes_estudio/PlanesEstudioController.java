@@ -4,8 +4,12 @@ import lombok.RequiredArgsConstructor;
 import mx.ades.modules.planes_estudio.application.service.PlanEstudioApplicationService;
 import mx.ades.modules.planes_estudio.domain.port.in.AsignarMateriaUseCase;
 import mx.ades.modules.planes_estudio.query.PlanesEstudioQueryService;
+import mx.ades.security.AdesUser;
+import mx.ades.security.AdesUserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -32,6 +36,16 @@ public class PlanesEstudioController {
     private final PlanEstudioApplicationService planEstudioService;
     private final PlanAltQueryService planAltQueryService;
     private final PlanAltWriteService planAltWriteService;
+    private final AdesUserService userService;
+
+    private static final int NIVEL_ADMIN_PLANTEL = 2;
+    private static final int NIVEL_COORD_ACADEMICO = 3;
+
+    private void requireNivel(AdesUser user, int maxNivel) {
+        if (user.getNivelAcceso() != null && user.getNivelAcceso() > maxNivel) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Nivel de acceso insuficiente para esta operación");
+        }
+    }
 
     @GetMapping
     public ResponseEntity<List<Map<String, Object>>> list(
@@ -69,16 +83,18 @@ public class PlanesEstudioController {
         return ResponseEntity.ok(Map.of("id", id.toString(), "updated", true));
     }
 
-    /** AC-015: publica una versión de plan de estudio (visible en vistas operativas). */
+    /** AC-015: publica una versión de plan de estudio (visible en vistas operativas). Admin Plantel o superior. */
     @PatchMapping("/{id}/publicar")
-    public ResponseEntity<Map<String, Object>> publicar(@PathVariable("id") UUID id) {
+    public ResponseEntity<Map<String, Object>> publicar(@PathVariable("id") UUID id, @AuthenticationPrincipal Jwt jwt) {
+        requireNivel(userService.resolveUser(jwt), NIVEL_ADMIN_PLANTEL);
         planEstudioService.publicar(id);
         return ResponseEntity.ok(Map.of("id", id.toString(), "estado_publicacion", "PUBLICADO"));
     }
 
-    /** AC-015: archiva una versión de plan de estudio (histórico, ya no operativo). */
+    /** AC-015: archiva una versión de plan de estudio (histórico, ya no operativo). Admin Plantel o superior. */
     @PatchMapping("/{id}/archivar")
-    public ResponseEntity<Map<String, Object>> archivar(@PathVariable("id") UUID id) {
+    public ResponseEntity<Map<String, Object>> archivar(@PathVariable("id") UUID id, @AuthenticationPrincipal Jwt jwt) {
+        requireNivel(userService.resolveUser(jwt), NIVEL_ADMIN_PLANTEL);
         planEstudioService.archivar(id);
         return ResponseEntity.ok(Map.of("id", id.toString(), "estado_publicacion", "ARCHIVADO"));
     }
@@ -111,7 +127,9 @@ public class PlanesEstudioController {
 
     @PostMapping("/alternativos")
     @SuppressWarnings("unchecked")
-    public ResponseEntity<Map<String, Object>> crearAlternativo(@RequestBody Map<String, Object> body) {
+    public ResponseEntity<Map<String, Object>> crearAlternativo(@RequestBody Map<String, Object> body, @AuthenticationPrincipal Jwt jwt) {
+        requireNivel(userService.resolveUser(jwt), NIVEL_COORD_ACADEMICO);
+
         UUID estudianteId = body.get("estudiante_id") != null ? UUID.fromString((String) body.get("estudiante_id")) : null;
         UUID grupoId = body.get("grupo_id") != null ? UUID.fromString((String) body.get("grupo_id")) : null;
         String motivo = (String) body.get("motivo");
@@ -128,7 +146,8 @@ public class PlanesEstudioController {
     }
 
     @DeleteMapping("/alternativos/{id}")
-    public ResponseEntity<Void> eliminarAlternativo(@PathVariable UUID id) {
+    public ResponseEntity<Void> eliminarAlternativo(@PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
+        requireNivel(userService.resolveUser(jwt), NIVEL_COORD_ACADEMICO);
         planAltWriteService.eliminar(id);
         return ResponseEntity.noContent().build();
     }

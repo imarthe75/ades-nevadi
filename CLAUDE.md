@@ -1,5 +1,5 @@
 # ADES — Claude Code Guidelines
-# Versión: 2.3 | Actualizado: 2026-06-23
+# Versión: 2.4 | Actualizado: 2026-07-03
 
 ## MISIÓN Y CONTEXTO
 
@@ -36,14 +36,14 @@ Ver ADR-0011 para el plan de boleta NEM.
 | Authentik 2026.5.2 | Corriendo healthy en localhost:9010 |
 | SeaweedFS | Corriendo healthy en localhost:9000 (S3) y 8888 (Filer) |
 | nginx | Corriendo — proxy reverso TLS y static files |
-| **BFF Spring Boot 3 (Java 21)** | Backend principal — 57 módulos hexagonales |
+| **BFF Spring Boot 3 (Java 21)** | Backend principal — 63 módulos hexagonales |
 | **FastAPI (IA + Render Docs)** | Capa de agente/embeddings/insights + generación PDF boletas |
 | Frontend Angular 22 | Standalone components + signals + PrimeNG (estilo APEX) |
-| Superset 6.1.0 | Levantado — pendiente configurar OIDC final |
-| Migraciones | 3 dígitos hasta **093** + date-based. Próxima 3-díg: 094 |
+| Superset 6.1.0 | Levantado — credenciales admin correctamente wireadas en docker-compose (fix 2026-07-03) |
+| Migraciones | 3 dígitos hasta **113** + date-based. Próxima 3-díg: 114 |
 | Regla ciclo escolar | 1 año vigente por sistema (SEP/UAEMEX). Mig 083: `sistema_educativo` + trigger `fn_ciclo_sistema_vigente` |
 | Biblioteca | Mig 084: `ades_biblioteca_libros` + `ades_biblioteca_prestamos`; módulo hexagonal `/api/v1/biblioteca`; 60 libros + 74 préstamos seeded |
-| Reporte 911 SEP | `/api/v1/reportes/911` (Spring hexagonal); matriz edad×grado×sexo×ingreso + grupos + Sección IX discapacidad. ⚠️ Retorna HTTP 500 en producción — pendiente fix |
+| Reporte 911 SEP | `/api/v1/reportes/911` (Spring hexagonal); matriz edad×grado×sexo×ingreso + grupos + Sección IX discapacidad. Fix HTTP 500 aplicado 2026-07-02 (columnas `cc.alumno_id`/`cc.activa`) |
 | Boleta NEM | Mig 085: `ades_materias.campo_formativo` (4 campos NEM). FastAPI (`tasks/boletas.py` + Jinja `boleta.html`). Soporte numérico (6-10) y cualitativo |
 | Boleta UAEMEX | FastAPI `/boletas/uaemex/{id}` → BFF proxy; template `boleta_uaemex.html` weasyprint; ordinario/extra/definitiva RGEMS |
 | Kardex UAEMEX | `/api/v1/reportes/kardex/{id}` (Spring hexagonal); prepa CBU, escala 0-10 mín 6.0, ordinario→extraordinario→definitiva |
@@ -53,9 +53,11 @@ Ver ADR-0011 para el plan de boleta NEM.
 | Filtros en Cascada y Búsqueda | Filtro global en cascada Toolbar y inputs de búsqueda rápida integrados en todos los módulos clave |
 | LOV Global Fix | `overlayAppendTo: 'body'` en `providePrimeNG()` (app.config.ts) — todos los p-select dentro de p-dialog/p-drawer muestran correctamente |
 | **Franjas Horarias** | Mig 068: `ades_horario_franjas` seeded — PRIM/SEC L-J 10 franjas 07:00-16:00, V 8 franjas 07:00-14:00; PREP L-V 7 franjas 07:00-14:30. MATUTINO. Endpoints `/api/v1/horario-franjas` + `/api/v1/horario-indisponibilidad` (DISPONIBLE/CONDICIONAL/NO_DISPONIBLE) |
-| **Testing Exploratorio IA** | `ades_testing/` — Playwright + NVIDIA NIM; Fase 1: 34 módulos capturados, 30 inconsistencias detectadas; ejecutar: `python 01_ades_explorer_v4_complete.py && python 02_claude_qa_analyzer.py && python 03_report_generator.py` |
+| **Testing Exploratorio IA** | `ades_testing/` — Playwright + NVIDIA NIM; Fase 2 (2026-07-02): 52 módulos capturados, 58 inconsistencias (50 cognitivas + 8 deterministas); ejecutar: `python 01_ades_explorer_v4_complete.py && python 02_claude_qa_analyzer.py && python 03_report_generator.py` |
 | **Autocomplete Alumnos** | `p-autocomplete` (búsqueda dinámica) reemplaza `p-select` en movilidad, optativas, padres-admin, padres, conducta, certificados, expediente-doc, learning-paths |
 | **Compresión Imágenes** | Compresión automática + límite 2MB global en todas las cargas de archivos/imágenes del frontend |
+| **Claves CCT/UAEMEX por nivel** | Mig 103: `ades_plantel_nivel_clave` — 6 CCT SEP reales verificados (Metepec/Tenancingo/Ixtapan × Primaria/Secundaria); incorporación UAEMEX Preparatoria pendiente de oficio institucional |
+| **19 CU auditoría 2026-07-03** | Mig 104-113: planes NEE, publicar/archivar plan, credencial alumno, modalidad clase, reprogramar planeación, reabrir entrega, plagio real (Jaccard), plan de mejora docente, timeline admisión, ajuste dinámico learning path, narrativa IA, exportación CSV BI, riesgo conductual, acta conducta PDF, eventos bienestar, auditoría login fallido (Authentik Events API), compliance LFPDPPP. Catálogo: 192/230 (83.5%) |
 
 ---
 

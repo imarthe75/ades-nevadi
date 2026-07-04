@@ -55,7 +55,11 @@ public class PlanEstudioPersistenceAdapter implements PlanEstudioRepositoryPort 
 
     @Override
     public void patchEstadoPublicacion(UUID id, String estado) {
-        jdbc.update("UPDATE ades_materias_plan SET estado_publicacion = ? WHERE id = ?", estado, id);
+        int rows = jdbc.update("UPDATE ades_materias_plan SET estado_publicacion = ? WHERE id = ?", estado, id);
+        if (rows == 0) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.NOT_FOUND, "Plan de estudio no encontrado");
+        }
     }
 
     @Override

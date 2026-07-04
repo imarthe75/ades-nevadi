@@ -5,9 +5,12 @@ import mx.ades.modules.planteles.domain.port.in.ActualizarPlantelUseCase;
 import mx.ades.modules.planteles.domain.port.in.CrearPlantelUseCase;
 import mx.ades.modules.planteles.domain.port.out.PlantelRepositoryPort;
 import mx.ades.modules.planteles.query.PlantelQueryService;
+import mx.ades.security.AdesUser;
+import mx.ades.security.AdesUserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -19,8 +22,9 @@ import java.util.UUID;
  * Adaptador REST para el catálogo de planteles del Instituto Nevadi.
  * Expone endpoints bajo /api/v1/planteles para listar todos los planteles,
  * obtener el detalle de un plantel por UUID, consultar estadísticas de ocupación
- * y niveles educativos asociados a un plantel, crear (restringido a ROLE_ADMIN)
- * y actualizar datos de un plantel (nombre, clave CT, estatus).
+ * y niveles educativos asociados a un plantel, crear/actualizar (restringido a
+ * ADMIN_GLOBAL, nivelAcceso {@literal <=} 1) y gestionar sus claves oficiales
+ * (CCT SEP / incorporación UAEMEX) por nivel educativo.
  *
  * @author ADES
  * @since 2026
@@ -35,6 +39,15 @@ public class PlantelController {
     private final PlantelRepositoryPort repositoryPort;
     private final PlantelQueryService queryService;
     private final PlantelClaveWriteService claveWriteService;
+    private final AdesUserService userService;
+
+    private static final int NIVEL_ADMIN_GLOBAL = 1;
+
+    private void requireAdmin(AdesUser user) {
+        if (user.getNivelAcceso() != null && user.getNivelAcceso() > NIVEL_ADMIN_GLOBAL) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo ADMIN_GLOBAL/ADMIN_PLANTEL puede realizar esta acción");
+        }
+    }
 
     @GetMapping("/stats")
     public ResponseEntity<List<Map<String, Object>>> stats() {
@@ -42,15 +55,17 @@ public class PlantelController {
     }
 
     @GetMapping("/{id}/claves")
-    public ResponseEntity<List<Map<String, Object>>> claves(@PathVariable UUID id) {
+    public ResponseEntity<List<Map<String, Object>>> claves(@PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
+        userService.resolveUser(jwt);
         return ResponseEntity.ok(queryService.clavesPorPlantel(id));
     }
 
     @PatchMapping("/{id}/claves/{nivelEducativoId}")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ResponseEntity<Map<String, Object>> actualizarClave(
             @PathVariable UUID id, @PathVariable UUID nivelEducativoId,
-            @RequestBody Map<String, Object> body) {
+            @RequestBody Map<String, Object> body,
+            @AuthenticationPrincipal Jwt jwt) {
+        requireAdmin(userService.resolveUser(jwt));
         claveWriteService.actualizar(id, nivelEducativoId, body);
         return ResponseEntity.ok(Map.of("updated", true));
     }
@@ -72,8 +87,8 @@ public class PlantelController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
-    public ResponseEntity<Map<String, Object>> create(@RequestBody Map<String, Object> body) {
+    public ResponseEntity<Map<String, Object>> create(@RequestBody Map<String, Object> body, @AuthenticationPrincipal Jwt jwt) {
+        requireAdmin(userService.resolveUser(jwt));
         CrearPlantelUseCase.Command cmd = new CrearPlantelUseCase.Command(
                 (String) body.get("nombre_plantel"),
                 body.get("escuela_id") != null ? UUID.fromString(body.get("escuela_id").toString()) : null,
@@ -84,7 +99,8 @@ public class PlantelController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Map<String, Object>> update(@PathVariable("id") UUID id, @RequestBody Map<String, Object> body) {
+    public ResponseEntity<Map<String, Object>> update(@PathVariable("id") UUID id, @RequestBody Map<String, Object> body, @AuthenticationPrincipal Jwt jwt) {
+        requireAdmin(userService.resolveUser(jwt));
         ActualizarPlantelUseCase.Command cmd = new ActualizarPlantelUseCase.Command(
                 id,
                 (String) body.get("nombre_plantel"),

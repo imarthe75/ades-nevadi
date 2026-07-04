@@ -3491,4 +3491,83 @@ Centro de Trabajo (CCT) por plantel/nivel. Migraciones **103-113** aplicadas.
 - [ ] Migración a ApiService en el Frontend (heredado, sigue pendiente).
 - [ ] Google SSO, Big Blue Button externo, Blockchain Polygon PoS — sin cambios.
 
+---
+
+## Sesión 2026-07-04 — Auditoría de seguridad/documentación de los 19 CU + fixes ✅
+
+Auditoría solicitada explícitamente por el usuario sobre el trabajo de la sesión anterior (19 CU +
+Grupo E CCT), usando 2 agentes de investigación en paralelo (seguridad STRIDE/OWASP/NIST/LFPDPPP +
+documentación) más verificación directa con Playwright contra el BFF real.
+
+### 🔒 Hallazgos de seguridad corregidos (todos verificados con recompilación + Playwright):
+- [x] **BOLA crítico** — `GET /conducta/{id}/acta-pdf` (acta de conducta, datos disciplinarios
+  sensibles) solo llamaba `resolveUser()`, sin `requireNivel()` — cualquier usuario autenticado podía
+  descargar el acta de cualquier alumno. Fix: `requireNivel(user, 3)`, consistente con el resto del
+  archivo (`ConductaController.java`).
+- [x] **BFLA crítico** — `PlanesEstudioController` (`/publicar`, `/archivar`, `/alternativos` POST/DELETE)
+  no llamaban `resolveUser()` en absoluto — cualquier usuario autenticado podía publicar/archivar
+  planes oficiales o crear/eliminar planes NEE de cualquier alumno. Fix: `requireNivel` Admin Plantel
+  (nivel≤2) para publicar/archivar, Coord Académico (nivel≤3) para alternativos NEE.
+- [x] **`@PreAuthorize("hasRole('ROLE_ADMIN')")` roto** — nunca podía pasar (Spring busca la autoridad
+  `ROLE_ROLE_ADMIN`, inexistente; los roles reales son `ROLE_ADMIN_GLOBAL`/`ROLE_ADMIN_PLANTEL`).
+  Afectaba también el POST preexistente de creación de plantel. Reemplazado en los 3 endpoints
+  mutantes de `PlantelController` (create/update/actualizarClave) por el patrón estándar
+  `resolveUser()` + `nivelAcceso≤1`.
+- [x] **BOLA** — `GET /planteles/{id}/claves` sin ningún control de acceso (ni `resolveUser`). Fix:
+  ahora requiere JWT válido.
+- [x] **BFLA** — endpoints DP-016 plan-mejora docente (`EvalDocenteController`) sin `nivelAcceso`,
+  exponiendo evaluaciones de desempeño de personal a cualquier autenticado. Fix: `requireCoordAcademico`
+  (nivel≤3).
+- [x] **Checklist "0 filas→404"** — 4 instancias silenciosas corregidas: `PlanMejoraService.actualizarEstado`,
+  `PlanEstudioPersistenceAdapter.patchEstadoPublicacion`, `PlanAltWriteService.eliminar`,
+  `BienestarController.eliminar`.
+- [x] **Cumplimiento de auditoría obligatoria (CLAUDE.md regla 3/4)** — `ades_admision_historial_estados`
+  (mig 110) se creó sin `ref/row_version/fecha_creacion/...` ni `asignar_biu()`. Corregido con
+  **mig 114** (`ALTER TABLE` + backfill + `asignar_biu()`), aplicada y verificada vía
+  `auditoria.reporte_cobertura()`.
+- **Confirmado nivel de acceso real de la BD** (`ades_roles`): 0=ADMIN_GLOBAL, 1=ADMIN_PLANTEL,
+  2=DIRECTOR/SUBDIRECTOR/COORD_ADMIN/COORD_RH, 3=COORD_ACADÉMICO/ORIENTADOR/SECRETARIA_ACAD/TUTOR,
+  4=DOCENTE/APOYO_*/MÉDICO/PREFECTO, 5=ALUMNO/PADRE. Usado para calibrar todos los umbrales arriba.
+- **No corregido (fuera de alcance de esta pasada, documentado como deuda):** `LearningPathsController`
+  y varias lecturas (`ProcesosEscolaresController.historialAdmision`, `AlumnoController.credencial`)
+  carecen de scoping por plantel — patrón preexistente en TODO el archivo/módulo, no introducido esta
+  sesión; requiere trabajo de query a nivel de plantel vía estudiante→grupo→plantel, mayor al ajuste
+  puntual de esta pasada. `AlumnoController.credencial` además pasa `template_id` sin validar a la URL
+  de Carbone — mismo patrón preexistente en `ProcesosEscolaresController` (no introducido esta sesión).
+
+### 📄 Hallazgos de documentación (algunos corregidos, otros pendientes):
+- [x] `CLAUDE.md` **ESTADO ACTUAL DEL PROYECTO** muy desactualizado — corregido: migraciones 093→113,
+  63 módulos (antes 57), Reporte 911 marcado como roto cuando ya se había corregido 2026-07-02,
+  Testing Exploratorio Fase 1→Fase 2, agregadas filas de Claves CCT y 19 CU auditoría 2026-07-03,
+  Superset credenciales. Versión 2.3→2.4.
+- [ ] **Pendiente:** `.agent/CONTEXT.md` y `.agent/MAP.md` siguen sin reflejar los módulos
+  `bienestar`/`compliance`/`conducta` (riesgo)/`planes_estudio` alternativos ni el conteo real de
+  migraciones (dicen 094, va en 114) — no se tocaron en esta pasada por alcance/tiempo.
+  el usuario aún no lo tiene registrado formalmente.
+- [ ] **Pendiente:** manuales de usuario (`docs/manual-usuario.md`, `docs/manual_usuario_ades.md`)
+  no mencionan ninguna de las 9 funciones nuevas orientadas a usuario final de la sesión anterior.
+- [ ] **Pendiente:** no existe ADR para la reestructuración de claves CCT (1-por-plantel →
+  1-por-plantel-por-nivel) pese a ser una decisión de modelo de datos de magnitud comparable a ADRs
+  previos del proyecto.
+
+### ✅ Verificación Playwright (BFF real, token admin real vía sessionStorage):
+- `GET /planteles/{id}/claves` sin token → **401** (antes: 200 sin auth — bug cerrado).
+- `GET /planteles/{id}/claves` con token admin real → **200**, devuelve los CCT reales de Metepec
+  (15PPR7068F primaria / 15PES0124F secundaria) — confirma que el fix de seguridad no rompió el
+  flujo legítimo y que los datos de Grupo E (sesión anterior) están correctamente servidos en vivo.
+- Tab "Planes NEE" en Planes de Estudio: renderiza sin errores de consola/red con usuario
+  ADMIN_GLOBAL tras el nuevo `requireNivel` — sin regresión.
+- Botón "Credencial" en perfil de alumno: presente y visible.
+- **Hallazgo colateral no relacionado a esta sesión:** `GET /api/v1/expediente/alumno/{id}?lite=true`
+  devuelve 403 en el perfil de alumno (pestaña Salud) — función preexistente de sesión anterior
+  (commit `751d417`), no investigado a fondo, queda como pendiente para revisión aparte.
+
+### 🚀 Próximos Pasos (Siguiente Sesión):
+- [ ] Actualizar `.agent/CONTEXT.md`/`.agent/MAP.md` (migraciones, módulos, rutas nuevas).
+- [ ] Escribir ADR para la reestructuración de claves CCT por nivel.
+- [ ] Agregar sección al manual de usuario para las 9 funciones nuevas de cara al usuario final.
+- [ ] Investigar 403 en `/api/v1/expediente/alumno/{id}?lite=true`.
+- [ ] Considerar aplicar scoping por plantel a `LearningPathsController` (deuda preexistente, no de
+  esta sesión) y validar/whitelist `template_id` en los endpoints de Carbone.
+
 

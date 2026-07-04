@@ -105,7 +105,8 @@ public class BienestarController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> eliminar(@PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
         userService.resolveUser(jwt);
-        jdbc.update("UPDATE ades_eventos_bienestar SET is_active = FALSE WHERE id = ?", id);
+        int rows = jdbc.update("UPDATE ades_eventos_bienestar SET is_active = FALSE WHERE id = ? AND is_active = TRUE", id);
+        if (rows == 0) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Evento no encontrado");
         return ResponseEntity.noContent().build();
     }
 }
