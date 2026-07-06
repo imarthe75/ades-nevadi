@@ -3570,4 +3570,78 @@ documentación) más verificación directa con Playwright contra el BFF real.
 - [ ] Considerar aplicar scoping por plantel a `LearningPathsController` (deuda preexistente, no de
   esta sesión) y validar/whitelist `template_id` en los endpoints de Carbone.
 
+---
+
+## Sesión 2026-07-06 — Auditoría externa (Nmap/TLS/headers) + verificación Playwright del pipeline académico ✅
+
+Auditoría solicitada por el usuario: seguridad exhaustiva contra estándares (STRIDE/OWASP/NIST/
+LFPDPPP) usando herramientas externas donde fuera posible (Nmap sí, ZAP/Nuclei/SpiderFoot
+descartados por restricción de disco — 93-96% lleno durante toda la sesión, riesgo de llenarlo por
+completo), más verificación exhaustiva con Playwright del flujo materia→plan→planeación→tareas→
+exámenes→calificaciones→estadísticas.
+
+### 🔒 Escaneo externo (agente en background, solo lectura, nmap purgado tras uso):
+- [x] **Exposición de puertos — correcta.** Solo 22/80/443 públicos; Postgres/Valkey/BFF/FastAPI/
+  Superset/SeaweedFS/Authentik correctamente detrás de nginx.
+- [x] **TLS — grado A.** Solo TLS 1.2/1.3, cifrados ECDHE/CHACHA20, cert Let's Encrypt vigente.
+- [x] **HTTP→HTTPS, TRACE bloqueado, sin exposición real de `.git`/`.env`/actuator** (los intentos
+  devuelven el SPA fallback de Angular, no el archivo real — nginx no los proxea al backend).
+- [x] **Corregido:** faltaban headers de seguridad (`Strict-Transport-Security`, `X-Frame-Options`,
+  `X-Content-Type-Options`, `Referrer-Policy`) en el bloque nginx de `ades.setag.mx` — agregados
+  (`infrastructure/nginx/nginx.conf`), verificado con `curl -I` tras `--force-recreate` (bind mount
+  de archivo único, `nginx -s reload` no basta — ver `feedback_nginx_docker`). CSP se **omitió
+  deliberadamente**: alto riesgo de romper la app en vivo sin ventana de prueba dedicada; queda como
+  recomendación, no aplicada.
+- [ ] **Pendiente (bajo riesgo):** cookie `JSESSIONID` sin flags `Secure`/`SameSite` — recomendado
+  `server.servlet.session.cookie.secure=true` en `application.yml`, no aplicado esta sesión (menor
+  prioridad, mitigado por el redirect HTTP→HTTPS obligatorio).
+- [ ] **Pendiente:** `python-jose` (JWT en FastAPI) señalado como el paquete más sensible del stack;
+  recomendado correr `pip-audit` real (no se tiene acceso a NVD/OSV en vivo desde este entorno).
+
+### 🧪 Verificación Playwright del pipeline académico completo (con cascada Plantel→Nivel→Ciclo→
+Grado→Grupo real, Metepec/Primaria/1°/Grupo A):
+- [x] `/planes-estudio` (materia + plan) — Mapa Curricular renderiza datos reales, sin errores.
+- [x] `/planeacion` — sin errores tras fijar cascada.
+- [x] `/tareas`, `/calificaciones` — sin errores.
+- [x] `/gradebook` (estadísticas) — **2 bugs reales encontrados y corregidos:**
+  1. **Contrato roto:** `GET /planeacion/insights/{grupo_id}` (`PlaneacionQueryService.
+     getInsightsGrupo`) devolvía un mapa plano (`total_temas`, `impartidos`, `planeados`,
+     `pendientes`) pero el frontend (`gradebook.component.ts`, interfaz `Insights`) espera un shape
+     anidado (`resumen.estado`, `cobertura_por_materia[]`, `tareas.pct_vinculadas`,
+     `calificaciones[]`) — causaba `TypeError: Cannot read properties of undefined (reading
+     'estado')` en cada carga de la pestaña. Reescrito el método para devolver el shape completo:
+     cobertura por materia (join real a `ades_temas`/`ades_planeacion_clases`/
+     `ades_avance_planificacion`), resumen agregado con `estado` OK/ALERTA/CRITICO (umbrales 80%/50%),
+     tareas vinculadas a tema (`ades_tareas.tema_id`), y promedios/en-riesgo por materia
+     (`ades_calificaciones_periodo`, umbral `<6`).
+  2. **Tabs completamente inalcanzables:** `<p-tabs value="0">` en `gradebook.component.ts` no tenía
+     `<p-tablist>` con los `<p-tab>` correspondientes (comparado con el patrón correcto en
+     `planes-estudio.component.ts`) — las pestañas "Concentrado por período", "Cobertura curricular"
+     e **"Insights académicos"** (el paso "estadísticas" del pipeline que el usuario pidió verificar)
+     nunca tuvieron una barra de navegación visible; solo la pestaña 0 ("Actividades") era alcanzable.
+     Agregado el `<p-tablist>` faltante. Verificado con Playwright: las 4 pestañas ahora navegables
+     y renderizan datos reales (0% cobertura/CRITICO consistente entre Cobertura curricular e
+     Insights, ya que este grupo de prueba no tiene avances de planeación marcados como completados
+     — hallazgo de datos, no de código).
+- Ambos fixes desplegados (BFF recompilado + frontend reconstruido con `docker compose build`,
+  ambos verificados healthy) y confirmados con Playwright contra `https://ades.setag.mx` en vivo
+  (incluye suite `01-auth.spec.ts` completa, 24/24 verde, sin regresión tras los headers nuevos).
+
+### ✅ Verificación:
+- Backend: compilación limpia (contenedor Maven efímero + imagen runtime).
+- Frontend: `docker compose build ades-frontend` limpio, contenedor recreado, healthy.
+- nginx: `nginx -t` limpio, `--force-recreate` (no solo reload, por el bind-mount de archivo único),
+  headers confirmados vía `curl -I` en producción, sin romper login/API/redirect HTTP→HTTPS.
+- Playwright contra producción real (`https://ades.setag.mx`): 24/24 tests de auth pasan; pipeline
+  académico completo (5 pasos) sin errores de consola/red tras los fixes.
+
+### 🚀 Próximos Pasos (Siguiente Sesión):
+- [ ] Cookie `JSESSIONID`: agregar `secure`/`same-site` en `application.yml`.
+- [ ] Ejecutar `pip-audit`/`npm audit`/`mvn dependency-check` reales (esta sesión solo hizo un
+  sanity-check basado en conocimiento de entrenamiento, no una consulta real a NVD/OSV).
+- [ ] Evaluar CSP para `ades.setag.mx` en una ventana de mantenimiento dedicada (con prueba
+  exhaustiva de todos los módulos) — se omitió deliberadamente esta sesión por riesgo.
+- [ ] Los pendientes de la sesión 2026-07-04 (CONTEXT.md/MAP.md, ADR de claves CCT, manual de
+  usuario, scoping por plantel en LearningPathsController) siguen sin atenderse.
+
 

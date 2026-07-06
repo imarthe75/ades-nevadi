@@ -148,6 +148,12 @@ interface Insights {
   </div>
 
   <p-tabs value="0">
+  <p-tablist>
+    <p-tab value="0"><i class="pi pi-table"></i> Actividades</p-tab>
+    <p-tab value="1"><i class="pi pi-calendar"></i> Concentrado por período</p-tab>
+    <p-tab value="2"><i class="pi pi-chart-bar"></i> Cobertura curricular</p-tab>
+    <p-tab value="3"><i class="pi pi-lightbulb"></i> Insights académicos</p-tab>
+  </p-tablist>
   <!-- ── TAB 1: Spreadsheet de actividades ── -->
   <p-tabpanel header="Actividades" value="0">
     @if (actividadesFlat().length === 0 && !cargando()) {

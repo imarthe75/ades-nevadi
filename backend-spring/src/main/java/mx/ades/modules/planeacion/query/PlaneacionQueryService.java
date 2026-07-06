@@ -184,16 +184,23 @@ public class PlaneacionQueryService {
 
     @Transactional(readOnly = true)
     public Map<String, Object> getInsightsGrupo(UUID grupoId) {
-        Map<String, Object> resumen = jdbc.queryForMap("""
+        List<Map<String, Object>> coberturaPorMateria = jdbc.queryForList("""
             SELECT
-                COUNT(t.id) AS total_temas,
-                COUNT(av.id) FILTER (WHERE av.es_completado = TRUE) AS impartidos,
-                COUNT(pc.id) FILTER (WHERE av.id IS NULL)           AS planeados,
-                COUNT(t.id) - COUNT(pc.id)                          AS pendientes
+                mp.materia_id,
+                m.nombre_materia,
+                m.tipo_materia,
+                COUNT(t.id)                                          AS total_temas,
+                COUNT(av.id) FILTER (WHERE av.es_completado = TRUE)   AS temas_impartidos,
+                COUNT(pc.id) FILTER (WHERE av.id IS NULL)             AS temas_planeados,
+                COUNT(t.id) - COUNT(pc.id)                            AS temas_pendientes,
+                CASE WHEN COUNT(t.id) = 0 THEN 0
+                     ELSE ROUND(100.0 * COUNT(av.id) FILTER (WHERE av.es_completado = TRUE) / COUNT(t.id))
+                END                                                   AS pct_cobertura
             FROM ades_grupos g
             JOIN ades_grados gr        ON gr.id = g.grado_id
             JOIN ades_materias_plan mp ON mp.grado_id = gr.id
                 AND mp.ciclo_escolar_id = g.ciclo_escolar_id AND mp.is_active = TRUE
+            JOIN ades_materias m       ON m.id = mp.materia_id
             JOIN ades_temas t          ON t.materia_id = mp.materia_id
                 AND (t.grado_id IS NULL OR t.grado_id = gr.id) AND t.is_active = TRUE
             LEFT JOIN ades_planeacion_clases pc
@@ -201,7 +208,50 @@ public class PlaneacionQueryService {
             LEFT JOIN ades_avance_planificacion av
                 ON av.planeacion_clase_id = pc.id AND av.is_active = TRUE
             WHERE g.id = ?
+            GROUP BY mp.materia_id, m.nombre_materia, m.tipo_materia
+            ORDER BY m.nombre_materia
             """, grupoId);
-        return resumen;
+
+        long totalTemas = coberturaPorMateria.stream().mapToLong(m -> ((Number) m.get("total_temas")).longValue()).sum();
+        long temasImpartidos = coberturaPorMateria.stream().mapToLong(m -> ((Number) m.get("temas_impartidos")).longValue()).sum();
+        int pctCobertura = totalTemas == 0 ? 0 : (int) Math.round(100.0 * temasImpartidos / totalTemas);
+        String estado = pctCobertura >= 80 ? "OK" : pctCobertura >= 50 ? "ALERTA" : "CRITICO";
+
+        Map<String, Object> resumen = Map.of(
+                "total_temas", totalTemas,
+                "temas_impartidos", temasImpartidos,
+                "pct_cobertura", pctCobertura,
+                "estado", estado);
+
+        Map<String, Object> tareas = jdbc.queryForMap("""
+            SELECT
+                COUNT(*)                                    AS total_tareas,
+                COUNT(*) FILTER (WHERE tema_id IS NOT NULL)  AS tareas_con_tema,
+                COUNT(*) FILTER (WHERE tema_id IS NULL)      AS tareas_sin_tema,
+                CASE WHEN COUNT(*) = 0 THEN 0
+                     ELSE ROUND(100.0 * COUNT(*) FILTER (WHERE tema_id IS NOT NULL) / COUNT(*))
+                END                                          AS pct_vinculadas
+            FROM ades_tareas
+            WHERE grupo_id = ? AND is_active = TRUE
+            """, grupoId);
+
+        List<Map<String, Object>> calificaciones = jdbc.queryForList("""
+            SELECT
+                m.nombre_materia,
+                ROUND(AVG(cp.calificacion_final), 1)                    AS promedio,
+                COUNT(DISTINCT cp.estudiante_id)                        AS alumnos_evaluados,
+                COUNT(DISTINCT cp.estudiante_id) FILTER (WHERE cp.calificacion_final < 6) AS en_riesgo
+            FROM ades_calificaciones_periodo cp
+            JOIN ades_materias m ON m.id = cp.materia_id
+            WHERE cp.grupo_id = ? AND cp.is_active = TRUE
+            GROUP BY m.nombre_materia
+            ORDER BY m.nombre_materia
+            """, grupoId);
+
+        return Map.of(
+                "resumen", resumen,
+                "cobertura_por_materia", coberturaPorMateria,
+                "tareas", tareas,
+                "calificaciones", calificaciones);
     }
 }
