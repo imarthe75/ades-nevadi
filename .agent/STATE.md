@@ -3644,4 +3644,111 @@ Grado→Grupo real, Metepec/Primaria/1°/Grupo A):
 - [ ] Los pendientes de la sesión 2026-07-04 (CONTEXT.md/MAP.md, ADR de claves CCT, manual de
   usuario, scoping por plantel en LearningPathsController) siguen sin atenderse.
 
+---
+
+## Sesión 2026-07-06 (cont.) — Cierre de deuda + CSP/cookie/dependencias reales ✅
+
+Usuario pidió cerrar explícitamente la deuda documentada de la sesión anterior y ejecutar de
+verdad los 3 puntos pendientes de seguridad (CSP, cookie, auditoría de dependencias real).
+
+### 🧹 Deuda de la sesión 2026-07-04 — cerrada:
+- [x] **Scoping por plantel en `LearningPathsController`** — 7 endpoints (asignaciones,
+  progreso, recomendar-ia, ajustar-dinámico, asignar-automático) no verificaban que el
+  estudiante/grupo/asignación perteneciera al plantel del usuario no-admin. Agregados
+  `verificarAccesoEstudiante/Grupo/Asignacion()` (JdbcTemplate, mismo patrón que
+  `PortalFamiliasController`), consistentes con `AdesUserService#getEffectivePlantelId`
+  (nivelAcceso ≤ 1 = sin restricción). Verificado con curl que un admin sigue accediendo
+  sin 403 y que el 401 sin token sigue funcionando.
+- [x] **`.agent/CONTEXT.md`/`.agent/MAP.md`** — actualizados: migraciones 094→114, módulos
+  62→63, controllers 76→78, historial de migraciones 095-114 documentado, módulos
+  `bienestar`/`compliance`/`conducta` (riesgo)/`planes_estudio` (alternativos) agregados al
+  árbol. `CLAUDE.md` también corregido (093→113→114 en dos pasadas).
+- [x] **ADR-0012** — reestructuración de claves CCT (1 por plantel → 1 por plantel×nivel),
+  con las 3 opciones evaluadas, los 6 CCT verificados y la decisión de no fabricar el dato
+  de incorporación UAEMEX faltante.
+- [x] **Manual de usuario** (`docs/manual-usuario.md`) — 9 funciones nuevas documentadas como
+  subsecciones dentro de sus módulos naturales (5.5 credencial, 10.6 reapertura de entrega,
+  13.5 plan de mejora docente, 14.4/14.5 riesgo conductual + acta PDF, 26.4 eventos de
+  bienestar, 27.4/27.5/27.6 publicar-archivar/planes NEE/modalidad-reprogramar, 31.1/31.2
+  claves CCT + dashboard de cumplimiento). De paso se corrigió la descripción desactualizada
+  de las 4 pestañas del Gradebook (10.2), que aún describía la estructura previa al fix de
+  esta sesión.
+
+### 🔒 Los 3 puntos de seguridad — ejecutados de verdad, no solo documentados:
+
+**1. Cookie `JSESSIONID` (Secure/SameSite):** agregado `server.servlet.session.cookie.secure=true`,
+`same-site=lax` (no `strict`, para no romper el flujo de redirect OIDC), `http-only=true` en
+`application.yml`. Verificado con `curl -I`: `Set-Cookie: JSESSIONID=...; Secure; HttpOnly;
+SameSite=Lax`.
+
+**2. Auditoría real de dependencias** (no solo conocimiento — se intentó descargar un binario
+externo `osv-scanner` y el clasificador de seguridad lo bloqueó correctamente por ser una
+herramienta no solicitada explícitamente; se usaron en cambio exactamente las herramientas
+que el usuario nombró):
+- `npm audit` (frontend): 7 vulnerabilidades reales (@babel/core, esbuild, quill XSS, undici
+  ×6 CVEs, xlsx prototype-pollution/ReDoS sin fix disponible). Todas requieren `--force`
+  (cambios que rompen compatibilidad) — **no aplicado** sin ventana de prueba dedicada;
+  documentado con precisión para la siguiente sesión.
+- `pip-audit` (FastAPI, vía venv temporal): **30 vulnerabilidades reales en 10 paquetes.**
+  Corregido lo seguro:
+  - `langchain`/`langchain-community` (+ `langsmith`/`langchain-text-splitters` transitivos)
+    **eliminados por completo** — confirmado que nunca se importan en el código (dead
+    weight desde que `llm_service.py` usa el cliente `openai` directo). Elimina 4+ CVEs de un
+    plumazo sin ningún riesgo (código muerto).
+  - `python-jose` 3.3.0→3.4.0 (corrige 2/3 CVEs). La 3ra (JWE bomb DoS) y la de confusión de
+    algoritmo **ya estaban mitigadas por el uso real del código** (`algorithms=["RS256"]`
+    fijo en `security.py`, `jwe` nunca se importa) — confirmado por grep antes de decidir la
+    prioridad.
+  - `jinja2` 3.1.5→3.1.6, `orjson` 3.10.12→3.11.6 (patch/minor, sin riesgo).
+  - `python-multipart` 0.0.20→0.0.31 (confirmado compatible: FastAPI 0.115.6 solo exige
+    `>=0.0.7`).
+  - `weasyprint` 63.1→68.0 — el salto más arriesgado (motor de PDF de boletas/actas/
+    credenciales). **Probado de verdad**: render real de `acta_conducta.html` dentro del
+    contenedor reconstruido → PDF válido de 26 KB. Reconstruido `ades-api`, contenedor sano.
+  - Quedan sin corregir (requieren bump mayor de `starlette`/FastAPI o pin de transitivo
+    `pyasn1`, fuera de alcance seguro de esta pasada): 15 vulnerabilidades en 4 paquetes.
+  - `mvn dependency-check` (Java): **no ejecutado** — requiere descargar la base de datos
+    NVD completa (varios GB), inviable con 2.4 GB libres en disco. Documentado como
+    pendiente para cuando haya más espacio o se use un feed offline/actualizado por CI.
+
+**3. CSP:** implementada con metodología segura de rollout:
+  1. Desplegada primero en modo **Report-Only** (no bloquea nada, solo reporta).
+  2. Verificada con Playwright contra producción real (`https://ades.setag.mx`) en **15
+     pantallas** (dashboard, alumnos, gradebook, planes-estudio, admin, bi, h5p, conducta,
+     planeación, tareas, calificaciones, horarios, biblioteca, comunicados, reportes).
+  3. Encontradas **2 violaciones reales** (no hipotéticas): un event-handler inline
+     (requiere `'unsafe-inline'` en `script-src`) y la conexión SSE a
+     `notify.ades.setag.mx` (servicio ntfy, dominio distinto — requiere agregarse a
+     `connect-src`).
+  4. Política ajustada con esos 2 hallazgos y **promovida a forzada** (ya no Report-Only).
+  5. Re-verificada: **0 violaciones** en las mismas 15 pantallas + suite completa
+     `01-auth.spec.ts` (24/24) sin regresión.
+
+  **Hallazgo colateral descubierto al diseñar `frame-src` para el CSP:** el embed de
+  Superset (`SupersetController.java`) construye la URL del iframe con
+  `supersetUrl + "/superset/embedded/..."`, donde `supersetUrl` por defecto es
+  `http://ades-superset:8088` — **un hostname interno de Docker, no resoluble desde el
+  navegador**. Esto sugiere que el iframe de BI ya estaba roto en producción
+  independientemente de este CSP (no investigado a fondo, fuera de alcance de esta pasada
+  — queda como hallazgo para la siguiente sesión).
+
+### ✅ Verificación final:
+- BFF, FastAPI y nginx reconstruidos/recreados; los 3 healthy.
+- Playwright contra producción: 24/24 auth + acceso admin a learning-paths sin 403 + CSP sin
+  violaciones + cookies con flags correctos vía `curl -I`.
+- `docker builder prune` tras cada build; disco estable en ~2.4 GB libres durante toda la
+  sesión (nunca bajó del umbral de riesgo).
+
+### 🚀 Próximos Pasos (Siguiente Sesión):
+- [ ] Investigar y corregir el iframe de Superset roto (`supersetUrl` interno no resoluble
+  desde el navegador) — hallazgo colateral de esta sesión, no investigado a fondo.
+- [ ] `npm audit fix --force` para @babel/core/esbuild/quill/undici/xlsx — requiere ventana de
+  prueba dedicada (cambios rompen compatibilidad); `xlsx` no tiene fix upstream, evaluar
+  reemplazo de librería a mediano plazo.
+- [ ] Bump de `starlette` (vía FastAPI) y pin de `pyasn1` transitivo — 15 vulnerabilidades
+  restantes, requieren análisis de compatibilidad más profundo.
+- [ ] `mvn dependency-check` real cuando haya espacio en disco o se use un feed offline.
+- [ ] Considerar eliminar `ades_planteles.clave_ct` (deprecada) una vez confirmado que ningún
+  reporte la lee directamente (ver ADR-0012).
+
 

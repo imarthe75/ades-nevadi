@@ -1,6 +1,6 @@
 # ADES — Administración Escolar Instituto Nevadi
 # Contexto Cognitivo del Agente Residente
-# Última actualización: 2026-06-26
+# Última actualización: 2026-07-06
 
 ## Propósito del Sistema
 Sistema integral de control escolar para el **Instituto Nevadi**, con 3 planteles
@@ -97,7 +97,8 @@ Historia y Geografía, Formación Cívica, Educación Física, Tecnología.
 | **Sprint 6 — Observability** | ✅ Completa | Micrometer BFF, Celery OCR, chat history IA persistente |
 | **Seguridad (IDOR+HTTPS+Rate)** | ✅ Completa | 5 vulnerabilidades corregidas, python-magic MIME, rate limiting slowapi |
 | **QA E2E (Suites 01-17)** | ✅ 74.8% | 255/341 passed; P1 ADV-02/03 → CORREGIDO (ValidationUtils 2026-06-23) |
-| **Hexagonal Spring BFF** | ✅ ~50/62 | 76 controllers, 50 ApplicationServices, 62 módulos; ADR-0008 |
+| **Hexagonal Spring BFF** | ✅ ~50/63 | 78 controllers, 50+ ApplicationServices, 63 módulos; ADR-0008 |
+| **19 CU auditoría + claves CCT** | ✅ Completa | Mig 103-114; ver sesiones 2026-07-03/04/06 en STATE.md |
 | **NEM Fase 3 Cualitativa** | ✅ Completa | Escalas A/B/C/D para 1°-2° primaria, config por plantel (Mig 089) |
 | **Reporte 911 SEP** | ✅ Completa | Sección IX discapacidad incluida (Spring BFF) |
 | **Boleta UAEMEX PDF** | ✅ Completa | /boletas/uaemex/{id} FastAPI→BFF proxy; template weasyprint |
@@ -248,7 +249,7 @@ Historia y Geografía, Formación Cívica, Educación Física, Tecnología.
 - FKs: sufijo _id UUID
 - Comentarios obligatorios en tablas y columnas no obvias
 - row_version para concurrencia optimista
-- Migraciones: db/migrations/ con prefijo 3 dígitos (hasta 094 aplicadas)
+- Migraciones: db/migrations/ con prefijo 3 dígitos (hasta 114 aplicadas)
 
 ---
 
@@ -267,6 +268,10 @@ Historia y Geografía, Formación Cívica, Educación Física, Tecnología.
 | 081-082 | H5P (10 tipos), BigBlueButton (3 tablas) |
 | 083-089 | Ciclo sistema educativo, biblioteca, campos NEM, periodos trimestres, menús UUID, catálogos edificios, eval cualitativa NEM |
 | 090-094 | Menús permisos rol, fix gradebook UAEMEX, fix LP audit, classroom gaps (plagio+NEE+multimedia), dedup códigos postales |
+| 095-099 | Países ISO completos, corrección nacionalidades, corridas/config de horario, suplencias |
+| 100-102 | Fix planes de estudio sec/prep (materias inactivas), exámenes faltantes, expediente is_active |
+| 103-113 | Claves CCT/UAEMEX por nivel, 19 CU auditoría 2026-07-03 (planes NEE, publicar/archivar, credencial, modalidad clase, reprogramar, reabrir entrega, plagio Jaccard, plan mejora docente, timeline admisión, ajuste dinámico LP, narrativa IA, export CSV BI, riesgo conductual, acta conducta, eventos bienestar, login fallido, compliance LFPDPPP) |
+| 114 | Fix cumplimiento auditoría: columnas obligatorias faltantes en ades_admision_historial_estados (mig 110) |
 
 ---
 
@@ -276,9 +281,9 @@ Historia y Geografía, Formación Cívica, Educación Física, Tecnología.
 /opt/ades/
 ├── .agent/         (CONTEXT.md, STATE.md, MAP.md, AGENT.md, HEURISTICS.md, RULES.md)
 ├── DECISIONS/      (ADRs 0001-0011)
-├── db/             (migrations 001-094, seeds 001-009, scripts)
+├── db/             (migrations 001-114, seeds 001-009, scripts)
 ├── backend/        (FastAPI: api/v1/, models/, schemas/, services/, worker/, tests/)
-├── backend-spring/ (BFF Spring Boot: 62 módulos hexagonales, 76 controllers)
+├── backend-spring/ (BFF Spring Boot: 63 módulos hexagonales, 78 controllers)
 ├── frontend/       (Angular 21 LTS: 59 features lazy-loaded)
 ├── infrastructure/ (nginx, superset, grafana, h5p, vault)
 ├── integrations/   (asc_horarios, superset, cube)
@@ -351,12 +356,12 @@ Seeds aplicados: 001 (institución), 002 (usuarios/alumnos), 003 (académico),
 
 | Servicio | Estado | Puerto interno | Notas |
 |---|---|---|---|
-| PostgreSQL 18 | ✅ healthy | 5432 | Migraciones 001-094 aplicadas |
+| PostgreSQL 18 | ✅ healthy | 5432 | Migraciones 001-114 aplicadas |
 | PgBouncer | ✅ healthy | 6432 | transaction mode, SCRAM-SHA-256 |
 | Valkey 9.1.0 | ✅ healthy | 6379 | caché + Celery broker |
 | SeaweedFS | ✅ healthy | 9000 (S3), 8888 (Filer) | archivos, entregas, boletas |
 | Authentik 2026.5.2 | ✅ healthy | 9010 | IdP OIDC; ADES Frontend app configurada |
-| Spring BFF (ades-bff) | ✅ running | 8080 | 62 módulos, 76 controllers |
+| Spring BFF (ades-bff) | ✅ running | 8080 | 63 módulos, 78 controllers |
 | FastAPI (ades-api) | ✅ healthy | 8000 | IA + docs; 180+ ops REST |
 | Angular Frontend | ✅ healthy | 4200 | 59 features lazy-loaded |
 | nginx | ✅ running | 80/443 | TLS Let's Encrypt 2026-09-01 |

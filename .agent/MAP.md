@@ -1,5 +1,5 @@
 # 🗺️ Mapa Técnico del Proyecto ADES (MAP.md)
-# Última actualización: 2026-06-26
+# Última actualización: 2026-07-06
 
 ---
 
@@ -9,20 +9,21 @@
 /opt/ades/
 ├── .agent/                        # Contexto cognitivo del agente residente
 │   ├── AGENT.md                   # Leyes y reglas de operación
-│   ├── CONTEXT.md                 # Propósito, institución, módulos, stack (actualizado 2026-06-26)
+│   ├── CONTEXT.md                 # Propósito, institución, módulos, stack (actualizado 2026-07-06)
 │   ├── MAP.md                     # Este mapa técnico
-│   ├── STATE.md                   # Estado actual y bitácora (actualizado 2026-06-26)
+│   ├── STATE.md                   # Estado actual y bitácora (actualizado 2026-07-06)
 │   ├── HEURISTICS.md              # Heurísticas de toma de decisiones
 │   └── RULES.md                   # Reglas de formato y convenciones
 │
-├── DECISIONS/                     # ADRs 0001-0011
+├── DECISIONS/                     # ADRs 0001-0012
 │
 ├── db/
-│   ├── migrations/                # DDL versionado: 001 → 094 + date-based scripts
+│   ├── migrations/                # DDL versionado: 001 → 114 + date-based scripts
 │   │   ├── 001_initial_schema.sql # Esquema completo FASE 1–2 (57 tablas base)
 │   │   ├── ...
-│   │   ├── 093_classroom_gaps.sql # Plagio+multimedia+NEE en gradebook
-│   │   └── 094_dedup_codigos_postales.sql # Dedup SEPOMEX + constraint UNIQUE
+│   │   ├── 103_plantel_nivel_clave.sql # Claves CCT SEP/incorporación UAEMEX por nivel
+│   │   ├── ...
+│   │   └── 114_fix_auditoria_historial_admision.sql # Fix columnas auditoría obligatorias
 │   └── seeds/                     # 001-009 ejecutados (institución, ciclos, alumnos, calificaciones, portal, gradebook, ponderación, biblioteca, eval360)
 │
 ├── backend/                       # FastAPI — IA, embeddings, insights, render docs
@@ -66,31 +67,34 @@
 │
 ├── backend-spring/                # BFF principal — toda lógica de negocio nueva
 │   └── src/main/java/mx/ades/
-│       ├── modules/               # 62 módulos hexagonales
+│       ├── modules/               # 63 módulos hexagonales
 │       │   ├── admin/             # Gestión usuarios, ciclos, planteles, grupos (AdminController.java)
-│       │   ├── alumnos/           # CRUD + hexagonal completo (ApplicationService + PersistenceAdapter)
-│       │   ├── asistencias/       # Pase de lista + resúmenes
+│       │   ├── alumnos/           # CRUD + hexagonal completo (ApplicationService + PersistenceAdapter) + credencial PDF (PE-014)
+│       │   ├── asistencias/       # Pase de lista + resúmenes + modalidad clase (OA-006)
 │       │   ├── aulas/             # CRUD + disponibilidad + conflictos
 │       │   ├── bi/                # BI stats, MVs, KPIs Director Dashboard
 │       │   ├── biblioteca/        # Libros + préstamos
+│       │   ├── bienestar/         # Eventos de bienestar institucional (SB-023, mig 112)
 │       │   ├── boletas/           # Proxy FastAPI boletas NEM/UAEMEX
 │       │   ├── calificaciones/    # Libreta, cualitativa NEM
 │       │   ├── certificados/      # Proxy FastAPI Ed25519
-│       │   ├── conducta/          # Reportes + sanciones + plan mejora
-│       │   ├── evaluaciones/      # Ordinario/final/extraordinario
-│       │   ├── eval-docente/      # 360° — 4 tipos, 7 criterios
+│       │   ├── compliance/        # Normatividad LFPDPPP, retenciones, dashboard cumplimiento SEP/UAEMEX (AD-013/014)
+│       │   ├── conducta/          # Reportes + sanciones + plan mejora + riesgo conductual (SB-016) + acta PDF (SB-017)
+│       │   ├── evaluaciones/      # Ordinario/final/extraordinario + plagio Jaccard real (OA-017)
+│       │   ├── eval-docente/      # 360° — 4 tipos, 7 criterios + plan de mejora docente (DP-016)
 │       │   ├── geo/               # SEPOMEX, colonias, selector-geo
 │       │   ├── grupos/            # CRUD grupos + alumnos
 │       │   ├── horarios/          # Grid semanal, aSc XML, solver/ con constraints y planning entities
 │       │   ├── imports/           # Import CSV/Excel (6 módulos)
 │       │   ├── kardex/            # UAEMEX constancia calificaciones
-│       │   ├── learning-paths/    # Rutas adaptativas + IA
+│       │   ├── learning-paths/    # Rutas adaptativas + IA + ajuste dinámico (IA-009) + narrativa IA (IA-014)
 │       │   ├── materias/          # CRUD + hexagonal
 │       │   ├── medico/            # Expediente médico + incidentes
 │       │   ├── movilidad/         # Alta/baja temporal/permanente
 │       │   ├── personal-admin/    # No-docente, RRHH
-│       │   ├── planes-estudio/    # NEM + CBU + temarios
-│       │   ├── planteles/         # CRUD + hexagonal
+│       │   ├── planes-estudio/    # NEM + CBU + temarios + planes NEE alternativos (AC-014) + publicar/archivar (AC-015)
+│       │   ├── planeacion/        # Temario/planificación + reprogramar por suspensión (OA-012) + insights académicos
+│       │   ├── planteles/         # CRUD + hexagonal + claves CCT/UAEMEX por nivel
 │       │   ├── portal/            # Portal externo convocatorias
 │       │   ├── procesos/          # Cierre ciclo, promociones
 │       │   ├── profesores/        # CRUD + hexagonal

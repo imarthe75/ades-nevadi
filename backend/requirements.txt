@@ -17,7 +17,7 @@ pydantic-settings==2.7.0
 pydantic[email]
 
 # Autenticación OIDC/JWT
-python-jose[cryptography]==3.3.0
+python-jose[cryptography]==3.4.0
 httpx==0.28.1          # introspección JWKS de Authentik
 xmltodict>=0.13.0      # parseo XML→dict para API BBB
 
@@ -25,9 +25,9 @@ xmltodict>=0.13.0      # parseo XML→dict para API BBB
 minio==7.2.15
 
 # Utilidades
-python-multipart==0.0.20   # file uploads
+python-multipart==0.0.31   # file uploads
 openpyxl==3.1.5            # importación masiva Excel (.xlsx)
-orjson==3.10.12            # JSON rápido
+orjson==3.11.6             # JSON rápido
 structlog==24.4.0          # logging estructurado
 
 # Tareas async (Celery — worker separado)
@@ -37,16 +37,16 @@ flower==2.0.1
 # redbeat no tiene wheels ARM64/Py3.12 — usar celery beat file-based en dev
 
 # Generación de PDF — boletas (FASE 3)
-weasyprint==63.1
-jinja2==3.1.5
+weasyprint==68.0
+jinja2==3.1.6
 
 # Certificación digital Ed25519 + QR (FASE 27)
 qrcode[pil]==8.1
 web3==6.19.0
 
 # IA — Asistente pedagógico (FASE 4) — NVIDIA NIM (OpenAI API compatible)
-langchain==0.3.25
-langchain-community==0.3.24
+# langchain/langchain-community removidos 2026-07-06: nunca se importan (llm_service.py
+# usa el cliente openai directo), eran dead weight con 4+ CVEs sin mitigar (auditoría).
 openai==1.56.0
 hvac==2.3.0
 

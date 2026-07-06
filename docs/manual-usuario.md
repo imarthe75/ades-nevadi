@@ -268,7 +268,13 @@ Para editar los datos de un alumno:
 
 El sistema registra automáticamente quién realizó el cambio y a qué hora (auditoría automática).
 
-### 5.5 Estatus del Alumno
+### 5.5 Credencial de Alumno
+
+Desde el panel de perfil, el botón **"Credencial"** genera la credencial oficial del
+alumno en PDF (matrícula, nombre completo, CURP, plantel, nivel, grado, grupo y
+fotografía) usando la plantilla institucional configurada en Reportes → Plantillas.
+
+### 5.6 Estatus del Alumno
 
 | Estatus | Descripción |
 |---|---|
@@ -498,32 +504,28 @@ Lista todas las actividades evaluadas del grupo/materia/período seleccionado. C
 - Puntaje máximo
 - Total de alumnos / entregas recibidas / actividades calificadas
 
-Desde aquí puede:
-- Crear nueva actividad con el botón **"+ Nueva actividad"**
-- Ver y calificar las entregas de una actividad
-- Consultar si los alumnos entregaron o no
-
-**Pestaña 2 — Entregas:**
-Al seleccionar una actividad, esta pestaña muestra la lista de alumnos con su estatus de entrega:
-- **Sin entrega** — el alumno no ha subido ningún archivo
-- **Entregada** — archivo recibido, pendiente de calificación
-- **Calificada** — se registró la calificación obtenida
-- **Excusa** — entrega justificada (no cuenta como falta)
-
-Para calificar una entrega:
+Desde aquí puede crear nueva actividad con el botón **"+ Nueva actividad"**, y al hacer
+clic en una fila se abre un panel lateral con la lista de alumnos y su estatus de
+entrega (**Sin entrega**, **Entregada**, **Calificada**, **Excusa**) para calificar:
 1. Haga clic en el campo de calificación del alumno.
 2. Ingrese la calificación y opcionalmente un comentario.
 3. Guarde. El sistema recalcula automáticamente el promedio del período.
 
-**Pestaña 3 — Concentrado:**
-Vista consolidada de todas las calificaciones de cada alumno en todos los ítems del período. Funciona como una hoja de cálculo donde las columnas son los ítems (actividades, exámenes) y las filas son los alumnos. La última columna muestra la calificación de período calculada automáticamente. Los alumnos en riesgo de reprobar se marcan con un indicador visual rojo.
+**Pestaña 2 — Concentrado por período:**
+Vista consolidada de todas las calificaciones de cada alumno en todos los ítems del período. Funciona como una hoja de cálculo donde las columnas son los ítems (actividades, exámenes) y las filas son los alumnos. La última columna muestra la calificación de período calculada automáticamente. Los alumnos en riesgo de reprobar se marcan con un indicador visual rojo. Requiere seleccionar primero un período de evaluación.
 
-**Pestaña 4 — Insights:**
+**Pestaña 3 — Cobertura curricular:**
+Lista cada tema del temario asignado al grupo con su materia, número de actividades
+vinculadas y si tiene evidencia registrada (planeación con avance marcado como
+completado) o no.
+
+**Pestaña 4 — Insights académicos:**
 Panel de análisis curricular que muestra:
-- Porcentaje de cobertura de temas (temas impartidos vs. planificados)
-- Tabla de cobertura por materia
-- Estadísticas de tareas vinculadas a temas
-- Promedio grupal por materia y número de alumnos en riesgo
+- Porcentaje de cobertura de temas (temas impartidos vs. planificados) y un estado
+  global (OK / ALERTA / CRÍTICO según el % de cobertura)
+- Barra de avance del temario por materia
+- Porcentaje de tareas vinculadas a un tema del temario
+- Promedio grupal por materia y número de alumnos en riesgo (calificación menor a 6)
 
 ### 10.3 Cálculo Automático de Calificaciones
 
@@ -538,6 +540,13 @@ El botón **"Cerrar período"** (visible para nivel 3) consolida las calificacio
 ### 10.5 Exportación
 
 El botón **"Excel"** exporta el concentrado completo del gradebook en formato .xlsx con el encabezado institucional rojo del Instituto Nevadi. El botón **"Recalcular"** fuerza el recálculo de todas las calificaciones del período seleccionado.
+
+### 10.6 Reapertura de Entrega
+
+Si un alumno necesita volver a entregar una actividad ya calificada (por error del
+docente o solicitud justificada), el botón **"Reabrir entrega"** en el detalle de la
+entrega la regresa a estatus **Pendiente** y limpia la calificación previa, permitiendo
+una nueva captura. Se solicita el motivo de la reapertura.
 
 ---
 
@@ -647,6 +656,18 @@ Para crear una evaluación docente:
 
 El botón Excel exporta el histórico de evaluaciones de un docente en formato .xlsx para análisis externo o archivo.
 
+### 13.5 Plan de Mejora Docente
+
+**Acceso:** Nivel 3 (Coordinador Académico) en adelante.
+
+Cuando una evaluación tiene criterios calificados en 3 o menos (escala 1-5), el
+coordinador puede generar automáticamente un **plan de mejora por criterio débil**: el
+sistema propone una recomendación concreta (por reglas, no IA) para cada criterio bajo
+— por ejemplo, "Participar en capacitación de actualización disciplinar" para Dominio
+de contenidos, o "Usar la plantilla de planeación semanal" para Planeación didáctica.
+Cada recomendación puede marcarse como Pendiente, En progreso o Completada conforme el
+docente avanza.
+
 ---
 
 ## 14. Conducta
@@ -700,6 +721,31 @@ Historial cronológico de los avances del plan de mejora. Para agregar un seguim
 2. Seleccione el nivel de avance: Sin avance, Parcial, Satisfactorio, Excelente.
 3. Ingrese las observaciones del seguimiento.
 4. Guarde. El sistema actualiza automáticamente el estado general del plan.
+
+### 14.4 Análisis de Riesgo Conductual
+
+**Acceso:** Nivel 4 en adelante para consultar; nivel 3 en adelante para recalcular.
+
+El sistema calcula un **score de riesgo conductual** por alumno basado en la frecuencia y
+severidad de sus incidentes de conducta en una ventana de 90 días (LEVE=1 punto,
+GRAVE=3 puntos, MUY_GRAVE=6 puntos). El resultado se clasifica en tres niveles:
+
+| Nivel de riesgo | Umbral (score) |
+|---|---|
+| BAJO | menor a 5 |
+| MEDIO | 5 a 11 |
+| ALTO | 12 o más |
+
+Para consultar el riesgo de un alumno, acceda a su perfil o al detalle del reporte de
+conducta. Un coordinador o director puede forzar el recálculo de todo un grupo con el
+botón **"Recalcular riesgo del grupo"**.
+
+### 14.5 Acta de Evaluación de Conducta (PDF)
+
+Desde el detalle de un reporte de conducta, el botón **"Generar acta"** produce un PDF
+formal con folio, datos del alumno, tipo de falta, descripción, medida aplicada y
+compromiso de mejora — mismo estilo institucional que el acta de incidente médico.
+Requiere nivel 3 (Coordinador) o superior.
 
 ---
 
@@ -1148,6 +1194,13 @@ El sistema registra automáticamente el acuse digital de lectura cuando cada des
 
 Los comunicados importantes pueden marcarse para requerir acuse de lectura. El remitente puede ver el reporte de quién ha leído el comunicado y quién no, para dar seguimiento.
 
+### 26.4 Eventos de Bienestar Institucional
+
+Módulo simple de calendario para registrar actividades de bienestar del plantel (día
+de la amabilidad, actividades lúdicas, talleres de bienestar, días temáticos): título,
+descripción, fecha, tipo de evento y número de participantes. Visible para todo el
+personal; la creación/edición requiere nivel 4 o superior.
+
 ---
 
 ## 27. Planeación Curricular
@@ -1179,6 +1232,35 @@ El apartado de Planes de Estudio (accesible para coordinadores) permite consulta
 - NEM 2022 Primaria y Secundaria (materias y temas por grado y bimestre)
 - CBU 2024 UAEMEX Preparatoria (materias y temas por semestre y parcial)
 - Materias institucionales del Instituto Nevadi
+
+### 27.4 Publicar y Archivar Planes de Estudio
+
+**Acceso:** Nivel 2 (Director) en adelante.
+
+Cada plan de estudio tiene un estado: **Borrador**, **Publicado** o **Archivado**. Solo
+los planes en estado Publicado son visibles en las vistas operativas (calificaciones,
+gradebook, planeación). Los botones **"Publicar"** y **"Archivar"** en el Mapa
+Curricular cambian este estado — útil para preparar el plan del siguiente ciclo sin
+que afecte al ciclo vigente, o para retirar de circulación un plan reemplazado.
+
+### 27.5 Planes de Estudio Alternativos (NEE)
+
+**Acceso:** Nivel 3 (Coordinador Académico) en adelante.
+
+Desde la pestaña **"Planes NEE"** del módulo de Planes de Estudio se puede crear un
+plan reducido o alternativo de materias para un alumno específico o para un grupo
+completo con Necesidades Educativas Especiales, indicando el motivo y seleccionando
+qué materias del plan estándar aplican (con sus horas semanales). Esto es distinto de
+las Adecuaciones Curriculares de ponderación (sección 39) — aquí se ajusta **qué
+materias** cursa el alumno, no cómo se pondera cada una.
+
+### 27.6 Modalidad de Clase y Reprogramación por Suspensión
+
+Cada clase puede marcarse como **Presencial**, **Remota** o **Híbrida**. Cuando una
+clase se marca como **Suspendida** (por ejemplo, por una contingencia), el sistema
+marca automáticamente los temas planeados de ese día como **pendientes de
+reprogramar**, visibles en el módulo de Planeación para que el docente los reubique en
+la siguiente sesión disponible.
 
 ---
 
@@ -1318,7 +1400,11 @@ Gestiona los ciclos escolares registrados:
 - Si es el ciclo vigente
 
 **Pestaña Planteles:**
-Permite editar los datos de los planteles existentes (nombre, clave CT, estatus activo/inactivo). No es posible crear planteles nuevos desde la UI (requiere migración de base de datos).
+Permite editar los datos de los planteles existentes (nombre, estatus activo/inactivo)
+y sus **claves oficiales por nivel educativo**: CCT SEP (Primaria, Secundaria) y código
+de incorporación UAEMEX (Preparatoria) — cada plantel puede tener una clave distinta
+por nivel, ya que así las asigna la autoridad educativa correspondiente. No es posible
+crear planteles nuevos desde la UI (requiere migración de base de datos).
 
 **Pestaña Grupos:**
 Visualización y edición de grupos: nombre, nivel, grado, ciclo, capacidad máxima, turno y estatus activo.
@@ -1349,6 +1435,19 @@ Registro inmutable de todas las acciones realizadas en el sistema. Cada entrada 
 - Hash de integridad encadenado (MD5)
 
 El registro de auditoría es de solo lectura. Ni siquiera el Admin Global puede modificar o eliminar entradas de auditoría.
+
+La pestaña de Auditoría incluye también una sub-vista de **intentos de login
+fallidos**, consultada directamente contra el proveedor de identidad (Authentik),
+útil para detectar intentos de acceso indebido.
+
+### 31.2 Dashboard de Cumplimiento SEP/UAEMEX
+
+**Acceso:** Nivel 3 (Coordinador Académico) en adelante.
+
+Vista de solo lectura que agrega, en un solo lugar, el estado de las piezas de
+cumplimiento normativo ya generadas por el sistema: porcentaje de calificaciones
+capturadas, alertas de cumplimiento pendientes, normatividad vigente (incluyendo
+LFPDPPP) y cuántas claves de incorporación UAEMEX siguen pendientes de captura.
 
 ---
 

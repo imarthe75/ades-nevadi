@@ -23,3 +23,12 @@ Este archivo define las reglas de desarrollo y hooks de sistema inspirados en **
 5. **Documentación Obligatoria y Exhaustiva:**
    - Es obligatorio documentar exhaustivamente todo cambio de código.
    - Esto incluye añadir docstrings con tipos, descripciones de parámetros y retornos para cada nueva función/método, así como comentarios explicativos en clases y bloques de código complejos.
+
+6. **Auditoría de Seguridad y Funcionalidad:**
+   - Siempre se deben aplicar las auditorías necesarias en la base de datos y en la lógica de negocio para garantizar el cumplimiento de una seguridad estricta y de la funcionalidad solicitada de forma impecable.
+
+7. **Autoexploración y Autoescaneo de Componentes:**
+   - Cada vez que se desarrolle o modifique un componente, este debe ser autoexplorado y autoescaneado para asegurar que sea 100% seguro con respecto a los estándares definidos y cumpla al 100% con la funcionalidad esperada.
+
+8. **Análisis Exploratorios:**
+   - Realizar análisis exploratorios profundos antes y durante el diseño o la implementación de cualquier cambio o componente nuevo para identificar posibles fallas, vulnerabilidades o inconsistencias lógicas de manera proactiva.

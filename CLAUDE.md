@@ -40,7 +40,7 @@ Ver ADR-0011 para el plan de boleta NEM.
 | **FastAPI (IA + Render Docs)** | Capa de agente/embeddings/insights + generación PDF boletas |
 | Frontend Angular 22 | Standalone components + signals + PrimeNG (estilo APEX) |
 | Superset 6.1.0 | Levantado — credenciales admin correctamente wireadas en docker-compose (fix 2026-07-03) |
-| Migraciones | 3 dígitos hasta **113** + date-based. Próxima 3-díg: 114 |
+| Migraciones | 3 dígitos hasta **114** + date-based. Próxima 3-díg: 115 |
 | Regla ciclo escolar | 1 año vigente por sistema (SEP/UAEMEX). Mig 083: `sistema_educativo` + trigger `fn_ciclo_sistema_vigente` |
 | Biblioteca | Mig 084: `ades_biblioteca_libros` + `ades_biblioteca_prestamos`; módulo hexagonal `/api/v1/biblioteca`; 60 libros + 74 préstamos seeded |
 | Reporte 911 SEP | `/api/v1/reportes/911` (Spring hexagonal); matriz edad×grado×sexo×ingreso + grupos + Sección IX discapacidad. Fix HTTP 500 aplicado 2026-07-02 (columnas `cc.alumno_id`/`cc.activa`) |
@@ -58,6 +58,7 @@ Ver ADR-0011 para el plan de boleta NEM.
 | **Compresión Imágenes** | Compresión automática + límite 2MB global en todas las cargas de archivos/imágenes del frontend |
 | **Claves CCT/UAEMEX por nivel** | Mig 103: `ades_plantel_nivel_clave` — 6 CCT SEP reales verificados (Metepec/Tenancingo/Ixtapan × Primaria/Secundaria); incorporación UAEMEX Preparatoria pendiente de oficio institucional |
 | **19 CU auditoría 2026-07-03** | Mig 104-113: planes NEE, publicar/archivar plan, credencial alumno, modalidad clase, reprogramar planeación, reabrir entrega, plagio real (Jaccard), plan de mejora docente, timeline admisión, ajuste dinámico learning path, narrativa IA, exportación CSV BI, riesgo conductual, acta conducta PDF, eventos bienestar, auditoría login fallido (Authentik Events API), compliance LFPDPPP. Catálogo: 192/230 (83.5%) |
+| **Auditoría seguridad 2026-07-04/06** | BOLA/BFLA corregidos (conducta, planes-estudio, plantel-claves, plan-mejora, learning-paths), mig 114 fix auditoría, headers nginx (HSTS/X-Frame/X-Content-Type/Referrer), 2 bugs reales en Gradebook (p-tablist faltante + contrato insights roto), ADR-0012 claves CCT |
 
 ---
 
@@ -154,6 +155,10 @@ celery -A app.worker.celery_app worker --loglevel=info
 11. `.gitignore` incluye: `data/`, `.env`, `.agent/brain/`, `node_modules/`.
 12. Migraciones: numeradas con 3 dígitos en `db/migrations/` (ej: `039_xxx.sql`).
 13. Endpoints mutantes (POST/PUT/PATCH/DELETE): siempre pasan por `AuditMiddleware`.
+14. **Auditorías Obligatorias**: Siempre aplicar las auditorías necesarias en base de datos y lógica de negocio para garantizar la seguridad estricta y funcionalidad impecable.
+15. **Autoexploración y Autoescaneo de Componentes**: Cada componente desarrollado o modificado debe ser autoexplorado y autoescaneado para garantizar que sea 100% seguro y cumpla con toda la funcionalidad esperada.
+16. **Análisis Exploratorios**: Realizar análisis exploratorios profundos antes y durante cualquier diseño o implementación de cambios o nuevos componentes para detectar fallas e inconsistencias proactivamente.
+17. **Documentación Completa del Código**: Documentar plenamente todo el código desarrollado o modificado (comentarios en funciones críticas, clases, modelos, parámetros y cabeceras), asegurando su legibilidad y mantenibilidad.
 
 ### Esquema de auditoría ADES (implementado en 038_auditoria_v2.sql)
 

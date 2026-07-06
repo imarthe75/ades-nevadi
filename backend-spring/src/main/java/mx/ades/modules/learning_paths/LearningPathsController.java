@@ -10,6 +10,7 @@ import mx.ades.modules.learning_paths.query.LearningPathQueryService;
 import mx.ades.security.AdesUser;
 import mx.ades.security.AdesUserService;
 import org.springframework.http.*;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -41,6 +42,7 @@ public class LearningPathsController {
     private final LearningPathApplicationService learningPathService;
     private final LearningPathQueryService queryService;
     private final AjusteDinamicoService ajusteDinamicoService;
+    private final JdbcTemplate jdbc;
 
     private final RestClient restClient = RestClient.builder().build();
     private static final String API_BASE_URL = "http://ades-api:8000/api/v1/learning-paths";
@@ -79,6 +81,40 @@ public class LearningPathsController {
         private Double calificacion;
     }
 
+    /**
+     * BOLA (OWASP API1) — para no-admins (nivelAcceso &gt; 1, ver AdesUserService#getEffectivePlantelId),
+     * fuerza que el estudiante consultado pertenezca al plantel del usuario. Hallazgo de auditoría
+     * 2026-07-04, corregido 2026-07-06.
+     */
+    private void verificarAccesoEstudiante(AdesUser user, UUID estudianteId) {
+        if (user.getNivelAcceso() == null || user.getNivelAcceso() <= 1) return;
+        Long count = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM ades_estudiantes WHERE id = ? AND plantel_id = ?",
+                Long.class, estudianteId, user.getPlantelId());
+        if (count == null || count == 0) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "El estudiante no pertenece a su plantel");
+        }
+    }
+
+    private void verificarAccesoGrupo(AdesUser user, UUID grupoId) {
+        if (user.getNivelAcceso() == null || user.getNivelAcceso() <= 1) return;
+        Long count = jdbc.queryForObject("""
+                SELECT COUNT(*) FROM ades_grupos g
+                JOIN ades_grados gr ON gr.id = g.grado_id
+                WHERE g.id = ? AND gr.plantel_id = ?
+                """, Long.class, grupoId, user.getPlantelId());
+        if (count == null || count == 0) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "El grupo no pertenece a su plantel");
+        }
+    }
+
+    private void verificarAccesoAsignacion(AdesUser user, UUID asignacionId) {
+        if (user.getNivelAcceso() == null || user.getNivelAcceso() <= 1) return;
+        UUID estudianteId = jdbc.queryForObject(
+                "SELECT estudiante_id FROM ades_lp_asignaciones WHERE id = ?", UUID.class, asignacionId);
+        verificarAccesoEstudiante(user, estudianteId);
+    }
+
     @GetMapping("")
     public ResponseEntity<List<Map<String, Object>>> listarPaths(
             @RequestParam(value = "activos", required = false) Boolean activos,
@@ -103,7 +139,8 @@ public class LearningPathsController {
             @RequestParam(value = "estudiante_id", required = false) UUID estudianteId,
             @RequestParam(value = "estatus", required = false) String estatus,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        AdesUser user = userService.resolveUser(jwt);
+        if (estudianteId != null) verificarAccesoEstudiante(user, estudianteId);
         return ResponseEntity.ok(queryService.listarAsignaciones(estudianteId, estatus));
     }
 
@@ -111,7 +148,8 @@ public class LearningPathsController {
     public ResponseEntity<Map<String, Object>> detalleAsignacion(
             @PathVariable("asig_id") UUID asigId,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        AdesUser user = userService.resolveUser(jwt);
+        verificarAccesoAsignacion(user, asigId);
         Map<String, Object> asig = queryService.detalleAsignacion(asigId);
         if (asig == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Asignación no encontrada");
         return ResponseEntity.ok(asig);
@@ -156,6 +194,7 @@ public class LearningPathsController {
             @RequestBody AsignacionRequest body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        verificarAccesoEstudiante(user, body.getEstudianteId());
         try {
             var cmd = new AsignarPathUseCase.Command(pathId, body.getEstudianteId(), user.getId(), body.getMotivo());
             return ResponseEntity.status(HttpStatus.CREATED).body(asignarPath.asignar(cmd));
@@ -172,7 +211,8 @@ public class LearningPathsController {
             @PathVariable("recurso_id") UUID recursoId,
             @RequestBody ProgresoRequest body,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        AdesUser user = userService.resolveUser(jwt);
+        verificarAccesoAsignacion(user, asigId);
         RegistrarProgresoUseCase.Result result = registrarProgreso.ejecutar(
                 new RegistrarProgresoUseCase.Command(asigId, recursoId, body.getTiempoMin(), body.getCalificacion()));
         return ResponseEntity.ok(Map.of(
@@ -186,6 +226,7 @@ public class LearningPathsController {
             @PathVariable("grupo_id") UUID grupoId,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        verificarAccesoGrupo(user, grupoId);
         int asignadas = learningPathService.asignarAutomatico(grupoId, user.getId());
         if (asignadas == 0) {
             return ResponseEntity.ok(Map.of("asignadas", 0, "mensaje", "Sin alertas activas en el grupo"));
@@ -203,7 +244,8 @@ public class LearningPathsController {
             @PathVariable("asig_id") UUID asigId,
             @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authHeader,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        AdesUser user = userService.resolveUser(jwt);
+        verificarAccesoAsignacion(user, asigId);
         try {
             RestClient.RequestBodySpec request = restClient.post()
                     .uri(IA_AVANZADA_URL + "/learning-path-narrativa/" + asigId);
@@ -227,7 +269,8 @@ public class LearningPathsController {
     public ResponseEntity<Map<String, Object>> ajustarDinamico(
             @PathVariable("estudiante_id") UUID estudianteId,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        AdesUser user = userService.resolveUser(jwt);
+        verificarAccesoEstudiante(user, estudianteId);
         return ResponseEntity.ok(ajusteDinamicoService.ajustar(estudianteId));
     }
 }
