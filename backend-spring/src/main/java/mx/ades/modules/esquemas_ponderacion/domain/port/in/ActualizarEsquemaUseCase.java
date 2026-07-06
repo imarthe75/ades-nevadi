@@ -20,7 +20,8 @@ public interface ActualizarEsquemaUseCase {
 
     record Command(UUID esquemaId, String nombre, UUID nivelEducativoId, UUID materiaId,
                    LocalDate vigenteDesde, LocalDate vigenteHasta,
-                   List<ItemPonderacion> items, String usuario, Boolean esNee) {
+                   List<ItemPonderacion> items, String usuario, Boolean esNee,
+                   UUID profesorId, UUID plantelId) {
         public Command {
             if (esquemaId == null) throw new IllegalArgumentException("esquema_id es requerido");
             if (items == null || items.isEmpty()) throw new IllegalArgumentException("items son requeridos");
@@ -33,7 +34,7 @@ public interface ActualizarEsquemaUseCase {
         public Command(UUID esquemaId, String nombre, UUID nivelEducativoId, UUID materiaId,
                        LocalDate vigenteDesde, LocalDate vigenteHasta,
                        List<ItemPonderacion> items, String usuario) {
-            this(esquemaId, nombre, nivelEducativoId, materiaId, vigenteDesde, vigenteHasta, items, usuario, false);
+            this(esquemaId, nombre, nivelEducativoId, materiaId, vigenteDesde, vigenteHasta, items, usuario, false, null, null);
         }
     }
 

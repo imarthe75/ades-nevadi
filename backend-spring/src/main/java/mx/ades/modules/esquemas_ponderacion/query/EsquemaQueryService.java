@@ -22,11 +22,19 @@ public class EsquemaQueryService {
 
     private final EsquemaRepositoryPort repository;
 
-    public List<Map<String, Object>> listar(UUID nivelEducativoId, UUID materiaId) {
-        return repository.list(nivelEducativoId, materiaId);
+    public List<Map<String, Object>> listar(UUID nivelEducativoId, UUID materiaId, UUID profesorScopeId, UUID plantelScopeId) {
+        return repository.list(nivelEducativoId, materiaId, profesorScopeId, plantelScopeId);
     }
 
     public Map<String, Object> efectivo(UUID materiaId) {
         return repository.efectivo(materiaId);
+    }
+
+    public UUID resolverProfesorIdPorPersona(UUID personaId) {
+        return repository.resolverProfesorIdPorPersona(personaId);
+    }
+
+    public Map<String, Object> scopeDe(UUID esquemaId) {
+        return repository.scopeDe(esquemaId);
     }
 }

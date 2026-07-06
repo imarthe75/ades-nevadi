@@ -60,7 +60,7 @@ export const routes: Routes = [
       // ── FASE 10 — Gradebook Curricular ──────────────────────────────────
       { path: 'gradebook',        canActivate: [roleGuard(4)], loadComponent: () => import('./features/gradebook/gradebook.component').then(m => m.GradebookComponent) },
       { path: 'mi-progreso',      loadComponent: () => import('./features/mi-progreso/mi-progreso.component').then(m => m.MiProgresoComponent) },
-      { path: 'ponderacion-config', canActivate: [roleGuard(3)], loadComponent: () => import('./features/ponderacion-config/ponderacion-config.component').then(m => m.PonderacionConfigComponent) },
+      { path: 'ponderacion-config', canActivate: [roleGuard(4)], loadComponent: () => import('./features/ponderacion-config/ponderacion-config.component').then(m => m.PonderacionConfigComponent) },
       // ── FASE 16 — BI Dashboards Superset ────────────────────────────────
       { path: 'bi', canActivate: [roleGuard(3)], loadComponent: () => import('./features/bi/bi.component').then(m => m.BiComponent) },
       // ── OA-013 — Director Dashboard ──────────────────────────────────────

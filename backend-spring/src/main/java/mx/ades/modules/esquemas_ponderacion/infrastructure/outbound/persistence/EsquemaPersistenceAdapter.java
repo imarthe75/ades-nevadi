@@ -28,10 +28,10 @@ public class EsquemaPersistenceAdapter implements EsquemaRepositoryPort {
     private final JdbcTemplate jdbc;
 
     @Override
-    public List<Map<String, Object>> list(UUID nivelEducativoId, UUID materiaId) {
+    public List<Map<String, Object>> list(UUID nivelEducativoId, UUID materiaId, UUID profesorScopeId, UUID plantelScopeId) {
         StringBuilder sql = new StringBuilder(
             "SELECT ep.id, ep.nombre, ep.vigente_desde, ep.vigente_hasta, ep.es_nee, " +
-            "ep.activo, ep.materia_id, ne.nombre_nivel, m.nombre_materia, " +
+            "ep.activo, ep.materia_id, ep.profesor_id, ep.plantel_id, ne.nombre_nivel, m.nombre_materia, " +
             "(SELECT json_agg(json_build_object(" +
             "  'id', ip.id, 'tipo_item', ip.tipo_item, 'nombre_personalizado', ip.nombre_personalizado, " +
             "  'peso_porcentaje', ip.peso_porcentaje, 'orden_display', ip.orden_display) " +
@@ -44,6 +44,9 @@ public class EsquemaPersistenceAdapter implements EsquemaRepositoryPort {
 
         if (nivelEducativoId != null) { sql.append("AND ep.nivel_educativo_id = ? "); params.add(nivelEducativoId); }
         if (materiaId != null) { sql.append("AND (ep.materia_id = ? OR ep.materia_id IS NULL) "); params.add(materiaId); }
+        // Visibilidad: institucional (profesor/plantel NULL) + lo propio del profesor/plantel del solicitante
+        if (profesorScopeId != null) { sql.append("AND (ep.profesor_id IS NULL OR ep.profesor_id = ?) "); params.add(profesorScopeId); }
+        if (plantelScopeId != null) { sql.append("AND (ep.plantel_id IS NULL OR ep.plantel_id = ?) "); params.add(plantelScopeId); }
         sql.append("ORDER BY ne.nombre_nivel, ep.vigente_desde DESC");
         return jdbc.queryForList(sql.toString(), params.toArray());
     }
@@ -74,10 +77,11 @@ public class EsquemaPersistenceAdapter implements EsquemaRepositoryPort {
         UUID id = UUID.randomUUID();
         jdbc.update(
             "INSERT INTO ades_esquemas_ponderacion " +
-            "(id, nombre, nivel_educativo_id, materia_id, vigente_desde, vigente_hasta, creado_por, activo, usuario_creacion, usuario_modificacion, es_nee) " +
-            "VALUES (?, ?, ?, ?, ?, ?, ?, TRUE, ?, ?, ?)",
+            "(id, nombre, nivel_educativo_id, materia_id, vigente_desde, vigente_hasta, creado_por, activo, usuario_creacion, usuario_modificacion, es_nee, profesor_id, plantel_id) " +
+            "VALUES (?, ?, ?, ?, ?, ?, ?, TRUE, ?, ?, ?, ?, ?)",
             id, cmd.nombre(), cmd.nivelEducativoId(), cmd.materiaId(),
-            cmd.vigenteDesde(), cmd.vigenteHasta(), cmd.creadoPorId(), cmd.usuario(), cmd.usuario(), cmd.esNee());
+            cmd.vigenteDesde(), cmd.vigenteHasta(), cmd.creadoPorId(), cmd.usuario(), cmd.usuario(), cmd.esNee(),
+            cmd.profesorId(), cmd.plantelId());
         return id;
     }
 
@@ -98,10 +102,12 @@ public class EsquemaPersistenceAdapter implements EsquemaRepositoryPort {
         return jdbc.update(
             "UPDATE ades_esquemas_ponderacion " +
             "SET nombre = ?, nivel_educativo_id = ?, materia_id = ?, vigente_desde = ?, vigente_hasta = ?, es_nee = ?, " +
+            "profesor_id = ?, plantel_id = ?, " +
             "usuario_modificacion = ?, row_version = row_version + 1, fecha_modificacion = CURRENT_TIMESTAMP " +
             "WHERE id = ? AND is_active = TRUE",
             cmd.nombre(), cmd.nivelEducativoId(), cmd.materiaId(),
-            cmd.vigenteDesde(), cmd.vigenteHasta(), cmd.esNee(), cmd.usuario(), cmd.esquemaId());
+            cmd.vigenteDesde(), cmd.vigenteHasta(), cmd.esNee(), cmd.profesorId(), cmd.plantelId(),
+            cmd.usuario(), cmd.esquemaId());
     }
 
     @Override
@@ -128,5 +134,21 @@ public class EsquemaPersistenceAdapter implements EsquemaRepositoryPort {
             "SET activo = FALSE, is_active = FALSE, usuario_modificacion = ?, fecha_modificacion = CURRENT_TIMESTAMP " +
             "WHERE id = ?",
             usuario, esquemaId);
+    }
+
+    @Override
+    public UUID resolverProfesorIdPorPersona(UUID personaId) {
+        List<UUID> ids = jdbc.query(
+                "SELECT id FROM ades_profesores WHERE persona_id = ? AND is_active = TRUE",
+                (rs, i) -> (UUID) rs.getObject("id"), personaId);
+        return ids.isEmpty() ? null : ids.get(0);
+    }
+
+    @Override
+    public Map<String, Object> scopeDe(UUID esquemaId) {
+        List<Map<String, Object>> rows = jdbc.queryForList(
+                "SELECT profesor_id, plantel_id FROM ades_esquemas_ponderacion WHERE id = ? AND is_active = TRUE",
+                esquemaId);
+        return rows.isEmpty() ? null : rows.get(0);
     }
 }

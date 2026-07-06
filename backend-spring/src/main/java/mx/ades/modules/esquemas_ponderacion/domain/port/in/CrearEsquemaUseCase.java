@@ -20,7 +20,8 @@ public interface CrearEsquemaUseCase {
 
     record Command(String nombre, UUID nivelEducativoId, UUID materiaId,
                    LocalDate vigenteDesde, LocalDate vigenteHasta,
-                   List<ItemPonderacion> items, UUID creadoPorId, String usuario, Boolean esNee) {
+                   List<ItemPonderacion> items, UUID creadoPorId, String usuario, Boolean esNee,
+                   UUID profesorId, UUID plantelId) {
         public Command {
             if (nombre == null || nombre.isBlank()) throw new IllegalArgumentException("nombre es requerido");
             if (items == null || items.isEmpty()) throw new IllegalArgumentException("items son requeridos");
@@ -33,7 +34,7 @@ public interface CrearEsquemaUseCase {
         public Command(String nombre, UUID nivelEducativoId, UUID materiaId,
                        LocalDate vigenteDesde, LocalDate vigenteHasta,
                        List<ItemPonderacion> items, UUID creadoPorId, String usuario) {
-            this(nombre, nivelEducativoId, materiaId, vigenteDesde, vigenteHasta, items, creadoPorId, usuario, false);
+            this(nombre, nivelEducativoId, materiaId, vigenteDesde, vigenteHasta, items, creadoPorId, usuario, false, null, null);
         }
     }
 

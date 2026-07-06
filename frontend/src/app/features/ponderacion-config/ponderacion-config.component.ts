@@ -21,7 +21,9 @@ interface ItemRow    { tipo_item: string; nombre_personalizado: string | null; p
  * Configuración de ponderación de evaluaciones para el gradebook.
  * Permite definir el peso porcentual de cada tipo de ítem evaluativo
  * (tareas, exámenes, proyectos, participación) por materia y período.
- * Requiere nivelAcceso 4 (AdminPlantel) o superior.
+ * Accesible desde nivelAcceso 0 (Admin Global) hasta 4 (Docente); el docente
+ * solo puede crear/editar su propio esquema, el resto de roles gestiona el
+ * esquema institucional o el de su plantel (ver EsquemasPonderacionController).
  */
 @Component({
   selector: 'app-ponderacion-config',

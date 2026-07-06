@@ -16,7 +16,7 @@ import java.util.UUID;
  * @since 2026
  */
 public interface EsquemaRepositoryPort {
-    List<Map<String, Object>> list(UUID nivelEducativoId, UUID materiaId);
+    List<Map<String, Object>> list(UUID nivelEducativoId, UUID materiaId, UUID profesorScopeId, UUID plantelScopeId);
     Map<String, Object> efectivo(UUID materiaId);
     UUID insertEsquema(CrearEsquemaUseCase.Command cmd);
     void insertItems(UUID esquemaId, CrearEsquemaUseCase.Command cmd);
@@ -24,4 +24,6 @@ public interface EsquemaRepositoryPort {
     void softDeleteItems(UUID esquemaId);
     void insertItems(UUID esquemaId, ActualizarEsquemaUseCase.Command cmd);
     int desactivar(UUID esquemaId, String usuario);
+    UUID resolverProfesorIdPorPersona(UUID personaId);
+    Map<String, Object> scopeDe(UUID esquemaId);
 }
