@@ -757,7 +757,7 @@ interface Catalogo {
               </div>
               <div class="field">
                 <label>Nivel Educativo</label>
-                <p-select [options]="niveles()" optionLabel="label" optionValue="value" 
+                <p-select [options]="niveles()" optionLabel="nombre_nivel" optionValue="id"
                   [(ngModel)]="franjaForm.nivel_educativo_id" appendTo="body" styleClass="w-full"
                   [showClear]="true" placeholder="Todos los niveles"></p-select>
               </div>
@@ -1261,7 +1261,7 @@ interface Catalogo {
             </div>
             <div style="display:flex; flex-direction:column; gap:.35rem">
               <label class="dlg-lbl">Grado *</label>
-              <p-select [options]="grados()" [(ngModel)]="grupoAdminEdit()!.grado_id"
+              <p-select [options]="gradosFiltrados()" [(ngModel)]="grupoAdminEdit()!.grado_id"
                 optionLabel="label" optionValue="id" placeholder="Seleccionar grado"
                 [filter]="true" filterPlaceholder="Buscar..." />
             </div>
@@ -1381,7 +1381,17 @@ export class AdminComponent implements OnInit {
   dlgGrupoAdminVisible = signal(false);
   grupoAdminEdit       = signal<GrupoAdmin | null>(null);
   guardandoGrupo       = signal(false);
-  grados               = signal<{ id: string; label: string }[]>([]);
+  grados               = signal<{ id: string; label: string; nivel_id?: string }[]>([]);
+
+  gradosFiltrados = computed(() => {
+    const grupoForm = this.grupoAdminEdit();
+    if (!grupoForm?.ciclo_escolar_id) return this.grados();
+    const cicloSeleccionado = this.ciclos().find(c => c.id === grupoForm.ciclo_escolar_id);
+    if (!cicloSeleccionado?.nivel_educativo_id) return this.grados();
+    return this.grados().filter(g =>
+      !g.nivel_id || g.nivel_id === cicloSeleccionado.nivel_educativo_id
+    );
+  });
 
   loadingUsuarios  = signal(false);
   loadingCiclos    = signal(false);
@@ -1394,7 +1404,11 @@ export class AdminComponent implements OnInit {
   guardandoFranja = signal(false);
   editFranjaEntry = signal<any>(null);
   franjaForm: any = {};
-  nivelesMap = signal<Record<string, string>>({});
+  nivelesMap = computed(() => {
+    const m: Record<string, string> = {};
+    this.niveles().forEach(n => m[n.id] = n.nombre_nivel);
+    return m;
+  });
   String = String;
 
   // ── SEPOMEX sync ─────────────────────────────────────────────────────────────
@@ -1792,8 +1806,12 @@ export class AdminComponent implements OnInit {
   }
 
   cargarGrados(): void {
-    this.api.get<any[]>('/catalogs/grados').subscribe({
-      next: gs => this.grados.set(gs.map(g => ({ id: g.id, label: `${g.nombre_nivel ?? ''} ${g.nombre_grado ?? g.numero_grado ?? ''}`.trim() }))),
+    this.api.get<any[]>('/catalogs/grados?todos_planteles=true').subscribe({
+      next: gs => this.grados.set(gs.map(g => ({
+        id: g.id,
+        label: `${g.nombre_nivel ?? ''} ${g.nombre_grado ?? g.numero_grado ?? ''}`.trim(),
+        nivel_id: g.nivel_educativo_id
+      }))),
       error: () => {},
     });
   }
@@ -2515,12 +2533,8 @@ export class AdminComponent implements OnInit {
 
   cargarFranjas(): void {
     this.loadingFranjas.set(true);
-    if (Object.keys(this.nivelesMap()).length === 0) {
-      this.api.get<any[]>('/niveles-educativos').subscribe(n => {
-        const m: any = {};
-        n.forEach(x => m[x.value] = x.label);
-        this.nivelesMap.set(m);
-      });
+    if (this.niveles().length === 0) {
+      this.cargarNiveles();
     }
 
     this.api.get<any[]>('/horario-franjas').subscribe({

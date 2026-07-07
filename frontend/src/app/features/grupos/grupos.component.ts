@@ -159,37 +159,16 @@ export class GruposComponent implements OnInit {
   }
 
   loadGrados(plantelId?: string): void {
-    this.grados.set([]);
-    if (!plantelId) {
-      this.api.get<any[]>('/catalogs/grados').subscribe({
-        next: gs => this.grados.set(gs.map(g => ({ id: g.id, label: g.nombre_grado }))),
-        error: () => {}
-      });
-      return;
-    }
+    const endpoint = plantelId
+      ? `/catalogs/grados?plantel_id=${plantelId}`
+      : '/catalogs/grados?todos_planteles=true';
 
-    this.api.get<any[]>(`/planteles/${plantelId}/niveles`).subscribe({
-      next: ns => {
-        ns.forEach(n => {
-          this.api.get<any[]>(`/catalogs/niveles/${n.id}/grados`).subscribe({
-            next: gs => {
-              const current = this.grados();
-              const mapped = gs.map(g => ({ id: g.id, label: `${n.nombre_nivel} - ${g.nombre_grado}` }));
-              this.grados.set([...current, ...mapped]);
-            },
-            error: () => {
-              this.api.get<any[]>('/catalogs/grados').subscribe(gs => {
-                this.grados.set(gs.map(g => ({ id: g.id, label: g.nombre_grado })));
-              });
-            }
-          });
-        });
-      },
-      error: () => {
-        this.api.get<any[]>('/catalogs/grados').subscribe(gs => {
-          this.grados.set(gs.map(g => ({ id: g.id, label: g.nombre_grado })));
-        });
-      }
+    this.api.get<any[]>(endpoint).subscribe({
+      next: gs => this.grados.set(gs.map(g => ({
+        id: g.id,
+        label: `${g.nombre_nivel ?? ''} ${g.nombre_grado ?? ''}`.trim()
+      }))),
+      error: () => this.grados.set([])
     });
   }
 
