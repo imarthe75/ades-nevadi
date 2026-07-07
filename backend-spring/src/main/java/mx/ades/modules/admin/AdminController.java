@@ -14,6 +14,8 @@ import mx.ades.security.AdesUser;
 import mx.ades.security.AdesUserService;
 import mx.ades.modules.catalogos.CicloEscolar;
 import mx.ades.modules.catalogos.CicloEscolarRepository;
+import mx.ades.modules.catalogos.Grado;
+import mx.ades.modules.catalogos.GradoRepository;
 import mx.ades.modules.catalogos.NivelEducativo;
 import mx.ades.modules.catalogos.NivelEducativoRepository;
 import mx.ades.modules.planteles.Plantel;
@@ -46,6 +48,7 @@ import java.util.*;
 public class AdminController {
 
     private final CicloEscolarRepository cicloRepository;
+    private final GradoRepository gradoRepository;
     private final NivelEducativoRepository nivelRepository;
     private final PlantelRepository plantelRepository;
     private final GrupoRepository grupoRepository;
@@ -394,12 +397,31 @@ public class AdminController {
         return ResponseEntity.ok(queryService.listarGrupos(plantelId, user.getNivelEducativoId(), cicloId));
     }
 
+    private void validarGradoYCicloPertenecenAlMismoNivel(UUID gradoId, UUID cicloId) {
+        if (gradoId == null || cicloId == null) return;
+
+        Grado grado = gradoRepository.findById(gradoId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Grado no encontrado"));
+        CicloEscolar ciclo = cicloRepository.findById(cicloId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ciclo escolar no encontrado"));
+
+        UUID gradoNivelId = grado.getNivelEducativo() != null ? grado.getNivelEducativo().getId() : null;
+        UUID cicloNivelId = ciclo.getNivelEducativo() != null ? ciclo.getNivelEducativo().getId() : null;
+
+        if (!Objects.equals(gradoNivelId, cicloNivelId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "El grado pertenece al nivel '" + (grado.getNivelEducativo() != null ? grado.getNivelEducativo().getNombreNivel() : "desconocido") +
+                    "' pero el ciclo pertenece al nivel '" + (ciclo.getNivelEducativo() != null ? ciclo.getNivelEducativo().getNombreNivel() : "desconocido") + "'");
+        }
+    }
+
     @PostMapping("/grupos")
     public ResponseEntity<Grupo> crearGrupo(
             @RequestBody Grupo grupo,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         permisoAdmin(user);
+        validarGradoYCicloPertenecenAlMismoNivel(grupo.getGradoId(), grupo.getCicloEscolarId());
         return ResponseEntity.status(HttpStatus.CREATED).body(grupoRepository.save(grupo));
     }
 
@@ -422,6 +444,7 @@ public class AdminController {
         if (body.getGradoId() != null) grupo.setGradoId(body.getGradoId());
         if (body.getCicloEscolarId() != null) grupo.setCicloEscolarId(body.getCicloEscolarId());
 
+        validarGradoYCicloPertenecenAlMismoNivel(grupo.getGradoId(), grupo.getCicloEscolarId());
         return ResponseEntity.ok(grupoRepository.save(grupo));
     }
 
