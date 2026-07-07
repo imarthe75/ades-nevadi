@@ -468,7 +468,8 @@ interface Catalogo {
               [filter]="true" filterPlaceholder="Buscar..."
               (onChange)="cargarGrupos()" styleClass="ctx-selector" />
             <p-button label="Nuevo grupo" icon="pi pi-plus"
-              severity="primary" (onClick)="abrirNuevoGrupo()" />
+              severity="primary" (onClick)="abrirNuevoGrupo()"
+              data-testid="btn-nuevo-grupo" />
           </div>
           <app-interactive-grid
             [data]="grupos()"
@@ -1235,47 +1236,56 @@ interface Catalogo {
     <!-- Dialog Grupo (admin) -->
     <p-dialog [visible]="dlgGrupoAdminVisible()" (visibleChange)="dlgGrupoAdminVisible.set($event)"
       [header]="grupoAdminEdit()?.id ? 'Editar Grupo' : 'Nuevo Grupo'"
-      [modal]="true" [draggable]="false" [style]="{width:'460px'}">
+      [modal]="true" [draggable]="false" [style]="{width:'460px'}"
+      data-testid="dialog-grupo-admin">
       @if (grupoAdminEdit()) {
-        <div style="display:flex; flex-direction:column; gap:.75rem; padding:.25rem 0">
+        <div style="display:flex; flex-direction:column; gap:.75rem; padding:.25rem 0" data-testid="grupo-form">
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:.75rem">
             <div style="display:flex; flex-direction:column; gap:.35rem">
               <label class="dlg-lbl">Nombre del grupo *</label>
-              <input pInputText [(ngModel)]="grupoAdminEdit()!.nombre_grupo" maxlength="10" placeholder="A" />
+              <input pInputText [(ngModel)]="grupoAdminEdit()!.nombre_grupo" maxlength="10" placeholder="A"
+                data-testid="input-nombre-grupo" />
             </div>
             <div style="display:flex; flex-direction:column; gap:.35rem">
               <label class="dlg-lbl">Capacidad *</label>
-              <input pInputText type="number" [(ngModel)]="grupoAdminEdit()!.capacidad_maxima" min="1" max="60" />
+              <input pInputText type="number" [(ngModel)]="grupoAdminEdit()!.capacidad_maxima" min="1" max="60"
+                data-testid="input-capacidad" />
             </div>
           </div>
           <div style="display:flex; flex-direction:column; gap:.35rem">
             <label class="dlg-lbl">Turno *</label>
-            <p-select [options]="['MATUTINO','VESPERTINO','NOCTURNO']" [(ngModel)]="grupoAdminEdit()!.turno" />
+            <p-select [options]="['MATUTINO','VESPERTINO','NOCTURNO']" [(ngModel)]="grupoAdminEdit()!.turno"
+              data-testid="select-turno" />
           </div>
           @if (!grupoAdminEdit()!.id) {
             <div style="display:flex; flex-direction:column; gap:.35rem">
               <label class="dlg-lbl">Ciclo Escolar *</label>
               <p-select [options]="ciclos()" [(ngModel)]="grupoAdminEdit()!.ciclo_escolar_id"
                 optionLabel="nombre_ciclo" optionValue="id" placeholder="Seleccionar ciclo"
-                [filter]="true" filterPlaceholder="Buscar..." />
+                [filter]="true" filterPlaceholder="Buscar..."
+                data-testid="select-ciclo" />
             </div>
             <div style="display:flex; flex-direction:column; gap:.35rem">
               <label class="dlg-lbl">Grado *</label>
               <p-select [options]="gradosFiltrados()" [(ngModel)]="grupoAdminEdit()!.grado_id"
                 optionLabel="label" optionValue="id" placeholder="Seleccionar grado"
-                [filter]="true" filterPlaceholder="Buscar..." />
+                [filter]="true" filterPlaceholder="Buscar..."
+                data-testid="select-grado" />
             </div>
           }
           @if (grupoAdminEdit()!.id) {
             <div style="display:flex; gap:.5rem; align-items:center">
-              <input type="checkbox" [(ngModel)]="grupoAdminEdit()!.is_active" id="grp-active" />
+              <input type="checkbox" [(ngModel)]="grupoAdminEdit()!.is_active" id="grp-active"
+                data-testid="checkbox-activo" />
               <label for="grp-active" style="font-size:.85rem">Grupo Activo</label>
             </div>
           }
         </div>
         <ng-template pTemplate="footer">
-          <p-button label="Cancelar" severity="secondary" [text]="true" (onClick)="dlgGrupoAdminVisible.set(false)" />
-          <p-button label="Guardar" icon="pi pi-save" [loading]="guardandoGrupo()" (onClick)="guardarGrupoAdmin()" />
+          <p-button label="Cancelar" severity="secondary" [text]="true" (onClick)="dlgGrupoAdminVisible.set(false)"
+            data-testid="btn-cancelar" />
+          <p-button label="Guardar" icon="pi pi-save" [loading]="guardandoGrupo()" (onClick)="guardarGrupoAdmin()"
+            data-testid="btn-guardar" />
         </ng-template>
       }
     </p-dialog>

@@ -6,32 +6,19 @@
 
 # Test info
 
-- Name: 19-cascadas-grupos.spec.ts >> B. Cascadas Grupos — Ciclo→Grado filtración por Nivel >> GRP-CASCADE-01 | Navegación a Administración > Grupos @smoke
-- Location: e2e/tests/19-cascadas-grupos.spec.ts:18:7
+- Name: 19-cascadas-grupos.spec.ts >> B. Cascadas Grupos - Ciclo a Grado filtracion por Nivel >> GRP-CASCADE-05 | Llenar formulario y validar cascada backend @api
+- Location: e2e/tests/19-cascadas-grupos.spec.ts:241:7
 
 # Error details
 
 ```
-Error: expect(locator).toBeVisible() failed
+Test timeout of 30000ms exceeded.
+```
 
-Locator: locator('p-table, table, [role="grid"]')
-Expected: visible
-Error: strict mode violation: locator('p-table, table, [role="grid"]') resolved to 15 elements:
-    1) <p-table pc201="" data-p="" data-pc-section="root" data-pc-name="datatable" _ngcontent-ng-c1314517959="" styleclass="p-datatable-sm p-datatable-striped p-datatable-gridlines apex-grid" class="apex-grid p-component p-datatable p-datatable-gridlines p-datatable-sm p-datatable-striped">…</p-table> aka getByLabel('Usuarios').locator('p-table')
-    2) <table role="table" id="pn_id_2-table" data-pc-section="table" class="p-datatable-table">…</table> aka getByText('UsuarioNombreEmailRolAlcanceEstadoAccionesadmin@institutonevadi.edu.')
-    3) <p-table pc211="" data-p="" data-pc-section="root" data-pc-name="datatable" _ngcontent-ng-c1314517959="" styleclass="p-datatable-sm p-datatable-striped p-datatable-gridlines apex-grid" class="apex-grid p-component p-datatable p-datatable-gridlines p-datatable-sm p-datatable-striped">…</p-table> aka getByLabel('Roles', { exact: true }).locator('p-table')
-    4) <table role="table" id="pn_id_3-table" data-pc-section="table" class="p-datatable-table">…</table> aka getByText('RolNivelDescripciónAccionesADMIN_GLOBAL0Administrador de toda la institució')
-    5) <p-table pc221="" data-p="empty" data-pc-section="root" data-pc-name="datatable" _ngcontent-ng-c1314517959="" styleclass="p-datatable-sm p-datatable-striped p-datatable-gridlines apex-grid" class="apex-grid p-component p-datatable p-datatable-gridlines p-datatable-sm p-datatable-striped">…</p-table> aka getByText('ClaveSecciónEtiquetaMáxMínActivoAcciones Sin registros 20')
-    6) <table role="table" id="pn_id_4-table" data-pc-section="table" class="p-datatable-table">…</table> aka getByText('ClaveSecciónEtiquetaMáxMínActivoAcciones Sin registros')
-    7) <table class="pm-table" _ngcontent-ng-c2668606958="">…</table> aka getByText('MóduloRolVerEditarCrearEliminar Selecciona un rol para ver sus permisos')
-    8) <p-table pc254="" data-p="" data-pc-section="root" data-pc-name="datatable" _ngcontent-ng-c1314517959="" styleclass="p-datatable-sm p-datatable-striped p-datatable-gridlines apex-grid" class="apex-grid p-component p-datatable p-datatable-gridlines p-datatable-sm p-datatable-striped">…</p-table> aka getByLabel('Ciclos Escolares').locator('p-table')
-    9) <table role="table" id="pn_id_5-table" data-pc-section="table" class="p-datatable-table">…</table> aka getByText('CicloNivelInicioFinTipoVigenteAcciones27APREPARATORIA2027-02-012027-07-')
-    10) <p-table pc264="" data-p="" data-pc-section="root" data-pc-name="datatable" _ngcontent-ng-c1314517959="" styleclass="p-datatable-sm p-datatable-striped p-datatable-gridlines apex-grid" class="apex-grid p-component p-datatable p-datatable-gridlines p-datatable-sm p-datatable-striped">…</p-table> aka getByLabel('Planteles').locator('p-table')
-    ...
-
+```
+Error: locator.click: Test timeout of 30000ms exceeded.
 Call log:
-  - Expect "toBeVisible" with timeout 8000ms
-  - waiting for locator('p-table, table, [role="grid"]')
+  - waiting for locator('[data-testid="btn-nuevo-grupo"]')
 
 ```
 
@@ -735,149 +722,206 @@ Call log:
 # Test source
 
 ```ts
-  1   | /**
-  2   |  * Suite 19 — Cascadas de Grupos: Validación de jerarquía Ciclo→Grado por Nivel
-  3   |  *
-  4   |  * Verifica que al crear/editar un grupo, el dropdown de Grado se filtre correctamente
-  5   |  * por el nivel del Ciclo seleccionado. Esto previene estados inconsistentes donde
-  6   |  * un grupo asignado a un ciclo de Primaria termine con un grado de Secundaria.
-  7   |  */
-  8   | import { test, expect, Page } from '@playwright/test';
-  9   | import { LoginPage } from '../page-objects/login-page';
-  10  | import { USERS } from '../fixtures/users';
-  11  | import {
-  12  |   attachConsoleMonitor,
-  13  |   attachApiMonitor,
-  14  | } from '../helpers/console-monitor';
-  15  | 
-  16  | test.describe('B. Cascadas Grupos — Ciclo→Grado filtración por Nivel', () => {
-  17  | 
-  18  |   test('GRP-CASCADE-01 | Navegación a Administración > Grupos @smoke', async ({ page }) => {
-  19  |     const apiResponses = attachApiMonitor(page);
-  20  |     const getErrors = attachConsoleMonitor(page);
-  21  | 
-  22  |     await new LoginPage(page).login(USERS.ADMIN_GLOBAL);
-  23  |     await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
-  24  |     await page.waitForTimeout(1_500);
-  25  | 
-  26  |     // Navega a Administración
-  27  |     await page.click('text=Administración');
-  28  |     await page.waitForTimeout(1_000);
-  29  | 
-  30  |     // Verifica que está en Administración
-  31  |     await expect(page.locator('h2:has-text("Administración")')).toBeVisible({ timeout: 8000 });
-  32  | 
-  33  |     // Haz click en tab Grupos
-  34  |     const gruposTab = page.locator('[role="tab"]:has-text("Grupos")').first();
-  35  |     if (await gruposTab.isVisible()) {
-  36  |       await gruposTab.click();
-  37  |     } else {
-  38  |       // Fallback: buscar por link
-  39  |       await page.click('text=Grupos');
-  40  |     }
-  41  |     await page.waitForTimeout(1_200);
-  42  | 
-  43  |     // Verifica que se cargó tabla de grupos
-> 44  |     await expect(page.locator('p-table, table, [role="grid"]')).toBeVisible({ timeout: 8000 });
-      |                                                                 ^ Error: expect(locator).toBeVisible() failed
-  45  |     console.log('[INFO] GRP-CASCADE-01: Navegación exitosa a Admin > Grupos');
-  46  |   });
-  47  | 
-  48  |   test('GRP-CASCADE-02 | Dialog "Nuevo Grupo" abre correctamente @smoke', async ({ page }) => {
-  49  |     const apiResponses = attachApiMonitor(page);
-  50  |     const getErrors = attachConsoleMonitor(page);
-  51  | 
-  52  |     await new LoginPage(page).login(USERS.ADMIN_GLOBAL);
-  53  |     await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
-  54  |     await page.waitForTimeout(1_500);
-  55  | 
-  56  |     // Navega a Administración > Grupos
-  57  |     await page.click('text=Administración');
-  58  |     await page.waitForTimeout(1_000);
-  59  | 
-  60  |     const gruposTab = page.locator('[role="tab"]:has-text("Grupos")').first();
-  61  |     if (await gruposTab.isVisible()) {
-  62  |       await gruposTab.click();
-  63  |     } else {
-  64  |       await page.click('text=Grupos');
-  65  |     }
-  66  |     await page.waitForTimeout(1_200);
-  67  | 
-  68  |     // Busca y clickea botón "Nuevo grupo"
-  69  |     const nuevoBtn = page.locator('button, p-button').filter({ hasText: /Nuevo grupo/i }).first();
-  70  |     await expect(nuevoBtn).toBeVisible({ timeout: 5000 });
-  71  |     await nuevoBtn.click();
-  72  |     await page.waitForTimeout(1_200);
-  73  | 
-  74  |     // Espera a que el diálogo sea visible
-  75  |     const dialog = page.locator('p-dialog').first();
-  76  |     await expect(dialog).toBeVisible({ timeout: 8000 });
-  77  | 
-  78  |     // Verifica que hay inputs de formulario
-  79  |     const inputs = page.locator('input[type="text"], input[pInputText]');
-  80  |     await expect(inputs.first()).toBeVisible({ timeout: 5000 });
-  81  | 
-  82  |     console.log('[INFO] GRP-CASCADE-02: Dialog abierto correctamente');
-  83  |   });
-  84  | 
-  85  |   test('GRP-CASCADE-03 | Selectores de cascada están presentes @smoke', async ({ page }) => {
-  86  |     const apiResponses = attachApiMonitor(page);
-  87  |     const getErrors = attachConsoleMonitor(page);
-  88  | 
-  89  |     await new LoginPage(page).login(USERS.ADMIN_GLOBAL);
-  90  |     await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
-  91  |     await page.waitForTimeout(1_500);
-  92  | 
-  93  |     // Navega a Administración > Grupos
-  94  |     await page.click('text=Administración');
-  95  |     await page.waitForTimeout(1_000);
-  96  | 
-  97  |     const gruposTab = page.locator('[role="tab"]:has-text("Grupos")').first();
-  98  |     if (await gruposTab.isVisible()) {
-  99  |       await gruposTab.click();
-  100 |     } else {
-  101 |       await page.click('text=Grupos');
-  102 |     }
-  103 |     await page.waitForTimeout(1_200);
-  104 | 
-  105 |     // Abre nuevo grupo
-  106 |     const nuevoBtn = page.locator('button, p-button').filter({ hasText: /Nuevo grupo/i }).first();
-  107 |     await nuevoBtn.click();
-  108 |     await page.waitForTimeout(1_200);
-  109 | 
-  110 |     // Espera dialog
-  111 |     await page.waitForSelector('p-dialog', { timeout: 10000 });
-  112 | 
-  113 |     // Busca p-select (selectores)
-  114 |     const selects = page.locator('p-dialog p-select, p-dialog select');
-  115 |     const selectCount = await selects.count();
-  116 | 
-  117 |     if (selectCount > 0) {
-  118 |       console.log(`[INFO] GRP-CASCADE-03: Found ${selectCount} select dropdowns`);
-  119 |       expect(selectCount).toBeGreaterThan(0);
-  120 |     } else {
-  121 |       console.warn('[FINDING][P2] GRP-CASCADE-03: No p-select encontrados en dialog');
-  122 |     }
-  123 |   });
-  124 | 
-  125 |   test('GRP-CASCADE-04 | Backend validación cascada (código presente) @api', async ({ page }) => {
-  126 |     // Este test verifica que la validación backend está deployada
-  127 |     // Sin acceso a Maven, verificamos que el código está en el repo
-  128 | 
-  129 |     const apiResponses = attachApiMonitor(page);
-  130 | 
-  131 |     await new LoginPage(page).login(USERS.ADMIN_GLOBAL);
-  132 |     await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
-  133 |     await page.waitForTimeout(1_500);
-  134 | 
-  135 |     // Intenta interceptar un POST a /admin/grupos
-  136 |     let postResponse = null;
-  137 |     page.on('response', async (response) => {
-  138 |       if (response.url().includes('/api/v1/admin/grupos') && response.request().method() === 'POST') {
-  139 |         postResponse = response;
-  140 |       }
-  141 |     });
-  142 | 
-  143 |     // Navega a admin/grupos y abre dialog
-  144 |     await page.click('text=Administración');
+  161 |     }
+  162 | 
+  163 |     expect(!hasSecundaria, 'No debe contener grados de Secundaria').toBeTruthy();
+  164 |     expect(!hasPreparatoria, 'No debe contener grados de Preparatoria').toBeTruthy();
+  165 | 
+  166 |     console.log(`[INFO] GRP-CASCADE-03: Grados filtrados correctamente. Encontrado: ${gradoLabels.join(', ')}`);
+  167 |   });
+  168 | 
+  169 |   test('GRP-CASCADE-04 | Cambiar Ciclo a Secundaria resetea grados @smoke', async ({ page }) => {
+  170 |     const apiResponses = attachApiMonitor(page);
+  171 |     const getErrors = attachConsoleMonitor(page);
+  172 | 
+  173 |     await new LoginPage(page).login(USERS.ADMIN_GLOBAL);
+  174 |     await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
+  175 |     await page.waitForTimeout(1_500);
+  176 | 
+  177 |     // Navega a Administración > Grupos
+  178 |     await page.click('text=Administración');
+  179 |     await page.waitForTimeout(1_000);
+  180 | 
+  181 |     const gruposTab = page.locator('[role="tab"]:has-text("Grupos")').first();
+  182 |     if (await gruposTab.isVisible()) {
+  183 |       await gruposTab.click();
+  184 |     }
+  185 |     await page.waitForTimeout(1_200);
+  186 | 
+  187 |     // Abre nuevo grupo
+  188 |     const nuevoBtn = page.locator('[data-testid="btn-nuevo-grupo"]');
+  189 |     await nuevoBtn.click();
+  190 |     await page.waitForTimeout(1_200);
+  191 | 
+  192 |     const cicloSelect = page.locator('[data-testid="select-ciclo"]');
+  193 |     const gradoSelect = page.locator('[data-testid="select-grado"]');
+  194 | 
+  195 |     // 1. Selecciona Ciclo Primaria
+  196 |     await cicloSelect.click();
+  197 |     await page.waitForTimeout(600);
+  198 |     let option = page.locator('.p-select-option, [role="option"]').filter({ hasText: /Primaria/ }).first();
+  199 |     await option.click();
+  200 |     await page.waitForTimeout(800);
+  201 | 
+  202 |     // 2. Selecciona grado de Primaria
+  203 |     await gradoSelect.click();
+  204 |     await page.waitForTimeout(600);
+  205 |     option = page.locator('.p-select-option, [role="option"]').filter({ hasText: /Primaria/ }).first();
+  206 |     if (await option.isVisible()) {
+  207 |       await option.click();
+  208 |       await page.waitForTimeout(600);
+  209 |     }
+  210 | 
+  211 |     // 3. Cambia a Ciclo Secundaria
+  212 |     await cicloSelect.click();
+  213 |     await page.waitForTimeout(600);
+  214 |     option = page.locator('.p-select-option, [role="option"]').filter({ hasText: /Secundaria/ }).first();
+  215 |     await option.click();
+  216 |     await page.waitForTimeout(800);
+  217 | 
+  218 |     // 4. Abre grado y verifica que ahora muestra Secundaria, no Primaria
+  219 |     await gradoSelect.click();
+  220 |     await page.waitForTimeout(600);
+  221 |     const gradoOptions = page.locator('.p-select-option, [role="option"]');
+  222 |     const count = await gradoOptions.count();
+  223 |     const gradoLabels: string[] = [];
+  224 |     for (let i = 0; i < count; i++) {
+  225 |       const text = ((await gradoOptions.nth(i).textContent()) ?? '').trim();
+  226 |       if (text) gradoLabels.push(text);
+  227 |     }
+  228 | 
+  229 |     const hasPrimaria = gradoLabels.some(label => label.match(/Primaria/i));
+  230 |     const hasSecundaria = gradoLabels.some(label => label.match(/Secundaria|Primer\s+semestre|Segundo\s+semestre|Tercer\s+semestre/i));
+  231 | 
+  232 |     if (hasPrimaria) {
+  233 |       console.warn('[FINDING][P1] GRP-CASCADE-04: Grados de Primaria aún visibles después de cambiar a Secundaria');
+  234 |     }
+  235 |     expect(!hasPrimaria, 'Primaria debe desaparecer al cambiar ciclo').toBeTruthy();
+  236 |     expect(hasSecundaria, 'Secundaria debe aparecer al cambiar ciclo').toBeTruthy();
+  237 | 
+  238 |     console.log(`[INFO] GRP-CASCADE-04: Cascada funciona. Ahora muestra: ${gradoLabels.join(', ')}`);
+  239 |   });
+  240 | 
+  241 |   test('GRP-CASCADE-05 | Llenar formulario y validar cascada backend @api', async ({ page }) => {
+  242 |     const apiResponses = attachApiMonitor(page);
+  243 |     const getErrors = attachConsoleMonitor(page);
+  244 | 
+  245 |     await new LoginPage(page).login(USERS.ADMIN_GLOBAL);
+  246 |     await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
+  247 |     await page.waitForTimeout(1_500);
+  248 | 
+  249 |     // Navega a Administración > Grupos
+  250 |     await page.click('text=Administración');
+  251 |     await page.waitForTimeout(1_000);
+  252 | 
+  253 |     const gruposTab = page.locator('[role="tab"]:has-text("Grupos")').first();
+  254 |     if (await gruposTab.isVisible()) {
+  255 |       await gruposTab.click();
+  256 |     }
+  257 |     await page.waitForTimeout(1_200);
+  258 | 
+  259 |     // Abre nuevo grupo
+  260 |     const nuevoBtn = page.locator('[data-testid="btn-nuevo-grupo"]');
+> 261 |     await nuevoBtn.click();
+      |                    ^ Error: locator.click: Test timeout of 30000ms exceeded.
+  262 |     await page.waitForTimeout(1_200);
+  263 | 
+  264 |     // Completa formulario
+  265 |     const nombreInput = page.locator('[data-testid="input-nombre-grupo"]');
+  266 |     const capacidadInput = page.locator('[data-testid="input-capacidad"]');
+  267 |     const turnoSelect = page.locator('[data-testid="select-turno"]');
+  268 |     const cicloSelect = page.locator('[data-testid="select-ciclo"]');
+  269 |     const gradoSelect = page.locator('[data-testid="select-grado"]');
+  270 |     const guardarBtn = page.locator('[data-testid="btn-guardar"]');
+  271 | 
+  272 |     // Rellena nombre
+  273 |     await nombreInput.fill('TestGrp' + Date.now().toString().slice(-3));
+  274 |     await page.waitForTimeout(300);
+  275 | 
+  276 |     // Rellena capacidad
+  277 |     await capacidadInput.fill('30');
+  278 |     await page.waitForTimeout(300);
+  279 | 
+  280 |     // Selecciona turno
+  281 |     await turnoSelect.click();
+  282 |     await page.waitForTimeout(600);
+  283 |     const turnoOption = page.locator('.p-select-option, [role="option"]').filter({ hasText: /MATUTINO/ }).first();
+  284 |     if (await turnoOption.isVisible()) {
+  285 |       await turnoOption.click();
+  286 |       await page.waitForTimeout(600);
+  287 |     }
+  288 | 
+  289 |     // Selecciona ciclo Primaria
+  290 |     await cicloSelect.click();
+  291 |     await page.waitForTimeout(600);
+  292 |     const primariaCiclo = page.locator('.p-select-option, [role="option"]').filter({ hasText: /Primaria/ }).first();
+  293 |     await primariaCiclo.click();
+  294 |     await page.waitForTimeout(800);
+  295 | 
+  296 |     // Selecciona grado Primaria
+  297 |     await gradoSelect.click();
+  298 |     await page.waitForTimeout(600);
+  299 |     const primarioGrado = page.locator('.p-select-option, [role="option"]').filter({ hasText: /Primaria.*Primer/ }).first();
+  300 |     if (await primarioGrado.isVisible()) {
+  301 |       await primarioGrado.click();
+  302 |       await page.waitForTimeout(600);
+  303 |     }
+  304 | 
+  305 |     // Intenta guardar e intercepta respuesta
+  306 |     let postStatus: number | null = null;
+  307 |     page.on('response', async (response) => {
+  308 |       if (response.url().includes('/api/v1/admin/grupos') && response.request().method() === 'POST') {
+  309 |         postStatus = response.status();
+  310 |       }
+  311 |     });
+  312 | 
+  313 |     await guardarBtn.click();
+  314 |     await page.waitForTimeout(2_000);
+  315 | 
+  316 |     if (postStatus) {
+  317 |       expect([201, 400]).toContain(postStatus);
+  318 |       if (postStatus === 201) {
+  319 |         console.log('[INFO] GRP-CASCADE-05: POST exitoso (201), cascada válida');
+  320 |       } else {
+  321 |         console.log('[WARNING] GRP-CASCADE-05: POST rechazado (400), validación backend activa');
+  322 |       }
+  323 |     } else {
+  324 |       console.log('[INFO] GRP-CASCADE-05: Sin POST interceptado, pero flujo completo');
+  325 |     }
+  326 |   });
+  327 | 
+  328 |   test('GRP-CASCADE-06 | Sin errores en consola durante cascada @smoke', async ({ page }) => {
+  329 |     const apiResponses = attachApiMonitor(page);
+  330 |     const getErrors = attachConsoleMonitor(page);
+  331 | 
+  332 |     await new LoginPage(page).login(USERS.ADMIN_GLOBAL);
+  333 |     await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
+  334 |     await page.waitForTimeout(1_500);
+  335 | 
+  336 |     // Navega a Administración > Grupos
+  337 |     await page.click('text=Administración');
+  338 |     await page.waitForTimeout(1_000);
+  339 | 
+  340 |     const gruposTab = page.locator('[role="tab"]:has-text("Grupos")').first();
+  341 |     if (await gruposTab.isVisible()) {
+  342 |       await gruposTab.click();
+  343 |     }
+  344 |     await page.waitForTimeout(1_200);
+  345 | 
+  346 |     // Abre nuevo grupo
+  347 |     const nuevoBtn = page.locator('[data-testid="btn-nuevo-grupo"]');
+  348 |     await nuevoBtn.click();
+  349 |     await page.waitForTimeout(1_200);
+  350 | 
+  351 |     // Monitorea errores en consola
+  352 |     const errors: string[] = [];
+  353 |     page.on('console', (msg) => {
+  354 |       if (msg.type() === 'error') {
+  355 |         errors.push(msg.text());
+  356 |       }
+  357 |     });
+  358 | 
+  359 |     // Realiza cascada
+  360 |     const cicloSelect = page.locator('[data-testid="select-ciclo"]');
+  361 |     const gradoSelect = page.locator('[data-testid="select-grado"]');
 ```

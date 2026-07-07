@@ -80,13 +80,13 @@
       "specs": [],
       "suites": [
         {
-          "title": "B. Cascadas Grupos — Ciclo→Grado filtración por Nivel",
+          "title": "B. Cascadas Grupos - Ciclo a Grado filtracion por Nivel",
           "file": "19-cascadas-grupos.spec.ts",
-          "line": 16,
+          "line": 18,
           "column": 6,
           "specs": [
             {
-              "title": "GRP-CASCADE-01 | Navegación a Administración > Grupos @smoke",
+              "title": "GRP-CASCADE-01 | Abre dialog \"Nuevo grupo\" sin errores @smoke",
               "ok": false,
               "tags": [
                 "smoke"
@@ -103,47 +103,47 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "failed",
-                      "duration": 5047,
+                      "duration": 9990,
                       "error": {
-                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: locator('p-table, table, [role=\"grid\"]')\nExpected: visible\nError: strict mode violation: locator('p-table, table, [role=\"grid\"]') resolved to 15 elements:\n    1) <p-table pc201=\"\" data-p=\"\" data-pc-section=\"root\" data-pc-name=\"datatable\" _ngcontent-ng-c1314517959=\"\" styleclass=\"p-datatable-sm p-datatable-striped p-datatable-gridlines apex-grid\" class=\"apex-grid p-component p-datatable p-datatable-gridlines p-datatable-sm p-datatable-striped\">…</p-table> aka getByLabel('Usuarios').locator('p-table')\n    2) <table role=\"table\" id=\"pn_id_2-table\" data-pc-section=\"table\" class=\"p-datatable-table\">…</table> aka getByText('UsuarioNombreEmailRolAlcanceEstadoAccionesadmin@institutonevadi.edu.')\n    3) <p-table pc211=\"\" data-p=\"\" data-pc-section=\"root\" data-pc-name=\"datatable\" _ngcontent-ng-c1314517959=\"\" styleclass=\"p-datatable-sm p-datatable-striped p-datatable-gridlines apex-grid\" class=\"apex-grid p-component p-datatable p-datatable-gridlines p-datatable-sm p-datatable-striped\">…</p-table> aka getByLabel('Roles', { exact: true }).locator('p-table')\n    4) <table role=\"table\" id=\"pn_id_3-table\" data-pc-section=\"table\" class=\"p-datatable-table\">…</table> aka getByText('RolNivelDescripciónAccionesADMIN_GLOBAL0Administrador de toda la institució')\n    5) <p-table pc221=\"\" data-p=\"empty\" data-pc-section=\"root\" data-pc-name=\"datatable\" _ngcontent-ng-c1314517959=\"\" styleclass=\"p-datatable-sm p-datatable-striped p-datatable-gridlines apex-grid\" class=\"apex-grid p-component p-datatable p-datatable-gridlines p-datatable-sm p-datatable-striped\">…</p-table> aka getByText('ClaveSecciónEtiquetaMáxMínActivoAcciones Sin registros 20')\n    6) <table role=\"table\" id=\"pn_id_4-table\" data-pc-section=\"table\" class=\"p-datatable-table\">…</table> aka getByText('ClaveSecciónEtiquetaMáxMínActivoAcciones Sin registros')\n    7) <table class=\"pm-table\" _ngcontent-ng-c2668606958=\"\">…</table> aka getByText('MóduloRolVerEditarCrearEliminar Selecciona un rol para ver sus permisos')\n    8) <p-table pc254=\"\" data-p=\"\" data-pc-section=\"root\" data-pc-name=\"datatable\" _ngcontent-ng-c1314517959=\"\" styleclass=\"p-datatable-sm p-datatable-striped p-datatable-gridlines apex-grid\" class=\"apex-grid p-component p-datatable p-datatable-gridlines p-datatable-sm p-datatable-striped\">…</p-table> aka getByLabel('Ciclos Escolares').locator('p-table')\n    9) <table role=\"table\" id=\"pn_id_5-table\" data-pc-section=\"table\" class=\"p-datatable-table\">…</table> aka getByText('CicloNivelInicioFinTipoVigenteAcciones27APREPARATORIA2027-02-012027-07-')\n    10) <p-table pc264=\"\" data-p=\"\" data-pc-section=\"root\" data-pc-name=\"datatable\" _ngcontent-ng-c1314517959=\"\" styleclass=\"p-datatable-sm p-datatable-striped p-datatable-gridlines apex-grid\" class=\"apex-grid p-component p-datatable p-datatable-gridlines p-datatable-sm p-datatable-striped\">…</p-table> aka getByLabel('Planteles').locator('p-table')\n    ...\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 8000ms\u001b[22m\n\u001b[2m  - waiting for locator('p-table, table, [role=\"grid\"]')\u001b[22m\n",
-                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: locator('p-table, table, [role=\"grid\"]')\nExpected: visible\nError: strict mode violation: locator('p-table, table, [role=\"grid\"]') resolved to 15 elements:\n    1) <p-table pc201=\"\" data-p=\"\" data-pc-section=\"root\" data-pc-name=\"datatable\" _ngcontent-ng-c1314517959=\"\" styleclass=\"p-datatable-sm p-datatable-striped p-datatable-gridlines apex-grid\" class=\"apex-grid p-component p-datatable p-datatable-gridlines p-datatable-sm p-datatable-striped\">…</p-table> aka getByLabel('Usuarios').locator('p-table')\n    2) <table role=\"table\" id=\"pn_id_2-table\" data-pc-section=\"table\" class=\"p-datatable-table\">…</table> aka getByText('UsuarioNombreEmailRolAlcanceEstadoAccionesadmin@institutonevadi.edu.')\n    3) <p-table pc211=\"\" data-p=\"\" data-pc-section=\"root\" data-pc-name=\"datatable\" _ngcontent-ng-c1314517959=\"\" styleclass=\"p-datatable-sm p-datatable-striped p-datatable-gridlines apex-grid\" class=\"apex-grid p-component p-datatable p-datatable-gridlines p-datatable-sm p-datatable-striped\">…</p-table> aka getByLabel('Roles', { exact: true }).locator('p-table')\n    4) <table role=\"table\" id=\"pn_id_3-table\" data-pc-section=\"table\" class=\"p-datatable-table\">…</table> aka getByText('RolNivelDescripciónAccionesADMIN_GLOBAL0Administrador de toda la institució')\n    5) <p-table pc221=\"\" data-p=\"empty\" data-pc-section=\"root\" data-pc-name=\"datatable\" _ngcontent-ng-c1314517959=\"\" styleclass=\"p-datatable-sm p-datatable-striped p-datatable-gridlines apex-grid\" class=\"apex-grid p-component p-datatable p-datatable-gridlines p-datatable-sm p-datatable-striped\">…</p-table> aka getByText('ClaveSecciónEtiquetaMáxMínActivoAcciones Sin registros 20')\n    6) <table role=\"table\" id=\"pn_id_4-table\" data-pc-section=\"table\" class=\"p-datatable-table\">…</table> aka getByText('ClaveSecciónEtiquetaMáxMínActivoAcciones Sin registros')\n    7) <table class=\"pm-table\" _ngcontent-ng-c2668606958=\"\">…</table> aka getByText('MóduloRolVerEditarCrearEliminar Selecciona un rol para ver sus permisos')\n    8) <p-table pc254=\"\" data-p=\"\" data-pc-section=\"root\" data-pc-name=\"datatable\" _ngcontent-ng-c1314517959=\"\" styleclass=\"p-datatable-sm p-datatable-striped p-datatable-gridlines apex-grid\" class=\"apex-grid p-component p-datatable p-datatable-gridlines p-datatable-sm p-datatable-striped\">…</p-table> aka getByLabel('Ciclos Escolares').locator('p-table')\n    9) <table role=\"table\" id=\"pn_id_5-table\" data-pc-section=\"table\" class=\"p-datatable-table\">…</table> aka getByText('CicloNivelInicioFinTipoVigenteAcciones27APREPARATORIA2027-02-012027-07-')\n    10) <p-table pc264=\"\" data-p=\"\" data-pc-section=\"root\" data-pc-name=\"datatable\" _ngcontent-ng-c1314517959=\"\" styleclass=\"p-datatable-sm p-datatable-striped p-datatable-gridlines apex-grid\" class=\"apex-grid p-component p-datatable p-datatable-gridlines p-datatable-sm p-datatable-striped\">…</p-table> aka getByLabel('Planteles').locator('p-table')\n    ...\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 8000ms\u001b[22m\n\u001b[2m  - waiting for locator('p-table, table, [role=\"grid\"]')\u001b[22m\n\n    at /opt/ades/frontend/e2e/tests/19-cascadas-grupos.spec.ts:44:65",
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: locator('[data-testid=\"btn-nuevo-grupo\"]')\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('[data-testid=\"btn-nuevo-grupo\"]')\u001b[22m\n",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: locator('[data-testid=\"btn-nuevo-grupo\"]')\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('[data-testid=\"btn-nuevo-grupo\"]')\u001b[22m\n\n    at /opt/ades/frontend/e2e/tests/19-cascadas-grupos.spec.ts:44:28",
                         "location": {
                           "file": "/opt/ades/frontend/e2e/tests/19-cascadas-grupos.spec.ts",
-                          "column": 65,
+                          "column": 28,
                           "line": 44
                         },
-                        "snippet": "  42 |\n  43 |     // Verifica que se cargó tabla de grupos\n> 44 |     await expect(page.locator('p-table, table, [role=\"grid\"]')).toBeVisible({ timeout: 8000 });\n     |                                                                 ^\n  45 |     console.log('[INFO] GRP-CASCADE-01: Navegación exitosa a Admin > Grupos');\n  46 |   });\n  47 |"
+                        "snippet": "  42 |     // Busca botón \"Nuevo grupo\" por data-testid\n  43 |     const nuevoBtn = page.locator('[data-testid=\"btn-nuevo-grupo\"]');\n> 44 |     await expect(nuevoBtn).toBeVisible({ timeout: 5000 });\n     |                            ^\n  45 |     await nuevoBtn.click();\n  46 |     await page.waitForTimeout(1_200);\n  47 |"
                       },
                       "errors": [
                         {
                           "location": {
                             "file": "/opt/ades/frontend/e2e/tests/19-cascadas-grupos.spec.ts",
-                            "column": 65,
+                            "column": 28,
                             "line": 44
                           },
-                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: locator('p-table, table, [role=\"grid\"]')\nExpected: visible\nError: strict mode violation: locator('p-table, table, [role=\"grid\"]') resolved to 15 elements:\n    1) <p-table pc201=\"\" data-p=\"\" data-pc-section=\"root\" data-pc-name=\"datatable\" _ngcontent-ng-c1314517959=\"\" styleclass=\"p-datatable-sm p-datatable-striped p-datatable-gridlines apex-grid\" class=\"apex-grid p-component p-datatable p-datatable-gridlines p-datatable-sm p-datatable-striped\">…</p-table> aka getByLabel('Usuarios').locator('p-table')\n    2) <table role=\"table\" id=\"pn_id_2-table\" data-pc-section=\"table\" class=\"p-datatable-table\">…</table> aka getByText('UsuarioNombreEmailRolAlcanceEstadoAccionesadmin@institutonevadi.edu.')\n    3) <p-table pc211=\"\" data-p=\"\" data-pc-section=\"root\" data-pc-name=\"datatable\" _ngcontent-ng-c1314517959=\"\" styleclass=\"p-datatable-sm p-datatable-striped p-datatable-gridlines apex-grid\" class=\"apex-grid p-component p-datatable p-datatable-gridlines p-datatable-sm p-datatable-striped\">…</p-table> aka getByLabel('Roles', { exact: true }).locator('p-table')\n    4) <table role=\"table\" id=\"pn_id_3-table\" data-pc-section=\"table\" class=\"p-datatable-table\">…</table> aka getByText('RolNivelDescripciónAccionesADMIN_GLOBAL0Administrador de toda la institució')\n    5) <p-table pc221=\"\" data-p=\"empty\" data-pc-section=\"root\" data-pc-name=\"datatable\" _ngcontent-ng-c1314517959=\"\" styleclass=\"p-datatable-sm p-datatable-striped p-datatable-gridlines apex-grid\" class=\"apex-grid p-component p-datatable p-datatable-gridlines p-datatable-sm p-datatable-striped\">…</p-table> aka getByText('ClaveSecciónEtiquetaMáxMínActivoAcciones Sin registros 20')\n    6) <table role=\"table\" id=\"pn_id_4-table\" data-pc-section=\"table\" class=\"p-datatable-table\">…</table> aka getByText('ClaveSecciónEtiquetaMáxMínActivoAcciones Sin registros')\n    7) <table class=\"pm-table\" _ngcontent-ng-c2668606958=\"\">…</table> aka getByText('MóduloRolVerEditarCrearEliminar Selecciona un rol para ver sus permisos')\n    8) <p-table pc254=\"\" data-p=\"\" data-pc-section=\"root\" data-pc-name=\"datatable\" _ngcontent-ng-c1314517959=\"\" styleclass=\"p-datatable-sm p-datatable-striped p-datatable-gridlines apex-grid\" class=\"apex-grid p-component p-datatable p-datatable-gridlines p-datatable-sm p-datatable-striped\">…</p-table> aka getByLabel('Ciclos Escolares').locator('p-table')\n    9) <table role=\"table\" id=\"pn_id_5-table\" data-pc-section=\"table\" class=\"p-datatable-table\">…</table> aka getByText('CicloNivelInicioFinTipoVigenteAcciones27APREPARATORIA2027-02-012027-07-')\n    10) <p-table pc264=\"\" data-p=\"\" data-pc-section=\"root\" data-pc-name=\"datatable\" _ngcontent-ng-c1314517959=\"\" styleclass=\"p-datatable-sm p-datatable-striped p-datatable-gridlines apex-grid\" class=\"apex-grid p-component p-datatable p-datatable-gridlines p-datatable-sm p-datatable-striped\">…</p-table> aka getByLabel('Planteles').locator('p-table')\n    ...\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 8000ms\u001b[22m\n\u001b[2m  - waiting for locator('p-table, table, [role=\"grid\"]')\u001b[22m\n\n\n  42 |\n  43 |     // Verifica que se cargó tabla de grupos\n> 44 |     await expect(page.locator('p-table, table, [role=\"grid\"]')).toBeVisible({ timeout: 8000 });\n     |                                                                 ^\n  45 |     console.log('[INFO] GRP-CASCADE-01: Navegación exitosa a Admin > Grupos');\n  46 |   });\n  47 |\n    at /opt/ades/frontend/e2e/tests/19-cascadas-grupos.spec.ts:44:65"
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: locator('[data-testid=\"btn-nuevo-grupo\"]')\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('[data-testid=\"btn-nuevo-grupo\"]')\u001b[22m\n\n\n  42 |     // Busca botón \"Nuevo grupo\" por data-testid\n  43 |     const nuevoBtn = page.locator('[data-testid=\"btn-nuevo-grupo\"]');\n> 44 |     await expect(nuevoBtn).toBeVisible({ timeout: 5000 });\n     |                            ^\n  45 |     await nuevoBtn.click();\n  46 |     await page.waitForTimeout(1_200);\n  47 |\n    at /opt/ades/frontend/e2e/tests/19-cascadas-grupos.spec.ts:44:28"
                         }
                       ],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-07-07T20:59:52.811Z",
+                      "startTime": "2026-07-07T22:20:11.994Z",
                       "annotations": [],
                       "attachments": [
                         {
                           "name": "screenshot",
                           "contentType": "image/png",
-                          "path": "/opt/ades/frontend/test-results/19-cascadas-grupos-B-Casca-39958-Administración-Grupos-smoke-chromium/test-failed-1.png"
+                          "path": "/opt/ades/frontend/test-results/19-cascadas-grupos-B-Casca-8191f-evo-grupo-sin-errores-smoke-chromium/test-failed-1.png"
                         },
                         {
                           "name": "error-context",
                           "contentType": "text/markdown",
-                          "path": "/opt/ades/frontend/test-results/19-cascadas-grupos-B-Casca-39958-Administración-Grupos-smoke-chromium/error-context.md"
+                          "path": "/opt/ades/frontend/test-results/19-cascadas-grupos-B-Casca-8191f-evo-grupo-sin-errores-smoke-chromium/error-context.md"
                         }
                       ],
                       "errorLocation": {
                         "file": "/opt/ades/frontend/e2e/tests/19-cascadas-grupos.spec.ts",
-                        "column": 65,
+                        "column": 28,
                         "line": 44
                       }
                     }
@@ -151,13 +151,13 @@
                   "status": "unexpected"
                 }
               ],
-              "id": "5a4be433c1d8887e5b18-0711d7a8869d94911005",
+              "id": "5a4be433c1d8887e5b18-397c81e760d2debfb359",
               "file": "19-cascadas-grupos.spec.ts",
-              "line": 18,
+              "line": 20,
               "column": 7
             },
             {
-              "title": "GRP-CASCADE-02 | Dialog \"Nuevo Grupo\" abre correctamente @smoke",
+              "title": "GRP-CASCADE-02 | Campos de cascada están presentes: Ciclo y Grado @smoke",
               "ok": false,
               "tags": [
                 "smoke"
@@ -173,62 +173,54 @@
                     {
                       "workerIndex": 1,
                       "parallelIndex": 0,
-                      "status": "failed",
-                      "duration": 14183,
+                      "status": "timedOut",
+                      "duration": 30270,
                       "error": {
-                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('p-dialog').first()\nExpected: visible\nReceived: hidden\nTimeout:  8000ms\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 8000ms\u001b[22m\n\u001b[2m  - waiting for locator('p-dialog').first()\u001b[22m\n\u001b[2m    18 × locator resolved to <p-dialog pc192=\"\" role=\"alertdialog\" data-pc-section=\"host\">…</p-dialog>\u001b[22m\n\u001b[2m       - unexpected value \"hidden\"\u001b[22m\n",
-                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('p-dialog').first()\nExpected: visible\nReceived: hidden\nTimeout:  8000ms\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 8000ms\u001b[22m\n\u001b[2m  - waiting for locator('p-dialog').first()\u001b[22m\n\u001b[2m    18 × locator resolved to <p-dialog pc192=\"\" role=\"alertdialog\" data-pc-section=\"host\">…</p-dialog>\u001b[22m\n\u001b[2m       - unexpected value \"hidden\"\u001b[22m\n\n    at /opt/ades/frontend/e2e/tests/19-cascadas-grupos.spec.ts:76:26",
-                        "location": {
-                          "file": "/opt/ades/frontend/e2e/tests/19-cascadas-grupos.spec.ts",
-                          "column": 26,
-                          "line": 76
-                        },
-                        "snippet": "  74 |     // Espera a que el diálogo sea visible\n  75 |     const dialog = page.locator('p-dialog').first();\n> 76 |     await expect(dialog).toBeVisible({ timeout: 8000 });\n     |                          ^\n  77 |\n  78 |     // Verifica que hay inputs de formulario\n  79 |     const inputs = page.locator('input[type=\"text\"], input[pInputText]');"
+                        "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m",
+                        "stack": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
                       },
                       "errors": [
                         {
+                          "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                        },
+                        {
                           "location": {
                             "file": "/opt/ades/frontend/e2e/tests/19-cascadas-grupos.spec.ts",
-                            "column": 26,
-                            "line": 76
+                            "column": 20,
+                            "line": 79
                           },
-                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('p-dialog').first()\nExpected: visible\nReceived: hidden\nTimeout:  8000ms\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 8000ms\u001b[22m\n\u001b[2m  - waiting for locator('p-dialog').first()\u001b[22m\n\u001b[2m    18 × locator resolved to <p-dialog pc192=\"\" role=\"alertdialog\" data-pc-section=\"host\">…</p-dialog>\u001b[22m\n\u001b[2m       - unexpected value \"hidden\"\u001b[22m\n\n\n  74 |     // Espera a que el diálogo sea visible\n  75 |     const dialog = page.locator('p-dialog').first();\n> 76 |     await expect(dialog).toBeVisible({ timeout: 8000 });\n     |                          ^\n  77 |\n  78 |     // Verifica que hay inputs de formulario\n  79 |     const inputs = page.locator('input[type=\"text\"], input[pInputText]');\n    at /opt/ades/frontend/e2e/tests/19-cascadas-grupos.spec.ts:76:26"
+                          "message": "Error: locator.click: Test timeout of 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-testid=\"btn-nuevo-grupo\"]')\u001b[22m\n\n\n  77 |     // Abre nuevo grupo\n  78 |     const nuevoBtn = page.locator('[data-testid=\"btn-nuevo-grupo\"]');\n> 79 |     await nuevoBtn.click();\n     |                    ^\n  80 |     await page.waitForTimeout(1_200);\n  81 |\n  82 |     // Verifica que los selectores de cascada están presentes\n    at /opt/ades/frontend/e2e/tests/19-cascadas-grupos.spec.ts:79:20"
                         }
                       ],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-07-07T20:59:58.492Z",
+                      "startTime": "2026-07-07T22:20:22.637Z",
                       "annotations": [],
                       "attachments": [
                         {
                           "name": "screenshot",
                           "contentType": "image/png",
-                          "path": "/opt/ades/frontend/test-results/19-cascadas-grupos-B-Casca-d6f6b-po-abre-correctamente-smoke-chromium/test-failed-1.png"
+                          "path": "/opt/ades/frontend/test-results/19-cascadas-grupos-B-Casca-a042e-esentes-Ciclo-y-Grado-smoke-chromium/test-failed-1.png"
                         },
                         {
                           "name": "error-context",
                           "contentType": "text/markdown",
-                          "path": "/opt/ades/frontend/test-results/19-cascadas-grupos-B-Casca-d6f6b-po-abre-correctamente-smoke-chromium/error-context.md"
+                          "path": "/opt/ades/frontend/test-results/19-cascadas-grupos-B-Casca-a042e-esentes-Ciclo-y-Grado-smoke-chromium/error-context.md"
                         }
-                      ],
-                      "errorLocation": {
-                        "file": "/opt/ades/frontend/e2e/tests/19-cascadas-grupos.spec.ts",
-                        "column": 26,
-                        "line": 76
-                      }
+                      ]
                     }
                   ],
                   "status": "unexpected"
                 }
               ],
-              "id": "5a4be433c1d8887e5b18-c10813acd1f6d3e8d2d8",
+              "id": "5a4be433c1d8887e5b18-49063b50c3089bfc6a91",
               "file": "19-cascadas-grupos.spec.ts",
-              "line": 48,
+              "line": 59,
               "column": 7
             },
             {
-              "title": "GRP-CASCADE-03 | Selectores de cascada están presentes @smoke",
+              "title": "GRP-CASCADE-03 | Seleccionar Ciclo Primaria muestra grados filtrados @smoke",
               "ok": false,
               "tags": [
                 "smoke"
@@ -244,149 +236,55 @@
                     {
                       "workerIndex": 2,
                       "parallelIndex": 0,
-                      "status": "failed",
-                      "duration": 16282,
+                      "status": "timedOut",
+                      "duration": 30274,
                       "error": {
-                        "message": "TimeoutError: page.waitForSelector: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('p-dialog') to be visible\u001b[22m\n\u001b[2m    24 × locator resolved to 21 elements. Proceeding with the first one: <p-dialog pc192=\"\" role=\"alertdialog\" data-pc-section=\"host\">…</p-dialog>\u001b[22m\n",
-                        "stack": "TimeoutError: page.waitForSelector: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('p-dialog') to be visible\u001b[22m\n\u001b[2m    24 × locator resolved to 21 elements. Proceeding with the first one: <p-dialog pc192=\"\" role=\"alertdialog\" data-pc-section=\"host\">…</p-dialog>\u001b[22m\n\n    at /opt/ades/frontend/e2e/tests/19-cascadas-grupos.spec.ts:111:16",
-                        "location": {
-                          "file": "/opt/ades/frontend/e2e/tests/19-cascadas-grupos.spec.ts",
-                          "column": 16,
-                          "line": 111
-                        },
-                        "snippet": "  109 |\n  110 |     // Espera dialog\n> 111 |     await page.waitForSelector('p-dialog', { timeout: 10000 });\n      |                ^\n  112 |\n  113 |     // Busca p-select (selectores)\n  114 |     const selects = page.locator('p-dialog p-select, p-dialog select');"
+                        "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m",
+                        "stack": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
                       },
                       "errors": [
                         {
+                          "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                        },
+                        {
                           "location": {
                             "file": "/opt/ades/frontend/e2e/tests/19-cascadas-grupos.spec.ts",
-                            "column": 16,
-                            "line": 111
+                            "column": 20,
+                            "line": 112
                           },
-                          "message": "TimeoutError: page.waitForSelector: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('p-dialog') to be visible\u001b[22m\n\u001b[2m    24 × locator resolved to 21 elements. Proceeding with the first one: <p-dialog pc192=\"\" role=\"alertdialog\" data-pc-section=\"host\">…</p-dialog>\u001b[22m\n\n\n  109 |\n  110 |     // Espera dialog\n> 111 |     await page.waitForSelector('p-dialog', { timeout: 10000 });\n      |                ^\n  112 |\n  113 |     // Busca p-select (selectores)\n  114 |     const selects = page.locator('p-dialog p-select, p-dialog select');\n    at /opt/ades/frontend/e2e/tests/19-cascadas-grupos.spec.ts:111:16"
+                          "message": "Error: locator.click: Test timeout of 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-testid=\"btn-nuevo-grupo\"]')\u001b[22m\n\n\n  110 |     // Abre nuevo grupo\n  111 |     const nuevoBtn = page.locator('[data-testid=\"btn-nuevo-grupo\"]');\n> 112 |     await nuevoBtn.click();\n      |                    ^\n  113 |     await page.waitForTimeout(1_200);\n  114 |\n  115 |     // Busca selector Ciclo\n    at /opt/ades/frontend/e2e/tests/19-cascadas-grupos.spec.ts:112:20"
                         }
                       ],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-07-07T21:00:13.330Z",
+                      "startTime": "2026-07-07T22:20:53.549Z",
                       "annotations": [],
                       "attachments": [
                         {
                           "name": "screenshot",
                           "contentType": "image/png",
-                          "path": "/opt/ades/frontend/test-results/19-cascadas-grupos-B-Casca-9e3cb-scada-están-presentes-smoke-chromium/test-failed-1.png"
+                          "path": "/opt/ades/frontend/test-results/19-cascadas-grupos-B-Casca-afa3b-stra-grados-filtrados-smoke-chromium/test-failed-1.png"
                         },
                         {
                           "name": "error-context",
                           "contentType": "text/markdown",
-                          "path": "/opt/ades/frontend/test-results/19-cascadas-grupos-B-Casca-9e3cb-scada-están-presentes-smoke-chromium/error-context.md"
+                          "path": "/opt/ades/frontend/test-results/19-cascadas-grupos-B-Casca-afa3b-stra-grados-filtrados-smoke-chromium/error-context.md"
                         }
-                      ],
-                      "errorLocation": {
-                        "file": "/opt/ades/frontend/e2e/tests/19-cascadas-grupos.spec.ts",
-                        "column": 16,
-                        "line": 111
-                      }
+                      ]
                     }
                   ],
                   "status": "unexpected"
                 }
               ],
-              "id": "5a4be433c1d8887e5b18-9d7640a9319e578b33a9",
+              "id": "5a4be433c1d8887e5b18-80fc72ae33b40a571374",
               "file": "19-cascadas-grupos.spec.ts",
-              "line": 85,
+              "line": 92,
               "column": 7
             },
             {
-              "title": "GRP-CASCADE-04 | Backend validación cascada (código presente) @api",
-              "ok": true,
-              "tags": [
-                "api"
-              ],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 3,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 4878,
-                      "errors": [],
-                      "stdout": [
-                        {
-                          "text": "[INFO] GRP-CASCADE-04: Backend API accesible, validación lista para probar\n"
-                        }
-                      ],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-07-07T21:00:30.307Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "5a4be433c1d8887e5b18-e701bf344d4bc3ff5d3a",
-              "file": "19-cascadas-grupos.spec.ts",
-              "line": 125,
-              "column": 7
-            }
-          ]
-        },
-        {
-          "title": "C. Validación Cascada — Estado consisten",
-          "file": "19-cascadas-grupos.spec.ts",
-          "line": 162,
-          "column": 6,
-          "specs": [
-            {
-              "title": "GRP-CASCADE-05 | Cascada UI es filtrada (computed signals)",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 3,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 2393,
-                      "errors": [],
-                      "stdout": [
-                        {
-                          "text": "[INFO] GRP-CASCADE-05: No console errors, filtrado ready\n"
-                        }
-                      ],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-07-07T21:00:35.296Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "5a4be433c1d8887e5b18-d9ccff4787ae7f5fdcfe",
-              "file": "19-cascadas-grupos.spec.ts",
-              "line": 164,
-              "column": 7
-            },
-            {
-              "title": "GRP-CASCADE-06 | TypeScript compila sin errores @smoke",
-              "ok": true,
+              "title": "GRP-CASCADE-04 | Cambiar Ciclo a Secundaria resetea grados @smoke",
+              "ok": false,
               "tags": [
                 "smoke"
               ],
@@ -401,27 +299,255 @@
                     {
                       "workerIndex": 3,
                       "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 94,
-                      "errors": [],
-                      "stdout": [
+                      "status": "timedOut",
+                      "duration": 30276,
+                      "error": {
+                        "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m",
+                        "stack": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                      },
+                      "errors": [
                         {
-                          "text": "[INFO] GRP-CASCADE-06: Frontend compilado y cargado correctamente\n"
+                          "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                        },
+                        {
+                          "location": {
+                            "file": "/opt/ades/frontend/e2e/tests/19-cascadas-grupos.spec.ts",
+                            "column": 20,
+                            "line": 189
+                          },
+                          "message": "Error: locator.click: Test timeout of 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-testid=\"btn-nuevo-grupo\"]')\u001b[22m\n\n\n  187 |     // Abre nuevo grupo\n  188 |     const nuevoBtn = page.locator('[data-testid=\"btn-nuevo-grupo\"]');\n> 189 |     await nuevoBtn.click();\n      |                    ^\n  190 |     await page.waitForTimeout(1_200);\n  191 |\n  192 |     const cicloSelect = page.locator('[data-testid=\"select-ciclo\"]');\n    at /opt/ades/frontend/e2e/tests/19-cascadas-grupos.spec.ts:189:20"
                         }
                       ],
+                      "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-07-07T21:00:37.704Z",
+                      "startTime": "2026-07-07T22:21:24.472Z",
                       "annotations": [],
-                      "attachments": []
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/opt/ades/frontend/test-results/19-cascadas-grupos-B-Casca-6e657-ndaria-resetea-grados-smoke-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/opt/ades/frontend/test-results/19-cascadas-grupos-B-Casca-6e657-ndaria-resetea-grados-smoke-chromium/error-context.md"
+                        }
+                      ]
                     }
                   ],
-                  "status": "expected"
+                  "status": "unexpected"
                 }
               ],
-              "id": "5a4be433c1d8887e5b18-c4f8aeab2df612ef893d",
+              "id": "5a4be433c1d8887e5b18-86ad7fa20ee915a63983",
               "file": "19-cascadas-grupos.spec.ts",
-              "line": 192,
+              "line": 169,
+              "column": 7
+            },
+            {
+              "title": "GRP-CASCADE-05 | Llenar formulario y validar cascada backend @api",
+              "ok": false,
+              "tags": [
+                "api"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 0,
+                      "status": "timedOut",
+                      "duration": 30285,
+                      "error": {
+                        "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m",
+                        "stack": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                      },
+                      "errors": [
+                        {
+                          "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                        },
+                        {
+                          "location": {
+                            "file": "/opt/ades/frontend/e2e/tests/19-cascadas-grupos.spec.ts",
+                            "column": 20,
+                            "line": 261
+                          },
+                          "message": "Error: locator.click: Test timeout of 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-testid=\"btn-nuevo-grupo\"]')\u001b[22m\n\n\n  259 |     // Abre nuevo grupo\n  260 |     const nuevoBtn = page.locator('[data-testid=\"btn-nuevo-grupo\"]');\n> 261 |     await nuevoBtn.click();\n      |                    ^\n  262 |     await page.waitForTimeout(1_200);\n  263 |\n  264 |     // Completa formulario\n    at /opt/ades/frontend/e2e/tests/19-cascadas-grupos.spec.ts:261:20"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-07-07T22:21:55.396Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/opt/ades/frontend/test-results/19-cascadas-grupos-B-Casca-4c94e-validar-cascada-backend-api-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/opt/ades/frontend/test-results/19-cascadas-grupos-B-Casca-4c94e-validar-cascada-backend-api-chromium/error-context.md"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "5a4be433c1d8887e5b18-6e9d9d5e2859714c9103",
+              "file": "19-cascadas-grupos.spec.ts",
+              "line": 241,
+              "column": 7
+            },
+            {
+              "title": "GRP-CASCADE-06 | Sin errores en consola durante cascada @smoke",
+              "ok": false,
+              "tags": [
+                "smoke"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 5,
+                      "parallelIndex": 0,
+                      "status": "timedOut",
+                      "duration": 30276,
+                      "error": {
+                        "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m",
+                        "stack": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                      },
+                      "errors": [
+                        {
+                          "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                        },
+                        {
+                          "location": {
+                            "file": "/opt/ades/frontend/e2e/tests/19-cascadas-grupos.spec.ts",
+                            "column": 20,
+                            "line": 348
+                          },
+                          "message": "Error: locator.click: Test timeout of 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-testid=\"btn-nuevo-grupo\"]')\u001b[22m\n\n\n  346 |     // Abre nuevo grupo\n  347 |     const nuevoBtn = page.locator('[data-testid=\"btn-nuevo-grupo\"]');\n> 348 |     await nuevoBtn.click();\n      |                    ^\n  349 |     await page.waitForTimeout(1_200);\n  350 |\n  351 |     // Monitorea errores en consola\n    at /opt/ades/frontend/e2e/tests/19-cascadas-grupos.spec.ts:348:20"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-07-07T22:22:26.333Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/opt/ades/frontend/test-results/19-cascadas-grupos-B-Casca-dbbc8-nsola-durante-cascada-smoke-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/opt/ades/frontend/test-results/19-cascadas-grupos-B-Casca-dbbc8-nsola-durante-cascada-smoke-chromium/error-context.md"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "5a4be433c1d8887e5b18-a5f489c02fe2f1de61f6",
+              "file": "19-cascadas-grupos.spec.ts",
+              "line": 328,
+              "column": 7
+            }
+          ]
+        },
+        {
+          "title": "C. Validación Cascada — Estado consistente",
+          "file": "19-cascadas-grupos.spec.ts",
+          "line": 387,
+          "column": 6,
+          "specs": [
+            {
+              "title": "GRP-CASCADE-07 | TypeScript compila sin errores @smoke",
+              "ok": false,
+              "tags": [
+                "smoke"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 6,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 502,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeTruthy\u001b[2m()\u001b[22m\n\nReceived: \u001b[31mfalse\u001b[39m",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeTruthy\u001b[2m()\u001b[22m\n\nReceived: \u001b[31mfalse\u001b[39m\n    at /opt/ades/frontend/e2e/tests/19-cascadas-grupos.spec.ts:395:30",
+                        "location": {
+                          "file": "/opt/ades/frontend/e2e/tests/19-cascadas-grupos.spec.ts",
+                          "column": 30,
+                          "line": 395
+                        },
+                        "snippet": "  393 |       return (window as any).ng !== undefined;\n  394 |     });\n> 395 |     expect(isAngularRunning).toBeTruthy();\n      |                              ^\n  396 |     console.log('[INFO] GRP-CASCADE-07: Angular inicializado correctamente');\n  397 |   });\n  398 | });"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/opt/ades/frontend/e2e/tests/19-cascadas-grupos.spec.ts",
+                            "column": 30,
+                            "line": 395
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeTruthy\u001b[2m()\u001b[22m\n\nReceived: \u001b[31mfalse\u001b[39m\n\n  393 |       return (window as any).ng !== undefined;\n  394 |     });\n> 395 |     expect(isAngularRunning).toBeTruthy();\n      |                              ^\n  396 |     console.log('[INFO] GRP-CASCADE-07: Angular inicializado correctamente');\n  397 |   });\n  398 | });\n    at /opt/ades/frontend/e2e/tests/19-cascadas-grupos.spec.ts:395:30"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-07-07T22:22:57.254Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/opt/ades/frontend/test-results/19-cascadas-grupos-C-Valid-fc10c-t-compila-sin-errores-smoke-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/opt/ades/frontend/test-results/19-cascadas-grupos-C-Valid-fc10c-t-compila-sin-errores-smoke-chromium/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/opt/ades/frontend/e2e/tests/19-cascadas-grupos.spec.ts",
+                        "column": 30,
+                        "line": 395
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "5a4be433c1d8887e5b18-0d2a06d7c2eb519ad7bc",
+              "file": "19-cascadas-grupos.spec.ts",
+              "line": 389,
               "column": 7
             }
           ]
@@ -431,11 +557,11 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-07-07T20:59:52.146Z",
-    "duration": 45717.689,
-    "expected": 3,
+    "startTime": "2026-07-07T22:20:11.448Z",
+    "duration": 166482.11,
+    "expected": 0,
     "skipped": 0,
-    "unexpected": 3,
+    "unexpected": 7,
     "flaky": 0
   }
 }
