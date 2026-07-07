@@ -32,7 +32,7 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .authorizeHttpRequests(authorize -> authorize
                 // ADES internos y documentación
-                .requestMatchers("/api/v1/health", "/api/v1/auth/callback",
+                .requestMatchers("/api/v1/health", "/api/v1/auth/callback", "/api/v1/auth/refresh",
                         "/api/v1/certificados/verificar/**", "/api/v1/config/public",
                         "/swagger-ui/**", "/v3/api-docs/**").permitAll()
                 .requestMatchers("/api/v1/**").authenticated()

@@ -84,6 +84,45 @@ public class UserController {
         }
     }
 
+    @PostMapping(value = "/refresh", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+    public ResponseEntity<?> refresh(@RequestParam("refresh_token") String refreshToken) {
+        try {
+            RestClient restClient = RestClient.builder()
+                    .requestFactory(new SimpleClientHttpRequestFactory())
+                    .build();
+
+            MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
+            body.add("grant_type", "refresh_token");
+            body.add("refresh_token", refreshToken);
+            body.add("client_id", clientId);
+            if (clientSecret != null && !clientSecret.isEmpty()) {
+                body.add("client_secret", clientSecret);
+            }
+
+            ResponseEntity<String> response = restClient.post()
+                    .uri(tokenUrl)
+                    .header("Host", "auth.ades.setag.mx")
+                    .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                    .body(body)
+                    .retrieve()
+                    .toEntity(String.class);
+
+            return ResponseEntity.status(response.getStatusCode())
+                    .contentType(response.getHeaders().getContentType())
+                    .body(response.getBody());
+        } catch (HttpClientErrorException e) {
+            MediaType contentType = (e.getResponseHeaders() != null) ? e.getResponseHeaders().getContentType() : MediaType.APPLICATION_JSON;
+            return ResponseEntity.status(e.getStatusCode())
+                    .contentType(contentType)
+                    .body(e.getResponseBodyAsString());
+        } catch (Exception e) {
+            Map<String, String> err = new HashMap<>();
+            err.put("error", "token_refresh_failed");
+            err.put("message", e.getMessage());
+            return ResponseEntity.status(502).body(err);
+        }
+    }
+
     @GetMapping("/me")
     public ResponseEntity<?> me(@AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
