@@ -105,8 +105,14 @@ public class AlumnoController {
         Map<String, Object> per  = (Map<String, Object>) body.get("persona");
         @SuppressWarnings("unchecked")
         Map<String, Object> comp = (Map<String, Object>) body.get("complementarios");
-        return ResponseEntity.ok(actualizar.actualizar(
-                new ActualizarAlumnoUseCase.Command(id, per, comp)));
+
+        // Actualizar en BD
+        actualizar.actualizar(new ActualizarAlumnoUseCase.Command(id, per, comp));
+
+        // RE-LEER desde BD para garantizar persistencia
+        // Esto asegura que el frontend reciba los datos confirmados por la BD
+        Map<String, Object> updated = query.obtener(id);
+        return ResponseEntity.ok(updated);
     }
 
     @PutMapping("/{id}")

@@ -4,7 +4,7 @@
  */
 import { Component, OnInit, inject, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule, FormControl, FormGroup, Validators } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { ToastModule } from 'primeng/toast';
@@ -15,20 +15,23 @@ import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
 import { ContextCatalogService } from '../../core/services/context-catalog.service';
 import { ExportService } from '../../core/services/export.service';
+import { InputFormattersService } from '../../shared/services/input-formatters.service';
 import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
 import { ImportButtonComponent } from '../../shared/components/import-button/import-button.component';
 import { AlumnoPerfilComponent } from '../../shared/components/alumno-perfil/alumno-perfil.component';
 import { HelpButtonComponent } from '../../shared/components/help-button/help-button.component';
+import { FormFieldComponent } from '../../shared/components/form-field/form-field.component';
 import { Estudiante } from '../../core/models';
-import { ApexNotificationService, ApexSearchComponent, ApexModalDialogComponent } from 'apex-component-library';
+import { ApexNotificationService, ApexSearchComponent, ApexModalDialogComponent, ApexValidators } from 'apex-component-library';
 
 @Component({
   selector: 'app-alumnos',
   standalone: true,
   imports: [
-    CommonModule, FormsModule,
+    CommonModule, FormsModule, ReactiveFormsModule,
     ButtonModule, InputTextModule, ToastModule, SelectModule, MultiSelectModule,
     InteractiveGridComponent, ImportButtonComponent, AlumnoPerfilComponent, HelpButtonComponent,
+    FormFieldComponent,
     ApexSearchComponent, ApexModalDialogComponent,
   ],
   template: `
@@ -89,27 +92,56 @@ import { ApexNotificationService, ApexSearchComponent, ApexModalDialogComponent 
       (visibleChange)="showDialog.set($event)"
       title="Nuevo Alumno"
       size="sm">
-      <div style="display:flex;flex-direction:column;gap:1rem">
-        <div>
-          <label class="dlg-lbl">Nombre(s) *</label>
-          <input pInputText [(ngModel)]="form.nombre" style="width:100%" />
-        </div>
-        <div>
-          <label class="dlg-lbl">Apellido paterno *</label>
-          <input pInputText [(ngModel)]="form.apellido_paterno" style="width:100%" />
-        </div>
-        <div>
-          <label class="dlg-lbl">Apellido materno</label>
-          <input pInputText [(ngModel)]="form.apellido_materno" style="width:100%" />
-        </div>
-        <div>
-          <label class="dlg-lbl">CURP (18 caracteres) *</label>
-          <input pInputText [(ngModel)]="form.curp" style="width:100%;text-transform:uppercase;font-family:monospace" maxlength="18" />
-        </div>
+      <div [formGroup]="crearAlumnoForm" style="display:flex;flex-direction:column;gap:0.5rem">
+        <app-form-field
+          [control]="crearAlumnoForm.get('nombre') as FormControl"
+          label="Nombre(s)"
+          placeholder="Ej: Juan Carlos"
+          [maxLength]="100"
+          helpText="Nombre completo del alumno (se permiten hasta 100 caracteres)"
+          [required]="true"
+          [formatter]="inputFormatters.formatNombre.bind(inputFormatters)"
+        />
+
+        <app-form-field
+          [control]="crearAlumnoForm.get('apellido_paterno') as FormControl"
+          label="Apellido paterno"
+          placeholder="Ej: García"
+          [maxLength]="100"
+          helpText="Primer apellido del alumno"
+          [required]="true"
+          [formatter]="inputFormatters.formatNombre.bind(inputFormatters)"
+        />
+
+        <app-form-field
+          [control]="crearAlumnoForm.get('apellido_materno') as FormControl"
+          label="Apellido materno"
+          placeholder="Ej: López"
+          [maxLength]="100"
+          helpText="Segundo apellido (opcional)"
+          [formatter]="inputFormatters.formatNombre.bind(inputFormatters)"
+        />
+
+        <app-form-field
+          [control]="crearAlumnoForm.get('curp') as FormControl"
+          label="CURP"
+          placeholder="AAAA999999HAAAAA01"
+          type="text"
+          [maxLength]="18"
+          helpText="18 caracteres: 4 letras + 6 dígitos fecha + 1 sexo (H/M/X) + 5 letras + 1 letra/dígito + 1 dígito verificador"
+          [required]="true"
+          [formatter]="inputFormatters.formatCURP.bind(inputFormatters)"
+        />
+
         <p class="dlg-note">Una vez creado podrás completar el expediente completo desde el perfil.</p>
       </div>
       <ng-template #footer>
-        <p-button label="Crear alumno" (onClick)="crearAlumno()" [loading]="loading()" [disabled]="loading()" />
+        <p-button
+          label="Crear alumno"
+          (onClick)="crearAlumno()"
+          [loading]="loading()"
+          [disabled]="loading() || crearAlumnoForm.invalid"
+        />
       </ng-template>
     </apex-modal-dialog>
 
@@ -166,7 +198,9 @@ export class AlumnosComponent implements OnInit {
   readonly catalog = inject(ContextCatalogService);
   private readonly notify = inject(ApexNotificationService);
   private readonly exp = inject(ExportService);
+  readonly inputFormatters = inject(InputFormattersService);
   private readonly crearAlumnoSubject = new Subject<void>();
+
   alumnos = signal<Estudiante[]>([]);
   alumnosDatos = signal<any[]>([]);
   totalAlumnos = signal(0);
@@ -189,7 +223,28 @@ export class AlumnosComponent implements OnInit {
   showDialog = signal(false);
   loading = signal(false);
   loadingTabla = signal(false);
-  form = { nombre: '', apellido_paterno: '', apellido_materno: '', curp: '' };
+
+  // Formulario reactivo para crear alumno con validadores
+  crearAlumnoForm = new FormGroup({
+    nombre: new FormControl('', [
+      Validators.required,
+      ApexValidators.isNotNull(),
+      ApexValidators.maxChars(100),
+    ]),
+    apellido_paterno: new FormControl('', [
+      Validators.required,
+      ApexValidators.isNotNull(),
+      ApexValidators.maxChars(100),
+    ]),
+    apellido_materno: new FormControl('', [
+      ApexValidators.maxChars(100),
+    ]),
+    curp: new FormControl('', [
+      Validators.required,
+      ApexValidators.exactLength(18),
+      ApexValidators.isCURP(),
+    ]),
+  });
 
   // ── Asignación masiva de grupo (PE-009/010) ─────────────────────────────
   dlgAsignacionMasiva = signal(false);
@@ -334,8 +389,8 @@ export class AlumnosComponent implements OnInit {
   }
 
   openDialog(): void {
+    this.crearAlumnoForm.reset();
     this.showDialog.set(true);
-    this.form = { nombre: '', apellido_paterno: '', apellido_materno: '', curp: '' };
   }
 
   abrirAsignacionMasiva(): void {
@@ -402,29 +457,29 @@ export class AlumnosComponent implements OnInit {
     // This must happen synchronously before any async operations
     this.loading.set(true);
 
-    if (!this.form.nombre || !this.form.apellido_paterno || !this.form.curp) {
+    // Validación adicional de formulario (redundante pero segura)
+    if (this.crearAlumnoForm.invalid) {
       this.loading.set(false);
-      this.notify.warning('Campos requeridos', 'Nombre, apellido paterno y CURP son obligatorios');
+      this.notify.error('Validación', 'Por favor completa todos los campos correctamente');
       return;
     }
-    if (this.form.curp.length !== 18) {
-      this.loading.set(false);
-      this.notify.warning('CURP inválida', 'La CURP debe tener exactamente 18 caracteres');
-      return;
-    }
+
+    const formValues = this.crearAlumnoForm.value;
     const payload = {
       persona: {
-        nombre: this.form.nombre,
-        apellido_paterno: this.form.apellido_paterno,
-        apellido_materno: this.form.apellido_materno || '',
-        curp: this.form.curp.toUpperCase(),
+        nombre: formValues.nombre?.trim() || '',
+        apellido_paterno: formValues.apellido_paterno?.trim() || '',
+        apellido_materno: formValues.apellido_materno?.trim() || '',
+        curp: formValues.curp?.toUpperCase().trim() || '',
       },
       plantel_id: this.ctx.plantel()?.id,
     };
+
     this.api.post<Estudiante>('/alumnos', payload).subscribe({
       next: (newAlumno) => {
         this.showDialog.set(false);
         this.loading.set(false);
+        this.crearAlumnoForm.reset();
         this.notify.success('Creado', `Matrícula: ${newAlumno.matricula}`);
         this.cargarAlumnos();
         this.abrirPerfil({ _original: newAlumno });

@@ -6,8 +6,12 @@ import { environment } from '../../../environments/environment';
 import { ContextService } from './context.service';
 import type { UsuarioMe } from '../models';
 
-/** Renovar el access token con este margen antes de que expire (ms). */
-const REFRESH_MARGIN_MS = 30_000;
+/**
+ * Renovar el access token con este margen ANTES de que expire (ms).
+ * Aumentado a 60 segundos para evitar race conditions entre la expiración
+ * del token y la finalización de una request. Authentik: access_token_validity=5min.
+ */
+const REFRESH_MARGIN_MS = 60_000; // 1 minuto antes de expiración
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -130,10 +134,30 @@ export class AuthService {
     this.router.navigate(['/login']);
   }
 
+  /**
+   * Programa el refresh automático del token.
+   * Si ya estamos dentro del margen de refresh (menos de 1 min de vida restante),
+   * se ejecuta inmediatamente. De lo contrario, se programa para hacerlo
+   * 1 minuto antes de la expiración.
+   */
   private scheduleRefresh(msUntilExpiry: number): void {
     if (this.refreshTimer) clearTimeout(this.refreshTimer);
+
     const delay = Math.max(msUntilExpiry - REFRESH_MARGIN_MS, 0);
-    this.refreshTimer = setTimeout(() => { this.refreshAccessToken(); }, delay);
+
+    // Si el token ya casi expira (< 30 seg), refresh inmediatamente
+    if (delay < 30_000) {
+      this.refreshAccessToken().catch(err => {
+        console.warn('[AUTH] Immediate refresh failed:', err);
+      });
+    } else {
+      // Programar para después
+      this.refreshTimer = setTimeout(() => {
+        this.refreshAccessToken().catch(err => {
+          console.warn('[AUTH] Scheduled refresh failed, but retrying on 401:', err);
+        });
+      }, delay);
+    }
   }
 
   private clearSession(): void {
