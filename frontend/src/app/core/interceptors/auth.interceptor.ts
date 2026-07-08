@@ -54,7 +54,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
       if (err instanceof HttpErrorResponse && err.status === 409 && isApiRequest) {
         const message = err.error?.message ||
                        'El registro fue modificado por otro usuario. Por favor recarga y vuelve a intentarlo.';
-        notify.warn('Conflicto de actualización', message);
+        notify.warning('Conflicto de actualización', message);
       }
 
       return throwError(() => err);

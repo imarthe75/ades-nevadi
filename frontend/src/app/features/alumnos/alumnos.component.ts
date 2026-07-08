@@ -94,7 +94,7 @@ import { ApexNotificationService, ApexSearchComponent, ApexModalDialogComponent,
       size="sm">
       <div [formGroup]="crearAlumnoForm" style="display:flex;flex-direction:column;gap:0.5rem">
         <app-form-field
-          [control]="crearAlumnoForm.get('nombre') as FormControl"
+          [control]="getNombreControl()"
           label="Nombre(s)"
           placeholder="Ej: Juan Carlos"
           [maxLength]="100"
@@ -104,7 +104,7 @@ import { ApexNotificationService, ApexSearchComponent, ApexModalDialogComponent,
         />
 
         <app-form-field
-          [control]="crearAlumnoForm.get('apellido_paterno') as FormControl"
+          [control]="getApellidoPaternoControl()"
           label="Apellido paterno"
           placeholder="Ej: García"
           [maxLength]="100"
@@ -114,7 +114,7 @@ import { ApexNotificationService, ApexSearchComponent, ApexModalDialogComponent,
         />
 
         <app-form-field
-          [control]="crearAlumnoForm.get('apellido_materno') as FormControl"
+          [control]="getApellidoMaternoControl()"
           label="Apellido materno"
           placeholder="Ej: López"
           [maxLength]="100"
@@ -123,7 +123,7 @@ import { ApexNotificationService, ApexSearchComponent, ApexModalDialogComponent,
         />
 
         <app-form-field
-          [control]="crearAlumnoForm.get('curp') as FormControl"
+          [control]="getCurpControl()"
           label="CURP"
           placeholder="AAAA999999HAAAAA01"
           type="text"
@@ -391,6 +391,23 @@ export class AlumnosComponent implements OnInit {
   openDialog(): void {
     this.crearAlumnoForm.reset();
     this.showDialog.set(true);
+  }
+
+  // Getters para FormControl binding en template
+  getNombreControl(): FormControl {
+    return this.crearAlumnoForm.get('nombre') as FormControl;
+  }
+
+  getApellidoPaternoControl(): FormControl {
+    return this.crearAlumnoForm.get('apellido_paterno') as FormControl;
+  }
+
+  getApellidoMaternoControl(): FormControl {
+    return this.crearAlumnoForm.get('apellido_materno') as FormControl;
+  }
+
+  getCurpControl(): FormControl {
+    return this.crearAlumnoForm.get('curp') as FormControl;
   }
 
   abrirAsignacionMasiva(): void {
