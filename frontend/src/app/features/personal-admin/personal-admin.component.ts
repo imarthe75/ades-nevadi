@@ -2,10 +2,12 @@
  * Personal no-docente: directivos, coordinadores, secretarías, prefectos,
  * personal de apoyo y personal de salud.
  * Tabs por tipo de personal — Interactive Grid APEX-style.
+ *
+ * Validación integral (Fase 1-3): FormFieldComponent + InputFormattersService
  */
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { FormBuilder, FormsModule, ReactiveFormsModule, FormControl, Validators } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { DialogModule } from 'primeng/dialog';
@@ -16,8 +18,11 @@ import { TagModule } from 'primeng/tag';
 
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
+import { InputFormattersService } from '../../shared/services/input-formatters.service';
 import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
+import { FormFieldComponent } from '../../shared/components/form-field/form-field.component';
 import { HelpButtonComponent } from '../../shared/components/help-button/help-button.component';
+import { AdesValidators } from '../../shared/validators/ades-validators';
 import { ApexNotificationService } from 'apex-component-library';
 
 // ── Tipos locales ─────────────────────────────────────────────────────────────
@@ -136,11 +141,11 @@ function enrichRows(rows: EmpleadoRow[]): EmpleadoRow[] {
   selector: 'app-personal-admin',
   standalone: true,
   imports: [
-    CommonModule, FormsModule,
+    CommonModule, FormsModule, ReactiveFormsModule,
     ButtonModule, InputTextModule, DialogModule, SelectModule,
     TabsModule, Tab, TabList, TabPanel, TabPanels,
     TooltipModule, TagModule,
-    InteractiveGridComponent, HelpButtonComponent,
+    InteractiveGridComponent, FormFieldComponent, HelpButtonComponent,
   ],
   template: `
     <!-- ── Diálogo Alta ─────────────────────────────────────────────────── -->
@@ -153,23 +158,57 @@ function enrichRows(rows: EmpleadoRow[]): EmpleadoRow[] {
       <div class="dlg-grid">
         <div class="dlg-section-title">Datos personales</div>
         <div class="dlg-row">
-          <div><label class="dlg-lbl">Nombre(s) *</label>
-            <input pInputText [(ngModel)]="formPersona.nombre" style="width:100%" /></div>
-          <div><label class="dlg-lbl">Apellido paterno *</label>
-            <input pInputText [(ngModel)]="formPersona.apellido_paterno" style="width:100%" /></div>
+          <div>
+            <app-form-field
+              [control]="fcNombre"
+              label="Nombre(s)"
+              placeholder="Ej: Juan Carlos"
+              [maxLength]="100"
+              [required]="true"
+              [formatter]="inputFormatters.formatNombre.bind(inputFormatters)"
+              helpText="Solo letras, espacios y guiones"
+            />
+          </div>
+          <div>
+            <app-form-field
+              [control]="fcApellidoPaterno"
+              label="Apellido paterno"
+              placeholder="Ej: García"
+              [maxLength]="100"
+              [required]="true"
+              [formatter]="inputFormatters.formatNombre.bind(inputFormatters)"
+              helpText="Solo letras, espacios y guiones"
+            />
+          </div>
         </div>
         <div class="dlg-row">
-          <div><label class="dlg-lbl">Apellido materno</label>
-            <input pInputText [(ngModel)]="formPersona.apellido_materno" style="width:100%" /></div>
-          <div><label class="dlg-lbl">CURP</label>
-            <input pInputText [(ngModel)]="formPersona.curp" maxlength="18" style="width:100%;text-transform:uppercase" /></div>
+          <div>
+            <app-form-field
+              [control]="fcApellidoMaterno"
+              label="Apellido materno"
+              placeholder="Ej: López"
+              [maxLength]="100"
+              [formatter]="inputFormatters.formatNombre.bind(inputFormatters)"
+              helpText="Opcional"
+            />
+          </div>
+          <div>
+            <app-form-field
+              [control]="fcCURP"
+              label="CURP"
+              placeholder="Ej: AAAA999999HAAAAA01"
+              [maxLength]="18"
+              [formatter]="inputFormatters.formatCURP.bind(inputFormatters)"
+              helpText="18 caracteres, se auto-completa a mayúsculas"
+            />
+          </div>
         </div>
         <div class="dlg-row">
           <div><label class="dlg-lbl">Género</label>
-            <p-select [options]="generoOpts" [(ngModel)]="formPersona.genero"
+            <p-select [options]="generoOpts" [formControl]="fcGenero"
               optionLabel="label" optionValue="value" style="width:100%" [showClear]="true" placeholder="Género…" /></div>
           <div><label class="dlg-lbl">Fecha de nacimiento</label>
-            <input pInputText [(ngModel)]="formPersona.fecha_nacimiento" type="date" style="width:100%" /></div>
+            <input pInputText [formControl]="fcFechaNacimiento" type="date" style="width:100%" /></div>
         </div>
         <p style="font-size:.78rem;color:var(--text-secondary);margin:0 0 .5rem">
           Teléfono y email se agregan desde el perfil en la sección <em>Domicilio y Contactos</em>.
@@ -179,37 +218,79 @@ function enrichRows(rows: EmpleadoRow[]): EmpleadoRow[] {
         @if (!modoSalud()) {
           <div class="dlg-row">
             <div><label class="dlg-lbl">Tipo de rol *</label>
-              <p-select [options]="rolesOpts" [(ngModel)]="formLaborales.tipo_rol"
+              <p-select [options]="rolesOpts" [formControl]="fcTipoRol"
                 optionLabel="label" optionValue="value" style="width:100%" placeholder="Seleccionar rol…" /></div>
-            <div><label class="dlg-lbl">Área / Departamento</label>
-              <input pInputText [(ngModel)]="formLaborales.area" style="width:100%" /></div>
+            <div>
+              <app-form-field
+                [control]="fcArea"
+                label="Área / Departamento"
+                placeholder="Ej: Recursos Humanos"
+                [maxLength]="100"
+                [formatter]="inputFormatters.formatNombre.bind(inputFormatters)"
+              />
+            </div>
           </div>
         }
         <div class="dlg-row">
-          <div><label class="dlg-lbl">Número de empleado</label>
-            <input pInputText [(ngModel)]="formLaborales.numero_empleado" style="width:100%" /></div>
-          <div><label class="dlg-lbl">Cédula profesional</label>
-            <input pInputText [(ngModel)]="formLaborales.cedula_profesional" style="width:100%" /></div>
+          <div>
+            <app-form-field
+              [control]="fcNumeroEmpleado"
+              label="Número de empleado"
+              placeholder="Ej: EMP-001"
+              [maxLength]="50"
+            />
+          </div>
+          <div>
+            <app-form-field
+              [control]="fcCedulaProfesional"
+              label="Cédula profesional"
+              placeholder="Ej: 12345678"
+              [maxLength]="50"
+            />
+          </div>
         </div>
         <div class="dlg-row">
-          <div><label class="dlg-lbl">Especialidad</label>
-            <input pInputText [(ngModel)]="formLaborales.especialidad" style="width:100%" /></div>
+          <div>
+            <app-form-field
+              [control]="fcEspecialidad"
+              label="Especialidad"
+              placeholder="Ej: Pedagogía"
+              [maxLength]="100"
+              [formatter]="inputFormatters.formatNombre.bind(inputFormatters)"
+            />
+          </div>
           <div><label class="dlg-lbl">Tipo contrato</label>
-            <p-select [options]="contratoOpts" [(ngModel)]="formLaborales.tipo_contrato"
+            <p-select [options]="contratoOpts" [formControl]="fcTipoContrato"
               optionLabel="label" optionValue="value" style="width:100%" [showClear]="true" placeholder="Tipo…" /></div>
         </div>
         <div class="dlg-row">
           <div><label class="dlg-lbl">Turno</label>
-            <p-select [options]="turnoOpts" [(ngModel)]="formLaborales.turno"
+            <p-select [options]="turnoOpts" [formControl]="fcTurno"
               optionLabel="label" optionValue="value" style="width:100%" [showClear]="true" placeholder="Turno…" /></div>
           <div><label class="dlg-lbl">Fecha de ingreso</label>
-            <input pInputText [(ngModel)]="formLaborales.fecha_ingreso_inst" type="date" style="width:100%" /></div>
+            <input pInputText [formControl]="fcFechaIngreso" type="date" style="width:100%" /></div>
         </div>
         <div class="dlg-row">
-          <div><label class="dlg-lbl">RFC</label>
-            <input pInputText [(ngModel)]="formLaborales.rfc" style="width:100%;text-transform:uppercase" /></div>
-          <div><label class="dlg-lbl">NSS</label>
-            <input pInputText [(ngModel)]="formLaborales.nss" style="width:100%" /></div>
+          <div>
+            <app-form-field
+              [control]="fcRFC"
+              label="RFC"
+              placeholder="Ej: AAAA999999AAA"
+              [maxLength]="13"
+              [formatter]="inputFormatters.formatRFC.bind(inputFormatters)"
+              helpText="12-13 caracteres, se auto-completa a mayúsculas"
+            />
+          </div>
+          <div>
+            <app-form-field
+              [control]="fcNSS"
+              label="NSS (IMSS)"
+              placeholder="Ej: 12345678901"
+              [maxLength]="11"
+              [formatter]="inputFormatters.formatNumeric.bind(inputFormatters, 11)"
+              helpText="11 dígitos"
+            />
+          </div>
         </div>
       </div>
 
@@ -317,7 +398,9 @@ export class PersonalAdminComponent implements OnInit {
 
   private api   = inject(ApiService);
   private ctx   = inject(ContextService);
+  private fb    = inject(FormBuilder);
   private readonly notify = inject(ApexNotificationService);
+  readonly inputFormatters = inject(InputFormattersService);
 
   tabActivo     = signal<string>('directivos');
   loading       = signal(false);
@@ -329,6 +412,29 @@ export class PersonalAdminComponent implements OnInit {
   allAdmin      = signal<EmpleadoRow[]>([]);
   personalSalud = signal<EmpleadoRow[]>([]);
   seleccionado  = signal<EmpleadoRow | null>(null);
+
+  // FormControls para validación integral
+  fcNombre = new FormControl('', [Validators.required, Validators.maxLength(100)]);
+  fcApellidoPaterno = new FormControl('', [Validators.required, Validators.maxLength(100)]);
+  fcApellidoMaterno = new FormControl('', [Validators.maxLength(100)]);
+  fcCURP = new FormControl('', [AdesValidators.isCURP()]);
+  fcGenero = new FormControl('');
+  fcFechaNacimiento = new FormControl('');
+  fcEstadoCivil = new FormControl('');
+  fcPaisNacimiento = new FormControl('México');
+  fcNacionalidad = new FormControl('Mexicana');
+
+  fcTipoRol = new FormControl('', [Validators.required]);
+  fcNumeroEmpleado = new FormControl('', [Validators.maxLength(50)]);
+  fcArea = new FormControl('', [Validators.maxLength(100)]);
+  fcTipoContrato = new FormControl('');
+  fcNivelEstudios = new FormControl('');
+  fcCedulaProfesional = new FormControl('', [Validators.maxLength(50)]);
+  fcEspecialidad = new FormControl('', [Validators.maxLength(100)]);
+  fcTurno = new FormControl('');
+  fcRFC = new FormControl('', [AdesValidators.isRFC()]);
+  fcNSS = new FormControl('', [Validators.maxLength(11), AdesValidators.isNumeric()]);
+  fcFechaIngreso = new FormControl('');
 
   formPersona:   PersonaForm   = emptyPersona();
   formLaborales: LaboralesForm = emptyLaborales();
@@ -407,28 +513,63 @@ export class PersonalAdminComponent implements OnInit {
   }
 
   openDialog(): void {
-    this.formPersona   = emptyPersona();
-    this.formLaborales = emptyLaborales();
+    this.resetFormControls();
     this.formPlantelId = this.ctx.plantel()?.id ?? '';
     this.showDialog.set(true);
   }
 
   guardar(): void {
-    if (!this.formPersona.nombre || !this.formPersona.apellido_paterno) {
-      this.notify.warning('Faltan datos', 'Nombre y apellido paterno son requeridos');
+    // Validar campos requeridos
+    if (this.fcNombre.invalid || this.fcApellidoPaterno.invalid) {
+      this.notify.warning('Faltan datos', 'Nombre y apellido paterno son requeridos y válidos');
       return;
     }
-    if (!this.modoSalud() && !this.formLaborales.tipo_rol) {
+    if (!this.modoSalud() && this.fcTipoRol.invalid) {
       this.notify.warning('Faltan datos', 'El tipo de rol es requerido');
+      return;
+    }
+
+    // Validar que CURP y RFC sean válidos si se proporcionan
+    if (this.fcCURP.value && this.fcCURP.invalid) {
+      this.notify.warning('Datos inválidos', 'CURP no válida');
+      return;
+    }
+    if (this.fcRFC.value && this.fcRFC.invalid) {
+      this.notify.warning('Datos inválidos', 'RFC no válido');
       return;
     }
 
     this.guardando.set(true);
     const endpoint = this.modoSalud() ? '/personal-salud' : '/personal-admin';
+
     const payload: FormState = {
       plantel_id: this.formPlantelId,
-      persona: this.formPersona,
-      laborales: this.formLaborales,
+      persona: {
+        nombre: this.fcNombre.value || '',
+        apellido_paterno: this.fcApellidoPaterno.value || '',
+        apellido_materno: this.fcApellidoMaterno.value || '',
+        curp: this.fcCURP.value || '',
+        genero: this.fcGenero.value || '',
+        fecha_nacimiento: this.fcFechaNacimiento.value || '',
+        estado_civil: this.fcEstadoCivil.value || '',
+        pais_nacimiento: this.fcPaisNacimiento.value || 'México',
+        nacionalidad: this.fcNacionalidad.value || 'Mexicana',
+      },
+      laborales: {
+        tipo_rol: this.fcTipoRol.value || '',
+        numero_empleado: this.fcNumeroEmpleado.value || '',
+        area: this.fcArea.value || '',
+        tipo_contrato: this.fcTipoContrato.value || '',
+        nivel_estudios: this.fcNivelEstudios.value || '',
+        cedula_profesional: this.fcCedulaProfesional.value || '',
+        especialidad: this.fcEspecialidad.value || '',
+        turno: this.fcTurno.value || '',
+        rfc: this.fcRFC.value || '',
+        nss: this.fcNSS.value || '',
+        clabe: '',
+        banco: '',
+        fecha_ingreso_inst: this.fcFechaIngreso.value || '',
+      },
     };
 
     this.api.post<EmpleadoRow>(endpoint, payload).subscribe({
@@ -436,6 +577,7 @@ export class PersonalAdminComponent implements OnInit {
         this.notify.success('Guardado', 'Registro creado correctamente');
         this.showDialog.set(false);
         this.guardando.set(false);
+        this.resetFormControls();
         if (this.modoSalud()) this.cargarSalud(); else this.cargarAdmin();
       },
       error: (e: any) => {
@@ -443,6 +585,25 @@ export class PersonalAdminComponent implements OnInit {
         this.guardando.set(false);
       },
     });
+  }
+
+  private resetFormControls(): void {
+    this.fcNombre.reset();
+    this.fcApellidoPaterno.reset();
+    this.fcApellidoMaterno.reset();
+    this.fcCURP.reset();
+    this.fcGenero.reset();
+    this.fcFechaNacimiento.reset();
+    this.fcTipoRol.reset();
+    this.fcNumeroEmpleado.reset();
+    this.fcArea.reset();
+    this.fcTipoContrato.reset();
+    this.fcCedulaProfesional.reset();
+    this.fcEspecialidad.reset();
+    this.fcTurno.reset();
+    this.fcRFC.reset();
+    this.fcNSS.reset();
+    this.fcFechaIngreso.reset();
   }
 
   abrirPerfil(row: EmpleadoRow): void {
