@@ -45,7 +45,12 @@ public class CalificacionApplicationService
 
     @Override
     public List<Calificacion> ejecutar(UUID estudianteId) {
-        return repository.findByEstudianteId(estudianteId);
+        // Deprecated: use ejecutar(estudianteId, usuarioId) instead for BOLA prevention
+        return ejecutar(estudianteId, UUID.randomUUID());
+    }
+
+    public List<Calificacion> ejecutar(UUID estudianteId, UUID usuarioId) {
+        return repository.findByEstudianteId(estudianteId, usuarioId);
     }
 
     private void publicarEvento(Calificacion c) {

@@ -62,8 +62,10 @@ public class CalificacionPersistenceAdapter implements CalificacionRepositoryPor
     }
 
     @Override
-    @Cacheable(value = "boletas", key = "#estudianteId")
-    public List<Calificacion> findByEstudianteId(UUID estudianteId) {
+    @Cacheable(value = "boletas", key = "{#estudianteId, #usuarioActual}")
+    public List<Calificacion> findByEstudianteId(UUID estudianteId, UUID usuarioActual) {
+        // Cache key scoped by both estudianteId AND usuarioActual
+        // Prevents BOLA: different users get different cache entries
         return jpaRepository.findByEstudianteId(estudianteId)
                 .stream().map(this::toDomain).toList();
     }

@@ -11,5 +11,11 @@ public interface CalificacionRepositoryPort {
 
     Calificacion guardar(Calificacion calificacion);
 
-    List<Calificacion> findByEstudianteId(UUID estudianteId);
+    /**
+     * Obtener calificaciones de un estudiante con scoping de seguridad.
+     * @param estudianteId ID del estudiante
+     * @param usuarioActual ID del usuario solicitante (para scoping de caché y BOLA prevention)
+     * @return Lista de calificaciones
+     */
+    List<Calificacion> findByEstudianteId(UUID estudianteId, UUID usuarioActual);
 }

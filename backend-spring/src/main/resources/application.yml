@@ -51,6 +51,14 @@ spring:
     hibernate:
       ddl-auto: validate
     show-sql: false
+    properties:
+      hibernate:
+        jdbc:
+          batch_size: 20
+          fetch_size: 50
+          batch_versioned_data: true
+        order_inserts: true
+        order_updates: true
   flyway:
     enabled: false
   data:

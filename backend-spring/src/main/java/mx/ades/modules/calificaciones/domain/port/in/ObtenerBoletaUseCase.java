@@ -14,4 +14,14 @@ import java.util.UUID;
  */
 public interface ObtenerBoletaUseCase {
     List<Calificacion> ejecutar(UUID estudianteId);
+
+    /**
+     * Obtener boleta con scoping de usuario para BOLA prevention.
+     * @param estudianteId ID del estudiante
+     * @param usuarioId ID del usuario solicitante (usado para cache scoping)
+     * @return Lista de calificaciones del estudiante
+     */
+    default List<Calificacion> ejecutar(UUID estudianteId, UUID usuarioId) {
+        return ejecutar(estudianteId);
+    }
 }

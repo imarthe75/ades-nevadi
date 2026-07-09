@@ -58,9 +58,19 @@ public class CalificacionesController {
 
     @GetMapping("/boleta/{estudianteId}")
     public ResponseEntity<List<CalificacionResponseDto>> boleta(
-            @PathVariable("estudianteId") UUID estudianteId) {
+            @PathVariable("estudianteId") UUID estudianteId,
+            @AuthenticationPrincipal Jwt jwt) {
+
+        // Scoping: Validar que el usuario tiene acceso a ver calificaciones de este estudiante
+        AdesUser user = userService.resolveUser(jwt);
+        if (user.getNivelAcceso() < 3 && !user.getEstudianteId().equals(estudianteId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                "No tienes permiso para ver calificaciones de otro estudiante");
+        }
+
+        // Pasar usuarioId para scoping de caché (BOLA prevention)
         return ResponseEntity.ok(
-                obtenerBoleta.ejecutar(estudianteId).stream()
+                obtenerBoleta.ejecutar(estudianteId, user.getId()).stream()
                         .map(CalificacionResponseDto::from)
                         .toList());
     }
