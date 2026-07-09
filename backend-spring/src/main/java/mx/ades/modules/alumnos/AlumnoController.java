@@ -9,6 +9,8 @@ import mx.ades.modules.alumnos.query.AlumnoQueryService;
 import mx.ades.security.AdesUser;
 import mx.ades.security.AdesUserService;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -54,10 +56,11 @@ public class AlumnoController {
             @RequestParam(name = "nivel_id",   required = false) UUID nivelId,
             @RequestParam(name = "grado_id",   required = false) UUID gradoId,
             @RequestParam(name = "grupo_id",   required = false) UUID grupoId,
+            @PageableDefault(size = 20, page = 0) Pageable pageable,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         UUID effectivePlantel = userService.getEffectivePlantelId(user, plantelId);
-        return ResponseEntity.ok(query.listar(effectivePlantel, nivelId, gradoId, grupoId));
+        return ResponseEntity.ok(query.listar(effectivePlantel, nivelId, gradoId, grupoId, pageable));
     }
 
     @GetMapping("/{id}")

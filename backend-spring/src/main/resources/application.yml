@@ -6,6 +6,10 @@ server:
         secure: true
         same-site: lax
         http-only: true
+  compression:
+    enabled: true
+    min-response-size: 1024
+    mime-types: text/plain,text/css,application/json,application/javascript
 
 spring:
   jackson:
@@ -36,6 +40,13 @@ spring:
     username: ${SPRING_DATASOURCE_USERNAME:ades_admin}
     password: ${SPRING_DATASOURCE_PASSWORD:${POSTGRES_PASSWORD:changeme}}
     driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      idle-timeout: 600000
+      connection-timeout: 30000
+      max-lifetime: 1800000
+      auto-commit: false
   jpa:
     hibernate:
       ddl-auto: validate
