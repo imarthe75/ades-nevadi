@@ -8,6 +8,9 @@ import mx.ades.modules.evaluaciones.domain.port.in.CrearActividadUseCase;
 import mx.ades.modules.evaluaciones.query.TareaQueryService;
 import mx.ades.security.AdesUser;
 import mx.ades.security.AdesUserService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -32,21 +35,23 @@ public class TareaController {
     private final AdesUserService userService;
 
     @GetMapping("/grupo/{grupo_id}")
-    public ResponseEntity<List<Map<String, Object>>> actividadesDeGrupo(
+    public ResponseEntity<Page<Map<String, Object>>> actividadesDeGrupo(
             @PathVariable("grupo_id") UUID grupoId,
             @RequestParam(value = "materia_id", required = false) UUID materiaId,
             @RequestParam(value = "periodo_id", required = false) UUID periodoId,
-            @RequestParam(value = "tipo_item", required = false) String tipoItem) {
-        return ResponseEntity.ok(query.actividadesDeGrupo(grupoId, materiaId, periodoId, tipoItem));
+            @RequestParam(value = "tipo_item", required = false) String tipoItem,
+            @PageableDefault(size = 20, sort = "fecha_creacion", direction = org.springframework.data.domain.Sort.Direction.DESC) Pageable pageable) {
+        return ResponseEntity.ok(query.actividadesDeGrupoPaginado(grupoId, materiaId, periodoId, tipoItem, pageable));
     }
 
     /** GET /tareas?grupo_id=...&materia_id=... — alias con query params (formato usado por el frontend) */
     @GetMapping
-    public ResponseEntity<List<Map<String, Object>>> listar(
+    public ResponseEntity<Page<Map<String, Object>>> listar(
             @RequestParam(value = "grupo_id", required = false) UUID grupoId,
             @RequestParam(value = "materia_id", required = false) UUID materiaId,
             @RequestParam(value = "periodo_id", required = false) UUID periodoId,
             @RequestParam(value = "tipo_item", required = false) String tipoItem,
+            @PageableDefault(size = 20, sort = "fecha_creacion", direction = org.springframework.data.domain.Sort.Direction.DESC) Pageable pageable,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         // Para no-admins (DOCENTE, ALUMNO, PADRE) requerir grupo_id para evitar volcado cross-plantel
@@ -55,7 +60,7 @@ public class TareaController {
                 org.springframework.http.HttpStatus.BAD_REQUEST,
                 "El parámetro 'grupo_id' es requerido");
         }
-        return ResponseEntity.ok(query.actividadesDeGrupo(grupoId, materiaId, periodoId, tipoItem));
+        return ResponseEntity.ok(query.actividadesDeGrupoPaginado(grupoId, materiaId, periodoId, tipoItem, pageable));
     }
 
     /** PATCH /tareas/{id} — actualiza campos editables de la tarea */
@@ -114,9 +119,10 @@ public class TareaController {
     }
 
     @GetMapping("/{actividad_id}/entregas")
-    public ResponseEntity<List<Map<String, Object>>> entregasDeActividad(
-            @PathVariable("actividad_id") UUID actividadId) {
-        return ResponseEntity.ok(query.entregasDeActividad(actividadId));
+    public ResponseEntity<Page<Map<String, Object>>> entregasDeActividad(
+            @PathVariable("actividad_id") UUID actividadId,
+            @PageableDefault(size = 20, sort = "fecha_entrega", direction = org.springframework.data.domain.Sort.Direction.DESC) Pageable pageable) {
+        return ResponseEntity.ok(query.entregasDeActividadPaginado(actividadId, pageable));
     }
 
     public record CalificarMasivoRequest(List<ItemCalificacion> items) {

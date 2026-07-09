@@ -1,6 +1,9 @@
 package mx.ades.modules.evaluaciones.query;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -167,5 +170,100 @@ public class TareaQueryService {
         sql.append(" ORDER BY t.fecha_entrega, p.apellido_paterno");
 
         return jdbc.queryForList(sql.toString(), params.toArray());
+    }
+
+    @Transactional(readOnly = true)
+    public Page<Map<String, Object>> actividadesDeGrupoPaginado(UUID grupoId, UUID materiaId, UUID periodoId, String tipoItem, Pageable pageable) {
+        // Build count query
+        StringBuilder countSql = new StringBuilder("""
+            SELECT COUNT(*) FROM ades_tareas t
+             WHERE t.is_active = TRUE
+            """);
+
+        List<Object> params = new ArrayList<>();
+        List<Object> countParams = new ArrayList<>();
+
+        if (grupoId   != null) {
+            countSql.append(" AND t.grupo_id = ?::uuid");
+            countParams.add(grupoId.toString());
+        }
+        if (materiaId != null) {
+            countSql.append(" AND t.materia_id = ?::uuid");
+            countParams.add(materiaId.toString());
+        }
+        if (periodoId != null) {
+            countSql.append(" AND t.periodo_evaluacion_id = ?::uuid");
+            countParams.add(periodoId.toString());
+        }
+        if (tipoItem  != null && !tipoItem.isBlank()) {
+            countSql.append(" AND t.tipo_item = ?");
+            countParams.add(tipoItem);
+        }
+
+        long total = jdbc.queryForObject(countSql.toString(), Long.class, countParams.toArray());
+
+        // Build data query with LIMIT/OFFSET
+        StringBuilder sql = new StringBuilder("""
+            SELECT t.id, t.titulo, t.descripcion, t.tipo_item,
+                   t.fecha_asignacion, t.fecha_entrega, t.fecha_examen,
+                   t.puntaje_maximo, t.permite_entrega_tarde,
+                   t.instrucciones_url,
+                   m.nombre_materia,
+                   pe.nombre_periodo,
+                   tm.nombre_tema,
+                   te_stats.total_alumnos, te_stats.entregadas, te_stats.calificadas
+              FROM ades_tareas t
+              JOIN ades_materias m ON m.id = t.materia_id
+              LEFT JOIN ades_periodos_evaluacion pe ON pe.id = t.periodo_evaluacion_id
+              LEFT JOIN ades_temas tm ON tm.id = t.tema_id
+              LEFT JOIN LATERAL (
+                  SELECT COUNT(*) AS total_alumnos,
+                         COUNT(*) FILTER (WHERE te.estatus_entrega IN ('ENTREGADA','CALIFICADA')) AS entregadas,
+                         COUNT(*) FILTER (WHERE te.estatus_entrega = 'CALIFICADA') AS calificadas
+                    FROM ades_tareas_entregas te
+                   WHERE te.tarea_id = t.id
+              ) te_stats ON TRUE
+             WHERE t.is_active = TRUE
+            """);
+
+        params = new ArrayList<>();
+        if (grupoId   != null) { sql.append(" AND t.grupo_id = ?::uuid"); params.add(grupoId.toString()); }
+        if (materiaId != null) { sql.append(" AND t.materia_id = ?::uuid"); params.add(materiaId.toString()); }
+        if (periodoId != null) { sql.append(" AND t.periodo_evaluacion_id = ?::uuid"); params.add(periodoId.toString()); }
+        if (tipoItem  != null && !tipoItem.isBlank()) { sql.append(" AND t.tipo_item = ?"); params.add(tipoItem); }
+        sql.append(" ORDER BY t.fecha_entrega DESC, t.titulo");
+        sql.append(" LIMIT ? OFFSET ?");
+
+        params.add(pageable.getPageSize());
+        params.add(pageable.getOffset());
+
+        List<Map<String, Object>> content = jdbc.queryForList(sql.toString(), params.toArray());
+        return new PageImpl<>(content, pageable, total);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<Map<String, Object>> entregasDeActividadPaginado(UUID tareaId, Pageable pageable) {
+        // Count total
+        Long total = jdbc.queryForObject(
+            "SELECT COUNT(*) FROM ades_tareas_entregas te WHERE te.tarea_id = ?::uuid",
+            Long.class, tareaId.toString());
+
+        // Fetch page
+        List<Map<String, Object>> content = jdbc.queryForList("""
+            SELECT te.id, te.estudiante_id, te.estatus_entrega,
+                   te.fecha_entrega, te.es_tarde,
+                   te.calificacion_obtenida, te.comentario_profesor,
+                   te.archivo_url,
+                   p.nombre || ' ' || p.apellido_paterno AS alumno_nombre,
+                   est.numero_matricula
+              FROM ades_tareas_entregas te
+              JOIN ades_estudiantes est ON est.id = te.estudiante_id
+              JOIN ades_personas p ON p.id = est.persona_id
+             WHERE te.tarea_id = ?::uuid
+             ORDER BY p.apellido_paterno, p.nombre
+             LIMIT ? OFFSET ?
+            """, tareaId.toString(), pageable.getPageSize(), pageable.getOffset());
+
+        return new PageImpl<>(content, pageable, total);
     }
 }
