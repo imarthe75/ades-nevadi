@@ -47,6 +47,7 @@ interface ResumenDisponibilidad {
  */
 @Component({
   selector: 'app-disponibilidad',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     CommonModule, FormsModule, ButtonModule,

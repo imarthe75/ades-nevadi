@@ -35,6 +35,7 @@ import { ContextService } from '../../core/services/context.service';
  */
 @Component({
   selector: 'app-crear-tarea-desde-planeacion',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     CommonModule, FormsModule, ReactiveFormsModule,

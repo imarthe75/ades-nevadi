@@ -64,6 +64,7 @@ const NIVELES = [
  */
 @Component({
   selector: 'app-admision',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     CommonModule, FormsModule, ButtonModule, DialogModule,

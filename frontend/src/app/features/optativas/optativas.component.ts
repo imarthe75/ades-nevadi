@@ -47,6 +47,7 @@ const TIPO_LABELS: Record<string, string> = {
  */
 @Component({
   selector: 'app-optativas',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     CommonModule, FormsModule, ButtonModule, SelectModule, AutoCompleteModule,

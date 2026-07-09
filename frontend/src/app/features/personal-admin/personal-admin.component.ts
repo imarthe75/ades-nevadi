@@ -140,6 +140,7 @@ function enrichRows(rows: EmpleadoRow[]): EmpleadoRow[] {
 
 @Component({
   selector: 'app-personal-admin',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     CommonModule, FormsModule, ReactiveFormsModule,

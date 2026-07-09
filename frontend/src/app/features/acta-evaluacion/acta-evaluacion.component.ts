@@ -41,6 +41,7 @@ interface Acta {
  */
 @Component({
   selector: 'app-acta-evaluacion',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [CommonModule, FormsModule, ButtonModule, SelectModule, ToastModule],
   providers: [MessageService],

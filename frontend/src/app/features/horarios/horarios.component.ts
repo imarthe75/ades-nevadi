@@ -130,6 +130,7 @@ const HORARIO_GOLDEN_REQUERIDO: Record<string, Record<string, number>> = {
 
 @Component({
   selector: 'app-horarios',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     CommonModule, FormsModule,

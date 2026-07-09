@@ -71,6 +71,7 @@ interface CapacitacionForm {
  */
 @Component({
   selector: 'app-capacitaciones',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     CommonModule, FormsModule,

@@ -76,6 +76,7 @@ interface Compromiso {
 
 @Component({
   selector: 'app-conducta',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     CommonModule, FormsModule,

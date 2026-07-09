@@ -76,6 +76,7 @@ const NIVEL_ICON: Record<string, string> = {
  */
 @Component({
   selector: 'app-dashboard',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     CommonModule, RouterModule, FormsModule, CardModule, SkeletonModule,

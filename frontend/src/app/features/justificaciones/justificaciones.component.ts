@@ -53,6 +53,7 @@ const ESTADOS_OPT = [
  */
 @Component({
   selector: 'app-justificaciones',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     CommonModule, FormsModule, ButtonModule, DialogModule,

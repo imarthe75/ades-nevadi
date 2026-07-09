@@ -18,6 +18,7 @@ import { ContextService } from '../../core/services/context.service';
  */
 @Component({
   selector: 'app-director-dashboard',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [CommonModule, FormsModule, ChartModule, CardModule, SelectModule, TagModule],
   template: `

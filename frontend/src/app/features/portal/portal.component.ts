@@ -38,6 +38,7 @@ interface AlumnoResumen {
  */
 @Component({
   selector: 'app-portal',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     CommonModule, FormsModule,

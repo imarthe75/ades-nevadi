@@ -46,6 +46,7 @@ interface AlumnoOpt { id: string; label: string; }
  */
 @Component({
   selector: 'app-certificados',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     CommonModule, FormsModule,

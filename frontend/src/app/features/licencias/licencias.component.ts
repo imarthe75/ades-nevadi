@@ -41,6 +41,7 @@ interface Licencia {
  */
 @Component({
   selector: 'app-licencias',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     CommonModule, FormsModule, ReactiveFormsModule,

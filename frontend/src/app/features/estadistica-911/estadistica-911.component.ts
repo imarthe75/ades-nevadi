@@ -52,6 +52,7 @@ const BUCKETS: Record<string, { base: number; tope: number }> = {
  */
 @Component({
   selector: 'app-estadistica-911',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [CommonModule, FormsModule, ButtonModule, InputTextModule, ToastModule],
   providers: [MessageService],

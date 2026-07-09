@@ -87,6 +87,7 @@ interface Telemetria {
 
 @Component({
   selector: 'app-monitor',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [CommonModule, ButtonModule, TagModule, CardModule, TooltipModule,
             ProgressBarModule, InteractiveGridComponent],

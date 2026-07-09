@@ -36,6 +36,7 @@ interface VerificacionResult {
  */
 @Component({
   selector: 'app-verificar',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [CommonModule, RouterModule, ProgressSpinnerModule, TagModule],
   template: `

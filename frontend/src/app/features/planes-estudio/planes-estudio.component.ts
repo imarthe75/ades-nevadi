@@ -85,6 +85,7 @@ const NIVEL_ORDER = ['PRIMARIA', 'SECUNDARIA', 'PREPARATORIA'];
 
 @Component({
   selector: 'app-planes-estudio',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     CommonModule, FormsModule,

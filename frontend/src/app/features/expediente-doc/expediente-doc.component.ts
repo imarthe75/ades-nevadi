@@ -84,6 +84,7 @@ const TIPOS_DOCUMENTO = [
  */
 @Component({
   selector: 'app-expediente-doc',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     CommonModule, FormsModule,

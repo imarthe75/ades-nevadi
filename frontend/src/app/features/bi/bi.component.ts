@@ -26,6 +26,7 @@ type DashKey = 'instituto' | 'plantel' | 'docente' | 'alumno';
  */
 @Component({
   selector: 'app-bi',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [CommonModule, ButtonModule, ProgressSpinnerModule, MessageModule, TooltipModule],
   template: `

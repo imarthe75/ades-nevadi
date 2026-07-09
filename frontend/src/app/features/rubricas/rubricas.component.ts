@@ -51,6 +51,7 @@ const NIVEL_COLORS = ['var(--red-400)', 'var(--yellow-400)', 'var(--teal-400)', 
  */
 @Component({
   selector: 'app-rubricas',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     CommonModule, FormsModule,

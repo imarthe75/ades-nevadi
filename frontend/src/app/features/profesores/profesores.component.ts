@@ -24,6 +24,7 @@ import { ApexNotificationService } from 'apex-component-library';
 
 @Component({
   selector: 'app-profesores',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     CommonModule, FormsModule,

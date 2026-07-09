@@ -62,6 +62,7 @@ interface Catalogo {
  */
 @Component({
   selector: 'app-portal-admin',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   providers: [ConfirmationService],
   imports: [

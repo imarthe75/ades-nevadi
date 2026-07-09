@@ -313,6 +313,7 @@ const GUIAS_ROL = [
 
 @Component({
   selector: 'app-ayuda',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [CommonModule, FormsModule, AccordionModule, TabsModule, TagModule, ButtonModule, InputTextModule, InteractiveGridComponent, ApexListComponent],
   template: `

@@ -56,6 +56,7 @@ interface CambioGrupo {
 
 @Component({
   selector: 'app-movilidad',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     CommonModule, FormsModule, ButtonModule, DialogModule,

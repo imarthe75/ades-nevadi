@@ -107,6 +107,7 @@ const TIPO_ICON: Record<string, string> = {
  */
 @Component({
   selector: 'app-learning-paths',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     CommonModule, FormsModule, RouterModule,

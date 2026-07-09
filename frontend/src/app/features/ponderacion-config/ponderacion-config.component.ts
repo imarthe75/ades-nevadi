@@ -28,6 +28,7 @@ interface ItemRow    { tipo_item: string; nombre_personalizado: string | null; p
  */
 @Component({
   selector: 'app-ponderacion-config',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [CommonModule, FormsModule, ButtonModule, SelectModule,
             InputTextModule, InputNumberModule, TagModule, DialogModule,

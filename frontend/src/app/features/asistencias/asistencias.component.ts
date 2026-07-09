@@ -29,6 +29,7 @@ interface AsistenciaLocal {
  */
 @Component({
   selector: 'app-asistencias',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     CommonModule, FormsModule,

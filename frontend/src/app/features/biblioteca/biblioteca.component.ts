@@ -68,6 +68,7 @@ const CATEGORIAS = [
  */
 @Component({
   selector: 'app-biblioteca',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     CommonModule, FormsModule, ButtonModule, DialogModule, InputTextModule,

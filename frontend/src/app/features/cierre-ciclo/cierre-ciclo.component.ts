@@ -42,6 +42,7 @@ interface PlantelOpt {
 
 @Component({
   selector: 'app-cierre-ciclo',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     CommonModule, FormsModule, ButtonModule, DialogModule,

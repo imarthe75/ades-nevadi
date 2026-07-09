@@ -68,6 +68,7 @@ const TIPOS = [
  */
 @Component({
   selector: 'app-condiciones-cronicas',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     CommonModule, FormsModule, ButtonModule, DialogModule,

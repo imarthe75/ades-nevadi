@@ -58,6 +58,7 @@ const TIPO_SEV: Record<string, TagSeverity> = {
 
 @Component({
   selector: 'app-evaluaciones',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     CommonModule, FormsModule,

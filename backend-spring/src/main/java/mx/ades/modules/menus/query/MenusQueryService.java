@@ -3,6 +3,7 @@ package mx.ades.modules.menus.query;
 import lombok.RequiredArgsConstructor;
 import mx.ades.modules.menus.MenusController.MenuNode;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.*;

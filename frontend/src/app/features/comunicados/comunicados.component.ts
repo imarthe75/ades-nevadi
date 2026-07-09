@@ -59,6 +59,7 @@ const TIPOS = [
  */
 @Component({
   selector: 'app-comunicados',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     CommonModule, DatePipe, FormsModule,

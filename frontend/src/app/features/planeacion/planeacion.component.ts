@@ -58,6 +58,7 @@ const ESTADO_SEV: Record<string, TagSeverity> = {
  */
 @Component({
   selector: 'app-planeacion',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     CommonModule, FormsModule,

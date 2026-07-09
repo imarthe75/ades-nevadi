@@ -68,6 +68,7 @@ interface Anuncio {
  */
 @Component({
   selector: 'app-foros',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     CommonModule, FormsModule, TableModule, ButtonModule, DialogModule,

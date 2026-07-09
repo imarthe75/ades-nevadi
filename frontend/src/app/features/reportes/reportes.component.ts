@@ -55,6 +55,7 @@ const TIPOS_DOC = [
 
 @Component({
   selector: 'app-reportes',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     CommonModule, FormsModule,

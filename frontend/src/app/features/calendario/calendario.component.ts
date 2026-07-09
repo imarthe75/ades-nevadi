@@ -33,6 +33,7 @@ interface EventoForm {
  */
 @Component({
   selector: 'app-calendario',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     CommonModule, FormsModule,

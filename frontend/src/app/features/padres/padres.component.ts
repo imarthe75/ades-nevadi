@@ -51,6 +51,7 @@ interface CalificacionResumen {
  */
 @Component({
   selector: 'app-padres',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     CommonModule, RouterModule, FormsModule, ButtonModule, TagModule, TooltipModule,

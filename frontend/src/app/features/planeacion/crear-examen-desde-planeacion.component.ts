@@ -28,6 +28,7 @@ import { ApiService } from '../../core/services/api.service';
  */
 @Component({
   selector: 'app-crear-examen-desde-planeacion',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     CommonModule, FormsModule, ReactiveFormsModule,

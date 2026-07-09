@@ -55,6 +55,7 @@ const RIESGO_SEV: Record<string, TagSeverity> = { ALTO: 'danger', MEDIO: 'warn',
  */
 @Component({
   selector: 'app-grade-analytics',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     CommonModule, FormsModule, RouterModule,

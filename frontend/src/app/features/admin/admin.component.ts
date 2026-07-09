@@ -80,6 +80,7 @@ interface Catalogo {
 
 @Component({
   selector: 'app-admin',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     CommonModule, FormsModule,

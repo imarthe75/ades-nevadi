@@ -33,6 +33,7 @@ import { ApexNotificationService } from 'apex-component-library';
 
 @Component({
   selector: 'app-calificaciones',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     CommonModule, FormsModule,

@@ -73,6 +73,7 @@ const NIVELES_ACCESO_PORTAL = [
  */
 @Component({
   selector: 'app-padres-admin',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     CommonModule, FormsModule, ReactiveFormsModule,

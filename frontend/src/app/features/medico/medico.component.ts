@@ -68,6 +68,7 @@ interface Medicamento {
 
 @Component({
   selector: 'app-medico',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     CommonModule, FormsModule,

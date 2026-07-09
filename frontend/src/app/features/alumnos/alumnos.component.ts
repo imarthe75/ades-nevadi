@@ -27,6 +27,7 @@ import { ApexNotificationService, ApexSearchComponent, ApexModalDialogComponent,
 
 @Component({
   selector: 'app-alumnos',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     CommonModule, FormsModule, ReactiveFormsModule,

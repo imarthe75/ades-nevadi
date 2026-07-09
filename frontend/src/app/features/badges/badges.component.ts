@@ -56,6 +56,7 @@ interface AlumnoSugerencia {
  */
 @Component({
   selector: 'app-badges',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     CommonModule, FormsModule,

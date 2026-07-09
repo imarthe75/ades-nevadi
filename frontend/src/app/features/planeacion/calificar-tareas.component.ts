@@ -29,6 +29,7 @@ import { ApiService } from '../../core/services/api.service';
  */
 @Component({
   selector: 'app-calificar-tareas',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     CommonModule, FormsModule, ReactiveFormsModule,

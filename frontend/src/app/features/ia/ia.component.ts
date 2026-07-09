@@ -49,6 +49,7 @@ const RIESGO_SEVERITY: Record<string, AlertaSeverity> = {
 
 @Component({
   selector: 'app-ia',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     CommonModule, FormsModule,

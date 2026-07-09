@@ -1,6 +1,7 @@
 package mx.ades.modules.catalogos;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
@@ -15,6 +16,7 @@ public class CatalogsQueryService {
 
     private final JdbcTemplate jdbc;
 
+    @Cacheable(value = "catalogos", key = "'roles'", unless = "#result == null")
     public List<Map<String, Object>> roles() {
         return jdbc.queryForList(
                 "SELECT id, nombre_rol, descripcion, nivel_acceso FROM ades_roles " +
@@ -39,6 +41,7 @@ public class CatalogsQueryService {
         return jdbc.queryForList(sql.toString(), params.toArray());
     }
 
+    @Cacheable(value = "catalogos", key = "'paises'", unless = "#result == null")
     public List<Map<String, Object>> paises() {
         return jdbc.queryForList(
                 "SELECT id, clave_pais, nombre_pais, nacionalidad FROM ades_paises " +
@@ -46,6 +49,7 @@ public class CatalogsQueryService {
         );
     }
 
+    @Cacheable(value = "catalogos", key = "'nacionalidades'", unless = "#result == null")
     public List<Map<String, Object>> nacionalidades() {
         return jdbc.queryForList(
                 "SELECT DISTINCT nacionalidad FROM ades_paises " +

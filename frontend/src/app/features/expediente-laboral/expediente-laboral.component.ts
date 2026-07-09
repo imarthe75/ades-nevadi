@@ -45,6 +45,7 @@ interface ExpedienteLab {
  */
 @Component({
   selector: 'app-expediente-laboral',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     CommonModule, FormsModule, TableModule, ButtonModule,

@@ -43,6 +43,7 @@ interface Kardex {
  */
 @Component({
   selector: 'app-kardex',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [CommonModule, FormsModule, ButtonModule, SelectModule, ToastModule],
   providers: [MessageService],

@@ -68,6 +68,7 @@ const ESTADO_SEVERITY: Record<string, TagSeverity> = {
 
 @Component({
   selector: 'app-aulas',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     CommonModule, FormsModule,

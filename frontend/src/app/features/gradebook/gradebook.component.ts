@@ -88,6 +88,7 @@ interface Insights {
  */
 @Component({
   selector: 'app-gradebook',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     CommonModule, FormsModule, ButtonModule, SelectModule,

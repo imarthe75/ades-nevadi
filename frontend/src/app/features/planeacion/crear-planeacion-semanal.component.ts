@@ -33,6 +33,7 @@ import { ContextService } from '../../core/services/context.service';
  */
 @Component({
   selector: 'app-crear-planeacion-semanal',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     CommonModule, FormsModule, ReactiveFormsModule,

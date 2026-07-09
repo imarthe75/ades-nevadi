@@ -25,6 +25,7 @@ interface CicloOpt   { id: string; nombre_ciclo: string; es_vigente: boolean; }
  */
 @Component({
   selector: 'app-reinscripcion',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     CommonModule, FormsModule,

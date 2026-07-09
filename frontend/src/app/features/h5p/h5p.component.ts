@@ -63,6 +63,7 @@ type TabKey = 'biblioteca' | 'mis-resultados';
  */
 @Component({
   selector: 'app-h5p',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     CommonModule, FormsModule, DatePipe,

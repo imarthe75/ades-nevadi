@@ -23,6 +23,7 @@ import { ApexNotificationService, ApexSearchComponent } from 'apex-component-lib
 
 @Component({
   selector: 'app-grupos',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     CommonModule, FormsModule,

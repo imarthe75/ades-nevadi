@@ -111,6 +111,7 @@ const TIPOS_PREG = [
  */
 @Component({
   selector: 'app-encuestas',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     CommonModule, FormsModule,

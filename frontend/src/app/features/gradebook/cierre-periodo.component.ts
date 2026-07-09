@@ -34,6 +34,7 @@ interface ValidacionResult {
  */
 @Component({
   selector: 'app-cierre-periodo',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     CommonModule, FormsModule,

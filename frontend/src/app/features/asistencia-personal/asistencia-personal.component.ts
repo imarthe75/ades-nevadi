@@ -56,6 +56,7 @@ interface ReportePersonal {
  */
 @Component({
   selector: 'app-asistencia-personal',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     CommonModule, FormsModule, ButtonModule,

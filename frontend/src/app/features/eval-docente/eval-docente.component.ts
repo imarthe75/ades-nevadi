@@ -69,6 +69,7 @@ const TIPO_LABELS: Record<string, string> = {
 
 @Component({
   selector: 'app-eval-docente',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     CommonModule, FormsModule,

@@ -70,6 +70,7 @@ const ESTADO_SEV: Record<string, string> = {
  */
 @Component({
   selector: 'app-bbb',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     CommonModule, FormsModule, DatePipe,

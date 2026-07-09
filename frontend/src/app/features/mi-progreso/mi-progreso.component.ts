@@ -47,6 +47,7 @@ interface EntregaHistorial extends EntregaPendiente {
  */
 @Component({
   selector: 'app-mi-progreso',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     CommonModule, FormsModule, ButtonModule, SelectModule,

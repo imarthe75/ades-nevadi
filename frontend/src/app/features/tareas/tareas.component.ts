@@ -21,6 +21,7 @@ import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/
 
 @Component({
   selector: 'app-tareas',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     CommonModule, FormsModule,
