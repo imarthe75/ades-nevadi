@@ -1,0 +1,33 @@
+# =============================================================================
+# Rate Limiting Configuration — Activo en todos los profiles
+# =============================================================================
+# Protege contra:
+# - Brute force attacks en /api/v1/auth/login (5 req/min por IP)
+# - API abuse en /api/v1/* (100 req/min por IP)
+# - Credential stuffing
+# - DDoS amplification
+#
+# Umbra excluidos de rate limiting:
+# - /actuator/* (health checks)
+# - /swagger* (API docs)
+# - /v3/api-docs (OpenAPI)
+
+logging:
+  level:
+    mx.ades.config.RateLimitingFilter: DEBUG
+    io.bucket4j: INFO
+
+# Métricas
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  metrics:
+    enable:
+      jvm: true
+      process: true
+      logback: true
+    export:
+      prometheus:
+        enabled: true

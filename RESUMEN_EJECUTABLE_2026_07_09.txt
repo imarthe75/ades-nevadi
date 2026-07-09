@@ -1,0 +1,245 @@
+════════════════════════════════════════════════════════════════════════════════
+  AUDITORÍA INTEGRAL ADES — PLAN EJECUTABLE FINAL
+  Sin SonarQube (disco 93% full) | 6 semanas | 290 horas
+  Start: Lunes 2026-07-15 | Score Target: 72→82/100
+════════════════════════════════════════════════════════════════════════════════
+
+📊 ESTADO ACTUAL
+────────────────────────────────────────────────────────────────────────────────
+  Score: 72/100 (Level 3/5 — MEDIUM-HIGH)
+  Hallazgos Detectados: 5 críticos
+  Fortalezas: 5 (Auditoría BD, Auth, Memory, Security, OAuth2)
+
+  Capa              Score    Status   Hallazgos Críticos
+  ──────────────────────────────────────────────────────
+  Database          85/100   ✓        1 (FK Indexes)
+  Backend (Spring)  78/100   ⚠️       1 (Rate Limiting)
+  Frontend (Angular)68/100   ⚠️       1 (Lazy Images)
+  Seguridad         82/100   ✓        0
+  Infraestructura   71/100   ⚠️       1 (Nginx Compression)
+  Testing           58/100   ❌       2 (Coverage, E2E 4%)
+
+🎯 HALLAZGOS A IMPLEMENTAR (FINAL SCOPE)
+────────────────────────────────────────────────────────────────────────────────
+
+SEMANA 1: BLOCKER CRÍTICO (50 horas) — Must complete Friday
+├─ Rate Limiting (Spring Cloud Gateway + Valkey)
+│  Owner: Backend Lead | Effort: 24-32h | Status: ⏳ Not Started
+│  AC: 429 responses on 6+ request/min/IP, JMeter passed
+│
+├─ Lazy Loading Images (loading="lazy" en 150+ imágenes)
+│  Owner: Frontend Lead | Effort: 16-20h | Status: ⏳ Not Started
+│  AC: Lighthouse >85/100, LCP <2.5s, CLS <0.1
+│
+└─ Nginx Compression (gzip + brotli)
+   Owner: DevOps | Effort: 4-6h | Status: ⏳ Not Started
+   AC: Content-Encoding: gzip, payloads 80-90% reduced
+
+SEMANA 2: DB Optimization (20 horas)
+├─ FK Indexes (5+ tablas críticas: expediente, calificacion, tarea, clase)
+   Owner: DBA | Effort: 8-12h
+   AC: Index Scan en lugar de Seq Scan, performance +50%
+
+SEMANAS 3-6: E2E Expansion + Optimization (220 horas)
+├─ E2E Specs Expansion (23 → 90+ specs)
+│  Owner: QA/Automation | Effort: 100-140h
+│  Coverage: Auth, CRUD, Performance, Edge Cases, Resilience
+│  AC: 90+ specs, all green, <15min total runtime
+│
+└─ OnPush Migration (45 componentes)
+   Owner: Frontend Lead | Effort: 40-60h
+   AC: ChangeDetectionStrategy.OnPush en 85%+ componentes
+
+🚫 NO HACER (Pospuesto)
+────────────────────────────────────────────────────────────────────────────────
+SonarQube Setup + Jacoco + nyc Coverage Integration
+├─ Razón: Disco 93-96% full (~45GB docker images activas)
+├─ Reschedule: 2026-09-06 (después cleanup docker builder)
+└─ Workaround: Usar reports locales (sin dashboard) if needed
+
+📅 ROADMAP 6 SEMANAS
+────────────────────────────────────────────────────────────────────────────────
+
+SEMANA 1 (50h):   Rate Limiting + Lazy Images + Nginx Compression
+                  → Score: 72→76/100 (+4pts)
+                  → Checkpoint VIERNES: Todos merged + validados
+                  → Status: 🟢 GREEN → AVANZAR
+
+SEMANA 2 (20h):   FK Indexes + DB Optimization
+                  → Score: 76→77/100 (+1pt)
+                  → EXPLAIN ANALYZE: Seq Scan → Index Scan
+
+SEMANA 3 (60h):   E2E Foundation (Auth + CRUD + Helpers)
+                  → Score: 77→78/100 (+1pt)
+                  → 35+ E2E specs implementados
+
+SEMANA 4 (70h):   E2E Performance + OnPush Migration
+                  → Score: 78→79/100 (+1pt)
+                  → 55+ E2E specs, 40+ componentes OnPush
+
+SEMANA 5 (50h):   E2E Edge Cases + CI/CD Integration
+                  → Score: 79→80/100 (+1pt)
+                  → 80+ E2E specs, GitHub Actions active
+
+SEMANA 6 (40h):   Regression + Load Testing + Final Validation
+                  → Score: 80→82/100 (+2pts) ✅
+                  → 90+ E2E specs (all green)
+                  → Load test: 100 concurrent users <500ms p99
+
+TOTAL: ~290 horas | Completado: 2026-08-29 (viernes)
+
+📊 MÉTRICAS DE ÉXITO
+────────────────────────────────────────────────────────────────────────────────
+
+Métrica                    ANTES      DESPUÉS    MEJORA
+───────────────────────────────────────────────────────────
+Rate Limiting              0/555      555/555    +100%
+Lazy Images                0%         100%       +100%
+Nginx Compression          0%         85%        +85%
+E2E Specs                 23 (4%)    90+ (80%)  +289%
+FK Indexes                 2         7+         +350%
+OnPush Strategy           59.4%      85%+       +25%
+───────────────────────────────────────────────────────────
+Overall Score            72/100     82/100     +10pts ✓
+
+SonarQube Coverage       UNKNOWN     TBD        ⏭️  Sep 2026
+
+👥 TEAM ASSIGNMENT
+────────────────────────────────────────────────────────────────────────────────
+
+Backend Lead:     W1-2, W4       Rate Limiting, FK Indexes        56h
+Frontend Lead:    W1, W4-6       Lazy Images, OnPush, E2E         96h
+QA/Automation:    W3-6           E2E Specs expansion             100h
+DevOps:           W1-2           Nginx, Infrastructure            10h
+DBA:              W2             FK Indexes, EXPLAIN ANALYZE      10h
+────────────────────────────────────────────────────────────────────────────
+TOTAL:                                                           ~290h
+
+Timeline Options:
+  • 2 developers × 6 semanas (parallel + sequential)
+  • 4-5 developers × 3-4 semanas (full parallel) — RECOMMENDED
+
+🔴 SEMANA 1 — BLOCKER CHECKLIST
+────────────────────────────────────────────────────────────────────────────────
+
+RATE LIMITING (Backend Lead, 24-32h)
+├─ LUNES (8h):   Add Spring Cloud Gateway deps, RateLimitingConfig.java
+├─ MARTES (8h):  Configure routes, test locally (port 8080)
+├─ MIÉRCOLES (8h): JMeter tests, validation
+├─ JUEVES (4h):  Deploy staging, manual testing
+└─ VIERNES (4h): Code review + merge to main
+
+AC: Gateway running, 429 responses validated, JMeter passed
+
+LAZY LOADING IMAGES (Frontend Lead, 16-20h)
+├─ LUNES (8h):   Audit script, migration script
+├─ MARTES (6h):  Lighthouse audit (LCP <2.5s, score >85)
+├─ MIÉRCOLES (6h): Manual testing (Chrome DevTools Slow 3G)
+└─ JUEVES-VIERNES: Merge to main
+
+AC: Lighthouse >85/100, LCP <2.5s, CLS <0.1, 0 broken images
+
+NGINX COMPRESSION (DevOps, 4-6h)
+├─ LUNES (3h):   Edit nginx.conf (add gzip + brotli)
+└─ MARTES (3h):  Reload, verify compression (curl --compressed)
+
+AC: Content-Encoding present, payloads 80-90% reduced
+
+📌 CRÍTICO: Todos 3 gaps deben estar merged + validados VIERNES
+🚦 Status VIERNES:
+   🟢 GREEN (Score 72→76) = AVANZAR A SEMANA 2
+   🔴 RED   (Algo falla) = EXTEND SEMANA 1 o REPLAN
+
+📁 DOCUMENTACIÓN GENERADA
+────────────────────────────────────────────────────────────────────────────────
+
+✅ PLAN EJECUTABLE DETALLADO (Primary Reference)
+   /opt/ades/PLAN_IMPLEMENTACION_EJECUTABLE_2026_07_09.md
+   → 4,500+ líneas paso-a-paso
+   → Checklist diario SEMANA 1
+   → Code templates (Spring, nginx, Angular, Playwright)
+   → Criteria de aceptación + escalation matrix
+   → Ready to hand to team LUNES
+
+✅ MEMORIA PARA FUTURAS SESIONES
+   /home/ubuntu/.claude/projects/.../project_auditoria_..._EJECUTABLE.md
+   → Tracking checklist por semana
+   → Red flags + blockers
+   → Próxima reaudit: 2026-09-06
+
+✅ PLAN ORIGINAL (Con SonarQube, para futuro)
+   /opt/ades/AUDITORIA_ADES_2026_07_09_PLAN_IMPLEMENTACION.md
+   → 362h roadmap completo (cuando disco libre en Sep)
+   → Full 8-week plan con coverage + testing
+   → Reference para Sept 2026 implementation
+
+🚀 PRÓXIMOS PASOS
+────────────────────────────────────────────────────────────────────────────────
+
+1️⃣  HOY: LEE plan ejecutable (30min)
+    /opt/ades/PLAN_IMPLEMENTACION_EJECUTABLE_2026_07_09.md
+
+2️⃣  HOY: COMPARTE con equipo (1-2h)
+    Backend, Frontend, QA, DevOps — confirma disponibilidad W1-6
+
+3️⃣  HOY: CREA JIRA EPIC (30min)
+    "ADES Auditoría Integral — Plan Ejecutable"
+    Stories: Rate Limiting, Lazy Images, Nginx, FK Indexes, E2E, OnPush
+
+4️⃣  LUNES: KICK-OFF (30min)
+    • Presentar plan a team
+    • Confirmar SEMANA 1 goals (3 P1 gaps blocker)
+    • Arrange daily standup (10am, 15min)
+    • Create feature branches
+
+5️⃣  LUNES AFTERNOON: START WORK
+    Backend: rate-limiting feature branch
+    Frontend: lazy-images feature branch
+    DevOps: nginx backup + review
+
+⚠️  CRITICAL PATH
+────────────────────────────────────────────────────────────────────────────────
+
+🚨 BLOCKER: Si SEMANA 1 NO cierra 3 P1 gaps
+   ├─ NO AVANZAR a SEMANA 2
+   ├─ Riesgo cascada de delays
+   └─ Re-plan requerido en W1 Thursday
+
+⚠️  SonarQube pospuesto por disco lleno (93% full)
+   ├─ Cleanup: 2026-09-06
+   ├─ Workaround: Habilitar reports locales (sin dashboard)
+   └─ NO impacta rollout
+
+⚠️  Si SEMANA 1 toma >60h: delay en cascada para E2E
+   └─ Mitigation: Parallelizar rate-limiting + lazy-images
+
+📈 REAUDITORÍA PROGRAMADA
+────────────────────────────────────────────────────────────────────────────────
+
+Fecha: Viernes 2026-09-06 (30 días post-implementación)
+Metodología: Same 6-layer audit (DB, Backend, Frontend, Sec, Infra, Testing)
+Target Score: 82/100 (actual ejecución) → 85+/100 (reaudit expected)
+
+Expected Results:
+  ✅ Todos P1 gaps resueltos
+  ✅ E2E suite expandido a 90+ specs
+  ✅ Performance baseline mejorado
+  ✅ Disk < 80% (SonarQube installable)
+  ✅ Ready for SonarQube + Coverage integration
+
+════════════════════════════════════════════════════════════════════════════════
+
+✅ PLAN EJECUTABLE FINAL
+
+Status: READY TO START LUNES 2026-07-15
+Scope: 290h, 6 semanas, 6 hallazgos resueltos
+Score Target: 72 → 82/100 (+10 puntos)
+Team: Backend, Frontend, QA, DevOps, DBA
+
+Recomendación: Imprime/comparte este documento con equipo HOY.
+Próxima acción: Kick-off meeting LUNES 10am.
+
+════════════════════════════════════════════════════════════════════════════════
+Documento generado: 2026-07-09
+Auditoría Integral ADES — Plan Ejecutable (Sin SonarQube)
+════════════════════════════════════════════════════════════════════════════════
