@@ -1,6 +1,7 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, OnDestroy, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subject, takeUntil } from 'rxjs';
 import { ButtonModule } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
 import { TableModule } from 'primeng/table';
@@ -342,7 +343,8 @@ import { ApiService } from '../../core/services/api.service';
     }
   `]
 })
-export class DashboardBolecasYCoberturaComponent implements OnInit {
+export class DashboardBolecasYCoberturaComponent implements OnInit implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   private apiService = inject(ApiService);
   private messageService = inject(MessageService);
 
@@ -462,5 +464,10 @@ export class DashboardBolecasYCoberturaComponent implements OnInit {
     if (pct >= 80) return 'success';
     if (pct >= 60) return 'warning';
     return 'danger';
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

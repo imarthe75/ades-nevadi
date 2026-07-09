@@ -3,9 +3,10 @@
  * Tabs: Usuarios | Ciclos | Planteles | Grupos | Variables del Sistema | Catálogos | Marca | Auditoría
  * Solo accesible con roleGuard(1) — ADMIN_GLOBAL y ADMIN_PLANTEL.
  */
-import { Component, OnInit, inject, signal, computed, effect } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subject, takeUntil } from 'rxjs';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { TabsModule } from 'primeng/tabs';
@@ -1364,7 +1365,8 @@ interface Catalogo {
     .sync-failure { background:#fee2e2;color:#7f1d1d }
   `],
 })
-export class AdminComponent implements OnInit {
+export class AdminComponent implements OnInit implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   private readonly api   = inject(ApiService);
   readonly ctx           = inject(ContextService);
   private readonly notify = inject(ApexNotificationService);
@@ -2600,5 +2602,10 @@ export class AdminComponent implements OnInit {
         this.cargarFranjas();
       }
     });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

@@ -1,6 +1,7 @@
-import { Component, inject, OnInit, signal, computed, effect } from '@angular/core';
+import { Component, OnDestroy, inject, OnInit, signal, computed, effect } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subject, takeUntil } from 'rxjs';
 import { ButtonModule } from 'primeng/button';
 import { TagModule } from 'primeng/tag';
 import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
@@ -212,7 +213,8 @@ const TIPOS = [
     .field-error { color: var(--red-600, #dc2626); font-size: .78rem; }
   `],
 })
-export class ComunicadosComponent implements OnInit {
+export class ComunicadosComponent implements OnInit implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   private readonly api    = inject(ApiService);
   readonly ctx            = inject(ContextService);
   private readonly exporter = inject(ExportService);
@@ -326,5 +328,10 @@ export class ComunicadosComponent implements OnInit {
 
   private emptyForm() {
     return { titulo: '', contenido: '', tipo_comunicado: 'GENERAL', requiere_acuse: false, fecha_vencimiento: '' };
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

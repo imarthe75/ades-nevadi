@@ -1,6 +1,7 @@
-import { Component, OnInit, inject, signal, computed, effect } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subject, takeUntil } from 'rxjs';
 import { CardModule } from 'primeng/card';
 import { ButtonModule } from 'primeng/button';
 import { TagModule } from 'primeng/tag';
@@ -360,7 +361,8 @@ import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/
     .dlg-lbl { display:block; font-size:.85rem; margin-bottom:.25rem; color:var(--text-secondary); font-weight:600; }
   `],
 })
-export class TareasComponent implements OnInit {
+export class TareasComponent implements OnInit implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   private readonly api    = inject(ApiService);
   private readonly ctx    = inject(ContextService);
   private readonly notify = inject(ApexNotificationService);
@@ -677,5 +679,10 @@ export class TareasComponent implements OnInit {
       CALIFICADA: 'success', EXCUSA: 'secondary',
     };
     return map[s] ?? 'secondary';
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

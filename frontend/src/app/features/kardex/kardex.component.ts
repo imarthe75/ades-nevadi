@@ -1,6 +1,7 @@
-import { Component, OnInit, signal, computed, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subject, takeUntil } from 'rxjs';
 import { ApiService } from '../../core/services/api.service';
 import { ButtonModule } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
@@ -172,7 +173,8 @@ interface Kardex {
     .nota { font-size:.78rem; color:var(--text-color-secondary); margin-top:.6rem; }
   `],
 })
-export class KardexComponent implements OnInit {
+export class KardexComponent implements OnInit implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   private api      = inject(ApiService);
   private notify   = inject(ApexNotificationService);
   private exporter = inject(ExportService);
@@ -305,5 +307,10 @@ export class KardexComponent implements OnInit {
     }));
     this.exporter.toXLSX(data, columns, 'Kardex UAEMEX', `kardex_${k.alumno.matricula}`);
     this.notify.success('Kardex exportado');
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

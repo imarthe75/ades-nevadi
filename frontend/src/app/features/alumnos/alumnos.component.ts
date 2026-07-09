@@ -1,8 +1,9 @@
 /**
  * FASE 1 & FASE 24 — Alumnos (Students) + Interactive Grid APEX-style
  * Lists, filters, sorts, and manages student records with optimistic locking.
+ * PUNTO 6: Implementa OnDestroy con destroy$ para cleanup de subscriptions ✅
  */
-import { Component, OnInit, inject, signal, computed, effect } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormControl, FormGroup, Validators } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
@@ -10,7 +11,7 @@ import { InputTextModule } from 'primeng/inputtext';
 import { ToastModule } from 'primeng/toast';
 import { SelectModule } from 'primeng/select';
 import { MultiSelectModule } from 'primeng/multiselect';
-import { throttleTime, Subject } from 'rxjs';
+import { throttleTime, Subject, takeUntil } from 'rxjs';
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
 import { ContextCatalogService } from '../../core/services/context-catalog.service';
@@ -192,7 +193,8 @@ import { ApexNotificationService, ApexSearchComponent, ApexModalDialogComponent,
     .dlg-note { font-size: .78rem; color: var(--text-color-secondary); margin: 0; }
   `],
 })
-export class AlumnosComponent implements OnInit {
+export class AlumnosComponent implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   private readonly api = inject(ApiService);
   private readonly ctx = inject(ContextService);
   readonly catalog = inject(ContextCatalogService);
@@ -313,12 +315,20 @@ export class AlumnosComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    // Throttle submissions to max one every 500ms to prevent duplicate requests
+    // PUNTO 6: Throttle submissions con takeUntil(destroy$) ✅
     this.crearAlumnoSubject.pipe(
-      throttleTime(500, undefined, { leading: true, trailing: false })
+      throttleTime(500, undefined, { leading: true, trailing: false }),
+      takeUntil(this.destroy$)
     ).subscribe(() => {
       this.performCrearAlumno();
     });
+
+    this.cargarAlumnos();
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   cargarAlumnos(): void {

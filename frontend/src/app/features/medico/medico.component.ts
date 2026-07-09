@@ -3,9 +3,10 @@
  *
  * Flujo: buscar alumno → ver/editar expediente base → ver incidentes → registrar nuevo incidente.
  */
-import { Component, OnInit, inject, signal, computed, effect } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subject, takeUntil } from 'rxjs';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { TextareaModule } from 'primeng/textarea';
@@ -331,7 +332,8 @@ interface Medicamento {
     .tab-header-row h4 { margin: 0; font-family: 'Jost', sans-serif; }
   `],
 })
-export class MedicoComponent implements OnInit {
+export class MedicoComponent implements OnInit implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   private readonly api = inject(ApiService);
   readonly ctx = inject(ContextService);
   private readonly notify = inject(ApexNotificationService);
@@ -561,5 +563,10 @@ export class MedicoComponent implements OnInit {
     a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

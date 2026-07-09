@@ -9,10 +9,11 @@
  *
  * Principios: Oracle APEX Interactive Report + Moodle Course Outline.
  */
-import { Component, OnInit, inject, signal, computed, effect } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, signal, computed, effect } from '@angular/core';
 import { forkJoin } from 'rxjs';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subject, takeUntil } from 'rxjs';
 import { TabsModule } from 'primeng/tabs';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
@@ -558,7 +559,8 @@ const NIVEL_ORDER = ['PRIMARIA', 'SECUNDARIA', 'PREPARATORIA'];
       font-size:.75rem; padding:.2rem .6rem; color:var(--text-color-secondary); }
   `],
 })
-export class PlanesEstudioComponent implements OnInit {
+export class PlanesEstudioComponent implements OnInit implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   private readonly api = inject(ApiService);
   private readonly notify = inject(ApexNotificationService);
   readonly ctx       = inject(ContextService);
@@ -1135,5 +1137,10 @@ export class PlanesEstudioComponent implements OnInit {
   gradoNombre(gradoId: string): string {
     const g = this.grados().find(x => x.id === gradoId);
     return g ? `${g.numero_grado}° ${g.nombre_grado}` : '—';
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

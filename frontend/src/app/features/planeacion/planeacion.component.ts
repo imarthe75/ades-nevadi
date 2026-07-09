@@ -1,6 +1,7 @@
-import { Component, inject, OnInit, signal, computed, effect } from '@angular/core';
+import { Component, OnDestroy, inject, OnInit, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subject, takeUntil } from 'rxjs';
 import { ButtonModule } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
 import { TagModule } from 'primeng/tag';
@@ -287,7 +288,8 @@ const ESTADO_SEV: Record<string, TagSeverity> = {
     .empty-msg  { color:var(--text-color-secondary); }
   `],
 })
-export class PlaneacionComponent implements OnInit {
+export class PlaneacionComponent implements OnInit implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   private readonly api = inject(ApiService);
   readonly ctx         = inject(ContextService);
 
@@ -414,5 +416,10 @@ export class PlaneacionComponent implements OnInit {
     if (pct >= 80) return 'pbar-ok';
     if (pct >= 50) return 'pbar-mid';
     return 'pbar-low';
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

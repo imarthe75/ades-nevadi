@@ -1,6 +1,7 @@
-import { Component, OnInit, signal, computed, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subject, takeUntil } from 'rxjs';
 import { ApiService } from '../../core/services/api.service';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
@@ -204,7 +205,8 @@ const TIPOS = [
     .alerta-alergia { background:var(--yellow-100); padding:.25rem .5rem; border-radius:4px; color:var(--yellow-800); font-size:.9rem; margin-bottom:.25rem; }
   `],
 })
-export class CondicionesCronicasComponent implements OnInit {
+export class CondicionesCronicasComponent implements OnInit implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   private api = inject(ApiService);
   private notify = inject(ApexNotificationService);
 
@@ -316,5 +318,10 @@ export class CondicionesCronicasComponent implements OnInit {
       DISCAPACIDAD_VISUAL: 'info', DISCAPACIDAD_AUDITIVA: 'info', OTRA: 'secondary',
     };
     return map[tipo] ?? 'secondary';
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

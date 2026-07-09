@@ -1,6 +1,7 @@
-import { Component, inject, signal, OnInit, computed } from '@angular/core';
+import { Component, OnDestroy, inject, signal, OnInit, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subject, takeUntil } from 'rxjs';
 import { ButtonModule } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
 import { InputTextModule } from 'primeng/inputtext';
@@ -149,7 +150,8 @@ interface ItemRow    { tipo_item: string; nombre_personalizado: string | null; p
     .item-row    { align-items:center; }
   `],
 })
-export class PonderacionConfigComponent implements OnInit {
+export class PonderacionConfigComponent implements OnInit implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   private api = inject(ApiService);
   private readonly notify = inject(ApexNotificationService);
 
@@ -278,5 +280,10 @@ export class PonderacionConfigComponent implements OnInit {
     if (peso >= 50) return '#D02030';
     if (peso >= 20) return '#0369a1';
     return '#6b7280';
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

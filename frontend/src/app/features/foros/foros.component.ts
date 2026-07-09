@@ -1,6 +1,7 @@
-import { Component, OnInit, signal, inject, computed } from '@angular/core';
+import { Component, OnDestroy, OnInit, signal, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subject, takeUntil } from 'rxjs';
 import { ApiService } from '../../core/services/api.service';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
@@ -351,7 +352,8 @@ interface Anuncio {
     .text-xxs { font-size: 0.7rem; }
   `],
 })
-export class ForosComponent implements OnInit {
+export class ForosComponent implements OnInit implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   private http = inject(ApiService);
   private notify = inject(ApexNotificationService);
   readonly ctx = inject(ContextService);

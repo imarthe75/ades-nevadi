@@ -1,6 +1,7 @@
-import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, inject, signal } from '@angular/core';
+import { Component, OnDestroy, EventEmitter, Input, OnChanges, Output, SimpleChanges, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subject, takeUntil } from 'rxjs';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { TagModule } from 'primeng/tag';
@@ -246,7 +247,8 @@ interface ValidacionResult {
     .mt-3 { margin-top: 12px; }
   `],
 })
-export class CierrePeriodoComponent implements OnChanges {
+export class CierrePeriodoComponent implements OnChanges implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   @Input() visible = false;
   @Input() periodoId: string | null = null;
   @Input() periodoNombre = '';
@@ -333,5 +335,10 @@ export class CierrePeriodoComponent implements OnChanges {
   cerrar() {
     if (this.cerrando()) return;
     this.visibleChange.emit(false);
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

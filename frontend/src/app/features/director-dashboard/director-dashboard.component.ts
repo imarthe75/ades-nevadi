@@ -1,6 +1,7 @@
-import { Component, inject, signal, OnInit, effect } from '@angular/core';
+import { Component, OnDestroy, inject, signal, OnInit, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subject, takeUntil } from 'rxjs';
 import { ChartModule } from 'primeng/chart';
 import { CardModule } from 'primeng/card';
 import { SelectModule } from 'primeng/select';
@@ -190,7 +191,8 @@ import { ContextService } from '../../core/services/context.service';
     .chart-title { font-weight: 700; font-size: 1rem; color: var(--text-primary); display: flex; align-items: center; gap: 8px; }
   `]
 })
-export class DirectorDashboardComponent implements OnInit {
+export class DirectorDashboardComponent implements OnInit implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   private readonly api = inject(ApiService);
   private readonly ctx = inject(ContextService);
 
@@ -287,5 +289,10 @@ export class DirectorDashboardComponent implements OnInit {
         }
       ]
     };
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

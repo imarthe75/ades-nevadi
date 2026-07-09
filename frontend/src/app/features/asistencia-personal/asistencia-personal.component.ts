@@ -1,6 +1,7 @@
-import { Component, OnInit, signal, computed, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subject, takeUntil } from 'rxjs';
 import { ApiService } from '../../core/services/api.service';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
@@ -215,7 +216,8 @@ interface ReportePersonal {
     .rep-lbl { font-size:.7rem; color:var(--text-color-secondary); }
   `],
 })
-export class AsistenciaPersonalComponent implements OnInit {
+export class AsistenciaPersonalComponent implements OnInit implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   private api = inject(ApiService);
   private notify = inject(ApexNotificationService);
 
@@ -395,5 +397,10 @@ export class AsistenciaPersonalComponent implements OnInit {
     return { persona_id:'', fecha:null, hora_entrada:'', hora_salida:'',
              tipo_jornada:'COMPLETA', es_retardo:false, minutos_retardo:0,
              justificado:false, justificacion:'', observaciones:'' };
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

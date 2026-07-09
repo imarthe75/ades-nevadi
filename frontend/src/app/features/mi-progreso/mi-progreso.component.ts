@@ -1,6 +1,7 @@
-import { Component, inject, signal, computed, OnInit } from '@angular/core';
+import { Component, OnDestroy, inject, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subject, takeUntil } from 'rxjs';
 import { ButtonModule } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
 import { CardModule } from 'primeng/card';
@@ -146,7 +147,8 @@ interface EntregaHistorial extends EntregaPendiente {
     .cal-regular   { color:#b45309; } .cal-reprobado { color:#dc2626; }
   `],
 })
-export class MiProgresoComponent implements OnInit {
+export class MiProgresoComponent implements OnInit implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   private api = inject(ApiService);
   private ctx = inject(ContextService);
   private readonly notify = inject(ApexNotificationService);
@@ -281,5 +283,10 @@ export class MiProgresoComponent implements OnInit {
   estatusSev(s: string): 'success' | 'info' | 'warn' | 'danger' | 'secondary' {
     const m: Record<string, any> = { CALIFICADA: 'success', ENTREGADA: 'info', PENDIENTE: 'warn', SIN_ENTREGA: 'danger' };
     return m[s] ?? 'secondary';
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

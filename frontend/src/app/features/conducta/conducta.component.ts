@@ -5,9 +5,10 @@
  * SB-013: Plan de mejora conductual (tab Plan de Mejora)
  * SB-014: Seguimiento del plan (tab Seguimientos)
  */
-import { Component, OnInit, inject, signal, computed, effect } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subject, takeUntil } from 'rxjs';
 import { ButtonModule } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
 import { AutoCompleteModule } from 'primeng/autocomplete';
@@ -491,7 +492,8 @@ interface Compromiso {
     .seg-desc { margin: 0; font-size: 0.88rem; }
   `],
 })
-export class ConductaComponent implements OnInit {
+export class ConductaComponent implements OnInit implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   private readonly api    = inject(ApiService);
   readonly ctx            = inject(ContextService);
   private readonly notify = inject(ApexNotificationService);
@@ -995,4 +997,9 @@ export class ConductaComponent implements OnInit {
   ];
   exportCSV():  void { this.export.toCSV(this.reportes(), this.exportCols, 'conducta'); }
   exportXLSX(): void { this.export.toXLSX(this.reportes(), this.exportCols, 'Conducta', 'conducta'); }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
 }

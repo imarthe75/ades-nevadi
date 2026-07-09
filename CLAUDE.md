@@ -1,5 +1,6 @@
 # ADES — Claude Code Guidelines
-# Versión: 2.4 | Actualizado: 2026-07-03
+# Versión: 2.5 | Actualizado: 2026-07-08
+# **NOTA:** Auditoría 16 Puntos de Optimización completada. Ver sección "OPTIMIZACIÓN AL 100%" abajo.
 
 ## MISIÓN Y CONTEXTO
 
@@ -170,6 +171,120 @@ celery -A app.worker.celery_app worker --loglevel=info
 | `auditoria.asignar_biu(tabla)` | Aplica solo `audit_biu` — usar en migraciones DEV |
 | `auditoria.asignar_triggers(tabla)` | Aplica `audit_biu` + `audit_aiud` — usar al pasar a producción |
 | `auditoria.reporte_cobertura()` | Reporte de cobertura de triggers por tabla |
+
+---
+
+## OPTIMIZACIÓN AL 100% — 16 PUNTOS CRÍTICOS (NUEVA — 2026-07-08)
+
+**Estado actual (auditoría 2026-07-08):**
+```
+@EntityGraph implementados:    0/20 (META) ❌
+OnDestroy implementados:        0/70 (META) ❌
+SQL concatenation vulnerabilidades: DESCONOCIDO ⚠️
+```
+
+**Objetivo:** 100% de los 16 puntos implementados en 3 fases.
+
+### FASE 1 (CRÍTICA — Semana 1-2) — BLOQUEA MERGE SI FALTAN ESTOS 3
+
+**Punto 1: @EntityGraph (N+1 Prevention)**
+```java
+// ✅ CORRECTO: findBy* methods con @EntityGraph
+@Repository
+public interface AlumnoRepository extends JpaRepository<Alumno, UUID> {
+    @EntityGraph(attributePaths = {"grado", "grupo", "expediente"})
+    List<Alumno> findByGrupoId(UUID grupoId);
+}
+
+// ✅ CORRECTO: @Query con JOIN FETCH
+@Query("SELECT DISTINCT a FROM Alumno a JOIN FETCH a.calificaciones c")
+List<Alumno> findAllWithCalificaciones();
+```
+**Verificación:** `grep -r "@EntityGraph" backend-spring/src | wc -l` debe ser ≥ 20  
+**Impacto:** Sin esto → 100x queries, CPU BD 100% ❌
+
+**Punto 6: ngOnDestroy (Memory Leaks)**
+```typescript
+// ✅ CORRECTO: Implementar OnDestroy + cleanup
+export class CalificacionesComponent implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
+  
+  constructor(private api: ApiService) {}
+  
+  ngOnInit() {
+    this.api.getCalificaciones()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(data => this.data.set(data));
+  }
+  
+  ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+}
+```
+**Verificación:** `grep -r "implements OnDestroy" frontend/src | wc -l` debe ser ≥ 70  
+**Impacto:** Sin esto → memory leak 1MB × 1000 usuarios = 1GB crash ❌
+
+**Punto 13: Prepared Statements (SQL Injection)**
+```java
+// ❌ MALO: SQL concatenation
+String sql = "SELECT * FROM usuarios WHERE email = '" + email + "'";
+
+// ✅ CORRECTO: Parameterized query
+@Query("SELECT a FROM Alumno a WHERE a.email = ?1")
+Alumno findByEmail(String email);
+
+// ✅ CORRECTO: Named parameters
+@Query("SELECT a FROM Alumno a WHERE a.email = :email AND a.activo = :activo")
+List<Alumno> findActive(@Param("email") String email, @Param("activo") Boolean activo);
+```
+**Verificación:** `grep -r "'+'" backend-spring/src` debe retornar 0 resultados  
+**Impacto:** Sin esto → SQL Injection vulnerable ❌
+
+### FASE 2 (PERFORMANCE — Semana 3-4)
+
+**Punto 5: Change Detection OnPush** | **Punto 9: Caching** | **Punto 10: Batch Ops**
+
+### FASE 3 (INFRAESTRUCTURA — Semana 5+)
+
+**Punto 2-4, 7-8, 11-12, 14-16:** Índices, Lazy Loading, Paginación, Memory Devtools, Images, Compression, Pooling, Headers, Isolation
+
+### Checklist Pre-Commit (16 Items — Ejecutar SIEMPRE)
+
+**Backend (9 items):**
+```bash
+echo "=== FASE 1 ===" && \
+grep -r "@EntityGraph" backend-spring/src | wc -l && \
+grep -r "implements OnDestroy" frontend/src | wc -l && \
+grep -r "'+'" backend-spring/src | wc -l && \
+echo "=== FASE 2 ===" && \
+grep -r "ChangeDetectionStrategy.OnPush" frontend/src | wc -l && \
+grep -r "@Cacheable" backend-spring/src | wc -l && \
+grep -r "saveAll" backend-spring/src | wc -l
+```
+
+**Frontend (7 items):** Verificar con DevTools Memory Profiler
+
+### Bloqueo de Merge
+
+```
+❌ SI FALTA CUALQUIERA DE LOS 16 PUNTOS:
+   - Code reviewer rechaza PR
+   - CI/CD pipeline falla
+   - NO se permite merge
+
+✅ SOLO SE MERGEA SI 16/16 PASAN
+```
+
+### Referencias Auditoría 2026-07-08
+
+| Documento | Propósito |
+|---|---|
+| `/AUDITORIA_ADES_2026/INDICE_MAESTRO.md` | Guía general auditoría |
+| `/AUDITORIA_ADES_2026/02_ANALISIS_16_PUNTOS/16_PUNTOS_OPTIMIZACION_COMPLETO.md` | Análisis técnico completo |
+| `/AUDITORIA_ADES_2026/03_PLAN_REMEDIACION/PLAN_REMEDIACION_COMPLETO_ADES.md` | Plan 3 fases |
+| `/AUDITORIA_ADES_2026/04_CHECKLISTS/CHECKLIST_PRECOMMIT_16_PUNTOS.md` | Verificación detallada |
 
 ---
 

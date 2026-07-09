@@ -5,9 +5,10 @@
  *
  * Validación integral (Fase 1-3): FormFieldComponent + InputFormattersService
  */
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormsModule, ReactiveFormsModule, FormControl, Validators } from '@angular/forms';
+import { Subject, takeUntil } from 'rxjs';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { DialogModule } from 'primeng/dialog';
@@ -394,7 +395,8 @@ function enrichRows(rows: EmpleadoRow[]): EmpleadoRow[] {
     .perfil-lbl { min-width:160px; font-size:.8rem; font-weight:500; color:#64748b; }
   `],
 })
-export class PersonalAdminComponent implements OnInit {
+export class PersonalAdminComponent implements OnInit implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
 
   private api   = inject(ApiService);
   private ctx   = inject(ContextService);
@@ -637,5 +639,10 @@ export class PersonalAdminComponent implements OnInit {
 
   rolLabel(rol?: string): string {
     return ROLES_ADMIN.find(r => r.value === rol)?.label ?? rol ?? '—';
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

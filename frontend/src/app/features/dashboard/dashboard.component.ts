@@ -1,7 +1,8 @@
-import { Component, inject, signal, computed, effect } from '@angular/core';
+import { Component, OnDestroy, inject, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { Subject, takeUntil } from 'rxjs';
 import { CardModule } from 'primeng/card';
 import { SkeletonModule } from 'primeng/skeleton';
 import { ButtonModule } from 'primeng/button';
@@ -539,7 +540,8 @@ const NIVEL_ICON: Record<string, string> = {
     .quick-link i { font-size: 0.82rem; color: var(--nevadi-red); }
   `],
 })
-export class DashboardComponent {
+export class DashboardComponent implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   private readonly api = inject(ApiService);
   readonly ctx = inject(ContextService);
   private readonly notify = inject(ApexNotificationService);
@@ -785,4 +787,9 @@ export class DashboardComponent {
 
   color(n: string): string { return NIVEL_COLOR[n] ?? '#94a3b8'; }
   icon(n: string):  string { return NIVEL_ICON[n]  ?? 'pi-school'; }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
 }

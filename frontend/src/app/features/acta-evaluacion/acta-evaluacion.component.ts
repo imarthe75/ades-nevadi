@@ -1,6 +1,7 @@
-import { Component, signal, computed, inject, OnInit } from '@angular/core';
+import { Component, OnDestroy, signal, computed, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subject, takeUntil } from 'rxjs';
 import { ApiService } from '../../core/services/api.service';
 import { ButtonModule } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
@@ -227,7 +228,8 @@ interface Acta {
     }
   `],
 })
-export class ActaEvaluacionComponent implements OnInit {
+export class ActaEvaluacionComponent implements OnInit implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   private api      = inject(ApiService);
   private notify   = inject(ApexNotificationService);
   private exporter = inject(ExportService);
@@ -349,4 +351,9 @@ export class ActaEvaluacionComponent implements OnInit {
   }
 
   imprimir() { window.print(); }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
 }

@@ -1,6 +1,7 @@
-import { Component, OnInit, inject, signal, computed, effect } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subject, takeUntil } from 'rxjs';
 import { ButtonModule } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
 import { TagModule } from 'primeng/tag';
@@ -143,7 +144,8 @@ interface EventoForm {
     .mr-auto { margin-right:auto; }
   `],
 })
-export class CalendarioComponent implements OnInit {
+export class CalendarioComponent implements OnInit implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   private api    = inject(ApiService);
   private ctx    = inject(ContextService);
   private notify = inject(ApexNotificationService);
@@ -322,5 +324,10 @@ export class CalendarioComponent implements OnInit {
       ciclo_escolar_id: '', fecha_evento: '', nombre_evento: '',
       tipo_evento: 'DIA_FESTIVO', aplica_todos_planteles: true, plantel_id: null,
     };
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

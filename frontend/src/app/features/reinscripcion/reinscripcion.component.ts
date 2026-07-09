@@ -1,6 +1,7 @@
-import { Component, OnInit, inject, signal, computed, effect } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subject, takeUntil } from 'rxjs';
 import { ButtonModule } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
 import { TagModule } from 'primeng/tag';
@@ -217,7 +218,8 @@ interface CicloOpt   { id: string; nombre_ciclo: string; es_vigente: boolean; }
     .acciones-ind { display:flex; gap:8px; }
   `],
 })
-export class ReinscripcionComponent implements OnInit {
+export class ReinscripcionComponent implements OnInit implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   private api      = inject(ApiService);
   private ctx      = inject(ContextService);
   private exporter = inject(ExportService);
@@ -415,5 +417,10 @@ export class ReinscripcionComponent implements OnInit {
       PENDIENTE: 'warn',   RECHAZADO: 'danger',
     };
     return map[estado ?? ''] ?? 'secondary';
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

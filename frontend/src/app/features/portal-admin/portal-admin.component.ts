@@ -241,7 +241,8 @@ interface Catalogo {
     p-textarea { width:100%; }
   `]
 })
-export class PortalAdminComponent implements OnInit {
+export class PortalAdminComponent implements OnInit implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
 
   private api = inject(ApiService);
   private ctx = inject(ContextService);
@@ -517,5 +518,10 @@ export class PortalAdminComponent implements OnInit {
   severidadEstado(e: string): string {
     return ({ ENVIADA:'info', REVISION:'warn', PRESELECCIONADA:'info',
               ACEPTADA:'success', RECHAZADA:'danger', LISTA:'secondary' } as any)[e] ?? 'secondary';
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

@@ -1,6 +1,7 @@
-import { Component, inject, signal, OnInit, effect, computed } from '@angular/core';
+import { Component, OnDestroy, inject, signal, OnInit, effect, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subject, takeUntil } from 'rxjs';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { SelectModule } from 'primeng/select';
@@ -201,7 +202,8 @@ interface PlantelOpt {
     </p-dialog>
   `
 })
-export class CierreCicloComponent implements OnInit {
+export class CierreCicloComponent implements OnInit implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   private readonly api = inject(ApiService);
   private readonly ctx = inject(ContextService);
   private readonly notify = inject(ApexNotificationService);
@@ -390,5 +392,10 @@ export class CierreCicloComponent implements OnInit {
         this.notify.error('Error de validación', e.error?.detail ?? 'No se pudo validar el estado del ciclo.');
       }
     });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

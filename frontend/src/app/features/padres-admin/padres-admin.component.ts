@@ -1,6 +1,7 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { Subject, takeUntil } from 'rxjs';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { DrawerModule } from 'primeng/drawer';
@@ -445,7 +446,8 @@ const NIVELES_ACCESO_PORTAL = [
     .dlg-grid { display:flex;flex-direction:column;gap:.75rem;padding:.25rem 0 }
   `],
 })
-export class PadresAdminComponent implements OnInit {
+export class PadresAdminComponent implements OnInit implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   private readonly api    = inject(ApiService);
   private readonly notify = inject(ApexNotificationService);
   private readonly confirm = inject(ConfirmationService);
@@ -888,5 +890,10 @@ export class PadresAdminComponent implements OnInit {
         this.notify.error('Error', e?.error?.message ?? 'No se pudo guardar la configuración');
       },
     });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

@@ -7,9 +7,10 @@
  *  - Dialog crear/editar con tabs: Datos generales / Equipamiento / Disponibilidad
  *  - Verificación de conflictos de franja horaria antes de asignar
  */
-import { Component, OnInit, inject, signal, computed, effect } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subject, takeUntil } from 'rxjs';
 import { ButtonModule } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
 import { InputTextModule } from 'primeng/inputtext';
@@ -331,7 +332,8 @@ const ESTADO_SEVERITY: Record<string, TagSeverity> = {
     .equip-item.full-row { grid-column:1/-1; }
   `],
 })
-export class AulasComponent implements OnInit {
+export class AulasComponent implements OnInit implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   private readonly api    = inject(ApiService);
   readonly ctx            = inject(ContextService);
   private readonly notify = inject(ApexNotificationService);
@@ -664,4 +666,9 @@ export class AulasComponent implements OnInit {
   ];
   exportCSV():  void { this.export.toCSV(this.aulas(), this.exportCols, 'aulas'); }
   exportXLSX(): void { this.export.toXLSX(this.aulas(), this.exportCols, 'Aulas', 'aulas'); }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
 }

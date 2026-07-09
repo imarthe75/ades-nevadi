@@ -1,6 +1,7 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, OnDestroy, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
+import { Subject, takeUntil } from 'rxjs';
 import { ApiService } from '../../core/services/api.service';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { TagModule } from 'primeng/tag';
@@ -288,7 +289,8 @@ interface VerificacionResult {
     .verif-footer a:hover { text-decoration: underline; }
   `],
 })
-export class VerificarComponent implements OnInit {
+export class VerificarComponent implements OnInit implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   private readonly route = inject(ActivatedRoute);
   private readonly api  = inject(ApiService);
 
@@ -336,5 +338,10 @@ export class VerificarComponent implements OnInit {
       return `https://amoy.polygonscan.com/tx/${tx}`;
     }
     return '#';
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

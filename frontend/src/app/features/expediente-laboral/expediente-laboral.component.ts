@@ -1,6 +1,7 @@
-import { Component, OnInit, signal, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subject, takeUntil } from 'rxjs';
 import { ApiService } from '../../core/services/api.service';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
@@ -221,7 +222,8 @@ interface ExpedienteLab {
     .apex-toolbar-actions { display:flex; gap:.5rem; align-items:center; flex-wrap:wrap; }
   `],
 })
-export class ExpedienteLaboralComponent implements OnInit {
+export class ExpedienteLaboralComponent implements OnInit implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   private api = inject(ApiService);
   private notify = inject(ApexNotificationService);
 
@@ -374,5 +376,10 @@ export class ExpedienteLaboralComponent implements OnInit {
     return { tipo_contrato:'INDEFINIDO', fecha_contratacion:null, fecha_fin_contrato:null,
              salario_mensual:0, imss_numero:'', infonavit_numero:'', curp:'', rfc:'',
              cedula_profesional:'', nivel_estudios:'', especialidad:'', institucion_formacion:'', clave_ct:'', clave_issste:'' };
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

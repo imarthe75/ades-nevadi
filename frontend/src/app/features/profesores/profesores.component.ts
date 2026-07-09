@@ -3,9 +3,10 @@
  * Manages teacher records with filtering, sorting, and profile management.
  * Cascade plantel→nivel→grado→grupo is driven by ContextService (global topbar).
  */
-import { Component, OnInit, inject, signal, computed, effect } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subject, takeUntil } from 'rxjs';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { DialogModule } from 'primeng/dialog';
@@ -114,7 +115,8 @@ import { ApexNotificationService } from 'apex-component-library';
     .dlg-lbl { display: block; font-size: .85rem; margin-bottom: .25rem; color: var(--text-color-secondary); }
   `],
 })
-export class ProfesoresComponent implements OnInit {
+export class ProfesoresComponent implements OnInit implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   private readonly api = inject(ApiService);
   private readonly ctx = inject(ContextService);
   readonly catalog = inject(ContextCatalogService);
@@ -285,4 +287,9 @@ export class ProfesoresComponent implements OnInit {
 
   exportCSV():  void { this.exp.toCSV(this.profesoresDatos(), this.exportCols, 'profesores'); }
   exportXLSX(): void { this.exp.toXLSX(this.profesoresDatos(), this.exportCols, 'Profesores', 'profesores'); }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
 }

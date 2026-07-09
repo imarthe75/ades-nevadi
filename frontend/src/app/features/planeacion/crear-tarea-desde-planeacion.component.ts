@@ -1,6 +1,7 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, OnDestroy, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { Subject, takeUntil } from 'rxjs';
 import { ButtonModule } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
 import { InputTextModule } from 'primeng/inputtext';
@@ -314,7 +315,8 @@ import { ContextService } from '../../core/services/context.service';
     .ml-2 { margin-left: 0.5rem; }
   `]
 })
-export class CrearTareaDesdeplanneacionComponent implements OnInit {
+export class CrearTareaDesdeplanneacionComponent implements OnInit implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   private apiService = inject(ApiService);
   private messageService = inject(MessageService);
   private fb = inject(FormBuilder);
@@ -459,5 +461,10 @@ export class CrearTareaDesdeplanneacionComponent implements OnInit {
           this.guardando.set(false);
         }
       );
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

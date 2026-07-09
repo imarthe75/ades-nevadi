@@ -8,9 +8,10 @@
  *   - Un solo botón "Guardar cambios" envía el PATCH bulk
  *   - Exportar a CSV con un click
  */
-import { Component, OnInit, inject, signal, computed, effect } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subject, takeUntil } from 'rxjs';
 // PrimeNG
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
@@ -261,7 +262,8 @@ import { ApexNotificationService } from 'apex-component-library';
     .cual-equiv { font-weight:400; opacity:.85; font-size:.75rem; }
   `],
 })
-export class CalificacionesComponent implements OnInit {
+export class CalificacionesComponent implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   private readonly api = inject(ApiService);
   readonly ctx = inject(ContextService);
   private readonly notify = inject(ApexNotificationService);
@@ -515,5 +517,10 @@ export class CalificacionesComponent implements OnInit {
     a.href = url; a.download = `calificaciones_${this.selectedGrupo?.nombre_grupo ?? 'grupo'}.csv`;
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

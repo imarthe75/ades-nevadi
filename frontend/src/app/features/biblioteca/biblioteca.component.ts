@@ -1,6 +1,7 @@
-import { Component, OnInit, signal, computed, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subject, takeUntil } from 'rxjs';
 import { ApiService } from '../../core/services/api.service';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
@@ -247,7 +248,8 @@ const CATEGORIAS = [
     .apex-toolbar-actions { display:flex; gap:.5rem; align-items:center; flex-wrap:wrap; margin:.75rem 0; }
   `],
 })
-export class BibliotecaComponent implements OnInit {
+export class BibliotecaComponent implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   private api = inject(ApiService);
   private notify = inject(ApexNotificationService);
 
@@ -435,5 +437,10 @@ export class BibliotecaComponent implements OnInit {
       },
       error: e => { this.guardando.set(false); this.notify.error(e.error?.message ?? e.error?.detail ?? 'Error'); },
     });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

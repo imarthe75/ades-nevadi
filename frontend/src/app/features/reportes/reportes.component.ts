@@ -6,9 +6,10 @@
  *   2. Plantillas — gestión de plantillas DOCX/XLSX (solo admin)
  *   3. Estado    — disponibilidad del servicio Carbone
  */
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subject, takeUntil } from 'rxjs';
 import { ButtonModule } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
 import { TagModule } from 'primeng/tag';
@@ -286,7 +287,8 @@ const TIPOS_DOC = [
     code { background:var(--surface-100);padding:.1rem .3rem;border-radius:3px;font-size:.75rem }
   `],
 })
-export class ReportesComponent implements OnInit {
+export class ReportesComponent implements OnInit implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   readonly api = inject(ApiService);
   readonly ctx = inject(ContextService);
   private readonly auth = inject(AuthService);
@@ -494,5 +496,10 @@ export class ReportesComponent implements OnInit {
       },
       error: () => this.notify.error('Error al subir plantilla'),
     });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

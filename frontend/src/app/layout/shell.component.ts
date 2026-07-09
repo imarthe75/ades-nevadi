@@ -2,8 +2,11 @@
  * ShellComponent — Layout principal con topbar tipo APEX.
  * Contiene: logo, selector de plantel/ciclo (Application Items), nav lateral, router-outlet.
  * Colores institucionales Instituto Nevadi — primario #D02030.
+ * PUNTO 6: Implementa OnDestroy con destroy$ para cleanup de subscriptions ✅
  */
 import { Component, inject, OnInit, OnDestroy, signal, computed, ViewChild } from '@angular/core';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 import { CommonModule } from '@angular/common';
 import { RouterModule, RouterOutlet } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -491,6 +494,7 @@ export class ShellComponent implements OnInit, OnDestroy {
   // La cascada (opciones + lógica de carga) vive en ContextCatalogService;
   // el estado seleccionado vive en ContextService. El topbar solo los presenta.
 
+  private destroy$ = new Subject<void>();
   private notifInterval?: ReturnType<typeof setInterval>;
 
   notifCount    = signal(0);
@@ -630,9 +634,14 @@ export class ShellComponent implements OnInit, OnDestroy {
   });
 
   ngOnInit(): void {
-    // Cargar configuración dinámica de menús y permisos del rol
-    this.menuService.loadMenuConfig().subscribe({ error: () => {} });
-    this.permisosService.loadPermisos().subscribe({ error: () => {} });
+    // PUNTO 6: Cleanup con takeUntil(destroy$) ✅
+    this.menuService.loadMenuConfig()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({ error: () => {} });
+
+    this.permisosService.loadPermisos()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({ error: () => {} });
 
     // FASE 20 — Inicializar push notifications (ntfy SSE) al cargar el shell
     this.push.init().catch(() => { /* ntfy opcional — modo degradado */ });
@@ -640,7 +649,8 @@ export class ShellComponent implements OnInit, OnDestroy {
     // Inicializar breadcrumbs
     this.buildBreadcrumbs();
     this.router.events.pipe(
-      filter(event => event instanceof NavigationEnd)
+      filter(event => event instanceof NavigationEnd),
+      takeUntil(this.destroy$)
     ).subscribe(() => {
       this.buildBreadcrumbs();
     });
@@ -654,6 +664,8 @@ export class ShellComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     clearInterval(this.notifInterval);
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   loadNotifCount(): void {

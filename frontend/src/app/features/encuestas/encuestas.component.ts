@@ -1,6 +1,7 @@
-import { Component, inject, OnInit, signal, computed } from '@angular/core';
+import { Component, OnDestroy, inject, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subject, takeUntil } from 'rxjs';
 import { ButtonModule } from 'primeng/button';
 import { TagModule } from 'primeng/tag';
 import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
@@ -612,7 +613,8 @@ const TIPOS_PREG = [
     .empty-msg  { text-align:center; padding:2rem; color:var(--text-color-secondary); }
   `],
 })
-export class EncuestasComponent implements OnInit {
+export class EncuestasComponent implements OnInit implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   private readonly api      = inject(ApiService);
   readonly ctx              = inject(ContextService);
   private readonly exporter = inject(ExportService);
@@ -838,5 +840,10 @@ export class EncuestasComponent implements OnInit {
   }
   private emptyFormPreg() {
     return { texto: '', tipo_pregunta: 'ESCALA_5', opcionesTexto: '', orden: 1, obligatoria: true };
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

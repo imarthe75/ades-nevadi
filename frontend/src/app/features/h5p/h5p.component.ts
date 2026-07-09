@@ -1,9 +1,10 @@
-import { Component, OnInit, signal, inject, computed, ElementRef, ViewChild } from '@angular/core';
+import { Component, OnDestroy, OnInit, signal, inject, computed, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DatePipe } from '@angular/common';
 import { DomSanitizer } from '@angular/platform-browser';
 import { SafeResourceUrl } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
+import { Subject, takeUntil } from 'rxjs';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
@@ -278,7 +279,8 @@ type TabKey = 'biblioteca' | 'mis-resultados';
 </p-dialog>
   `,
 })
-export class H5pComponent implements OnInit {
+export class H5pComponent implements OnInit implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   private api = inject(ApiService);
   private notify = inject(ApexNotificationService);
   private ctx = inject(ContextService);
@@ -449,5 +451,10 @@ export class H5pComponent implements OnInit {
     const m = Math.floor(segundos / 60);
     const s = segundos % 60;
     return m > 0 ? `${m}m ${s}s` : `${s}s`;
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

@@ -1,6 +1,7 @@
-import { Component, OnInit, signal, computed, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subject, takeUntil } from 'rxjs';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
@@ -353,7 +354,8 @@ interface CambioGrupo {
     .alumno-label { margin: 0; font-size: .9rem; }
   `],
 })
-export class MovilidadComponent implements OnInit {
+export class MovilidadComponent implements OnInit implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   private readonly api    = inject(ApiService);
   private readonly notify = inject(ApexNotificationService);
   readonly ctx            = inject(ContextService);
@@ -685,5 +687,10 @@ export class MovilidadComponent implements OnInit {
         this.notify.error('Error', e?.error?.message ?? e?.error?.detail ?? 'No se pudo reactivar al alumno');
       },
     });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

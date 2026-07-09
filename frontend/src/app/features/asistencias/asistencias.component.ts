@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, effect } from '@angular/core';
+import { Component, inject, signal, computed, effect, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TableModule } from 'primeng/table';
@@ -6,6 +6,7 @@ import { SelectModule } from 'primeng/select';
 import { ButtonModule } from 'primeng/button';
 import { ToolbarModule } from 'primeng/toolbar';
 import { InputTextModule } from 'primeng/inputtext';
+import { Subject, takeUntil } from 'rxjs';
 
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
@@ -122,7 +123,8 @@ interface AsistenciaLocal {
     .page-header { margin-bottom: 1rem; }
   `],
 })
-export class AsistenciasComponent {
+export class AsistenciasComponent implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   private readonly api = inject(ApiService);
   readonly ctx = inject(ContextService);
   private readonly notify = inject(ApexNotificationService);
@@ -195,6 +197,7 @@ export class AsistenciasComponent {
       })),
     };
     this.api.post(`/asistencias/clase/${this.selectedClase.id}`, payload)
+      .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
           this.saving.set(false);
@@ -205,5 +208,10 @@ export class AsistenciasComponent {
           this.notify.error('Error', e.error?.detail || 'Error');
         },
       });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

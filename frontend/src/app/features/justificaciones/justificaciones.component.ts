@@ -1,6 +1,7 @@
-import { Component, OnInit, signal, computed, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subject, takeUntil } from 'rxjs';
 import { ApiService } from '../../core/services/api.service';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
@@ -151,7 +152,8 @@ const ESTADOS_OPT = [
     .stat-chip.danger { border-color:var(--red-400); background:var(--red-50); }
   `],
 })
-export class JustificacionesComponent implements OnInit {
+export class JustificacionesComponent implements OnInit implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   private api = inject(ApiService);
   private notify = inject(ApexNotificationService);
 
@@ -260,5 +262,10 @@ export class JustificacionesComponent implements OnInit {
   asistSev(e: string): TagSev {
     const m: Record<string, TagSev> = { PRESENTE: 'success', FALTA: 'danger', TARDE: 'warn', TARDANZA: 'warn' };
     return m[e] ?? 'secondary';
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

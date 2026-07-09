@@ -7,9 +7,10 @@
  *   - Iframe de Grafana (dashboard ADES API)
  *   - Workflows activos de n8n
  */
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { Subject, takeUntil } from 'rxjs';
 import { ButtonModule } from 'primeng/button';
 import { TagModule } from 'primeng/tag';
 import { CardModule } from 'primeng/card';
@@ -287,7 +288,8 @@ interface Telemetria {
     .cola-nombre { font-size:.78rem;font-family:monospace }
   `],
 })
-export class MonitorComponent implements OnInit {
+export class MonitorComponent implements OnInit implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   private readonly api = inject(ApiService);
   private readonly san = inject(DomSanitizer);
 
@@ -398,5 +400,10 @@ export class MonitorComponent implements OnInit {
       },
       error: () => this.loadingTelemetria.set(false),
     });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

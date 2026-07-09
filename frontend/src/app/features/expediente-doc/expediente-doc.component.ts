@@ -1,7 +1,8 @@
-import { Component, inject, signal, computed, OnInit } from '@angular/core';
+import { Component, OnDestroy, inject, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { Subject, takeUntil } from 'rxjs';
 import { ButtonModule } from 'primeng/button';
 import { TagModule } from 'primeng/tag';
 import { DialogModule } from 'primeng/dialog';
@@ -364,7 +365,8 @@ const TIPOS_DOCUMENTO = [
     .doc-selected { background: var(--primary-50) !important; border-color: var(--primary-300) !important; }
   `],
 })
-export class ExpedienteDocComponent implements OnInit {
+export class ExpedienteDocComponent implements OnInit implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   private api = inject(ApiService);
   private ctx = inject(ContextService);
   private notify = inject(ApexNotificationService);
@@ -570,5 +572,10 @@ export class ExpedienteDocComponent implements OnInit {
   limpiarBusqueda() {
     this.queryOcr = '';
     this.resultadosOcr.set([]);
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

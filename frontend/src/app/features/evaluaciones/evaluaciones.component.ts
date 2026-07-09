@@ -3,9 +3,10 @@
  * Agenda tab: read-only grid of evaluations
  * Libreta tab: inline editing of grades (preserved, complex pattern)
  */
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, OnDestroy, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subject, takeUntil } from 'rxjs';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { SelectModule } from 'primeng/select';
@@ -270,7 +271,8 @@ const TIPO_SEV: Record<string, TagSeverity> = {
     .empty-msg  { text-align:center; padding:2rem; color:var(--text-color-secondary); }
   `],
 })
-export class EvaluacionesComponent implements OnInit {
+export class EvaluacionesComponent implements OnInit implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   private readonly api      = inject(ApiService);
   readonly ctx              = inject(ContextService);
   private readonly exporter = inject(ExportService);
@@ -512,5 +514,10 @@ export class EvaluacionesComponent implements OnInit {
       fecha_evaluacion: '',
       puntaje_maximo: 10,
     };
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

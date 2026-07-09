@@ -1,6 +1,7 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, OnDestroy, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subject, takeUntil } from 'rxjs';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { TagModule } from 'primeng/tag';
@@ -324,7 +325,8 @@ interface AlumnoOpt { id: string; label: string; }
   `],
 })
 
-export class CertificadosComponent implements OnInit {
+export class CertificadosComponent implements OnInit implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   private readonly api    = inject(ApiService);
   private readonly notify = inject(ApexNotificationService);
   readonly ctx            = inject(ContextService);
@@ -581,5 +583,10 @@ export class CertificadosComponent implements OnInit {
       return `https://amoy.polygonscan.com/tx/${tx}`;
     }
     return '#';
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

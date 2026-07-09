@@ -1,6 +1,7 @@
-import { Component, OnInit, signal, computed, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subject, takeUntil } from 'rxjs';
 import { ButtonModule } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
 import { AutoCompleteModule } from 'primeng/autocomplete';
@@ -147,7 +148,8 @@ const TIPO_LABELS: Record<string, string> = {
     .hint-row-click { font-size: .78rem; color: var(--text-color-secondary); margin: .25rem 0 1rem; }
   `],
 })
-export class OptativasComponent implements OnInit {
+export class OptativasComponent implements OnInit implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   private readonly api    = inject(ApiService);
   private readonly notify = inject(ApexNotificationService);
   readonly ctx            = inject(ContextService);
@@ -313,5 +315,10 @@ export class OptativasComponent implements OnInit {
         this.notify.error('Error', e?.error?.message ?? 'No se pudo dar de baja la optativa');
       },
     });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

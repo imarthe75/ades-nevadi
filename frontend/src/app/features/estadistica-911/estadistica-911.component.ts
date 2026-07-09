@@ -1,6 +1,7 @@
-import { Component, OnInit, signal, computed, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subject, takeUntil } from 'rxjs';
 import { ApiService } from '../../core/services/api.service';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
@@ -189,7 +190,8 @@ const BUCKETS: Record<string, { base: number; tope: number }> = {
     .chip.total { background:var(--primary-100); font-weight:600; }
   `],
 })
-export class Estadistica911Component implements OnInit {
+export class Estadistica911Component implements OnInit implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   private api = inject(ApiService);
   private notify = inject(ApexNotificationService);
   private exporter = inject(ExportService);
@@ -382,5 +384,10 @@ export class Estadistica911Component implements OnInit {
 
     this.exporter.toXLSX(data, columns, `911_${n.nivel}`, `911_${n.nivel.toLowerCase()}`);
     this.notify.success(`Exportado 911 ${n.nivel}`);
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

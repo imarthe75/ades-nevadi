@@ -1,7 +1,8 @@
-import { Component, inject, OnInit, signal, computed } from '@angular/core';
+import { Component, OnDestroy, inject, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
+import { Subject, takeUntil } from 'rxjs';
 
 import { ButtonModule }        from 'primeng/button';
 import { CardModule }          from 'primeng/card';
@@ -480,7 +481,8 @@ const TIPO_ICON: Record<string, string> = {
     h5 { margin: .5rem 0; font-size: .9rem; display: flex; align-items: center; gap: .4rem; }
   `],
 })
-export class LearningPathsComponent implements OnInit {
+export class LearningPathsComponent implements OnInit implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   private readonly api    = inject(ApiService);
   private readonly ctx    = inject(ContextService);
   private readonly export = inject(ExportService);
@@ -699,4 +701,9 @@ export class LearningPathsComponent implements OnInit {
 
   exportCSV():  void { this.export.toCSV(this.asignaciones(), this.exportCols, 'learning-paths'); }
   exportXLSX(): void { this.export.toXLSX(this.asignaciones(), this.exportCols, 'Learning Paths', 'learning-paths'); }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
 }

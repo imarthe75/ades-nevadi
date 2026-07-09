@@ -1,6 +1,7 @@
-import { Component, OnInit, signal, inject, computed } from '@angular/core';
+import { Component, OnDestroy, OnInit, signal, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subject, takeUntil } from 'rxjs';
 import { ApiService } from '../../core/services/api.service';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
@@ -263,7 +264,8 @@ interface CapacitacionForm {
     .resumen-lbl { font-size: 0.75rem; color: var(--text-color-secondary); }
   `],
 })
-export class CapacitacionesComponent implements OnInit {
+export class CapacitacionesComponent implements OnInit implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   private api = inject(ApiService);
   private notify = inject(ApexNotificationService);
 
@@ -456,5 +458,10 @@ export class CapacitacionesComponent implements OnInit {
   private toDateStr(d: Date | null): string {
     if (!d) return '';
     return d.toISOString().split('T')[0];
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

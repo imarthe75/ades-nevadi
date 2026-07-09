@@ -1,7 +1,8 @@
-import { Component, inject, OnInit, signal, computed, effect } from '@angular/core';
+import { Component, OnDestroy, inject, OnInit, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
+import { Subject, takeUntil } from 'rxjs';
 import { ButtonModule } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
 import { TableModule } from 'primeng/table';
@@ -266,7 +267,8 @@ const RIESGO_SEV: Record<string, TagSeverity> = { ALTO: 'danger', MEDIO: 'warn',
     .empty-msg { text-align:center; padding:2rem; color:var(--text-color-secondary); }
   `],
 })
-export class GradeAnalyticsComponent implements OnInit {
+export class GradeAnalyticsComponent implements OnInit implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   private readonly api      = inject(ApiService);
   readonly ctx              = inject(ContextService);
   private readonly exporter = inject(ExportService);
@@ -485,4 +487,9 @@ export class GradeAnalyticsComponent implements OnInit {
 
   exportRiesgoCSV():  void { this.exporter.toCSV(this.riesgo(),  this.exportCols, 'riesgo-academico'); }
   exportRiesgoXLSX(): void { this.exporter.toXLSX(this.riesgo(), this.exportCols, 'Riesgo Académico', 'riesgo-academico'); }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
 }
