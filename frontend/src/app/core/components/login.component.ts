@@ -18,7 +18,7 @@ import { AuthService } from '../services/auth.service';
 
         <!-- Logo oficial Instituto Nevadi -->
         <div class="login-logo">
-          <img src="/nevadi-logo.jpg" alt="Instituto Nevadi" class="inst-logo" />
+          <img src="/nevadi-logo.jpg" alt="Instituto Nevadi" class="inst-logo" loading="eager" />
         </div>
 
         <h1>ADES</h1>

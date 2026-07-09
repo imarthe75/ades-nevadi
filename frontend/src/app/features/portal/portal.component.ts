@@ -85,7 +85,7 @@ interface AlumnoResumen {
   <div class="alumno-card">
     <div class="avatar">
       @if (resumen()!.alumno.foto_url) {
-        <img [src]="resumen()!.alumno.foto_url" alt="foto" />
+        <img [src]="resumen()!.alumno.foto_url" alt="foto" loading="lazy" />
       } @else {
         <span>{{ iniciales() }}</span>
       }

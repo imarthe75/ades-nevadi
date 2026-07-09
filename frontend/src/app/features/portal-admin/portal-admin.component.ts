@@ -167,7 +167,7 @@ interface Catalogo {
       <div class="field">
         <label>Imagen de portada</label>
         <div class="imagen-preview" *ngIf="form().imagenUrl">
-          <img [src]="form().imagenUrl" alt="Portada" style="max-height:120px; border-radius:6px; border:1px solid #ddd" />
+          <img [src]="form().imagenUrl" alt="Portada" style="max-height:120px; border-radius:6px; border:1px solid #ddd" loading="lazy" />
           <p-button icon="pi pi-trash" severity="danger" [text]="true" size="small"
             ariaLabel="Quitar imagen" (onClick)="form().imagenUrl = null" pTooltip="Quitar imagen" />
         </div>
