@@ -104,10 +104,14 @@ class Settings(BaseSettings):
     FLOWISE_API_KEY: str = ""
     FLOWISE_CHATFLOW_ID: str = ""
 
-    # Polygon PoS Blockchain (FASE 5 Etapa B)
-    POLYGON_RPC_URL: str = "MOCK"
-    POLYGON_PRIVATE_KEY: str = ""
-    POLYGON_CONTRACT_ADDRESS: str = ""
+    # LAChain Blockchain (FASE 5 Etapa B) — reemplazó Polygon PoS
+    # Configuración para anclaje criptográfico de certificados digitales.
+    # En desarrollo, LACCHAIN_RPC_URL="MOCK" simula transacciones sin conectar.
+    # En producción, configurar con RPC real de LAChain + llave privada + contrato.
+    LACCHAIN_RPC_URL: str = "MOCK"
+    LACCHAIN_PRIVATE_KEY: str = ""
+    LACCHAIN_CONTRACT_ADDRESS: str = ""
+    LACCHAIN_CHAIN_ID: str = ""  # ej: "2020" para LAChain mainnet
 
     # OpenAI / NVIDIA NIM (FASE 4 / FASE 27)
     OPENAI_BASE_URL: str = "https://integrate.api.nvidia.com/v1"

@@ -254,4 +254,254 @@ public class PlaneacionQueryService {
                 "tareas", tareas,
                 "calificaciones", calificaciones);
     }
+
+    /**
+     * Obtener planeación de una semana específica (FASE 2 - Planeaciones Semanales).
+     * Busca por trimestre y número de semana.
+     */
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getPlaneacionSemanal(UUID grupoId, Integer trimestre, Integer semana, UUID materiaId) {
+        List<Object> params = new ArrayList<>();
+        String query = """
+            SELECT
+                pc.id AS planeacion_id,
+                pc.numero_trimestre,
+                pc.numero_semana,
+                pc.modalidad,
+                pc.fecha_planeada,
+                pc.fecha_fin,
+                pc.descripcion_actividades,
+                pc.recursos_didacticos,
+                t.id AS tema_id,
+                t.nombre_tema,
+                m.id AS materia_id,
+                m.nombre_materia,
+                c.codigo AS competencia_codigo,
+                c.nombre AS competencia_nombre,
+                av.es_completado,
+                av.fecha_ejecucion,
+                av.comentarios_profesor
+            FROM ades_planeacion_clases pc
+            JOIN ades_temas t ON t.id = pc.tema_id
+            JOIN ades_materias m ON m.id = t.materia_id
+            LEFT JOIN ades_competencias c ON c.ref = pc.competencia_id
+            LEFT JOIN ades_avance_planificacion av ON av.planeacion_clase_id = pc.id AND av.is_active = TRUE
+            WHERE pc.grupo_id = ?::uuid
+              AND pc.is_active = TRUE
+            """;
+        params.add(grupoId.toString());
+
+        if (trimestre != null) {
+            query += " AND pc.numero_trimestre = ?";
+            params.add(trimestre);
+        }
+        if (semana != null) {
+            query += " AND pc.numero_semana = ?";
+            params.add(semana);
+        }
+        if (materiaId != null) {
+            query += " AND t.materia_id = ?::uuid";
+            params.add(materiaId.toString());
+        }
+        query += " ORDER BY pc.numero_semana, m.nombre_materia, t.orden";
+        return jdbc.queryForList(query, params.toArray());
+    }
+
+    /**
+     * Obtener cobertura por semana (FASE 2 - Dashboard semanal).
+     */
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getCoberturaSemanal(UUID grupoId, Integer trimestre) {
+        List<Object> params = new ArrayList<>();
+        String query = """
+            SELECT
+                pc.numero_semana,
+                pc.numero_trimestre,
+                COUNT(DISTINCT pc.id) AS temas_planeados,
+                COUNT(DISTINCT CASE WHEN av.es_completado = TRUE THEN pc.id END) AS temas_impartidos,
+                ROUND(
+                    COUNT(DISTINCT CASE WHEN av.es_completado = TRUE THEN pc.id END)::NUMERIC /
+                    NULLIF(COUNT(DISTINCT pc.id), 0) * 100, 1
+                ) AS pct_cobertura
+            FROM ades_planeacion_clases pc
+            LEFT JOIN ades_avance_planificacion av ON av.planeacion_clase_id = pc.id AND av.is_active = TRUE
+            WHERE pc.grupo_id = ?::uuid AND pc.is_active = TRUE
+            """;
+        params.add(grupoId.toString());
+
+        if (trimestre != null) {
+            query += " AND pc.numero_trimestre = ?";
+            params.add(trimestre);
+        }
+        query += " GROUP BY pc.numero_semana, pc.numero_trimestre ORDER BY pc.numero_semana";
+        return jdbc.queryForList(query, params.toArray());
+    }
+
+    /**
+     * Validar que trimestre/semana están dentro del rango válido del ciclo escolar.
+     */
+    @Transactional(readOnly = true)
+    public Map<String, Object> getValidacionTrimestralSemanal(Integer trimestre, Integer semana) {
+        Boolean trimestreValido = trimestre != null && trimestre >= 1 && trimestre <= 3;
+        Boolean semanaValida = semana != null && semana >= 1 && semana <= 40;
+        return Map.of(
+            "trimestre_valido", trimestreValido,
+            "semana_valida", semanaValida,
+            "ambas_validas", trimestreValido && semanaValida);
+    }
+
+    /**
+     * FASE 2: Obtener temario (temas) y aprendizajes esperados disponibles
+     * para una materia/grado específicos. Usado para crear planeación semanal.
+     *
+     * @param materiaId    UUID de la materia
+     * @param gradoId      UUID del grado
+     * @return Map con dos arrays: temas y aprendizajes
+     */
+    @Transactional(readOnly = true)
+    public Map<String, Object> getTemarioYAprendizajes(UUID materiaId, UUID gradoId) {
+        List<Map<String, Object>> temas = jdbc.queryForList("""
+            SELECT
+                t.id as tema_id,
+                t.nombre_tema,
+                t.descripcion,
+                t.orden,
+                t.periodo_sugerido,
+                m.id as materia_id,
+                m.nombre_materia
+            FROM ades_temas t
+            JOIN ades_materias m ON m.id = t.materia_id
+            WHERE t.materia_id = ?::uuid
+              AND (t.grado_id IS NULL OR t.grado_id = ?::uuid)
+              AND t.is_active = TRUE
+            ORDER BY t.orden, t.nombre_tema
+            """, materiaId.toString(), gradoId.toString());
+
+        List<Map<String, Object>> aprendizajes = jdbc.queryForList("""
+            SELECT
+                ae.ref as aprendizaje_id,
+                ae.codigo,
+                ae.descripcion,
+                ae.orden,
+                ae.grado_id,
+                ae.materia_id,
+                c.ref as competencia_id,
+                c.codigo as competencia_codigo,
+                c.nombre as competencia_nombre
+            FROM ades_aprendizajes_esperados ae
+            LEFT JOIN ades_competencias c ON c.ref = ae.competencia_id
+            WHERE ae.materia_id = ?::uuid
+              AND ae.grado_id = ?::uuid
+              AND ae.activo = TRUE
+            ORDER BY ae.orden, ae.codigo
+            """, materiaId.toString(), gradoId.toString());
+
+        return Map.of(
+            "temas", temas,
+            "aprendizajes", aprendizajes,
+            "cantidad_temas", temas.size(),
+            "cantidad_aprendizajes", aprendizajes.size()
+        );
+    }
+
+    // ── FASE 3: Tareas/Exámenes Vinculados ────────────────────────────────────
+
+    /**
+     * FASE 3: Obtener planeaciones activas de un grupo.
+     * Usado para selector al crear tarea/examen vinculado.
+     *
+     * @param grupoId UUID del grupo
+     * @return List de planeaciones con detalles
+     */
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getPlaneacionesDelGrupo(UUID grupoId) {
+        return jdbc.queryForList("""
+            SELECT
+                pc.ref as planeacion_id,
+                pc.numero_trimestre,
+                pc.numero_semana,
+                pc.modalidad,
+                pc.fecha_planeada,
+                pc.fecha_fin,
+                t.nombre_tema,
+                m.nombre_materia,
+                COUNT(DISTINCT pae.ref) as cantidad_aprendizajes
+            FROM ades_planeacion_clases pc
+            JOIN ades_temas t ON t.id = pc.tema_id
+            JOIN ades_materias m ON m.id = t.materia_id
+            LEFT JOIN ades_planeacion_aprendizajes pae ON pae.planeacion_clase_id = pc.ref
+            WHERE pc.grupo_id = ?::uuid
+              AND pc.is_active = TRUE
+            GROUP BY pc.ref, pc.numero_trimestre, pc.numero_semana, pc.modalidad,
+                     pc.fecha_planeada, pc.fecha_fin, t.nombre_tema, m.nombre_materia
+            ORDER BY pc.numero_trimestre DESC, pc.numero_semana DESC, pc.fecha_planeada DESC
+            """, grupoId.toString());
+    }
+
+    /**
+     * FASE 3: Obtener aprendizajes vinculados a una planeación específica.
+     * Usados para llenar aprendizajes_esperados en tarea/examen.
+     *
+     * @param planeacionClaseId UUID de la planeación
+     * @return List de aprendizajes esperados
+     */
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getAprendizajesDeplanneacion(UUID planeacionClaseId) {
+        return jdbc.queryForList("""
+            SELECT
+                ae.ref as aprendizaje_id,
+                ae.codigo,
+                ae.descripcion,
+                ae.orden,
+                c.ref as competencia_id,
+                c.codigo as competencia_codigo,
+                c.nombre as competencia_nombre
+            FROM ades_planeacion_aprendizajes pae
+            JOIN ades_aprendizajes_esperados ae ON ae.ref = pae.aprendizaje_esperado_id
+            LEFT JOIN ades_competencias c ON c.ref = ae.competencia_id
+            WHERE pae.planeacion_clase_id = ?::uuid
+            ORDER BY ae.orden, ae.codigo
+            """, planeacionClaseId.toString());
+    }
+
+    /**
+     * FASE 3: Obtener detalles de una planeación específica.
+     * Usado para llenar contexto al crear tarea (grupo, materia, grado, aprendizajes).
+     *
+     * @param planeacionClaseId UUID de la planeación
+     * @return Map con detalles completos
+     */
+    @Transactional(readOnly = true)
+    public Map<String, Object> getDetallesplanneacion(UUID planeacionClaseId) {
+        Map<String, Object> planeacion = jdbc.queryForMap("""
+            SELECT
+                pc.ref as planeacion_id,
+                pc.grupo_id,
+                pc.numero_trimestre,
+                pc.numero_semana,
+                pc.modalidad,
+                pc.fecha_planeada,
+                pc.fecha_fin,
+                t.id as tema_id,
+                t.nombre_tema,
+                m.id as materia_id,
+                m.nombre_materia,
+                g.id as grado_id,
+                g.numero_grado
+            FROM ades_planeacion_clases pc
+            JOIN ades_temas t ON t.id = pc.tema_id
+            JOIN ades_materias m ON m.id = t.materia_id
+            JOIN ades_grupos gr ON gr.ref = pc.grupo_id
+            JOIN ades_grados g ON g.id = gr.grado_id
+            WHERE pc.ref = ?::uuid AND pc.is_active = TRUE
+            """, planeacionClaseId.toString());
+
+        // Obtener aprendizajes
+        List<Map<String, Object>> aprendizajes = getAprendizajesDeplanneacion(planeacionClaseId);
+
+        planeacion.put("aprendizajes", aprendizajes);
+        planeacion.put("cantidad_aprendizajes", aprendizajes.size());
+
+        return planeacion;
+    }
 }

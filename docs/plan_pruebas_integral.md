@@ -9,7 +9,7 @@
 | Ítem | Estado | Acción |
 |------|--------|--------|
 | Google Workspace SSO | Bloqueado — esperando credenciales Google Cloud de Nevadi | Admin externo |
-| Polygon FASE 5B | Diferido explícitamente a producción | No aplica QA ahora |
+| LAChain FASE 5B | Diferido a producción — LACCHAIN_RPC_URL=MOCK en DEV | No aplica QA ahora |
 | H5P FASE 25 | No implementado (contenido educativo interactivo) | Backlog |
 | BigBlueButton FASE 26 | No implementado (videoconferencias) | Backlog |
 | Superset datasource + dashboards BI | Servicio activo, config manual pendiente | Setup independiente |

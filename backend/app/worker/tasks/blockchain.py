@@ -1,9 +1,9 @@
-"""Tarea Celery: anclaje de certificados digitales en Polygon PoS.
+"""Tarea Celery: anclaje de certificados digitales en LAChain blockchain.
 
 Flujo:
   1. Leer el certificado (hash_sha256, folio) de ades_certificados.
   2. Llamar a ``anclar_hash_blockchain`` del servicio blockchain (puede ser MOCK
-     en desarrollo o Polygon real en producción según POLYGON_RPC_URL).
+     en desarrollo o LAChain real en producción según LACCHAIN_RPC_URL).
   3. Actualizar ades_certificados con tx_hash, estado, fecha de anclaje y red.
 
 La tarea es idempotente en cuanto al hash: si el mismo hash ya fue anclado,

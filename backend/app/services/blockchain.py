@@ -31,8 +31,8 @@ MINIMAL_ABI = [
 
 def anclar_hash_blockchain(hash_sha256: str) -> dict:
     """
-    Registra el hash SHA-256 de un certificado en la blockchain de Polygon.
-    Si POLYGON_RPC_URL es 'MOCK', simula el anclaje criptográfico.
+    Registra el hash SHA-256 de un certificado en la blockchain de LAChain.
+    Si LACCHAIN_RPC_URL es 'MOCK', simula el anclaje criptográfico.
     Retorna: {
         'tx_hash': str,
         'status': 'ANCLADO' | 'FALLIDO',
@@ -40,9 +40,9 @@ def anclar_hash_blockchain(hash_sha256: str) -> dict:
         'fecha_anclaje': datetime
     }
     """
-    network = "MOCK" if settings.POLYGON_RPC_URL == "MOCK" else "POLYGON_AMOY"
-    
-    if settings.POLYGON_RPC_URL == "MOCK":
+    network = "MOCK" if settings.LACCHAIN_RPC_URL == "MOCK" else "LACCHAIN"
+
+    if settings.LACCHAIN_RPC_URL == "MOCK":
         logger.info("Modo Blockchain MOCK activo. Simulando anclaje para hash: %s", hash_sha256)
         mock_tx = "0x" + secrets.token_hex(32)
         return {
@@ -54,17 +54,17 @@ def anclar_hash_blockchain(hash_sha256: str) -> dict:
 
     try:
         from web3 import Web3
-        
-        w3 = Web3(Web3.HTTPProvider(settings.POLYGON_RPC_URL))
-        if not w3.is_connected():
-            raise Exception("No se pudo establecer conexión con el proveedor RPC de Polygon.")
 
-        if not settings.POLYGON_PRIVATE_KEY or not settings.POLYGON_CONTRACT_ADDRESS:
-            raise Exception("POLYGON_PRIVATE_KEY o POLYGON_CONTRACT_ADDRESS no están configurados.")
+        w3 = Web3(Web3.HTTPProvider(settings.LACCHAIN_RPC_URL))
+        if not w3.is_connected():
+            raise Exception("No se pudo establecer conexión con el proveedor RPC de LAChain.")
+
+        if not settings.LACCHAIN_PRIVATE_KEY or not settings.LACCHAIN_CONTRACT_ADDRESS:
+            raise Exception("LACCHAIN_PRIVATE_KEY o LACCHAIN_CONTRACT_ADDRESS no están configurados.")
 
         # Obtener cuenta desde la llave privada
-        account = w3.eth.account.from_key(settings.POLYGON_PRIVATE_KEY)
-        contract = w3.eth.contract(address=settings.POLYGON_CONTRACT_ADDRESS, abi=MINIMAL_ABI)
+        account = w3.eth.account.from_key(settings.LACCHAIN_PRIVATE_KEY)
+        contract = w3.eth.contract(address=settings.LACCHAIN_CONTRACT_ADDRESS, abi=MINIMAL_ABI)
 
         # Convertir hash hex a bytes32
         hash_bytes = bytes.fromhex(hash_sha256)
@@ -82,12 +82,12 @@ def anclar_hash_blockchain(hash_sha256: str) -> dict:
         })
 
         # Firmar transacción
-        signed_tx = w3.eth.account.sign_transaction(tx, private_key=settings.POLYGON_PRIVATE_KEY)
-        
+        signed_tx = w3.eth.account.sign_transaction(tx, private_key=settings.LACCHAIN_PRIVATE_KEY)
+
         # Enviar transacción
         tx_hash = w3.eth.send_raw_transaction(signed_tx.rawTransaction)
         tx_hash_hex = w3.to_hex(tx_hash)
-        logger.info("Transacción de anclaje enviada a Polygon: %s", tx_hash_hex)
+        logger.info("Transacción de anclaje enviada a LAChain: %s", tx_hash_hex)
 
         # Esperar recibo (receipt)
         receipt = w3.eth.wait_for_transaction_receipt(tx_hash, timeout=60)

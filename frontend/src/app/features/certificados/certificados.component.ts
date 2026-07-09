@@ -570,6 +570,16 @@ export class CertificadosComponent implements OnInit {
     if (network === 'MOCK') {
       return `/verificar/mock-tx/${tx}`;
     }
-    return `https://amoy.polygonscan.com/tx/${tx}`;
+    // LAChain explorer — cuando esté configurado en producción
+    // Por ahora retorna # ya que LAChain RPC aún no está activo
+    if (network === 'LACCHAIN') {
+      // TODO: Configurar LACCHAIN_EXPLORER_URL en entorno de producción
+      return `#`; // Temporalmente deshabilitado
+    }
+    // Backward compatibility: certificados históricos con Polygon testnet
+    if (network === 'POLYGON_AMOY') {
+      return `https://amoy.polygonscan.com/tx/${tx}`;
+    }
+    return '#';
   }
 }

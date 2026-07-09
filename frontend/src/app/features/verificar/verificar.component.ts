@@ -179,7 +179,7 @@ interface VerificacionResult {
 
           <!-- Anclaje Blockchain -->
           <div class="verif-firma-block" style="border-left: 4px solid #16a34a">
-            <div class="verif-section-title">Anclaje en Blockchain (Polygon PoS)</div>
+            <div class="verif-section-title">Anclaje en Blockchain (LAChain)</div>
             <div class="verif-firma-row">
               @if (result()!.blockchain_status === 'ANCLADO') {
                 <i class="pi pi-link" style="color:#16a34a;font-size:1.5rem"></i>
@@ -325,6 +325,16 @@ export class VerificarComponent implements OnInit {
     if (network === 'MOCK') {
       return `/verificar/mock-tx/${tx}`;
     }
-    return `https://amoy.polygonscan.com/tx/${tx}`;
+    // LAChain explorer — cuando esté configurado en producción
+    // Por ahora retorna # ya que LAChain RPC aún no está activo
+    if (network === 'LACCHAIN') {
+      // TODO: Configurar LACCHAIN_EXPLORER_URL en entorno de producción
+      return `#`; // Temporalmente deshabilitado
+    }
+    // Backward compatibility: certificados históricos con Polygon testnet
+    if (network === 'POLYGON_AMOY') {
+      return `https://amoy.polygonscan.com/tx/${tx}`;
+    }
+    return '#';
   }
 }

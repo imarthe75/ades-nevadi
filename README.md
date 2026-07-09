@@ -885,7 +885,7 @@ Plan de Recuperación ante Desastres documentado en `docs/disaster_recovery_plan
 | 0001 | Arquitectura de Génesis | FastAPI + Angular + PostgreSQL para operación completa |
 | 0002 | UUID v7 como Primary Keys | Time-ordered sin fragmentación de índice B-tree |
 | 0003 | APEX Component Library | `ApexNotificationService` + `InteractiveGridComponent` globales |
-| 0004 | Firma Digital Ed25519 | Costo $0, verificable sin PKI, compatible con Polygon PoS |
+| 0004 | Firma Digital Ed25519 | Costo $0, verificable sin PKI, anchored en LAChain blockchain |
 | 0005 | Audit Trail via `request.state` | `get_ades_user` propaga UUID real — sin JWT decode duplicado |
 | 0006 | RBAC con Scope de Plantel | Verificación `plantel_id` en endpoints mutantes críticos |
 | 0007 | JWKS Async + TTL Cache | Evita bloqueo de event loop; caché 5 min resiste key rotation |
