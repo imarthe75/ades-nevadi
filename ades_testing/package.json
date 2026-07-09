@@ -1,0 +1,20 @@
+{
+  "name": "ades_testing",
+  "version": "1.0.0",
+  "description": "Sistema de **testing exploratorio cognitivo** para ADES Nevadi que: - ✅ Navega ~60 módulos automáticamente (Playwright) - ✅ Captura screenshots + DOM + errores de consola/red - ✅ Analiza inconsistencias con IA (Claude API) - ✅ Genera reportes ejecutivos (HTML, CSV, matriz)",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@faker-js/faker": "^10.5.0",
+    "@playwright/test": "^1.61.1"
+  }
+}
