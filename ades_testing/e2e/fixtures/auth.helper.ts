@@ -9,31 +9,107 @@ export class AuthHelper {
 
   /**
    * Login with email and password
+   * Supports both direct form login and OAuth/OIDC (Authentik)
    * @param email User email (e.g., admin@ades.test)
    * @param password User password
    * @throws Error if login fails
    */
   async login(email: string, password: string): Promise<void> {
-    await this.page.goto('/login');
+    await this.page.goto('/login', { waitUntil: 'networkidle' });
+    await this.page.waitForTimeout(1000);
 
-    // Wait for login form to load
-    await this.page.waitForSelector('input[type="email"]', { timeout: 5000 });
-
-    // Fill credentials
-    await this.page.fill('input[type="email"]', email);
-    await this.page.fill('input[type="password"]', password);
-
-    // Click login button (multiple possible selectors)
-    const loginBtn = this.page.locator(
-      'button:has-text("Ingresar"), button:has-text("Login"), [data-testid="btn-login"]'
+    // Check if OAuth button is present (Authentik flow)
+    const oauthBtn = this.page.locator(
+      'button:has-text("Iniciar sesión"), button:has-text("Login"), button:has-text("Sign in")'
     );
-    await loginBtn.click();
 
-    // Wait for redirect to dashboard or home (timeout 10s)
-    await this.page.waitForURL(/\/(dashboard|home|admin)/, { timeout: 10000 })
-      .catch(() => {
-        throw new Error(`Login failed: did not redirect after login for user ${email}`);
-      });
+    if (await oauthBtn.isVisible()) {
+      // OAuth/OIDC flow
+      await oauthBtn.click();
+
+      // Wait for redirect to Authentik
+      await this.page.waitForURL(/auth\.ades\.setag\.mx/, { timeout: 10000 })
+        .catch(() => console.warn('Did not redirect to Authentik'));
+
+      // Wait for Authentik form inputs to render (Web Components)
+      try {
+        await this.page.waitForSelector('input', { timeout: 10000 });
+      } catch {
+        throw new Error('Authentik form inputs did not load');
+      }
+
+      await this.page.waitForTimeout(500);
+
+      // Try to fill Authentik form (email + password)
+      const emailInput = this.page.locator(
+        'input[name="username"], input[type="email"], input[placeholder*="email"]'
+      ).first();
+
+      const passwordInput = this.page.locator(
+        'input[name="password"], input[type="password"]'
+      ).first();
+
+      if (await emailInput.isVisible()) {
+        await emailInput.fill(email);
+      }
+
+      if (await passwordInput.isVisible()) {
+        await passwordInput.fill(password);
+      }
+
+      // Click Authentik login button
+      const authBtn = this.page.locator(
+        'button[type="submit"], button:has-text("Iniciar sesión"), button:has-text("Sign in")'
+      ).first();
+
+      if (await authBtn.isVisible()) {
+        await authBtn.click();
+      }
+
+      // Handle OAuth consent screen (if present)
+      await this.page.waitForTimeout(1000);
+      const consentBtn = this.page.locator(
+        'button:has-text("Continue"), button:has-text("Allow"), [data-testid="consent-continue"]'
+      ).first();
+
+      if (await consentBtn.isVisible()) {
+        await consentBtn.click();
+      }
+
+      // Wait for redirect back to ADES
+      await this.page.waitForURL(/ades\.setag\.mx\/(callback|dashboard|home)/, { timeout: 15000 })
+        .catch(() => {
+          throw new Error(`OAuth login failed: did not return to ADES for user ${email}`);
+        });
+
+      // Wait for final redirect to dashboard
+      await this.page.waitForURL(/\/(dashboard|home|admin|app)/, { timeout: 10000 })
+        .catch(() => {
+          throw new Error(`Login failed: did not redirect to dashboard for user ${email}`);
+        });
+    } else {
+      // Direct form login (fallback)
+      const emailInput = this.page.locator('input[type="email"]').first();
+      const passwordInput = this.page.locator('input[type="password"]').first();
+
+      if (await emailInput.isVisible()) {
+        await emailInput.fill(email);
+        await passwordInput.fill(password);
+
+        const loginBtn = this.page.locator(
+          'button:has-text("Ingresar"), button:has-text("Login"), [data-testid="btn-login"]'
+        ).first();
+
+        if (await loginBtn.isVisible()) {
+          await loginBtn.click();
+        }
+      }
+
+      await this.page.waitForURL(/\/(dashboard|home|admin)/, { timeout: 10000 })
+        .catch(() => {
+          throw new Error(`Login failed: did not redirect after login for user ${email}`);
+        });
+    }
   }
 
   /**
