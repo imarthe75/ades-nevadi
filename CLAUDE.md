@@ -160,6 +160,7 @@ celery -A app.worker.celery_app worker --loglevel=info
 15. **Autoexploración y Autoescaneo de Componentes**: Cada componente desarrollado o modificado debe ser autoexplorado y autoescaneado para garantizar que sea 100% seguro y cumpla con toda la funcionalidad esperada.
 16. **Análisis Exploratorios**: Realizar análisis exploratorios profundos antes y durante cualquier diseño o implementación de cambios o nuevos componentes para detectar fallas e inconsistencias proactivamente.
 17. **Documentación Completa del Código**: Documentar plenamente todo el código desarrollado o modificado (comentarios en funciones críticas, clases, modelos, parámetros y cabeceras), asegurando su legibilidad y mantenibilidad.
+18. **Organización de Documentación**: TODO archivo `.md` generado (reportes, auditorías, análisis, guías) DEBE ir en `docs/` — NUNCA en raíz. Solo `CLAUDE.md` y `README.md` quedan en raíz. `.gitignore` ignora .md en raíz (excepto los 2 permitidos).
 
 ### Esquema de auditoría ADES (implementado en 038_auditoria_v2.sql)
 

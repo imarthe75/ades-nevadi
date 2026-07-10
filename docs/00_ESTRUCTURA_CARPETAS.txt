@@ -1,0 +1,89 @@
+📚 DOCUMENTACIÓN ADES — Estructura Final (2026-07-10)
+
+docs/
+│
+├── 🔐 AUDITORÍA & ESTÁNDARES
+│   └── auditoria/ (8 archivos)
+│       ├── ESTANDARES_AUDITORIA.md
+│       ├── SKILL_AUDITORIA_SISTEMAS_COMPLETA.md
+│       ├── AUDITORIA_ESTADO_OPCION_A_2026_07_10.md
+│       └── [5 más]
+│
+├── 🗺️ PLANIFICACIÓN & ESTRATEGIA
+│   ├── roadmap/ (6 archivos)
+│   │   ├── DECISION_82_100_VS_100_100.md
+│   │   ├── ROADMAP.md
+│   │   └── [4 más]
+│   └── DECISIONS/ (decisiones arquitectónicas)
+│
+├── 📈 PROGRESO & REPORTES
+│   └── progreso/ (10 archivos)
+│       ├── SEMANA_1_CHECKPOINT_2026_07_09.md
+│       ├── SEMANA_2_REPORTE_FK_INDEXES_2026_07_15.md
+│       └── [8 más]
+│
+├── 🔧 ESPECIFICACIONES TÉCNICAS
+│   ├── especificaciones/ (7 archivos)
+│   │   ├── ER_DIAGRAM.md
+│   │   ├── API_CONTRACT_TESTING.md
+│   │   └── [5 más]
+│   ├── técnico/ (análisis profundos)
+│   ├── security/ (análisis seguridad)
+│   └── use_case/ (casos de uso)
+│
+├── 🛠️ OPERACIONES
+│   ├── instalacion/ (4 archivos)
+│   │   ├── instalación postgresql.md
+│   │   ├── disaster_recovery_plan.md
+│   │   └── [2 más]
+│   └── horarios-integracion/ (configuración de horarios)
+│
+├── 📖 MANUALES DE USUARIO
+│   └── manual/ (3 archivos)
+│       ├── manual-usuario.md
+│       ├── manual_usuario_ades.md
+│       └── README_USUARIO.md
+│
+├── ✅ TESTING & VALIDACIÓN
+│   └── testing/ (2 archivos)
+│       ├── plan_pruebas_integral.md
+│       └── CORRECCIONES_TESTING_PLAN_2026_07_08.md
+│
+└── 📑 ÍNDICES & ORGANIZACIÓN
+    └── indice/ (2 archivos)
+        ├── INDEX.md
+        └── ORGANIZACION_RAIZ_2026_07_08.md
+
+═══════════════════════════════════════════════════════════
+
+REGLA DE DOCUMENTACIÓN:
+
+✅ PERMITIDO EN RAÍZ:
+   - CLAUDE.md (directrices del proyecto)
+   - README.md (índice general)
+
+❌ PROHIBIDO EN RAÍZ:
+   - TODO archivo .md generado → docs/subcarpeta/
+   - .gitignore lo rechazará automáticamente
+
+BÚSQUEDA RÁPIDA:
+
+📋 Auditoría formal?          → docs/auditoria/AUDITORIA_ESTADO_*.md
+🗺️ Roadmap del proyecto?      → docs/roadmap/ROADMAP*.md
+📊 Progreso semana?           → docs/progreso/SEMANA_*.md
+🔐 Seguridad/estándares?      → docs/especificaciones/ + docs/security/
+🛠️ Instalación/setup?         → docs/instalacion/
+📖 Manual usuario?            → docs/manual/
+✅ Planes de prueba?          → docs/testing/
+
+═══════════════════════════════════════════════════════════
+
+Eliminado en sesión 2026-07-10:
+  ❌ auditorias/ (antigua)
+  ❌ informes/ (desactualizado)
+  ❌ planes/ (consolidado en roadmap/)
+  ❌ sprints/ (consolidado en progreso/)
+  ❌ historico/ (archivado)
+  
+  Backup: _BACKUP_CARPETAS_OBSOLETAS_2026_07_10.tar.gz
+

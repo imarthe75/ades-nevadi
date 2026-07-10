@@ -34,3 +34,8 @@ db/migrations/*.bak
 
 # Backups locales
 backups/
+
+# Documentación generada: TODO .md va en docs/ (excepto CLAUDE.md y README.md)
+/*.md
+!CLAUDE.md
+!README.md
