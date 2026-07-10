@@ -2,9 +2,10 @@
  * ProfesorPerfilComponent — Drawer lateral con perfil completo del profesor.
  * 3 tabs: Datos Personales | Datos Laborales | Nómina y Banco
  */
-import { Component, Input, Output, EventEmitter, OnChanges, OnInit, SimpleChanges, inject, signal, computed } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnChanges, OnInit, OnDestroy, SimpleChanges, ChangeDetectionStrategy, ChangeDetectorRef, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subject, takeUntil } from 'rxjs';
 import { DrawerModule } from 'primeng/drawer';
 import { ButtonModule } from 'primeng/button';
 import { ToastModule } from 'primeng/toast';
@@ -28,6 +29,7 @@ const BANCOS          = ['BBVA','SANTANDER','BANAMEX','BANORTE','HSBC','SCOTIABA
 
 @Component({
   selector: 'app-profesor-perfil',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     CommonModule, FormsModule,
@@ -266,9 +268,11 @@ const BANCOS          = ['BBVA','SANTANDER','BANAMEX','BANORTE','HSBC','SCOTIABA
       margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--surface-200); }
   `],
 })
-export class ProfesorPerfilComponent implements OnInit, OnChanges {
+export class ProfesorPerfilComponent implements OnInit, OnChanges, OnDestroy {
   private readonly api = inject(ApiService);
   private readonly msg = inject(MessageService);
+  private readonly cdr = inject(ChangeDetectorRef);
+  private readonly destroy$ = new Subject<void>();
 
   @Input() profesor: Profesor | null = null;
   @Input() visible = false;
@@ -300,33 +304,39 @@ export class ProfesorPerfilComponent implements OnInit, OnChanges {
   });
 
   ngOnInit(): void {
-    this.api.get<{ nacionalidad: string }[]>('/catalogs/nacionalidades').subscribe({
-      next: list => this.nacionalidades.set(list.map(n => n.nacionalidad)),
-      error: () => {},
-    });
-    this.api.get<any[]>('/catalogs/estados-mexico').subscribe({
-      next: list => {
-        this.estadosMex.set(list);
-        if (this.form?.estado_nacimiento) {
-          const est = list.find((e: any) => e.nombre_estado === this.form.estado_nacimiento);
-          if (est) this.cargarMunicipiosNac(est.id, false);
-        }
-      },
-      error: () => {},
-    });
-    this.api.get<any[]>('/catalogs/paises').subscribe({
-      next: list => {
-        this.paises.set(list);
-        if (this.form?.pais_nacimiento) {
-          const p = list.find((x: any) => x.nombre_pais === this.form.pais_nacimiento);
-          if (p) this.paisNacId.set(p.id);
-        } else {
-          const mx = list.find((x: any) => x.nombre_pais === 'México');
-          if (mx) this.paisNacId.set(mx.id);
-        }
-      },
-      error: () => {},
-    });
+    this.api.get<{ nacionalidad: string }[]>('/catalogs/nacionalidades')
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: list => this.nacionalidades.set(list.map(n => n.nacionalidad)),
+        error: () => {},
+      });
+    this.api.get<any[]>('/catalogs/estados-mexico')
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: list => {
+          this.estadosMex.set(list);
+          if (this.form?.estado_nacimiento) {
+            const est = list.find((e: any) => e.nombre_estado === this.form.estado_nacimiento);
+            if (est) this.cargarMunicipiosNac(est.id, false);
+          }
+        },
+        error: () => {},
+      });
+    this.api.get<any[]>('/catalogs/paises')
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: list => {
+          this.paises.set(list);
+          if (this.form?.pais_nacimiento) {
+            const p = list.find((x: any) => x.nombre_pais === this.form.pais_nacimiento);
+            if (p) this.paisNacId.set(p.id);
+          } else {
+            const mx = list.find((x: any) => x.nombre_pais === 'México');
+            if (mx) this.paisNacId.set(mx.id);
+          }
+        },
+        error: () => {},
+      });
   }
 
   onPaisNacChange(paisId: string): void {
@@ -351,16 +361,19 @@ export class ProfesorPerfilComponent implements OnInit, OnChanges {
   }
 
   private cargarMunicipiosNac(estadoId: string, limpiar: boolean): void {
-    this.api.get<any[]>('/catalogs/municipios', { estado_id: estadoId }).subscribe({
-      next: list => {
-        this.municipiosMex.set(list);
-        if (!limpiar && this.form?.municipio_nacimiento) {
-          const mun = list.find((m: any) => m.nombre_municipio === this.form.municipio_nacimiento);
-          if (mun) this.municipioNacId = mun.id;
-        }
-      },
-      error: () => {},
-    });
+    this.api.get<any[]>('/catalogs/municipios', { estado_id: estadoId })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: list => {
+          this.municipiosMex.set(list);
+          if (!limpiar && this.form?.municipio_nacimiento) {
+            const mun = list.find((m: any) => m.nombre_municipio === this.form.municipio_nacimiento);
+            if (mun) this.municipioNacId = mun.id;
+          }
+          this.cdr.markForCheck();
+        },
+        error: () => {},
+      });
   }
 
   onMunicipioNacChange(municipioId: string): void {
@@ -453,17 +466,19 @@ export class ProfesorPerfilComponent implements OnInit, OnChanges {
       },
     };
 
-    this.api.patch(`/profesores/${this.profesor.id}`, payload).subscribe({
-      next: () => {
-        this.msg.add({ severity: 'success', summary: 'Guardado', detail: 'Perfil actualizado' });
-        this.saving.set(false);
-        this.saved.emit();
-      },
-      error: e => {
-        this.msg.add({ severity: 'error', summary: 'Error', detail: e.error?.detail ?? 'Error' });
-        this.saving.set(false);
-      },
-    });
+    this.api.patch(`/profesores/${this.profesor.id}`, payload)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.msg.add({ severity: 'success', summary: 'Guardado', detail: 'Perfil actualizado' });
+          this.saving.set(false);
+          this.saved.emit();
+        },
+        error: e => {
+          this.msg.add({ severity: 'error', summary: 'Error', detail: e.error?.detail ?? 'Error' });
+          this.saving.set(false);
+        },
+      });
   }
 
   onCerrar(): void {
@@ -473,5 +488,10 @@ export class ProfesorPerfilComponent implements OnInit, OnChanges {
 
   private formatDate(d: Date): string {
     return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

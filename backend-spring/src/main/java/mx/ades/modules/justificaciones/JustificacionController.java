@@ -59,9 +59,13 @@ public class JustificacionController {
             @RequestParam(value = "estudiante_id", required = false) UUID estudianteId,
             @RequestParam(value = "estado",        required = false) String estado,
             @RequestParam(value = "grupo_id",      required = false) UUID grupoId,
+            @RequestParam(value = "pagina", defaultValue = "1") int pagina,
+            @RequestParam(value = "por_pagina", defaultValue = "30") int porPagina,
             @AuthenticationPrincipal Jwt jwt) {
         userService.resolveUser(jwt);
-        return ResponseEntity.ok(query.list(estudianteId, estado, grupoId));
+        pagina = Math.max(pagina, 1);
+        porPagina = Math.min(Math.max(porPagina, 1), 200);
+        return ResponseEntity.ok(query.list(estudianteId, estado, grupoId, pagina, porPagina));
     }
 
     @PostMapping

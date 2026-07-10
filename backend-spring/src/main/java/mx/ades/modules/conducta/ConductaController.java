@@ -52,6 +52,18 @@ public class ConductaController {
 
     private static final String API_BASE_URL = "http://ades-api:8000/api/v1/conducta";
 
+    /**
+     * Reportar/editar conducta es operación de personal escolar (nivelAcceso &le;4:
+     * admin/director/coordinador/docente). Padres/alumnos (nivelAcceso &gt;=5) no
+     * pueden crear ni modificar reportes de conducta — previene BFLA (OWASP API5).
+     */
+    private void requireStaff(AdesUser user) {
+        Integer nivelAcceso = user.getNivelAcceso();
+        if (nivelAcceso == null || nivelAcceso > 4) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Nivel de acceso insuficiente para esta operación");
+        }
+    }
+
     @Data
     public static class ReporteCreateRequest {
         private UUID estudianteId;
@@ -140,7 +152,8 @@ public class ConductaController {
     // ── Writes ────────────────────────────────────────────────────────────────
 
     @PostMapping
-    public ResponseEntity<ReporteConducta> crear(@RequestBody ReporteCreateRequest body) {
+    public ResponseEntity<ReporteConducta> crear(@RequestBody ReporteCreateRequest body, @AuthenticationPrincipal Jwt jwt) {
+        requireStaff(userService.resolveUser(jwt));
         ReporteConducta rc = new ReporteConducta();
         rc.setEstudianteId(body.getEstudianteId());
         rc.setGrupoId(body.getGrupoId());
@@ -156,8 +169,10 @@ public class ConductaController {
     @PatchMapping("/{id}")
     public ResponseEntity<ReporteConducta> actualizar(
             @PathVariable("id") UUID id,
-            @RequestBody ReporteCreateRequest body) {
+            @RequestBody ReporteCreateRequest body,
+            @AuthenticationPrincipal Jwt jwt) {
 
+        requireStaff(userService.resolveUser(jwt));
         ReporteConducta rc = repository.findById(id)
                 .filter(ReporteConducta::getIsActive)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Reporte no encontrado"));

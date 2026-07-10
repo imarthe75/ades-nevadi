@@ -8,7 +8,7 @@
  *   Tab 4: Seguridad      — roles, RBAC, buenas prácticas
  *   Tab 5: FAQ            — preguntas frecuentes y solución de problemas
  */
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AccordionModule } from 'primeng/accordion';
@@ -572,7 +572,7 @@ const GUIAS_ROL = [
     .faq-cat { font-size:.78rem;text-transform:uppercase;letter-spacing:.06em;color:var(--primary-color);margin:1.25rem 0 .5rem;border-bottom:1px solid var(--surface-200);padding-bottom:.4rem }
   `],
 })
-export class AyudaComponent {
+export class AyudaComponent implements OnDestroy {
   readonly ctx = inject(ContextService);
 
   busqueda = '';
@@ -626,4 +626,6 @@ export class AyudaComponent {
   }
 
   limpiarBusqueda(): void { this.busqueda = ''; this.resultadosBusqueda.set([]); }
+
+  ngOnDestroy(): void {}
 }

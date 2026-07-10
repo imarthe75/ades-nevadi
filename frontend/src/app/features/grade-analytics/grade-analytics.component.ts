@@ -1,4 +1,4 @@
-import { Component, OnDestroy, inject, OnInit, signal, computed, effect } from '@angular/core';
+import { Component, OnDestroy, inject, OnInit, signal, computed, effect, ChangeDetectionStrategy} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -268,7 +268,7 @@ const RIESGO_SEV: Record<string, TagSeverity> = { ALTO: 'danger', MEDIO: 'warn',
     .empty-msg { text-align:center; padding:2rem; color:var(--text-color-secondary); }
   `],
 })
-export class GradeAnalyticsComponent implements OnInit implements OnInit, OnDestroy {
+export class GradeAnalyticsComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private readonly api      = inject(ApiService);
   readonly ctx              = inject(ContextService);

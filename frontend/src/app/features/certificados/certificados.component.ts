@@ -1,4 +1,4 @@
-import { Component, OnDestroy, inject, signal, OnInit } from '@angular/core';
+import { Component, OnDestroy, inject, signal, OnInit, ChangeDetectionStrategy} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
@@ -326,7 +326,7 @@ interface AlumnoOpt { id: string; label: string; }
   `],
 })
 
-export class CertificadosComponent implements OnInit implements OnInit, OnDestroy {
+export class CertificadosComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private readonly api    = inject(ApiService);
   private readonly notify = inject(ApexNotificationService);

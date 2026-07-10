@@ -1,4 +1,4 @@
-import { Component, OnDestroy, inject, OnInit, signal } from '@angular/core';
+import { Component, OnDestroy, inject, OnInit, signal, ChangeDetectionStrategy} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
@@ -6,7 +6,7 @@ import { ButtonModule } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
 import { InputTextModule } from 'primeng/inputtext';
 import { TextareaModule } from 'primeng/textarea';
-import { CalendarModule } from 'primeng/calendar';
+import { DatePickerModule } from 'primeng/datepicker';
 import { CardModule } from 'primeng/card';
 import { TagModule } from 'primeng/tag';
 import { ToastModule } from 'primeng/toast';
@@ -33,7 +33,7 @@ import { ApiService } from '../../core/services/api.service';
   imports: [
     CommonModule, FormsModule, ReactiveFormsModule,
     ButtonModule, SelectModule, InputTextModule, TextareaModule,
-    CalendarModule, CardModule, TagModule, ToastModule, MessageModule, TableModule
+    DatePickerModule, CardModule, TagModule, ToastModule, MessageModule, TableModule
   ],
   providers: [MessageService],
   template: `
@@ -157,7 +157,7 @@ import { ApiService } from '../../core/services/api.service';
 
             <div class="field">
               <label>Fecha del Examen*</label>
-              <p-calendar formControlName="fecha" dateFormat="dd/mm/yy" [showIcon]="true"/>
+              <p-datepicker formControlName="fecha" dateFormat="dd/mm/yy" [showIcon]="true"/>
             </div>
 
             <div class="field">
@@ -258,7 +258,7 @@ import { ApiService } from '../../core/services/api.service';
     .ml-2 { margin-left: 0.5rem; }
   `]
 })
-export class CrearExamenDesdeplanneacionComponent implements OnInit implements OnInit, OnDestroy {
+export class CrearExamenDesdeplanneacionComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private apiService = inject(ApiService);
   private messageService = inject(MessageService);

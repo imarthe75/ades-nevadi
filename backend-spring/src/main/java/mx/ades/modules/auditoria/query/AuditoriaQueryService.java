@@ -24,7 +24,7 @@ public class AuditoriaQueryService {
 
     private final JdbcTemplate jdbc;
 
-    public List<Map<String, Object>> listar(String entidad, String accion, UUID usuarioId, int limite) {
+    public List<Map<String, Object>> listar(String entidad, String accion, UUID usuarioId, int pagina, int porPagina) {
         StringBuilder sql = new StringBuilder(
             "SELECT id, usuario_id, nombre_usuario, ip_origen, accion, entidad, entidad_id, " +
             "endpoint, metodo_http, codigo_respuesta, duracion_ms, fecha_creacion, row_version " +
@@ -43,8 +43,9 @@ public class AuditoriaQueryService {
             sql.append("AND usuario_id = ? ");
             params.add(usuarioId);
         }
-        sql.append("ORDER BY fecha_creacion DESC LIMIT ?");
-        params.add(limite);
+        sql.append("ORDER BY fecha_creacion DESC LIMIT ? OFFSET ?");
+        params.add(porPagina);
+        params.add((pagina - 1) * porPagina);
 
         return jdbc.queryForList(sql.toString(), params.toArray());
     }

@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, signal, computed, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, signal, computed, inject, ChangeDetectionStrategy} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
@@ -355,7 +355,7 @@ interface CambioGrupo {
     .alumno-label { margin: 0; font-size: .9rem; }
   `],
 })
-export class MovilidadComponent implements OnInit implements OnInit, OnDestroy {
+export class MovilidadComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private readonly api    = inject(ApiService);
   private readonly notify = inject(ApexNotificationService);

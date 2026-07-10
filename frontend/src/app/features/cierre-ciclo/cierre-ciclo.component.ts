@@ -1,4 +1,4 @@
-import { Component, OnDestroy, inject, signal, OnInit, effect, computed } from '@angular/core';
+import { Component, OnDestroy, inject, signal, OnInit, effect, computed, ChangeDetectionStrategy} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
@@ -203,7 +203,7 @@ interface PlantelOpt {
     </p-dialog>
   `
 })
-export class CierreCicloComponent implements OnInit implements OnInit, OnDestroy {
+export class CierreCicloComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private readonly api = inject(ApiService);
   private readonly ctx = inject(ContextService);

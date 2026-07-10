@@ -1,6 +1,7 @@
 import {
-  Component, inject, OnInit, signal, computed, ViewChild, ElementRef, effect
+  Component, inject, OnInit, OnDestroy, signal, computed, ViewChild, ElementRef, effect, ChangeDetectionStrategy
 } from '@angular/core';
+import { Subject } from 'rxjs';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule }        from 'primeng/button';
@@ -242,7 +243,7 @@ interface Catalogo {
     p-textarea { width:100%; }
   `]
 })
-export class PortalAdminComponent implements OnInit implements OnInit, OnDestroy {
+export class PortalAdminComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
 
   private api = inject(ApiService);

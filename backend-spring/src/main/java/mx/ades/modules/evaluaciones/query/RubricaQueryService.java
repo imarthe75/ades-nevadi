@@ -3,6 +3,7 @@ package mx.ades.modules.evaluaciones.query;
 import lombok.RequiredArgsConstructor;
 import mx.ades.modules.evaluaciones.RubricaCriterio;
 import mx.ades.modules.evaluaciones.RubricaCriterioRepository;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
@@ -25,6 +26,7 @@ public class RubricaQueryService {
     private final JdbcTemplate jdbc;
     private final RubricaCriterioRepository criterioRepository;
 
+    @Cacheable(value = "rubricas", key = "#materiaId + '_' + #nivelEducativoId + '_' + #limit")
     public List<Map<String, Object>> listar(UUID materiaId, UUID nivelEducativoId, int limit) {
         StringBuilder sql = new StringBuilder(
             "SELECT r.id, r.nombre_rubrica, r.descripcion, " +

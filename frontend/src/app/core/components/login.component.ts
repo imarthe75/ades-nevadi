@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, OnDestroy, ChangeDetectionStrategy, inject } from '@angular/core';
 import { ButtonModule } from 'primeng/button';
 import { AuthService } from '../services/auth.service';
 
@@ -10,6 +10,7 @@ import { AuthService } from '../services/auth.service';
  */
 @Component({
   selector: 'app-login',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [ButtonModule],
   template: `
@@ -118,6 +119,8 @@ import { AuthService } from '../services/auth.service';
     }
   `],
 })
-export class LoginComponent {
+export class LoginComponent implements OnDestroy {
   readonly auth = inject(AuthService);
+
+  ngOnDestroy(): void {}
 }

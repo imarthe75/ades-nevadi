@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, effect, OnInit, OnDestroy } from '@angular/core';
+import { Component, inject, signal, computed, effect, OnDestroy, ChangeDetectionStrategy} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TableModule } from 'primeng/table';
@@ -124,7 +124,7 @@ interface AsistenciaLocal {
     .page-header { margin-bottom: 1rem; }
   `],
 })
-export class AsistenciasComponent implements OnInit, OnDestroy {
+export class AsistenciasComponent implements OnDestroy {
   private destroy$ = new Subject<void>();
   private readonly api = inject(ApiService);
   readonly ctx = inject(ContextService);

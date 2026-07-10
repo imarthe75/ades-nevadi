@@ -170,12 +170,16 @@ public class SaludAvanzadaController {
     @GetMapping("/psicosocial/{alumno_id}")
     public ResponseEntity<List<Map<String, Object>>> historialPsicosocial(
             @PathVariable("alumno_id") UUID alumnoId,
+            @RequestParam(value = "skip", defaultValue = "0") int skip,
+            @RequestParam(value = "limit", defaultValue = "20") int limit,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         if (user.getNivelAcceso() == null || user.getNivelAcceso() > 3) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado");
         }
-        return ResponseEntity.ok(queryService.psicosocial(alumnoId));
+        skip = Math.max(skip, 0);
+        limit = Math.min(Math.max(limit, 1), 200);
+        return ResponseEntity.ok(queryService.psicosocial(alumnoId, skip, limit));
     }
 
     @PostMapping("/psicosocial/{alumno_id}")

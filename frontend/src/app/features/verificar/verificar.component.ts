@@ -1,4 +1,4 @@
-import { Component, OnDestroy, inject, OnInit, signal } from '@angular/core';
+import { Component, OnDestroy, inject, OnInit, signal, ChangeDetectionStrategy} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
@@ -290,7 +290,7 @@ interface VerificacionResult {
     .verif-footer a:hover { text-decoration: underline; }
   `],
 })
-export class VerificarComponent implements OnInit implements OnInit, OnDestroy {
+export class VerificarComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private readonly route = inject(ActivatedRoute);
   private readonly api  = inject(ApiService);

@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, signal, computed, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, signal, computed, inject, ChangeDetectionStrategy} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
@@ -174,7 +174,7 @@ interface Kardex {
     .nota { font-size:.78rem; color:var(--text-color-secondary); margin-top:.6rem; }
   `],
 })
-export class KardexComponent implements OnInit implements OnInit, OnDestroy {
+export class KardexComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private api      = inject(ApiService);
   private notify   = inject(ApexNotificationService);

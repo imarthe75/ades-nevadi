@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, signal, computed, ChangeDetectionStrategy} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -313,7 +313,7 @@ interface CalificacionResumen {
     .empty-state h3 { color: var(--text-secondary); margin: 0; }
   `],
 })
-export class PadresComponent implements OnInit implements OnInit, OnDestroy {
+export class PadresComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private readonly api = inject(ApiService);
   private readonly ctx = inject(ContextService);

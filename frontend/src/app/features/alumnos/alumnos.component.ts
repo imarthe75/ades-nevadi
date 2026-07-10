@@ -3,7 +3,7 @@
  * Lists, filters, sorts, and manages student records with optimistic locking.
  * PUNTO 6: Implementa OnDestroy con destroy$ para cleanup de subscriptions ✅
  */
-import { Component, OnInit, OnDestroy, inject, signal, computed, effect } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal, computed, effect, ChangeDetectionStrategy} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormControl, FormGroup, Validators } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';

@@ -90,9 +90,13 @@ public class ExpedienteController {
     @GetMapping("/bajas")
     public ResponseEntity<List<Map<String, Object>>> listarBajas(
             @RequestParam("estudiante_id") UUID estudianteId,
+            @RequestParam(value = "pagina", defaultValue = "1") int pagina,
+            @RequestParam(value = "por_pagina", defaultValue = "20") int porPagina,
             @AuthenticationPrincipal Jwt jwt) {
         userService.resolveUser(jwt);
-        return ResponseEntity.ok(queryService.listarBajas(estudianteId));
+        pagina = Math.max(pagina, 1);
+        porPagina = Math.min(Math.max(porPagina, 1), 200);
+        return ResponseEntity.ok(queryService.listarBajas(estudianteId, pagina, porPagina));
     }
 
     @PostMapping("/bajas")
@@ -125,9 +129,13 @@ public class ExpedienteController {
     public ResponseEntity<List<Map<String, Object>>> listarExtraordinarias(
             @RequestParam("estudiante_id") UUID estudianteId,
             @RequestParam(value = "ciclo_id", required = false) UUID cicloId,
+            @RequestParam(value = "pagina", defaultValue = "1") int pagina,
+            @RequestParam(value = "por_pagina", defaultValue = "20") int porPagina,
             @AuthenticationPrincipal Jwt jwt) {
         userService.resolveUser(jwt);
-        return ResponseEntity.ok(queryService.listarExtraordinarios(estudianteId, cicloId));
+        pagina = Math.max(pagina, 1);
+        porPagina = Math.min(Math.max(porPagina, 1), 200);
+        return ResponseEntity.ok(queryService.listarExtraordinarios(estudianteId, cicloId, pagina, porPagina));
     }
 
     @PostMapping("/extraordinarias")
@@ -172,9 +180,13 @@ public class ExpedienteController {
     @GetMapping("/constancias")
     public ResponseEntity<List<Map<String, Object>>> listarConstancias(
             @RequestParam("estudiante_id") UUID estudianteId,
+            @RequestParam(value = "pagina", defaultValue = "1") int pagina,
+            @RequestParam(value = "por_pagina", defaultValue = "20") int porPagina,
             @AuthenticationPrincipal Jwt jwt) {
         userService.resolveUser(jwt);
-        return ResponseEntity.ok(queryService.listarConstancias(estudianteId));
+        pagina = Math.max(pagina, 1);
+        porPagina = Math.min(Math.max(porPagina, 1), 200);
+        return ResponseEntity.ok(queryService.listarConstancias(estudianteId, pagina, porPagina));
     }
 
     @PostMapping("/constancias")

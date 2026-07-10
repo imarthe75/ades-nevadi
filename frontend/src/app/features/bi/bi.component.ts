@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal, computed, OnDestroy } from '@angular/core';
+import { Component, inject, OnInit, signal, computed, OnDestroy, ChangeDetectionStrategy} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ButtonModule } from 'primeng/button';

@@ -87,7 +87,10 @@ public class AlumnoController {
     @PatchMapping("/{id}")
     public ResponseEntity<Map<String, Object>> patch(
             @PathVariable UUID id,
-            @RequestBody Map<String, Object> body) {
+            @RequestBody Map<String, Object> body,
+            @AuthenticationPrincipal Jwt jwt) {
+
+        requireStaff(userService.resolveUser(jwt));
 
         // Optimistic locking: si el cliente envía rowVersion, verificar antes de modificar
         Object rv = body.get("rowVersion");
@@ -121,7 +124,9 @@ public class AlumnoController {
     @PutMapping("/{id}")
     public ResponseEntity<Estudiante> update(
             @PathVariable UUID id,
-            @RequestBody Estudiante update) {
+            @RequestBody Estudiante update,
+            @AuthenticationPrincipal Jwt jwt) {
+        requireStaff(userService.resolveUser(jwt));
         Estudiante est = repositoryPort.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Alumno no encontrado"));
         est.setMatricula(update.getMatricula());
@@ -131,6 +136,18 @@ public class AlumnoController {
         est.setFechaIngreso(update.getFechaIngreso());
         est.setIsActive(update.getIsActive());
         return ResponseEntity.ok(repositoryPort.save(est));
+    }
+
+    /**
+     * Modificar el expediente de un alumno (datos personales, estatus, plantel) es
+     * operación de personal escolar (nivelAcceso &le;4). Padres/alumnos (nivelAcceso
+     * &gt;=5) no pueden editar el expediente — previene BFLA (OWASP API5).
+     */
+    private void requireStaff(AdesUser user) {
+        Integer nivelAcceso = user.getNivelAcceso();
+        if (nivelAcceso == null || nivelAcceso > 4) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Nivel de acceso insuficiente para esta operación");
+        }
     }
 
     /**

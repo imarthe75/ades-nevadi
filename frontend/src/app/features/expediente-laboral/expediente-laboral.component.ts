@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, signal, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, signal, inject, ChangeDetectionStrategy} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
@@ -223,7 +223,7 @@ interface ExpedienteLab {
     .apex-toolbar-actions { display:flex; gap:.5rem; align-items:center; flex-wrap:wrap; }
   `],
 })
-export class ExpedienteLaboralComponent implements OnInit implements OnInit, OnDestroy {
+export class ExpedienteLaboralComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private api = inject(ApiService);
   private notify = inject(ApexNotificationService);

@@ -53,9 +53,13 @@ public class CapacitacionDocenteController {
             @RequestParam(value = "modalidad",  required = false) String modalidad,
             @RequestParam(value = "validado",   required = false) Boolean validado,
             @RequestParam(value = "q",          required = false) String q,
+            @RequestParam(value = "pagina", defaultValue = "1") int pagina,
+            @RequestParam(value = "por_pagina", defaultValue = "30") int porPagina,
             @AuthenticationPrincipal Jwt jwt) {
         userService.resolveUser(jwt);
-        return ResponseEntity.ok(repo.list(docenteId, tipo, modalidad, validado, q));
+        pagina = Math.max(pagina, 1);
+        porPagina = Math.min(Math.max(porPagina, 1), 200);
+        return ResponseEntity.ok(repo.list(docenteId, tipo, modalidad, validado, q, pagina, porPagina));
     }
 
     @PostMapping

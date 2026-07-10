@@ -59,9 +59,13 @@ public class LicenciaPersonalController {
             @RequestParam(value = "estado",      required = false) String estado,
             @RequestParam(value = "tipo",        required = false) String tipo,
             @RequestParam(value = "q",           required = false) String q,
+            @RequestParam(value = "pagina", defaultValue = "1") int pagina,
+            @RequestParam(value = "por_pagina", defaultValue = "30") int porPagina,
             @AuthenticationPrincipal Jwt jwt) {
         userService.resolveUser(jwt);
-        return ResponseEntity.ok(repo.list(personalId, estado, tipo, q));
+        pagina = Math.max(pagina, 1);
+        porPagina = Math.min(Math.max(porPagina, 1), 200);
+        return ResponseEntity.ok(repo.list(personalId, estado, tipo, q, pagina, porPagina));
     }
 
     @PostMapping

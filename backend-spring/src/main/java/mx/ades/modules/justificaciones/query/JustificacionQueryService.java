@@ -23,8 +23,8 @@ public class JustificacionQueryService {
 
     private final JustificacionRepositoryPort repo;
 
-    public List<Map<String, Object>> list(UUID estudianteId, String estado, UUID grupoId) {
-        return repo.list(estudianteId, estado, grupoId);
+    public List<Map<String, Object>> list(UUID estudianteId, String estado, UUID grupoId, int pagina, int porPagina) {
+        return repo.list(estudianteId, estado, grupoId, pagina, porPagina);
     }
 
     public Map<String, Object> findById(UUID id) {

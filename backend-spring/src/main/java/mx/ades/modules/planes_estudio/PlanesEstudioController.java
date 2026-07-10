@@ -6,6 +6,7 @@ import mx.ades.modules.planes_estudio.domain.port.in.AsignarMateriaUseCase;
 import mx.ades.modules.planes_estudio.query.PlanesEstudioQueryService;
 import mx.ades.security.AdesUser;
 import mx.ades.security.AdesUserService;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -21,7 +22,7 @@ import java.util.*;
  * (ciclo, grado, nivel), asignar una materia a un grado+ciclo (use case hexagonal),
  * actualizar campos parciales (PATCH) y eliminar una asignación.
  * Cubre tanto el plan NEM SEP (primaria/secundaria) como el CBU UAEMEX (preparatoria).
- * No requiere JWT propio en los endpoints de lectura/escritura (depende del security global).
+ * Todos los endpoints mutantes exigen Admin Plantel o superior ({@code requireNivel}).
  *
  * @author ADES
  * @since 2026
@@ -56,7 +57,9 @@ public class PlanesEstudioController {
     }
 
     @PostMapping
-    public ResponseEntity<Map<String, Object>> create(@RequestBody Map<String, Object> body) {
+    @CacheEvict(value = "catalogos", allEntries = true)
+    public ResponseEntity<Map<String, Object>> create(@RequestBody Map<String, Object> body, @AuthenticationPrincipal Jwt jwt) {
+        requireNivel(userService.resolveUser(jwt), NIVEL_ADMIN_PLANTEL);
         try {
             UUID materiaId = UUID.fromString((String) body.get("materia_id"));
             UUID gradoId = UUID.fromString((String) body.get("grado_id"));
@@ -76,15 +79,19 @@ public class PlanesEstudioController {
     }
 
     @PatchMapping("/{id}")
+    @CacheEvict(value = "catalogos", allEntries = true)
     public ResponseEntity<Map<String, Object>> patch(
             @PathVariable("id") UUID id,
-            @RequestBody Map<String, Object> body) {
+            @RequestBody Map<String, Object> body,
+            @AuthenticationPrincipal Jwt jwt) {
+        requireNivel(userService.resolveUser(jwt), NIVEL_ADMIN_PLANTEL);
         planEstudioService.patch(id, body);
         return ResponseEntity.ok(Map.of("id", id.toString(), "updated", true));
     }
 
     /** AC-015: publica una versión de plan de estudio (visible en vistas operativas). Admin Plantel o superior. */
     @PatchMapping("/{id}/publicar")
+    @CacheEvict(value = "catalogos", allEntries = true)
     public ResponseEntity<Map<String, Object>> publicar(@PathVariable("id") UUID id, @AuthenticationPrincipal Jwt jwt) {
         requireNivel(userService.resolveUser(jwt), NIVEL_ADMIN_PLANTEL);
         planEstudioService.publicar(id);
@@ -93,6 +100,7 @@ public class PlanesEstudioController {
 
     /** AC-015: archiva una versión de plan de estudio (histórico, ya no operativo). Admin Plantel o superior. */
     @PatchMapping("/{id}/archivar")
+    @CacheEvict(value = "catalogos", allEntries = true)
     public ResponseEntity<Map<String, Object>> archivar(@PathVariable("id") UUID id, @AuthenticationPrincipal Jwt jwt) {
         requireNivel(userService.resolveUser(jwt), NIVEL_ADMIN_PLANTEL);
         planEstudioService.archivar(id);
@@ -100,7 +108,9 @@ public class PlanesEstudioController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable("id") UUID id) {
+    @CacheEvict(value = "catalogos", allEntries = true)
+    public ResponseEntity<Void> delete(@PathVariable("id") UUID id, @AuthenticationPrincipal Jwt jwt) {
+        requireNivel(userService.resolveUser(jwt), NIVEL_ADMIN_PLANTEL);
         try {
             planEstudioService.eliminar(id);
         } catch (IllegalStateException e) {

@@ -3,7 +3,7 @@
  * Manages teacher records with filtering, sorting, and profile management.
  * Cascade plantel→nivel→grado→grupo is driven by ContextService (global topbar).
  */
-import { Component, OnDestroy, OnInit, inject, signal, computed, effect } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, signal, computed, effect, ChangeDetectionStrategy} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
@@ -116,7 +116,7 @@ import { ApexNotificationService } from 'apex-component-library';
     .dlg-lbl { display: block; font-size: .85rem; margin-bottom: .25rem; color: var(--text-color-secondary); }
   `],
 })
-export class ProfesoresComponent implements OnInit implements OnInit, OnDestroy {
+export class ProfesoresComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private readonly api = inject(ApiService);
   private readonly ctx = inject(ContextService);

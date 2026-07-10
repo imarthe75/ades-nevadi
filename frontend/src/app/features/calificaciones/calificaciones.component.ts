@@ -8,7 +8,7 @@
  *   - Un solo botón "Guardar cambios" envía el PATCH bulk
  *   - Exportar a CSV con un click
  */
-import { Component, OnInit, OnDestroy, inject, signal, computed, effect } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal, computed, effect, ChangeDetectionStrategy} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';

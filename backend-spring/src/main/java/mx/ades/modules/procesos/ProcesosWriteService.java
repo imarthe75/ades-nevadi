@@ -3,6 +3,8 @@ package mx.ades.modules.procesos;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
@@ -21,6 +23,19 @@ public class ProcesosWriteService {
         return !jdbc.queryForList(
                 "SELECT id FROM ades_solicitudes_admision WHERE curp = ? AND estado NOT IN ('RECHAZADO')",
                 curp.trim()).isEmpty();
+    }
+
+    /** Ver {@link #registrarSolicitudManual}: mismo check-then-insert atómico, variante SEP. */
+    @Transactional(isolation = Isolation.SERIALIZABLE)
+    public boolean registrarSolicitudSEP(String nombre, String primerAp, String segundoAp,
+                                          String fechaNac, String curp, String nivel, Integer grado,
+                                          String tutor, String telTutor, String emailTutor,
+                                          String usuario) {
+        if (checkDupCurp(curp)) {
+            return false;
+        }
+        insertarSolicitudSEP(nombre, primerAp, segundoAp, fechaNac, curp, nivel, grado, tutor, telTutor, emailTutor, usuario);
+        return true;
     }
 
     public void insertarSolicitudSEP(String nombre, String primerAp, String segundoAp,
@@ -42,6 +57,26 @@ public class ProcesosWriteService {
                 telTutor.isBlank() ? "5500000000" : telTutor,
                 emailTutor.isBlank() ? "sep@example.com" : emailTutor,
                 usuario, usuario);
+    }
+
+    /**
+     * Verifica CURP duplicado e inserta en una sola transacción SERIALIZABLE: evita que dos
+     * solicitudes concurrentes con el mismo CURP pasen ambas el check-then-insert (race
+     * condition — dos admisiones simultáneas del mismo alumno).
+     */
+    @Transactional(isolation = Isolation.SERIALIZABLE)
+    public UUID registrarSolicitudManual(String nombre, String apellidoPaterno, String apellidoMaterno,
+                                          String fechaNacimiento, String curp, String nivelSolicitado,
+                                          Integer gradoSolicitado, UUID plantelId,
+                                          String nombreTutor, String telefonoTutor, String emailTutor,
+                                          String escuelaProcedencia, Double promedioProcedencia,
+                                          String usuario) {
+        if (checkDupCurp(curp)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Ya existe una solicitud activa con este CURP");
+        }
+        return insertarSolicitudManual(nombre, apellidoPaterno, apellidoMaterno, fechaNacimiento, curp,
+                nivelSolicitado, gradoSolicitado, plantelId, nombreTutor, telefonoTutor, emailTutor,
+                escuelaProcedencia, promedioProcedencia, usuario);
     }
 
     public UUID insertarSolicitudManual(String nombre, String apellidoPaterno, String apellidoMaterno,

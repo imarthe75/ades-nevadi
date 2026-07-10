@@ -84,8 +84,12 @@ public class ComunicadoController {
     }
 
     @GetMapping("/recurrentes/pendientes")
-    public ResponseEntity<List<Map<String, Object>>> recurrentesPendientes() {
-        return ResponseEntity.ok(queryService.recurrentesPendientes());
+    public ResponseEntity<List<Map<String, Object>>> recurrentesPendientes(
+            @RequestParam(value = "pagina", defaultValue = "1") int pagina,
+            @RequestParam(value = "por_pagina", defaultValue = "50") int porPagina) {
+        pagina = Math.max(pagina, 1);
+        porPagina = Math.min(Math.max(porPagina, 1), 200);
+        return ResponseEntity.ok(queryService.recurrentesPendientes(pagina, porPagina));
     }
 
     @GetMapping("/{id}/reporte-lectura")
@@ -127,7 +131,10 @@ public class ComunicadoController {
     }
 
     @PostMapping("/{id}/programar-siguiente")
-    public ResponseEntity<Map<String, Object>> programarSiguiente(@PathVariable("id") UUID id) {
+    public ResponseEntity<Map<String, Object>> programarSiguiente(
+            @PathVariable("id") UUID id,
+            @AuthenticationPrincipal Jwt jwt) {
+        userService.resolveUser(jwt);
         LocalDateTime siguiente = programarSiguiente.programarSiguiente(id);
         return ResponseEntity.ok(Map.of("proximo_envio", siguiente.toString()));
     }

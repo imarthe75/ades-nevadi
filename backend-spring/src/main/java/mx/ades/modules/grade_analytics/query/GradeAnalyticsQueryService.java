@@ -1,6 +1,7 @@
 package mx.ades.modules.grade_analytics.query;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
@@ -77,6 +78,7 @@ public class GradeAnalyticsQueryService {
         return jdbc.queryForList(sql.toString(), params.toArray());
     }
 
+    @Cacheable(value = "analytics", key = "'resumenPlantel_' + #plantelId")
     public List<Map<String, Object>> resumenPlantel(UUID plantelId) {
         StringBuilder sql = new StringBuilder("SELECT * FROM ades_bi.mv_resumen_plantel ");
         List<Object> params = new ArrayList<>();

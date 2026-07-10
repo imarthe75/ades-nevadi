@@ -25,5 +25,5 @@ public interface JustificacionRepositoryPort {
     String resolve(UUID id, EstadoJustificacion estado, UUID aprobadaPor,
                    String motivoRechazo, String usuarioMod);
 
-    List<Map<String, Object>> list(UUID estudianteId, String estado, UUID grupoId);
+    List<Map<String, Object>> list(UUID estudianteId, String estado, UUID grupoId, int pagina, int porPagina);
 }

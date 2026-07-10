@@ -5,8 +5,13 @@ import mx.ades.modules.materias.domain.port.in.ActualizarMateriaUseCase;
 import mx.ades.modules.materias.domain.port.in.CrearMateriaUseCase;
 import mx.ades.modules.materias.domain.port.out.MateriaRepositoryPort;
 import mx.ades.modules.materias.query.MateriaQueryService;
+import mx.ades.security.AdesUser;
+import mx.ades.security.AdesUserService;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -34,6 +39,7 @@ public class MateriaController {
     private final ActualizarMateriaUseCase actualizarUseCase;
     private final MateriaRepositoryPort repositoryPort;
     private final MateriaQueryService queryService;
+    private final AdesUserService userService;
 
     @GetMapping
     public ResponseEntity<List<Map<String, Object>>> list(
@@ -51,7 +57,11 @@ public class MateriaController {
     }
 
     @PostMapping
-    public ResponseEntity<Map<String, Object>> create(@RequestBody Map<String, Object> body) {
+    @CacheEvict(value = "catalogos", allEntries = true)
+    public ResponseEntity<Map<String, Object>> create(
+            @RequestBody Map<String, Object> body,
+            @AuthenticationPrincipal Jwt jwt) {
+        requireCoordinador(userService.resolveUser(jwt));
         CrearMateriaUseCase.Command cmd = new CrearMateriaUseCase.Command(
                 (String) body.get("nombre_materia"),
                 (String) body.get("clave_materia"),
@@ -64,7 +74,12 @@ public class MateriaController {
 
     @PutMapping("/{id}")
     @PatchMapping("/{id}")
-    public ResponseEntity<Map<String, Object>> update(@PathVariable("id") UUID id, @RequestBody Map<String, Object> body) {
+    @CacheEvict(value = "catalogos", allEntries = true)
+    public ResponseEntity<Map<String, Object>> update(
+            @PathVariable("id") UUID id,
+            @RequestBody Map<String, Object> body,
+            @AuthenticationPrincipal Jwt jwt) {
+        requireCoordinador(userService.resolveUser(jwt));
         ActualizarMateriaUseCase.Command cmd = new ActualizarMateriaUseCase.Command(
                 id,
                 (String) body.get("nombre_materia"),
@@ -80,5 +95,17 @@ public class MateriaController {
     @GetMapping("/{id}/estadisticas")
     public ResponseEntity<Map<String, Object>> estadisticas(@PathVariable("id") UUID id) {
         return ResponseEntity.ok(queryService.estadisticas(id));
+    }
+
+    /**
+     * El catálogo de materias es configuración curricular compartida por todos
+     * los grupos del plantel; solo Coordinador o superior (nivelAcceso &le;3)
+     * puede darlo de alta o modificarlo — previene BFLA (OWASP API5).
+     */
+    private void requireCoordinador(AdesUser user) {
+        Integer nivelAcceso = user.getNivelAcceso();
+        if (nivelAcceso == null || nivelAcceso > 3) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Nivel de acceso insuficiente para esta operación");
+        }
     }
 }

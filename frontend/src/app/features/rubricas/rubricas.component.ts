@@ -1,4 +1,4 @@
-import { Component, OnDestroy, inject, OnInit, signal } from '@angular/core';
+import { Component, OnDestroy, inject, OnInit, signal, ChangeDetectionStrategy} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
@@ -321,7 +321,7 @@ const NIVEL_COLORS = ['var(--red-400)', 'var(--yellow-400)', 'var(--teal-400)', 
     .mt-2       { margin-top:.5rem; }
   `],
 })
-export class RubricasComponent implements OnInit implements OnInit, OnDestroy {
+export class RubricasComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private readonly api = inject(ApiService);
   readonly ctx = inject(ContextService);

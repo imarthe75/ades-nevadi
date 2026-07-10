@@ -46,16 +46,19 @@ public class AuditoriaController {
 
     @GetMapping("")
     public ResponseEntity<List<Map<String, Object>>> listarAuditLog(
-            @RequestParam(value = "limite", defaultValue = "200") int limite,
             @RequestParam(value = "entidad", required = false) String entidad,
             @RequestParam(value = "accion", required = false) String accion,
             @RequestParam(value = "usuario_id", required = false) UUID usuarioId,
+            @RequestParam(value = "pagina", defaultValue = "1") int pagina,
+            @RequestParam(value = "por_pagina", defaultValue = "50") int porPagina,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         if (user.getNivelAcceso() > 0) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo ADMIN_GLOBAL tiene acceso al registro de auditoría");
         }
-        return ResponseEntity.ok(queryService.listar(entidad, accion, usuarioId, limite));
+        pagina = Math.max(pagina, 1);
+        porPagina = Math.min(Math.max(porPagina, 1), 200);
+        return ResponseEntity.ok(queryService.listar(entidad, accion, usuarioId, pagina, porPagina));
     }
 
     /**
@@ -67,7 +70,8 @@ public class AuditoriaController {
     @GetMapping("/intentos-fallidos")
     @SuppressWarnings("unchecked")
     public ResponseEntity<List<Map<String, Object>>> intentosFallidos(
-            @RequestParam(value = "limite", defaultValue = "100") int limite,
+            @RequestParam(value = "pagina", defaultValue = "1") int pagina,
+            @RequestParam(value = "por_pagina", defaultValue = "50") int porPagina,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         if (user.getNivelAcceso() > 0) {
@@ -77,10 +81,13 @@ public class AuditoriaController {
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
                     "AUTHENTIK_API_TOKEN no configurado — ver .env");
         }
+        pagina = Math.max(pagina, 1);
+        porPagina = Math.min(Math.max(porPagina, 1), 200);
 
         try {
             Map<String, Object> resp = restClient.get()
-                    .uri(AUTHENTIK_URL + "/api/v3/events/events/?action=login_failed&ordering=-created&page_size=" + limite)
+                    .uri(AUTHENTIK_URL + "/api/v3/events/events/?action=login_failed&ordering=-created&page_size="
+                            + porPagina + "&page=" + pagina)
                     .header("Authorization", "Bearer " + authentikApiToken)
                     .retrieve()
                     .body(Map.class);

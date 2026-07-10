@@ -92,7 +92,8 @@ public class BibliotecaPersistenceAdapter implements BibliotecaRepositoryPort {
     }
 
     @Override
-    public List<Map<String, Object>> listPrestamos(UUID personaId, UUID libroId, String estatus, UUID plantelId) {
+    public List<Map<String, Object>> listPrestamos(UUID personaId, UUID libroId, String estatus, UUID plantelId,
+                                                     int pagina, int porPagina) {
         StringBuilder q = new StringBuilder(
                 "SELECT pr.id, pr.libro_id, l.titulo AS libro_titulo, " +
                 "pr.persona_id, p.nombre || ' ' || p.apellido_paterno AS persona_nombre, " +
@@ -114,7 +115,9 @@ public class BibliotecaPersistenceAdapter implements BibliotecaRepositoryPort {
         }
         if (plantelId != null) { q.append("AND pr.plantel_id = ? "); params.add(plantelId); }
 
-        q.append("ORDER BY pr.fecha_prestamo DESC, pr.estatus");
+        q.append("ORDER BY pr.fecha_prestamo DESC, pr.estatus LIMIT ? OFFSET ?");
+        params.add(porPagina);
+        params.add((pagina - 1) * porPagina);
         return jdbc.queryForList(q.toString(), params.toArray());
     }
 

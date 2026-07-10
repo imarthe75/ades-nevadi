@@ -1,7 +1,10 @@
 package mx.ades.modules.evaluaciones;
 
 import lombok.RequiredArgsConstructor;
+import mx.ades.security.AdesUserService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -27,10 +30,13 @@ import java.util.UUID;
 public class TareaEntregaController {
 
     private final TareaEntregaService service;
+    private final AdesUserService userService;
 
     @PostMapping("/{entrega_id}/plagio-check")
     public ResponseEntity<Map<String, Object>> runPlagioCheck(
-            @PathVariable("entrega_id") UUID entregaId) {
+            @PathVariable("entrega_id") UUID entregaId,
+            @AuthenticationPrincipal Jwt jwt) {
+        userService.resolveUser(jwt);
         return ResponseEntity.ok(service.checkPlagio(entregaId));
     }
 
@@ -38,7 +44,9 @@ public class TareaEntregaController {
     public ResponseEntity<Map<String, Object>> subirFeedbackMultimedia(
             @PathVariable("entrega_id") UUID entregaId,
             @RequestParam(value = "audio", required = false) MultipartFile audio,
-            @RequestParam(value = "video", required = false) MultipartFile video) {
+            @RequestParam(value = "video", required = false) MultipartFile video,
+            @AuthenticationPrincipal Jwt jwt) {
+        userService.resolveUser(jwt);
         return ResponseEntity.ok(service.subirFeedbackMultimedia(entregaId, audio, video));
     }
 

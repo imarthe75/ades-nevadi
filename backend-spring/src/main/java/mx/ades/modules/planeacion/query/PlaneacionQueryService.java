@@ -1,6 +1,7 @@
 package mx.ades.modules.planeacion.query;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -358,6 +359,7 @@ public class PlaneacionQueryService {
      * @param gradoId      UUID del grado
      * @return Map con dos arrays: temas y aprendizajes
      */
+    @Cacheable(value = "temarios", key = "#materiaId + '_' + #gradoId")
     @Transactional(readOnly = true)
     public Map<String, Object> getTemarioYAprendizajes(UUID materiaId, UUID gradoId) {
         List<Map<String, Object>> temas = jdbc.queryForList("""

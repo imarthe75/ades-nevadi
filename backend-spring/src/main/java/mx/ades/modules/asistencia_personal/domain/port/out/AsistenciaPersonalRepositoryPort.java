@@ -20,7 +20,8 @@ import java.util.UUID;
  * @since 2026
  */
 public interface AsistenciaPersonalRepositoryPort {
-    List<Map<String, Object>> list(UUID personaId, LocalDate fechaInicio, LocalDate fechaFin, String tipoJornada, String q);
+    List<Map<String, Object>> list(UUID personaId, LocalDate fechaInicio, LocalDate fechaFin, String tipoJornada, String q,
+                                    int pagina, int porPagina);
     boolean existeRegistro(UUID personaId, LocalDate fecha);
     void insert(RegistrarAsistenciaUseCase.Command cmd);
     void update(RegistrarAsistenciaUseCase.Command cmd);

@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, inject, signal, computed, effect } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, signal, computed, effect, ChangeDetectionStrategy} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
@@ -362,7 +362,7 @@ import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/
     .dlg-lbl { display:block; font-size:.85rem; margin-bottom:.25rem; color:var(--text-secondary); font-weight:600; }
   `],
 })
-export class TareasComponent implements OnInit implements OnInit, OnDestroy {
+export class TareasComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private readonly api    = inject(ApiService);
   private readonly ctx    = inject(ContextService);

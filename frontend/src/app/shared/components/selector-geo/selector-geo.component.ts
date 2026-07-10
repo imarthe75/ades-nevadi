@@ -1,6 +1,7 @@
-import { Component, OnInit, inject, signal, Input, Output, EventEmitter } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRef, inject, signal, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subject, takeUntil } from 'rxjs';
 import { SelectModule } from 'primeng/select';
 import { InputTextModule } from 'primeng/inputtext';
 import { ButtonModule } from 'primeng/button';
@@ -15,6 +16,7 @@ import { ApiService } from '../../../core/services/api.service';
  */
 @Component({
   selector: 'app-selector-geo',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [CommonModule, FormsModule, SelectModule, InputTextModule, ButtonModule, TooltipModule],
   template: `
@@ -78,8 +80,11 @@ import { ApiService } from '../../../core/services/api.service';
     label { font-size: .82rem; color: var(--text-color-secondary); display: block; margin-bottom: .2rem; }
   `]
 })
-export class SelectorGeoComponent implements OnInit {
+export class SelectorGeoComponent implements OnInit, OnDestroy {
   private readonly api = inject(ApiService);
+  private readonly cdr = inject(ChangeDetectorRef);
+  private readonly destroy$ = new Subject<void>();
+  private cpTimeoutId?: ReturnType<typeof setTimeout>;
 
   @Input() estado: number | null = null;
   @Input() municipio: number | null = null;
@@ -114,7 +119,9 @@ export class SelectorGeoComponent implements OnInit {
   }
 
   cargarEstados(): void {
-    this.api.get<any[]>('/geo/estados').subscribe(e => this.estados.set(e));
+    this.api.get<any[]>('/geo/estados')
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(e => this.estados.set(e));
   }
 
   onEstadoChange(): void {
@@ -128,6 +135,7 @@ export class SelectorGeoComponent implements OnInit {
 
   cargarMunicipios(estadoId: number): void {
     this.api.get<any[]>('/geo/municipios', { estado_id: estadoId })
+      .pipe(takeUntil(this.destroy$))
       .subscribe(m => this.municipios.set(m));
   }
 
@@ -140,6 +148,7 @@ export class SelectorGeoComponent implements OnInit {
 
   cargarColonias(municipioId: number): void {
     this.api.get<any[]>('/geo/colonias', { municipio_id: municipioId })
+      .pipe(takeUntil(this.destroy$))
       .subscribe(c => this.colonias.set(c));
   }
 
@@ -149,22 +158,33 @@ export class SelectorGeoComponent implements OnInit {
 
   buscarPorCP(): void {
     if (!this.cpBusqueda || this.cpBusqueda.length !== 5) return;
-    this.api.get<any>(`/geo/buscar-cp/${this.cpBusqueda}`).subscribe({
-      next: data => {
-        if (!data) return;
-        this.cpChange.emit(this.cpBusqueda);
-        // Autocompletar estado
-        this.estadoSeleccionado = data.estado_id;
-        this.estadoChange.emit(data.estado_id);
-        // Cargar municipios y autocompletar
-        this.cargarMunicipios(data.estado_id);
-        setTimeout(() => {
-          this.municipioSeleccionado = data.municipio_id;
-          this.municipioChange.emit(data.municipio_id);
-          // Colonias del CP
-          this.colonias.set(data.colonias || []);
-        }, 200);
-      }
-    });
+    this.api.get<any>(`/geo/buscar-cp/${this.cpBusqueda}`)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: data => {
+          if (!data) return;
+          this.cpChange.emit(this.cpBusqueda);
+          // Autocompletar estado
+          this.estadoSeleccionado = data.estado_id;
+          this.estadoChange.emit(data.estado_id);
+          // Cargar municipios y autocompletar
+          this.cargarMunicipios(data.estado_id);
+          this.cdr.markForCheck();
+          if (this.cpTimeoutId !== undefined) clearTimeout(this.cpTimeoutId);
+          this.cpTimeoutId = setTimeout(() => {
+            this.municipioSeleccionado = data.municipio_id;
+            this.municipioChange.emit(data.municipio_id);
+            // Colonias del CP
+            this.colonias.set(data.colonias || []);
+            this.cdr.markForCheck();
+          }, 200);
+        }
+      });
+  }
+
+  ngOnDestroy(): void {
+    if (this.cpTimeoutId !== undefined) clearTimeout(this.cpTimeoutId);
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

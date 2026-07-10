@@ -1,8 +1,14 @@
 package mx.ades.modules.horarios.config;
 
 import lombok.RequiredArgsConstructor;
+import mx.ades.security.AdesUser;
+import mx.ades.security.AdesUserService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.UUID;
@@ -13,6 +19,7 @@ import java.util.UUID;
 public class HorarioFranjaController {
 
     private final HorarioFranjaRepository repository;
+    private final AdesUserService userService;
 
     @GetMapping
     public ResponseEntity<List<HorarioFranja>> listAll(
@@ -34,21 +41,41 @@ public class HorarioFranjaController {
     }
 
     @PostMapping
-    public ResponseEntity<HorarioFranja> create(@RequestBody HorarioFranja entity) {
+    public ResponseEntity<HorarioFranja> create(
+            @RequestBody HorarioFranja entity,
+            @AuthenticationPrincipal Jwt jwt) {
+        requireStaff(userService.resolveUser(jwt));
         return ResponseEntity.ok(repository.save(entity));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<HorarioFranja> update(@PathVariable UUID id, @RequestBody HorarioFranja entity) {
+    public ResponseEntity<HorarioFranja> update(
+            @PathVariable UUID id,
+            @RequestBody HorarioFranja entity,
+            @AuthenticationPrincipal Jwt jwt) {
+        requireStaff(userService.resolveUser(jwt));
         if (!repository.existsById(id)) return ResponseEntity.notFound().build();
         entity.setId(id);
         return ResponseEntity.ok(repository.save(entity));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable UUID id) {
+    public ResponseEntity<Void> delete(@PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
+        requireStaff(userService.resolveUser(jwt));
         if (!repository.existsById(id)) return ResponseEntity.notFound().build();
         repository.deleteById(id);
         return ResponseEntity.ok().build();
+    }
+
+    /**
+     * Configurar franjas horarias institucionales (usadas por todos los planteles/
+     * grupos) es operación de Coordinador o superior (nivelAcceso &le;3) — previene
+     * BFLA (OWASP API5) sobre la configuración de horarios de todo el plantel.
+     */
+    private void requireStaff(AdesUser user) {
+        Integer nivelAcceso = user.getNivelAcceso();
+        if (nivelAcceso == null || nivelAcceso > 3) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Nivel de acceso insuficiente para esta operación");
+        }
     }
 }

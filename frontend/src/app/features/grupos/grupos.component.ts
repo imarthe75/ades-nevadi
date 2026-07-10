@@ -2,7 +2,7 @@
  * FASE 1 & FASE 24 — Grupos (Class Groups) + Interactive Grid APEX-style
  * Manages academic groups with capacity tracking and admin controls.
  */
-import { Component, OnDestroy, OnInit, inject, signal, effect, computed } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, signal, effect, computed, ChangeDetectionStrategy} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
@@ -98,7 +98,7 @@ import { ApexNotificationService, ApexSearchComponent } from 'apex-component-lib
     .form-grid label { font-size: 0.85rem; color: var(--text-color-secondary); font-weight: 600; }
   `],
 })
-export class GruposComponent implements OnInit implements OnInit, OnDestroy {
+export class GruposComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private readonly api = inject(ApiService);
   private readonly ctx = inject(ContextService);

@@ -171,9 +171,13 @@ public class BibliotecaController {
             @RequestParam(value = "libro_id",   required = false) UUID libroId,
             @RequestParam(value = "estatus",    required = false) String estatus,
             @RequestParam(value = "plantel_id", required = false) UUID plantelId,
+            @RequestParam(value = "pagina", defaultValue = "1") int pagina,
+            @RequestParam(value = "por_pagina", defaultValue = "30") int porPagina,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
-        return ResponseEntity.ok(query.listPrestamos(personaId, libroId, estatus, scopePlantel(user, plantelId)));
+        pagina = Math.max(pagina, 1);
+        porPagina = Math.min(Math.max(porPagina, 1), 200);
+        return ResponseEntity.ok(query.listPrestamos(personaId, libroId, estatus, scopePlantel(user, plantelId), pagina, porPagina));
     }
 
     /**

@@ -7,7 +7,7 @@
  *  - Dialog crear/editar con tabs: Datos generales / Equipamiento / Disponibilidad
  *  - Verificación de conflictos de franja horaria antes de asignar
  */
-import { Component, OnDestroy, OnInit, inject, signal, computed, effect } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, signal, computed, effect, ChangeDetectionStrategy} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
@@ -333,7 +333,7 @@ const ESTADO_SEVERITY: Record<string, TagSeverity> = {
     .equip-item.full-row { grid-column:1/-1; }
   `],
 })
-export class AulasComponent implements OnInit implements OnInit, OnDestroy {
+export class AulasComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private readonly api    = inject(ApiService);
   readonly ctx            = inject(ContextService);

@@ -1,5 +1,6 @@
 package mx.ades.modules.kardex.query;
 
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -33,6 +34,7 @@ public class KardexQueryService {
         this.jdbc = jdbc;
     }
 
+    @Cacheable(value = "kardex", key = "#estudianteId + '_' + #cicloId")
     public Map<String, Object> kardex(UUID estudianteId, UUID cicloId) {
         MapSqlParameterSource p = new MapSqlParameterSource()
                 .addValue("est", estudianteId.toString())

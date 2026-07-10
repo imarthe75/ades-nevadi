@@ -3,9 +3,10 @@
  * 5 tabs: Datos Personales | Académico | Salud | Contactos | Bajas
  * Se abre desde el listado de alumnos al hacer clic en una fila.
  */
-import { Component, Input, Output, EventEmitter, OnChanges, OnInit, SimpleChanges, inject, signal, computed } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnChanges, OnInit, OnDestroy, SimpleChanges, ChangeDetectionStrategy, ChangeDetectorRef, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subject, takeUntil } from 'rxjs';
 import { DrawerModule } from 'primeng/drawer';
 import { ButtonModule } from 'primeng/button';
 import { TooltipModule } from 'primeng/tooltip';
@@ -56,6 +57,7 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
 
 @Component({
   selector: 'app-alumno-perfil',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     CommonModule, FormsModule,
@@ -555,9 +557,11 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
     .drawer-footer { display: flex; justify-content: flex-end; gap: .75rem; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--surface-200); }
   `],
 })
-export class AlumnoPerfilComponent implements OnInit, OnChanges {
+export class AlumnoPerfilComponent implements OnInit, OnChanges, OnDestroy {
   private readonly api = inject(ApiService);
   private readonly msg = inject(MessageService);
+  private readonly cdr = inject(ChangeDetectorRef);
+  private readonly destroy$ = new Subject<void>();
 
   @Input() alumno: Estudiante | null = null;
   @Input() visible = false;
@@ -625,48 +629,58 @@ export class AlumnoPerfilComponent implements OnInit, OnChanges {
   });
 
   ngOnInit(): void {
-    this.api.get<{ nacionalidad: string }[]>('/catalogs/nacionalidades').subscribe({
-      next: list => this.nacionalidades.set(list.map(n => n.nacionalidad)),
-      error: () => {},
-    });
-    this.api.get<any[]>('/catalogs/lenguas-indigenas').subscribe({
-      next: list => this.lenguasIndigenas.set(list.map(l => ({
-        label: l.autonym ? `${l.agrupacion} (${l.autonym})` : l.agrupacion,
-        value: l.id,
-      }))),
-      error: () => {},
-    });
-    this.api.get<any[]>('/catalogs/niveles-ingles').subscribe({
-      next: list => this.nivelesIngles.set(list.map(n => ({
-        label: `${n.nivel} — ${n.nombre}`,
-        value: n.id,
-      }))),
-      error: () => {},
-    });
-    this.api.get<any[]>('/catalogs/estados-mexico').subscribe({
-      next: list => {
-        this.estadosMex.set(list);
-        if (this.form?.estado_nacimiento) {
-          const est = list.find((e: any) => e.nombre_estado === this.form.estado_nacimiento);
-          if (est) this.cargarMunicipiosNac(est.id, false);
-        }
-      },
-      error: () => {},
-    });
-    this.api.get<any[]>('/catalogs/paises').subscribe({
-      next: list => {
-        this.paises.set(list);
-        // Pre-seleccionar país si ya hay uno guardado
-        if (this.form?.pais_nacimiento) {
-          const p = list.find((x: any) => x.nombre_pais === this.form.pais_nacimiento);
-          if (p) this.paisNacId.set(p.id);
-        } else {
-          const mx = list.find((x: any) => x.nombre_pais === 'México');
-          if (mx) this.paisNacId.set(mx.id);
-        }
-      },
-      error: () => {},
-    });
+    this.api.get<{ nacionalidad: string }[]>('/catalogs/nacionalidades')
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: list => this.nacionalidades.set(list.map(n => n.nacionalidad)),
+        error: () => {},
+      });
+    this.api.get<any[]>('/catalogs/lenguas-indigenas')
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: list => this.lenguasIndigenas.set(list.map(l => ({
+          label: l.autonym ? `${l.agrupacion} (${l.autonym})` : l.agrupacion,
+          value: l.id,
+        }))),
+        error: () => {},
+      });
+    this.api.get<any[]>('/catalogs/niveles-ingles')
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: list => this.nivelesIngles.set(list.map(n => ({
+          label: `${n.nivel} — ${n.nombre}`,
+          value: n.id,
+        }))),
+        error: () => {},
+      });
+    this.api.get<any[]>('/catalogs/estados-mexico')
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: list => {
+          this.estadosMex.set(list);
+          if (this.form?.estado_nacimiento) {
+            const est = list.find((e: any) => e.nombre_estado === this.form.estado_nacimiento);
+            if (est) this.cargarMunicipiosNac(est.id, false);
+          }
+        },
+        error: () => {},
+      });
+    this.api.get<any[]>('/catalogs/paises')
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: list => {
+          this.paises.set(list);
+          // Pre-seleccionar país si ya hay uno guardado
+          if (this.form?.pais_nacimiento) {
+            const p = list.find((x: any) => x.nombre_pais === this.form.pais_nacimiento);
+            if (p) this.paisNacId.set(p.id);
+          } else {
+            const mx = list.find((x: any) => x.nombre_pais === 'México');
+            if (mx) this.paisNacId.set(mx.id);
+          }
+        },
+        error: () => {},
+      });
   }
 
   onPaisNacChange(paisId: string): void {
@@ -692,16 +706,19 @@ export class AlumnoPerfilComponent implements OnInit, OnChanges {
   }
 
   private cargarMunicipiosNac(estadoId: string, limpiar: boolean): void {
-    this.api.get<any[]>('/catalogs/municipios', { estado_id: estadoId }).subscribe({
-      next: list => {
-        this.municipiosMex.set(list);
-        if (!limpiar && this.form?.municipio_nacimiento) {
-          const mun = list.find((m: any) => m.nombre_municipio === this.form.municipio_nacimiento);
-          if (mun) this.municipioNacId = mun.id;
-        }
-      },
-      error: () => {},
-    });
+    this.api.get<any[]>('/catalogs/municipios', { estado_id: estadoId })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: list => {
+          this.municipiosMex.set(list);
+          if (!limpiar && this.form?.municipio_nacimiento) {
+            const mun = list.find((m: any) => m.nombre_municipio === this.form.municipio_nacimiento);
+            if (mun) this.municipioNacId = mun.id;
+          }
+          this.cdr.markForCheck();
+        },
+        error: () => {},
+      });
   }
 
   onMunicipioNacChange(municipioId: string): void {
@@ -781,16 +798,19 @@ export class AlumnoPerfilComponent implements OnInit, OnChanges {
   private cargarContactos(): void {
     if (!this.alumno?.id) return;
     this.api.get<ContactoEmergencia[]>('/contactos', { estudiante_id: this.alumno.id })
+      .pipe(takeUntil(this.destroy$))
       .subscribe({ next: c => this.contactos.set(c), error: () => {} });
   }
 
   private cargarExpedienteMedico(): void {
     if (!this.alumno?.id) return;
     this.api.get<ExpedienteMedico>(`/expediente-medico/${this.alumno.id}`)
+      .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: exp => {
           this.expedienteMedico.set(exp);
           this.medForm = { ...exp };
+          this.cdr.markForCheck();
         },
         error: () => {},
       });
@@ -800,22 +820,25 @@ export class AlumnoPerfilComponent implements OnInit, OnChanges {
   private cargarExpedienteLite(): void {
     if (!this.alumno?.id) return;
     this.api.get<ExpedienteLite>(`/expediente/alumno/${this.alumno.id}`, { lite: 'true' })
+      .pipe(takeUntil(this.destroy$))
       .subscribe({ next: exp => this.expedienteLite.set(exp), error: () => this.expedienteLite.set(null) });
   }
 
   cargarUltimaBaja(): void {
     if (!this.alumno?.id) return;
-    this.api.get<any[]>('/procesos/bajas').subscribe({
-      next: list => {
-        const userBajas = list.filter(b => b.estudiante_id === this.alumno!.id);
-        if (userBajas.length > 0) {
-          this.ultimaBaja.set(userBajas[0]);
-        } else {
-          this.ultimaBaja.set(null);
-        }
-      },
-      error: () => {}
-    });
+    this.api.get<any[]>('/procesos/bajas')
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: list => {
+          const userBajas = list.filter(b => b.estudiante_id === this.alumno!.id);
+          if (userBajas.length > 0) {
+            this.ultimaBaja.set(userBajas[0]);
+          } else {
+            this.ultimaBaja.set(null);
+          }
+        },
+        error: () => {}
+      });
   }
 
   ejecutarBaja(): void {
@@ -829,17 +852,20 @@ export class AlumnoPerfilComponent implements OnInit, OnChanges {
       fecha_efectiva: this.formatDate(this.bajaForm.fecha_efectiva),
       observaciones: this.bajaForm.observaciones || null
     };
-    this.api.post('/procesos/bajas', payload).subscribe({
-      next: (r: any) => {
-        this.msg.add({ severity: 'success', summary: 'Baja registrada', detail: r.message });
-        this.alumno!.is_active = false;
-        this.cargarUltimaBaja();
-        this.saved.emit();
-      },
-      error: e => {
-        this.msg.add({ severity: 'error', summary: 'Error', detail: e.error?.detail ?? 'Error' });
-      }
-    });
+    this.api.post('/procesos/bajas', payload)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (r: any) => {
+          this.msg.add({ severity: 'success', summary: 'Baja registrada', detail: r.message });
+          this.alumno!.is_active = false;
+          this.cargarUltimaBaja();
+          this.saved.emit();
+          this.cdr.markForCheck();
+        },
+        error: e => {
+          this.msg.add({ severity: 'error', summary: 'Error', detail: e.error?.detail ?? 'Error' });
+        }
+      });
   }
 
   ejecutarReactivacion(): void {
@@ -848,43 +874,50 @@ export class AlumnoPerfilComponent implements OnInit, OnChanges {
       this.msg.add({ severity: 'warn', summary: 'No se puede reactivar', detail: 'No hay registro de baja activo' });
       return;
     }
-    this.api.post(`/procesos/bajas/${baja.id}/reactivar`, {}).subscribe({
-      next: (r: any) => {
-        this.msg.add({ severity: 'success', summary: 'Reactivado', detail: r.message });
-        this.alumno!.is_active = true;
-        this.ultimaBaja.set(null);
-        this.saved.emit();
-      },
-      error: e => {
-        this.msg.add({ severity: 'error', summary: 'Error', detail: e.error?.detail ?? 'Error' });
-      }
-    });
+    this.api.post(`/procesos/bajas/${baja.id}/reactivar`, {})
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (r: any) => {
+          this.msg.add({ severity: 'success', summary: 'Reactivado', detail: r.message });
+          this.alumno!.is_active = true;
+          this.ultimaBaja.set(null);
+          this.saved.emit();
+          this.cdr.markForCheck();
+        },
+        error: e => {
+          this.msg.add({ severity: 'error', summary: 'Error', detail: e.error?.detail ?? 'Error' });
+        }
+      });
   }
 
   guardarExpedienteMedico(): void {
     if (!this.alumno?.id) return;
     this.savingMedico.set(true);
-    this.api.put(`/expediente-medico/${this.alumno.id}`, this.medForm).subscribe({
-      next: (exp) => {
-        this.expedienteMedico.set(exp as ExpedienteMedico);
-        this.msg.add({ severity: 'success', summary: 'Guardado', detail: 'Expediente médico actualizado' });
-        this.savingMedico.set(false);
-      },
-      error: e => {
-        this.msg.add({ severity: 'error', summary: 'Error', detail: e.error?.detail ?? 'Error' });
-        this.savingMedico.set(false);
-      },
-    });
+    this.api.put(`/expediente-medico/${this.alumno.id}`, this.medForm)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (exp) => {
+          this.expedienteMedico.set(exp as ExpedienteMedico);
+          this.msg.add({ severity: 'success', summary: 'Guardado', detail: 'Expediente médico actualizado' });
+          this.savingMedico.set(false);
+        },
+        error: e => {
+          this.msg.add({ severity: 'error', summary: 'Error', detail: e.error?.detail ?? 'Error' });
+          this.savingMedico.set(false);
+        },
+      });
   }
 
   /** PE-014: credencial de alumno en PDF — plantilla administrada en Reportes → Plantillas. */
   descargarCredencial(): void {
     if (!this.alumno?.id) return;
-    this.api.getBlob(`/alumnos/${this.alumno.id}/credencial`, { template_id: 'credencial_alumno' }).subscribe({
-      next: blob => this._downloadBlob(blob, `credencial_${this.alumno!.matricula}.pdf`),
-      error: () => this.msg.add({ severity: 'error', summary: 'Error',
-        detail: 'No se pudo generar la credencial. Verifica que exista la plantilla "credencial_alumno" en Reportes → Plantillas.' }),
-    });
+    this.api.getBlob(`/alumnos/${this.alumno.id}/credencial`, { template_id: 'credencial_alumno' })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: blob => this._downloadBlob(blob, `credencial_${this.alumno!.matricula}.pdf`),
+        error: () => this.msg.add({ severity: 'error', summary: 'Error',
+          detail: 'No se pudo generar la credencial. Verifica que exista la plantilla "credencial_alumno" en Reportes → Plantillas.' }),
+      });
   }
 
   private _downloadBlob(blob: Blob, filename: string): void {
@@ -932,17 +965,19 @@ export class AlumnoPerfilComponent implements OnInit, OnChanges {
       },
     };
 
-    this.api.patch(`/alumnos/${this.alumno.id}`, payload).subscribe({
-      next: () => {
-        this.msg.add({ severity: 'success', summary: 'Guardado', detail: 'Perfil actualizado' });
-        this.saving.set(false);
-        this.saved.emit();
-      },
-      error: e => {
-        this.msg.add({ severity: 'error', summary: 'Error', detail: e.error?.detail ?? 'Error al guardar' });
-        this.saving.set(false);
-      },
-    });
+    this.api.patch(`/alumnos/${this.alumno.id}`, payload)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.msg.add({ severity: 'success', summary: 'Guardado', detail: 'Perfil actualizado' });
+          this.saving.set(false);
+          this.saved.emit();
+        },
+        error: e => {
+          this.msg.add({ severity: 'error', summary: 'Error', detail: e.error?.detail ?? 'Error al guardar' });
+          this.saving.set(false);
+        },
+      });
   }
 
   abrirNuevoContacto(): void {
@@ -1002,7 +1037,7 @@ export class AlumnoPerfilComponent implements OnInit, OnChanges {
       ? this.api.post('/contactos', payload)
       : this.api.patch(`/contactos/${this.contactoEdit.id}`, payload);
 
-    req.subscribe({
+    req.pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.editandoContacto.set(false);
         this.savingContacto.set(false);
@@ -1016,7 +1051,9 @@ export class AlumnoPerfilComponent implements OnInit, OnChanges {
   }
 
   eliminarContacto(id: string): void {
-    this.api.delete(`/contactos/${id}`).subscribe(() => this.cargarContactos());
+    this.api.delete(`/contactos/${id}`)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.cargarContactos());
   }
 
   onCerrar(): void {
@@ -1026,5 +1063,10 @@ export class AlumnoPerfilComponent implements OnInit, OnChanges {
 
   private formatDate(d: Date): string {
     return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

@@ -2,7 +2,7 @@
  * HelpButton — Botón "?" contextual que muestra un popover con ayuda del módulo.
  * Uso: <app-help-button modulo="calificaciones" />
  */
-import { Component, Input } from '@angular/core';
+import { Component, Input, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
@@ -98,6 +98,7 @@ const AYUDA: Record<string, HelpContent> = {
 
 @Component({
   selector: 'app-help-button',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [CommonModule, RouterLink, ButtonModule, PopoverModule],
   template: `
@@ -145,10 +146,12 @@ const AYUDA: Record<string, HelpContent> = {
     .help-footer { margin-top: .6rem; padding-top: .4rem; border-top: 1px solid #e2e8f0; text-align: right; }
   `],
 })
-export class HelpButtonComponent {
+export class HelpButtonComponent implements OnDestroy {
   @Input() modulo = '';
 
   get contenido(): HelpContent | null {
     return AYUDA[this.modulo] ?? null;
   }
+
+  ngOnDestroy(): void {}
 }

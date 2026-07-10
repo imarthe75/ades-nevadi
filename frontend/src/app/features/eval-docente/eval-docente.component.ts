@@ -5,7 +5,7 @@
  *   1. Resumen: promedio global por tipo de evaluador para un docente/ciclo
  *   2. Nueva evaluación: selecciona docente, tipo evaluador, califica criterios (1-5)
  */
-import { Component, OnDestroy, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, signal, computed, ChangeDetectionStrategy} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
@@ -332,7 +332,7 @@ const TIPO_LABELS: Record<string, string> = {
     .ciclo-warn  { display: flex; align-items: center; gap: 0.5rem; background: #FFF7ED; border: 1px solid #FED7AA; border-radius: 6px; padding: 0.5rem 0.75rem; font-size: 0.8rem; color: #9A3412; margin-bottom: 0.75rem; }
   `],
 })
-export class EvalDocenteComponent implements OnInit implements OnInit, OnDestroy {
+export class EvalDocenteComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private readonly api    = inject(ApiService);
   readonly ctx            = inject(ContextService);

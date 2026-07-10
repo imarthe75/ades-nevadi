@@ -28,14 +28,14 @@ public class SaludQueryService {
         return jdbc.queryForList(sql.toString(), params.toArray());
     }
 
-    public List<Map<String, Object>> psicosocial(UUID alumnoId) {
+    public List<Map<String, Object>> psicosocial(UUID alumnoId, int skip, int limit) {
         return jdbc.queryForList(
                 "SELECT id, tipo_atencion, motivo, observaciones, estrategias_sugeridas, " +
                 "requiere_derivacion, derivado_a, proxima_sesion, " +
                 "fecha_creacion, usuario_creacion AS especialista " +
                 "FROM ades_seguimiento_psicosocial WHERE alumno_id = ? " +
-                "ORDER BY fecha_creacion DESC",
-                alumnoId);
+                "ORDER BY fecha_creacion DESC LIMIT ? OFFSET ?",
+                alumnoId, limit, skip);
     }
 
     public List<Map<String, Object>> tutorias(UUID alumnoId, String tipoTutoria, int skip, int limit) {

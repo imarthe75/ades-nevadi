@@ -118,13 +118,14 @@ public class ExpedienteQueryService {
         return lite;
     }
 
-    public List<Map<String, Object>> listarBajas(UUID estudianteId) {
+    public List<Map<String, Object>> listarBajas(UUID estudianteId, int pagina, int porPagina) {
         return jdbc.queryForList(
-            "SELECT * FROM ades_bajas WHERE estudiante_id = ? AND is_active = TRUE ORDER BY fecha_efectiva DESC",
-            estudianteId);
+            "SELECT * FROM ades_bajas WHERE estudiante_id = ? AND is_active = TRUE " +
+            "ORDER BY fecha_efectiva DESC LIMIT ? OFFSET ?",
+            estudianteId, porPagina, (pagina - 1) * porPagina);
     }
 
-    public List<Map<String, Object>> listarExtraordinarios(UUID estudianteId, UUID cicloId) {
+    public List<Map<String, Object>> listarExtraordinarios(UUID estudianteId, UUID cicloId, int pagina, int porPagina) {
         StringBuilder sql = new StringBuilder(
             "SELECT * FROM ades_extraordinarias WHERE estudiante_id = ? AND is_active = TRUE ");
         List<Object> params = new ArrayList<>();
@@ -133,13 +134,17 @@ public class ExpedienteQueryService {
             sql.append("AND ciclo_escolar_id = ? ");
             params.add(cicloId);
         }
+        sql.append("ORDER BY fecha_creacion DESC LIMIT ? OFFSET ?");
+        params.add(porPagina);
+        params.add((pagina - 1) * porPagina);
         return jdbc.queryForList(sql.toString(), params.toArray());
     }
 
-    public List<Map<String, Object>> listarConstancias(UUID estudianteId) {
+    public List<Map<String, Object>> listarConstancias(UUID estudianteId, int pagina, int porPagina) {
         return jdbc.queryForList(
-            "SELECT * FROM ades_constancias WHERE estudiante_id = ? AND is_active = TRUE ORDER BY fecha_emision DESC",
-            estudianteId);
+            "SELECT * FROM ades_constancias WHERE estudiante_id = ? AND is_active = TRUE " +
+            "ORDER BY fecha_emision DESC LIMIT ? OFFSET ?",
+            estudianteId, porPagina, (pagina - 1) * porPagina);
     }
 
     public Map<String, Object> documentoById(UUID docId) {

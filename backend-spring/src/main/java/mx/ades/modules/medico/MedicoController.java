@@ -7,6 +7,7 @@ import mx.ades.modules.medico.domain.port.in.RegistrarPersonalSaludUseCase;
 import mx.ades.modules.medico.query.PersonalSaludQueryService;
 import mx.ades.security.AdesUser;
 import mx.ades.security.AdesUserService;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -44,6 +45,19 @@ public class MedicoController {
     private final PersonalSaludApplicationService personalSaludService;
     private final PersonalSaludQueryService personalSaludQueryService;
 
+    /**
+     * Expedientes e incidentes médicos son datos de salud sensibles (LFPDPPP).
+     * Solo personal escolar (nivelAcceso &le;4: admin/director/coordinador/docente/
+     * enfermería) puede registrar o modificar estos registros — previene BFLA
+     * (OWASP API5) sobre datos de salud de menores.
+     */
+    private void requireStaff(AdesUser user) {
+        Integer nivelAcceso = user.getNivelAcceso();
+        if (nivelAcceso == null || nivelAcceso > 4) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Nivel de acceso insuficiente para esta operación");
+        }
+    }
+
     // ══════════════════════════════════════════════════════════════════════════
     // EXPEDIENTES MÉDICOS (JPA)
     // ══════════════════════════════════════════════════════════════════════════
@@ -56,7 +70,10 @@ public class MedicoController {
     }
 
     @PostMapping("/expedientes-medicos")
-    public ResponseEntity<ExpedienteMedico> crearExpediente(@RequestBody ExpedienteMedico data) {
+    public ResponseEntity<ExpedienteMedico> crearExpediente(
+            @RequestBody ExpedienteMedico data,
+            @AuthenticationPrincipal Jwt jwt) {
+        requireStaff(userService.resolveUser(jwt));
         expedienteRepository.findByEstudianteId(data.getEstudianteId())
                 .ifPresent(existing -> {
                     throw new ResponseStatusException(HttpStatus.CONFLICT, "El alumno ya tiene expediente médico");
@@ -67,8 +84,10 @@ public class MedicoController {
     @PutMapping("/expedientes-medicos/{id}")
     public ResponseEntity<ExpedienteMedico> actualizarExpediente(
             @PathVariable("id") UUID id,
-            @RequestBody ExpedienteMedico data) {
+            @RequestBody ExpedienteMedico data,
+            @AuthenticationPrincipal Jwt jwt) {
 
+        requireStaff(userService.resolveUser(jwt));
         ExpedienteMedico exp = expedienteRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Expediente no encontrado"));
 
@@ -93,12 +112,21 @@ public class MedicoController {
     // ══════════════════════════════════════════════════════════════════════════
 
     @GetMapping("/incidentes-medicos/alumno/{estudianteId}")
-    public ResponseEntity<List<IncidenteMedico>> incidentesAlumno(@PathVariable("estudianteId") UUID estudianteId) {
-        return ResponseEntity.ok(incidenteRepository.findByEstudianteIdAndIsActiveTrueOrderByFechaIncidenteDesc(estudianteId));
+    public ResponseEntity<List<IncidenteMedico>> incidentesAlumno(
+            @PathVariable("estudianteId") UUID estudianteId,
+            @RequestParam(value = "pagina", defaultValue = "1") int pagina,
+            @RequestParam(value = "por_pagina", defaultValue = "20") int porPagina) {
+        pagina = Math.max(pagina, 1);
+        porPagina = Math.min(Math.max(porPagina, 1), 200);
+        return ResponseEntity.ok(incidenteRepository.findByEstudianteIdAndIsActiveTrueOrderByFechaIncidenteDesc(
+                estudianteId, PageRequest.of(pagina - 1, porPagina)));
     }
 
     @PostMapping("/incidentes-medicos")
-    public ResponseEntity<IncidenteMedico> registrarIncidente(@RequestBody IncidenteMedico data) {
+    public ResponseEntity<IncidenteMedico> registrarIncidente(
+            @RequestBody IncidenteMedico data,
+            @AuthenticationPrincipal Jwt jwt) {
+        requireStaff(userService.resolveUser(jwt));
         return ResponseEntity.status(HttpStatus.CREATED).body(incidenteRepository.save(data));
     }
 

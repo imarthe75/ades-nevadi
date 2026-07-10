@@ -1,4 +1,4 @@
-import { Component, OnDestroy, inject, signal, computed, OnInit } from '@angular/core';
+import { Component, OnDestroy, inject, signal, computed, OnInit, ChangeDetectionStrategy} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
@@ -148,7 +148,7 @@ interface EntregaHistorial extends EntregaPendiente {
     .cal-regular   { color:#b45309; } .cal-reprobado { color:#dc2626; }
   `],
 })
-export class MiProgresoComponent implements OnInit implements OnInit, OnDestroy {
+export class MiProgresoComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private api = inject(ApiService);
   private ctx = inject(ContextService);

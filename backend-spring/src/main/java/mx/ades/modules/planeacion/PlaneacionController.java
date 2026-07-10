@@ -6,10 +6,15 @@ import mx.ades.modules.planeacion.command.PlaneacionCommandService;
 import mx.ades.modules.planeacion.query.BolecaDesdeplanneacionQueryService;
 import mx.ades.modules.planeacion.query.CalificacionesDesdeplanneacionQueryService;
 import mx.ades.modules.planeacion.query.PlaneacionQueryService;
+import mx.ades.security.AdesUser;
+import mx.ades.security.AdesUserService;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -22,7 +27,8 @@ import java.util.UUID;
  * cobertura curricular por grupo, listado de clases planeadas, crear una planeación de clase,
  * marcar un tema como completado con fecha de ejecución, eliminar planeaciones,
  * obtener alertas de rezago por ciclo y el plan semanal e insights de un grupo.
- * Este controlador no exige JWT propio en todos los endpoints (delega al servicio de comandos).
+ * Las operaciones de escritura requieren JWT válido y personal escolar
+ * (nivelAcceso &le;4) — ver {@link #requireStaff(AdesUser)}.
  *
  * @author ADES
  * @since 2026
@@ -37,6 +43,20 @@ public class PlaneacionController {
     private final CalificacionesDesdeplanneacionQueryService calificacionesQueries;
     private final CalificacionesDesdeplanneacionCommandService calificacionesCommands;
     private final BolecaDesdeplanneacionQueryService bolecaQueries;
+    private final AdesUserService userService;
+
+    /**
+     * Planear clases, reprogramar, crear tareas/exámenes vinculados y capturar
+     * calificaciones son operaciones de personal escolar (nivelAcceso &le;4:
+     * admin/director/coordinador/docente). Padres/alumnos (nivelAcceso &gt;=5)
+     * no pueden escribir en la planeación didáctica — previene BFLA (OWASP API5).
+     */
+    private void requireStaff(AdesUser user) {
+        Integer nivelAcceso = user.getNivelAcceso();
+        if (nivelAcceso == null || nivelAcceso > 4) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Nivel de acceso insuficiente para esta operación");
+        }
+    }
 
     @GetMapping("/temas")
     public ResponseEntity<List<Map<String, Object>>> temasConEstado(
@@ -68,7 +88,9 @@ public class PlaneacionController {
 
     @PostMapping("/clases")
     public ResponseEntity<Map<String, Object>> crearPlaneacion(
-            @RequestBody PlaneacionCreateRequest body) {
+            @RequestBody PlaneacionCreateRequest body,
+            @AuthenticationPrincipal Jwt jwt) {
+        requireStaff(userService.resolveUser(jwt));
         return ResponseEntity.status(HttpStatus.CREATED).body(
                 commands.crearPlaneacion(body.grupo_id(), body.tema_id(),
                         body.fecha_planeada(), body.descripcion_actividades(),
@@ -84,7 +106,9 @@ public class PlaneacionController {
     @PostMapping("/clases/{planeacion_id}/completar")
     public ResponseEntity<Map<String, Object>> completarTema(
             @PathVariable("planeacion_id") UUID planeacionId,
-            @RequestBody CompletarAvanceRequest body) {
+            @RequestBody CompletarAvanceRequest body,
+            @AuthenticationPrincipal Jwt jwt) {
+        requireStaff(userService.resolveUser(jwt));
         return ResponseEntity.ok(commands.completarTema(
                 planeacionId, body.clase_id(), body.fecha_ejecucion(),
                 body.comentarios_profesor()));
@@ -92,7 +116,10 @@ public class PlaneacionController {
 
     @DeleteMapping("/clases/{planeacion_id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void eliminarPlaneacion(@PathVariable("planeacion_id") UUID planeacionId) {
+    public void eliminarPlaneacion(
+            @PathVariable("planeacion_id") UUID planeacionId,
+            @AuthenticationPrincipal Jwt jwt) {
+        requireStaff(userService.resolveUser(jwt));
         commands.eliminarPlaneacion(planeacionId);
     }
 
@@ -130,7 +157,9 @@ public class PlaneacionController {
     @PatchMapping("/clases/{planeacion_id}/reprogramar")
     public ResponseEntity<Map<String, Object>> reprogramar(
             @PathVariable("planeacion_id") UUID planeacionId,
-            @RequestBody ReprogramarRequest body) {
+            @RequestBody ReprogramarRequest body,
+            @AuthenticationPrincipal Jwt jwt) {
+        requireStaff(userService.resolveUser(jwt));
         commands.reprogramar(planeacionId, body.nueva_fecha());
         return ResponseEntity.ok(Map.of("id", planeacionId.toString(), "fecha_planeada", body.nueva_fecha().toString()));
     }
@@ -180,7 +209,9 @@ public class PlaneacionController {
 
     @PostMapping("/semanal")
     public ResponseEntity<Map<String, Object>> crearPlaneacionSemanal(
-            @RequestBody PlaneacionSemanalCreateRequest body) {
+            @RequestBody PlaneacionSemanalCreateRequest body,
+            @AuthenticationPrincipal Jwt jwt) {
+        requireStaff(userService.resolveUser(jwt));
         return ResponseEntity.status(HttpStatus.CREATED).body(
                 commands.crearPlaneacionSemanal(
                         body.grupo_id(), body.tema_id(), body.competencia_id(),
@@ -205,7 +236,9 @@ public class PlaneacionController {
     @PatchMapping("/{planeacion_id}/semanal")
     public ResponseEntity<Map<String, Object>> actualizarPlaneacionSemanal(
             @PathVariable("planeacion_id") UUID planeacionId,
-            @RequestBody PlaneacionSemanalUpdateRequest body) {
+            @RequestBody PlaneacionSemanalUpdateRequest body,
+            @AuthenticationPrincipal Jwt jwt) {
+        requireStaff(userService.resolveUser(jwt));
         return ResponseEntity.ok(commands.actualizarPlaneacionSemanal(
                 planeacionId,
                 body.numero_trimestre(), body.numero_semana(), body.modalidad(),
@@ -260,7 +293,9 @@ public class PlaneacionController {
 
     @PostMapping("/semanal-integral")
     public ResponseEntity<Map<String, Object>> crearPlaneacionSemanalIntegral(
-            @RequestBody CrearPlaneacionSemanalIntegralRequest body) {
+            @RequestBody CrearPlaneacionSemanalIntegralRequest body,
+            @AuthenticationPrincipal Jwt jwt) {
+        requireStaff(userService.resolveUser(jwt));
         return ResponseEntity.status(HttpStatus.CREATED).body(
                 commands.crearPlaneacionSemanal(
                         body.grupo_id(),
@@ -330,7 +365,9 @@ public class PlaneacionController {
 
     @PostMapping("/tareas/desde-planeacion")
     public ResponseEntity<Map<String, Object>> crearTareaDesdeplanneacion(
-            @RequestBody CrearTareaDesdeplanneacionRequest body) {
+            @RequestBody CrearTareaDesdeplanneacionRequest body,
+            @AuthenticationPrincipal Jwt jwt) {
+        requireStaff(userService.resolveUser(jwt));
         return ResponseEntity.status(HttpStatus.CREATED).body(
                 commands.crearTareaDesdeplanneacion(
                         body.planeacion_clase_id(),
@@ -367,7 +404,9 @@ public class PlaneacionController {
 
     @PostMapping("/examenes/desde-planeacion")
     public ResponseEntity<Map<String, Object>> crearExamenDesdeplanneacion(
-            @RequestBody CrearExamenDesdeplanneacionRequest body) {
+            @RequestBody CrearExamenDesdeplanneacionRequest body,
+            @AuthenticationPrincipal Jwt jwt) {
+        requireStaff(userService.resolveUser(jwt));
         return ResponseEntity.status(HttpStatus.CREATED).body(
                 commands.crearExamenDesdeplanneacion(
                         body.planeacion_clase_id(),
@@ -446,7 +485,9 @@ public class PlaneacionController {
 
     @PostMapping("/calificaciones/tarea")
     public ResponseEntity<Map<String, Object>> guardarCalificacionTarea(
-            @RequestBody GuardarCalificacionTareaRequest body) {
+            @RequestBody GuardarCalificacionTareaRequest body,
+            @AuthenticationPrincipal Jwt jwt) {
+        requireStaff(userService.resolveUser(jwt));
         return ResponseEntity.status(HttpStatus.CREATED).body(
             calificacionesCommands.guardarCalificacionTarea(
                 body.tarea_id(),
@@ -470,7 +511,9 @@ public class PlaneacionController {
 
     @PostMapping("/calificaciones/evaluacion")
     public ResponseEntity<Map<String, Object>> guardarCalificacionEvaluacion(
-            @RequestBody GuardarCalificacionEvaluacionRequest body) {
+            @RequestBody GuardarCalificacionEvaluacionRequest body,
+            @AuthenticationPrincipal Jwt jwt) {
+        requireStaff(userService.resolveUser(jwt));
         return ResponseEntity.status(HttpStatus.CREATED).body(
             calificacionesCommands.guardarCalificacionEvaluacion(
                 body.evaluacion_id(),
@@ -492,7 +535,9 @@ public class PlaneacionController {
 
     @PostMapping("/calificaciones/tarea-batch")
     public ResponseEntity<Map<String, Object>> guardarCalificacionesTareaBatch(
-            @RequestBody GuardarCalificacionesTareaBatchRequest body) {
+            @RequestBody GuardarCalificacionesTareaBatchRequest body,
+            @AuthenticationPrincipal Jwt jwt) {
+        requireStaff(userService.resolveUser(jwt));
         return ResponseEntity.status(HttpStatus.CREATED).body(
             calificacionesCommands.guardarCalificacionesTareaBatch(
                 body.tarea_id(),
@@ -512,7 +557,9 @@ public class PlaneacionController {
 
     @PostMapping("/calificaciones/evaluacion-batch")
     public ResponseEntity<Map<String, Object>> guardarCalificacionesEvaluacionBatch(
-            @RequestBody GuardarCalificacionesEvaluacionBatchRequest body) {
+            @RequestBody GuardarCalificacionesEvaluacionBatchRequest body,
+            @AuthenticationPrincipal Jwt jwt) {
+        requireStaff(userService.resolveUser(jwt));
         return ResponseEntity.status(HttpStatus.CREATED).body(
             calificacionesCommands.guardarCalificacionesEvaluacionBatch(
                 body.evaluacion_id(),

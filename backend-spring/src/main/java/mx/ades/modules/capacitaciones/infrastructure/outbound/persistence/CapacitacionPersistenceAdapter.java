@@ -38,7 +38,8 @@ public class CapacitacionPersistenceAdapter implements CapacitacionRepositoryPor
     }
 
     @Override
-    public List<Map<String, Object>> list(UUID docenteId, String tipo, String modalidad, Boolean validado, String q) {
+    public List<Map<String, Object>> list(UUID docenteId, String tipo, String modalidad, Boolean validado, String q,
+                                           int pagina, int porPagina) {
         StringBuilder sq = new StringBuilder(
                 "SELECT cd.*, " +
                 "  CONCAT(pe.nombre, ' ', pe.apellido_paterno, " +
@@ -61,7 +62,9 @@ public class CapacitacionPersistenceAdapter implements CapacitacionRepositoryPor
         if (modalidad != null && !modalidad.isBlank()) { sq.append("AND cd.modalidad = ? "); params.add(modalidad.toUpperCase()); }
         if (validado != null)                    { sq.append("AND cd.validado_rh = ? "); params.add(validado); }
 
-        sq.append("ORDER BY cd.fecha_inicio DESC");
+        sq.append("ORDER BY cd.fecha_inicio DESC LIMIT ? OFFSET ?");
+        params.add(porPagina);
+        params.add((pagina - 1) * porPagina);
         return jdbc.queryForList(sq.toString(), params.toArray());
     }
 

@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import mx.ades.security.AdesUser;
@@ -25,7 +26,13 @@ public class ReinscripcionService {
                 String.class, cicloOrigenId, cicloDestinoId);
     }
 
-    @Transactional
+    /**
+     * REPEATABLE_READ: lectura-modificación-escritura sin optimistic lock (a diferencia de
+     * {@link #patchIndividual}) — evita lost-update si dos coordinadores aprueban/rechazan
+     * el mismo registro concurrentemente (una de las dos transacciones falla con
+     * serialization error en vez de sobrescribir silenciosamente a la otra).
+     */
+    @Transactional(isolation = Isolation.REPEATABLE_READ)
     public ReinscripcionCiclo aprobarReinscripcion(UUID id, UUID aprobadoPor) {
         ReinscripcionCiclo r = repository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Registro de reinscripción no encontrado"));
@@ -35,7 +42,7 @@ public class ReinscripcionService {
         return repository.save(r);
     }
 
-    @Transactional
+    @Transactional(isolation = Isolation.REPEATABLE_READ)
     public ReinscripcionCiclo rechazarReinscripcion(UUID id, String razonRechazo) {
         ReinscripcionCiclo r = repository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Registro de reinscripción no encontrado"));

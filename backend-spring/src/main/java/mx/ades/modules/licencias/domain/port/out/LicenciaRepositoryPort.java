@@ -19,5 +19,5 @@ public interface LicenciaRepositoryPort {
 
     Optional<LicenciaPersonal> findActiveById(UUID id);
 
-    List<Map<String, Object>> list(UUID personalId, String estado, String tipo, String q);
+    List<Map<String, Object>> list(UUID personalId, String estado, String tipo, String q, int pagina, int porPagina);
 }

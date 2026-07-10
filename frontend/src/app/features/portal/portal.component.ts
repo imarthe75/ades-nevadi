@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal, computed } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, ChangeDetectionStrategy, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
@@ -383,7 +383,7 @@ interface AlumnoResumen {
     :host ::ng-deep .pbar-low .p-progressbar-value { background:#E74C3C !important; }
   `],
 })
-export class PortalComponent implements OnInit {
+export class PortalComponent implements OnInit, OnDestroy {
   private api     = inject(ApiService);
   private ctx     = inject(ContextService);
   private exporter = inject(ExportService);
@@ -590,4 +590,6 @@ export class PortalComponent implements OnInit {
     };
     return m[estatus] ?? 'secondary';
   }
+
+  ngOnDestroy(): void {}
 }

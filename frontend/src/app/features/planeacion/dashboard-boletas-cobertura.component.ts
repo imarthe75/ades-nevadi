@@ -1,4 +1,4 @@
-import { Component, OnDestroy, inject, OnInit, signal } from '@angular/core';
+import { Component, OnDestroy, inject, OnInit, signal, ChangeDetectionStrategy} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
@@ -344,7 +344,7 @@ import { ApiService } from '../../core/services/api.service';
     }
   `]
 })
-export class DashboardBolecasYCoberturaComponent implements OnInit implements OnInit, OnDestroy {
+export class DashboardBolecasYCoberturaComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private apiService = inject(ApiService);
   private messageService = inject(MessageService);

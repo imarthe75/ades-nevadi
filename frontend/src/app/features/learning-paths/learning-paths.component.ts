@@ -1,4 +1,4 @@
-import { Component, OnDestroy, inject, OnInit, signal, computed } from '@angular/core';
+import { Component, OnDestroy, inject, OnInit, signal, computed, ChangeDetectionStrategy} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -482,7 +482,7 @@ const TIPO_ICON: Record<string, string> = {
     h5 { margin: .5rem 0; font-size: .9rem; display: flex; align-items: center; gap: .4rem; }
   `],
 })
-export class LearningPathsComponent implements OnInit implements OnInit, OnDestroy {
+export class LearningPathsComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private readonly api    = inject(ApiService);
   private readonly ctx    = inject(ContextService);

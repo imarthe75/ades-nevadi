@@ -73,9 +73,13 @@ public class AsistenciaPersonalController {
             @RequestParam(value = "fecha_fin", required = false) LocalDate fechaFin,
             @RequestParam(value = "tipo_jornada", required = false) String tipoJornada,
             @RequestParam(value = "q", required = false) String q,
+            @RequestParam(value = "pagina", defaultValue = "1") int pagina,
+            @RequestParam(value = "por_pagina", defaultValue = "30") int porPagina,
             @AuthenticationPrincipal Jwt jwt) {
         userService.resolveUser(jwt);
-        return ResponseEntity.ok(queryService.listar(personaId, fechaInicio, fechaFin, tipoJornada, q));
+        pagina = Math.max(pagina, 1);
+        porPagina = Math.min(Math.max(porPagina, 1), 200);
+        return ResponseEntity.ok(queryService.listar(personaId, fechaInicio, fechaFin, tipoJornada, q, pagina, porPagina));
     }
 
     @PostMapping

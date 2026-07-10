@@ -1,4 +1,4 @@
-import { Component, OnDestroy, inject, signal, computed, OnInit, effect } from '@angular/core';
+import { Component, OnDestroy, inject, signal, computed, OnInit, effect, ChangeDetectionStrategy} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
@@ -415,7 +415,7 @@ interface Insights {
     .page-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1rem; }
   `],
 })
-export class GradebookComponent implements OnInit implements OnInit, OnDestroy {
+export class GradebookComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private api = inject(ApiService);
   readonly ctx = inject(ContextService);

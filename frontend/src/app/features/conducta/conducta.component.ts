@@ -5,7 +5,7 @@
  * SB-013: Plan de mejora conductual (tab Plan de Mejora)
  * SB-014: Seguimiento del plan (tab Seguimientos)
  */
-import { Component, OnDestroy, OnInit, inject, signal, computed, effect } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, signal, computed, effect, ChangeDetectionStrategy} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
@@ -493,7 +493,7 @@ interface Compromiso {
     .seg-desc { margin: 0; font-size: 0.88rem; }
   `],
 })
-export class ConductaComponent implements OnInit implements OnInit, OnDestroy {
+export class ConductaComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private readonly api    = inject(ApiService);
   readonly ctx            = inject(ContextService);

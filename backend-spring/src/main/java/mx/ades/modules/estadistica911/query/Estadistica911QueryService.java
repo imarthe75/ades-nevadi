@@ -1,5 +1,6 @@
 package mx.ades.modules.estadistica911.query;
 
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -30,6 +31,7 @@ public class Estadistica911QueryService {
     }
 
     /** IV.1 — matriz desglosada (una fila por nivel/grado/sexo/ingreso/edad). */
+    @Cacheable(value = "reportes911", key = "#plantelId + '_' + #cicloId")
     public List<Map<String, Object>> matriz(UUID plantelId, UUID cicloId) {
         String sql = """
             SELECT n.nombre_nivel                           AS nivel,

@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, signal, inject, computed, ElementRef, ViewChild } from '@angular/core';
+import { Component, OnDestroy, OnInit, signal, inject, computed, ElementRef, ViewChild, ChangeDetectionStrategy} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DatePipe } from '@angular/common';
 import { DomSanitizer } from '@angular/platform-browser';
@@ -280,7 +280,7 @@ type TabKey = 'biblioteca' | 'mis-resultados';
 </p-dialog>
   `,
 })
-export class H5pComponent implements OnInit implements OnInit, OnDestroy {
+export class H5pComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private api = inject(ApiService);
   private notify = inject(ApexNotificationService);

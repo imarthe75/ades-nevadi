@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectionStrategy, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
@@ -11,6 +11,7 @@ import { ProgressSpinnerModule } from 'primeng/progressspinner';
  */
 @Component({
   selector: 'app-callback',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [ProgressSpinnerModule],
   template: `
@@ -40,7 +41,7 @@ import { ProgressSpinnerModule } from 'primeng/progressspinner';
     .cb-error a { color: #D02030; text-decoration: none; margin-top: .5rem; display: block; }
   `],
 })
-export class CallbackComponent implements OnInit {
+export class CallbackComponent implements OnInit, OnDestroy {
   private readonly route  = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly auth   = inject(AuthService);
@@ -68,4 +69,6 @@ export class CallbackComponent implements OnInit {
       this.error.set('Error al completar el inicio de sesión. Inténtalo de nuevo.');
     });
   }
+
+  ngOnDestroy(): void {}
 }

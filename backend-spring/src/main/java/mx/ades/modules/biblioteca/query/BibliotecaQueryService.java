@@ -35,7 +35,8 @@ public class BibliotecaQueryService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Libro no encontrado"));
     }
 
-    public List<Map<String, Object>> listPrestamos(UUID personaId, UUID libroId, String estatus, UUID plantelId) {
-        return repo.listPrestamos(personaId, libroId, estatus, plantelId);
+    public List<Map<String, Object>> listPrestamos(UUID personaId, UUID libroId, String estatus, UUID plantelId,
+                                                     int pagina, int porPagina) {
+        return repo.listPrestamos(personaId, libroId, estatus, plantelId, pagina, porPagina);
     }
 }

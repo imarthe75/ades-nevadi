@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, signal, inject, computed } from '@angular/core';
+import { Component, OnDestroy, OnInit, signal, inject, computed, ChangeDetectionStrategy} from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
@@ -282,7 +282,7 @@ const ESTADO_SEV: Record<string, string> = {
 </p-dialog>
   `,
 })
-export class BbbComponent implements OnInit implements OnInit, OnDestroy {
+export class BbbComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private api = inject(ApiService);
   private notify = inject(ApexNotificationService);

@@ -3,6 +3,7 @@ package mx.ades.modules.evaluaciones;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import mx.ades.modules.evaluaciones.query.RubricaQueryService;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -69,6 +70,7 @@ public class RubricaController {
     }
 
     @PostMapping
+    @CacheEvict(value = "rubricas", allEntries = true)
     public ResponseEntity<Rubrica> create(
             @RequestBody Rubrica rubrica,
             @AuthenticationPrincipal Jwt jwt) {
@@ -79,6 +81,7 @@ public class RubricaController {
     }
 
     @PutMapping("/{id}")
+    @CacheEvict(value = "rubricas", allEntries = true)
     public ResponseEntity<Rubrica> update(
             @PathVariable("id") UUID id,
             @RequestBody Rubrica update,
@@ -98,6 +101,7 @@ public class RubricaController {
     }
 
     @DeleteMapping("/{id}")
+    @CacheEvict(value = "rubricas", allEntries = true)
     public ResponseEntity<Void> delete(
             @PathVariable("id") UUID id,
             @AuthenticationPrincipal Jwt jwt) {
@@ -113,6 +117,7 @@ public class RubricaController {
     }
 
     @PostMapping("/{rubrica_id}/criterios")
+    @CacheEvict(value = "rubricas", allEntries = true)
     public ResponseEntity<RubricaCriterio> addCriterio(
             @PathVariable("rubrica_id") UUID rubricaId,
             @RequestBody CriterioPayload payload,
@@ -136,6 +141,7 @@ public class RubricaController {
     }
 
     @PutMapping("/{rubrica_id}/criterios/{criterio_id}")
+    @CacheEvict(value = "rubricas", allEntries = true)
     public ResponseEntity<Map<String, Object>> updateCriterio(
             @PathVariable("rubrica_id") UUID rubricaId,
             @PathVariable("criterio_id") UUID criterioId,
@@ -161,6 +167,7 @@ public class RubricaController {
     }
 
     @DeleteMapping("/{rubrica_id}/criterios/{criterio_id}")
+    @CacheEvict(value = "rubricas", allEntries = true)
     public ResponseEntity<Void> deleteCriterio(
             @PathVariable("rubrica_id") UUID rubricaId,
             @PathVariable("criterio_id") UUID criterioId,

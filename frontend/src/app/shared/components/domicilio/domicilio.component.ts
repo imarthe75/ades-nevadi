@@ -5,11 +5,12 @@
  * Geocodificación vía Nominatim (OpenStreetMap, sin clave API, uso razonable).
  */
 import {
-  Component, Input, OnChanges, OnInit, SimpleChanges, inject, signal, computed
+  Component, Input, OnChanges, OnInit, OnDestroy, SimpleChanges, ChangeDetectionStrategy, ChangeDetectorRef, inject, signal, computed
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
+import { Subject, takeUntil } from 'rxjs';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
@@ -74,6 +75,7 @@ interface PersonaContacto {
 
 @Component({
   selector: 'app-domicilio',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     CommonModule, FormsModule,
@@ -500,10 +502,12 @@ interface PersonaContacto {
     }
   `],
 })
-export class DomicilioComponent implements OnChanges {
+export class DomicilioComponent implements OnChanges, OnDestroy {
   private readonly api = inject(ApiService);
   private readonly http = inject(HttpClient);
   private readonly msg = inject(MessageService);
+  private readonly cdr = inject(ChangeDetectorRef);
+  private readonly destroy$ = new Subject<void>();
 
   @Input() personaId: string | null = null;
   @Input() entidadTipo: string = 'PERSONA';
@@ -553,12 +557,13 @@ export class DomicilioComponent implements OnChanges {
     this.api.get<Direccion[]>('/direcciones', {
       entidad_tipo: this.entidadTipo,
       entidad_id: this.personaId,
-    }).subscribe({ next: d => this.direcciones.set(d), error: () => {} });
+    }).pipe(takeUntil(this.destroy$)).subscribe({ next: d => this.direcciones.set(d), error: () => {} });
   }
 
   private cargarContactos(): void {
     if (!this.personaId) return;
     this.api.get<PersonaContacto[]>('/persona-contactos', { persona_id: this.personaId })
+      .pipe(takeUntil(this.destroy$))
       .subscribe({ next: c => this.contactos.set(c), error: () => {} });
   }
 
@@ -610,13 +615,15 @@ export class DomicilioComponent implements OnChanges {
 
   private buscarPorCp(cp: string): void {
     this.buscandoCp.set(true);
-    this.api.get<SepomexRow[]>('/catalogs/sepomex/por-cp', { cp }).subscribe({
-      next: rows => {
-        this.asentamientos.set(rows);
-        this.buscandoCp.set(false);
-      },
-      error: () => this.buscandoCp.set(false),
-    });
+    this.api.get<SepomexRow[]>('/catalogs/sepomex/por-cp', { cp })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: rows => {
+          this.asentamientos.set(rows);
+          this.buscandoCp.set(false);
+        },
+        error: () => this.buscandoCp.set(false),
+      });
   }
 
   onAsentamientoSelect(event: any): void {
@@ -673,7 +680,7 @@ export class DomicilioComponent implements OnChanges {
       ? this.api.patch(`/direcciones/${this.dirEdit.id}`, payload)
       : this.api.post('/direcciones', payload);
 
-    req.subscribe({
+    req.pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.msg.add({ severity: 'success', summary: 'Guardado', detail: 'Dirección actualizada' });
         this.cancelarDireccion();
@@ -687,17 +694,21 @@ export class DomicilioComponent implements OnChanges {
   }
 
   eliminarDireccion(id: string): void {
-    this.api.delete(`/direcciones/${id}`).subscribe({
-      next: () => this.cargarDirecciones(),
-      error: () => {},
-    });
+    this.api.delete(`/direcciones/${id}`)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => this.cargarDirecciones(),
+        error: () => {},
+      });
   }
 
   setPrincipal(id: string): void {
-    this.api.patch(`/direcciones/${id}/principal`, {}).subscribe({
-      next: () => this.cargarDirecciones(),
-      error: () => {},
-    });
+    this.api.patch(`/direcciones/${id}/principal`, {})
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => this.cargarDirecciones(),
+        error: () => {},
+      });
   }
 
   geocodificar(): void {
@@ -716,7 +727,7 @@ export class DomicilioComponent implements OnChanges {
     this.http.get<any[]>(
       `https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1`,
       { headers: { 'Accept-Language': 'es' } }
-    ).subscribe({
+    ).pipe(takeUntil(this.destroy$)).subscribe({
       next: results => {
         if (results.length > 0) {
           this.dirEdit.latitud  = parseFloat(results[0].lat);
@@ -729,6 +740,7 @@ export class DomicilioComponent implements OnChanges {
             detail: 'No se encontraron coordenadas para esta dirección' });
         }
         this.geocodificando.set(false);
+        this.cdr.markForCheck();
       },
       error: () => {
         this.msg.add({ severity: 'error', summary: 'Error', detail: 'No se pudo conectar a Nominatim' });
@@ -797,7 +809,7 @@ export class DomicilioComponent implements OnChanges {
     const req = isNew
       ? this.api.post('/persona-contactos', payload)
       : this.api.patch(`/persona-contactos/${this.contactoEdit.id}`, payload);
-    req.subscribe({
+    req.pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.msg.add({ severity: 'success', summary: 'Guardado', detail: 'Contacto actualizado' });
         this.cancelarContacto();
@@ -811,10 +823,12 @@ export class DomicilioComponent implements OnChanges {
   }
 
   eliminarContacto(id: string): void {
-    this.api.delete(`/persona-contactos/${id}`).subscribe({
-      next: () => this.cargarContactos(),
-      error: () => {},
-    });
+    this.api.delete(`/persona-contactos/${id}`)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => this.cargarContactos(),
+        error: () => {},
+      });
   }
 
   // ── helpers ──────────────────────────────────────────────────────────────
@@ -844,5 +858,10 @@ export class DomicilioComponent implements OnChanges {
   urlMapa(lat: number | null, lng: number | null): string {
     if (!lat || !lng) return '#';
     return `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}&zoom=17`;
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

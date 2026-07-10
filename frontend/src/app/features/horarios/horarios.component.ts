@@ -5,7 +5,7 @@
  * Permite ver el horario de un grupo O de un docente, y crear/editar/eliminar entradas.
  * Exporta el XML para aSc TimeTables.
  */
-import { Component, OnInit, OnDestroy, inject, signal, computed, effect } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal, computed, effect, ChangeDetectionStrategy} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';

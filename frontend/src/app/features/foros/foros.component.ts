@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, signal, inject, computed } from '@angular/core';
+import { Component, OnDestroy, OnInit, signal, inject, computed, ChangeDetectionStrategy} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
@@ -353,7 +353,7 @@ interface Anuncio {
     .text-xxs { font-size: 0.7rem; }
   `],
 })
-export class ForosComponent implements OnInit implements OnInit, OnDestroy {
+export class ForosComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private http = inject(ApiService);
   private notify = inject(ApexNotificationService);
@@ -415,7 +415,7 @@ export class ForosComponent implements OnInit implements OnInit, OnDestroy {
 
   cargarForos() {
     this.cargandoForos.set(true);
-    this.http.get<Foro[]>('/foros').subscribe({
+    this.http.get<Foro[]>('/foros').pipe(takeUntil(this.destroy$)).subscribe({
       next: d => { this.foros.set(d); this.cargandoForos.set(false); },
       error: () => { this.cargandoForos.set(false); this.notify.error('Error al cargar foros'); },
     });
@@ -423,7 +423,7 @@ export class ForosComponent implements OnInit implements OnInit, OnDestroy {
 
   cargarAnuncios() {
     this.cargandoAnuncios.set(true);
-    this.http.get<Anuncio[]>('/foros/anuncios', { solo_vigentes: true }).subscribe({
+    this.http.get<Anuncio[]>('/foros/anuncios', { solo_vigentes: true }).pipe(takeUntil(this.destroy$)).subscribe({
       next: d => { this.anuncios.set(d); this.cargandoAnuncios.set(false); },
       error: () => { this.cargandoAnuncios.set(false); },
     });
@@ -432,7 +432,7 @@ export class ForosComponent implements OnInit implements OnInit, OnDestroy {
   cargarMaterias() {
     const pl = this.ctx.plantel();
     if (pl) {
-      this.http.get<any[]>('/materias', { plantel_id: pl.id }).subscribe(m => this.materias.set(m));
+      this.http.get<any[]>('/materias', { plantel_id: pl.id }).pipe(takeUntil(this.destroy$)).subscribe(m => this.materias.set(m));
     }
   }
 
@@ -440,7 +440,7 @@ export class ForosComponent implements OnInit implements OnInit, OnDestroy {
     this.foroActivo.set(foro);
     this.mensajes.set([]);
     this.dlgMensajes = true;
-    this.http.get<MensajeForo[]>(`/foros/${foro.id}/mensajes`).subscribe({
+    this.http.get<MensajeForo[]>(`/foros/${foro.id}/mensajes`).pipe(takeUntil(this.destroy$)).subscribe({
       next: d => this.mensajes.set(d),
       error: () => this.notify.error('Error al cargar mensajes'),
     });
@@ -462,7 +462,7 @@ export class ForosComponent implements OnInit implements OnInit, OnDestroy {
       ...this.foroForm,
       plantel_id: pl ? pl.id : null
     };
-    this.http.post('/foros', payload).subscribe({
+    this.http.post('/foros', payload).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.guardando.set(false);
         this.dlgForo = false;
@@ -489,7 +489,7 @@ export class ForosComponent implements OnInit implements OnInit, OnDestroy {
   cargarRespuestas(msgId: string) {
     const foro = this.foroActivo();
     if (!foro) return;
-    this.http.get<RespuestaForo[]>(`/foros/${foro.id}/mensajes/${msgId}/respuestas`).subscribe({
+    this.http.get<RespuestaForo[]>(`/foros/${foro.id}/mensajes/${msgId}/respuestas`).pipe(takeUntil(this.destroy$)).subscribe({
       next: r => this.respuestas.set(r),
       error: () => this.notify.error('Error al cargar respuestas')
     });
@@ -509,7 +509,7 @@ export class ForosComponent implements OnInit implements OnInit, OnDestroy {
     this.guardando.set(true);
     this.http.post(`/foros/${foro.id}/mensajes/${msg.id}/responder`, {
       contenido: this.nuevaRespuestaTexto
-    }).subscribe({
+    }).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.guardando.set(false);
         this.nuevaRespuestaTexto = '';
@@ -523,7 +523,7 @@ export class ForosComponent implements OnInit implements OnInit, OnDestroy {
   }
 
   moderar(mensajeId: string, estado: string) {
-    this.http.patch(`/foros/mensajes/${mensajeId}/moderar?estado=${encodeURIComponent(estado)}`, {}).subscribe({
+    this.http.patch(`/foros/mensajes/${mensajeId}/moderar?estado=${encodeURIComponent(estado)}`, {}).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.notify.success(`Mensaje moderado: ${estado}`);
         if (this.foroActivo()) this.abrirForo(this.foroActivo()!);
@@ -541,7 +541,7 @@ export class ForosComponent implements OnInit implements OnInit, OnDestroy {
     this.http.post(`/foros/${this.foroActivo()!.id}/mensajes`, {
       asunto: this.nuevoMsgAsunto,
       contenido: this.nuevoMsgContenido,
-    }).subscribe({
+    }).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.guardando.set(false); this.dlgNuevoMensaje = false;
         this.notify.success('Mensaje publicado');
@@ -566,10 +566,15 @@ export class ForosComponent implements OnInit implements OnInit, OnDestroy {
       fecha_inicio: this.anuncioForm.fechaInicio,
       es_urgente: this.anuncioForm.esUrgente,
       plantel_id: pl ? pl.id : null
-    }).subscribe({
+    }).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => { this.guardando.set(false); this.dlgAnuncio = false; this.notify.success('Anuncio publicado'); this.cargarAnuncios(); },
       error: e => { this.guardando.set(false); this.notify.error(e.error?.detail ?? 'Error'); },
     });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   anunciosUrgentes(): Anuncio[] {

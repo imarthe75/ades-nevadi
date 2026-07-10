@@ -1,4 +1,4 @@
-import { Component, OnDestroy, inject, signal, OnInit, effect } from '@angular/core';
+import { Component, OnDestroy, inject, signal, OnInit, effect, ChangeDetectionStrategy} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
@@ -192,7 +192,7 @@ import { ContextService } from '../../core/services/context.service';
     .chart-title { font-weight: 700; font-size: 1rem; color: var(--text-primary); display: flex; align-items: center; gap: 8px; }
   `]
 })
-export class DirectorDashboardComponent implements OnInit implements OnInit, OnDestroy {
+export class DirectorDashboardComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private readonly api = inject(ApiService);
   private readonly ctx = inject(ContextService);

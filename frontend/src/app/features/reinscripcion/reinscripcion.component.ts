@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, inject, signal, computed, effect } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, signal, computed, effect, ChangeDetectionStrategy} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
@@ -219,7 +219,7 @@ interface CicloOpt   { id: string; nombre_ciclo: string; es_vigente: boolean; }
     .acciones-ind { display:flex; gap:8px; }
   `],
 })
-export class ReinscripcionComponent implements OnInit implements OnInit, OnDestroy {
+export class ReinscripcionComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private api      = inject(ApiService);
   private ctx      = inject(ContextService);

@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ApexComponentsModule } from '../../shared/apex-components.module';
 import { GridColumn } from 'apex-component-library';
@@ -19,7 +19,7 @@ import { ButtonModule } from 'primeng/button';
   standalone: true,
   imports: [CommonModule, ApexComponentsModule, CardModule, ButtonModule]
 })
-export class UsuariosListComponent implements OnInit {
+export class UsuariosListComponent implements OnInit, OnDestroy {
   
   // Mock data for MVP
   usuarios$ = of([
@@ -79,4 +79,6 @@ export class UsuariosListComponent implements OnInit {
   openNewModal(): void {
     console.log('Open new modal');
   }
+
+  ngOnDestroy(): void {}
 }

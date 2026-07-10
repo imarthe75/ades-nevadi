@@ -1,4 +1,4 @@
-import { Component, OnDestroy, inject, signal, computed, OnInit } from '@angular/core';
+import { Component, OnDestroy, inject, signal, computed, OnInit, ChangeDetectionStrategy} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
@@ -366,7 +366,7 @@ const TIPOS_DOCUMENTO = [
     .doc-selected { background: var(--primary-50) !important; border-color: var(--primary-300) !important; }
   `],
 })
-export class ExpedienteDocComponent implements OnInit implements OnInit, OnDestroy {
+export class ExpedienteDocComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private api = inject(ApiService);
   private ctx = inject(ContextService);

@@ -1,6 +1,7 @@
 package mx.ades.modules.planes_estudio.query;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
@@ -15,6 +16,7 @@ public class PlanesEstudioQueryService {
 
     private final JdbcTemplate jdbc;
 
+    @Cacheable(value = "catalogos", key = "'plan_' + #cicloId + '_' + #gradoId + '_' + #nivelId")
     public List<Map<String, Object>> listar(UUID cicloId, UUID gradoId, UUID nivelId) {
         StringBuilder sql = new StringBuilder("""
             SELECT mp.id, mp.materia_id, mp.grado_id, mp.ciclo_escolar_id,

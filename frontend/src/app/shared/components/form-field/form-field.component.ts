@@ -1,7 +1,8 @@
-import { Component, Input, Output, EventEmitter, OnInit, OnDestroy } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, FormControl, ReactiveFormsModule } from '@angular/forms';
 import { InputTextModule } from 'primeng/inputtext';
+import { Subject, takeUntil } from 'rxjs';
 import { InputFormattersService } from '../../services/input-formatters.service';
 
 /**
@@ -15,6 +16,7 @@ import { InputFormattersService } from '../../services/input-formatters.service'
  */
 @Component({
   selector: 'app-form-field',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [CommonModule, FormsModule, ReactiveFormsModule, InputTextModule],
   template: `
@@ -140,7 +142,7 @@ import { InputFormattersService } from '../../services/input-formatters.service'
     }
   `]
 })
-export class FormFieldComponent implements OnInit {
+export class FormFieldComponent implements OnInit, OnDestroy {
   @Input() control!: FormControl;
   @Input() label = '';
   @Input() placeholder = '';
@@ -152,12 +154,23 @@ export class FormFieldComponent implements OnInit {
 
   @Output() valueChange = new EventEmitter<string>();
 
-  constructor(private inputFormatters: InputFormattersService) {}
+  private readonly destroy$ = new Subject<void>();
+
+  constructor(private inputFormatters: InputFormattersService, private cdr: ChangeDetectorRef) {}
 
   ngOnInit() {
     if (!this.control) {
       console.warn('FormFieldComponent: control is required');
+      return;
     }
+    this.control.statusChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.cdr.markForCheck());
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   /**

@@ -39,7 +39,7 @@ public class LicenciaPersistenceAdapter implements LicenciaRepositoryPort {
     }
 
     @Override
-    public List<Map<String, Object>> list(UUID personalId, String estado, String tipo, String q) {
+    public List<Map<String, Object>> list(UUID personalId, String estado, String tipo, String q, int pagina, int porPagina) {
         StringBuilder sq = new StringBuilder(
                 "SELECT lp.*, " +
                 "  CONCAT(pe.nombre, ' ', pe.apellido_paterno, " +
@@ -61,7 +61,9 @@ public class LicenciaPersistenceAdapter implements LicenciaRepositoryPort {
         if (estado != null && !estado.isBlank()) { sq.append("AND lp.estado = ? "); params.add(estado.toUpperCase()); }
         if (tipo != null && !tipo.isBlank())     { sq.append("AND lp.tipo_licencia = ? "); params.add(tipo.toUpperCase()); }
 
-        sq.append("ORDER BY lp.fecha_creacion DESC");
+        sq.append("ORDER BY lp.fecha_creacion DESC LIMIT ? OFFSET ?");
+        params.add(porPagina);
+        params.add((pagina - 1) * porPagina);
         return jdbc.queryForList(sq.toString(), params.toArray());
     }
 }

@@ -1,6 +1,7 @@
 package mx.ades.modules.planeacion.query;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,6 +36,7 @@ public class BolecaDesdeplanneacionQueryService {
      * @param trimestre Trimestre (1-3)
      * @return Map con estructura de boleta integrada
      */
+    @Cacheable(value = "boletas", key = "#alumnoId + '_' + #grupoId + '_' + #trimestre")
     @Transactional(readOnly = true)
     public Map<String, Object> calcularBolecaDesdeplanneacion(UUID alumnoId, UUID grupoId, Integer trimestre) {
         // 1. Obtener planeaciones del trimestre

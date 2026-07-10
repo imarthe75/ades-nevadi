@@ -1,4 +1,4 @@
-import { Component, OnDestroy, inject, signal, computed, effect } from '@angular/core';
+import { Component, OnDestroy, inject, signal, computed, effect, ChangeDetectionStrategy} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -541,7 +541,7 @@ const NIVEL_ICON: Record<string, string> = {
     .quick-link i { font-size: 0.82rem; color: var(--nevadi-red); }
   `],
 })
-export class DashboardComponent implements OnInit, OnDestroy {
+export class DashboardComponent implements OnDestroy {
   private destroy$ = new Subject<void>();
   private readonly api = inject(ApiService);
   readonly ctx = inject(ContextService);

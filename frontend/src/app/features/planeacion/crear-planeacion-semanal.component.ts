@@ -1,4 +1,4 @@
-import { Component, OnDestroy, inject, OnInit, signal, computed } from '@angular/core';
+import { Component, OnDestroy, inject, OnInit, signal, computed, ChangeDetectionStrategy} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
@@ -7,7 +7,7 @@ import { SelectModule } from 'primeng/select';
 import { CheckboxModule } from 'primeng/checkbox';
 import { InputTextModule } from 'primeng/inputtext';
 import { TextareaModule } from 'primeng/textarea';
-import { CalendarModule } from 'primeng/calendar';
+import { DatePickerModule } from 'primeng/datepicker';
 import { DialogModule } from 'primeng/dialog';
 import { CardModule } from 'primeng/card';
 import { TagModule } from 'primeng/tag';
@@ -38,7 +38,7 @@ import { ContextService } from '../../core/services/context.service';
   imports: [
     CommonModule, FormsModule, ReactiveFormsModule,
     ButtonModule, SelectModule, CheckboxModule, InputTextModule, TextareaModule,
-    CalendarModule, DialogModule, CardModule, TagModule, ToastModule, MessageModule
+    DatePickerModule, DialogModule, CardModule, TagModule, ToastModule, MessageModule
   ],
   providers: [MessageService],
   template: `
@@ -94,12 +94,12 @@ import { ContextService } from '../../core/services/context.service';
 
           <div class="field">
             <label>Fecha Inicio*</label>
-            <p-calendar formControlName="fechaInicio" dateFormat="dd/mm/yy" [showIcon]="true"/>
+            <p-datepicker formControlName="fechaInicio" dateFormat="dd/mm/yy" [showIcon]="true"/>
           </div>
 
           <div class="field">
             <label>Fecha Fin*</label>
-            <p-calendar formControlName="fechaFin" dateFormat="dd/mm/yy" [showIcon]="true"/>
+            <p-datepicker formControlName="fechaFin" dateFormat="dd/mm/yy" [showIcon]="true"/>
           </div>
         </div>
 
@@ -301,7 +301,7 @@ import { ContextService } from '../../core/services/context.service';
     .ml-2 { margin-left: 0.5rem; }
   `]
 })
-export class CrearPlaneacionSemanalComponent implements OnInit implements OnInit, OnDestroy {
+export class CrearPlaneacionSemanalComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private apiService = inject(ApiService);
   private contextService = inject(ContextService);

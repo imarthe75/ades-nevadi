@@ -4,7 +4,7 @@
  * Colores institucionales Instituto Nevadi — primario #D02030.
  * PUNTO 6: Implementa OnDestroy con destroy$ para cleanup de subscriptions ✅
  */
-import { Component, inject, OnInit, OnDestroy, signal, computed, ViewChild } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, ChangeDetectionStrategy, signal, computed, ViewChild } from '@angular/core';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { CommonModule } from '@angular/common';
@@ -87,6 +87,7 @@ interface Notif { id: string; titulo: string; cuerpo: string; tipo: string; leid
 
 @Component({
   selector: 'app-shell',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     CommonModule, RouterModule, RouterOutlet, FormsModule,
@@ -277,10 +278,10 @@ interface Notif { id: string; titulo: string; cuerpo: string; tipo: string; leid
 
       <!-- Contenido principal -->
       <main class="main-content">
-        @if (breadcrumbItems.length > 0) {
+        @if (breadcrumbItems().length > 0) {
           <div class="breadcrumb-container">
             <apex-breadcrumb
-              [items]="breadcrumbItems"
+              [items]="breadcrumbItems()"
               [routeTitles]="routeTitles"
               [home]="{ label: 'Home', routerLink: '/' }">
             </apex-breadcrumb>
@@ -488,7 +489,7 @@ export class ShellComponent implements OnInit, OnDestroy {
   readonly permisosService = inject(PermisosService);
   readonly catalog = inject(ContextCatalogService);
 
-  breadcrumbItems: any[] = [];
+  breadcrumbItems = signal<any[]>([]);
   readonly routeTitles = ROUTE_TITLES;
 
   // La cascada (opciones + lógica de carga) vive en ContextCatalogService;
@@ -720,13 +721,13 @@ export class ShellComponent implements OnInit, OnDestroy {
 
   private buildBreadcrumbs(): void {
     const urlSegments = this.router.url.split('?')[0].split('/').filter(s => s);
-    this.breadcrumbItems = urlSegments.map((segment, index) => {
+    this.breadcrumbItems.set(urlSegments.map((segment, index) => {
       const path = '/' + urlSegments.slice(0, index + 1).join('/');
       return {
         label: ROUTE_TITLES[segment] ?? this.humanize(segment),
         routerLink: index < urlSegments.length - 1 ? path : undefined,
       };
-    });
+    }));
   }
 
   private humanize(text: string): string {

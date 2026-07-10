@@ -85,11 +85,6 @@ public class ProcesosEscolaresController {
                 String curp = mx.ades.modules.imports.ImportadorUtil.getCol(row, headers, "curp");
                 if (curp.isBlank()) continue;
 
-                if (writeService.checkDupCurp(curp)) {
-                    omitidos++;
-                    continue;
-                }
-
                 String nombre = mx.ades.modules.imports.ImportadorUtil.getCol(row, headers, "nombre");
                 String primerApellido = mx.ades.modules.imports.ImportadorUtil.getCol(row, headers, "primer_apellido", "apellido_paterno");
                 String segundoApellido = mx.ades.modules.imports.ImportadorUtil.getCol(row, headers, "segundo_apellido", "apellido_materno");
@@ -102,10 +97,10 @@ public class ProcesosEscolaresController {
 
                 Integer grado = mx.ades.modules.imports.ImportadorUtil.parseInt(gradoStr);
 
-                writeService.insertarSolicitudSEP(nombre.trim(), primerApellido.trim(),
+                boolean creado = writeService.registrarSolicitudSEP(nombre.trim(), primerApellido.trim(),
                         segundoApellido, fechaNac, curp.trim(), nivel, grado,
                         tutor, telTutor, emailTutor, user.getUsername());
-                creados++;
+                if (creado) creados++; else omitidos++;
             }
 
             return ResponseEntity.ok(Map.of(
@@ -205,11 +200,7 @@ public class ProcesosEscolaresController {
         mx.ades.common.ValidationUtils.validarEmail(body.getEmailTutor());
         mx.ades.common.ValidationUtils.validarTelefono(body.getTelefonoTutor());
 
-        if (writeService.checkDupCurp(body.getCurp())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Ya existe una solicitud activa con este CURP");
-        }
-
-        UUID id = writeService.insertarSolicitudManual(
+        UUID id = writeService.registrarSolicitudManual(
                 body.getNombre(), body.getApellidoPaterno(), body.getApellidoMaterno(),
                 body.getFechaNacimiento(), body.getCurp(), body.getNivelSolicitado(),
                 body.getGradoSolicitado(), body.getPlantelId(),
@@ -438,10 +429,14 @@ public class ProcesosEscolaresController {
     public ResponseEntity<List<Map<String, Object>>> listaEspera(
             @RequestParam(value = "plantel_id", required = false) UUID plantelId,
             @RequestParam(value = "nivel_solicitado", required = false) String nivelSolicitado,
+            @RequestParam(value = "skip", defaultValue = "0") int skip,
+            @RequestParam(value = "limit", defaultValue = "50") int limit,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         requireSecretariaOrHigher(user);
-        return ResponseEntity.ok(queryService.listaEspera(plantelId, nivelSolicitado));
+        skip = Math.max(skip, 0);
+        limit = Math.min(Math.max(limit, 1), 200);
+        return ResponseEntity.ok(queryService.listaEspera(plantelId, nivelSolicitado, skip, limit));
     }
 
     @PostMapping("/lista-espera/{id}/notificar")
@@ -703,9 +698,13 @@ public class ProcesosEscolaresController {
     @GetMapping("/admision/{id}/historial")
     public ResponseEntity<List<Map<String, Object>>> historialAdmision(
             @PathVariable("id") UUID id,
+            @RequestParam(value = "skip", defaultValue = "0") int skip,
+            @RequestParam(value = "limit", defaultValue = "50") int limit,
             @AuthenticationPrincipal Jwt jwt) {
         userService.resolveUser(jwt);
-        return ResponseEntity.ok(queryService.fetchHistorialAdmision(id));
+        skip = Math.max(skip, 0);
+        limit = Math.min(Math.max(limit, 1), 200);
+        return ResponseEntity.ok(queryService.fetchHistorialAdmision(id, skip, limit));
     }
 
     // ── PE-020: Workflow de Bajas ────────────────────────────────────────────
@@ -739,10 +738,14 @@ public class ProcesosEscolaresController {
 
     @GetMapping("/bajas")
     public ResponseEntity<List<Map<String, Object>>> listarBajas(
+            @RequestParam(value = "skip", defaultValue = "0") int skip,
+            @RequestParam(value = "limit", defaultValue = "50") int limit,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         requireSecretariaOrHigher(user);
-        return ResponseEntity.ok(queryService.listarBajas());
+        skip = Math.max(skip, 0);
+        limit = Math.min(Math.max(limit, 1), 200);
+        return ResponseEntity.ok(queryService.listarBajas(skip, limit));
     }
 
     @PostMapping("/bajas/{baja_id}/reactivar")

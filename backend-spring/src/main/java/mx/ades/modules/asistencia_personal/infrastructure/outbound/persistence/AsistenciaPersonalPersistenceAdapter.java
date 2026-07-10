@@ -28,7 +28,7 @@ public class AsistenciaPersonalPersistenceAdapter implements AsistenciaPersonalR
 
     @Override
     public List<Map<String, Object>> list(UUID personaId, LocalDate fechaInicio, LocalDate fechaFin,
-                                          String tipoJornada, String q) {
+                                          String tipoJornada, String q, int pagina, int porPagina) {
         StringBuilder sql = new StringBuilder(
             "SELECT ap.*, " +
             "  CONCAT(pe.nombre, ' ', pe.apellido_paterno, CASE WHEN pe.apellido_materno IS NOT NULL " +
@@ -61,7 +61,9 @@ public class AsistenciaPersonalPersistenceAdapter implements AsistenciaPersonalR
             sql.append("AND ap.tipo_jornada = ? ");
             params.add(tipoJornada);
         }
-        sql.append("ORDER BY ap.fecha DESC, pe.apellido_paterno, pe.nombre");
+        sql.append("ORDER BY ap.fecha DESC, pe.apellido_paterno, pe.nombre LIMIT ? OFFSET ?");
+        params.add(porPagina);
+        params.add((pagina - 1) * porPagina);
         return jdbc.queryForList(sql.toString(), params.toArray());
     }
 

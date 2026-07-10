@@ -127,7 +127,9 @@ public class BadgeController {
     public ResponseEntity<Map<String, Object>> revocar(
             @PathVariable("badgeId") UUID badgeId,
             @PathVariable("estudianteId") UUID estudianteId,
-            @RequestParam(value = "ciclo_id", required = false) UUID cicloId) {
+            @RequestParam(value = "ciclo_id", required = false) UUID cicloId,
+            @AuthenticationPrincipal Jwt jwt) {
+        userService.resolveUser(jwt);
         revocarBadge.revocar(badgeId, estudianteId, cicloId);
         return ResponseEntity.ok(Map.of("ok", true));
     }

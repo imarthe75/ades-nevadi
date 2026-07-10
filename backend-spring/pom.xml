@@ -115,21 +115,17 @@
       <artifactId>spring-cloud-starter-vault-config</artifactId>
     </dependency>
 
-    <!-- Spring Cloud Gateway (Rate Limiting) -->
-    <dependency>
-      <groupId>org.springframework.cloud</groupId>
-      <artifactId>spring-cloud-starter-gateway</artifactId>
-    </dependency>
-
     <!-- Lettuce for Redis rate limiting -->
     <dependency>
       <groupId>io.lettuce</groupId>
       <artifactId>lettuce-core</artifactId>
     </dependency>
 
-    <!-- Bucket4j for rate limiting algorithm -->
+    <!-- Bucket4j for rate limiting algorithm (RateLimitingFilter — plain servlet OncePerRequestFilter,
+         no Spring Cloud Gateway involved; that starter was removed as unused dead weight that also
+         broke dependency resolution after upstream renamed its artifact). -->
     <dependency>
-      <groupId>com.github.vladimir-bukhtoyarov</groupId>
+      <groupId>com.bucket4j</groupId>
       <artifactId>bucket4j-core</artifactId>
       <version>8.10.1</version>
     </dependency>

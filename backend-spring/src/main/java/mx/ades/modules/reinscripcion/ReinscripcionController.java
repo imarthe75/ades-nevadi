@@ -147,13 +147,20 @@ public class ReinscripcionController {
     @PostMapping("/{id}/rechazar")
     public ResponseEntity<ReinscripcionCiclo> rechazar(
             @PathVariable("id") UUID id,
-            @RequestBody RechazarRequest request) {
+            @RequestBody RechazarRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        AdesUser user = userService.resolveUser(jwt);
+        requireAdmin(user);
         ReinscripcionCiclo r = service.rechazarReinscripcion(id, request.getRazonRechazo());
         return ResponseEntity.ok(r);
     }
 
     @PostMapping("/validar")
-    public ResponseEntity<String> validarMasiva(@RequestBody ValidarMasivaRequest request) {
+    public ResponseEntity<String> validarMasiva(
+            @RequestBody ValidarMasivaRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        AdesUser user = userService.resolveUser(jwt);
+        requireAdmin(user);
         String result = service.validarReinscripcionMasiva(request.getCicloOrigenId(), request.getCicloDestinoId());
         return ResponseEntity.ok(result);
     }

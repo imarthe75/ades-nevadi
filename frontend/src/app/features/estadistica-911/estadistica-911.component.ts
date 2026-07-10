@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, signal, computed, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, signal, computed, inject, ChangeDetectionStrategy} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
@@ -191,7 +191,7 @@ const BUCKETS: Record<string, { base: number; tope: number }> = {
     .chip.total { background:var(--primary-100); font-weight:600; }
   `],
 })
-export class Estadistica911Component implements OnInit implements OnInit, OnDestroy {
+export class Estadistica911Component implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private api = inject(ApiService);
   private notify = inject(ApexNotificationService);

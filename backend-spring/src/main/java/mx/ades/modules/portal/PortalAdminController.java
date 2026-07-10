@@ -242,10 +242,14 @@ public class PortalAdminController {
     @GetMapping("/arco")
     public ResponseEntity<List<Map<String, Object>>> listarArco(
             @RequestParam(required = false) String estado,
+            @RequestParam(defaultValue = "0") int skip,
+            @RequestParam(defaultValue = "50") int limit,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         requireAdmin(user);
-        return ResponseEntity.ok(adminSvc.listarArco(estado));
+        skip = Math.max(skip, 0);
+        limit = Math.min(Math.max(limit, 1), 200);
+        return ResponseEntity.ok(adminSvc.listarArco(estado, skip, limit));
     }
 
     @Data

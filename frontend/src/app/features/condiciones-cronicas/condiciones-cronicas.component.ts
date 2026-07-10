@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, signal, computed, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, signal, computed, inject, ChangeDetectionStrategy} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
@@ -206,7 +206,7 @@ const TIPOS = [
     .alerta-alergia { background:var(--yellow-100); padding:.25rem .5rem; border-radius:4px; color:var(--yellow-800); font-size:.9rem; margin-bottom:.25rem; }
   `],
 })
-export class CondicionesCronicasComponent implements OnInit implements OnInit, OnDestroy {
+export class CondicionesCronicasComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private api = inject(ApiService);
   private notify = inject(ApexNotificationService);

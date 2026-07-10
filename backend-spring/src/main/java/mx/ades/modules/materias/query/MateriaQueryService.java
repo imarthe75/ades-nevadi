@@ -1,6 +1,7 @@
 package mx.ades.modules.materias.query;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
@@ -22,6 +23,7 @@ public class MateriaQueryService {
 
     private final JdbcTemplate jdbc;
 
+    @Cacheable(value = "catalogos", key = "'materias_' + #nivelEducativoId + '_' + #grupoId + '_' + #tipo + '_' + #incluirInactivas")
     public List<Map<String, Object>> listar(UUID nivelEducativoId, UUID grupoId, String tipo, boolean incluirInactivas) {
         StringBuilder sql = new StringBuilder(
             "SELECT m.id, m.nombre_materia, m.clave_materia, m.nivel_educativo_id, " +

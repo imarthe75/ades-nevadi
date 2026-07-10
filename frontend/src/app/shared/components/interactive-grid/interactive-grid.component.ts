@@ -9,7 +9,7 @@
  *   - Column chooser, exportar CSV
  */
 import {
-  Component, Input, Output, EventEmitter, signal, computed, OnChanges, SimpleChanges
+  Component, Input, Output, EventEmitter, signal, computed, OnChanges, OnDestroy, SimpleChanges, ChangeDetectionStrategy
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -35,6 +35,7 @@ export interface ColumnConfig {
 
 @Component({
   selector: 'app-interactive-grid',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     CommonModule, FormsModule,
@@ -216,7 +217,7 @@ export interface ColumnConfig {
     :host ::ng-deep .apex-grid .p-datatable-tbody > tr > td { padding: .45rem .5rem; }
   `],
 })
-export class InteractiveGridComponent implements OnChanges {
+export class InteractiveGridComponent implements OnChanges, OnDestroy {
   @Input() data: any[] = [];
   @Input() columns: ColumnConfig[] = [];
   @Input() loading = false;
@@ -377,4 +378,6 @@ export class InteractiveGridComponent implements OnChanges {
     a.download = `export-${new Date().toISOString().slice(0,10)}.csv`;
     a.click();
   }
+
+  ngOnDestroy(): void {}
 }

@@ -1,4 +1,4 @@
-import { Component, OnDestroy, signal, computed, inject, OnInit } from '@angular/core';
+import { Component, OnDestroy, signal, computed, inject, OnInit, ChangeDetectionStrategy} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
@@ -229,7 +229,7 @@ interface Acta {
     }
   `],
 })
-export class ActaEvaluacionComponent implements OnInit implements OnInit, OnDestroy {
+export class ActaEvaluacionComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private api      = inject(ApiService);
   private notify   = inject(ApexNotificationService);

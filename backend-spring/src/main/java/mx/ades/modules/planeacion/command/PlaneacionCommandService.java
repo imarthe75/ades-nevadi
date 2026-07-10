@@ -334,8 +334,7 @@ public class PlaneacionCommandService {
         try {
             context = jdbc.queryForMap(sqlGetContext, planeacionClaseId.toString());
         } catch (Exception e) {
-            throw new org.springframework.http.HttpStatusException(
-                org.springframework.http.HttpStatus.NOT_FOUND,
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND,
                 "Planeación clase no encontrada: " + planeacionClaseId);
         }
 
@@ -407,8 +406,7 @@ public class PlaneacionCommandService {
         try {
             context = jdbc.queryForMap(sqlGetContext, planeacionClaseId.toString());
         } catch (Exception e) {
-            throw new org.springframework.http.HttpStatusException(
-                org.springframework.http.HttpStatus.NOT_FOUND,
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND,
                 "Planeación clase no encontrada: " + planeacionClaseId);
         }
 

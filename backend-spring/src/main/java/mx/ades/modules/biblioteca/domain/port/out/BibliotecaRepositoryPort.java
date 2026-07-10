@@ -22,7 +22,8 @@ public interface BibliotecaRepositoryPort {
 
     Optional<BibliotecaPrestamo> findPrestamoAbierto(UUID id);
 
-    List<Map<String, Object>> listPrestamos(UUID personaId, UUID libroId, String estatus, UUID plantelId);
+    List<Map<String, Object>> listPrestamos(UUID personaId, UUID libroId, String estatus, UUID plantelId,
+                                             int pagina, int porPagina);
 
     /**
      * Toma un ejemplar de forma atómica (decremento condicional).

@@ -2,6 +2,7 @@ package mx.ades.modules.alumnos.query;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -28,8 +29,64 @@ public class AlumnoQueryService {
     }
 
     @Transactional(readOnly = true)
+    public Map<String, Object> listar(UUID plantelId, UUID nivelId, UUID gradoId, UUID grupoId, Pageable pageable) {
+        StringBuilder where = new StringBuilder("WHERE e.is_active = TRUE\n");
+        List<Object> whereParams = new ArrayList<>();
+        if (plantelId != null) { where.append("AND e.plantel_id = ?\n"); whereParams.add(plantelId); }
+        if (grupoId != null) {
+            where.append("AND g.id = ?\n"); whereParams.add(grupoId);
+        } else if (gradoId != null) {
+            where.append("AND gr.id IN (SELECT id FROM ades_grados WHERE (numero_grado, nivel_educativo_id) = (SELECT numero_grado, nivel_educativo_id FROM ades_grados WHERE id = ?))\n");
+            whereParams.add(gradoId);
+        } else if (nivelId != null) {
+            where.append("AND ne.id = ?\n"); whereParams.add(nivelId);
+        }
+
+        long total = jdbc.queryForObject("""
+            SELECT COUNT(*) FROM ades_estudiantes e
+            LEFT JOIN ades_inscripciones ins ON ins.estudiante_id = e.id AND ins.is_active = TRUE
+            LEFT JOIN ades_grupos g ON g.id = ins.grupo_id AND g.is_active = TRUE
+            LEFT JOIN ades_grados gr ON gr.id = g.grado_id AND gr.is_active = TRUE
+            LEFT JOIN ades_niveles_educativos ne ON ne.id = gr.nivel_educativo_id AND ne.is_active = TRUE
+            """ + where, Long.class, whereParams.toArray());
+
+        List<Object> params = new ArrayList<>(whereParams);
+        params.add(pageable.getPageSize());
+        params.add(pageable.getOffset());
+
+        List<Map<String, Object>> data = queryAlumnos(where.toString() + "ORDER BY p.apellido_paterno, p.nombre LIMIT ? OFFSET ?", params);
+
+        return Map.of("data", data, "total", total, "page", pageable.getPageNumber(), "size", pageable.getPageSize());
+    }
+
+    @Transactional(readOnly = true)
     public Map<String, Object> listar(UUID plantelId, UUID nivelId, UUID gradoId, UUID grupoId) {
-        StringBuilder sql = new StringBuilder("""
+        StringBuilder where = new StringBuilder("WHERE e.is_active = TRUE\n");
+        List<Object> params = new ArrayList<>();
+
+        if (plantelId != null) {
+            where.append("AND e.plantel_id = ?\n");
+            params.add(plantelId);
+        }
+
+        if (grupoId != null) {
+            where.append("AND g.id = ?\n");
+            params.add(grupoId);
+        } else if (gradoId != null) {
+            where.append("AND gr.id IN (SELECT id FROM ades_grados WHERE (numero_grado, nivel_educativo_id) = (SELECT numero_grado, nivel_educativo_id FROM ades_grados WHERE id = ?))\n");
+            params.add(gradoId);
+        } else if (nivelId != null) {
+            where.append("AND ne.id = ?\n");
+            params.add(nivelId);
+        }
+
+        List<Map<String, Object>> data = queryAlumnos(where.toString() + "ORDER BY p.apellido_paterno, p.nombre", params);
+
+        return Map.of("data", data, "total", data.size());
+    }
+
+    private List<Map<String, Object>> queryAlumnos(String whereAndOrder, List<Object> params) {
+        String sql = """
             SELECT e.id, e.matricula, e.nss, e.fecha_ingreso, e.is_active, e.tipo_alumno,
                    e.escuela_procedencia, e.clave_ct_procedencia, e.promedio_procedencia,
                    e.beca_tipo, e.beca_monto, e.folio_sep, e.discapacidad,
@@ -51,29 +108,7 @@ public class AlumnoQueryService {
             LEFT JOIN ades_grupos g ON g.id = ins.grupo_id AND g.is_active = TRUE
             LEFT JOIN ades_grados gr ON gr.id = g.grado_id AND gr.is_active = TRUE
             LEFT JOIN ades_niveles_educativos ne ON ne.id = gr.nivel_educativo_id AND ne.is_active = TRUE
-            """);
-
-        List<Object> params = new ArrayList<>();
-
-        sql.append("WHERE e.is_active = TRUE\n");
-
-        if (plantelId != null) {
-            sql.append("AND e.plantel_id = ?\n");
-            params.add(plantelId);
-        }
-
-        if (grupoId != null) {
-            sql.append("AND g.id = ?\n");
-            params.add(grupoId);
-        } else if (gradoId != null) {
-            sql.append("AND gr.id IN (SELECT id FROM ades_grados WHERE (numero_grado, nivel_educativo_id) = (SELECT numero_grado, nivel_educativo_id FROM ades_grados WHERE id = ?))\n");
-            params.add(gradoId);
-        } else if (nivelId != null) {
-            sql.append("AND ne.id = ?\n");
-            params.add(nivelId);
-        }
-
-        sql.append("ORDER BY p.apellido_paterno, p.nombre");
+            """ + whereAndOrder;
 
         org.springframework.jdbc.core.RowMapper<Map<String, Object>> mapper = (rs, i) -> {
             Map<String, Object> persona = new LinkedHashMap<>();
@@ -138,9 +173,7 @@ public class AlumnoQueryService {
             return row;
         };
 
-        List<Map<String, Object>> data = jdbc.query(sql.toString(), mapper, params.toArray());
-
-        return Map.of("data", data, "total", data.size());
+        return jdbc.query(sql, mapper, params.toArray());
     }
 
     @Cacheable(value = "alumnos", key = "#id")

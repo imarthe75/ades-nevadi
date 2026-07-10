@@ -130,7 +130,10 @@ public class EncuestaController {
     }
 
     @PatchMapping("/{id}/toggle-activa")
-    public ResponseEntity<Encuesta> toggleActiva(@PathVariable("id") UUID id) {
+    public ResponseEntity<Encuesta> toggleActiva(
+            @PathVariable("id") UUID id,
+            @AuthenticationPrincipal Jwt jwt) {
+        requireStaff(userService.resolveUser(jwt));
         Encuesta enc = repository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Encuesta no encontrada"));
         enc.setActiva(!enc.getActiva());
@@ -140,7 +143,9 @@ public class EncuestaController {
     @PostMapping("/{id}/preguntas")
     public ResponseEntity<EncuestaPregunta> agregarPregunta(
             @PathVariable("id") UUID id,
-            @RequestBody PreguntaCreateRequest body) {
+            @RequestBody PreguntaCreateRequest body,
+            @AuthenticationPrincipal Jwt jwt) {
+        requireStaff(userService.resolveUser(jwt));
         EncuestaPregunta p = new EncuestaPregunta();
         p.setEncuestaId(id);
         p.setTexto(body.getTexto());
@@ -155,7 +160,9 @@ public class EncuestaController {
     public ResponseEntity<EncuestaPregunta> actualizarPregunta(
             @PathVariable("id") UUID id,
             @PathVariable("pregunta_id") UUID preguntaId,
-            @RequestBody PreguntaCreateRequest body) {
+            @RequestBody PreguntaCreateRequest body,
+            @AuthenticationPrincipal Jwt jwt) {
+        requireStaff(userService.resolveUser(jwt));
         EncuestaPregunta p = preguntaRepository.findById(preguntaId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Pregunta no encontrada"));
         p.setTexto(body.getTexto());
@@ -170,7 +177,9 @@ public class EncuestaController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void eliminarPregunta(
             @PathVariable("id") UUID id,
-            @PathVariable("pregunta_id") UUID preguntaId) {
+            @PathVariable("pregunta_id") UUID preguntaId,
+            @AuthenticationPrincipal Jwt jwt) {
+        requireStaff(userService.resolveUser(jwt));
         EncuestaPregunta p = preguntaRepository.findById(preguntaId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Pregunta no encontrada"));
         p.setIsActive(false);
@@ -203,10 +212,23 @@ public class EncuestaController {
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void eliminar(@PathVariable("id") UUID id) {
+    public void eliminar(@PathVariable("id") UUID id, @AuthenticationPrincipal Jwt jwt) {
+        requireStaff(userService.resolveUser(jwt));
         Encuesta e = repository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Encuesta no encontrada"));
         e.setIsActive(false);
         repository.save(e);
+    }
+
+    /**
+     * Administrar la estructura de una encuesta (activar/desactivar, preguntas,
+     * eliminación) es operación de personal escolar (nivelAcceso &le;4). Padres/
+     * alumnos (nivelAcceso &gt;=5) solo pueden responder — previene BFLA (OWASP API5).
+     */
+    private void requireStaff(AdesUser user) {
+        Integer nivelAcceso = user.getNivelAcceso();
+        if (nivelAcceso == null || nivelAcceso > 4) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Nivel de acceso insuficiente para esta operación");
+        }
     }
 }

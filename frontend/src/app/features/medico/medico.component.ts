@@ -3,7 +3,7 @@
  *
  * Flujo: buscar alumno → ver/editar expediente base → ver incidentes → registrar nuevo incidente.
  */
-import { Component, OnDestroy, OnInit, inject, signal, computed, effect } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, signal, computed, effect, ChangeDetectionStrategy} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
@@ -333,7 +333,7 @@ interface Medicamento {
     .tab-header-row h4 { margin: 0; font-family: 'Jost', sans-serif; }
   `],
 })
-export class MedicoComponent implements OnInit implements OnInit, OnDestroy {
+export class MedicoComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private readonly api = inject(ApiService);
   readonly ctx = inject(ContextService);

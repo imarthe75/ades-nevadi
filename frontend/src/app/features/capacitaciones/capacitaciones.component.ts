@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, signal, inject, computed } from '@angular/core';
+import { Component, OnDestroy, OnInit, signal, inject, computed, ChangeDetectionStrategy} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
@@ -265,7 +265,7 @@ interface CapacitacionForm {
     .resumen-lbl { font-size: 0.75rem; color: var(--text-color-secondary); }
   `],
 })
-export class CapacitacionesComponent implements OnInit implements OnInit, OnDestroy {
+export class CapacitacionesComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private api = inject(ApiService);
   private notify = inject(ApexNotificationService);

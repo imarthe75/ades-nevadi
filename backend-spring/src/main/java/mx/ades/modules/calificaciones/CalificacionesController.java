@@ -44,14 +44,23 @@ public class CalificacionesController {
     private static final Set<String> NIVELES_LOGRO_VALIDOS = Set.of("A", "B", "C", "D");
 
     @PostMapping("/calcular")
-    public ResponseEntity<Void> calcular(@RequestBody CalcularCalificacionDto req) {
+    public ResponseEntity<Void> calcular(
+            @RequestBody CalcularCalificacionDto req,
+            @AuthenticationPrincipal Jwt jwt) {
+        AdesUser user = userService.resolveUser(jwt);
+        if (user.getNivelAcceso() != null && user.getNivelAcceso() > 4)
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Sin permisos para calcular calificaciones");
         calcularCalificacionPeriodo.ejecutar(req.estudianteId(), req.inscripcionId(), req.materiaId(), req.periodoId());
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/manual")
     public ResponseEntity<CalificacionResponseDto> guardarManual(
-            @RequestBody GuardarCalificacionManualDto req) {
+            @RequestBody GuardarCalificacionManualDto req,
+            @AuthenticationPrincipal Jwt jwt) {
+        AdesUser user = userService.resolveUser(jwt);
+        if (user.getNivelAcceso() != null && user.getNivelAcceso() > 4)
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Sin permisos para registrar calificaciones");
         return ResponseEntity.ok(
                 CalificacionResponseDto.from(guardarCalificacionManual.ejecutar(req.toDomain())));
     }
@@ -61,11 +70,18 @@ public class CalificacionesController {
             @PathVariable("estudianteId") UUID estudianteId,
             @AuthenticationPrincipal Jwt jwt) {
 
-        // Scoping: Validar que el usuario tiene acceso a ver calificaciones de este estudiante
+        // Scoping: Validar que el usuario tiene acceso a ver calificaciones de este estudiante.
+        // AdesUser no trae un estudianteId propio (solo personaId) — un alumno/padre autenticado
+        // solo puede ver la boleta si su persona está ligada a ese estudiante (previene BOLA).
         AdesUser user = userService.resolveUser(jwt);
-        if (user.getNivelAcceso() < 3 && !user.getEstudianteId().equals(estudianteId)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                "No tienes permiso para ver calificaciones de otro estudiante");
+        if (user.getNivelAcceso() != null && user.getNivelAcceso() > 4) {
+            Integer count = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM ades_estudiantes WHERE id = ? AND persona_id = ?",
+                Integer.class, estudianteId, user.getPersonaId());
+            if (count == null || count == 0) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "No tienes permiso para ver calificaciones de otro estudiante");
+            }
         }
 
         // Pasar usuarioId para scoping de caché (BOLA prevention)

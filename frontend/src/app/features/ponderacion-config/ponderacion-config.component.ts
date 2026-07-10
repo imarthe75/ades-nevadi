@@ -1,4 +1,4 @@
-import { Component, OnDestroy, inject, signal, OnInit, computed } from '@angular/core';
+import { Component, OnDestroy, inject, signal, OnInit, computed, ChangeDetectionStrategy} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
@@ -151,7 +151,7 @@ interface ItemRow    { tipo_item: string; nombre_personalizado: string | null; p
     .item-row    { align-items:center; }
   `],
 })
-export class PonderacionConfigComponent implements OnInit implements OnInit, OnDestroy {
+export class PonderacionConfigComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private api = inject(ApiService);
   private readonly notify = inject(ApexNotificationService);

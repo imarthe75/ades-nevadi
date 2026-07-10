@@ -1,6 +1,7 @@
-import { Component, Input, OnInit, OnChanges, SimpleChanges, inject, signal, computed } from '@angular/core';
+import { Component, Input, OnInit, OnChanges, OnDestroy, SimpleChanges, ChangeDetectionStrategy, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subject, takeUntil } from 'rxjs';
 import { ApiService } from '../../../core/services/api.service';
 import { ContextService } from '../../../core/services/context.service';
 import { ButtonModule } from 'primeng/button';
@@ -23,6 +24,7 @@ export interface Indisponibilidad {
 
 @Component({
   selector: 'app-disponibilidad-grid',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [CommonModule, FormsModule, ButtonModule],
   template: `
@@ -112,10 +114,11 @@ export interface Indisponibilidad {
     .disp-gris { background-color: var(--surface-100); color: var(--text-color-secondary); cursor: not-allowed; }
   `]
 })
-export class DisponibilidadGridComponent implements OnInit, OnChanges {
+export class DisponibilidadGridComponent implements OnInit, OnChanges, OnDestroy {
   private readonly api = inject(ApiService);
   readonly ctx = inject(ContextService);
   private readonly msg = inject(MessageService);
+  private readonly destroy$ = new Subject<void>();
 
   @Input() profesorId!: string;
 
@@ -159,26 +162,30 @@ export class DisponibilidadGridComponent implements OnInit, OnChanges {
     if (this.ctx.plantel()?.id) params.plantelId = this.ctx.plantel()?.id;
     if (this.ctx.nivel()?.id) params.nivelEducativoId = this.ctx.nivel()?.id;
 
-    this.api.get<Franja[]>('/horario-franjas', params).subscribe({
-      next: (fList) => {
-        this.franjas.set(fList);
-        
-        // 2. Cargar Matriz actual del profesor
-        this.api.get<Indisponibilidad[]>('/horario-indisponibilidad', { profesorId: this.profesorId, cicloEscolarId: cicloId }).subscribe({
-          next: (iList) => {
-            const map = new Map<string, 'DISPONIBLE' | 'CONDICIONAL' | 'NO_DISPONIBLE'>();
-            // Por defecto, si hay franja, está DISPONIBLE
-            fList.forEach(f => map.set(f.id, 'DISPONIBLE'));
-            // Sobrescribir con lo guardado
-            iList.forEach(ind => map.set(ind.franjaId, ind.tipo));
-            this.estadoMap.set(map);
-            this.cargando.set(false);
-          },
-          error: () => this.cargando.set(false)
-        });
-      },
-      error: () => this.cargando.set(false)
-    });
+    this.api.get<Franja[]>('/horario-franjas', params)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (fList) => {
+          this.franjas.set(fList);
+
+          // 2. Cargar Matriz actual del profesor
+          this.api.get<Indisponibilidad[]>('/horario-indisponibilidad', { profesorId: this.profesorId, cicloEscolarId: cicloId })
+            .pipe(takeUntil(this.destroy$))
+            .subscribe({
+              next: (iList) => {
+                const map = new Map<string, 'DISPONIBLE' | 'CONDICIONAL' | 'NO_DISPONIBLE'>();
+                // Por defecto, si hay franja, está DISPONIBLE
+                fList.forEach(f => map.set(f.id, 'DISPONIBLE'));
+                // Sobrescribir con lo guardado
+                iList.forEach(ind => map.set(ind.franjaId, ind.tipo));
+                this.estadoMap.set(map);
+                this.cargando.set(false);
+              },
+              error: () => this.cargando.set(false)
+            });
+        },
+        error: () => this.cargando.set(false)
+      });
   }
 
   getFranja(dia: number, hora: string): Franja | undefined {
@@ -241,15 +248,22 @@ export class DisponibilidadGridComponent implements OnInit, OnChanges {
       });
     });
 
-    this.api.post(`/horario-indisponibilidad?profesorId=${this.profesorId}&cicloEscolarId=${cicloId}`, payload).subscribe({
-      next: () => {
-        this.msg.add({ severity: 'success', summary: 'Éxito', detail: 'Matriz guardada correctamente' });
-        this.guardando.set(false);
-      },
-      error: () => {
-        this.msg.add({ severity: 'error', summary: 'Error', detail: 'No se pudo guardar la matriz' });
-        this.guardando.set(false);
-      }
-    });
+    this.api.post(`/horario-indisponibilidad?profesorId=${this.profesorId}&cicloEscolarId=${cicloId}`, payload)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.msg.add({ severity: 'success', summary: 'Éxito', detail: 'Matriz guardada correctamente' });
+          this.guardando.set(false);
+        },
+        error: () => {
+          this.msg.add({ severity: 'error', summary: 'Error', detail: 'No se pudo guardar la matriz' });
+          this.guardando.set(false);
+        }
+      });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

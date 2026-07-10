@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal, computed } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, ChangeDetectionStrategy, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
@@ -383,7 +383,7 @@ interface AlumnoSugerencia {
                    font-size:1rem; }
   `],
 })
-export class BadgesComponent implements OnInit {
+export class BadgesComponent implements OnInit, OnDestroy {
   private api     = inject(ApiService);
   private ctx     = inject(ContextService);
   private exporter = inject(ExportService);
@@ -603,4 +603,6 @@ export class BadgesComponent implements OnInit {
     return { nombre: '', descripcion: '', icono: 'pi-star', color: '#D02030',
              tipo: 'ESPECIAL', criterio_tipo: 'MANUAL', criterio_metrica: null, criterio_valor: null };
   }
+
+  ngOnDestroy(): void {}
 }

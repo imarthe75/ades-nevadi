@@ -1,9 +1,8 @@
 package mx.ades.config;
 
-import io.bucket4j.Bandwidth;
-import io.bucket4j.Bucket;
-import io.bucket4j.Bucket4j;
-import io.bucket4j.Refill;
+import io.github.bucket4j.Bandwidth;
+import io.github.bucket4j.Bucket;
+import io.github.bucket4j.Refill;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -60,7 +59,7 @@ public class RateLimitingConfig {
          */
         public boolean tryConsume(String key) {
             Bucket bucket = buckets.computeIfAbsent(key, k ->
-                Bucket4j.builder().addLimit(bandwidth).build());
+                Bucket.builder().addLimit(bandwidth).build());
             return bucket.tryConsume(1);
         }
 

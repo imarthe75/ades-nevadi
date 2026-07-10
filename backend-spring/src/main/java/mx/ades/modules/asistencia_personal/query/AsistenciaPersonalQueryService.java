@@ -23,8 +23,8 @@ public class AsistenciaPersonalQueryService {
     private final AsistenciaPersonalRepositoryPort repository;
 
     public List<Map<String, Object>> listar(UUID personaId, LocalDate fechaInicio, LocalDate fechaFin,
-                                             String tipoJornada, String q) {
-        return repository.list(personaId, fechaInicio, fechaFin, tipoJornada, q);
+                                             String tipoJornada, String q, int pagina, int porPagina) {
+        return repository.list(personaId, fechaInicio, fechaFin, tipoJornada, q, pagina, porPagina);
     }
 
     public Map<String, Object> detalle(UUID id) {

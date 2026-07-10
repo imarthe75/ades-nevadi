@@ -5,7 +5,7 @@
  *   1. Chat con el asistente (Claude vía backend)
  *   2. Alertas académicas del grupo/plantel con botón "Escanear grupo"
  */
-import { Component, OnDestroy, OnInit, inject, signal, computed, ElementRef, ViewChild, afterNextRender } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, signal, computed, ElementRef, ViewChild, afterNextRender, ChangeDetectionStrategy} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
@@ -361,7 +361,7 @@ const RIESGO_SEVERITY: Record<string, AlertaSeverity> = {
     .datos-tabla tr:hover td { background: var(--surface-50); }
   `],
 })
-export class IaComponent implements OnInit implements OnInit, OnDestroy {
+export class IaComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private readonly api = inject(ApiService);
   readonly ctx = inject(ContextService);

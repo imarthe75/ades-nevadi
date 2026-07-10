@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DragDropModule, CdkDragDrop } from '@angular/cdk/drag-drop';
 import { TooltipModule } from 'primeng/tooltip';
@@ -21,6 +21,7 @@ export interface HorarioGridEntry {
 
 @Component({
   selector: 'app-horario-grid',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [CommonModule, DragDropModule, TooltipModule],
   template: `
@@ -135,7 +136,7 @@ export interface HorarioGridEntry {
     }
   `]
 })
-export class HorarioGridComponent {
+export class HorarioGridComponent implements OnDestroy {
   @Input() dias: { num: number, label: string }[] = [];
   @Input() franjas: string[] = [];
   @Input() entradas: HorarioGridEntry[] = [];
@@ -158,4 +159,6 @@ export class HorarioGridComponent {
   onDrop(event: CdkDragDrop<any>) {
     this.claseDrop.emit(event);
   }
+
+  ngOnDestroy(): void {}
 }

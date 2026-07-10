@@ -61,7 +61,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
             // Aplicar rate limiting si el patrón coincide
             if (limiter != null && !limiter.tryConsume(clientIp)) {
                 log.warn("Rate limit exceeded for {} limiter, IP {} on path {}", limitName, clientIp, path);
-                response.setStatus(HttpServletResponse.SC_TOO_MANY_REQUESTS);
+                response.setStatus(429); // SC_TOO_MANY_REQUESTS — sin constante en jakarta.servlet.HttpServletResponse
                 response.setContentType("application/json;charset=UTF-8");
                 response.getWriter().write("{\"error\":\"Too many requests\",\"status\":429,\"message\":\"Rate limit exceeded\"}");
                 return;

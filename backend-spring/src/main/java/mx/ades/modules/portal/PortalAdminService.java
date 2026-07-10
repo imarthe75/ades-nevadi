@@ -235,7 +235,7 @@ public class PortalAdminService {
             """, convocatoriaId, convocatoriaId);
     }
 
-    public List<Map<String, Object>> listarArco(String estado) {
+    public List<Map<String, Object>> listarArco(String estado, int skip, int limit) {
         StringBuilder sql = new StringBuilder("""
             SELECT id, email_solicitante, nombre_solicitante, tipo, estado,
                    descripcion, fecha_limite_respuesta, fecha_resolucion, fecha_creacion
@@ -246,7 +246,9 @@ public class PortalAdminService {
             sql.append("WHERE estado = ?::portal.estado_solicitud_arco ");
             params.add(estado);
         }
-        sql.append("ORDER BY fecha_creacion DESC");
+        sql.append("ORDER BY fecha_creacion DESC LIMIT ? OFFSET ?");
+        params.add(Math.min(limit, 200));
+        params.add(skip);
         return jdbc.queryForList(sql.toString(), params.toArray());
     }
 

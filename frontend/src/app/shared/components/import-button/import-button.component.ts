@@ -1,7 +1,8 @@
 import {
-  Component, input, inject, signal, computed,
+  Component, input, inject, signal, computed, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRef,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Subject, takeUntil } from 'rxjs';
 import { ApiService } from '../../../core/services/api.service';
 import { ButtonModule }    from 'primeng/button';
 import { DialogModule }    from 'primeng/dialog';
@@ -22,6 +23,7 @@ export interface ImportResult {
 
 @Component({
   selector: 'app-import-button',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     CommonModule, ButtonModule, DialogModule,
@@ -147,9 +149,11 @@ export interface ImportResult {
     .monospace   { font-family: monospace; font-size: .8rem; }
   `],
 })
-export class ImportButtonComponent {
+export class ImportButtonComponent implements OnDestroy {
   private readonly api = inject(ApiService);
   private readonly ctx  = inject(ContextService);
+  private readonly cdr  = inject(ChangeDetectorRef);
+  private readonly destroy$ = new Subject<void>();
 
   /** Entidad a importar: 'alumnos' | 'profesores' | 'materias' | 'grupos' */
   entidad = input.required<string>();
@@ -191,11 +195,12 @@ export class ImportButtonComponent {
     this.api.postForm<ImportResult>(
       `/imports/${this.entidad()}`,
       form,
-    ).subscribe({
+    ).pipe(takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         this.subiendo.set(false);
         this.resultado.set(res);
         this.showResult = true;
+        this.cdr.markForCheck();
       },
       error: (err) => {
         this.subiendo.set(false);
@@ -206,6 +211,7 @@ export class ImportButtonComponent {
           detalle_errores: [{ fila: 0, dato: '—', error: String(msg) }],
         });
         this.showResult = true;
+        this.cdr.markForCheck();
       },
     });
   }
@@ -213,7 +219,7 @@ export class ImportButtonComponent {
   descargarPlantilla(): void {
     this.api.getBlob(
       `/imports/plantillas/${this.entidad()}`
-    ).subscribe(blob => {
+    ).pipe(takeUntil(this.destroy$)).subscribe(blob => {
       const url = URL.createObjectURL(blob);
       const a   = document.createElement('a');
       a.href    = url;
@@ -226,5 +232,10 @@ export class ImportButtonComponent {
   onRefresh(): void {
     this.showResult = false;
     this.onSuccess()();
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

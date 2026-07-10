@@ -114,7 +114,9 @@ public class EvaluacionController {
     @PutMapping("/{id}")
     public ResponseEntity<Evaluacion> update(
             @PathVariable("id") UUID id,
-            @RequestBody Evaluacion update) {
+            @RequestBody Evaluacion update,
+            @AuthenticationPrincipal Jwt jwt) {
+        userService.resolveUser(jwt);
         Evaluacion eval = repository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Evaluación no encontrada"));
 

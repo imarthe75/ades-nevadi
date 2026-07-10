@@ -48,7 +48,7 @@ public class ProcesosQueryService {
         return jdbc.queryForList(sql.toString(), params.toArray());
     }
 
-    public List<Map<String, Object>> listaEspera(UUID plantelId, String nivelSolicitado) {
+    public List<Map<String, Object>> listaEspera(UUID plantelId, String nivelSolicitado, int skip, int limit) {
         StringBuilder sql = new StringBuilder(
                 "SELECT id, nombre, apellido_paterno, nivel_solicitado, grado_solicitado, " +
                 "nombre_tutor, telefono_tutor, email_tutor, fecha_solicitud " +
@@ -59,7 +59,9 @@ public class ProcesosQueryService {
         if (nivelSolicitado != null && !nivelSolicitado.isBlank()) {
             sql.append("AND nivel_solicitado = ? "); params.add(nivelSolicitado);
         }
-        sql.append("ORDER BY fecha_solicitud ASC");
+        sql.append("ORDER BY fecha_solicitud ASC LIMIT ? OFFSET ?");
+        params.add(limit);
+        params.add(skip);
 
         return jdbc.queryForList(sql.toString(), params.toArray());
     }
@@ -157,10 +159,11 @@ public class ProcesosQueryService {
     }
 
     /** PE-006: timeline de cambios de estado de una solicitud de admisión. */
-    public List<Map<String, Object>> fetchHistorialAdmision(UUID id) {
+    public List<Map<String, Object>> fetchHistorialAdmision(UUID id, int skip, int limit) {
         return jdbc.queryForList(
                 "SELECT id, estado_anterior, estado_nuevo, usuario, fecha " +
-                "FROM ades_admision_historial_estados WHERE solicitud_id = ? ORDER BY fecha ASC", id);
+                "FROM ades_admision_historial_estados WHERE solicitud_id = ? " +
+                "ORDER BY fecha ASC LIMIT ? OFFSET ?", id, limit, skip);
     }
 
     public List<Map<String, Object>> fetchSolicitudListaEspera(UUID id) {
@@ -180,7 +183,7 @@ public class ProcesosQueryService {
                 estudianteId, materiaId, cicloId).isEmpty();
     }
 
-    public List<Map<String, Object>> listarBajas() {
+    public List<Map<String, Object>> listarBajas(int skip, int limit) {
         return jdbc.queryForList(
                 "SELECT b.id, b.estudiante_id, b.tipo_baja, b.motivo, b.fecha_efectiva, " +
                 "p.nombre || ' ' || p.apellido_paterno AS alumno, g.nombre_grupo AS grupo " +
@@ -189,7 +192,7 @@ public class ProcesosQueryService {
                 "JOIN ades_personas p ON p.id = e.persona_id " +
                 "LEFT JOIN ades_inscripciones i ON i.id = b.inscripcion_id " +
                 "LEFT JOIN ades_grupos g ON g.id = i.grupo_id " +
-                "ORDER BY b.fecha_creacion DESC");
+                "ORDER BY b.fecha_creacion DESC LIMIT ? OFFSET ?", limit, skip);
     }
 
     public List<Map<String, Object>> fetchBajaParaReactivar(UUID bajaId) {

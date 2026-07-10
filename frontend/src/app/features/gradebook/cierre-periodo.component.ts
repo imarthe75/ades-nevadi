@@ -1,4 +1,4 @@
-import { Component, OnDestroy, EventEmitter, Input, OnChanges, Output, SimpleChanges, inject, signal } from '@angular/core';
+import { Component, OnDestroy, EventEmitter, Input, OnChanges, Output, SimpleChanges, inject, signal, ChangeDetectionStrategy} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
@@ -248,7 +248,7 @@ interface ValidacionResult {
     .mt-3 { margin-top: 12px; }
   `],
 })
-export class CierrePeriodoComponent implements OnChanges implements OnInit, OnDestroy {
+export class CierrePeriodoComponent implements OnChanges, OnDestroy {
   private destroy$ = new Subject<void>();
   @Input() visible = false;
   @Input() periodoId: string | null = null;

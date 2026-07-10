@@ -1,4 +1,4 @@
-import { Component, OnDestroy, inject, OnInit, signal, computed, effect } from '@angular/core';
+import { Component, OnDestroy, inject, OnInit, signal, computed, effect, ChangeDetectionStrategy} from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
@@ -214,7 +214,7 @@ const TIPOS = [
     .field-error { color: var(--red-600, #dc2626); font-size: .78rem; }
   `],
 })
-export class ComunicadosComponent implements OnInit implements OnInit, OnDestroy {
+export class ComunicadosComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private readonly api    = inject(ApiService);
   readonly ctx            = inject(ContextService);

@@ -59,7 +59,8 @@ public class ProfesorController {
     }
 
     @PostMapping
-    public ResponseEntity<Profesor> create(@RequestBody Profesor req) {
+    public ResponseEntity<Profesor> create(@RequestBody Profesor req, @AuthenticationPrincipal Jwt jwt) {
+        requireStaff(userService.resolveUser(jwt));
         var cmd = new CrearProfesorUseCase.Command(
                 req.getPersonaId(),
                 req.getPlantelId(),
@@ -71,7 +72,9 @@ public class ProfesorController {
     @PatchMapping("/{id}")
     public ResponseEntity<Map<String, Object>> patch(
             @PathVariable UUID id,
-            @RequestBody Map<String, Object> body) {
+            @RequestBody Map<String, Object> body,
+            @AuthenticationPrincipal Jwt jwt) {
+        requireStaff(userService.resolveUser(jwt));
         @SuppressWarnings("unchecked")
         Map<String, Object> per = (Map<String, Object>) body.get("persona");
         @SuppressWarnings("unchecked")
@@ -83,7 +86,9 @@ public class ProfesorController {
     @PutMapping("/{id}")
     public ResponseEntity<Profesor> update(
             @PathVariable UUID id,
-            @RequestBody Profesor update) {
+            @RequestBody Profesor update,
+            @AuthenticationPrincipal Jwt jwt) {
+        requireStaff(userService.resolveUser(jwt));
         Profesor prof = repositoryPort.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Profesor no encontrado"));
         prof.setNumeroEmpleado(update.getNumeroEmpleado());
@@ -93,5 +98,17 @@ public class ProfesorController {
         prof.setTipoContrato(update.getTipoContrato());
         prof.setIsActive(update.getIsActive());
         return ResponseEntity.ok(repositoryPort.save(prof));
+    }
+
+    /**
+     * Alta/edición del expediente docente es operación de personal escolar
+     * (nivelAcceso &le;4). Padres/alumnos (nivelAcceso &gt;=5) no tienen razón
+     * para modificar registros de personal — previene BFLA (OWASP API5).
+     */
+    private void requireStaff(AdesUser user) {
+        Integer nivelAcceso = user.getNivelAcceso();
+        if (nivelAcceso == null || nivelAcceso > 4) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Nivel de acceso insuficiente para esta operación");
+        }
     }
 }

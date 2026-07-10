@@ -63,12 +63,13 @@ public class ComunicadoQueryService {
         return rows.isEmpty() ? Optional.empty() : Optional.of(rows.get(0));
     }
 
-    public List<Map<String, Object>> recurrentesPendientes() {
+    public List<Map<String, Object>> recurrentesPendientes(int pagina, int porPagina) {
         return jdbc.queryForList(
                 "SELECT id, titulo, tipo_comunicado, periodicidad, proximo_envio, " +
                 "fecha_publicacion, plantel_id, nivel_educativo_id " +
                 "FROM ades_comunicados WHERE es_recurrente = TRUE AND is_active = TRUE " +
-                "ORDER BY proximo_envio ASC NULLS LAST");
+                "ORDER BY proximo_envio ASC NULLS LAST LIMIT ? OFFSET ?",
+                porPagina, (pagina - 1) * porPagina);
     }
 
     public Map<String, Object> reporteLectura(UUID id, String titulo, long totalDestinatarios) {

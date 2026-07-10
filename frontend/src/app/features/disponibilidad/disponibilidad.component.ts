@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, signal, inject, computed } from '@angular/core';
+import { Component, OnDestroy, OnInit, signal, inject, computed, ChangeDetectionStrategy} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
@@ -204,7 +204,7 @@ interface ResumenDisponibilidad {
     .sep { font-weight:bold; }
   `],
 })
-export class DisponibilidadComponent implements OnInit implements OnInit, OnDestroy {
+export class DisponibilidadComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private api = inject(ApiService);
   private notify = inject(ApexNotificationService);

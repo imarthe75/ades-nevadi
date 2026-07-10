@@ -22,7 +22,8 @@ public interface CapacitacionRepositoryPort {
 
     Optional<CapacitacionDocente> findActiveById(UUID id);
 
-    List<Map<String, Object>> list(UUID docenteId, String tipo, String modalidad, Boolean validado, String q);
+    List<Map<String, Object>> list(UUID docenteId, String tipo, String modalidad, Boolean validado, String q,
+                                    int pagina, int porPagina);
 
     List<Map<String, Object>> resumen(UUID docenteId);
 }

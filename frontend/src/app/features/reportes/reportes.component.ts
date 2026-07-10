@@ -6,7 +6,7 @@
  *   2. Plantillas — gestión de plantillas DOCX/XLSX (solo admin)
  *   3. Estado    — disponibilidad del servicio Carbone
  */
-import { Component, OnDestroy, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, signal, computed, ChangeDetectionStrategy} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
@@ -288,7 +288,7 @@ const TIPOS_DOC = [
     code { background:var(--surface-100);padding:.1rem .3rem;border-radius:3px;font-size:.75rem }
   `],
 })
-export class ReportesComponent implements OnInit implements OnInit, OnDestroy {
+export class ReportesComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   readonly api = inject(ApiService);
   readonly ctx = inject(ContextService);

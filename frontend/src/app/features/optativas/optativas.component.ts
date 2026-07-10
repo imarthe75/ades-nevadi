@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, signal, computed, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, signal, computed, inject, ChangeDetectionStrategy} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
@@ -149,7 +149,7 @@ const TIPO_LABELS: Record<string, string> = {
     .hint-row-click { font-size: .78rem; color: var(--text-color-secondary); margin: .25rem 0 1rem; }
   `],
 })
-export class OptativasComponent implements OnInit implements OnInit, OnDestroy {
+export class OptativasComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private readonly api    = inject(ApiService);
   private readonly notify = inject(ApexNotificationService);
