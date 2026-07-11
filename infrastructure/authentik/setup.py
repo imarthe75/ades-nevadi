@@ -97,6 +97,14 @@ if brands["results"]:
     api("PATCH", f"/core/brands/{uid}/", {
         "domain":          "auth.ades.setag.mx",
         "branding_title":  "ADES — Instituto Nevadi",
+        # Logo y favicon ADES/Nevadi. Se referencian por URL absoluta al asset
+        # que el frontend ya sirve en la raíz de ades.setag.mx
+        # (frontend/public/nevadi-logo.jpg, frontend/public/favicon.png —
+        # ambos versionados en git). Así el branding del login de Authentik es
+        # reproducible: no depende de subir archivos por la UI ni del volumen
+        # authentik-media (que se pierde al reinicializar).
+        "branding_logo":     "https://ades.setag.mx/nevadi-logo.jpg",
+        "branding_favicon":  "https://ades.setag.mx/favicon.png",
         "default":         True,
     })
     print(f"  actualizado ({uid})")
