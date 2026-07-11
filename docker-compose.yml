@@ -191,6 +191,10 @@ services:
       AUTHENTIK_EMAIL__FROM:         ${SMTP_FROM:-admin@setag.mx}
     volumes:
       - authentik-media:/media
+      # Fondo navy del login (versionado en git). Se monta dentro del media de
+      # Authentik para que su endpoint /files/ lo sirva como background del flow
+      # (flow.background=ades-flow-background.svg). Sobrevive a reinicializaciones.
+      - ./assets/authentik/flow-background.svg:/media/public/ades-flow-background.svg:ro
     ports:
       - "127.0.0.1:9443:9443"   # HTTPS interno
       - "127.0.0.1:9010:9000"   # HTTP interno (detrás de nginx)

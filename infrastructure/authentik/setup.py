@@ -89,16 +89,28 @@ def upsert_application(name, slug, provider_pk, launch_url, description=""):
 
 # ── 1. Brand ─────────────────────────────────────────────────────────────────
 
-# CSS de marca para el login de Authentik: reemplaza el fondo por defecto
-# (imagen de carretera) por el mismo gradiente navy del login del frontend
-# (frontend/src/app/core/components/login.component.ts). Solo toca el fondo
-# (.pf-c-background-image); la tarjeta blanca del formulario queda intacta.
-BRAND_CSS = (
-    ".pf-c-background-image{"
-    "--pf-c-background-image--BackgroundImage:none !important;"
-    "background:linear-gradient(160deg,#141929 0%,#1E2940 50%,#161E30 100%) !important;}"
-    ".pf-c-background-image__filter{display:none !important;}"
-)
+# Fondo del login: el flow lo sirve desde el media de Authentik
+# (/files/media/public/<archivo>). El archivo se monta desde git en
+# docker-compose (assets/authentik/flow-background.svg ->
+# /media/public/ades-flow-background.svg). Aquí solo se referencia por nombre.
+FLOW_BACKGROUND = "ades-flow-background.svg"
+
+# Títulos de flows en español (texto guardado; NO se traduce con el locale).
+FLOW_TITLES = {
+    "default-authentication-flow":                     "Bienvenido a ADES",
+    "default-invalidation-flow":                       "Cerrar sesión",
+    "default-password-change":                         "Cambiar contraseña",
+    "default-user-settings-flow":                      "Actualiza tu información",
+    "default-authenticator-static-setup":              "Configurar tokens OTP estáticos",
+    "default-authenticator-totp-setup":                "Configurar autenticación de dos factores",
+    "default-authenticator-webauthn-setup":            "Configurar WebAuthn",
+    "default-provider-authorization-explicit-consent": "Redirigiendo a %(app)s",
+    "default-provider-authorization-implicit-consent": "Redirigiendo a %(app)s",
+    "default-provider-invalidation-flow":              "Has cerrado sesión de %(app)s.",
+    "default-source-authentication":                   "Bienvenido a ADES",
+    "default-source-enrollment":                       "Bienvenido a ADES. Elige un nombre de usuario.",
+    "default-source-pre-authentication":               "Preautenticación",
+}
 
 print("\n[1] Brand")
 brands = api("GET", "/core/brands/")
@@ -116,7 +128,6 @@ if brands["results"]:
         # authentik-media (que se pierde al reinicializar).
         "branding_logo":     "https://ades.setag.mx/nevadi-logo.jpg",
         "branding_favicon":  "https://ades.setag.mx/favicon.png",
-        "branding_custom_css": BRAND_CSS,
         # Locale español para toda la UI de Authentik (labels, botones y el
         # subtítulo "Inicia sesión para continuar a ADES"). Authentik lo
         # deriva de attributes.settings.locale, no de un campo propio.
@@ -125,16 +136,18 @@ if brands["results"]:
     })
     print(f"  actualizado ({uid})")
 
-    # Título del flow de autenticación en español ADES (por defecto Authentik
-    # muestra "Welcome to authentik!", que es texto guardado y NO se traduce
-    # con el locale).
-    authn = api("GET", "/flows/instances/?designation=authentication")
-    for f in authn.get("results", []):
-        if "default" in f["slug"]:
-            api("PATCH", f"/flows/instances/{f['slug']}/",
-                {"title": "Bienvenido a ADES"})
-            print(f"  flow '{f['slug']}' título → 'Bienvenido a ADES'")
-            break
+    # Títulos de flows en español + fondo navy del flow de login. Los títulos
+    # son texto guardado (no se traducen con el locale). El fondo se referencia
+    # por nombre; el archivo lo provee el bind-mount de docker-compose.
+    for slug, title in FLOW_TITLES.items():
+        payload = {"title": title}
+        if slug == "default-authentication-flow":
+            payload["background"] = FLOW_BACKGROUND
+        try:
+            api("PATCH", f"/flows/instances/{slug}/", payload)
+            print(f"  flow '{slug}' → '{title}'")
+        except Exception as e:
+            print(f"  flow '{slug}' omitido: {e}")
 
 # ── 2. Flujos ────────────────────────────────────────────────────────────────
 

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" preserveAspectRatio="xMidYMid slice">
+  <!-- Fondo del login de Authentik: mismo gradiente navy del login del frontend
+       ADES (frontend/src/app/core/components/login.component.ts, 160deg
+       #141929 -> #1E2940 -> #161E30). Servido por nginx en /media/ y
+       referenciado por brand.branding_default_flow_background. -->
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="0.34" y2="0.94">
+      <stop offset="0%" stop-color="#141929"/>
+      <stop offset="50%" stop-color="#1E2940"/>
+      <stop offset="100%" stop-color="#161E30"/>
+    </linearGradient>
+  </defs>
+  <rect width="1920" height="1080" fill="url(#g)"/>
+</svg>
