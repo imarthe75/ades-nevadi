@@ -343,6 +343,12 @@ services:
     restart: unless-stopped
     environment:
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://authentik-server:9000/application/o/ades-frontend/jwks/
+      # OIDC — el BFF intercambia el code por tokens en /api/v1/auth/callback.
+      # El provider ades-frontend es "confidential" en Authentik, así que el
+      # BFF DEBE enviar el client_secret; sin esta var Authentik responde
+      # "Invalid client secret" (HTTP 400 en el callback). Ver UserController.
+      OIDC_CLIENT_ID:              ${OIDC_CLIENT_ID:-ades-frontend}
+      OIDC_CLIENT_SECRET:          ${OIDC_CLIENT_SECRET:?OIDC_CLIENT_SECRET requerido}
       VAULT_ADDR:                  http://ades-vault:8200
       SPRING_DATASOURCE_URL:       jdbc:postgresql://ades-postgres:5432/ades
       SPRING_DATASOURCE_USERNAME:  ${POSTGRES_USER:-ades_admin}
