@@ -96,6 +96,10 @@ ades:
     api-prefix: /api/v1
   oidc:
     client-secret: ${OIDC_CLIENT_SECRET:}
+  pii:
+    # AES-256-GCM para curp/rfc/telefono/email_personal en ades_personas (LFPDPPP).
+    encryption-key: ${PII_ENCRYPTION_KEY:}
+    backfill-run: ${PII_BACKFILL_RUN:false}
 
 minio:
   endpoint: ${MINIO_ENDPOINT:ades-minio:9000}

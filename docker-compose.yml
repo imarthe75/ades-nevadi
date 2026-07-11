@@ -371,6 +371,11 @@ services:
       # AD-007: token de solo-lectura para consultar la API de Eventos de
       # Authentik (auditoría de intentos de login fallidos).
       AUTHENTIK_API_TOKEN:          ${AUTHENTIK_API_TOKEN:-}
+      # Cifrado PII (LFPDPPP) — curp/rfc/telefono/email_personal en ades_personas.
+      PII_ENCRYPTION_KEY:           ${PII_ENCRYPTION_KEY:?PII_ENCRYPTION_KEY requerido}
+      # Backfill de cifrado one-shot: solo procesa filas pii_encryption_status='pending'
+      # (idempotente). Dejar en 'false' salvo para ejecutar el backfill puntual.
+      PII_BACKFILL_RUN:             ${PII_BACKFILL_RUN:-false}
     volumes:
       - vault-init:/vault/init:ro
       - ./assets:/srv/assets          # imágenes públicas de convocatorias (rw para uploads)

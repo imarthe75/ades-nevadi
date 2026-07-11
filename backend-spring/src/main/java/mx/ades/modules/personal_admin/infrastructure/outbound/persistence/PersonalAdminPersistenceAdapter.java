@@ -1,6 +1,7 @@
 package mx.ades.modules.personal_admin.infrastructure.outbound.persistence;
 
 import lombok.RequiredArgsConstructor;
+import mx.ades.common.PiiEncryptionService;
 import mx.ades.modules.personal_admin.domain.port.in.RegistrarPersonalAdminUseCase;
 import mx.ades.modules.personal_admin.domain.port.out.PersonalAdminRepositoryPort;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -13,6 +14,11 @@ import java.util.*;
 public class PersonalAdminPersistenceAdapter implements PersonalAdminRepositoryPort {
 
     private final JdbcTemplate jdbc;
+    private final PiiEncryptionService pii;
+
+    private static String str(Object o) {
+        return o == null ? null : o.toString();
+    }
 
     private static java.sql.Date toDate(Object val) {
         if (val == null) return null;
@@ -69,18 +75,27 @@ public class PersonalAdminPersistenceAdapter implements PersonalAdminRepositoryP
     @Override
     public UUID createPersona(Map<String, Object> per, String usuario) {
         UUID personaId = UUID.randomUUID();
+        String curp = str(per.get("curp"));
+        String telefono = str(per.get("telefono"));
+        String email = str(per.get("email_personal"));
         jdbc.update(
             "INSERT INTO ades_personas " +
-            "(id, nombre, apellido_paterno, apellido_materno, curp, genero, fecha_nacimiento, " +
-            "telefono, email_personal, estado_civil, pais_nacimiento, municipio_nacimiento, " +
-            "estado_nacimiento, nacionalidad, usuario_creacion, usuario_modificacion) " +
-            "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            "(id, nombre, apellido_paterno, apellido_materno, curp, curp_encrypted, curp_hash, " +
+            "genero, fecha_nacimiento, " +
+            "telefono, telefono_encrypted, telefono_hash, " +
+            "email_personal, email_personal_encrypted, email_personal_hash, " +
+            "estado_civil, pais_nacimiento, municipio_nacimiento, " +
+            "estado_nacimiento, nacionalidad, pii_encryption_status, usuario_creacion, usuario_modificacion) " +
+            "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             personaId, per.get("nombre"), per.get("apellido_paterno"), per.get("apellido_materno"),
-            per.get("curp"), per.get("genero"), toDate(per.get("fecha_nacimiento")),
-            per.get("telefono"), per.get("email_personal"), per.get("estado_civil"),
+            curp, pii.encrypt(curp), pii.hash(curp),
+            per.get("genero"), toDate(per.get("fecha_nacimiento")),
+            telefono, pii.encrypt(telefono), pii.hash(telefono),
+            email, pii.encrypt(email), pii.hash(email),
+            per.get("estado_civil"),
             per.getOrDefault("pais_nacimiento", "México"),
             per.get("municipio_nacimiento"), per.get("estado_nacimiento"),
-            per.getOrDefault("nacionalidad", "Mexicana"), usuario, usuario);
+            per.getOrDefault("nacionalidad", "Mexicana"), "completado", usuario, usuario);
         return personaId;
     }
 
@@ -105,16 +120,26 @@ public class PersonalAdminPersistenceAdapter implements PersonalAdminRepositoryP
 
     @Override
     public void updatePersona(UUID personaId, Map<String, Object> per, String usuario) {
+        String curp = str(per.get("curp"));
+        String telefono = str(per.get("telefono"));
+        String email = str(per.get("email_personal"));
         jdbc.update(
             "UPDATE ades_personas SET " +
             "nombre=COALESCE(?,nombre), apellido_paterno=COALESCE(?,apellido_paterno), " +
-            "apellido_materno=?, curp=COALESCE(?,curp), genero=?, fecha_nacimiento=?, " +
-            "telefono=?, email_personal=?, estado_civil=?, pais_nacimiento=?, " +
+            "apellido_materno=?, curp=COALESCE(?,curp), " +
+            "curp_encrypted=COALESCE(?,curp_encrypted), curp_hash=COALESCE(?,curp_hash), " +
+            "genero=?, fecha_nacimiento=?, " +
+            "telefono=?, telefono_encrypted=?, telefono_hash=?, " +
+            "email_personal=?, email_personal_encrypted=?, email_personal_hash=?, " +
+            "estado_civil=?, pais_nacimiento=?, " +
             "municipio_nacimiento=?, estado_nacimiento=?, nacionalidad=COALESCE(?,nacionalidad), " +
             "usuario_modificacion=? WHERE id=?",
             per.get("nombre"), per.get("apellido_paterno"), per.get("apellido_materno"),
-            per.get("curp"), per.get("genero"), toDate(per.get("fecha_nacimiento")),
-            per.get("telefono"), per.get("email_personal"), per.get("estado_civil"),
+            curp, pii.encrypt(curp), pii.hash(curp),
+            per.get("genero"), toDate(per.get("fecha_nacimiento")),
+            telefono, pii.encrypt(telefono), pii.hash(telefono),
+            email, pii.encrypt(email), pii.hash(email),
+            per.get("estado_civil"),
             per.get("pais_nacimiento"), per.get("municipio_nacimiento"), per.get("estado_nacimiento"),
             per.get("nacionalidad"), usuario, personaId);
     }

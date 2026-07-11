@@ -1,5 +1,6 @@
 package mx.ades.shared.persona;
 
+import mx.ades.common.PiiEncryptionService;
 import mx.ades.common.ValidationUtils;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
@@ -16,9 +17,11 @@ import java.util.UUID;
 public class PersonaUpdateHelper {
 
     private final JdbcTemplate jdbc;
+    private final PiiEncryptionService pii;
 
-    public PersonaUpdateHelper(JdbcTemplate jdbc) {
+    public PersonaUpdateHelper(JdbcTemplate jdbc, PiiEncryptionService pii) {
         this.jdbc = jdbc;
+        this.pii = pii;
     }
 
     /**
@@ -32,6 +35,9 @@ public class PersonaUpdateHelper {
         Date fechaNac = per.get("fecha_nacimiento") != null
                 ? Date.valueOf(per.get("fecha_nacimiento").toString().substring(0, 10))
                 : null;
+        String curp = str(per.get("curp"));
+        String telefono = str(per.get("telefono"));
+        String email = str(per.get("email_personal"));
 
         jdbc.update("""
             UPDATE ades_personas
@@ -39,10 +45,16 @@ public class PersonaUpdateHelper {
                    apellido_paterno          = COALESCE(?, apellido_paterno),
                    apellido_materno          = ?,
                    curp                      = COALESCE(?, curp),
+                   curp_encrypted            = COALESCE(?, curp_encrypted),
+                   curp_hash                 = COALESCE(?, curp_hash),
                    genero                    = ?,
                    fecha_nacimiento          = ?,
                    telefono                  = ?,
+                   telefono_encrypted        = ?,
+                   telefono_hash             = ?,
                    email_personal            = ?,
+                   email_personal_encrypted  = ?,
+                   email_personal_hash       = ?,
                    estado_civil              = ?,
                    pais_nacimiento           = ?,
                    municipio_nacimiento      = ?,
@@ -54,9 +66,12 @@ public class PersonaUpdateHelper {
              WHERE id = ?
             """,
                 per.get("nombre"), per.get("apellido_paterno"), per.get("apellido_materno"),
-                per.get("curp"), per.get("genero"),
+                curp, pii.encrypt(curp), pii.hash(curp),
+                per.get("genero"),
                 fechaNac,
-                per.get("telefono"), per.get("email_personal"), per.get("estado_civil"),
+                telefono, pii.encrypt(telefono), pii.hash(telefono),
+                email, pii.encrypt(email), pii.hash(email),
+                per.get("estado_civil"),
                 per.get("pais_nacimiento"), per.get("municipio_nacimiento"), per.get("estado_nacimiento"),
                 per.get("nacionalidad"),
                 per.get("nombre_social"), per.get("genero_autopercibido"), per.get("pronombres"),
@@ -71,6 +86,9 @@ public class PersonaUpdateHelper {
         Date fechaNac = per.get("fecha_nacimiento") != null
                 ? Date.valueOf(per.get("fecha_nacimiento").toString().substring(0, 10))
                 : null;
+        String curp = str(per.get("curp"));
+        String telefono = str(per.get("telefono"));
+        String email = str(per.get("email_personal"));
 
         jdbc.update("""
             UPDATE ades_personas
@@ -78,10 +96,16 @@ public class PersonaUpdateHelper {
                    apellido_paterno     = COALESCE(?, apellido_paterno),
                    apellido_materno     = ?,
                    curp                 = COALESCE(?, curp),
+                   curp_encrypted       = COALESCE(?, curp_encrypted),
+                   curp_hash            = COALESCE(?, curp_hash),
                    genero               = ?,
                    fecha_nacimiento     = ?,
                    telefono             = ?,
+                   telefono_encrypted   = ?,
+                   telefono_hash        = ?,
                    email_personal       = ?,
+                   email_personal_encrypted = ?,
+                   email_personal_hash  = ?,
                    estado_civil         = ?,
                    pais_nacimiento      = ?,
                    municipio_nacimiento = ?,
@@ -90,11 +114,18 @@ public class PersonaUpdateHelper {
              WHERE id = ?
             """,
                 per.get("nombre"), per.get("apellido_paterno"), per.get("apellido_materno"),
-                per.get("curp"), per.get("genero"),
+                curp, pii.encrypt(curp), pii.hash(curp),
+                per.get("genero"),
                 fechaNac,
-                per.get("telefono"), per.get("email_personal"), per.get("estado_civil"),
+                telefono, pii.encrypt(telefono), pii.hash(telefono),
+                email, pii.encrypt(email), pii.hash(email),
+                per.get("estado_civil"),
                 per.get("pais_nacimiento"), per.get("municipio_nacimiento"), per.get("estado_nacimiento"),
                 per.get("nacionalidad"),
                 personaId);
+    }
+
+    private static String str(Object o) {
+        return o == null ? null : o.toString();
     }
 }
