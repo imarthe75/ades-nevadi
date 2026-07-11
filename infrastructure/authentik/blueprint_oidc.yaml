@@ -52,7 +52,8 @@ entries:
     identifiers:
       slug: ades-frontend
     attrs:
-      name: "ADES — Sistema Escolar"
+      # Nombre corto: aparece en el login como "...continuar a ADES".
+      name: "ADES"
       slug: ades-frontend
       provider: !Find
         - authentik_providers_oauth2.oauth2provider

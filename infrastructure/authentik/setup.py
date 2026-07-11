@@ -117,9 +117,24 @@ if brands["results"]:
         "branding_logo":     "https://ades.setag.mx/nevadi-logo.jpg",
         "branding_favicon":  "https://ades.setag.mx/favicon.png",
         "branding_custom_css": BRAND_CSS,
+        # Locale español para toda la UI de Authentik (labels, botones y el
+        # subtítulo "Inicia sesión para continuar a ADES"). Authentik lo
+        # deriva de attributes.settings.locale, no de un campo propio.
+        "attributes":      {"settings": {"locale": "es"}},
         "default":         True,
     })
     print(f"  actualizado ({uid})")
+
+    # Título del flow de autenticación en español ADES (por defecto Authentik
+    # muestra "Welcome to authentik!", que es texto guardado y NO se traduce
+    # con el locale).
+    authn = api("GET", "/flows/instances/?designation=authentication")
+    for f in authn.get("results", []):
+        if "default" in f["slug"]:
+            api("PATCH", f"/flows/instances/{f['slug']}/",
+                {"title": "Bienvenido a ADES"})
+            print(f"  flow '{f['slug']}' título → 'Bienvenido a ADES'")
+            break
 
 # ── 2. Flujos ────────────────────────────────────────────────────────────────
 
@@ -169,7 +184,9 @@ ades_pk, ades_secret = upsert_provider("ades-frontend", {
     ],
 })
 upsert_application(
-    "ADES Frontend", "ades-frontend", ades_pk,
+    # Nombre corto "ADES": aparece en el subtítulo del login
+    # ("Inicia sesión para continuar a ADES") y en la biblioteca de apps.
+    "ADES", "ades-frontend", ades_pk,
     "https://ades.setag.mx/",
     "Sistema Escolar Instituto Nevadi",
 )
