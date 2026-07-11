@@ -3,6 +3,7 @@ package mx.ades.modules.asistencia_personal.application.service;
 import mx.ades.modules.asistencia_personal.domain.port.in.ActualizarAsistenciaUseCase;
 import mx.ades.modules.asistencia_personal.domain.port.in.RegistrarAsistenciaUseCase;
 import mx.ades.modules.asistencia_personal.domain.port.out.AsistenciaPersonalRepositoryPort;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Map;
 import java.util.UUID;
@@ -26,6 +27,7 @@ public class AsistenciaPersonalApplicationService
     }
 
     @Override
+    @Transactional
     public Map<String, Object> registrar(RegistrarAsistenciaUseCase.Command cmd) {
         if (repository.existeRegistro(cmd.personaId(), cmd.fecha())) {
             repository.update(cmd);
@@ -36,6 +38,7 @@ public class AsistenciaPersonalApplicationService
     }
 
     @Override
+    @Transactional
     public Map<String, Object> actualizar(ActualizarAsistenciaUseCase.Command cmd) {
         repository.findById(cmd.id())
                 .orElseThrow(() -> new IllegalArgumentException("Registro de asistencia no encontrado: " + cmd.id()));
@@ -43,6 +46,7 @@ public class AsistenciaPersonalApplicationService
         return repository.fetchById(cmd.id());
     }
 
+    @Transactional
     public void eliminar(UUID id, String usuario) {
         repository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Registro de asistencia no encontrado: " + id));

@@ -100,6 +100,7 @@ public class ProcesosWriteService {
         return id;
     }
 
+    @Transactional
     public void actualizarResolucion(UUID id, String decision, String motivo,
                                       UUID grupoAsignadoId, UUID resueltoBy, String usuario) {
         jdbc.update(
@@ -110,6 +111,7 @@ public class ProcesosWriteService {
                 decision, motivo, grupoAsignadoId, resueltoBy, usuario, id);
     }
 
+    @Transactional
     public void enqueueNotificacion(UUID admisionId, String email, String nombre, String usuario) {
         String payload = String.format("{\"admision_id\": \"%s\", \"email\": \"%s\", \"nombre\": \"%s\"}",
                 admisionId, email, nombre);
@@ -118,11 +120,13 @@ public class ProcesosWriteService {
                 payload, usuario, usuario);
     }
 
+    @Transactional
     public void marcarNotificado(UUID id, String usuario) {
         jdbc.update("UPDATE ades_solicitudes_admision SET estado = 'NOTIFICADO', usuario_modificacion = ? WHERE id = ?",
                 usuario, id);
     }
 
+    @Transactional
     public UUID inscribirOptativa(UUID estudianteId, UUID materiaId, UUID cicloId, String usuario) {
         UUID id = UUID.randomUUID();
         jdbc.update(
@@ -133,12 +137,14 @@ public class ProcesosWriteService {
         return id;
     }
 
+    @Transactional
     public int darBajaOptativa(UUID id, String usuario) {
         return jdbc.update(
                 "UPDATE ades_inscripciones_optativas SET is_active = FALSE, usuario_modificacion = ? WHERE id = ? AND is_active = TRUE",
                 usuario, id);
     }
 
+    @Transactional
     public UUID registrarAcuerdo(UUID alumnoId, String tutorNombre, String tutorFirmaHash,
                                   String ipFirma, String usuario) {
         UUID id = UUID.randomUUID();
@@ -150,6 +156,7 @@ public class ProcesosWriteService {
         return id;
     }
 
+    @Transactional
     public UUID crearEventoCalendario(String nombre, UUID cicloId, String nivel, String tipo,
                                        LocalDate inicio, LocalDate fin, String descripcion,
                                        Boolean esOficial, String usuario) {
@@ -162,6 +169,7 @@ public class ProcesosWriteService {
         return id;
     }
 
+    @Transactional
     public UUID crearPeriodoEvaluacion(UUID cicloId, String nombre, String nivel, String tipoEval,
                                         LocalDate inicio, LocalDate fin, Boolean abierto, String usuario) {
         UUID id = UUID.randomUUID();
@@ -173,11 +181,13 @@ public class ProcesosWriteService {
         return id;
     }
 
+    @Transactional
     public void cerrarPeriodo(UUID id, String usuario) {
         jdbc.update("UPDATE ades_periodos_evaluacion SET abierto = FALSE, usuario_modificacion = ? WHERE id = ?",
                 usuario, id);
     }
 
+    @Transactional
     public void registrarEvaluacionDiagnostica(UUID id, Double puntuacion, String obs, String usuario) {
         jdbc.update(
                 "UPDATE ades_solicitudes_admision " +
@@ -187,6 +197,7 @@ public class ProcesosWriteService {
                 puntuacion, obs, usuario, id);
     }
 
+    @Transactional
     public UUID registrarBaja(UUID estudianteId, UUID inscripcionId, String tipoBaja, String motivo,
                                LocalDate fechaEfectiva, String observaciones, String usuario) {
         UUID id = UUID.randomUUID();
@@ -203,6 +214,7 @@ public class ProcesosWriteService {
     /**
      * Reactivates a student from a baja record. Includes capacity check for the original group.
      */
+    @Transactional
     public void reactivarEstudiante(UUID bajaId, UUID estudianteId, UUID inscripcionId, String usuario) {
         jdbc.update("UPDATE ades_estudiantes SET is_active = TRUE, usuario_modificacion = ? WHERE id = ?",
                 usuario, estudianteId);

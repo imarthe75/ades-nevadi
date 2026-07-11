@@ -5,6 +5,7 @@ import mx.ades.modules.justificaciones.domain.port.in.RegistrarJustificacionUseC
 import mx.ades.modules.justificaciones.domain.port.in.ResolverJustificacionUseCase;
 import mx.ades.modules.justificaciones.domain.port.out.JustificacionRepositoryPort;
 import org.springframework.http.HttpStatus;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Map;
@@ -31,6 +32,7 @@ public class JustificacionApplicationService
     }
 
     @Override
+    @Transactional
     public UUID registrar(RegistrarJustificacionUseCase.Command cmd) {
         if (!repo.asistenciaJustificable(cmd.asistenciaId())) {
             throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
@@ -47,6 +49,7 @@ public class JustificacionApplicationService
     }
 
     @Override
+    @Transactional
     public String resolver(ResolverJustificacionUseCase.Command cmd) {
         if (cmd.nivelAcceso() > 3) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,

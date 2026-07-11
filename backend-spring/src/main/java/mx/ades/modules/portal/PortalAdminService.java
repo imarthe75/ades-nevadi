@@ -2,6 +2,7 @@ package mx.ades.modules.portal;
 
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 
@@ -52,6 +53,7 @@ public class PortalAdminService {
             "SELECT portal.inferir_categoria(?::portal.tipo_convocatoria)::TEXT", String.class, tipo);
     }
 
+    @Transactional
     public UUID crearConvocatoria(String categoria, String tipo, String titulo, String descripcion,
                                    String requisitosGenerales, UUID plantelId, UUID nivelEducativoId,
                                    String fechaInicio, String fechaCierre, Integer cupoMaximo,
@@ -73,6 +75,7 @@ public class PortalAdminService {
                 cupoMaximo, imagenUrl, avisoVersion, usuario);
     }
 
+    @Transactional
     public int actualizarConvocatoria(UUID id, String categoria, String tipo, String titulo,
                                        String descripcion, String requisitosGenerales,
                                        UUID plantelId, UUID nivelEducativoId,
@@ -92,6 +95,7 @@ public class PortalAdminService {
                 cupoMaximo, imagenUrl, usuario, id);
     }
 
+    @Transactional
     public void desactivarRequisitos(UUID convId) {
         jdbc.update("UPDATE portal.requisitos_documentos SET is_active = FALSE WHERE convocatoria_id = ?", convId);
     }
@@ -106,6 +110,7 @@ public class PortalAdminService {
             """, convId);
     }
 
+    @Transactional
     public int togglePublicar(UUID id, String usuario) {
         return jdbc.update("""
             UPDATE portal.convocatorias
@@ -116,11 +121,13 @@ public class PortalAdminService {
             """, usuario, id);
     }
 
+    @Transactional
     public void actualizarImagenUrl(UUID id, String url, String usuario) {
         jdbc.update("UPDATE portal.convocatorias SET imagen_url = ?, usuario_modificacion = ? WHERE id = ?",
                 url, usuario, id);
     }
 
+    @Transactional
     public void eliminarConvocatoria(UUID id, String usuario) {
         jdbc.update("UPDATE portal.convocatorias SET is_active = FALSE, usuario_modificacion = ? WHERE id = ?",
                 usuario, id);
@@ -135,6 +142,7 @@ public class PortalAdminService {
                 org.springframework.http.HttpStatus.NOT_FOUND, "Convocatoria no encontrada");
     }
 
+    @Transactional
     public void insertarRequisitos(UUID convId, List<PortalAdminController.RequisitoRequest> reqs, String usuario) {
         for (PortalAdminController.RequisitoRequest r : reqs) {
             String mimes = r.getTiposMimePermitidos() != null
@@ -211,6 +219,7 @@ public class PortalAdminService {
             """, id);
     }
 
+    @Transactional
     public void cambiarEstadoPostulacion(UUID id, String estado, String observaciones, String usuario) {
         jdbc.update("""
             UPDATE portal.postulaciones
@@ -252,6 +261,7 @@ public class PortalAdminService {
         return jdbc.queryForList(sql.toString(), params.toArray());
     }
 
+    @Transactional
     public void responderArco(UUID id, String estado, String respuesta, String usuario) {
         jdbc.update("""
             UPDATE portal.solicitudes_arco
@@ -303,6 +313,7 @@ public class PortalAdminService {
             """, convId);
     }
 
+    @Transactional
     public UUID crearSeccion(UUID convId, String tipoSeccion, String titulo,
                               String contenido, String datosJson, Integer orden, String usuario) {
         return jdbc.queryForObject("""
@@ -317,6 +328,7 @@ public class PortalAdminService {
                 orden, convId, usuario);
     }
 
+    @Transactional
     public int actualizarSeccion(UUID seccionId, UUID convId, String tipoSeccion, String titulo,
                                   String contenido, String datosJson, Integer orden, String usuario) {
         return jdbc.update("""
@@ -333,6 +345,7 @@ public class PortalAdminService {
                 orden, usuario, seccionId, convId);
     }
 
+    @Transactional
     public void reordenarSecciones(List<UUID> ids, UUID convId, String usuario) {
         for (int i = 0; i < ids.size(); i++) {
             jdbc.update("""
@@ -343,6 +356,7 @@ public class PortalAdminService {
         }
     }
 
+    @Transactional
     public void eliminarSeccion(UUID seccionId, UUID convId, String usuario) {
         jdbc.update("""
             UPDATE portal.secciones_convocatoria

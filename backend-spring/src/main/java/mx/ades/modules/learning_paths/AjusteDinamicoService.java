@@ -31,7 +31,14 @@ public class AjusteDinamicoService {
         this.objectMapper = objectMapper;
     }
 
-    /** IA-014: persiste la narrativa generada por IA para que sobreviva a un refresh de página. */
+    /**
+     * IA-014: persiste la narrativa generada por IA para que sobreviva a un refresh de página.
+     * Invocado tanto internamente desde {@link #ajustar} (ya dentro de su propia
+     * transacción — este @Transactional no aplica por auto-invocación, pero tampoco
+     * hace falta) como directamente desde el controller (invocación externa vía
+     * proxy, donde este @Transactional sí es necesario para persistir).
+     */
+    @Transactional
     public void guardarNarrativa(UUID asignacionId, Map<?, ?> narrativa) {
         try {
             String json = objectMapper.writeValueAsString(narrativa);

@@ -2,6 +2,7 @@ package mx.ades.modules.portal;
 
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 
@@ -23,6 +24,7 @@ public class PortalUsuarioService {
             """, uid);
     }
 
+    @Transactional
     public void actualizarPerfil(UUID uid, String nombreCompleto, String telefono) {
         jdbc.update("""
             UPDATE portal.usuarios
@@ -66,6 +68,7 @@ public class PortalUsuarioService {
                 "SELECT portal.generar_folio(?::portal.tipo_convocatoria)", String.class, tipo);
     }
 
+    @Transactional
     public UUID insertarPostulacion(UUID convocatoriaId, UUID uid, String folio,
                                      String datosJson, String ip) {
         return jdbc.queryForObject("""
@@ -123,6 +126,7 @@ public class PortalUsuarioService {
                 String.class, postulacionId, uid);
     }
 
+    @Transactional
     public UUID insertarDocumento(UUID postulacionId, UUID requisitoId, String tipoDocumento,
                                    String nombreOriginal, String mime, long tamanoBytes,
                                    String ruta, String sha256) {
@@ -142,6 +146,7 @@ public class PortalUsuarioService {
                 String.class, docId, postulacionId);
     }
 
+    @Transactional
     public void softDeleteDocumento(UUID docId) {
         jdbc.update("UPDATE portal.documentos SET is_active = FALSE, usuario_modificacion = 'portal-usuario' WHERE id = ?", docId);
     }
@@ -180,6 +185,13 @@ public class PortalUsuarioService {
             """, convocatoriaId, postulacionId);
     }
 
+    /**
+     * @Transactional aquí Y en PortalUsuarioController.enviarPostulacion (que la
+     * llama junto con incrementarCupo): el nivel de método cubre invocaciones
+     * futuras independientes; el nivel de controller garantiza que ambas
+     * llamadas de ese endpoint sean atómicas entre sí.
+     */
+    @Transactional
     public void marcarPostulacionEnviada(UUID postulacionId) {
         jdbc.update("""
             UPDATE portal.postulaciones
@@ -188,6 +200,7 @@ public class PortalUsuarioService {
             """, postulacionId);
     }
 
+    @Transactional
     public void incrementarCupo(Object convocatoriaId) {
         jdbc.update("UPDATE portal.convocatorias SET cupo_actual = cupo_actual + 1 WHERE id = ?", convocatoriaId);
     }

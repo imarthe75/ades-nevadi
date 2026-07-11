@@ -2,6 +2,7 @@ package mx.ades.modules.expediente;
 
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.UUID;
@@ -15,6 +16,7 @@ public class ExpedienteWriteService {
         this.jdbc = jdbc;
     }
 
+    @Transactional
     public UUID insertExtraordinario(UUID estudianteId, UUID materiaId, UUID cicloEscolarId,
                                       UUID grupoId, String tipoExamen, Double calificacionPrevia,
                                       LocalDate fechaExamen, Double calificacion, Boolean acredita,
@@ -33,12 +35,14 @@ public class ExpedienteWriteService {
         return newId;
     }
 
+    @Transactional
     public void marcarConstanciaEntregada(UUID constanciaId) {
         jdbc.update(
             "UPDATE ades_constancias SET entregada = TRUE, fecha_entrega = ?, usuario_modificacion = 'sistema' WHERE id = ? AND is_active = TRUE",
             LocalDate.now(), constanciaId);
     }
 
+    @Transactional
     public UUID insertDocumentoExpediente(UUID expId, String tipoDocumento, String nombreArchivo, String usuario) {
         UUID nuevoId = UUID.randomUUID();
         jdbc.update(
@@ -49,10 +53,12 @@ public class ExpedienteWriteService {
         return nuevoId;
     }
 
+    @Transactional
     public void softDeleteDocumento(UUID docId) {
         jdbc.update("UPDATE public.ades_expediente_documentos SET is_active = FALSE WHERE id = ?", docId);
     }
 
+    @Transactional
     public void actualizarObservacionesExpediente(UUID expId, String observaciones) {
         jdbc.update(
             "UPDATE public.ades_expedientes_alumno SET observaciones = ? WHERE id = ?",

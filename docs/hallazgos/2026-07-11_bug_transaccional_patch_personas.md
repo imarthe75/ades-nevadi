@@ -90,11 +90,121 @@ cambio — falla preexistente de validación de `dia_semana`, no tocada hoy).
   `@Transactional` de un bean real (no se puede anotar `ApplicationRunner.run()`
   directamente por auto-invocación — necesita delegar a un bean inyectado).
 
+## Actualización 2026-07-11 (misma sesión, continuación): barrido completo del proyecto
+
+Tras el fix inicial (4 módulos) se hizo un barrido exhaustivo de **todo**
+`backend-spring/src/main/java` (vía agente de exploración + verificación
+manual con grep por archivo) buscando el mismo patrón: escritura cruda
+(`jdbc.update`/`jdbc.batchUpdate`) sin `@Transactional` en ningún punto de su
+cadena de invocación. **El bug era mucho más extendido de lo que parecía
+inicialmente — se encontró y corrigió en ~50 archivos adicionales.**
+
+### Hallazgos especiales de alto impacto (no el patrón simple de 3 saltos)
+
+1. **`AuditHttpFilter`** — el log de auditoría de **TODA** mutación HTTP
+   (POST/PUT/PATCH/DELETE) nunca persistía. Verificado directamente:
+   `SELECT COUNT(*) FROM ades_audit_log` = **0 filas, siempre**, pese a que
+   `CLAUDE.md` exige explícitamente "Endpoints mutantes: siempre pasan por
+   AuditMiddleware". Es un `OncePerRequestFilter`, no un bean de servicio
+   normal — el fix correcto NO es envolver el filtro completo (mezclaría la
+   auditoría con la transacción de negocio, perdiendo el registro de un 4xx
+   si esa transacción hace rollback), sino extraer el INSERT a un bean nuevo
+   (`AuditLogWriter`) con `@Transactional(propagation = REQUIRES_NEW)` —
+   transacción propia e independiente, se confirma pase lo que pase con la
+   request.
+2. **`ProcesosWriteService`** — solo 2 de 14 métodos públicos tenían
+   `@Transactional` (`registrarSolicitudSEP`, `registrarSolicitudManual`).
+   Los otros 12 —incluyendo **`registrarBaja`** y **`reactivarEstudiante`**
+   (dan de baja/reactivan alumnos), `actualizarResolucion` (aprobar/rechazar
+   admisión), `inscribirOptativa`/`darBajaOptativa`, `registrarAcuerdo`
+   (firma de convivencia), `crearEventoCalendario`, `crearPeriodoEvaluacion`,
+   `cerrarPeriodo`, `registrarEvaluacionDiagnostica`, `enqueueNotificacion`,
+   `marcarNotificado`— no persistían. Corregidos los 12.
+3. **`AdminController`/`AdminWriteService`/`AdminQueryService`** — alta de
+   usuarios del sistema (`insertPersona`+`insertUsuario`), desactivación de
+   ciclos, edición de menús y permisos por rol: sin protección. Corregido.
+4. **`HorarioAscService.importarXml`** — el javadoc decía explícitamente "no
+   es @Transactional a propósito, cada card se inserta con autocommit
+   independiente... para que un renglón inválido no aborte la transacción".
+   Premisa incorrecta en este proyecto (autocommit=false global). El diseño
+   de independencia por renglón se preserva correctamente porque cada
+   `crear()` (vía `HorarioApplicationService`, ya corregido) abre su propia
+   transacción — solo faltaba el `UPDATE` de desactivación suelto en la
+   misma clase, extraído a un bean nuevo `HorarioDesactivadorService`.
+5. **3 casos de protección parcial** (un método de la clase SÍ tenía
+   `@Transactional`, otro método hermano NO): `DisponibilidadDocenteController.eliminar`
+   (vs. `.guardar`, que sí estaba protegido), `PlanMejoraService.actualizarEstado`
+   (vs. `.generar`), `AjusteDinamicoService.guardarNarrativa` cuando se invoca
+   directamente desde el controller (vs. su uso interno dentro de `.ajustar`,
+   que sí estaba cubierto). Los 3 corregidos.
+
+### Patrón simple (Controller → ApplicationService → PersistenceAdapter), 23 módulos
+
+Mismo fix mecánico que los 4 originales — `@Transactional` en los métodos
+públicos de escritura del `ApplicationService`: asistencia_personal, badges,
+cierre (`CierreApplicationService`, distinto de `CierreCicloService` que ya
+estaba bien — el `@Transactional` se puso en `CierrePersistenceAdapter` en
+vez del ApplicationService para no chocar con el `isolation=SERIALIZABLE`
+de `CierreCicloService` cuando ambos se invocan juntos), compliance,
+conducta, encuestas, entregas, esquemas_ponderacion, eval_docente,
+evaluaciones, expediente, expediente_laboral, horarios, justificaciones,
+learning_paths, medico (personal salud + salud avanzada), movilidad,
+notificaciones, planes_estudio, portal_familias, procesos (preinscripción),
+reinscripcion.
+
+### WriteServices "planos" (sin capa hexagonal), 10 archivos
+
+calendario, direcciones, expediente (documentos + `ExpedienteQueryService.obtenerOCrearExpediente`
+fetch-or-create), gradebook/actividades, planes_estudio (alt/NEE),
+planteles/clave, portal (admin/publico/usuario — registro, login, ARCO,
+postulaciones, documentos; `enviarPostulacion` se envolvió a nivel Controller
+para que `marcarPostulacionEnviada` + `incrementarCupo` sean atómicos entre sí).
+
+### Controllers que escriben JDBC directo, 4 archivos
+
+`AulaController` (franjas de disponibilidad), `BienestarController`
+(eventos), `CalificacionesController.guardarCualitativa` (UPSERT NEM),
+`ProcesosEscolaresController.aprobarEInscribir` (aprobar admisión + crear
+alumno + inscripción + usuarios ALUMNO/PADRE_FAMILIA — se envolvió el
+método completo del controller para que los 2 `try/catch` de creación de
+usuario, que ya degradan con gracia si fallan, ahora también persistan
+cuando tienen éxito).
+
+### WebhookService (menor severidad — solo logs de auditoría de webhooks)
+
+`dispatchWebhook` es `@Async` y despacha a N endpoints externos por HTTP en
+un loop. Deliberadamente **no** se envolvió el método completo en
+`@Transactional` (mantendría una conexión del pool — tamaño 10 — abierta
+durante I/O de red lento, riesgo de agotar el pool). Se extrajo el INSERT
+del log a un bean nuevo `WebhookLogWriter` con su propio `@Transactional`,
+igual patrón que `AuditLogWriter`.
+
+### Verificación del barrido completo
+
+- Compilación: 656 archivos fuente, 0 errores.
+- Suite completa: 550 tests, mismas 2 fallas + 1 error preexistentes de
+  `HorarioDomainTest` (sin relación, confirmado), 0 fallas nuevas.
+- Cada uno de los ~50 archivos modificados se verificó individualmente con
+  `git diff` para confirmar que el único contenido agregado es
+  `@Transactional`/imports/las extracciones a bean nuevo — sin arrastrar
+  cambios ajenos de otros refactors en curso en el repo.
+- Desplegado: imagen `ades-bff` reconstruida y contenedor recreado, healthy.
+
 ## Pendiente / recomendación de seguimiento
 
-No se hizo un barrido exhaustivo de **todo** el proyecto buscando este mismo
-patrón (`jdbc.update()`/`jdbc.update` sin `@Transactional` en su cadena) fuera
-de los módulos alumnos/profesores/personal-admin/contactos tocados hoy. Vale
-la pena una búsqueda dedicada (`grep -rL "@Transactional" ...` cruzado con
-`grep -rl "jdbc.update\|jdbc.batchUpdate"`) en una sesión futura para
-descartar el mismo bug en otros módulos.
+- **`PiiBackfillRunner`** sigue sin corregir (ver sección anterior) — no
+  ejecutar `PII_BACKFILL_RUN=true` hasta resolverlo.
+- El barrido fue guiado por un agente de exploración + verificación manual,
+  no por un análisis estático exhaustivo automatizado. Es razonablemente
+  completo pero no matemáticamente garantizado al 100%. Recomendación para
+  el futuro: un check de CI/pre-commit que falle si aparece `jdbc.update`/
+  `jdbc.batchUpdate` en un método sin `@Transactional` en la clase (heurística
+  simple, no reemplaza el análisis de cadena de invocación, pero atraparía
+  regresiones obvias).
+- Los tests unitarios de dominio existentes (`*DomainTest`) no cubren este
+  tipo de bug por diseño (no tocan JdbcTemplate real). No se agregó
+  infraestructura de test de integración permanente en este pase — las
+  pruebas usadas para confirmar y verificar el fix fueron temporales y se
+  borraron tras usarse (ver secciones anteriores). Sería valioso, en una
+  sesión futura, establecer un patrón de test de integración liviano
+  (similar a `TransactionalFixVerificationTest`) que quede en la suite.

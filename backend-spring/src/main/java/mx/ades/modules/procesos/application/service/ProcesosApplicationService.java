@@ -5,6 +5,7 @@ import mx.ades.modules.procesos.domain.port.out.PreinscripcionRepositoryPort;
 import mx.ades.modules.procesos.domain.port.out.PreinscripcionRepositoryPort.AdmisionData;
 import mx.ades.modules.procesos.domain.port.out.PreinscripcionRepositoryPort.GrupoCapacidad;
 import org.springframework.http.HttpStatus;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 /**
@@ -25,6 +26,7 @@ public class ProcesosApplicationService implements ProcesarPreinscripcionUseCase
     }
 
     @Override
+    @Transactional
     public PreinscripcionResult ejecutar(Command command) {
         AdmisionData admision = repo.findAdmisionAceptada(command.admisionId())
                 .orElseThrow(() -> new ResponseStatusException(

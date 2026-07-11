@@ -3,6 +3,7 @@ package mx.ades.modules.notificaciones.application.service;
 import mx.ades.modules.notificaciones.domain.port.in.MarcarLeidaUseCase;
 import mx.ades.modules.notificaciones.domain.port.in.MarcarTodasLeidasUseCase;
 import mx.ades.modules.notificaciones.domain.port.out.NotificacionWriteRepositoryPort;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Caso de uso: marcado de notificaciones como leídas en el portal de usuarios.
@@ -22,11 +23,13 @@ public class NotificacionApplicationService implements MarcarLeidaUseCase, Marca
     }
 
     @Override
+    @Transactional
     public void marcar(MarcarLeidaUseCase.Command cmd) {
         repository.marcarLeida(cmd.notifId(), cmd.usuarioId());
     }
 
     @Override
+    @Transactional
     public void marcarTodas(MarcarTodasLeidasUseCase.Command cmd) {
         repository.marcarTodasLeidas(cmd.usuarioId());
     }

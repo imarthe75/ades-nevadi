@@ -2,6 +2,7 @@ package mx.ades.modules.portal_familias.application.service;
 
 import mx.ades.modules.portal_familias.domain.port.in.AgregarTutorUseCase;
 import mx.ades.modules.portal_familias.domain.port.out.PortalFamiliasRepositoryPort;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Map;
 import java.util.UUID;
@@ -25,6 +26,7 @@ public class PortalFamiliasApplicationService implements AgregarTutorUseCase {
     }
 
     @Override
+    @Transactional
     public Map<String, Object> agregar(Command cmd) {
         if (!repo.existeAlumno(cmd.alumnoId())) {
             throw new IllegalStateException("Alumno no encontrado");
@@ -32,10 +34,12 @@ public class PortalFamiliasApplicationService implements AgregarTutorUseCase {
         return repo.insertTutor(cmd);
     }
 
+    @Transactional
     public void desvincular(UUID tutorAlumnoId, String usuarioMod) {
         repo.desvincularTutor(tutorAlumnoId, usuarioMod);
     }
 
+    @Transactional
     public UUID crearUsuario(UUID tutorAlumnoId, String email, String nombreCompleto, String usuarioId) {
         if (!repo.existeTutorAlumno(tutorAlumnoId)) {
             throw new IllegalStateException("Vínculo tutor-alumno no encontrado");
@@ -43,6 +47,7 @@ public class PortalFamiliasApplicationService implements AgregarTutorUseCase {
         return repo.enqueueCrearUsuario(tutorAlumnoId, email, nombreCompleto, usuarioId);
     }
 
+    @Transactional
     public void establecerRestriccion(UUID tutorAlumnoId, Map<String, Object> restricciones, String usuarioId) {
         repo.upsertRestriccion(tutorAlumnoId, restricciones, usuarioId);
     }

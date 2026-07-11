@@ -4,6 +4,7 @@ import mx.ades.modules.eval_docente.domain.port.in.CrearEvaluacionUseCase;
 import mx.ades.modules.eval_docente.domain.port.in.EnviarEvaluacionUseCase;
 import mx.ades.modules.eval_docente.domain.port.in.GuardarCriteriosUseCase;
 import mx.ades.modules.eval_docente.domain.port.out.EvalDocenteRepositoryPort;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Map;
 import java.util.UUID;
@@ -28,12 +29,14 @@ public class EvalDocenteApplicationService
     }
 
     @Override
+    @Transactional
     public Map<String, Object> crear(CrearEvaluacionUseCase.Command cmd) {
         UUID id = repository.insertEvaluacion(cmd);
         return repository.fetchEvaluacion(id);
     }
 
     @Override
+    @Transactional
     public Map<String, Object> guardar(GuardarCriteriosUseCase.Command cmd) {
         String estatus = repository.findEstatus(cmd.evalId())
                 .orElseThrow(() -> new IllegalArgumentException("Evaluación no encontrada: " + cmd.evalId()));
@@ -51,6 +54,7 @@ public class EvalDocenteApplicationService
     }
 
     @Override
+    @Transactional
     public Map<String, Object> enviar(EnviarEvaluacionUseCase.Command cmd) {
         int updated = repository.enviar(cmd.evalId(), cmd.usuario());
         if (updated == 0) {

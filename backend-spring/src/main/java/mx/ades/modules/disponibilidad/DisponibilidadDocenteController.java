@@ -106,6 +106,7 @@ public class DisponibilidadDocenteController {
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Transactional
     public void eliminar(@PathVariable("id") UUID id, @AuthenticationPrincipal Jwt jwt) {
         userService.resolveUser(jwt);
         eliminarSlot.eliminar(id);

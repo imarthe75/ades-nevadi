@@ -2,6 +2,7 @@ package mx.ades.modules.gradebook;
 
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.*;
@@ -17,6 +18,7 @@ public class ActividadesWriteService {
 
     public record CrearActividadResult(UUID tareaId, int slotsCreados) {}
 
+    @Transactional
     public CrearActividadResult crearActividad(
             String titulo, String descripcion, UUID grupoId, UUID materiaId,
             UUID periodoEvaluacionId, String tipoItem, UUID temaId, UUID planTrabajoId,
@@ -57,6 +59,7 @@ public class ActividadesWriteService {
         return new CrearActividadResult(tareaId, alumnos.size());
     }
 
+    @Transactional
     public int calificarMasivo(UUID actividadId, List<Map<String, Object>> items, UUID calificadoPor, String usuario) {
         int actualizados = 0;
         for (Map<String, Object> item : items) {

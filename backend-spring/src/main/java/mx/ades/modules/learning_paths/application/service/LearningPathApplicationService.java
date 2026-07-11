@@ -5,6 +5,7 @@ import mx.ades.modules.learning_paths.domain.port.in.AsignarPathUseCase;
 import mx.ades.modules.learning_paths.domain.port.in.CrearLearningPathUseCase;
 import mx.ades.modules.learning_paths.domain.port.in.RegistrarProgresoUseCase;
 import mx.ades.modules.learning_paths.domain.port.out.LearningPathRepositoryPort;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 
@@ -28,6 +29,7 @@ public class LearningPathApplicationService
     }
 
     @Override
+    @Transactional
     public RegistrarProgresoUseCase.Result ejecutar(RegistrarProgresoUseCase.Command command) {
         repo.upsertProgreso(command.asignacionId(), command.recursoId(),
                 command.tiempoMin(), command.calificacion());
@@ -39,6 +41,7 @@ public class LearningPathApplicationService
     }
 
     @Override
+    @Transactional
     public Map<String, Object> crear(CrearLearningPathUseCase.Command cmd) {
         UUID id = UUID.randomUUID();
         return repo.insertPath(id, cmd.nombre(), cmd.descripcion(), cmd.nivelEducativoId(),
@@ -46,6 +49,7 @@ public class LearningPathApplicationService
     }
 
     @Override
+    @Transactional
     public Map<String, Object> asignar(AsignarPathUseCase.Command cmd) {
         String pathNombre = repo.fetchPathNombre(cmd.pathId())
                 .orElseThrow(() -> new IllegalStateException("Learning path no encontrado"));
@@ -56,6 +60,7 @@ public class LearningPathApplicationService
         return result;
     }
 
+    @Transactional
     public Map<String, Object> agregarRecurso(UUID pathId, Integer orden, String tipo, String titulo,
                                                String descripcion, String urlRecurso,
                                                Integer duracionMin, Boolean obligatorio) {
@@ -64,6 +69,7 @@ public class LearningPathApplicationService
         return repo.insertRecurso(id, pathId, orden, tipo, titulo, descripcion, urlRecurso, duracionMin, obligatorio);
     }
 
+    @Transactional
     public int asignarAutomatico(UUID grupoId, UUID asignadoPor) {
         List<Map<String, Object>> alertas = repo.fetchAlertasByGrupo(grupoId);
         if (alertas.isEmpty()) return 0;

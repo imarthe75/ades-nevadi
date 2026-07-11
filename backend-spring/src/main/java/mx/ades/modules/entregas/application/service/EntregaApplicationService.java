@@ -4,6 +4,7 @@ import mx.ades.modules.entregas.domain.port.in.CalificarEntregaUseCase;
 import mx.ades.modules.entregas.domain.port.in.RegistrarExcusaUseCase;
 import mx.ades.modules.entregas.domain.port.in.SubirEntregaUseCase;
 import mx.ades.modules.entregas.domain.port.out.EntregaRepositoryPort;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Map;
 
@@ -26,6 +27,7 @@ public class EntregaApplicationService
     }
 
     @Override
+    @Transactional
     public Map<String, Object> subir(SubirEntregaUseCase.Command cmd) {
         repository.upsertEntrega(cmd);
         return Map.of("message", "Entrega registrada", "archivo_url",
@@ -33,6 +35,7 @@ public class EntregaApplicationService
     }
 
     @Override
+    @Transactional
     public Map<String, Object> calificar(CalificarEntregaUseCase.Command cmd) {
         int updated = repository.calificar(cmd);
         if (updated == 0) throw new IllegalArgumentException("Entrega no encontrada: " + cmd.entregaId());
@@ -40,6 +43,7 @@ public class EntregaApplicationService
     }
 
     @Override
+    @Transactional
     public Map<String, Object> registrar(RegistrarExcusaUseCase.Command cmd) {
         int updated = repository.registrarExcusa(cmd.entregaId(), cmd.motivo(), cmd.usuario());
         if (updated == 0) throw new IllegalArgumentException("Entrega no encontrada: " + cmd.entregaId());

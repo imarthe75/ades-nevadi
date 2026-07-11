@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
@@ -176,6 +177,7 @@ public class PortalUsuarioController {
     // ─────────────────────────────────────────────────────────
 
     @PostMapping("/postulaciones/{id}/enviar")
+    @Transactional
     public ResponseEntity<Map<String, Object>> enviarPostulacion(
             HttpServletRequest req, @PathVariable UUID id) {
         UUID uid = jwtService.resolverUsuarioId(req);

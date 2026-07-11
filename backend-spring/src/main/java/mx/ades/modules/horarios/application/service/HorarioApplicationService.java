@@ -3,6 +3,7 @@ package mx.ades.modules.horarios.application.service;
 import mx.ades.modules.horarios.domain.port.in.ActualizarHorarioUseCase;
 import mx.ades.modules.horarios.domain.port.in.CrearHorarioUseCase;
 import mx.ades.modules.horarios.domain.port.out.HorarioWriteRepositoryPort;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
@@ -26,11 +27,13 @@ public class HorarioApplicationService
     }
 
     @Override
+    @Transactional
     public UUID crear(CrearHorarioUseCase.Command cmd) {
         return repo.insert(cmd);
     }
 
     @Override
+    @Transactional
     public void actualizar(ActualizarHorarioUseCase.Command cmd) {
         if (!repo.exists(cmd.horarioId())) {
             throw new IllegalStateException("Horario no encontrado: " + cmd.horarioId());
@@ -38,6 +41,7 @@ public class HorarioApplicationService
         repo.update(cmd);
     }
 
+    @Transactional
     public void eliminar(UUID horarioId) {
         repo.softDelete(horarioId);
     }

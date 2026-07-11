@@ -3,6 +3,7 @@ package mx.ades.modules.encuestas.application.service;
 import mx.ades.modules.encuestas.domain.port.in.ResponderEncuestaUseCase;
 import mx.ades.modules.encuestas.domain.port.out.EncuestaRespuestaRepositoryPort;
 import org.springframework.http.HttpStatus;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
@@ -30,6 +31,7 @@ public class EncuestaApplicationService implements ResponderEncuestaUseCase {
     }
 
     @Override
+    @Transactional
     public Result ejecutar(Command command) {
         EncuestaRespuestaRepositoryPort.EncuestaEstado estado = repo.findEstado(command.encuestaId());
 

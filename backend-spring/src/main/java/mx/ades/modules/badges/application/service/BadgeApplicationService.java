@@ -4,6 +4,7 @@ import mx.ades.modules.badges.Badge;
 import mx.ades.modules.badges.domain.port.in.*;
 import mx.ades.modules.badges.domain.port.out.BadgeRepositoryPort;
 import org.springframework.http.HttpStatus;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
@@ -44,16 +45,19 @@ public class BadgeApplicationService
     }
 
     @Override
+    @Transactional
     public boolean otorgar(OtorgarBadgeUseCase.Command cmd) {
         return repo.otorgar(cmd.badgeId(), cmd.estudianteId(), cmd.cicloId(), cmd.motivo(), cmd.otorgadoPor());
     }
 
     @Override
+    @Transactional
     public void revocar(UUID badgeId, UUID estudianteId, UUID cicloId) {
         repo.revocar(badgeId, estudianteId, cicloId);
     }
 
     @Override
+    @Transactional
     public AutoEvaluarBadgesUseCase.Result autoEvaluar(UUID cicloId) {
         List<Badge> badges = repo.findAllAutomatic();
         int totalOtorgados = 0;

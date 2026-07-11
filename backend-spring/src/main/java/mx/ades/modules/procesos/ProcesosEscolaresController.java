@@ -10,6 +10,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.server.ResponseStatusException;
@@ -303,6 +304,7 @@ public class ProcesosEscolaresController {
      * El padre/tutor capturado en la solicitud recibe una cuenta automáticamente.
      */
     @PostMapping("/admision/{id}/aprobar-e-inscribir")
+    @Transactional
     public ResponseEntity<Map<String, Object>> aprobarEInscribir(
             @PathVariable("id") UUID solicitudId,
             @RequestBody AprobarEInscribirRequest body,

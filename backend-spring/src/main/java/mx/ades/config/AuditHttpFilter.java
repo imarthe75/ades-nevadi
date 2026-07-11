@@ -7,7 +7,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.annotation.Order;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
@@ -16,7 +15,6 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.Set;
-import java.util.UUID;
 
 /**
  * Equivalente Spring del AuditMiddleware de FastAPI.
@@ -31,7 +29,7 @@ public class AuditHttpFilter extends OncePerRequestFilter {
 
     private static final Set<String> MUTATING_METHODS = Set.of("POST", "PUT", "PATCH", "DELETE");
 
-    private final JdbcTemplate jdbc;
+    private final AuditLogWriter auditLogWriter;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -56,16 +54,8 @@ public class AuditHttpFilter extends OncePerRequestFilter {
                 // Derivar "entidad" del segundo segmento de la ruta (/api/v1/{entidad}/...)
                 String entidad = deriveEntidad(uri);
                 try {
-                    jdbc.update(
-                        "INSERT INTO ades_audit_log " +
-                        "(id, nombre_usuario, accion, entidad, endpoint, metodo_http, codigo_respuesta, duracion_ms, " +
-                        " event_category, event_risk_level, security_outcome) " +
-                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                        UUID.randomUUID(), sub, method, entidad, uri, method, (short) status,
-                        (int)(System.currentTimeMillis() - start),
-                        "API_MUTATION",
-                        status >= 400 ? "MEDIUM" : "LOW",
-                        status >= 400 ? "FAILURE" : "SUCCESS");
+                    auditLogWriter.registrar(sub, method, entidad, uri, (short) status,
+                        (int) (System.currentTimeMillis() - start));
                 } catch (Exception ex) {
                     // No interrumpir el flujo principal por fallos de auditoría
                     log.warn("AuditHttpFilter: no se pudo registrar en ades_audit_log — {}", ex.getMessage());

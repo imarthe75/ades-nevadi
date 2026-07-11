@@ -67,6 +67,7 @@ public class PlanMejoraService {
             """, evaluacionId);
     }
 
+    @Transactional
     public void actualizarEstado(UUID id, String estado) {
         int filas = jdbc.update("UPDATE ades_planes_mejora_docente SET estado = ? WHERE id = ? AND is_active = TRUE", estado, id);
         if (filas == 0) {

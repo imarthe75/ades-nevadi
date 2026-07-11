@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -151,6 +152,7 @@ public class AulaController {
      * @throws ResponseStatusException 404 si el aula no existe, o 400 si faltan parámetros requeridos.
      */
     @PostMapping("/{id}/disponibilidad")
+    @Transactional
     public ResponseEntity<Map<String, Object>> agregarFranja(
             @PathVariable("id") UUID aulaId,
             @RequestBody Map<String, Object> body,
@@ -190,6 +192,7 @@ public class AulaController {
      */
     @DeleteMapping("/disponibilidad/{franjaId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Transactional
     public void eliminarFranja(
             @PathVariable("franjaId") UUID franjaId,
             @AuthenticationPrincipal Jwt jwt) {

@@ -2,6 +2,7 @@ package mx.ades.modules.planteles;
 
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Map;
 import java.util.UUID;
@@ -20,6 +21,7 @@ public class PlantelClaveWriteService {
         this.jdbc = jdbc;
     }
 
+    @Transactional
     public void actualizar(UUID plantelId, UUID nivelEducativoId, Map<String, Object> body) {
         String tipoClave = (String) body.getOrDefault("tipo_clave", "CCT_SEP");
         String clave = (String) body.get("clave");

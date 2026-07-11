@@ -2,6 +2,7 @@ package mx.ades.modules.portal;
 
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.*;
@@ -125,6 +126,7 @@ public class PortalPublicoService {
                 "SELECT EXISTS(SELECT 1 FROM portal.usuarios WHERE email = ?)", Boolean.class, email));
     }
 
+    @Transactional
     public UUID registrarUsuario(String email, String hash, String nombreCompleto,
                                   String telefono, String fechaNacimiento,
                                   String token, String consentimientoVersion) {
@@ -140,6 +142,7 @@ public class PortalPublicoService {
                 email, hash, nombreCompleto, telefono, fechaNacimiento, token, consentimientoVersion);
     }
 
+    @Transactional
     public int verificarEmail(String token) {
         return jdbc.update("""
             UPDATE portal.usuarios
@@ -155,10 +158,12 @@ public class PortalPublicoService {
             """, email);
     }
 
+    @Transactional
     public void actualizarUltimoAcceso(UUID uid) {
         jdbc.update("UPDATE portal.usuarios SET fecha_ultimo_acceso = NOW() WHERE id = ?", uid);
     }
 
+    @Transactional
     public void solicitarRecuperacion(String email, String token) {
         jdbc.update("""
             UPDATE portal.usuarios
@@ -168,6 +173,7 @@ public class PortalPublicoService {
             """, token, email);
     }
 
+    @Transactional
     public int actualizarClave(String token, String hash) {
         return jdbc.update("""
             UPDATE portal.usuarios
@@ -184,6 +190,7 @@ public class PortalPublicoService {
                 email);
     }
 
+    @Transactional
     public void insertarSolicitudArco(UUID portalUserId, String email, String nombre,
                                        String tipo, String descripcion, LocalDate fechaLimite) {
         jdbc.update("""

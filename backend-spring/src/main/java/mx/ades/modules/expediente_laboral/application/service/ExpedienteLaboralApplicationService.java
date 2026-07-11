@@ -4,6 +4,7 @@ import mx.ades.modules.expediente_laboral.domain.port.in.ActualizarExpedienteLab
 import mx.ades.modules.expediente_laboral.domain.port.in.AgregarDocumentoLaboralUseCase;
 import mx.ades.modules.expediente_laboral.domain.port.in.CrearExpedienteLaboralUseCase;
 import mx.ades.modules.expediente_laboral.domain.port.out.ExpedienteLaboralRepositoryPort;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Map;
 import java.util.UUID;
@@ -28,12 +29,14 @@ public class ExpedienteLaboralApplicationService
     }
 
     @Override
+    @Transactional
     public Map<String, Object> crear(CrearExpedienteLaboralUseCase.Command cmd) {
         UUID id = repository.insert(cmd);
         return repository.fetchById(id);
     }
 
     @Override
+    @Transactional
     public Map<String, Object> actualizar(ActualizarExpedienteLaboralUseCase.Command cmd) {
         repository.findById(cmd.id())
                 .orElseThrow(() -> new IllegalArgumentException("Expediente laboral no encontrado: " + cmd.id()));
@@ -41,6 +44,7 @@ public class ExpedienteLaboralApplicationService
     }
 
     @Override
+    @Transactional
     public Map<String, Object> agregar(AgregarDocumentoLaboralUseCase.Command cmd) {
         repository.findById(cmd.expedienteId())
                 .orElseThrow(() -> new IllegalArgumentException("Expediente laboral no encontrado: " + cmd.expedienteId()));
@@ -48,6 +52,7 @@ public class ExpedienteLaboralApplicationService
         return repository.fetchById(cmd.expedienteId());
     }
 
+    @Transactional
     public void eliminar(UUID id, int nivelAcceso, String usuarioId) {
         if (nivelAcceso > 2) throw new IllegalArgumentException("Solo RH o Dirección puede eliminar expedientes");
         repository.findById(id)

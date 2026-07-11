@@ -13,6 +13,7 @@ import mx.ades.modules.expediente.domain.port.out.ExtraordinarioRepositoryPort;
 import mx.ades.modules.expediente.domain.port.out.ExpedienteRepositoryPort;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
@@ -52,6 +53,7 @@ public class ExpedienteApplicationService
     }
 
     @Override
+    @Transactional
     public RegistrarBajaUseCase.Result ejecutar(RegistrarBajaUseCase.Command cmd) {
         TipoBaja tipo = cmd.tipo();
         UUID bajaId = bajaRepo.guardar(
@@ -74,6 +76,7 @@ public class ExpedienteApplicationService
     }
 
     @Override
+    @Transactional
     public void ejecutar(CalificarExtraordinarioUseCase.Command cmd) {
         if (!extraRepo.existeActivo(cmd.extraordinarioId())) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Extraordinario no encontrado o inactivo");
@@ -93,6 +96,7 @@ public class ExpedienteApplicationService
     }
 
     @Override
+    @Transactional
     public EmitirConstanciaUseCase.Result ejecutar(EmitirConstanciaUseCase.Command cmd) {
         String folio = constanciaRepo.generarFolio(cmd.tipoConstancia());
         UUID id = constanciaRepo.guardar(
@@ -103,6 +107,7 @@ public class ExpedienteApplicationService
     }
 
     @Override
+    @Transactional
     public void ejecutar(VerificarExpedienteUseCase.Command cmd) {
         expedienteRepo.marcarVerificado(
                 cmd.expedienteId(), cmd.observaciones(), cmd.verificadoPorId());

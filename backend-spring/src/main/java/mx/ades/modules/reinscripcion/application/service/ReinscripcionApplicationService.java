@@ -5,6 +5,7 @@ import mx.ades.modules.reinscripcion.domain.port.in.ProcesarAccionReinscripcionU
 import mx.ades.modules.reinscripcion.domain.port.out.ReinscripcionRepositoryPort;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 
@@ -31,6 +32,7 @@ public class ReinscripcionApplicationService implements ProcesarAccionReinscripc
     }
 
     @Override
+    @Transactional
     public Result ejecutar(Command cmd) {
         String estado = cmd.accion().toEstado();
         repo.procesarAccion(cmd.registroId(), estado, cmd.razonRechazo(), cmd.procesadoPor());

@@ -3,6 +3,7 @@ package mx.ades.modules.expediente.query;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
@@ -41,6 +42,14 @@ public class ExpedienteQueryService {
         return ids.get(0);
     }
 
+    /**
+     * Fetch-or-create: si el expediente no existe, lo inserta. Necesita
+     * @Transactional en este método (invocación externa desde ExpedienteController)
+     * Y también en detalleExpediente (que la auto-invoca — la auto-invocación
+     * no pasa por el proxy de Spring, así que sin @Transactional en
+     * detalleExpediente también, esa segunda ruta no persistiría el insert).
+     */
+    @Transactional
     public Map<String, Object> obtenerOCrearExpediente(UUID estudianteId, UUID cicloId) {
         List<Map<String, Object>> rows = jdbc.queryForList(
             "SELECT id, estado, completitud_pct, revisado_por, fecha_revision, observaciones, ciclo_escolar_id " +
@@ -58,6 +67,7 @@ public class ExpedienteQueryService {
             "FROM public.ades_expedientes_alumno WHERE id = ?", newId);
     }
 
+    @Transactional
     public Map<String, Object> detalleExpediente(UUID estudianteId, UUID cicloId) {
         Map<String, Object> exp = obtenerOCrearExpediente(estudianteId, cicloId);
         UUID expId = (UUID) exp.get("id");

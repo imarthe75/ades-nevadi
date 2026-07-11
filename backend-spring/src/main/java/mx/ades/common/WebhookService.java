@@ -41,6 +41,7 @@ import java.util.*;
 public class WebhookService {
 
     private final JdbcTemplate jdbc;
+    private final WebhookLogWriter logWriter;
     private final RestClient restClient = RestClient.builder().build();
 
     @Async
@@ -106,10 +107,7 @@ public class WebhookService {
                 success = false;
             }
 
-            jdbc.update("INSERT INTO ades_webhook_logs " +
-                    "(webhook_id, event_type, payload, status_code, response_body, intentos, exitoso, fecha_envio) " +
-                    "VALUES (?, ?, ?::jsonb, ?, ?, 1, ?, NOW())",
-                    webhookId, eventType, bodyStr, statusCode, responseBody, success);
+            logWriter.registrar(webhookId, eventType, bodyStr, statusCode, responseBody, success);
 
         } catch (Exception e) {
             log.warn("Failed to process webhook for URL {}: {}", url, e.getMessage());

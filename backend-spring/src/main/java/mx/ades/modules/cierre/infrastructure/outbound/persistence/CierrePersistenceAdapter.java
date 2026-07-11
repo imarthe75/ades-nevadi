@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import mx.ades.modules.cierre.domain.port.out.CierreRepositoryPort;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
@@ -34,7 +35,16 @@ public class CierrePersistenceAdapter implements CierreRepositoryPort {
         return Optional.ofNullable((String) rows.get(0).get("estado"));
     }
 
+    /**
+     * @Transactional aquí en el adapter (no en CierreApplicationService.cerrar) a
+     * propósito: cerrar() también invoca CierreCicloService.cerrarCiclo, que exige
+     * @Transactional(isolation = SERIALIZABLE) — envolver cerrar() entero con el
+     * default (sin isolation explícito) haría que esa llamada anidada intente unirse
+     * a una transacción con un isolation level distinto y Spring lance
+     * IllegalTransactionStateException. Aislar el @Transactional aquí evita el choque.
+     */
     @Override
+    @Transactional
     public void marcarCerrado(UUID cicloId) {
         jdbc.update(
             "UPDATE ades_ciclos_escolares SET estado = 'CERRADO', es_vigente = FALSE, fecha_modificacion = now() WHERE id = ?",

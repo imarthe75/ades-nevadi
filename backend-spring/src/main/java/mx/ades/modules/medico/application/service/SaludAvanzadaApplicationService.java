@@ -2,6 +2,7 @@ package mx.ades.modules.medico.application.service;
 
 import mx.ades.modules.medico.domain.port.in.*;
 import mx.ades.modules.medico.domain.port.out.SaludAvanzadaRepositoryPort;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
@@ -27,16 +28,19 @@ public class SaludAvanzadaApplicationService
     }
 
     @Override
+    @Transactional
     public UUID registrar(RegistrarMedicamentoUseCase.Command cmd) {
         return repo.insertMedicamento(cmd);
     }
 
     @Override
+    @Transactional
     public void suspender(SuspenderMedicamentoUseCase.Command cmd) {
         repo.suspenderMedicamento(cmd);
     }
 
     @Override
+    @Transactional
     public UUID generar(GenerarActaIncidenteUseCase.Command cmd) {
         if (!repo.existeIncidente(cmd.incidenteId())) {
             throw new IllegalStateException("Incidente médico no encontrado: " + cmd.incidenteId());
@@ -45,11 +49,13 @@ public class SaludAvanzadaApplicationService
     }
 
     @Override
+    @Transactional
     public UUID registrar(RegistrarPsicosocialUseCase.Command cmd) {
         return repo.insertPsicosocial(cmd);
     }
 
     @Override
+    @Transactional
     public UUID registrar(RegistrarTutoriaUseCase.Command cmd) {
         return repo.insertTutoria(cmd);
     }

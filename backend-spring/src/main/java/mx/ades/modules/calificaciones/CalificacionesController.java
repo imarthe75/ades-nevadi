@@ -19,6 +19,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -229,6 +230,7 @@ public class CalificacionesController {
     }
 
     @PostMapping("/cualitativa")
+    @Transactional
     public ResponseEntity<Map<String, Object>> guardarCualitativa(
             @RequestBody CualitativaRequest body,
             @AuthenticationPrincipal Jwt jwt) {

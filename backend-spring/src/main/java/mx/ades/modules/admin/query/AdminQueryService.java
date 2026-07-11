@@ -3,6 +3,7 @@ package mx.ades.modules.admin.query;
 import mx.ades.security.AdesUser;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -129,6 +130,7 @@ public class AdminQueryService {
             "FROM ades_menus ORDER BY peso ASC");
     }
 
+    @Transactional
     public Map<String, Object> actualizarMenu(String clave, String label,
                                                Integer nivelMaximo, Integer nivelMinimo, Boolean activo) {
         List<Object> params = new ArrayList<>();
@@ -168,6 +170,7 @@ public class AdminQueryService {
             "ORDER BY r.nivel_acceso, m.peso");
     }
 
+    @Transactional
     public Map<String, Object> upsertPermisoRol(UUID rolId, String menuClave,
                                                   Boolean puedeVer, Boolean puedeEditar,
                                                   Boolean puedeCrear, Boolean puedeEliminar) {

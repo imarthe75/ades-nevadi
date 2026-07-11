@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
@@ -19,6 +20,7 @@ public class CalendarioWriteService {
 
     private final JdbcTemplate jdbc;
 
+    @Transactional
     public Map<String, Object> crearEvento(
             String cicloId, String fecha, String nombre, String tipo,
             String plantelIdStr, boolean aplicaTodos, int nivelAcceso, UUID userPlantelId) {
@@ -47,6 +49,7 @@ public class CalendarioWriteService {
         return Map.of("id", newId, "created", true);
     }
 
+    @Transactional
     public Map<String, Object> actualizarEvento(
             UUID id, Map<String, Object> body, int nivelAcceso, UUID userPlantelId) {
 
@@ -90,6 +93,7 @@ public class CalendarioWriteService {
         return Map.of("updated", true);
     }
 
+    @Transactional
     public void eliminarEvento(UUID id, int nivelAcceso, UUID userPlantelId) {
         List<Map<String, Object>> existing = jdbc.queryForList(
             "SELECT plantel_id FROM ades_calendario_escolar WHERE id = ? AND is_active = true", id);

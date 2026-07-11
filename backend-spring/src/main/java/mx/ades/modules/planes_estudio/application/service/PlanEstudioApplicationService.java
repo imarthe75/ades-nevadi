@@ -2,6 +2,7 @@ package mx.ades.modules.planes_estudio.application.service;
 
 import mx.ades.modules.planes_estudio.domain.port.in.AsignarMateriaUseCase;
 import mx.ades.modules.planes_estudio.domain.port.out.PlanEstudioRepositoryPort;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Map;
 import java.util.UUID;
@@ -24,6 +25,7 @@ public class PlanEstudioApplicationService implements AsignarMateriaUseCase {
     }
 
     @Override
+    @Transactional
     public UUID asignar(Command cmd) {
         return repo.insert(cmd);
     }
@@ -32,6 +34,7 @@ public class PlanEstudioApplicationService implements AsignarMateriaUseCase {
         return repo.fetchById(id);
     }
 
+    @Transactional
     public void patch(UUID id, Map<String, Object> body) {
         if (body.containsKey("horas_semana")) {
             repo.patchHorasSemana(id, ((Number) body.get("horas_semana")).doubleValue());
@@ -44,17 +47,20 @@ public class PlanEstudioApplicationService implements AsignarMateriaUseCase {
         }
     }
 
+    @Transactional
     public void eliminar(UUID id) {
         int rows = repo.softDelete(id);
         if (rows == 0) throw new IllegalStateException("Plan de estudio no encontrado: " + id);
     }
 
     /** AC-015: publica una versión de plan (visible en vistas operativas). */
+    @Transactional
     public void publicar(UUID id) {
         repo.patchEstadoPublicacion(id, "PUBLICADO");
     }
 
     /** AC-015: archiva una versión de plan (histórico, ya no editable ni operativo). */
+    @Transactional
     public void archivar(UUID id) {
         repo.patchEstadoPublicacion(id, "ARCHIVADO");
     }

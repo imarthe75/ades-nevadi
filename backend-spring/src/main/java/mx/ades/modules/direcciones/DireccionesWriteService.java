@@ -2,6 +2,7 @@ package mx.ades.modules.direcciones;
 
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.*;
@@ -15,6 +16,7 @@ public class DireccionesWriteService {
         this.jdbc = jdbc;
     }
 
+    @Transactional
     public UUID crearDireccion(DireccionesController.DireccionPayload body, String usuario) {
         if (Boolean.TRUE.equals(body.getEsPrincipal())) {
             jdbc.update("UPDATE ades_direcciones SET es_principal = FALSE " +
@@ -42,6 +44,7 @@ public class DireccionesWriteService {
         return id;
     }
 
+    @Transactional
     public void actualizarDireccion(UUID id, DireccionesController.DireccionPayload body,
                                      String entidadTipo, UUID entidadId, String usuario) {
         if (Boolean.TRUE.equals(body.getEsPrincipal())) {
@@ -74,16 +77,19 @@ public class DireccionesWriteService {
         jdbc.update(sql.toString(), params.toArray());
     }
 
+    @Transactional
     public int eliminarDireccion(UUID id) {
         return jdbc.update("UPDATE ades_direcciones SET is_active = FALSE WHERE id = ? AND is_active = TRUE", id);
     }
 
+    @Transactional
     public void setPrincipalDireccion(UUID id, String entidadTipo, UUID entidadId) {
         jdbc.update("UPDATE ades_direcciones SET es_principal = FALSE " +
                 "WHERE entidad_tipo = ? AND entidad_id = ? AND is_active = TRUE", entidadTipo, entidadId);
         jdbc.update("UPDATE ades_direcciones SET es_principal = TRUE WHERE id = ?", id);
     }
 
+    @Transactional
     public UUID crearContacto(DireccionesController.PersonaContactoPayload body, String usuario) {
         UUID id = UUID.randomUUID();
         jdbc.update(
@@ -100,6 +106,7 @@ public class DireccionesWriteService {
         return id;
     }
 
+    @Transactional
     public void actualizarContacto(UUID id, DireccionesController.PersonaContactoPayload body, String usuario) {
         StringBuilder sql = new StringBuilder(
                 "UPDATE ades_persona_contactos SET row_version = row_version + 1, usuario_modificacion = ?");
@@ -119,6 +126,7 @@ public class DireccionesWriteService {
         jdbc.update(sql.toString(), params.toArray());
     }
 
+    @Transactional
     public int eliminarContacto(UUID id) {
         return jdbc.update("UPDATE ades_persona_contactos SET is_active = FALSE WHERE id = ? AND is_active = TRUE", id);
     }

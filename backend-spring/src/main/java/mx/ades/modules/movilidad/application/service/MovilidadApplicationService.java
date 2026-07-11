@@ -4,6 +4,7 @@ import mx.ades.modules.movilidad.domain.port.in.RegistrarBajaUseCase;
 import mx.ades.modules.movilidad.domain.port.in.RegistrarCambioGrupoUseCase;
 import mx.ades.modules.movilidad.domain.port.out.MovilidadRepositoryPort;
 import org.springframework.http.HttpStatus;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
@@ -30,6 +31,7 @@ public class MovilidadApplicationService
     // ── CAMBIO DE GRUPO ───────────────────────────────────────────────────────
 
     @Override
+    @Transactional
     public RegistrarCambioGrupoUseCase.Result ejecutar(RegistrarCambioGrupoUseCase.Command cmd) {
         var insc = repo.findInscripcionActiva(cmd.estudianteId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
@@ -60,6 +62,7 @@ public class MovilidadApplicationService
     // ── BAJA / TRASLADO ───────────────────────────────────────────────────────
 
     @Override
+    @Transactional
     public RegistrarBajaUseCase.Result ejecutar(RegistrarBajaUseCase.Command cmd) {
         var insc = repo.findInscripcionActiva(cmd.estudianteId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,

@@ -43,6 +43,7 @@ public class HorarioAscService {
 
     private final JdbcTemplate jdbc;
     private final CrearHorarioUseCase crearHorarioUseCase;
+    private final HorarioDesactivadorService desactivadorService;
 
     private static final String EXPORT_SQL =
         "SELECT h.id, h.grupo_id, h.materia_id, h.profesor_id, h.aula_id, h.dia_semana, " +
@@ -186,9 +187,15 @@ public class HorarioAscService {
                                List<String> detalleErrores) {}
 
     /**
-     * No es {@code @Transactional} a propósito: cada card se inserta con autocommit
-     * independiente (igual que los demás importadores) para que un renglón inválido
-     * no aborte toda la transacción (PostgreSQL 25P02). Reporta éxitos/errores por card.
+     * No es {@code @Transactional} a propósito: cada card se inserta en su propia
+     * transacción independiente (vía {@link CrearHorarioUseCase} y
+     * {@link HorarioDesactivadorService}, cada uno con su propio
+     * {@code @Transactional}) para que un renglón inválido no aborte los demás.
+     * Ojo: este proyecto tiene {@code hikari.auto-commit=false} — sin
+     * {@code @Transactional} en el bean invocado, un {@code jdbc.update} NO
+     * persiste (no hay autocommit implícito); por eso la independencia por
+     * renglón se logra con transacciones explícitas por fila, no con autocommit.
+     * Reporta éxitos/errores por card.
      */
     public ImportResult importarXml(byte[] contenido, UUID cicloId, UUID plantelId,
                                     boolean reemplazar, String usuario) {
@@ -247,7 +254,7 @@ public class HorarioAscService {
                     ? jdbc.queryForList(delSql, UUID.class, cicloId, plantelId)
                     : jdbc.queryForList(delSql, UUID.class, cicloId);
             for (UUID id : ids) {
-                jdbc.update("UPDATE ades_horarios SET is_active = FALSE, usuario_modificacion = ? WHERE id = ?", usuario, id);
+                desactivadorService.desactivar(id, usuario);
                 eliminados++;
             }
         }

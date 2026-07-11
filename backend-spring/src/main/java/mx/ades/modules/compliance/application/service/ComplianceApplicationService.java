@@ -4,6 +4,7 @@ import mx.ades.modules.compliance.domain.port.in.CrearAlertaUseCase;
 import mx.ades.modules.compliance.domain.port.in.RegistrarNormativaUseCase;
 import mx.ades.modules.compliance.domain.port.in.RegistrarRetencionUseCase;
 import mx.ades.modules.compliance.domain.port.out.ComplianceRepositoryPort;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
@@ -26,16 +27,19 @@ public class ComplianceApplicationService
     }
 
     @Override
+    @Transactional
     public UUID registrar(RegistrarNormativaUseCase.Command cmd) {
         return repo.insertNormativa(cmd);
     }
 
     @Override
+    @Transactional
     public UUID registrar(RegistrarRetencionUseCase.Command cmd) {
         return repo.insertRetencion(cmd);
     }
 
     @Override
+    @Transactional
     public UUID crear(CrearAlertaUseCase.Command cmd) {
         return repo.insertAlerta(cmd);
     }

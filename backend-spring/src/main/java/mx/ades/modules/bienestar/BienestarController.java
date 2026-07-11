@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -70,6 +71,7 @@ public class BienestarController {
     }
 
     @PostMapping
+    @Transactional
     public ResponseEntity<Map<String, Object>> crear(
             @RequestBody EventoRequest body,
             @AuthenticationPrincipal Jwt jwt) {
@@ -89,6 +91,7 @@ public class BienestarController {
     }
 
     @PatchMapping("/{id}/participantes")
+    @Transactional
     public ResponseEntity<Map<String, Object>> actualizarParticipantes(
             @PathVariable UUID id,
             @RequestBody Map<String, Integer> body,
@@ -103,6 +106,7 @@ public class BienestarController {
     }
 
     @DeleteMapping("/{id}")
+    @Transactional
     public ResponseEntity<Void> eliminar(@PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
         userService.resolveUser(jwt);
         int rows = jdbc.update("UPDATE ades_eventos_bienestar SET is_active = FALSE WHERE id = ? AND is_active = TRUE", id);

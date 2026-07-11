@@ -8,6 +8,7 @@ import mx.ades.modules.evaluaciones.domain.port.out.AsignacionAulaRepositoryPort
 import mx.ades.modules.evaluaciones.domain.port.out.CalificacionEvaluacionRepositoryPort;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
@@ -38,6 +39,7 @@ public class EvaluacionApplicationService
     }
 
     @Override
+    @Transactional
     public java.util.UUID ejecutar(AsignarAulaHoraUseCase.Command cmd) {
         if (aulaRepo.existeConflicto(cmd.aulaId(), cmd.fecha(), cmd.slot())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
@@ -56,6 +58,7 @@ public class EvaluacionApplicationService
     }
 
     @Override
+    @Transactional
     public int ejecutar(CalificarEvaluacionMasivoUseCase.Command cmd) {
         int updated = 0;
         for (CalificarEvaluacionMasivoUseCase.EntradaCalificacion entrada : cmd.calificaciones()) {

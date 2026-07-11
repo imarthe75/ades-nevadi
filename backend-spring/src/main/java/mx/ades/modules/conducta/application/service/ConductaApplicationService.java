@@ -3,6 +3,7 @@ package mx.ades.modules.conducta.application.service;
 import mx.ades.modules.conducta.domain.port.in.CrearPlanMejoraUseCase;
 import mx.ades.modules.conducta.domain.port.out.PlanMejoraRepositoryPort;
 import org.springframework.http.HttpStatus;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.UUID;
@@ -25,6 +26,7 @@ public class ConductaApplicationService implements CrearPlanMejoraUseCase {
     }
 
     @Override
+    @Transactional
     public UUID ejecutar(Command command) {
         if (planRepo.existeActivo(command.reporteId())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,

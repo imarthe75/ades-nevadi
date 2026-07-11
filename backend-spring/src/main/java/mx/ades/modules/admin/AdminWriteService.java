@@ -3,6 +3,7 @@ package mx.ades.modules.admin;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
@@ -17,11 +18,13 @@ public class AdminWriteService {
         this.jdbc = jdbc;
     }
 
+    @Transactional
     public void desactivarCiclosAnteriores(UUID nivelEducativoId, UUID exceptCicloId) {
         jdbc.update("UPDATE ades_ciclos_escolares SET es_vigente = FALSE " +
                 "WHERE nivel_educativo_id = ? AND id != ?", nivelEducativoId, exceptCicloId);
     }
 
+    @Transactional
     public UUID insertPersona(String nombre, String apellidoPaterno, String apellidoMaterno,
                                String curp, String genero, LocalDate fechaNacimiento) {
         // No-duplicación de persona: la identidad legal es la CURP (UNIQUE en BD).
@@ -42,6 +45,7 @@ public class AdminWriteService {
         return personaId;
     }
 
+    @Transactional
     public UUID insertUsuario(UUID personaId, String username, String email,
                                UUID rolId, UUID plantelId, UUID nivelEducativoId) {
         UUID userId = UUID.randomUUID();
