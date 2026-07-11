@@ -199,6 +199,10 @@ public class ProcesosEscolaresController {
         mx.ades.common.ValidationUtils.validarCURP(body.getCurp());
         mx.ades.common.ValidationUtils.validarEmail(body.getEmailTutor());
         mx.ades.common.ValidationUtils.validarTelefono(body.getTelefonoTutor());
+        mx.ades.common.ValidationUtils.validarNombrePersona(body.getNombre(), "El nombre del alumno");
+        mx.ades.common.ValidationUtils.validarNombrePersona(body.getApellidoPaterno(), "El apellido paterno del alumno");
+        mx.ades.common.ValidationUtils.validarNombrePersona(body.getApellidoMaterno(), "El apellido materno del alumno");
+        mx.ades.common.ValidationUtils.validarNombrePersona(body.getNombreTutor(), "El nombre del tutor");
 
         UUID id = writeService.registrarSolicitudManual(
                 body.getNombre(), body.getApellidoPaterno(), body.getApellidoMaterno(),

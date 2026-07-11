@@ -1,5 +1,6 @@
 package mx.ades.shared.persona;
 
+import mx.ades.common.ValidationUtils;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
@@ -26,6 +27,7 @@ public class PersonaUpdateHelper {
      */
     public void actualizar(UUID personaId, Map<String, Object> per) {
         if (per == null || per.isEmpty()) return;
+        ValidationUtils.validarPersonaMap(per);
 
         Date fechaNac = per.get("fecha_nacimiento") != null
                 ? Date.valueOf(per.get("fecha_nacimiento").toString().substring(0, 10))
@@ -64,6 +66,7 @@ public class PersonaUpdateHelper {
     /** Variante sin campos de identidad de género (para profesores). */
     public void actualizarBasico(UUID personaId, Map<String, Object> per) {
         if (per == null || per.isEmpty()) return;
+        ValidationUtils.validarPersonaMap(per);
 
         Date fechaNac = per.get("fecha_nacimiento") != null
                 ? Date.valueOf(per.get("fecha_nacimiento").toString().substring(0, 10))

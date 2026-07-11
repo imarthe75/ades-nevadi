@@ -3,6 +3,7 @@ package mx.ades.common;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDate;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 public class ValidationUtils {
@@ -18,6 +19,13 @@ public class ValidationUtils {
 
     // Phone number pattern (exactly 10 digits)
     private static final Pattern PHONE_PATTERN = Pattern.compile("^\\d{10}$");
+
+    // NSS (Número de Seguridad Social IMSS): exactamente 11 dígitos
+    private static final Pattern NSS_PATTERN = Pattern.compile("^\\d{11}$");
+
+    // Nombre/apellido: letras (incl. acentos/Ñ), espacios, guiones, apóstrofes.
+    // Mismo juego de caracteres que InputFormattersService.formatNombre en el frontend.
+    private static final Pattern NOMBRE_PATTERN = Pattern.compile("^[\\p{L}\\s'\\-]+$");
 
     public static void validarCURP(String curp) {
         if (curp == null || curp.trim().isEmpty()) {
@@ -64,6 +72,89 @@ public class ValidationUtils {
                 throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "El formato del teléfono es inválido (deben ser 10 dígitos).");
             }
         }
+    }
+
+    /** Como {@link #validarCURP}, pero no exige el campo (para PATCH parciales donde curp es opcional). */
+    public static void validarCURPSiPresente(String curp) {
+        if (curp != null && !curp.trim().isEmpty()) {
+            validarCURP(curp);
+        }
+    }
+
+    /** Como {@link #validarRFC}, pero no exige el campo (para PATCH parciales donde rfc es opcional). */
+    public static void validarRFCSiPresente(String rfc) {
+        if (rfc != null && !rfc.trim().isEmpty()) {
+            validarRFC(rfc);
+        }
+    }
+
+    public static void validarNSS(String nss) {
+        if (nss != null && !nss.trim().isEmpty()) {
+            if (!NSS_PATTERN.matcher(nss.trim()).matches()) {
+                throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "El NSS debe tener 11 dígitos.");
+            }
+        }
+    }
+
+    /**
+     * Guarda contra cadenas excesivamente largas. Los VARCHAR(n) de PostgreSQL ya
+     * truncan/rechazan a nivel de columna, pero eso produce un 500 crudo; esto da
+     * un 422 con mensaje claro antes de llegar al SQL.
+     */
+    public static void validarLongitud(String value, int max, String etiqueta) {
+        if (value != null && value.length() > max) {
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
+                etiqueta + " excede la longitud máxima de " + max + " caracteres.");
+        }
+    }
+
+    /** Nombre/apellido: solo letras, espacios, guiones y apóstrofes; máx. 100 (VARCHAR(100) en ades_personas). */
+    public static void validarNombrePersona(String value, String etiqueta) {
+        if (value == null || value.trim().isEmpty()) return;
+        validarLongitud(value, 100, etiqueta);
+        if (!NOMBRE_PATTERN.matcher(value.trim()).matches()) {
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
+                etiqueta + " solo puede contener letras, espacios, guiones y apóstrofes.");
+        }
+    }
+
+    /**
+     * Valida el mapa de campos de {@code ades_personas} usado por los PATCH parciales
+     * de alumnos, profesores y personal administrativo (AlumnoController, ProfesorController,
+     * PersonalAdminApplicationService — todos comparten esta forma vía PersonaUpdateHelper /
+     * PersonalAdminPersistenceAdapter). Todos los campos son opcionales (PATCH parcial); solo
+     * se valida formato/longitud cuando el valor está presente. Límites alineados a las
+     * columnas VARCHAR reales de db/migrations (001_initial_schema.sql, 011_datos_complementarios.sql,
+     * 057_inclusion_genero.sql).
+     */
+    public static void validarPersonaMap(Map<String, Object> per) {
+        if (per == null) return;
+        validarNombrePersona(str(per.get("nombre")), "El nombre");
+        validarNombrePersona(str(per.get("apellido_paterno")), "El apellido paterno");
+        validarNombrePersona(str(per.get("apellido_materno")), "El apellido materno");
+        validarCURPSiPresente(str(per.get("curp")));
+        validarTelefono(str(per.get("telefono")));
+        validarEmail(str(per.get("email_personal")));
+        validarLongitud(str(per.get("estado_civil")), 20, "El estado civil");
+        validarLongitud(str(per.get("nacionalidad")), 50, "La nacionalidad");
+        validarLongitud(str(per.get("nombre_social")), 150, "El nombre social");
+        validarLongitud(str(per.get("genero_autopercibido")), 40, "El género autopercibido");
+        validarLongitud(str(per.get("pronombres")), 40, "Los pronombres");
+    }
+
+    /**
+     * Valida el mapa de campos laborales (rfc, nss) usado por el alta/PATCH de
+     * personal administrativo (PersonalAdminApplicationService). Igual que
+     * {@link #validarPersonaMap}, todos los campos son opcionales.
+     */
+    public static void validarLaboralesMap(Map<String, Object> lab) {
+        if (lab == null) return;
+        validarRFCSiPresente(str(lab.get("rfc")));
+        validarNSS(str(lab.get("nss")));
+    }
+
+    private static String str(Object o) {
+        return o == null ? null : o.toString();
     }
 
     // Año mínimo para datos históricos en México (reglamentación educativa SEP comienza ~1921)

@@ -91,6 +91,9 @@ public class ContactosController {
         AdesUser user = userService.resolveUser(jwt);
         UUID estId = estudianteIdParam != null ? estudianteIdParam : body.getEstudianteId();
 
+        ValidationUtils.validarNombrePersona(body.getNombreCompleto(), "El nombre del contacto");
+        ValidationUtils.validarTelefono(body.getTelefonoPrincipal());
+        ValidationUtils.validarRFCSiPresente(body.getRfc());
         if (body.getEmail() != null && !body.getEmail().isBlank()) {
             ValidationUtils.validarEmail(body.getEmail());
             if (queryService.existeEmailContacto(body.getEmail())) {
@@ -120,6 +123,9 @@ public class ContactosController {
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
 
+        ValidationUtils.validarNombrePersona(body.getNombreCompleto(), "El nombre del contacto");
+        ValidationUtils.validarTelefono(body.getTelefonoPrincipal());
+        ValidationUtils.validarRFCSiPresente(body.getRfc());
         if (body.getEmail() != null && !body.getEmail().isBlank()) {
             ValidationUtils.validarEmail(body.getEmail());
             if (queryService.existeEmailContactoExcepto(body.getEmail(), contactoId)) {
@@ -175,6 +181,7 @@ public class ContactosController {
             @RequestBody ExpedienteMedicoPayload body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        ValidationUtils.validarNSS(body.getNss());
         Map<String, Object> fields = new HashMap<>();
         fields.put("tipo_sangre", body.getTipoSangre());
         fields.put("alergias", body.getAlergias());

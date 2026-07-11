@@ -1,5 +1,6 @@
 package mx.ades.modules.personal_admin.application.service;
 
+import mx.ades.common.ValidationUtils;
 import mx.ades.modules.personal_admin.domain.port.in.RegistrarPersonalAdminUseCase;
 import mx.ades.modules.personal_admin.domain.port.out.PersonalAdminRepositoryPort;
 
@@ -25,12 +26,16 @@ public class PersonalAdminApplicationService implements RegistrarPersonalAdminUs
 
     @Override
     public UUID registrar(RegistrarPersonalAdminUseCase.Command cmd) {
+        ValidationUtils.validarPersonaMap(cmd.persona());
+        ValidationUtils.validarLaboralesMap(cmd.laborales());
         UUID personaId = repository.createPersona(cmd.persona(), cmd.usuario());
         return repository.createEmpleado(personaId, cmd.plantelId(), cmd.laborales(), cmd.usuario());
     }
 
     public Map<String, Object> actualizar(UUID id, Map<String, Object> persona,
                                           Map<String, Object> laborales, String usuario) {
+        ValidationUtils.validarPersonaMap(persona);
+        ValidationUtils.validarLaboralesMap(laborales);
         UUID personaId = repository.findPersonaId(id)
                 .orElseThrow(() -> new IllegalArgumentException("Personal no encontrado: " + id));
         if (persona != null) repository.updatePersona(personaId, persona, usuario);
