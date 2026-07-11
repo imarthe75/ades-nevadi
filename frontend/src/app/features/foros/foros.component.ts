@@ -17,6 +17,7 @@ import { TabsModule } from 'primeng/tabs';
 import { MessageService } from 'primeng/api';
 import { ApexNotificationService } from 'apex-component-library';
 import { ContextService } from '../../core/services/context.service';
+import { AdesFormatDirective } from '../../shared/directives/ades-format.directive';
 
 type TagSev = 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast';
 
@@ -71,6 +72,7 @@ interface Anuncio {
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
+    AdesFormatDirective,
     CommonModule, FormsModule, TableModule, ButtonModule, DialogModule,
     InputTextModule, SelectModule, TagModule, ToastModule, TextareaModule,
     TooltipModule, CardModule, TabsModule,

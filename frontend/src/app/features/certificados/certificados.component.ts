@@ -14,6 +14,7 @@ import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { ApexNotificationService, ApexDynamicActionTargetDirective, ApexDynamicActionService } from 'apex-component-library';
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
+import { AdesFormatDirective } from '../../shared/directives/ades-format.directive';
 
 interface Certificado {
   id: string;
@@ -49,6 +50,7 @@ interface AlumnoOpt { id: string; label: string; }
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
+    AdesFormatDirective,
     CommonModule, FormsModule,
     TableModule, ButtonModule, TagModule, DialogModule,
     SelectModule, InputTextModule, AutoCompleteModule, TooltipModule,

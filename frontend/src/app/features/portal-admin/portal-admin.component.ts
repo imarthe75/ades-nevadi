@@ -20,6 +20,7 @@ import { ApiService }       from '../../core/services/api.service';
 import { ContextService }   from '../../core/services/context.service';
 import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
 import { compressImageIfNeeded } from '../../core/utils/file-compressor';
+import { AdesFormatDirective } from '../../shared/directives/ades-format.directive';
 
 type TagSeverity = 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' | undefined;
 
@@ -67,6 +68,7 @@ interface Catalogo {
   standalone: true,
   providers: [ConfirmationService],
   imports: [
+    AdesFormatDirective,
     CommonModule, FormsModule,
     ButtonModule, TagModule, DialogModule, InputTextModule, TextareaModule,
     SelectModule, CheckboxModule, TooltipModule, ConfirmDialogModule, FileUploadModule,

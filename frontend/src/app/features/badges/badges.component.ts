@@ -18,6 +18,7 @@ import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
 import { ExportService, ExportColumn } from '../../core/services/export.service';
 import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
+import { AdesFormatDirective } from '../../shared/directives/ades-format.directive';
 
 type TagSeverity = 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' | undefined;
 
@@ -59,6 +60,7 @@ interface AlumnoSugerencia {
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
+    AdesFormatDirective,
     CommonModule, FormsModule,
     ButtonModule, TableModule, TagModule, DialogModule, SelectModule,
     InputTextModule, TextareaModule, TooltipModule, TabsModule,

@@ -12,6 +12,7 @@ import { TextareaModule } from 'primeng/textarea';
 import { MessageService } from 'primeng/api';
 import { ApexNotificationService } from 'apex-component-library';
 import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
+import { AdesFormatDirective } from '../../shared/directives/ades-format.directive';
 
 type TagSev = 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast';
 
@@ -56,6 +57,7 @@ const ESTADOS_OPT = [
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
+    AdesFormatDirective,
     CommonModule, FormsModule, ButtonModule, DialogModule,
     InputTextModule, SelectModule, ToastModule, TextareaModule,
     InteractiveGridComponent,

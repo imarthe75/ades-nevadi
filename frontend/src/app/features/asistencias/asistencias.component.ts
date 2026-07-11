@@ -12,6 +12,7 @@ import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
 import { EstatusAsistencia } from '../../core/models';
 import { ApexNotificationService } from 'apex-component-library';
+import { AdesFormatDirective } from '../../shared/directives/ades-format.directive';
 
 interface AsistenciaLocal {
   estudiante_id: string;
@@ -32,6 +33,7 @@ interface AsistenciaLocal {
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
+    AdesFormatDirective,
     CommonModule, FormsModule,
     TableModule, SelectModule, ButtonModule, ToolbarModule, InputTextModule,
   ],

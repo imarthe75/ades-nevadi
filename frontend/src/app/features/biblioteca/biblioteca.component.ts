@@ -14,6 +14,7 @@ import { TabsModule, TabList, Tab, TabPanels, TabPanel } from 'primeng/tabs';
 import { MessageService } from 'primeng/api';
 import { ApexNotificationService } from 'apex-component-library';
 import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
+import { AdesFormatDirective } from '../../shared/directives/ades-format.directive';
 
 interface Libro {
   id: string;
@@ -71,6 +72,7 @@ const CATEGORIAS = [
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
+    AdesFormatDirective,
     CommonModule, FormsModule, ButtonModule, DialogModule, InputTextModule,
     InputNumberModule, SelectModule, ToastModule, TooltipModule,
     TabsModule, TabList, Tab, TabPanels, TabPanel,

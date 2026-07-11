@@ -19,6 +19,7 @@ import { ApiService } from '../../core/services/api.service';
 import { ApexNotificationService } from 'apex-component-library';
 import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
 import { DomicilioComponent } from '../../shared/components/domicilio/domicilio.component';
+import { AdesFormatDirective } from '../../shared/directives/ades-format.directive';
 
 interface EstudianteOpt { id: string; nombre_completo: string; matricula?: string; }
 
@@ -76,6 +77,7 @@ const NIVELES_ACCESO_PORTAL = [
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
+    AdesFormatDirective,
     CommonModule, FormsModule, ReactiveFormsModule,
     ButtonModule, DialogModule, DrawerModule, SelectModule, AutoCompleteModule,
     InputTextModule, InputNumberModule, TooltipModule,

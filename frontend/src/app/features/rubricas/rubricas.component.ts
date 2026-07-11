@@ -15,6 +15,7 @@ import { DividerModule } from 'primeng/divider';
 
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
+import { AdesFormatDirective } from '../../shared/directives/ades-format.directive';
 
 interface Rubrica {
   id: string;
@@ -54,6 +55,7 @@ const NIVEL_COLORS = ['var(--red-400)', 'var(--yellow-400)', 'var(--teal-400)', 
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
+    AdesFormatDirective,
     CommonModule, FormsModule,
     ButtonModule, TableModule, DialogModule, SelectModule,
     InputTextModule, InputNumberModule, TextareaModule,

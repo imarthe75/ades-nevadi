@@ -21,6 +21,7 @@ import { DividerModule } from 'primeng/divider';
 import { TooltipModule } from 'primeng/tooltip';
 import { MessageService } from 'primeng/api';
 import { ApiService } from '../../../core/services/api.service';
+import { AdesFormatDirective } from '../../directives/ades-format.directive';
 
 // ─── Catálogos locales ────────────────────────────────────────────────────────
 const TIPOS_DIR   = ['PRINCIPAL','TRABAJO','TEMPORAL','ANTERIOR','CORRESPONDENCIA'];
@@ -78,6 +79,7 @@ interface PersonaContacto {
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
+    AdesFormatDirective,
     CommonModule, FormsModule,
     ButtonModule, InputTextModule, SelectModule, TextareaModule,
     TagModule, ToastModule, DividerModule, TooltipModule,

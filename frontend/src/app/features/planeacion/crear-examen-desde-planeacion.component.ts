@@ -15,6 +15,7 @@ import { MessageService } from 'primeng/api';
 import { TableModule } from 'primeng/table';
 
 import { ApiService } from '../../core/services/api.service';
+import { AdesFormatDirective } from '../../shared/directives/ades-format.directive';
 
 /**
  * Crear Examen Vinculado a Planeación Semanal
@@ -31,6 +32,7 @@ import { ApiService } from '../../core/services/api.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
+    AdesFormatDirective,
     CommonModule, FormsModule, ReactiveFormsModule,
     ButtonModule, SelectModule, InputTextModule, TextareaModule,
     DatePickerModule, CardModule, TagModule, ToastModule, MessageModule, TableModule

@@ -7,6 +7,7 @@ import { InputTextModule } from 'primeng/inputtext';
 import { ButtonModule } from 'primeng/button';
 import { TooltipModule } from 'primeng/tooltip';
 import { ApiService } from '../../../core/services/api.service';
+import { AdesFormatDirective } from '../../directives/ades-format.directive';
 
 /**
  * Componente compartido de selección de domicilio con cascada SEPOMEX.
@@ -18,7 +19,8 @@ import { ApiService } from '../../../core/services/api.service';
   selector: 'app-selector-geo',
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
-  imports: [CommonModule, FormsModule, SelectModule, InputTextModule, ButtonModule, TooltipModule],
+  imports: [
+    AdesFormatDirective,CommonModule, FormsModule, SelectModule, InputTextModule, ButtonModule, TooltipModule],
   template: `
     <div class="geo-grid">
       <!-- Búsqueda rápida por CP -->

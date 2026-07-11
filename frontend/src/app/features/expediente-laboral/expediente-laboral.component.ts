@@ -15,6 +15,7 @@ import { InputNumberModule } from 'primeng/inputnumber';
 import { AutoCompleteModule } from 'primeng/autocomplete';
 import { MessageService } from 'primeng/api';
 import { ApexNotificationService } from 'apex-component-library';
+import { AdesFormatDirective } from '../../shared/directives/ades-format.directive';
 
 interface ExpedienteLab {
   id: string;
@@ -48,6 +49,7 @@ interface ExpedienteLab {
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
+    AdesFormatDirective,
     CommonModule, FormsModule, TableModule, ButtonModule,
     DialogModule, InputTextModule, SelectModule, TagModule,
     ToastModule, DatePickerModule, InputNumberModule, AutoCompleteModule,

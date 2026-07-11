@@ -24,12 +24,14 @@ import { HelpButtonComponent } from '../../shared/components/help-button/help-bu
 import { FormFieldComponent } from '../../shared/components/form-field/form-field.component';
 import { Estudiante } from '../../core/models';
 import { ApexNotificationService, ApexSearchComponent, ApexModalDialogComponent, ApexValidators } from 'apex-component-library';
+import { AdesFormatDirective } from '../../shared/directives/ades-format.directive';
 
 @Component({
   selector: 'app-alumnos',
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
+    AdesFormatDirective,
     CommonModule, FormsModule, ReactiveFormsModule,
     ButtonModule, InputTextModule, ToastModule, SelectModule, MultiSelectModule,
     InteractiveGridComponent, ImportButtonComponent, AlumnoPerfilComponent, HelpButtonComponent,

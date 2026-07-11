@@ -33,6 +33,7 @@ import { SelectorGeoComponent } from '../../shared/components/selector-geo/selec
 import { ApexNotificationService } from 'apex-component-library';
 import { SkeletonModule } from 'primeng/skeleton';
 import { MessageModule } from 'primeng/message';
+import { AdesFormatDirective } from '../../shared/directives/ades-format.directive';
 
 interface UsuarioAdmin {
   id: string; nombre_usuario: string; email_institucional: string;
@@ -83,6 +84,7 @@ interface Catalogo {
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
+    AdesFormatDirective,
     CommonModule, FormsModule,
     TableModule, ButtonModule, DialogModule, SelectModule,
     InputTextModule, TextareaModule, InputNumberModule, DatePickerModule, ToggleSwitchModule,

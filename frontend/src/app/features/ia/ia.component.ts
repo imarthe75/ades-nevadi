@@ -23,6 +23,7 @@ import { ContextService } from '../../core/services/context.service';
 import type { Grupo } from '../../core/models';
 import { grupoLabel } from '../../core/models';
 import { ApexNotificationService } from 'apex-component-library';
+import { AdesFormatDirective } from '../../shared/directives/ades-format.directive';
 
 type GrupoConLabel = Grupo & { _label: string };
 
@@ -52,6 +53,7 @@ const RIESGO_SEVERITY: Record<string, AlertaSeverity> = {
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
+    AdesFormatDirective,
     CommonModule, FormsModule,
     ButtonModule, InputTextModule, TabsModule, CardModule,
     TagModule, SelectModule, ProgressSpinnerModule,

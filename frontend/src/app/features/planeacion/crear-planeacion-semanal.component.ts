@@ -17,6 +17,7 @@ import { MessageModule } from 'primeng/message';
 
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
+import { AdesFormatDirective } from '../../shared/directives/ades-format.directive';
 
 /**
  * Crear Planeación Semanal Integral
@@ -36,6 +37,7 @@ import { ContextService } from '../../core/services/context.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
+    AdesFormatDirective,
     CommonModule, FormsModule, ReactiveFormsModule,
     ButtonModule, SelectModule, CheckboxModule, InputTextModule, TextareaModule,
     DatePickerModule, DialogModule, CardModule, TagModule, ToastModule, MessageModule

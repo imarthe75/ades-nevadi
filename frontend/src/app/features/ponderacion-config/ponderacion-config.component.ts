@@ -11,6 +11,7 @@ import { DialogModule } from 'primeng/dialog';
 import { ApiService } from '../../core/services/api.service';
 import { ApexNotificationService } from 'apex-component-library';
 import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
+import { AdesFormatDirective } from '../../shared/directives/ades-format.directive';
 
 interface NivelOpt  { id: string; nombre_nivel: string; escala_maxima: number; }
 interface EsquemaRow { id: string; nombre: string; nombre_nivel: string; materia_id: string | null;
@@ -30,7 +31,8 @@ interface ItemRow    { tipo_item: string; nombre_personalizado: string | null; p
   selector: 'app-ponderacion-config',
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
-  imports: [CommonModule, FormsModule, ButtonModule, SelectModule,
+  imports: [
+    AdesFormatDirective,CommonModule, FormsModule, ButtonModule, SelectModule,
             InputTextModule, InputNumberModule, TagModule, DialogModule,
             InteractiveGridComponent],
   template: `

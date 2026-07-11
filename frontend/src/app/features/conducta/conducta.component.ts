@@ -30,6 +30,7 @@ import type { Grupo } from '../../core/models';
 import { grupoLabel } from '../../core/models';
 import { ApexNotificationService, ApexTimelineComponent } from 'apex-component-library';
 import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
+import { AdesFormatDirective } from '../../shared/directives/ades-format.directive';
 
 type TagSeverity = 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast';
 type GrupoConLabel = Grupo & { _label: string };
@@ -79,6 +80,7 @@ interface Compromiso {
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
+    AdesFormatDirective,
     CommonModule, FormsModule,
     ButtonModule, SelectModule, AutoCompleteModule, TagModule,
     DialogModule, TextareaModule, InputTextModule, ToggleSwitchModule,

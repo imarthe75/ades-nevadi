@@ -26,6 +26,7 @@ import { ApexNotificationService } from 'apex-component-library';
 import { ApiService }     from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
 import { ExportService, ExportColumn } from '../../core/services/export.service';
+import { AdesFormatDirective } from '../../shared/directives/ades-format.directive';
 
 type TagSeverity = 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast';
 
@@ -110,6 +111,7 @@ const TIPO_ICON: Record<string, string> = {
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
+    AdesFormatDirective,
     CommonModule, FormsModule, RouterModule,
     ButtonModule, CardModule, TagModule, TabsModule, InteractiveGridComponent,
     DialogModule, SelectModule, AutoCompleteModule, TextareaModule, InputTextModule,

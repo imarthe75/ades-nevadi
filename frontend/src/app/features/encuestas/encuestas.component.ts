@@ -18,6 +18,7 @@ import { DividerModule } from 'primeng/divider';
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
 import { ExportService, ExportColumn } from '../../core/services/export.service';
+import { AdesFormatDirective } from '../../shared/directives/ades-format.directive';
 
 type TagSeverity = 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' | undefined;
 
@@ -114,6 +115,7 @@ const TIPOS_PREG = [
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
+    AdesFormatDirective,
     CommonModule, FormsModule,
     ButtonModule, TagModule, DialogModule, SelectModule,
     InputTextModule, TextareaModule, TooltipModule, InputNumberModule,

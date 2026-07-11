@@ -25,6 +25,7 @@ import { FormFieldComponent } from '../../shared/components/form-field/form-fiel
 import { HelpButtonComponent } from '../../shared/components/help-button/help-button.component';
 import { AdesValidators } from '../../shared/validators/ades-validators';
 import { ApexNotificationService } from 'apex-component-library';
+import { AdesFormatDirective } from '../../shared/directives/ades-format.directive';
 
 // ── Tipos locales ─────────────────────────────────────────────────────────────
 
@@ -143,6 +144,7 @@ function enrichRows(rows: EmpleadoRow[]): EmpleadoRow[] {
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
+    AdesFormatDirective,
     CommonModule, FormsModule, ReactiveFormsModule,
     ButtonModule, InputTextModule, DialogModule, SelectModule,
     TabsModule, Tab, TabList, TabPanel, TabPanels,

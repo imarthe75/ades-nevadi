@@ -21,6 +21,7 @@ import { TagModule } from 'primeng/tag';
 import { ToastModule } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
 import { ApiService } from '../../../core/services/api.service';
+import { AdesFormatDirective } from '../../directives/ades-format.directive';
 import { DomicilioComponent } from '../domicilio/domicilio.component';
 import type { Estudiante, ContactoEmergencia } from '../../../core/models';
 
@@ -65,6 +66,7 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
     TabsModule, TabList, Tab, TabPanels, TabPanel,
     InputTextModule, SelectModule, DatePickerModule,
     InputNumberModule, TextareaModule,
+    AdesFormatDirective,
     DomicilioComponent,
   ],
   providers: [MessageService],
@@ -107,20 +109,20 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
                 <h4 class="sec-title">Identificación</h4>
                 <div class="form-row">
                   <label>Nombre(s)</label>
-                  <input pInputText [(ngModel)]="form.nombre" />
+                  <input pInputText [(ngModel)]="form.nombre" adesFormat="nombre" />
                 </div>
                 <div class="form-row">
                   <label>Apellido paterno</label>
-                  <input pInputText [(ngModel)]="form.apellido_paterno" />
+                  <input pInputText [(ngModel)]="form.apellido_paterno" adesFormat="nombre" />
                 </div>
                 <div class="form-row">
                   <label>Apellido materno</label>
-                  <input pInputText [(ngModel)]="form.apellido_materno" />
+                  <input pInputText [(ngModel)]="form.apellido_materno" adesFormat="nombre" />
                 </div>
-                <div class="form-row">
+                <div class="form-row" style="flex-direction:column;align-items:flex-start;gap:.35rem">
                   <label>CURP</label>
-                  <input pInputText [(ngModel)]="form.curp" maxlength="18"
-                    style="font-family:monospace;text-transform:uppercase" />
+                  <input pInputText [(ngModel)]="form.curp" adesFormat="curp" style="width:100%;font-family:monospace;text-transform:uppercase" />
+                  <small style="color:#64748b;font-size:.78rem">18 caracteres · formato oficial (solo A-Z y 0-9) · {{ (form.curp || '').length }}/18</small>
                 </div>
                 <div class="form-row">
                   <label>Género (legal)</label>
@@ -142,7 +144,7 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
                 </div>
                 <div class="form-row">
                   <label>Pronombres</label>
-                  <input pInputText [(ngModel)]="form.pronombres" style="width:100%"
+                  <input pInputText [(ngModel)]="form.pronombres" adesFormat="texto" [adesMax]="40" style="width:100%"
                     placeholder="Ej: él/sus, ella/sus, elle/sus" />
                 </div>
                 <div class="form-row">
@@ -231,7 +233,7 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
                 </div>
                 <div class="form-row">
                   <label>Clave CT</label>
-                  <input pInputText [(ngModel)]="form.clave_ct_procedencia" maxlength="20" />
+                  <input pInputText [(ngModel)]="form.clave_ct_procedencia" adesFormat="alfanumerico" [adesMax]="20" />
                 </div>
                 <div class="form-row">
                   <label>Promedio ingreso</label>
@@ -261,7 +263,7 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
                 </div>
                 <div class="form-row">
                   <label>Etnia / Autoidentificación</label>
-                  <input pInputText [(ngModel)]="form.etnia" placeholder="Ej. Náhuatl, Otomí, Mestizo…" />
+                  <input pInputText [(ngModel)]="form.etnia" adesFormat="nombre" placeholder="Ej. Náhuatl, Otomí, Mestizo…" />
                 </div>
                 <div class="form-row">
                   <label>Lengua indígena (INALI)</label>
@@ -302,7 +304,7 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
                 <h4 class="sec-title">Identificación médica</h4>
                 <div class="form-row">
                   <label>NSS (IMSS/ISSSTE)</label>
-                  <input pInputText [(ngModel)]="medForm.nss" maxlength="11"
+                  <input pInputText [(ngModel)]="medForm.nss" adesFormat="numerico" [adesMax]="11"
                     style="font-family:monospace" placeholder="11 dígitos" />
                 </div>
                 <div class="form-row">
@@ -408,7 +410,7 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
                   <h4>{{ contactoEdit.id ? 'Editar' : 'Nuevo' }} contacto</h4>
                   <div class="form-row">
                     <label>Nombre completo *</label>
-                    <input pInputText [(ngModel)]="contactoEdit.nombre_completo" />
+                    <input pInputText [(ngModel)]="contactoEdit.nombre_completo" adesFormat="nombre" />
                   </div>
                   <div class="form-row">
                     <label>Parentesco</label>
@@ -416,17 +418,17 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
                   </div>
                   <div class="form-row">
                     <label>Teléfono</label>
-                    <input pInputText [(ngModel)]="contactoEdit.telefono" maxlength="15"
+                    <input pInputText [(ngModel)]="contactoEdit.telefono" adesFormat="telefono"
                       placeholder="10 dígitos" type="tel" />
                   </div>
                   <div class="form-row">
                     <label>Teléfono alt.</label>
-                    <input pInputText [(ngModel)]="contactoEdit.telefono_alt" maxlength="15"
+                    <input pInputText [(ngModel)]="contactoEdit.telefono_alt" adesFormat="telefono"
                       placeholder="10 dígitos" type="tel" />
                   </div>
                   <div class="form-row">
                     <label>Email</label>
-                    <input pInputText [(ngModel)]="contactoEdit.email" type="email"
+                    <input pInputText [(ngModel)]="contactoEdit.email" adesFormat="email" type="email"
                       placeholder="usuario@dominio.com" />
                   </div>
                   <div class="form-row">
@@ -439,7 +441,7 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
                   </div>
                   <div class="form-row">
                     <label>RFC</label>
-                    <input pInputText [(ngModel)]="contactoEdit.rfc" maxlength="13" style="font-family:monospace;text-transform:uppercase" />
+                    <input pInputText [(ngModel)]="contactoEdit.rfc" adesFormat="rfc" style="font-family:monospace;text-transform:uppercase" />
                   </div>
                   <div class="form-row">
                     <label>Nacionalidad</label>

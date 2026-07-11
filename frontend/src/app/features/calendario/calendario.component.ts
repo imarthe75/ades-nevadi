@@ -11,6 +11,7 @@ import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
 import { ApexNotificationService } from 'apex-component-library';
 import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
+import { AdesFormatDirective } from '../../shared/directives/ades-format.directive';
 
 interface CicloOpt   { id: string; nombre_ciclo: string; }
 interface PlantelOpt { id: string; nombre_plantel: string; }
@@ -36,6 +37,7 @@ interface EventoForm {
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
+    AdesFormatDirective,
     CommonModule, FormsModule,
     ButtonModule, SelectModule, TagModule,
     DialogModule, TooltipModule,

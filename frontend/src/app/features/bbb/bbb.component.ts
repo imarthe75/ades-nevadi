@@ -18,6 +18,7 @@ import { ContextService } from '../../core/services/context.service';
 import { AuthService } from '../../core/services/auth.service';
 import { ApiService } from '../../core/services/api.service';
 import { grupoLabel } from '../../core/models';
+import { AdesFormatDirective } from '../../shared/directives/ades-format.directive';
 
 interface BbbReunion {
   id: string;
@@ -73,6 +74,7 @@ const ESTADO_SEV: Record<string, string> = {
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
+    AdesFormatDirective,
     CommonModule, FormsModule, DatePipe,
     TableModule, ButtonModule, DialogModule, InputTextModule,
     SelectModule, TagModule, TextareaModule, TooltipModule,

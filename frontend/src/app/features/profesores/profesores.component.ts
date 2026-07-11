@@ -21,12 +21,14 @@ import { HelpButtonComponent } from '../../shared/components/help-button/help-bu
 import { ImportButtonComponent } from '../../shared/components/import-button/import-button.component';
 import { Profesor } from '../../core/models';
 import { ApexNotificationService } from 'apex-component-library';
+import { AdesFormatDirective } from '../../shared/directives/ades-format.directive';
 
 @Component({
   selector: 'app-profesores',
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
+    AdesFormatDirective,
     CommonModule, FormsModule,
     ButtonModule, InputTextModule, DialogModule,
     InteractiveGridComponent, ProfesorPerfilComponent, HelpButtonComponent, ImportButtonComponent,

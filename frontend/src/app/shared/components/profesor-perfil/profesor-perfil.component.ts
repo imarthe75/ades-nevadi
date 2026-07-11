@@ -19,6 +19,7 @@ import { ApiService } from '../../../core/services/api.service';
 import { DomicilioComponent } from '../domicilio/domicilio.component';
 import { DisponibilidadGridComponent } from '../disponibilidad-grid/disponibilidad-grid.component';
 import type { Profesor } from '../../../core/models';
+import { AdesFormatDirective } from '../../directives/ades-format.directive';
 
 const CONTRATOS       = ['BASE','INTERINO','CONTRATO','HONORARIOS','TIEMPO_COMPLETO','MEDIO_TIEMPO'];
 const TIPOS_CONTRATO  = CONTRATOS;
@@ -32,6 +33,7 @@ const BANCOS          = ['BBVA','SANTANDER','BANAMEX','BANORTE','HSBC','SCOTIABA
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
+    AdesFormatDirective,
     CommonModule, FormsModule,
     DrawerModule, ButtonModule, ToastModule,
     TabsModule, TabList, Tab, TabPanels, TabPanel,

@@ -26,6 +26,7 @@ import { ContextService } from '../../core/services/context.service';
 import { AuthService } from '../../core/services/auth.service';
 import { ApexNotificationService } from 'apex-component-library';
 import { grupoLabel } from '../../core/models';
+import { AdesFormatDirective } from '../../shared/directives/ades-format.directive';
 
 interface Plantilla {
   id: string;
@@ -58,6 +59,7 @@ const TIPOS_DOC = [
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
+    AdesFormatDirective,
     CommonModule, FormsModule,
     ButtonModule, SelectModule, TagModule,
     TabsModule,

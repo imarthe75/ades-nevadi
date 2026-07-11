@@ -30,12 +30,14 @@ import { grupoLabel } from '../../core/models';
 type GrupoConLabel = Grupo & { _label: string };
 import { HelpButtonComponent } from '../../shared/components/help-button/help-button.component';
 import { ApexNotificationService } from 'apex-component-library';
+import { AdesFormatDirective } from '../../shared/directives/ades-format.directive';
 
 @Component({
   selector: 'app-calificaciones',
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
+    AdesFormatDirective,
     CommonModule, FormsModule,
     TableModule, ButtonModule, SelectModule, InputNumberModule,
     TagModule, TooltipModule, ToolbarModule,

@@ -20,6 +20,7 @@ import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/
 import { ContextService } from '../../core/services/context.service';
 import { ApexListComponent } from 'apex-component-library';
 import type { ApexListItem } from 'apex-component-library';
+import { AdesFormatDirective } from '../../shared/directives/ades-format.directive';
 
 interface Paso { titulo: string; pasos: string[]; nota?: string; tip?: string; }
 interface Modulo { nombre: string; ruta: string; icono: string; fase: number; descripcion: string; secciones: Paso[]; }
@@ -315,7 +316,8 @@ const GUIAS_ROL = [
   selector: 'app-ayuda',
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
-  imports: [CommonModule, FormsModule, AccordionModule, TabsModule, TagModule, ButtonModule, InputTextModule, InteractiveGridComponent, ApexListComponent],
+  imports: [
+    AdesFormatDirective,CommonModule, FormsModule, AccordionModule, TabsModule, TagModule, ButtonModule, InputTextModule, InteractiveGridComponent, ApexListComponent],
   template: `
     <div class="page-header">
       <div>

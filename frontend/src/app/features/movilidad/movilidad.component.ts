@@ -16,6 +16,7 @@ import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
 import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
 import { grupoLabel } from '../../core/models';
+import { AdesFormatDirective } from '../../shared/directives/ades-format.directive';
 
 interface Alumno {
   id: string;
@@ -59,6 +60,7 @@ interface CambioGrupo {
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
+    AdesFormatDirective,
     CommonModule, FormsModule, ButtonModule, DialogModule,
     InputTextModule, SelectModule, TextareaModule, DatePickerModule, AutoCompleteModule,
     TagModule, TabsModule, TabList, TabPanels, Tab, TabPanel,

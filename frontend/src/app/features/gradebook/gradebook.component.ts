@@ -18,6 +18,7 @@ import { ExportService } from '../../core/services/export.service';
 import { ApexNotificationService } from 'apex-component-library';
 import { CierrePeriodoComponent } from './cierre-periodo.component';
 import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
+import { AdesFormatDirective } from '../../shared/directives/ades-format.directive';
 
 interface Actividad {
   id: string;
@@ -91,6 +92,7 @@ interface Insights {
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
+    AdesFormatDirective,
     CommonModule, FormsModule, ButtonModule, SelectModule,
     InputTextModule, InputNumberModule, TagModule, TooltipModule,
     DialogModule, DrawerModule, TabsModule, ProgressBarModule,

@@ -135,6 +135,19 @@ export class InputFormattersService {
   }
 
   /**
+   * Formatea Texto libre corto: permite letras, números, espacios y
+   * puntuación común (incluye "/" para pronombres tipo "él/sus"). Elimina
+   * caracteres peligrosos para inyección (<>{}\`) y limita la longitud.
+   * Útil para pronombres, ocupación, notas cortas, nombre social.
+   */
+  formatTexto(value: string, maxLength: number = 100): string {
+    if (!value) return '';
+    return value
+      .replace(/[<>{}\\`]/g, '')
+      .slice(0, maxLength);
+  }
+
+  /**
    * Valida si el formato es correcto (sin formatear)
    * Devuelve true si el valor actual está en el rango permitido
    */

@@ -27,6 +27,7 @@ import { ExportService, ExportColumn } from '../../core/services/export.service'
 import { ApexNotificationService } from 'apex-component-library';
 import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
 import { ImportButtonComponent } from '../../shared/components/import-button/import-button.component';
+import { AdesFormatDirective } from '../../shared/directives/ades-format.directive';
 
 type TagSeverity = 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast';
 
@@ -71,6 +72,7 @@ const ESTADO_SEVERITY: Record<string, TagSeverity> = {
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
+    AdesFormatDirective,
     CommonModule, FormsModule,
     ButtonModule, SelectModule, InputTextModule, InputNumberModule,
     ToggleSwitchModule, TagModule, DialogModule, TabsModule,

@@ -34,6 +34,7 @@ import { ContextService } from '../../core/services/context.service';
 import { ApexNotificationService } from 'apex-component-library';
 import { ImportButtonComponent } from '../../shared/components/import-button/import-button.component';
 import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
+import { AdesFormatDirective } from '../../shared/directives/ades-format.directive';
 
 interface NivelOpt   { id: string; nombre_nivel: string; }
 interface GradoOpt   { id: string; nombre_grado: string; numero_grado: number; nivel_educativo_id: string; plantel_id: string; plantel_nombre: string | null; }
@@ -88,6 +89,7 @@ const NIVEL_ORDER = ['PRIMARIA', 'SECUNDARIA', 'PREPARATORIA'];
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
+    AdesFormatDirective,
     CommonModule, FormsModule,
     TabsModule, ButtonModule, TagModule, SelectModule, MultiSelectModule, TextareaModule,
     InputNumberModule, InputTextModule, ToggleSwitchModule,

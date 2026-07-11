@@ -18,12 +18,14 @@ import { ContextService } from '../../core/services/context.service';
 import type { Tarea, Materia } from '../../core/models';
 import { ApexNotificationService } from 'apex-component-library';
 import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
+import { AdesFormatDirective } from '../../shared/directives/ades-format.directive';
 
 @Component({
   selector: 'app-tareas',
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
+    AdesFormatDirective,
     CommonModule, FormsModule,
     TableModule, CardModule, ButtonModule, TagModule,
     SelectModule, DialogModule, InputTextModule, InputNumberModule,

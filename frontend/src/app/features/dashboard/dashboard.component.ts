@@ -18,6 +18,7 @@ import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
 import type { ResumenPlantel, Plantel } from '../../core/models';
 import { ApexNotificationService, ApexChartComponent } from 'apex-component-library';
+import { AdesFormatDirective } from '../../shared/directives/ades-format.directive';
 
 interface NivelStats {
   nivel_educativo_id: string;
@@ -79,6 +80,7 @@ const NIVEL_ICON: Record<string, string> = {
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
+    AdesFormatDirective,
     CommonModule, RouterModule, FormsModule, CardModule, SkeletonModule,
     ButtonModule, DividerModule, DialogModule, InputTextModule, TooltipModule, TagModule, CheckboxModule,
     MessageModule, ApexChartComponent

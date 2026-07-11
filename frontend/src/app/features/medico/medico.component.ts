@@ -25,6 +25,7 @@ import type { Estudiante } from '../../core/models';
 
 import { ApexNotificationService, ApexTimelineComponent } from 'apex-component-library';
 import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
+import { AdesFormatDirective } from '../../shared/directives/ades-format.directive';
 
 interface ExpedienteMedico {
   id: string;
@@ -71,6 +72,7 @@ interface Medicamento {
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
+    AdesFormatDirective,
     CommonModule, FormsModule,
     ButtonModule, InputTextModule, TextareaModule, CardModule,
     TagModule, DialogModule, DividerModule, ToggleSwitchModule, TabsModule,

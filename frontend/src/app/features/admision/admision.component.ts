@@ -18,6 +18,7 @@ import { ApexNotificationService } from 'apex-component-library';
 import { ImportButtonComponent } from '../../shared/components/import-button/import-button.component';
 import { ContextService } from '../../core/services/context.service';
 import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
+import { AdesFormatDirective } from '../../shared/directives/ades-format.directive';
 
 type TagSev = 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast';
 
@@ -67,6 +68,7 @@ const NIVELES = [
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
+    AdesFormatDirective,
     CommonModule, FormsModule, ButtonModule, DialogModule,
     InputTextModule, SelectModule, TagModule, ToastModule, TextareaModule,
     TooltipModule, InputNumberModule, MessageModule, ImportButtonComponent,

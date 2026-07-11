@@ -16,6 +16,7 @@ import { TableModule } from 'primeng/table';
 
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
+import { AdesFormatDirective } from '../../shared/directives/ades-format.directive';
 
 /**
  * Crear Tarea Vinculada a Planeación Semanal
@@ -38,6 +39,7 @@ import { ContextService } from '../../core/services/context.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
+    AdesFormatDirective,
     CommonModule, FormsModule, ReactiveFormsModule,
     ButtonModule, SelectModule, InputTextModule, TextareaModule,
     DatePickerModule, CardModule, TagModule, ToastModule, MessageModule, TableModule

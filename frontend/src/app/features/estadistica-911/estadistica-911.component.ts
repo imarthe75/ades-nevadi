@@ -9,6 +9,7 @@ import { ToastModule } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
 import { ApexNotificationService } from 'apex-component-library';
 import { ExportService, ExportColumn } from '../../core/services/export.service';
+import { AdesFormatDirective } from '../../shared/directives/ades-format.directive';
 
 interface MatrizRow {
   nivel: string;
@@ -54,7 +55,8 @@ const BUCKETS: Record<string, { base: number; tope: number }> = {
   selector: 'app-estadistica-911',
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
-  imports: [CommonModule, FormsModule, ButtonModule, InputTextModule, ToastModule],
+  imports: [
+    AdesFormatDirective,CommonModule, FormsModule, ButtonModule, InputTextModule, ToastModule],
   providers: [MessageService],
   template: `
     <p-toast />

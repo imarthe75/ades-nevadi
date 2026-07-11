@@ -15,6 +15,7 @@ import { TextareaModule } from 'primeng/textarea';
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
 import { grupoLabel } from '../../core/models';
+import { AdesFormatDirective } from '../../shared/directives/ades-format.directive';
 
 type TagSeverity = 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' | undefined;
 
@@ -61,6 +62,7 @@ const ESTADO_SEV: Record<string, TagSeverity> = {
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
+    AdesFormatDirective,
     CommonModule, FormsModule,
     ButtonModule, SelectModule, TagModule, ProgressBarModule,
     TableModule, TooltipModule, DialogModule, InputTextModule, TextareaModule,

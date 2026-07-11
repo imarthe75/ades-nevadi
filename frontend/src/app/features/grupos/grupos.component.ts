@@ -20,12 +20,14 @@ import { ImportButtonComponent } from '../../shared/components/import-button/imp
 import type { Grupo } from '../../core/models';
 import { grupoLabel } from '../../core/models';
 import { ApexNotificationService, ApexSearchComponent } from 'apex-component-library';
+import { AdesFormatDirective } from '../../shared/directives/ades-format.directive';
 
 @Component({
   selector: 'app-grupos',
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
+    AdesFormatDirective,
     CommonModule, FormsModule,
     ButtonModule, InputTextModule, ToggleSwitchModule, SelectModule, DialogModule,
     InteractiveGridComponent, ImportButtonComponent,

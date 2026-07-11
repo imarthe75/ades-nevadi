@@ -18,6 +18,7 @@ import { ApexNotificationService } from 'apex-component-library';
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
 import { compressImageIfNeeded } from '../../core/utils/file-compressor';
+import { AdesFormatDirective } from '../../shared/directives/ades-format.directive';
 
 interface DocumentoRequerido {
   tipo: string;
@@ -87,6 +88,7 @@ const TIPOS_DOCUMENTO = [
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
+    AdesFormatDirective,
     CommonModule, FormsModule,
     ButtonModule, TagModule, DialogModule, SelectModule,
     InputTextModule, AutoCompleteModule, ProgressSpinnerModule,
