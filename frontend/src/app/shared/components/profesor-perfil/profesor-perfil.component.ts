@@ -72,15 +72,15 @@ const BANCOS          = ['BBVA','SANTANDER','BANAMEX','BANORTE','HSBC','SCOTIABA
                 <h4 class="sec-title">Identificación</h4>
                 <div class="form-row">
                   <label>Nombre(s)</label>
-                  <input pInputText [(ngModel)]="form.nombre" />
+                  <input pInputText [(ngModel)]="form.nombre" adesFormat="nombre" />
                 </div>
                 <div class="form-row">
                   <label>Apellido paterno</label>
-                  <input pInputText [(ngModel)]="form.apellido_paterno" />
+                  <input pInputText [(ngModel)]="form.apellido_paterno" adesFormat="nombre" />
                 </div>
                 <div class="form-row">
                   <label>Apellido materno</label>
-                  <input pInputText [(ngModel)]="form.apellido_materno" />
+                  <input pInputText [(ngModel)]="form.apellido_materno" adesFormat="nombre" />
                 </div>
                 <div class="form-row">
                   <label>CURP</label>
@@ -89,12 +89,12 @@ const BANCOS          = ['BBVA','SANTANDER','BANAMEX','BANORTE','HSBC','SCOTIABA
                 </div>
                 <div class="form-row">
                   <label>RFC</label>
-                  <input pInputText [(ngModel)]="form.rfc" maxlength="13"
+                  <input pInputText [(ngModel)]="form.rfc" adesFormat="rfc"
                     style="font-family:monospace;text-transform:uppercase" />
                 </div>
                 <div class="form-row">
                   <label>NSS (ISSSTE/IMSS)</label>
-                  <input pInputText [(ngModel)]="form.nss" maxlength="11"
+                  <input pInputText [(ngModel)]="form.nss" adesFormat="numerico" [adesMax]="11"
                     style="font-family:monospace" placeholder="11 dígitos" />
                 </div>
                 <div class="form-row">
@@ -205,7 +205,7 @@ const BANCOS          = ['BBVA','SANTANDER','BANAMEX','BANORTE','HSBC','SCOTIABA
                 </div>
                 <div class="form-row">
                   <label>Cédula profesional</label>
-                  <input pInputText [(ngModel)]="form.cedula_profesional" maxlength="20"
+                  <input pInputText [(ngModel)]="form.cedula_profesional" adesFormat="alfanumerico" [adesMax]="20"
                     style="font-family:monospace" />
                 </div>
               </div>
@@ -224,12 +224,12 @@ const BANCOS          = ['BBVA','SANTANDER','BANAMEX','BANORTE','HSBC','SCOTIABA
                 </div>
                 <div class="form-row">
                   <label>CLABE interbancaria</label>
-                  <input pInputText [(ngModel)]="form.clabe" maxlength="18"
+                  <input pInputText [(ngModel)]="form.clabe" adesFormat="numerico" [adesMax]="18"
                     style="font-family:monospace;letter-spacing:.05em" placeholder="18 dígitos" />
                 </div>
                 <div class="form-row">
                   <label>RFC (para nómina)</label>
-                  <input pInputText [(ngModel)]="form.rfc" maxlength="13"
+                  <input pInputText [(ngModel)]="form.rfc" adesFormat="rfc"
                     style="font-family:monospace;text-transform:uppercase" />
                 </div>
               </div>

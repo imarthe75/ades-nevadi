@@ -201,11 +201,11 @@ const NIVELES_ACCESO_PORTAL = [
               <div style="display:flex; flex-direction:column; gap:1rem; margin-top:1rem;">
                 <div class="field">
                   <label>Nombre Completo *</label>
-                  <input pInputText formControlName="nombre_completo" placeholder="Ej: Juan García Pérez" style="width:100%" />
+                  <input pInputText formControlName="nombre_completo" adesFormat="nombre" placeholder="Ej: Juan García Pérez" style="width:100%" />
                 </div>
                 <div class="field">
                   <label>RFC</label>
-                  <input pInputText formControlName="rfc" [maxLength]="13" placeholder="Ej: XXXX000000YYY" style="width:100%" />
+                  <input pInputText formControlName="rfc" adesFormat="rfc" placeholder="Ej: XXXX000000YYY" style="width:100%" />
                 </div>
                 <div class="field">
                   <label>Ocupación</label>
@@ -242,11 +242,11 @@ const NIVELES_ACCESO_PORTAL = [
                 
                 <div class="field">
                   <label>Email</label>
-                  <input pInputText type="email" formControlName="email" placeholder="contacto@example.com" style="width:100%" />
+                  <input pInputText type="email" formControlName="email" adesFormat="email" placeholder="contacto@example.com" style="width:100%" />
                 </div>
                 <div class="field">
                   <label>Teléfono Principal *</label>
-                  <input pInputText formControlName="telefono_principal" placeholder="Ej: 5551234567" style="width:100%" />
+                  <input pInputText formControlName="telefono_principal" adesFormat="telefono" placeholder="Ej: 5551234567" style="width:100%" />
                 </div>
 
                 <div class="field-toggle">
@@ -364,12 +364,12 @@ const NIVELES_ACCESO_PORTAL = [
         </p>
         <div class="field">
           <label>Email de acceso *</label>
-          <input pInputText [(ngModel)]="crearCuentaForm.email" type="email"
+          <input pInputText [(ngModel)]="crearCuentaForm.email" adesFormat="email" type="email"
             placeholder="email@example.com" style="width:100%" />
         </div>
         <div class="field">
           <label>Nombre completo (para el portal)</label>
-          <input pInputText [(ngModel)]="crearCuentaForm.nombreCompleto" style="width:100%" />
+          <input pInputText [(ngModel)]="crearCuentaForm.nombreCompleto" adesFormat="nombre" style="width:100%" />
         </div>
       </div>
       <ng-template pTemplate="footer">

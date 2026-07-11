@@ -1,5 +1,4 @@
 import { Directive, ElementRef, HostListener, Input, OnInit, inject } from '@angular/core';
-import { NgControl } from '@angular/forms';
 import { InputFormattersService } from '../services/input-formatters.service';
 
 /**
@@ -42,7 +41,6 @@ export class AdesFormatDirective implements OnInit {
 
   private readonly fmt = inject(InputFormattersService);
   private readonly el = inject<ElementRef<HTMLInputElement>>(ElementRef);
-  private readonly ngControl = inject(NgControl, { optional: true, self: true });
 
   ngOnInit(): void {
     const input = this.el.nativeElement;
