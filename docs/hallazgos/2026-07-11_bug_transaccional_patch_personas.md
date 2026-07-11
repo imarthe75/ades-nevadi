@@ -190,10 +190,39 @@ igual patrón que `AuditLogWriter`.
   cambios ajenos de otros refactors en curso en el repo.
 - Desplegado: imagen `ades-bff` reconstruida y contenedor recreado, healthy.
 
-## Pendiente / recomendación de seguimiento
+## Actualización 2026-07-11 (misma sesión, continuación): PiiBackfillRunner corregido
 
-- **`PiiBackfillRunner`** sigue sin corregir (ver sección anterior) — no
-  ejecutar `PII_BACKFILL_RUN=true` hasta resolverlo.
+Se corrigió el último pendiente. Causa exacta: `PiiBackfillRunner.run()`
+llamaba a `procesarLote()`, un método **privado dentro de la misma clase**
+(auto-invocación `this.procesarLote()`) — el proxy AOP de Spring no
+intercepta llamadas así, por lo que un `@Transactional` puesto ahí nunca se
+habría activado (idéntico al bug original de `PersonaUpdateHelper`, solo que
+aquí el propio *runner* era su propio problema).
+
+Fix: se extrajo `procesarLote()` a un bean nuevo, `PiiBackfillBatchProcessor`
+(`@Service`, método `procesarLote()` con `@Transactional`), inyectado en
+`PiiBackfillRunner` en vez de auto-invocado. Cada lote de 200 filas queda
+como su propia transacción independiente (no todo el backfill en una sola
+transacción gigante).
+
+**No se re-ejecutó el backfill real** para verificar con datos en vivo: un
+intento de prueba habría procesado 200 filas reales de `ades_personas` (las
+5,178 `pending` siguen ahí, sin tocar), lo cual requiere autorización
+explícita como la vez anterior — no implícita en "corrige esto". Verificado
+en cambio por: (a) compilación limpia (657 archivos), (b) el mismo patrón
+estructural exacto (bean `@Service` separado + `@Transactional` + invocación
+vía referencia inyectada, no auto-invocación) que ya se demostró
+empíricamente funcional hoy mismo con `AlumnoApplicationService`/
+`ContactosApplicationService` (`TransactionalFixVerificationTest`, sección
+anterior). Desplegado: `ades-bff` reconstruido, healthy, `PII_BACKFILL_RUN`
+sigue en `false` (no se activó).
+
+**Antes de correr el backfill real sobre las 5,178 filas pendientes**: pedir
+autorización explícita (mismo patrón que la vez anterior — backup de BD
+primero), luego `PII_BACKFILL_RUN=true` en un solo `docker compose up -d
+ades-bff`, verificar conteos, y devolver el flag a `false`.
+
+## Pendiente / recomendación de seguimiento
 - El barrido fue guiado por un agente de exploración + verificación manual,
   no por un análisis estático exhaustivo automatizado. Es razonablemente
   completo pero no matemáticamente garantizado al 100%. Recomendación para
