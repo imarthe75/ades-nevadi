@@ -146,10 +146,13 @@ facilite la localización de los datos.
 El sistema ADES aplica medidas técnicas y administrativas para proteger sus
 datos, entre ellas: cifrado en tránsito (HTTPS/TLS), control de acceso
 basado en rol y plantel, registro de auditoría de operaciones, y cifrado en
-reposo (AES-256) para CURP, teléfono y correo personal `[NOTA TÉCNICA: el
-cifrado en reposo está implementado en el código pero pendiente de aplicarse
-al histórico de datos existentes y de una corrección técnica previa — no
-represente esto como "completado" hasta confirmarlo con el equipo técnico]`.
+reposo (AES-256-GCM) para CURP, teléfono y correo personal — aplicado el
+2026-07-11 a las 5,178 personas registradas en el sistema (ver
+`docs/hallazgos/2026-07-11_bug_transaccional_patch_personas.md` para el
+detalle técnico y la verificación). `[NOTA TÉCNICA: el texto plano de estos
+campos NO se ha retirado de la base de datos — el cifrado es una capa
+adicional de protección, no un reemplazo. Retirar el texto plano es una
+migración de mayor alcance, pendiente.]`
 
 ### 9. Cambios a este aviso
 

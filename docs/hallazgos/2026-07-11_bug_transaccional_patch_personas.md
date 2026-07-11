@@ -222,6 +222,35 @@ autorización explícita (mismo patrón que la vez anterior — backup de BD
 primero), luego `PII_BACKFILL_RUN=true` en un solo `docker compose up -d
 ades-bff`, verificar conteos, y devolver el flag a `false`.
 
+## Actualización 2026-07-11 (misma sesión, continuación): backfill real ejecutado — ✅ completado
+
+Con autorización explícita del usuario (confirmación directa vía pregunta
+dedicada, no implícita), se ejecutó el backfill real:
+
+1. Backup fresco (`backups/pre_pii_backfill_real_20260711_200823.sql`, 144MB,
+   verificado con datos de `ades_personas` presentes).
+2. Línea base confirmada: `5178 pending, 0 completado`.
+3. `PII_BACKFILL_RUN=true` en un solo `docker compose up -d ades-bff`, log
+   vigilado en vivo desde el primer segundo. Comportamiento correcto esta
+   vez: progreso acotado por lotes de 200 (200, 400, 600 ... 5000), lote
+   final de 178, y **"Completado. Total de filas procesadas: 5178"** — sin
+   loop infinito, converge exactamente al número real de filas pendientes.
+4. Verificado en BD: `5178 completado, 0 pending`.
+5. **Round-trip de descifrado verificado** en una fila real: se comparó
+   (dentro del contenedor, sin imprimir ningún valor de PII en la
+   transcripción — solo booleanos de resultado) el CURP y teléfono
+   descifrados contra el valor en texto plano de la misma fila usando
+   `PiiEncryptionService` real. Resultado: `decrypt_match=true`,
+   `hash_match=true` para ambos campos.
+6. `PII_BACKFILL_RUN` devuelto a `false`, `ades-bff` redesplegado sin el
+   flag, confirmado que no se re-ejecutó (idempotente: aunque hubiera
+   quedado en `true`, no habría nada más que procesar).
+
+**Estado final: las 5,178 personas en `ades_personas` tienen CURP, teléfono
+y email personal cifrados en reposo (AES-256-GCM) además del texto plano
+existente** (retirar el texto plano queda fuera de alcance — ver nota en la
+sección de resumen sobre por qué eso es una migración de mayor tamaño).
+
 ## Pendiente / recomendación de seguimiento
 - El barrido fue guiado por un agente de exploración + verificación manual,
   no por un análisis estático exhaustivo automatizado. Es razonablemente
