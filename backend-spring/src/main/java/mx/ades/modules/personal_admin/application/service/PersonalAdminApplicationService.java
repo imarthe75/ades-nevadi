@@ -3,6 +3,7 @@ package mx.ades.modules.personal_admin.application.service;
 import mx.ades.common.ValidationUtils;
 import mx.ades.modules.personal_admin.domain.port.in.RegistrarPersonalAdminUseCase;
 import mx.ades.modules.personal_admin.domain.port.out.PersonalAdminRepositoryPort;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Map;
 import java.util.UUID;
@@ -25,6 +26,7 @@ public class PersonalAdminApplicationService implements RegistrarPersonalAdminUs
     }
 
     @Override
+    @Transactional
     public UUID registrar(RegistrarPersonalAdminUseCase.Command cmd) {
         ValidationUtils.validarPersonaMap(cmd.persona());
         ValidationUtils.validarLaboralesMap(cmd.laborales());
@@ -32,6 +34,7 @@ public class PersonalAdminApplicationService implements RegistrarPersonalAdminUs
         return repository.createEmpleado(personaId, cmd.plantelId(), cmd.laborales(), cmd.usuario());
     }
 
+    @Transactional
     public Map<String, Object> actualizar(UUID id, Map<String, Object> persona,
                                           Map<String, Object> laborales, String usuario) {
         ValidationUtils.validarPersonaMap(persona);
@@ -43,6 +46,7 @@ public class PersonalAdminApplicationService implements RegistrarPersonalAdminUs
         return repository.fetchById(id);
     }
 
+    @Transactional
     public void desactivar(UUID id) {
         int n = repository.softDelete(id);
         if (n == 0) throw new IllegalArgumentException("Personal no encontrado: " + id);

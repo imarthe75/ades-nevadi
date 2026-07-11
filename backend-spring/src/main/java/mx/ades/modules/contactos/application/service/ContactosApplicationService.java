@@ -3,6 +3,7 @@ package mx.ades.modules.contactos.application.service;
 import mx.ades.modules.contactos.domain.port.in.ActualizarContactoUseCase;
 import mx.ades.modules.contactos.domain.port.in.RegistrarContactoUseCase;
 import mx.ades.modules.contactos.domain.port.out.ContactosRepositoryPort;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Map;
 import java.util.Optional;
@@ -27,11 +28,13 @@ public class ContactosApplicationService
     }
 
     @Override
+    @Transactional
     public Map<String, Object> registrar(RegistrarContactoUseCase.Command cmd) {
         return repo.insertContacto(cmd);
     }
 
     @Override
+    @Transactional
     public Map<String, Object> actualizar(ActualizarContactoUseCase.Command cmd) {
         Optional<Map<String, Object>> existing = repo.fetchContactoForUpdate(cmd.contactoId());
         if (existing.isEmpty()) {
@@ -44,18 +47,22 @@ public class ContactosApplicationService
         return repo.updateContacto(cmd);
     }
 
+    @Transactional
     public void eliminar(UUID contactoId) {
         repo.softDeleteContacto(contactoId);
     }
 
+    @Transactional
     public Map<String, Object> expedienteMedico(UUID estudianteId) {
         return repo.fetchOrCreateExpedienteMedico(estudianteId);
     }
 
+    @Transactional
     public Map<String, Object> actualizarExpedienteMedico(UUID estudianteId, Map<String, Object> fields, String usuario) {
         return repo.upsertExpedienteMedico(estudianteId, fields, usuario);
     }
 
+    @Transactional
     public void upsertDocEstatus(UUID estudianteId, UUID docTipoId, UUID cicloId,
                                  String estatus, String observaciones, String username, UUID verificadoPorId) {
         repo.upsertDocEstatus(estudianteId, docTipoId, cicloId, estatus, observaciones, username, verificadoPorId);

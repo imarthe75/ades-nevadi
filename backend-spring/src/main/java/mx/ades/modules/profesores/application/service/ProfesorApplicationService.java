@@ -8,6 +8,7 @@ import mx.ades.modules.profesores.domain.port.in.CrearProfesorUseCase;
 import mx.ades.modules.profesores.domain.port.out.ProfesorRepositoryPort;
 import mx.ades.modules.profesores.query.ProfesorQueryService;
 import mx.ades.shared.persona.PersonaUpdateHelper;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Map;
 import java.util.UUID;
@@ -42,6 +43,7 @@ public class ProfesorApplicationService implements CrearProfesorUseCase, Actuali
     }
 
     @Override
+    @Transactional
     public Profesor crear(CrearProfesorUseCase.Command cmd) {
         Profesor prof = new Profesor();
         prof.setPersonaId(cmd.personaId());
@@ -53,6 +55,7 @@ public class ProfesorApplicationService implements CrearProfesorUseCase, Actuali
     }
 
     @Override
+    @Transactional
     public Map<String, Object> actualizar(ActualizarProfesorUseCase.Command cmd) {
         UUID personaId = queryService.resolverPersonaId(cmd.profesorId());
         personaHelper.actualizarBasico(personaId, cmd.persona());

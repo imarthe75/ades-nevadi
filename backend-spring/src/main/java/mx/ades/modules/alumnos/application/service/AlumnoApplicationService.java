@@ -10,6 +10,7 @@ import mx.ades.modules.alumnos.domain.port.out.AlumnoRepositoryPort;
 import mx.ades.modules.alumnos.query.AlumnoQueryService;
 import mx.ades.shared.persona.PersonaUpdateHelper;
 import org.springframework.http.HttpStatus;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
@@ -48,6 +49,7 @@ public class AlumnoApplicationService implements CrearAlumnoUseCase, ActualizarA
     }
 
     @Override
+    @Transactional
     public Map<String, Object> crear(CrearAlumnoUseCase.Command cmd) {
         if (repositoryPort.existeByCurp(cmd.curp()))
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Ya existe un registro con esa CURP");
@@ -85,6 +87,7 @@ public class AlumnoApplicationService implements CrearAlumnoUseCase, ActualizarA
     }
 
     @Override
+    @Transactional
     public Map<String, Object> actualizar(ActualizarAlumnoUseCase.Command cmd) {
         UUID personaId = queryService.resolverPersonaId(cmd.alumnoId());
         personaHelper.actualizar(personaId, cmd.persona());
