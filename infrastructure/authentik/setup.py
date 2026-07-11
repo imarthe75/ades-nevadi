@@ -89,6 +89,17 @@ def upsert_application(name, slug, provider_pk, launch_url, description=""):
 
 # ── 1. Brand ─────────────────────────────────────────────────────────────────
 
+# CSS de marca para el login de Authentik: reemplaza el fondo por defecto
+# (imagen de carretera) por el mismo gradiente navy del login del frontend
+# (frontend/src/app/core/components/login.component.ts). Solo toca el fondo
+# (.pf-c-background-image); la tarjeta blanca del formulario queda intacta.
+BRAND_CSS = (
+    ".pf-c-background-image{"
+    "--pf-c-background-image--BackgroundImage:none !important;"
+    "background:linear-gradient(160deg,#141929 0%,#1E2940 50%,#161E30 100%) !important;}"
+    ".pf-c-background-image__filter{display:none !important;}"
+)
+
 print("\n[1] Brand")
 brands = api("GET", "/core/brands/")
 if brands["results"]:
@@ -105,6 +116,7 @@ if brands["results"]:
         # authentik-media (que se pierde al reinicializar).
         "branding_logo":     "https://ades.setag.mx/nevadi-logo.jpg",
         "branding_favicon":  "https://ades.setag.mx/favicon.png",
+        "branding_custom_css": BRAND_CSS,
         "default":         True,
     })
     print(f"  actualizado ({uid})")
