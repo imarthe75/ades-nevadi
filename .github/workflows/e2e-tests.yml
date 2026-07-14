@@ -19,9 +19,10 @@ jobs:
         env:
           POSTGRES_DB: ades
           POSTGRES_USER: ades_admin
-          POSTGRES_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          POSTGRES_PASSWORD: ${{ secrets.DB_PASSWORD || 'test_password' }}
+          POSTGRES_HOST_AUTH_METHOD: trust
         options: >-
-          --health-cmd pg_isready
+          --health-cmd "pg_isready -U ades_admin -d ades"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -41,13 +42,19 @@ jobs:
       authentik:
         image: ghcr.io/goauthentik/server:2026.5.2
         env:
-          AUTHENTIK_SECRET__KEY: ${{ secrets.AUTHENTIK_SECRET_KEY }}
-          AUTHENTIK_BOOTSTRAP_PASSWORD: ${{ secrets.AUTHENTIK_PASSWORD }}
+          AUTHENTIK_SECRET_KEY: ${{ secrets.AUTHENTIK_SECRET_KEY || 'default_secret_key_for_testing_12345' }}
+          AUTHENTIK_SECRET__KEY: ${{ secrets.AUTHENTIK_SECRET_KEY || 'default_secret_key_for_testing_12345' }}
+          AUTHENTIK_BOOTSTRAP_PASSWORD: ${{ secrets.AUTHENTIK_PASSWORD || 'default_bootstrap_password' }}
+          AUTHENTIK_REDIS__HOST: valkey
+          AUTHENTIK_POSTGRESQL__HOST: postgres
+          AUTHENTIK_POSTGRESQL__USER: ades_admin
+          AUTHENTIK_POSTGRESQL__NAME: ades
+          AUTHENTIK_POSTGRESQL__PASSWORD: ${{ secrets.DB_PASSWORD || 'test_password' }}
         options: >-
-          --health-cmd "curl -f http://localhost:9000/api/v3/admin/system/about/"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+          --health-cmd "ak healthcheck"
+          --health-interval 15s
+          --health-timeout 10s
+          --health-retries 10
         ports:
           - 9010:9000
 

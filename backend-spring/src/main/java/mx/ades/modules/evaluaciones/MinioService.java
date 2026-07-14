@@ -10,14 +10,32 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 
 import java.io.InputStream;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
 public class MinioService {
 
     private static final Logger log = LoggerFactory.getLogger(MinioService.class);
+
+    private static final long MAX_UPLOAD_BYTES = 50L * 1024 * 1024; // 50 MB — entregas de tarea (PDF, docs, imágenes)
+
+    private static final Set<String> ALLOWED_MIME_TYPES = Set.of(
+            "application/pdf",
+            "application/msword",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "application/vnd.ms-excel",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "application/vnd.ms-powerpoint",
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            "image/jpeg",
+            "image/png",
+            "image/webp"
+    );
 
     @Value("${minio.endpoint:ades-minio:9000}")
     private String endpoint;
@@ -60,6 +78,15 @@ public class MinioService {
     public String uploadFile(UUID tareaId, UUID estudianteId, MultipartFile file) {
         if (file == null || file.isEmpty()) {
             return null;
+        }
+        if (file.getSize() > MAX_UPLOAD_BYTES) {
+            throw new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE,
+                    "El archivo supera el límite de 50MB");
+        }
+        String contentType = file.getContentType();
+        if (contentType == null || !ALLOWED_MIME_TYPES.contains(contentType)) {
+            throw new ResponseStatusException(HttpStatus.UNSUPPORTED_MEDIA_TYPE,
+                    "Tipo de archivo no permitido: " + contentType);
         }
         try {
             String originalFilename = file.getOriginalFilename();

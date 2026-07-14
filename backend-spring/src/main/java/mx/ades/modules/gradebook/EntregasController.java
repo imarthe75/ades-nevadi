@@ -1,5 +1,10 @@
 package mx.ades.modules.gradebook;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import mx.ades.modules.entregas.domain.port.in.CalificarEntregaUseCase;
@@ -45,7 +50,12 @@ public class EntregasController {
 
     @Data
     public static class CalificarIn {
+        @NotNull(message = "calificacion es obligatoria")
+        @DecimalMin(value = "0", message = "calificacion mínimo 0")
+        @DecimalMax(value = "10", message = "calificacion máximo 10")
         private Double calificacion;
+
+        @Size(max = 500, message = "comentario máximo 500 caracteres")
         private String comentario;
     }
 
@@ -97,7 +107,7 @@ public class EntregasController {
     @PatchMapping("/{entregaId}/calificar")
     public ResponseEntity<Map<String, Object>> calificarEntrega(
             @PathVariable("entregaId") UUID entregaId,
-            @RequestBody CalificarIn body,
+            @RequestBody @Valid CalificarIn body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
 

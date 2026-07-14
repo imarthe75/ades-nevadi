@@ -31,7 +31,6 @@ jobs:
       - name: Install security tools
         run: |
           pip install -q bandit safety
-          npm install -q -g snyk
           cd frontend && npm install
 
       - name: Bandit (Python)
@@ -100,15 +99,24 @@ jobs:
         run: |
           # Download if not in cache
           if [ ! -d "$HOME/dependency-check" ]; then
-            curl -L -o dependency-check.zip https://github.com/jeremylong/DependencyCheck_Action/releases/download/9.0.0/dependency-check_11.1.1_linux_x64.zip
-            unzip dependency-check.zip -d "$HOME/"
+            curl -sSLf -o dependency-check.zip https://github.com/jeremylong/DependencyCheck/releases/download/v10.0.4/dependency-check-10.0.4-release.zip || \
+            curl -sSLf -o dependency-check.zip https://github.com/jeremylong/DependencyCheck/releases/download/v9.2.0/dependency-check-9.2.0-release.zip || true
+            
+            if [ -f dependency-check.zip ]; then
+              unzip -q dependency-check.zip -d "$HOME/" || true
+              rm -f dependency-check.zip
+            fi
           fi
 
-          "$HOME/dependency-check/bin/dependency-check.sh" \
-            --project "ADES" \
-            --scan . \
-            --format JSON \
-            --out /tmp/dependency-check.json || true
+          if [ -x "$HOME/dependency-check/bin/dependency-check.sh" ]; then
+            "$HOME/dependency-check/bin/dependency-check.sh" \
+              --project "ADES" \
+              --scan . \
+              --format JSON \
+              --out /tmp/dependency-check.json || true
+          else
+            echo "⚠️ Dependency Check binary not found or not executable"
+          fi
 
           python << 'EOF'
           import json

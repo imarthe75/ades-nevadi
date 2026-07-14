@@ -9,6 +9,7 @@ import mx.ades.modules.alumnos.domain.port.in.CrearAlumnoUseCase;
 import mx.ades.modules.alumnos.domain.port.out.AlumnoRepositoryPort;
 import mx.ades.modules.alumnos.query.AlumnoQueryService;
 import mx.ades.shared.persona.PersonaUpdateHelper;
+import mx.ades.common.ValidationUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -51,6 +52,15 @@ public class AlumnoApplicationService implements CrearAlumnoUseCase, ActualizarA
     @Override
     @Transactional
     public Map<String, Object> crear(CrearAlumnoUseCase.Command cmd) {
+        ValidationUtils.validarNombrePersona(cmd.nombre(), "El nombre");
+        ValidationUtils.validarNombrePersona(cmd.apellidoPaterno(), "El apellido paterno");
+        ValidationUtils.validarNombrePersona(cmd.apellidoMaterno(), "El apellido materno");
+        ValidationUtils.validarCURP(cmd.curp());
+        if (cmd.nombre() == null || cmd.nombre().isBlank())
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "El nombre es obligatorio");
+        if (cmd.apellidoPaterno() == null || cmd.apellidoPaterno().isBlank())
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "El apellido paterno es obligatorio");
+
         if (repositoryPort.existeByCurp(cmd.curp()))
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Ya existe un registro con esa CURP");
 

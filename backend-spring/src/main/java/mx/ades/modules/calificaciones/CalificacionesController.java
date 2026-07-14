@@ -2,6 +2,7 @@ package mx.ades.modules.calificaciones;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.validation.Valid;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import mx.ades.modules.admin.ConfigQueryService;
@@ -57,7 +58,7 @@ public class CalificacionesController {
 
     @PostMapping("/manual")
     public ResponseEntity<CalificacionResponseDto> guardarManual(
-            @RequestBody GuardarCalificacionManualDto req,
+            @RequestBody @Valid GuardarCalificacionManualDto req,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         if (user.getNivelAcceso() != null && user.getNivelAcceso() > 4)

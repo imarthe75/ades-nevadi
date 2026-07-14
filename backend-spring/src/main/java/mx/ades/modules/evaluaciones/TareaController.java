@@ -83,23 +83,49 @@ public class TareaController {
     }
 
     public record CrearActividadRequest(
+            @NotBlank(message = "titulo es obligatorio")
+            @Size(min = 3, max = 255, message = "titulo debe tener entre 3 y 255 caracteres")
             String titulo,
+
+            @Size(max = 2000, message = "descripcion máximo 2000 caracteres")
             String descripcion,
+
+            @NotNull(message = "grupoId es obligatorio")
             UUID grupoId,
+
+            @NotNull(message = "materiaId es obligatorio")
             UUID materiaId,
+
             UUID temaId,
             UUID periodoEvaluacionId,
             String fechaAsignacion,
             String fechaEntrega,
+
+            @NotNull(message = "puntajeMaximo es obligatorio")
+            @DecimalMin(value = "0.01", message = "puntajeMaximo mínimo 0.01")
+            @DecimalMax(value = "100", message = "puntajeMaximo máximo 100")
             BigDecimal puntajeMaximo,
+
             String tipoItem,
             Boolean permiteEntregaTarde,
             String instruccionesUrl) {
     }
 
+    /** Acepta ISO (yyyy-MM-dd) y formato México (dd/MM/yyyy); 500 con mensaje claro si no calza con ninguno. */
+    private static final DateTimeFormatter FORMATO_FECHA_MX = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+
+    private LocalDate parseFecha(String valor, String campo) {
+        try {
+            return valor.contains("/") ? LocalDate.parse(valor, FORMATO_FECHA_MX) : LocalDate.parse(valor);
+        } catch (DateTimeParseException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    campo + " inválida. Use DD/MM/YYYY o YYYY-MM-DD. Recibido: " + valor);
+        }
+    }
+
     @PostMapping
     public ResponseEntity<Map<String, Object>> crearActividad(
-            @RequestBody CrearActividadRequest body,
+            @RequestBody @Valid CrearActividadRequest body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
 
@@ -107,13 +133,25 @@ public class TareaController {
                 ? TipoItem.valueOf(body.tipoItem().toUpperCase())
                 : TipoItem.TAREA;
 
+        LocalDate fechaAsignacion = body.fechaAsignacion() != null && !body.fechaAsignacion().isBlank()
+                ? parseFecha(body.fechaAsignacion(), "fechaAsignacion")
+                : LocalDate.now();
+        LocalDate fechaEntrega = body.fechaEntrega() != null && !body.fechaEntrega().isBlank()
+                ? parseFecha(body.fechaEntrega(), "fechaEntrega")
+                : LocalDate.now().plusDays(7);
+
+        if (fechaEntrega.isBefore(fechaAsignacion)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "fechaEntrega no puede ser anterior a fechaAsignacion");
+        }
+
         CrearActividadUseCase.Result result = crearActividad.ejecutar(
                 new CrearActividadUseCase.Command(
                         body.titulo(), body.descripcion(),
                         body.grupoId(), body.materiaId(), body.temaId(),
                         body.periodoEvaluacionId(),
-                        body.fechaAsignacion() != null ? LocalDate.parse(body.fechaAsignacion()) : LocalDate.now(),
-                        body.fechaEntrega()   != null ? LocalDate.parse(body.fechaEntrega())   : LocalDate.now().plusDays(7),
+                        fechaAsignacion,
+                        fechaEntrega,
                         body.puntajeMaximo(),
                         tipo,
                         Boolean.TRUE.equals(body.permiteEntregaTarde()),
