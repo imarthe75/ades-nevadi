@@ -408,7 +408,7 @@ export class GradeAnalyticsComponent implements OnInit, OnDestroy {
     if (plantel) params['plantel_id'] = plantel.id;
     if (ciclo)   params['ciclo_id']   = ciclo.id;
 
-    this.api.get<any[]>('/grupos', params).subscribe(list => {
+    this.api.get<any[]>('/grupos', params).pipe(takeUntil(this.destroy$)).subscribe(list => {
       this.grupos.set(list.map(g => ({
         label: `${g.nombre_grupo} — ${g.nombre_grado ?? ''}`,
         value: g.id,
@@ -425,7 +425,7 @@ export class GradeAnalyticsComponent implements OnInit, OnDestroy {
   cargarTendencias(): void {
     if (!this.selectedGrupoId) return;
     this.loadingTendencias.set(true);
-    this.api.get<TendenciaRow[]>(`/grade-analytics/tendencias/${this.selectedGrupoId}`).subscribe({
+    this.api.get<TendenciaRow[]>(`/grade-analytics/tendencias/${this.selectedGrupoId}`).pipe(takeUntil(this.destroy$)).subscribe({
       next: (r) => { this.tendencias.set(r); this.loadingTendencias.set(false); },
       error: () => this.loadingTendencias.set(false),
     });
@@ -439,7 +439,7 @@ export class GradeAnalyticsComponent implements OnInit, OnDestroy {
     if (this.filtroRiesgo) params['nivel_riesgo'] = this.filtroRiesgo;
     if (this.selectedGrupoId) params['grupo_id'] = this.selectedGrupoId;
 
-    this.api.get<RiesgoRow[]>('/grade-analytics/riesgo', { ...params, limit: 200 }).subscribe({
+    this.api.get<RiesgoRow[]>('/grade-analytics/riesgo', { ...params, limit: 200 }).pipe(takeUntil(this.destroy$)).subscribe({
       next: (r) => { this.riesgo.set(r); this.loadingRiesgo.set(false); },
       error: () => this.loadingRiesgo.set(false),
     });
@@ -447,7 +447,7 @@ export class GradeAnalyticsComponent implements OnInit, OnDestroy {
 
   cargarDistribucion(): void {
     if (!this.selectedGrupoId) return;
-    this.api.get<DistribucionRow[]>(`/grade-analytics/distribucion/${this.selectedGrupoId}`).subscribe({
+    this.api.get<DistribucionRow[]>(`/grade-analytics/distribucion/${this.selectedGrupoId}`).pipe(takeUntil(this.destroy$)).subscribe({
       next: (r) => this.distribucion.set(r),
     });
   }
@@ -456,7 +456,7 @@ export class GradeAnalyticsComponent implements OnInit, OnDestroy {
     this.loadingResumen.set(true);
     const plantel = this.ctx.plantel();
     const params = plantel ? { plantel_id: plantel.id } : {};
-    this.api.get<ResumenRow[]>('/grade-analytics/resumen-plantel', params).subscribe({
+    this.api.get<ResumenRow[]>('/grade-analytics/resumen-plantel', params).pipe(takeUntil(this.destroy$)).subscribe({
       next: (r) => { this.resumen.set(r); this.loadingResumen.set(false); },
       error: () => this.loadingResumen.set(false),
     });

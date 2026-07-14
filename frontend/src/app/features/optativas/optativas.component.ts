@@ -209,7 +209,7 @@ export class OptativasComponent implements OnInit, OnDestroy {
       this.estudiantesSugg.set([]);
       return;
     }
-    this.api.get<any[]>('/portal/buscar', { q: event.query }).subscribe({
+    this.api.get<any[]>('/portal/buscar', { q: event.query }).pipe(takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         this.estudiantesSugg.set((res ?? []).map((a: any) => ({
           id: a.id,
@@ -242,7 +242,7 @@ export class OptativasComponent implements OnInit, OnDestroy {
     this.api.get<Materia[]>('/materias', {
       tipo: 'NEVADI',
       ...(nivelId ? { nivel_educativo_id: nivelId } : {}),
-    }).subscribe({
+    }).pipe(takeUntil(this.destroy$)).subscribe({
       next: d => { this.catalogo.set(Array.isArray(d) ? d : []); this.cargandoCatalogo.set(false); },
       error: () => { this.cargandoCatalogo.set(false); },
     });
@@ -263,7 +263,7 @@ export class OptativasComponent implements OnInit, OnDestroy {
     this.api.get<Inscripcion[]>('/procesos/optativas', {
       estudiante_id: this.alumnoSeleccionado,
       ...(cicloId ? { ciclo_id: cicloId } : {}),
-    }).subscribe({
+    }).pipe(takeUntil(this.destroy$)).subscribe({
       next: d => { this.inscritas.set(Array.isArray(d) ? d : []); this.cargandoInscritas.set(false); },
       error: () => { this.cargandoInscritas.set(false); this.notify.error('Error', 'No se pudieron cargar las optativas inscritas'); },
     });
@@ -293,7 +293,7 @@ export class OptativasComponent implements OnInit, OnDestroy {
       materia_id: row.id,
       ciclo_escolar_id: cicloId,
     };
-    this.api.post('/procesos/optativas', body).subscribe({
+    this.api.post('/procesos/optativas', body).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.guardando.set(false);
         this.notify.success('Inscripción registrada', `${row.nombre_materia} agregada correctamente`);
@@ -307,7 +307,7 @@ export class OptativasComponent implements OnInit, OnDestroy {
   }
 
   darDeBaja(row: any): void {
-    this.api.delete(`/procesos/optativas/${row.id}`).subscribe({
+    this.api.delete(`/procesos/optativas/${row.id}`).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.notify.success('Baja registrada', `${row.nombre_materia} eliminada de las optativas`);
         this.cargarInscritas();

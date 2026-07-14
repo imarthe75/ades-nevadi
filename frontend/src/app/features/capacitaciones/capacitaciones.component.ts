@@ -358,7 +358,7 @@ export class CapacitacionesComponent implements OnInit, OnDestroy {
     if (this.filtroValidado !== null)  params['validado'] = String(this.filtroValidado);
     if (this.filtroNombre)             params['q']        = this.filtroNombre;
 
-    this.api.get<Capacitacion[]>('/capacitaciones', params).subscribe({
+    this.api.get<Capacitacion[]>('/capacitaciones', params).pipe(takeUntil(this.destroy$)).subscribe({
       next: data => { this.capacitaciones.set(data); this.cargando.set(false); },
       error: () => { this.cargando.set(false); this.notify.error('Error al cargar capacitaciones'); },
     });
@@ -366,7 +366,7 @@ export class CapacitacionesComponent implements OnInit, OnDestroy {
 
   buscarDocente(event: { query: string }) {
     if (!event.query || event.query.length < 2) { this.docenteSugerencias.set([]); return; }
-    this.api.get<any>('/profesores', { buscar: event.query }).subscribe({
+    this.api.get<any>('/profesores', { buscar: event.query }).pipe(takeUntil(this.destroy$)).subscribe({
       next: res => {
         const data = res?.data ?? res ?? [];
         this.docenteSugerencias.set(data.map((p: any) => ({
@@ -406,7 +406,7 @@ export class CapacitacionesComponent implements OnInit, OnDestroy {
       folio_certificado:  this.form.folio_certificado || null,
       certificado_url:    this.form.certificado_url || null,
     };
-    this.api.post<Capacitacion>('/capacitaciones', payload).subscribe({
+    this.api.post<Capacitacion>('/capacitaciones', payload).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.guardando.set(false);
         this.dialogNueva = false;
@@ -423,14 +423,14 @@ export class CapacitacionesComponent implements OnInit, OnDestroy {
   }
 
   validar(cap: Capacitacion) {
-    this.api.post<Capacitacion>(`/capacitaciones/${cap.id}/validar`, null).subscribe({
+    this.api.post<Capacitacion>(`/capacitaciones/${cap.id}/validar`, null).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => { this.notify.success('Capacitación validada'); this.cargar(); },
       error: (e: any) => this.notify.error(e.error?.detail ?? 'Error al validar'),
     });
   }
 
   eliminar(cap: Capacitacion) {
-    this.api.delete(`/capacitaciones/${cap.id}`).subscribe({
+    this.api.delete(`/capacitaciones/${cap.id}`).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => { this.notify.success('Capacitación eliminada'); this.cargar(); },
       error: (e: any) => this.notify.error(e.error?.detail ?? 'Error al eliminar'),
     });

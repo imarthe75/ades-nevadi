@@ -11,9 +11,9 @@ INSERT INTO ades_municipios (clave_municipio, nombre_municipio, estado_id)
 SELECT m.clave, m.nombre, e.id
 FROM ades_estados e,
 (VALUES
-  ('106', 'Metepec'),
-  ('099', 'Tenancingo'),
-  ('057', 'Ixtapan de la Sal')
+  ('054', 'Metepec'),
+  ('088', 'Tenancingo'),
+  ('040', 'Ixtapan de la Sal')
 ) AS m(clave, nombre)
 WHERE e.clave_estado = '15'
 ON CONFLICT (clave_municipio, estado_id) DO NOTHING;

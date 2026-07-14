@@ -1,18 +1,28 @@
 #!/bin/bash
 # ADES Automated Backup Script
-# PostgreSQL + Valkey + MinIO versioning
-# Usage: ./backup-ades.sh [full|incremental] [--upload-s3]
-# Cron: 0 2 * * * /opt/ades/scripts/backup-ades.sh full
+# PostgreSQL (pg_dump) + Valkey (RDB) + volúmenes SeaweedFS/Authentik/Superset + config
+# Usage: ./backup-ades.sh [full|incremental]
+# Cron:  0 2 * * * /opt/ades/scripts/backup-ades.sh full >> /opt/ades/backups/logs/cron.log 2>&1
+#
+# Nota: requiere acceso al socket de Docker. El usuario ubuntu no pertenece al
+# grupo docker en este servidor, así que cada llamada usa `sudo docker` (ubuntu
+# tiene NOPASSWD:ALL configurado, por lo que corre sin intervención en cron).
 
 set -e
 
-BACKUP_DIR="/data/backups"
+cd /opt/ades || exit 1
+
+# Carga VALKEY_PASSWORD y demás variables usadas por el script
+set -a
+# shellcheck disable=SC1091
+source /opt/ades/.env
+set +a
+
+BACKUP_DIR="/opt/ades/backups"
 TIMESTAMP=$(date +%Y%m%d-%H%M%S)
 BACKUP_TYPE="${1:-incremental}"
-UPLOAD_S3="${2:---no-s3}"
 
-mkdir -p "$BACKUP_DIR"
-mkdir -p "$BACKUP_DIR/logs"
+mkdir -p "$BACKUP_DIR" "$BACKUP_DIR/logs"
 
 LOG_FILE="$BACKUP_DIR/logs/backup-$TIMESTAMP.log"
 BACKUP_MANIFEST="$BACKUP_DIR/manifest-$TIMESTAMP.json"
@@ -20,96 +30,89 @@ BACKUP_MANIFEST="$BACKUP_DIR/manifest-$TIMESTAMP.json"
 echo "[$(date +'%Y-%m-%d %H:%M:%S')] ▶️  ADES Backup Starting — Type: $BACKUP_TYPE" | tee -a "$LOG_FILE"
 
 # ============================================================================
-# 1. PostgreSQL Backup
+# 1. PostgreSQL Backup (pg_dump lógico — no depende de si el volumen es named o bind)
 # ============================================================================
 echo "[$(date +'%Y-%m-%d %H:%M:%S')] 📦 PostgreSQL backup..." | tee -a "$LOG_FILE"
 
 if [ "$BACKUP_TYPE" = "full" ]; then
-  # Full backup (pg_dump)
-  PGPASSWORD=$DB_PASSWORD docker compose exec -T postgres pg_dump \
+  sudo docker compose exec -T postgres pg_dump \
     -U ades_admin \
     --format=custom \
     --compress=9 \
-    --verbose \
     ades \
     > "$BACKUP_DIR/ades-full-$TIMESTAMP.dump" 2>> "$LOG_FILE"
 
   DUMP_SIZE=$(du -sh "$BACKUP_DIR/ades-full-$TIMESTAMP.dump" | cut -f1)
   echo "  ✅ Full backup: $DUMP_SIZE" | tee -a "$LOG_FILE"
 
-  # Also keep weekly plain text backup for safety
-  if [ $(date +%u) -eq 1 ]; then  # Monday
-    PGPASSWORD=$DB_PASSWORD docker compose exec -T postgres pg_dump \
+  # Respaldo plano semanal adicional (lunes)
+  if [ "$(date +%u)" -eq 1 ]; then
+    sudo docker compose exec -T postgres pg_dump \
       -U ades_admin \
       ades \
       > "$BACKUP_DIR/ades-plain-$(date +%Y%m%d).sql" 2>> "$LOG_FILE"
     echo "  ✅ Plain SQL backup (weekly)" | tee -a "$LOG_FILE"
   fi
 else
-  # Incremental backup (WAL archiving via pg_basebackup)
-  echo "  ℹ️  Incremental backup (WAL only, requires wal_level=replica)" | tee -a "$LOG_FILE"
+  echo "  ℹ️  Tipo 'incremental' no implementado (requiere wal_level=replica) — se hace full igual" | tee -a "$LOG_FILE"
+  sudo docker compose exec -T postgres pg_dump \
+    -U ades_admin \
+    --format=custom \
+    --compress=9 \
+    ades \
+    > "$BACKUP_DIR/ades-full-$TIMESTAMP.dump" 2>> "$LOG_FILE"
 fi
 
 # ============================================================================
-# 2. Valkey Backup
+# 2. Valkey Backup — copiado directo del contenedor (independiente del tipo de volumen)
 # ============================================================================
 echo "[$(date +'%Y-%m-%d %H:%M:%S')] 💾 Valkey snapshot..." | tee -a "$LOG_FILE"
 
-docker compose exec -T valkey valkey-cli BGSAVE 2>> "$LOG_FILE"
-sleep 2
-
-# Copy RDB snapshot
-if [ -f "/data/valkey/dump.rdb" ]; then
-  cp /data/valkey/dump.rdb "$BACKUP_DIR/valkey-$TIMESTAMP.rdb"
-  RDB_SIZE=$(du -sh "$BACKUP_DIR/valkey-$TIMESTAMP.rdb" | cut -f1)
-  echo "  ✅ Valkey snapshot: $RDB_SIZE" | tee -a "$LOG_FILE"
-else
-  echo "  ⚠️  RDB file not found (AOF might be enabled)" | tee -a "$LOG_FILE"
-fi
+sudo docker compose exec -T valkey valkey-cli -a "${VALKEY_PASSWORD}" --no-auth-warning BGSAVE 2>> "$LOG_FILE" || true
+sleep 3
+sudo docker compose cp valkey:/data/dump.rdb "$BACKUP_DIR/valkey-$TIMESTAMP.rdb" 2>> "$LOG_FILE" \
+  && echo "  ✅ Valkey snapshot: $(du -sh "$BACKUP_DIR/valkey-$TIMESTAMP.rdb" | cut -f1)" | tee -a "$LOG_FILE" \
+  || echo "  ⚠️  No se pudo copiar dump.rdb del contenedor valkey" | tee -a "$LOG_FILE"
 
 # ============================================================================
-# 3. MinIO Versioning
+# 3. Volúmenes Docker sin dump lógico propio (SeaweedFS, medios de Authentik, Superset)
+#    El proyecto usa SeaweedFS (no MinIO) como backend S3; no existe servicio
+#    "minio" en docker-compose.yml, por eso se respalda el volumen completo.
 # ============================================================================
-echo "[$(date +'%Y-%m-%d %H:%M:%S')] 🪣 MinIO versioning..." | tee -a "$LOG_FILE"
+echo "[$(date +'%Y-%m-%d %H:%M:%S')] 📀 Volúmenes (SeaweedFS/Authentik/Superset)..." | tee -a "$LOG_FILE"
 
-# Enable versioning on ades bucket if not already enabled
-docker compose exec -T minio mc version enable ades-minio/ades 2>> "$LOG_FILE" || true
-echo "  ✅ Versioning enabled (keeps 3 versions per object)" | tee -a "$LOG_FILE"
-
-# Optional: export bucket list
-docker compose exec -T minio mc ls --recursive ades-minio/ades > "$BACKUP_DIR/minio-manifest-$TIMESTAMP.txt" 2>> "$LOG_FILE"
-
-# ============================================================================
-# 4. Docker Volumes Snapshot
-# ============================================================================
-echo "[$(date +'%Y-%m-%d %H:%M:%S')] 📀 Docker volumes..." | tee -a "$LOG_FILE"
-
-# Snapshot all volumes (requires root or sudo)
-for volume in ades_postgres_data ades_valkey_data ades_h5p_data; do
-  if docker volume inspect "$volume" &>/dev/null; then
-    echo "  ✓ Volume exists: $volume" | tee -a "$LOG_FILE"
+for volume in ades_seaweedfs-data ades_authentik-media ades_superset-data; do
+  if sudo docker volume inspect "$volume" &>/dev/null; then
+    sudo docker run --rm \
+      -v "${volume}:/source:ro" \
+      -v "${BACKUP_DIR}:/backup" \
+      alpine sh -c "tar -czf /backup/${volume}-${TIMESTAMP}.tar.gz -C /source ." 2>> "$LOG_FILE" \
+      && echo "  ✅ Volumen $volume respaldado" | tee -a "$LOG_FILE" \
+      || echo "  ⚠️  Falló el respaldo de $volume" | tee -a "$LOG_FILE"
+  else
+    echo "  ⚠️  Volumen $volume no existe (revisar nombres en docker volume ls)" | tee -a "$LOG_FILE"
   fi
 done
 
-echo "  ℹ️  Full volume backup requires `docker volume export` (use cron with sudo)" | tee -a "$LOG_FILE"
-
 # ============================================================================
-# 5. Application Config Backup
+# 4. Configuración de aplicación (incluye .env — el directorio backups/ está
+#    en .gitignore y queda con permisos 600, nunca se commitea ni se expone)
 # ============================================================================
 echo "[$(date +'%Y-%m-%d %H:%M:%S')] ⚙️  Config files..." | tee -a "$LOG_FILE"
 
 tar -czf "$BACKUP_DIR/config-$TIMESTAMP.tar.gz" \
   -C /opt/ades \
   docker-compose.yml \
-  .env.example \
-  nginx.conf \
+  .env \
+  infrastructure/nginx/nginx.conf \
   2>> "$LOG_FILE" || true
 
-CONFIG_SIZE=$(du -sh "$BACKUP_DIR/config-$TIMESTAMP.tar.gz" | cut -f1)
+chmod 600 "$BACKUP_DIR/config-$TIMESTAMP.tar.gz" 2>/dev/null || true
+CONFIG_SIZE=$(du -sh "$BACKUP_DIR/config-$TIMESTAMP.tar.gz" 2>/dev/null | cut -f1 || echo 'N/A')
 echo "  ✅ Config backup: $CONFIG_SIZE" | tee -a "$LOG_FILE"
 
 # ============================================================================
-# 6. Backup Manifest
+# 5. Manifest
 # ============================================================================
 cat > "$BACKUP_MANIFEST" << MANIFEST_EOF
 {
@@ -119,72 +122,60 @@ cat > "$BACKUP_MANIFEST" << MANIFEST_EOF
   "files": {
     "postgresql": "ades-full-$TIMESTAMP.dump",
     "valkey": "valkey-$TIMESTAMP.rdb",
-    "config": "config-$TIMESTAMP.tar.gz",
-    "minio_manifest": "minio-manifest-$TIMESTAMP.txt"
+    "config": "config-$TIMESTAMP.tar.gz"
   },
   "sizes": {
     "dump": "$(du -sh "$BACKUP_DIR/ades-full-$TIMESTAMP.dump" 2>/dev/null | cut -f1 || echo 'N/A')",
     "rdb": "$(du -sh "$BACKUP_DIR/valkey-$TIMESTAMP.rdb" 2>/dev/null | cut -f1 || echo 'N/A')",
-    "config": "$(du -sh "$BACKUP_DIR/config-$TIMESTAMP.tar.gz" 2>/dev/null | cut -f1 || echo 'N/A')"
+    "config": "$CONFIG_SIZE"
   },
   "retention": {
     "daily_backups": 7,
-    "weekly_backups": 4,
-    "monthly_backups": 12
+    "weekly_backups": 4
   },
   "restore_instructions": {
-    "postgresql": "PGPASSWORD=\$PW pg_restore -U ades_admin -d ades ades-full-$TIMESTAMP.dump",
-    "valkey": "docker compose exec valkey valkey-cli FLUSHDB && docker cp valkey-$TIMESTAMP.rdb <container>:/data/dump.rdb",
-    "all": "See docs/RESTORE_PROCEDURE.md"
+    "postgresql": "sudo docker compose exec -T postgres pg_restore -U ades_admin -d ades < ades-full-TIMESTAMP.dump",
+    "valkey": "sudo docker compose cp valkey-TIMESTAMP.rdb valkey:/data/dump.rdb && sudo docker compose restart valkey",
+    "volumenes": "sudo docker run --rm -v <volumen>:/target -v \$BACKUP_DIR:/backup alpine sh -c 'cd /target && tar -xzf /backup/<archivo>.tar.gz'"
   }
 }
 MANIFEST_EOF
 
 echo "  ✅ Manifest: $BACKUP_MANIFEST" | tee -a "$LOG_FILE"
 
+# Normaliza ownership: los artefactos creados vía `sudo docker` quedan root:root
+sudo chown ubuntu:ubuntu "$BACKUP_DIR"/*-"$TIMESTAMP"* 2>> "$LOG_FILE" || true
+
 # ============================================================================
-# 7. Cleanup Old Backups
+# 6. Cleanup — retiene 7 días de daily + no borra los semanales/manuales
 # ============================================================================
 echo "[$(date +'%Y-%m-%d %H:%M:%S')] 🧹 Cleanup..." | tee -a "$LOG_FILE"
 
-# Keep last 7 daily backups
-find "$BACKUP_DIR" -name "ades-full-*.dump" -mtime +7 -delete 2>> "$LOG_FILE" || true
-find "$BACKUP_DIR" -name "valkey-*.rdb" -mtime +7 -delete 2>> "$LOG_FILE" || true
-find "$BACKUP_DIR" -name "config-*.tar.gz" -mtime +7 -delete 2>> "$LOG_FILE" || true
+find "$BACKUP_DIR" -maxdepth 1 -name "ades-full-*.dump" -mtime +7 -delete 2>> "$LOG_FILE" || true
+find "$BACKUP_DIR" -maxdepth 1 -name "valkey-*.rdb" -mtime +7 -delete 2>> "$LOG_FILE" || true
+find "$BACKUP_DIR" -maxdepth 1 -name "config-*.tar.gz" -mtime +7 -delete 2>> "$LOG_FILE" || true
+find "$BACKUP_DIR" -maxdepth 1 -name "ades_*-data-*.tar.gz" -mtime +7 -delete 2>> "$LOG_FILE" || true
+find "$BACKUP_DIR/logs" -name "backup-*.log" -mtime +30 -delete 2>> "$LOG_FILE" || true
 
 BACKUP_COUNT=$(ls -1 "$BACKUP_DIR"/ades-full-*.dump 2>/dev/null | wc -l)
-echo "  ✅ Retained $BACKUP_COUNT daily backups (max 7)" | tee -a "$LOG_FILE"
+echo "  ✅ Retenidos $BACKUP_COUNT backups full (máx 7 días)" | tee -a "$LOG_FILE"
 
 # ============================================================================
-# 8. Verify Backup Integrity
+# 7. Verificación de integridad
 # ============================================================================
-echo "[$(date +'%Y-%m-%d %H:%M:%S')] ✓ Verification..." | tee -a "$LOG_FILE"
+echo "[$(date +'%Y-%m-%d %H:%M:%S')] ✓ Verificación..." | tee -a "$LOG_FILE"
 
-# Check dump file magic bytes (PostgreSQL custom format starts with PGDMP)
-if head -c 5 "$BACKUP_DIR/ades-full-$TIMESTAMP.dump" | grep -q "PGDMP"; then
+if head -c 5 "$BACKUP_DIR/ades-full-$TIMESTAMP.dump" 2>/dev/null | grep -q "PGDMP"; then
   echo "  ✅ PostgreSQL dump integrity: OK" | tee -a "$LOG_FILE"
 else
-  echo "  ⚠️  PostgreSQL dump magic bytes invalid" | tee -a "$LOG_FILE"
+  echo "  ⚠️  PostgreSQL dump magic bytes inválido" | tee -a "$LOG_FILE"
 fi
 
-# Check RDB magic bytes (Redis RDB starts with REDIS)
-if head -c 5 "$BACKUP_DIR/valkey-$TIMESTAMP.rdb" | grep -q "REDIS"; then
+# Valkey 9.x usa el prefijo "VALKEY" en vez del histórico "REDIS" de Redis-compatible RDB
+if head -c 6 "$BACKUP_DIR/valkey-$TIMESTAMP.rdb" 2>/dev/null | grep -qE "REDIS|VALKEY"; then
   echo "  ✅ Valkey RDB integrity: OK" | tee -a "$LOG_FILE"
 else
-  echo "  ⚠️  Valkey RDB magic bytes invalid" | tee -a "$LOG_FILE"
-fi
-
-# ============================================================================
-# 9. Optional: Upload to S3
-# ============================================================================
-if [ "$UPLOAD_S3" = "--upload-s3" ]; then
-  echo "[$(date +'%Y-%m-%d %H:%M:%S')] ☁️  S3 upload..." | tee -a "$LOG_FILE"
-
-  # Requires AWS CLI + credentials
-  # aws s3 cp "$BACKUP_DIR/ades-full-$TIMESTAMP.dump" s3://ades-backups/full/ 2>> "$LOG_FILE"
-  # aws s3 cp "$BACKUP_DIR/valkey-$TIMESTAMP.rdb" s3://ades-backups/rdb/ 2>> "$LOG_FILE"
-
-  echo "  ⓘ  S3 upload disabled (requires AWS CLI setup)" | tee -a "$LOG_FILE"
+  echo "  ⚠️  Valkey RDB magic bytes inválido o archivo ausente" | tee -a "$LOG_FILE"
 fi
 
 # ============================================================================
@@ -195,6 +186,3 @@ echo "[$(date +'%Y-%m-%d %H:%M:%S')] ✅ BACKUP COMPLETE" | tee -a "$LOG_FILE"
 echo "  Location: $BACKUP_DIR"
 echo "  Manifest: $BACKUP_MANIFEST"
 echo "  Log: $LOG_FILE"
-echo "  Retention: 7 days (daily), weekly (4 weeks), monthly (12 months)"
-echo ""
-echo "🚀 Restore: See docs/RESTORE_PROCEDURE.md"

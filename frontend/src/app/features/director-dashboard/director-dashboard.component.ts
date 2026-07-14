@@ -239,16 +239,16 @@ export class DirectorDashboardComponent implements OnInit, OnDestroy {
     }
 
     // Parallel fetch KPIs, Grados, Materias
-    this.api.get<any>('/stats/director/kpis', params).subscribe({
+    this.api.get<any>('/stats/director/kpis', params).pipe(takeUntil(this.destroy$)).subscribe({
       next: (kpis) => {
         this.kpis.set(kpis);
         
         // Avance por grado
-        this.api.get<any[]>('/stats/director/avance-grado', params).subscribe(grados => {
+        this.api.get<any[]>('/stats/director/avance-grado', params).pipe(takeUntil(this.destroy$)).subscribe(grados => {
           this.buildGradoChart(grados);
           
           // Avance por materia
-          this.api.get<any[]>('/stats/director/avance-asignatura', params).subscribe(materias => {
+          this.api.get<any[]>('/stats/director/avance-asignatura', params).pipe(takeUntil(this.destroy$)).subscribe(materias => {
             this.buildMateriaChart(materias);
             this.loading.set(false);
           });

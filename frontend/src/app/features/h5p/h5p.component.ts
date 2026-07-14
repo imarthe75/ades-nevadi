@@ -337,7 +337,7 @@ export class H5pComponent implements OnInit, OnDestroy {
   }
 
   cargarTipos() {
-    this.api.get<H5PTipo[]>('/h5p/tipos').subscribe({ next: t => this.tipos.set(t), error: () => {} });
+    this.api.get<H5PTipo[]>('/h5p/tipos').pipe(takeUntil(this.destroy$)).subscribe({ next: t => this.tipos.set(t), error: () => {} });
   }
 
   cargarContenidos() {
@@ -345,14 +345,14 @@ export class H5pComponent implements OnInit, OnDestroy {
     const params: any = {};
     if (this.filtroTipo) params.tipo_id = this.filtroTipo;
     if (this.ctx.plantel()?.id) params.plantel_id = this.ctx.plantel()?.id;
-    this.api.get<H5PContenido[]>('/h5p/contenidos', params).subscribe({
+    this.api.get<H5PContenido[]>('/h5p/contenidos', params).pipe(takeUntil(this.destroy$)).subscribe({
       next: c => { this.contenidos.set(c); this.cargando.set(false); },
       error: () => this.cargando.set(false),
     });
   }
 
   cargarGrupos() {
-    this.api.get<any[]>('/grupos').subscribe({
+    this.api.get<any[]>('/grupos').pipe(takeUntil(this.destroy$)).subscribe({
       next: g => this.grupos.set(g.map((x: any) => ({ ...x, _label: grupoLabel(x) || x.nombre_grupo }))),
       error: () => {},
     });
@@ -360,14 +360,14 @@ export class H5pComponent implements OnInit, OnDestroy {
 
   cargarMisResultados() {
     this.cargandoResultados.set(true);
-    this.api.get<H5PResultado[]>('/h5p/mis-resultados').subscribe({
+    this.api.get<H5PResultado[]>('/h5p/mis-resultados').pipe(takeUntil(this.destroy$)).subscribe({
       next: r => { this.resultadosMios.set(r); this.cargandoResultados.set(false); },
       error: () => this.cargandoResultados.set(false),
     });
   }
 
   abrirPlayer(c: H5PContenido) {
-    this.api.get<{ player_url: string }>(`/h5p/player/${c.id}`).subscribe({
+    this.api.get<{ player_url: string }>(`/h5p/player/${c.id}`).pipe(takeUntil(this.destroy$)).subscribe({
       next: d => {
         this.playerUrl.set(d.player_url);
         this.playerTitulo.set(c.titulo);
@@ -399,7 +399,7 @@ export class H5pComponent implements OnInit, OnDestroy {
     fd.append('descripcion', this.subirForm.descripcion);
     if (this.subirForm.tipo_id) fd.append('tipo_id', this.subirForm.tipo_id);
     fd.append('h5p_file', this.subirArchivo);
-    this.api.postForm('/h5p/subir', fd).subscribe({
+    this.api.postForm('/h5p/subir', fd).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.notify.success('Contenido H5P subido correctamente');
         this.subirVisible = false;
@@ -432,7 +432,7 @@ export class H5pComponent implements OnInit, OnDestroy {
       fecha_hasta: this.asignarForm.fecha_hasta || null,
       intentos_max: this.asignarForm.intentos_max,
       puntaje_minimo: this.asignarForm.puntaje_minimo,
-    }).subscribe({
+    }).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.notify.success('Contenido asignado al grupo');
         this.asignarVisible = false;
@@ -444,7 +444,7 @@ export class H5pComponent implements OnInit, OnDestroy {
 
   confirmarEliminar(c: H5PContenido) {
     if (!confirm(`¿Eliminar "${c.titulo}"? Se perderán todos los resultados asociados.`)) return;
-    this.api.delete(`/h5p/contenidos/${c.id}`).subscribe({
+    this.api.delete(`/h5p/contenidos/${c.id}`).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => { this.notify.success('Contenido eliminado'); this.cargarContenidos(); },
       error: () => this.notify.error('Error al eliminar'),
     });

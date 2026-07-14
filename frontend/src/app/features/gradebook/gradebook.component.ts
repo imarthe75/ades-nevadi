@@ -582,9 +582,9 @@ export class GradebookComponent implements OnInit, OnDestroy {
     this.actividades.set([]);
     this.concentrado.set([]);
     if (!this.grupoSel) return;
-    this.api.get(`/materias?grupo_id=${this.grupoSel}`).subscribe((r: any) =>
+    this.api.get(`/materias?grupo_id=${this.grupoSel}`).pipe(takeUntil(this.destroy$)).subscribe((r: any) =>
       this.materias.set(r.data ?? r));
-    this.api.get(`/catalogs/periodos?grupo_id=${this.grupoSel}`).subscribe((r: any) =>
+    this.api.get(`/catalogs/periodos?grupo_id=${this.grupoSel}`).pipe(takeUntil(this.destroy$)).subscribe((r: any) =>
       this.periodos.set(r ?? []));
     this.cargarActividades();
     this.cargarCobertura();
@@ -597,7 +597,7 @@ export class GradebookComponent implements OnInit, OnDestroy {
     if (this.materiaSel) url += `materia_id=${this.materiaSel}&`;
     if (this.periodoSel) url += `periodo_id=${this.periodoSel}&`;
     this.cargando.set(true);
-    this.api.get(url).subscribe({ next: (r: any) => { this.actividades.set(r); this.cargando.set(false); },
+    this.api.get(url).pipe(takeUntil(this.destroy$)).subscribe({ next: (r: any) => { this.actividades.set(r); this.cargando.set(false); },
       error: () => this.cargando.set(false) });
   }
 
@@ -605,7 +605,7 @@ export class GradebookComponent implements OnInit, OnDestroy {
     if (!this.grupoSel || !this.periodoSel) return;
     this.cargandoConc.set(true);
     const url = `/gradebook/grupo/${this.grupoSel}/concentrado?periodo_id=${this.periodoSel}`;
-    this.api.get(url).subscribe({ next: (r: any) => {
+    this.api.get(url).pipe(takeUntil(this.destroy$)).subscribe({ next: (r: any) => {
       const rows = (r.detalle ?? []).map((row: any) => ({
         ...row,
         en_riesgo: row.calificacion_final !== null && row.calificacion_final < row.minimo_aprobatorio,
@@ -619,13 +619,13 @@ export class GradebookComponent implements OnInit, OnDestroy {
     if (!this.grupoSel) return;
     let url = `/gradebook/grupo/${this.grupoSel}/cobertura-curricular`;
     if (this.materiaSel) url += `?materia_id=${this.materiaSel}`;
-    this.api.get(url).subscribe((r: any) => this.cobertura.set(r));
+    this.api.get(url).pipe(takeUntil(this.destroy$)).subscribe((r: any) => this.cobertura.set(r));
   }
 
   cargarInsights() {
     if (!this.grupoSel) return;
     this.cargandoInsights.set(true);
-    this.api.get(`/planeacion/insights/${this.grupoSel}`).subscribe({
+    this.api.get(`/planeacion/insights/${this.grupoSel}`).pipe(takeUntil(this.destroy$)).subscribe({
       next: (r: any) => { this.insights.set(r); this.cargandoInsights.set(false); },
       error: () => this.cargandoInsights.set(false),
     });
@@ -635,7 +635,7 @@ export class GradebookComponent implements OnInit, OnDestroy {
     this.actividadSeleccionada.set(act);
     this.cargandoEntregas.set(true);
     this.drawerCalifVisible = true;
-    this.api.get(`/actividades/${act.id}/entregas`).subscribe({ next: (r: any) => {
+    this.api.get(`/actividades/${act.id}/entregas`).pipe(takeUntil(this.destroy$)).subscribe({ next: (r: any) => {
       const entregas = r.map((e: any) => ({ ...e, _cal: e.calificacion_obtenida ?? null }));
       this.entregasActiva.set(entregas);
       this.cargandoEntregas.set(false);
@@ -649,7 +649,7 @@ export class GradebookComponent implements OnInit, OnDestroy {
       .filter(e => e._cal !== null && e._cal !== undefined)
       .map(e => ({ alumno_id: e.estudiante_id, calificacion: e._cal!, comentario: e.comentario_profesor }));
     if (!items.length) return;
-    this.api.patch(`/actividades/${act.id}/calificar-masivo`, items).subscribe(() => {
+    this.api.patch(`/actividades/${act.id}/calificar-masivo`, items).pipe(takeUntil(this.destroy$)).subscribe(() => {
       this.notify.success('Guardado', `${items.length} calificaciones guardadas`);
       this.drawerCalifVisible = false;
       this.cargarActividades();
@@ -674,7 +674,7 @@ export class GradebookComponent implements OnInit, OnDestroy {
     this.api.post(`/gradebook/${row.cal_periodo_id}/ajuste-manual`, {
       ajuste_manual: this.ajusteValor,
       justificacion_ajuste: this.ajusteJustificacion,
-    }).subscribe(() => {
+    }).pipe(takeUntil(this.destroy$)).subscribe(() => {
       this.notify.success('Ajuste aplicado', 'Calificación actualizada');
       this.dialogAjusteVisible = false;
       this.cargarConcentrado();
@@ -684,7 +684,7 @@ export class GradebookComponent implements OnInit, OnDestroy {
   recalcularPeriodo() {
     if (!this.grupoSel || !this.periodoSel) return;
     this.api.post(`/gradebook/periodo/${this.periodoSel}/recalcular-todo`,
-      { grupo_id: this.grupoSel }).subscribe((r: any) => {
+      { grupo_id: this.grupoSel }).pipe(takeUntil(this.destroy$)).subscribe((r: any) => {
       this.notify.info('Recalculado', `${r.recalculados} registros actualizados`);
       this.cargarConcentrado();
     });
@@ -700,7 +700,7 @@ export class GradebookComponent implements OnInit, OnDestroy {
       grupo_id: this.grupoSel,
       materia_id: this.materiaSel,
       periodo_evaluacion_id: this.periodoSel,
-    }).subscribe((r: any) => {
+    }).pipe(takeUntil(this.destroy$)).subscribe((r: any) => {
       this.notify.success('Creada', `${r.slots_creados} slots generados`);
       this.mostrarNuevaActividad = false;
       this.nuevaAct = { titulo: '', descripcion: '', tipo_item: 'tarea', fecha_asignacion: '', fecha_entrega: '', puntaje_maximo: 10 };

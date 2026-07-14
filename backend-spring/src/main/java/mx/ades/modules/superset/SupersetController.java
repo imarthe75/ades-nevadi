@@ -42,6 +42,12 @@ public class SupersetController {
     @Value("${superset.url}")
     private String supersetUrl;
 
+    // URL pública (bi.ades.setag.mx) — solo para el embedUrl devuelto al navegador;
+    // las llamadas servidor-a-servidor de este controller siguen usando supersetUrl
+    // (hostname interno de Docker).
+    @Value("${superset.public-url}")
+    private String supersetPublicUrl;
+
     @Value("${superset.admin-user}")
     private String supersetUser;
 
@@ -99,6 +105,28 @@ public class SupersetController {
             log.error("Superset login failed", e);
         }
         throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "No se pudo conectar con el servicio de dashboards");
+    }
+
+    /**
+     * Superset exige X-CSRFToken en POST/PUT (incluido /security/guest_token/)
+     * aunque la request ya vaya autenticada con Bearer JWT — sin esto, todo
+     * guest token fallaba con 400 "The CSRF token is missing" (bug real
+     * encontrado esta sesión, nunca había funcionado el embed).
+     */
+    private String obtenerCsrfToken(String accessToken) {
+        try {
+            Map<?, ?> resp = restClient.get()
+                    .uri(supersetUrl + "/api/v1/security/csrf_token/")
+                    .header("Authorization", "Bearer " + accessToken)
+                    .retrieve()
+                    .body(Map.class);
+            if (resp != null && resp.get("result") != null) {
+                return (String) resp.get("result");
+            }
+        } catch (Exception e) {
+            log.error("Superset csrf_token error", e);
+        }
+        throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "No se pudo obtener CSRF token de Superset");
     }
 
     private List<Map<String, Object>> buildRls(AdesUser user) {
@@ -170,9 +198,11 @@ public class SupersetController {
         );
 
         try {
+            String csrfToken = obtenerCsrfToken(accessToken);
             Map<?, ?> resp = restClient.post()
                     .uri(supersetUrl + "/api/v1/security/guest_token/")
                     .header("Authorization", "Bearer " + accessToken)
+                    .header("X-CSRFToken", csrfToken)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(guestPayload)
                     .retrieve()
@@ -182,7 +212,7 @@ public class SupersetController {
                 GuestTokenResponse res = new GuestTokenResponse();
                 res.setToken((String) resp.get("token"));
                 res.setDashboardId(dashboardId);
-                res.setEmbedUrl(supersetUrl + "/superset/embedded/" + dashboardId);
+                res.setEmbedUrl(supersetPublicUrl + "/superset/embedded/" + dashboardId);
                 return ResponseEntity.ok(res);
             }
         } catch (Exception e) {
@@ -212,6 +242,7 @@ public class SupersetController {
         }
 
         String accessToken = supersetLogin();
+        String csrfToken = obtenerCsrfToken(accessToken);
 
         List<Map<String, Object>> charts;
         try {
@@ -249,6 +280,7 @@ public class SupersetController {
                     byte[] csv = restClient.post()
                             .uri(supersetUrl + "/api/v1/chart/data")
                             .header("Authorization", "Bearer " + accessToken)
+                            .header("X-CSRFToken", csrfToken)
                             .contentType(MediaType.APPLICATION_JSON)
                             .body(queryContext)
                             .retrieve()

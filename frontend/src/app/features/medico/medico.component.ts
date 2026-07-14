@@ -399,7 +399,7 @@ export class MedicoComponent implements OnInit, OnDestroy {
       const plantelId = this.ctx.plantel()?.id;
       if (plantelId) params['plantel_id'] = plantelId;
 
-      this.api.get<any>('/alumnos', params).subscribe({
+      this.api.get<any>('/alumnos', params).pipe(takeUntil(this.destroy$)).subscribe({
         next: resp => {
           const list = resp.data ?? resp;
           this.alumnosOpts.set(list.map((a: any) => ({
@@ -434,23 +434,26 @@ export class MedicoComponent implements OnInit, OnDestroy {
 
   private cargarExpediente(id: string): void {
     this.api.get<ExpedienteMedico>(`/expedientes-medicos/alumno/${id}`)
+      .pipe(takeUntil(this.destroy$))
       .subscribe({ next: e => this.expediente.set(e), error: () => this.expediente.set(null) });
   }
 
   private cargarIncidentes(id: string): void {
     this.api.get<IncidenteMedico[]>(`/incidentes-medicos/alumno/${id}`)
+      .pipe(takeUntil(this.destroy$))
       .subscribe(r => this.incidentes.set(r));
   }
 
   private cargarMedicamentos(id: string): void {
     this.api.get<Medicamento[]>(`/salud-avanzada/medicamentos/${id}`)
+      .pipe(takeUntil(this.destroy$))
       .subscribe(r => this.medicamentos.set(r));
   }
 
   crearExpediente(): void {
     const alumno = this.alumnoSeleccionado();
     if (!alumno) return;
-    this.api.post<ExpedienteMedico>('/expedientes-medicos', { estudiante_id: alumno.id }).subscribe({
+    this.api.post<ExpedienteMedico>('/expedientes-medicos', { estudiante_id: alumno.id }).pipe(takeUntil(this.destroy$)).subscribe({
       next: e => { this.expediente.set(e); this.notify.success('Expediente creado'); },
       error: (e) => this.notify.error('Error', e.error?.detail),
     });
@@ -461,7 +464,7 @@ export class MedicoComponent implements OnInit, OnDestroy {
     if (!exp) return;
     this.savingExp.set(true);
     const { estudiante_id, ...datos } = exp as any;
-    this.api.put(`/expedientes-medicos/${exp.id}`, datos).subscribe({
+    this.api.put(`/expedientes-medicos/${exp.id}`, datos).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => { this.savingExp.set(false); this.notify.success('Expediente actualizado'); },
       error: () => this.savingExp.set(false),
     });
@@ -479,7 +482,7 @@ export class MedicoComponent implements OnInit, OnDestroy {
     
     // Primero registrar el incidente médico básico
     const payload = { ...this.incForm, estudiante_id: alumno.id };
-    this.api.post<IncidenteMedico>('/incidentes-medicos', payload).subscribe({
+    this.api.post<IncidenteMedico>('/incidentes-medicos', payload).pipe(takeUntil(this.destroy$)).subscribe({
       next: (r) => {
         // Generar acta formal en el backend (SB-005)
         const actaPayload = {
@@ -489,7 +492,7 @@ export class MedicoComponent implements OnInit, OnDestroy {
           notificado_familia: this.incForm.notificado_tutor
         };
         
-        this.api.post(`/salud-avanzada/actas-incidente/${r.id}`, actaPayload).subscribe({
+        this.api.post(`/salud-avanzada/actas-incidente/${r.id}`, actaPayload).pipe(takeUntil(this.destroy$)).subscribe({
           next: () => {
             this.incidentes.update(list => [r, ...list]);
             this.showIncidenteDialog = false;
@@ -520,7 +523,7 @@ export class MedicoComponent implements OnInit, OnDestroy {
       return;
     }
     this.savingMed.set(true);
-    this.api.post<any>(`/salud-avanzada/medicamentos/${alumno.id}`, this.medForm).subscribe({
+    this.api.post<any>(`/salud-avanzada/medicamentos/${alumno.id}`, this.medForm).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.cargarMedicamentos(alumno.id);
         this.showMedicamentoDialog = false;
@@ -534,7 +537,7 @@ export class MedicoComponent implements OnInit, OnDestroy {
   suspenderMedicamento(medId: string): void {
     const alumno = this.alumnoSeleccionado();
     if (!alumno) return;
-    this.api.delete(`/salud-avanzada/medicamentos/${medId}`).subscribe({
+    this.api.delete(`/salud-avanzada/medicamentos/${medId}`).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.cargarMedicamentos(alumno.id);
         this.notify.success('Medicamento suspendido');
@@ -546,14 +549,14 @@ export class MedicoComponent implements OnInit, OnDestroy {
   descargarCertificado(): void {
     const alumno = this.alumnoSeleccionado();
     if (!alumno) return;
-    this.api.getBlob(`/salud-avanzada/certificado-deportivo/${alumno.id}`).subscribe({
+    this.api.getBlob(`/salud-avanzada/certificado-deportivo/${alumno.id}`).pipe(takeUntil(this.destroy$)).subscribe({
       next: blob => this._downloadBlob(blob, `certificado_deportivo_${alumno.matricula}.pdf`),
       error: () => this.notify.error('Error', 'No se pudo generar el certificado'),
     });
   }
 
   descargarActa(incidenteId: string): void {
-    this.api.getBlob(`/salud-avanzada/incidentes/${incidenteId}/acta-pdf`).subscribe({
+    this.api.getBlob(`/salud-avanzada/incidentes/${incidenteId}/acta-pdf`).pipe(takeUntil(this.destroy$)).subscribe({
       next: blob => this._downloadBlob(blob, `acta_incidente_${incidenteId}.pdf`),
       error: () => this.notify.error('Error', 'No se pudo generar el acta'),
     });

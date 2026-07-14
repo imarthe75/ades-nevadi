@@ -47,8 +47,7 @@ public class BoletaFastApiAdapter implements BoletaFastApiPort {
             if (cd != null) headers.set(HttpHeaders.CONTENT_DISPOSITION, cd);
             return new ResponseEntity<>(resp.getBody(), headers, HttpStatus.OK);
         } catch (Exception e) {
-            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
-                    "Error al generar boleta: " + e.getMessage());
+            throw traducirError(e, "Error al generar boleta");
         }
     }
 
@@ -62,8 +61,7 @@ public class BoletaFastApiAdapter implements BoletaFastApiPort {
             if (authHeader != null) req.header(HttpHeaders.AUTHORIZATION, authHeader);
             return ResponseEntity.ok(req.retrieve().body(Map.class));
         } catch (Exception e) {
-            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
-                    "Error al encolar boletas: " + e.getMessage());
+            throw traducirError(e, "Error al encolar boletas");
         }
     }
 
@@ -75,8 +73,7 @@ public class BoletaFastApiAdapter implements BoletaFastApiPort {
             if (authHeader != null) req.header(HttpHeaders.AUTHORIZATION, authHeader);
             return ResponseEntity.ok(req.retrieve().body(Map.class));
         } catch (Exception e) {
-            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
-                    "Error al consultar tarea: " + e.getMessage());
+            throw traducirError(e, "Error al consultar tarea");
         }
     }
 
@@ -94,8 +91,18 @@ public class BoletaFastApiAdapter implements BoletaFastApiPort {
             if (cd != null) headers.set(HttpHeaders.CONTENT_DISPOSITION, cd);
             return new ResponseEntity<>(resp.getBody(), headers, HttpStatus.OK);
         } catch (Exception e) {
-            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
-                    "Error al generar constancia UAEMEX: " + e.getMessage());
+            throw traducirError(e, "Error al generar constancia UAEMEX");
         }
+    }
+
+    /**
+     * Traduce excepciones de RestClient preservando el status real de FastAPI
+     * (ej. 404/400 legítimos) en vez de colapsar todo a 502.
+     */
+    private ResponseStatusException traducirError(Exception e, String contexto) {
+        if (e instanceof org.springframework.web.client.RestClientResponseException rce) {
+            return new ResponseStatusException(HttpStatus.valueOf(rce.getStatusCode().value()), rce.getResponseBodyAsString());
+        }
+        return new ResponseStatusException(HttpStatus.BAD_GATEWAY, contexto + ": " + e.getMessage());
     }
 }

@@ -496,7 +496,7 @@ export class PersonalAdminComponent implements OnInit, OnDestroy {
     const plantelId = this.ctx.plantel()?.id;
     const params: Record<string, string> = {};
     if (plantelId) params['plantel_id'] = plantelId;
-    this.api.get<{ data: EmpleadoRow[] }>('/personal-admin', params).subscribe({
+    this.api.get<{ data: EmpleadoRow[] }>('/personal-admin', params).pipe(takeUntil(this.destroy$)).subscribe({
       next: r => { this.allAdmin.set(enrichRows(r.data ?? [])); this.loading.set(false); },
       error: () => this.loading.set(false),
     });
@@ -507,7 +507,7 @@ export class PersonalAdminComponent implements OnInit, OnDestroy {
     const plantelId = this.ctx.plantel()?.id;
     const params: Record<string, string> = {};
     if (plantelId) params['plantel_id'] = plantelId;
-    this.api.get<{ data: EmpleadoRow[] }>('/personal-salud', params).subscribe({
+    this.api.get<{ data: EmpleadoRow[] }>('/personal-salud', params).pipe(takeUntil(this.destroy$)).subscribe({
       next: r => { this.personalSalud.set(enrichRows(r.data ?? [])); this.loadingSalud.set(false); },
       error: () => this.loadingSalud.set(false),
     });
@@ -577,7 +577,7 @@ export class PersonalAdminComponent implements OnInit, OnDestroy {
       },
     };
 
-    this.api.post<EmpleadoRow>(endpoint, payload).subscribe({
+    this.api.post<EmpleadoRow>(endpoint, payload).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.notify.success('Guardado', 'Registro creado correctamente');
         this.showDialog.set(false);
@@ -626,7 +626,7 @@ export class PersonalAdminComponent implements OnInit, OnDestroy {
     if (!sel) return;
     const endpoint = this.modoSalud() ? `/personal-salud/${sel.id}` : `/personal-admin/${sel.id}`;
     this.guardando.set(true);
-    this.api.delete(endpoint).subscribe({
+    this.api.delete(endpoint).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.notify.success('Dado de baja', 'Registro desactivado (soft delete)');
         this.perfilVisible.set(false);

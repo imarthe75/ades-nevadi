@@ -290,7 +290,7 @@ export class ComunicadosComponent implements OnInit, OnDestroy {
     if (plantel) params['plantel_id'] = plantel.id;
     if (this.filtroTipo) params['tipo'] = this.filtroTipo;
 
-    this.api.get<Comunicado[]>('/comunicados', params).subscribe({
+    this.api.get<Comunicado[]>('/comunicados', params).pipe(takeUntil(this.destroy$)).subscribe({
       next: (r) => { this.comunicados.set(r); this.loading.set(false); },
       error: () => this.loading.set(false),
     });
@@ -303,7 +303,7 @@ export class ComunicadosComponent implements OnInit, OnDestroy {
   }
 
   acusarRecibo(c: Comunicado): void {
-    this.api.put<{ ok: boolean }>(`/comunicados/${c.id}/acusar`, {}).subscribe(() => {
+    this.api.put<{ ok: boolean }>(`/comunicados/${c.id}/acusar`, {}).pipe(takeUntil(this.destroy$)).subscribe(() => {
       this.comunicados.update(list => list.map(x => x.id === c.id ? { ...x, acusado_por_mi: true } : x));
     });
   }
@@ -320,7 +320,7 @@ export class ComunicadosComponent implements OnInit, OnDestroy {
       plantel_id: plantel?.id ?? null,
       fecha_vencimiento: this.form.fecha_vencimiento || null,
     };
-    this.api.post('/comunicados', payload).subscribe({
+    this.api.post('/comunicados', payload).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => { this.showDialog.set(false); this.saving.set(false); this.cargar(); },
       error: () => this.saving.set(false),
     });

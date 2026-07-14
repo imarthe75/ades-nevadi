@@ -175,14 +175,16 @@ const NIVELES = [
           <p>¿Confirmas la inscripción de <strong>{{ solicitudSeleccionada()!.nombre }} {{ solicitudSeleccionada()!.apellido_paterno }}</strong>?</p>
           <p-message severity="warn" icon="pi pi-exclamation-triangle"
             text="Esta acción creará cuentas de acceso al sistema para el alumno y su tutor. No se puede deshacer automáticamente." />
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem">
+          <div style="display:flex;flex-direction:column;gap:.5rem">
             <div style="display:flex;flex-direction:column;gap:.25rem">
-              <label style="font-size:.82rem;color:var(--text-secondary)">Grupo / Ciclo escolar</label>
-              <input pInputText [(ngModel)]="inscribirForm.grupoClave" placeholder="Opcional: clave de grupo" />
+              <label style="font-size:.82rem;color:var(--text-secondary)">Grupo destino (requerido)</label>
+              <p-select [options]="gruposDisponibles()" [(ngModel)]="inscribirForm.grupoId"
+                optionLabel="etiqueta" optionValue="id" placeholder="Selecciona el grupo"
+                [filter]="true" filterBy="etiqueta" [style]="{width:'100%'}" />
             </div>
             <div style="display:flex;flex-direction:column;gap:.25rem">
-              <label style="font-size:.82rem;color:var(--text-secondary)">Matrícula (opcional)</label>
-              <input pInputText [(ngModel)]="inscribirForm.matricula" placeholder="Se genera automática si vacío" />
+              <label style="font-size:.82rem;color:var(--text-secondary)">Motivo / notas (opcional)</label>
+              <input pInputText [(ngModel)]="inscribirForm.motivoDecision" placeholder="Notas de la decisión" />
             </div>
           </div>
         </div>
@@ -334,7 +336,7 @@ export class AdmisionComponent implements OnInit, OnDestroy {
     const plantelId = this.ctx.plantel()?.id;
     if (plantelId) params.plantel_id = plantelId;
 
-    this.api.get<Solicitud[]>('/procesos/admision', params).subscribe({
+    this.api.get<Solicitud[]>('/procesos/admision', params).pipe(takeUntil(this.destroy$)).subscribe({
       next: d => { this.solicitudes.set(d); this.cargando.set(false); },
       error: () => { this.cargando.set(false); this.notify.error('Error', 'No se pudieron cargar las solicitudes'); },
     });
@@ -371,7 +373,7 @@ export class AdmisionComponent implements OnInit, OnDestroy {
       escuela_procedencia: this.form.escuela || null,
       promedio_procedencia: this.form.promedio
     };
-    this.api.post('/procesos/admision', payload).subscribe({
+    this.api.post('/procesos/admision', payload).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.notify.success('Registrada', 'Solicitud de admisión registrada');
         this.dlgNueva = false;
@@ -385,14 +387,14 @@ export class AdmisionComponent implements OnInit, OnDestroy {
   }
 
   resolver(s: Solicitud, decision: string) {
-    this.api.post(`/procesos/admision/${s.id}/aceptar`, { decision }).subscribe({
+    this.api.post(`/procesos/admision/${s.id}/aceptar`, { decision }).pipe(takeUntil(this.destroy$)).subscribe({
       next: (r: any) => { this.notify.success('Éxito', r.message); this.cargar(); },
       error: e => this.notify.error('Error', e.error?.detail ?? 'Error'),
     });
   }
 
   notificarEspera(s: Solicitud) {
-    this.api.post(`/procesos/lista-espera/${s.id}/notificar`, {}).subscribe({
+    this.api.post(`/procesos/lista-espera/${s.id}/notificar`, {}).pipe(takeUntil(this.destroy$)).subscribe({
       next: (r: any) => { this.notify.success('Éxito', r.message); this.cargar(); },
       error: e => this.notify.error('Error', e.error?.detail ?? 'Error'),
     });
@@ -411,7 +413,7 @@ export class AdmisionComponent implements OnInit, OnDestroy {
     this.api.patch(`/procesos/admision/${s.id}/evaluacion`, {
       puntuacion_diagnostico: this.evalScore,
       observaciones_diagnostico: this.evalObs
-    }).subscribe({
+    }).pipe(takeUntil(this.destroy$)).subscribe({
       next: (r: any) => {
         this.notify.success('Guardado', r.message);
         this.dlgDetalle = false;
@@ -436,22 +438,47 @@ export class AdmisionComponent implements OnInit, OnDestroy {
   // ── Aprobar e Inscribir ───────────────────────────────────────────────────
   inscribiendo = signal(false);
   dlgConfirmInscripcion = signal(false);
-  inscribirForm = { grupoClave: '', matricula: '' };
+  gruposDisponibles = signal<{ id: string; etiqueta: string; ciclo_escolar_id: string }[]>([]);
+  inscribirForm: { grupoId: string | null; motivoDecision: string } = { grupoId: null, motivoDecision: '' };
 
   confirmarInscripcion(): void {
-    this.inscribirForm = { grupoClave: '', matricula: '' };
+    this.inscribirForm = { grupoId: null, motivoDecision: '' };
+    const s = this.solicitudSeleccionada();
+    const plantelId = this.ctx.plantel()?.id;
+    if (s && plantelId) {
+      this.api.get<any[]>('/grupos', { plantel_id: plantelId }).pipe(takeUntil(this.destroy$)).subscribe(grupos => {
+        const filtrados = (grupos ?? []).filter(g =>
+          g.nombre_nivel === s.nivel_solicitado && g.numero_grado === s.grado_solicitado);
+        const candidatos = filtrados.length > 0 ? filtrados : (grupos ?? []);
+        this.gruposDisponibles.set(candidatos.map(g => ({
+          id: g.id,
+          etiqueta: `${g.nombre_grado} ${g.nombre_grupo} — ${g.nombre_ciclo} (${g.inscritos ?? 0}/${g.capacidad_maxima})`,
+          ciclo_escolar_id: g.ciclo_escolar_id,
+        })));
+      });
+    }
     this.dlgConfirmInscripcion.set(true);
   }
 
   ejecutarInscripcion(): void {
     const s = this.solicitudSeleccionada();
     if (!s) return;
+    if (!this.inscribirForm.grupoId) {
+      this.notify.warning('Grupo requerido', 'Selecciona el grupo destino antes de inscribir.');
+      return;
+    }
+    const grupo = this.gruposDisponibles().find(g => g.id === this.inscribirForm.grupoId);
+    if (!grupo) return;
     this.inscribiendo.set(true);
-    const payload: Record<string, string> = {};
-    if (this.inscribirForm.grupoClave) payload['grupoClave'] = this.inscribirForm.grupoClave;
-    if (this.inscribirForm.matricula)  payload['matricula']  = this.inscribirForm.matricula;
+    // application.yml fija spring.jackson.property-naming-strategy: SNAKE_CASE globalmente
+    // y ApiService no convierte el body — hay que mandar snake_case tal cual.
+    const payload = {
+      grupo_id: grupo.id,
+      ciclo_escolar_id: grupo.ciclo_escolar_id,
+      motivo_decision: this.inscribirForm.motivoDecision || undefined,
+    };
 
-    this.api.post<any>(`/procesos/admision/${s.id}/aprobar-e-inscribir`, payload).subscribe({
+    this.api.post<any>(`/procesos/admision/${s.id}/aprobar-e-inscribir`, payload).pipe(takeUntil(this.destroy$)).subscribe({
       next: (r) => {
         this.inscribiendo.set(false);
         this.dlgConfirmInscripcion.set(false);

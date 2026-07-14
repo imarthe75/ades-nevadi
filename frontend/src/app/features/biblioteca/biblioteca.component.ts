@@ -344,7 +344,7 @@ export class BibliotecaComponent implements OnInit, OnDestroy {
     const params: any = {};
     if (this.busqueda) params.q = this.busqueda;
     if (this.filtroCategoria) params.categoria = this.filtroCategoria;
-    this.api.get<Libro[]>('/biblioteca/libros', params).subscribe({
+    this.api.get<Libro[]>('/biblioteca/libros', params).pipe(takeUntil(this.destroy$)).subscribe({
       next: d => { this.libros.set(d); this.cargandoLibros.set(false); },
       error: () => { this.cargandoLibros.set(false); this.notify.error('Error al cargar el acervo'); },
     });
@@ -376,7 +376,7 @@ export class BibliotecaComponent implements OnInit, OnDestroy {
     const req$ = this.editandoLibroId
       ? this.api.patch(`/biblioteca/libros/${this.editandoLibroId}`, this.formLibro)
       : this.api.post('/biblioteca/libros', this.formLibro);
-    req$.subscribe({
+    req$.pipe(takeUntil(this.destroy$)).subscribe({
       next: () => { this.guardando.set(false); this.dialogLibro = false; this.notify.success('Libro guardado'); this.cargarLibros(); },
       error: e => { this.guardando.set(false); this.notify.error(e.error?.message ?? e.error?.detail ?? 'Error al guardar'); },
     });
@@ -384,7 +384,7 @@ export class BibliotecaComponent implements OnInit, OnDestroy {
 
   eliminarLibro(l: Libro) {
     if (!confirm(`¿Eliminar "${l.titulo}" del acervo?`)) return;
-    this.api.delete(`/biblioteca/libros/${l.id}`).subscribe({
+    this.api.delete(`/biblioteca/libros/${l.id}`).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => { this.notify.success('Libro eliminado'); this.cargarLibros(); },
       error: e => this.notify.error(e.error?.message ?? e.error?.detail ?? 'Error'),
     });
@@ -396,7 +396,7 @@ export class BibliotecaComponent implements OnInit, OnDestroy {
     const params: any = {};
     if (this.filtroEstatus) params.estatus = this.filtroEstatus;
     if (this.filtroPersonaId) params.persona_id = this.filtroPersonaId;
-    this.api.get<Prestamo[]>('/biblioteca/prestamos', params).subscribe({
+    this.api.get<Prestamo[]>('/biblioteca/prestamos', params).pipe(takeUntil(this.destroy$)).subscribe({
       next: d => { this.prestamos.set(d); this.cargandoPrestamos.set(false); },
       error: () => { this.cargandoPrestamos.set(false); this.notify.error('Error al cargar préstamos'); },
     });
@@ -414,7 +414,7 @@ export class BibliotecaComponent implements OnInit, OnDestroy {
       return;
     }
     this.guardando.set(true);
-    this.api.post('/biblioteca/prestamos', this.formPrestamo).subscribe({
+    this.api.post('/biblioteca/prestamos', this.formPrestamo).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.guardando.set(false); this.dialogPrestamo = false;
         this.notify.success('Préstamo registrado'); this.cargarLibros(); this.cargarPrestamos();
@@ -433,7 +433,7 @@ export class BibliotecaComponent implements OnInit, OnDestroy {
     if (!this.prestamoSel) return;
     this.guardando.set(true);
     this.api.post(`/biblioteca/prestamos/${this.prestamoSel.id}/devolver`,
-      { estatus_final: this.cierreEstatus }).subscribe({
+      { estatus_final: this.cierreEstatus }).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.guardando.set(false); this.dialogDevolucion = false;
         this.notify.success('Préstamo cerrado'); this.cargarLibros(); this.cargarPrestamos();

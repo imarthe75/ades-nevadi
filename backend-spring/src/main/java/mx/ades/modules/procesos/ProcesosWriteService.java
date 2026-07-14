@@ -94,7 +94,7 @@ public class ProcesosWriteService {
                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'PENDIENTE', ?, ?)",
                 id, nombre.trim(), apellidoPaterno.trim(),
                 apellidoMaterno != null ? apellidoMaterno.trim() : null,
-                fechaNacimiento, curp.trim(), nivelSolicitado, gradoSolicitado,
+                mx.ades.modules.imports.ImportadorUtil.parseDate(fechaNacimiento), curp.trim(), nivelSolicitado, gradoSolicitado,
                 plantelId, nombreTutor, telefonoTutor, emailTutor,
                 escuelaProcedencia, promedioProcedencia, usuario, usuario);
         return id;

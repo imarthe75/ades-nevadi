@@ -168,7 +168,7 @@ export class GruposComponent implements OnInit, OnDestroy {
       ? `/catalogs/grados?plantel_id=${plantelId}`
       : '/catalogs/grados?todos_planteles=true';
 
-    this.api.get<any[]>(endpoint).subscribe({
+    this.api.get<any[]>(endpoint).pipe(takeUntil(this.destroy$)).subscribe({
       next: gs => this.grados.set(gs.map(g => ({
         id: g.id,
         label: `${g.nombre_nivel ?? ''} ${g.nombre_grado ?? ''}`.trim()
@@ -186,7 +186,7 @@ export class GruposComponent implements OnInit, OnDestroy {
     if (plantelId) params['plantel_id'] = plantelId;
 
     this.loadingDatos.set(true);
-    this.api.get<Grupo[]>('/grupos', params).subscribe({
+    this.api.get<Grupo[]>('/grupos', params).pipe(takeUntil(this.destroy$)).subscribe({
       next: g => {
         this.grupos.set(g);
         this.gruposDatos.set(g.map(grp => ({
@@ -248,7 +248,7 @@ export class GruposComponent implements OnInit, OnDestroy {
         turno: this.grupoEdit.turno,
         grado_id: this.grupoEdit.grado_id,
         is_active: this.grupoEdit.is_active,
-      }).subscribe({
+      }).pipe(takeUntil(this.destroy$)).subscribe({
         next: () => {
           this.notify.success('Guardado', 'Grupo actualizado');
           this.dlgGrupo = false;
@@ -261,7 +261,7 @@ export class GruposComponent implements OnInit, OnDestroy {
         },
       });
     } else {
-      this.api.post('/admin/grupos', this.grupoEdit).subscribe({
+      this.api.post('/admin/grupos', this.grupoEdit).pipe(takeUntil(this.destroy$)).subscribe({
         next: () => {
           this.notify.success('Creado', 'Grupo creado exitosamente');
           this.dlgGrupo = false;

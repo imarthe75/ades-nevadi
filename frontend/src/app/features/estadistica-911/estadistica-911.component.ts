@@ -220,7 +220,7 @@ export class Estadistica911Component implements OnInit, OnDestroy {
       params.ciclo_id = this.cicloId.trim();
     }
 
-    this.api.get<any>('/reportes/911', params).subscribe({
+    this.api.get<any>('/reportes/911', params).pipe(takeUntil(this.destroy$)).subscribe({
       next: d => {
         const matriz = d.matricula_por_grado_sexo_ingreso_edad ?? [];
 

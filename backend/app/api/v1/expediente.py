@@ -106,13 +106,9 @@ async def _check_expediente_access(
     Returns: True si acceso permitido, False si denegado
     """
 
-    # ADMIN GLOBAL: acceso a todo
-    if ades_user.plantel_id is None and ades_user.rol == "ADMIN":
-        return True
-
     # Obtener datos del estudiante
     est_row = await db.execute(
-        text("SELECT plantel_id FROM ades_estudiantes WHERE id = :est_id LIMIT 1"),
+        text("SELECT plantel_id, persona_id FROM ades_estudiantes WHERE id = :est_id LIMIT 1"),
         {"est_id": str(estudiante_id)},
     )
     est = est_row.fetchone()
@@ -120,51 +116,41 @@ async def _check_expediente_access(
     if not est:
         return False  # Estudiante no existe
 
-    # ADMIN DE PLANTEL: acceso si estudiante está en su plantel
-    if ades_user.plantel_id is not None and ades_user.rol == "ADMIN":
-        return est[0] == ades_user.plantel_id
+    # Personal administrativo/directivo (nivel_acceso <= 4), excepto DOCENTE (que se valida por grupo)
+    if ades_user.nivel_acceso <= 4 and ades_user.rol != "DOCENTE":
+        if ades_user.plantel_id is None:
+            return True  # Acceso global
+        return est.plantel_id == ades_user.plantel_id
 
-    # MAESTRO: acceso si es maestro de un grupo que contiene al estudiante
-    if ades_user.rol == "MAESTRO":
+    # DOCENTE: acceso si tiene una asignación en un grupo que contiene al estudiante
+    if ades_user.rol == "DOCENTE":
         stmt = await db.execute(
             text("""
-                SELECT 1 FROM ades_grupo_maestro gm
-                INNER JOIN ades_inscripciones i ON gm.grupo_id = i.grupo_id
-                WHERE gm.maestro_id = :maestro_id
+                SELECT 1 FROM ades_asignaciones_docentes ad
+                JOIN ades_profesores p ON p.id = ad.profesor_id
+                INNER JOIN ades_inscripciones i ON i.grupo_id = ad.grupo_id
+                WHERE p.persona_id = :persona_id
                   AND i.estudiante_id = :est_id
                   AND i.is_active = TRUE
                 LIMIT 1
             """),
-            {"maestro_id": str(ades_user.persona_id), "est_id": str(estudiante_id)},
+            {"persona_id": str(ades_user.persona_id), "est_id": str(estudiante_id)},
         )
         return stmt.fetchone() is not None
 
-    # ESTUDIANTE: acceso solo a su propio expediente
-    if ades_user.rol == "ESTUDIANTE":
-        est_persona_row = await db.execute(
-            text("SELECT persona_id FROM ades_estudiantes WHERE id = :est_id LIMIT 1"),
-            {"est_id": str(estudiante_id)},
-        )
-        est_persona = est_persona_row.fetchone()
-        return est_persona and est_persona[0] == ades_user.persona_id
+    # ALUMNO: acceso solo a su propio expediente
+    if ades_user.rol == "ALUMNO":
+        return est.persona_id == ades_user.persona_id
 
-    # PADRE: acceso a expedientes de sus hijos
-    if ades_user.rol == "PADRE":
-        est_persona_row = await db.execute(
-            text("SELECT persona_id FROM ades_estudiantes WHERE id = :est_id LIMIT 1"),
-            {"est_id": str(estudiante_id)},
-        )
-        est_persona = est_persona_row.fetchone()
-        if not est_persona:
-            return False
-
+    # PADRE_FAMILIA: acceso a expedientes de sus hijos
+    if ades_user.rol == "PADRE_FAMILIA":
         stmt = await db.execute(
             text("""
-                SELECT 1 FROM ades_tutor_relacion
-                WHERE padre_id = :padre_id AND hijo_id = :hijo_id
+                SELECT 1 FROM ades_tutores_alumnos
+                WHERE persona_id = :persona_id AND alumno_id = :est_id AND is_active = TRUE
                 LIMIT 1
             """),
-            {"padre_id": str(ades_user.persona_id), "hijo_id": str(est_persona[0])},
+            {"persona_id": str(ades_user.persona_id), "est_id": str(estudiante_id)},
         )
         return stmt.fetchone() is not None
 

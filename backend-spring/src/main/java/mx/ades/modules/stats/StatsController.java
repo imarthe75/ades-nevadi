@@ -2,6 +2,8 @@ package mx.ades.modules.stats;
 
 import lombok.RequiredArgsConstructor;
 import mx.ades.modules.stats.query.StatsQueryService;
+import mx.ades.security.AdesUser;
+import mx.ades.security.AdesUserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -30,28 +32,27 @@ import java.util.UUID;
 public class StatsController {
 
     private final StatsQueryService queryService;
+    private final AdesUserService userService;
 
     @GetMapping("/resumen")
     public Map<String, Object> resumen(
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam(name = "plantel_id", required = false) UUID plantelId) {
-
-        UUID pid = resolveUUID(jwt.getClaimAsString("plantel"), plantelId);
-        return queryService.resumen(pid);
+        AdesUser user = userService.resolveUser(jwt);
+        return queryService.resumen(userService.getEffectivePlantelId(user, plantelId));
     }
 
     @GetMapping("/distribucion")
     public List<Map<String, Object>> distribucion(
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam(name = "plantel_id", required = false) UUID plantelId) {
-
-        UUID pid = resolveUUID(jwt.getClaimAsString("plantel"), plantelId);
-        return queryService.distribucion(pid);
+        AdesUser user = userService.resolveUser(jwt);
+        return queryService.distribucion(userService.getEffectivePlantelId(user, plantelId));
     }
 
     @GetMapping("/servidor")
     public Map<String, Object> servidor(@AuthenticationPrincipal Jwt jwt) {
-        _requireNivelAcceso(jwt, 2, "Solo directores y administradores pueden ver la telemetría");
+        requireNivel(userService.resolveUser(jwt), "Solo directores y administradores pueden ver la telemetría");
         long dbSize = queryService.databaseSizeBytes();
         return Map.of(
                 "database_size_bytes", dbSize,
@@ -62,7 +63,7 @@ public class StatsController {
     // AD-030 — Telemetría completa: BD, conexiones, disco, JVM, colas Celery
     @GetMapping("/telemetria")
     public Map<String, Object> telemetria(@AuthenticationPrincipal Jwt jwt) {
-        _requireNivelAcceso(jwt, 2, "Solo directores y administradores pueden ver la telemetría");
+        requireNivel(userService.resolveUser(jwt), "Solo directores y administradores pueden ver la telemetría");
         return queryService.telemetria();
     }
 
@@ -70,41 +71,32 @@ public class StatsController {
     public Map<String, Object> directorKPIs(
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam(name = "plantel_id", required = false) UUID plantelId) {
-        _requireNivelAcceso(jwt, 2, "Solo directores y administradores pueden ver el dashboard de dirección");
-        UUID pid = resolveUUID(jwt.getClaimAsString("plantel"), plantelId);
-        return queryService.directorKPIs(pid);
+        AdesUser user = userService.resolveUser(jwt);
+        requireNivel(user, "Solo directores y administradores pueden ver el dashboard de dirección");
+        return queryService.directorKPIs(userService.getEffectivePlantelId(user, plantelId));
     }
 
     @GetMapping("/director/avance-grado")
     public List<Map<String, Object>> directorAvanceGrado(
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam(name = "plantel_id", required = false) UUID plantelId) {
-        _requireNivelAcceso(jwt, 2, "Solo directores y administradores pueden ver el dashboard de dirección");
-        UUID pid = resolveUUID(jwt.getClaimAsString("plantel"), plantelId);
-        return queryService.directorAvanceGrado(pid);
+        AdesUser user = userService.resolveUser(jwt);
+        requireNivel(user, "Solo directores y administradores pueden ver el dashboard de dirección");
+        return queryService.directorAvanceGrado(userService.getEffectivePlantelId(user, plantelId));
     }
 
     @GetMapping("/director/avance-asignatura")
     public List<Map<String, Object>> directorAvanceAsignatura(
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam(name = "plantel_id", required = false) UUID plantelId) {
-        _requireNivelAcceso(jwt, 2, "Solo directores y administradores pueden ver el dashboard de dirección");
-        UUID pid = resolveUUID(jwt.getClaimAsString("plantel"), plantelId);
-        return queryService.directorAvanceAsignatura(pid);
+        AdesUser user = userService.resolveUser(jwt);
+        requireNivel(user, "Solo directores y administradores pueden ver el dashboard de dirección");
+        return queryService.directorAvanceAsignatura(userService.getEffectivePlantelId(user, plantelId));
     }
 
-    private void _requireNivelAcceso(Jwt jwt, int maxNivel, String mensaje) {
-        Object nivel = jwt.getClaim("nivel_acceso");
-        int nivelAcceso = nivel instanceof Number n ? n.intValue() : 99;
-        if (nivelAcceso > maxNivel) {
+    private void requireNivel(AdesUser user, String mensaje) {
+        if (user.getNivelAcceso() == null || user.getNivelAcceso() > 2) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, mensaje);
         }
-    }
-
-    private UUID resolveUUID(String claim, UUID fallback) {
-        if (claim != null && !claim.isBlank()) {
-            try { return UUID.fromString(claim); } catch (IllegalArgumentException ignored) {}
-        }
-        return fallback;
     }
 }

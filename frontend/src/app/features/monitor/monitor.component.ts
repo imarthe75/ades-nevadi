@@ -361,7 +361,7 @@ export class MonitorComponent implements OnInit, OnDestroy {
   private async _checkService(
     nombre: string, endpoint: string, icono: string, fase: number, admin_url?: string,
   ): Promise<void> {
-    this.api.get<any>(endpoint).subscribe({
+    this.api.get<any>(endpoint).pipe(takeUntil(this.destroy$)).subscribe({
       next: data => {
         const disponible = data?.disponible !== undefined ? data.disponible : (data?.status === 'ok');
         this._upsertServicio({ nombre, url: endpoint, disponible, icono, fase, admin_url });
@@ -382,7 +382,7 @@ export class MonitorComponent implements OnInit, OnDestroy {
 
   private _loadWorkflows(): void {
     this.loadingWorkflows.set(true);
-    this.api.get<any>('/automations/workflows').subscribe({
+    this.api.get<any>('/automations/workflows').pipe(takeUntil(this.destroy$)).subscribe({
       next: data => {
         const items: Workflow[] = data?.data ?? data?.workflows ?? [];
         this.workflows.set(items);
@@ -394,7 +394,7 @@ export class MonitorComponent implements OnInit, OnDestroy {
 
   private _loadTelemetria(): void {
     this.loadingTelemetria.set(true);
-    this.api.get<Telemetria>('/stats/telemetria').subscribe({
+    this.api.get<Telemetria>('/stats/telemetria').pipe(takeUntil(this.destroy$)).subscribe({
       next: data => {
         this.telemetria.set(data);
         this.loadingTelemetria.set(false);

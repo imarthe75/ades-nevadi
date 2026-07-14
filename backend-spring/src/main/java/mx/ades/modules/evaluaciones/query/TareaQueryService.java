@@ -71,7 +71,7 @@ public class TareaQueryService {
                    te.calificacion_obtenida, te.comentario_profesor,
                    te.archivo_url,
                    p.nombre || ' ' || p.apellido_paterno AS alumno_nombre,
-                   est.numero_matricula
+                   est.matricula AS numero_matricula
               FROM ades_tareas_entregas te
               JOIN ades_estudiantes est ON est.id = te.estudiante_id
               JOIN ades_personas p ON p.id = est.persona_id
@@ -155,7 +155,7 @@ public class TareaQueryService {
                    t.titulo, t.tipo_item, t.fecha_entrega AS fecha_limite, t.id AS actividad_id,
                    m.nombre_materia,
                    p.nombre || ' ' || p.apellido_paterno AS alumno_nombre,
-                   est.numero_matricula
+                   est.matricula AS numero_matricula
               FROM ades_tareas_entregas te
               JOIN ades_tareas t ON t.id = te.tarea_id
               JOIN ades_materias m ON m.id = t.materia_id
@@ -255,7 +255,7 @@ public class TareaQueryService {
                    te.calificacion_obtenida, te.comentario_profesor,
                    te.archivo_url,
                    p.nombre || ' ' || p.apellido_paterno AS alumno_nombre,
-                   est.numero_matricula
+                   est.matricula AS numero_matricula
               FROM ades_tareas_entregas te
               JOIN ades_estudiantes est ON est.id = te.estudiante_id
               JOIN ades_personas p ON p.id = est.persona_id

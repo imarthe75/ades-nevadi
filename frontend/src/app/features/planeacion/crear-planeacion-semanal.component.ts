@@ -356,7 +356,7 @@ export class CrearPlaneacionSemanalComponent implements OnInit, OnDestroy {
   }
 
   loadGrupos() {
-    this.apiService.get('/api/v1/grupos').subscribe(res => {
+    this.apiService.get('/api/v1/grupos').pipe(takeUntil(this.destroy$)).subscribe(res => {
       this.grupos.set((res as any[]).map(g => ({
         label: g.nombre_grupo,
         value: g.ref
@@ -368,9 +368,9 @@ export class CrearPlaneacionSemanalComponent implements OnInit, OnDestroy {
     const grupoId = this.step1Form.get('grupoId')?.value;
     if (!grupoId) return;
 
-    this.apiService.get(`/api/v1/grupos/${grupoId}`).subscribe(res => {
+    this.apiService.get(`/api/v1/grupos/${grupoId}`).pipe(takeUntil(this.destroy$)).subscribe(res => {
       const grupo = res as any;
-      this.apiService.get(`/api/v1/materias?grado_id=${grupo.grado_id}`).subscribe(materias => {
+      this.apiService.get(`/api/v1/materias?grado_id=${grupo.grado_id}`).pipe(takeUntil(this.destroy$)).subscribe(materias => {
         this.materias.set((materias as any[]).map(m => ({
           label: m.nombre_materia,
           value: m.ref
@@ -388,11 +388,11 @@ export class CrearPlaneacionSemanalComponent implements OnInit, OnDestroy {
     if (!grupoId || !materiaId) return;
 
     // Obtener grado del grupo
-    this.apiService.get(`/api/v1/grupos/${grupoId}`).subscribe(res => {
+    this.apiService.get(`/api/v1/grupos/${grupoId}`).pipe(takeUntil(this.destroy$)).subscribe(res => {
       const grupo = res as any;
       this.apiService.get(
         `/api/v1/planeacion/temario-aprendizajes?materia_id=${materiaId}&grado_id=${grupo.grado_id}`
-      ).subscribe(res => {
+      ).pipe(takeUntil(this.destroy$)).subscribe(res => {
         const data = res as any;
         this.temas.set(data.temas || []);
         this.aprendizajes.set(data.aprendizajes || []);
@@ -463,7 +463,7 @@ export class CrearPlaneacionSemanalComponent implements OnInit, OnDestroy {
     };
 
     this.guardando.set(true);
-    this.apiService.post('/api/v1/planeacion/semanal-integral', body).subscribe(
+    this.apiService.post('/api/v1/planeacion/semanal-integral', body).pipe(takeUntil(this.destroy$)).subscribe(
       res => {
         this.messageService.add({
           severity: 'success',

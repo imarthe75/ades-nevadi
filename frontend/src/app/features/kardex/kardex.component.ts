@@ -222,7 +222,7 @@ export class KardexComponent implements OnInit, OnDestroy {
   alumnosOpts = computed(() => this._alumnos());
 
   ngOnInit() {
-    this.api.get<GrupoRaw[]>('/reportes/kardex/grupos').subscribe({
+    this.api.get<GrupoRaw[]>('/reportes/kardex/grupos').pipe(takeUntil(this.destroy$)).subscribe({
       next: g => {
         this._grupos.set(g);
         const ctxPlantel = this.ctx.plantel();
@@ -245,7 +245,7 @@ export class KardexComponent implements OnInit, OnDestroy {
   onGrupoChange(grupoId: string) {
     this.alumnoSel = ''; this._alumnos.set([]); this.data.set(null);
     if (!grupoId) return;
-    this.api.get<any[]>(`/reportes/kardex/grupos/${grupoId}/alumnos`).subscribe({
+    this.api.get<any[]>(`/reportes/kardex/grupos/${grupoId}/alumnos`).pipe(takeUntil(this.destroy$)).subscribe({
       next: list => this._alumnos.set(list.map(a => ({
         value: a['id'], label: `${a['nombre']} (${a['matricula'] ?? '—'})`,
       }))),
@@ -261,7 +261,7 @@ export class KardexComponent implements OnInit, OnDestroy {
     if (!this.alumnoSel) return;
     this.cargando.set(true);
     this.data.set(null);
-    this.api.get<Kardex>(`/reportes/kardex/${this.alumnoSel}`).subscribe({
+    this.api.get<Kardex>(`/reportes/kardex/${this.alumnoSel}`).pipe(takeUntil(this.destroy$)).subscribe({
       next: d => { this.data.set(d); this.cargando.set(false); },
       error: e => {
         this.cargando.set(false);
@@ -273,7 +273,7 @@ export class KardexComponent implements OnInit, OnDestroy {
   descargarPdf() {
     if (!this.alumnoSel) return;
     this.descargando.set(true);
-    this.api.getBlob(`/boletas/uaemex/${this.alumnoSel}`).subscribe({
+    this.api.getBlob(`/boletas/uaemex/${this.alumnoSel}`).pipe(takeUntil(this.destroy$)).subscribe({
       next: blob => {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');

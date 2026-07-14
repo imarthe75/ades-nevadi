@@ -92,12 +92,10 @@ public class EvaluacionQueryService {
             "FROM ades_nee n " +
             "JOIN ades_estudiantes e ON e.id = n.alumno_id " +
             "JOIN ades_personas p ON p.id = e.persona_id " +
-            "LEFT JOIN ades_inscripciones i ON i.estudiante_id = e.id AND i.is_active = TRUE " +
-            "LEFT JOIN ades_grupos g ON g.id = i.grupo_id " +
             "WHERE n.activa = TRUE");
         List<Object> params = new ArrayList<>();
         if (tipoNee != null && !tipoNee.isBlank()) { sql.append(" AND n.tipo_nee = ?"); params.add(tipoNee); }
-        if (plantelId != null) { sql.append(" AND g.plantel_id = ?"); params.add(plantelId); }
+        if (plantelId != null) { sql.append(" AND e.plantel_id = ?"); params.add(plantelId); }
         sql.append(" ORDER BY p.apellido_paterno, p.nombre");
         return jdbc.queryForList(sql.toString(), params.toArray());
     }
@@ -106,7 +104,7 @@ public class EvaluacionQueryService {
         StringBuilder sql = new StringBuilder(
             "SELECT aa.id, aa.fecha, aa.hora_inicio, aa.hora_fin, aa.observaciones, " +
             "a.nombre_aula, a.clave_aula, " +
-            "cl.descripcion as clase_desc " +
+            "cl.tema_visto as clase_desc " +
             "FROM ades_asignaciones_aula aa " +
             "JOIN ades_aulas a ON a.id = aa.aula_id " +
             "LEFT JOIN ades_clases cl ON cl.id = aa.clase_id " +

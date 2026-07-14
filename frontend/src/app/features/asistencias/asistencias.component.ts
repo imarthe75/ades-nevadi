@@ -157,7 +157,7 @@ export class AsistenciasComponent implements OnDestroy {
         this.clases.set([]);
         return;
       }
-      this.api.get<any[]>('/clases', { grupo_id: grupo.id, solo_activos: true }).subscribe({
+      this.api.get<any[]>('/clases', { grupo_id: grupo.id, solo_activos: true }).pipe(takeUntil(this.destroy$)).subscribe({
         next: c => {
           this.clases.set(c.map(x => ({
             ...x,
@@ -175,6 +175,7 @@ export class AsistenciasComponent implements OnDestroy {
       return;
     }
     this.api.get<any[]>(`/clases/${this.selectedClase.id}/alumnos-esperados`)
+      .pipe(takeUntil(this.destroy$))
       .subscribe(alumnos => {
         const asist: AsistenciaLocal[] = alumnos.map(a => ({
           estudiante_id: a.estudiante_id,

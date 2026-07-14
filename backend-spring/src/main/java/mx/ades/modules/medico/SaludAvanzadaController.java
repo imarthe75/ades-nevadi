@@ -263,6 +263,10 @@ public class SaludAvanzadaController {
             String cd = response.getHeaders().getFirst(HttpHeaders.CONTENT_DISPOSITION);
             if (cd != null) headers.set(HttpHeaders.CONTENT_DISPOSITION, cd);
             return new ResponseEntity<>(response.getBody(), headers, HttpStatus.OK);
+        } catch (org.springframework.web.client.RestClientResponseException e) {
+            // Preserva el status real de FastAPI (ej. 404 "no encontrado") en vez
+            // de colapsarlo siempre a 502 Bad Gateway.
+            throw new ResponseStatusException(HttpStatus.valueOf(e.getStatusCode().value()), e.getResponseBodyAsString());
         } catch (Exception e) {
             throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Error al generar PDF: " + e.getMessage());
         }

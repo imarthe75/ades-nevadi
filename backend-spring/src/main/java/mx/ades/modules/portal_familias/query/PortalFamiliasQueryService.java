@@ -32,7 +32,7 @@ public class PortalFamiliasQueryService {
         Integer count = jdbc.queryForObject(
                 "SELECT COUNT(*) FROM ades_tutores_alumnos ta " +
                 "JOIN ades_personas p ON p.id = ta.persona_id " +
-                "WHERE p.email = ? AND ta.alumno_id = ? AND ta.is_active = TRUE",
+                "WHERE p.email_personal = ? AND ta.alumno_id = ? AND ta.is_active = TRUE",
                 Integer.class, email, alumnoId);
         return count != null && count > 0;
     }
@@ -43,12 +43,12 @@ public class PortalFamiliasQueryService {
                 "g.nombre_grupo, pl.nombre_plantel, " +
                 "ta.relacion, ta.nivel_acceso_portal " +
                 "FROM ades_tutores_alumnos ta " +
-                "JOIN ades_personas per ON per.email = ? " +
+                "JOIN ades_personas per ON per.email_personal = ? " +
                 "JOIN ades_personas p ON p.id = (SELECT persona_id FROM ades_estudiantes WHERE id = ta.alumno_id) " +
                 "JOIN ades_estudiantes e ON e.id = ta.alumno_id " +
                 "LEFT JOIN ades_inscripciones i ON i.estudiante_id = e.id AND i.is_active = TRUE " +
                 "LEFT JOIN ades_grupos g ON g.id = i.grupo_id " +
-                "LEFT JOIN ades_planteles pl ON pl.id = g.plantel_id " +
+                "LEFT JOIN ades_planteles pl ON pl.id = e.plantel_id " +
                 "WHERE ta.persona_id = per.id AND ta.is_active = TRUE AND e.is_active = TRUE";
         return jdbc.queryForList(sql, email);
     }

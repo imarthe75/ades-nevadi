@@ -434,13 +434,13 @@ export class AulasComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    this.api.get<any[]>('/planteles').subscribe({
+    this.api.get<any[]>('/planteles').pipe(takeUntil(this.destroy$)).subscribe({
       next: p => this.plantelesOpts.set(p),
       error: () => {},
     });
     
     // Cargar catálogos dinámicos
-    this.api.get<any[]>('/catalogos').subscribe({
+    this.api.get<any[]>('/catalogos').pipe(takeUntil(this.destroy$)).subscribe({
       next: cats => {
         const edif = cats.find(c => c.codigo === 'CAT_EDIFICIOS');
         if (edif) this.edificiosOpts.set(edif.items ?? []);
@@ -473,7 +473,7 @@ export class AulasComponent implements OnInit, OnDestroy {
     if (this.filtroProyector) params['con_proyector'] = true;
     if (this.filtroInternet)  params['con_internet']  = true;
 
-    this.api.get<any[]>('/aulas', params).subscribe({
+    this.api.get<any[]>('/aulas', params).pipe(takeUntil(this.destroy$)).subscribe({
       next: r => {
         this.aulas.set(r.map(a => ({
           ...a,
@@ -527,7 +527,7 @@ export class AulasComponent implements OnInit, OnDestroy {
   }
 
   cargarFranjas(aulaId: string): void {
-    this.api.get<any>(`/aulas/${aulaId}`).subscribe({
+    this.api.get<any>(`/aulas/${aulaId}`).pipe(takeUntil(this.destroy$)).subscribe({
       next: d => this.franjas.set(d.franjas ?? []),
       error: () => this.franjas.set([]),
     });
@@ -544,7 +544,7 @@ export class AulasComponent implements OnInit, OnDestroy {
       ? this.api.patch(`/aulas/${id}`, this.form)
       : this.api.post('/aulas', this.form);
 
-    req.subscribe({
+    req.pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.notify.success(id ? 'Aula actualizada' : 'Aula creada');
         this.saving.set(false);
@@ -569,7 +569,7 @@ export class AulasComponent implements OnInit, OnDestroy {
       dia_semana:  this.franjaForm.dia_semana,
       hora_inicio: this.franjaForm.hora_inicio,
       hora_fin:    this.franjaForm.hora_fin,
-    }).subscribe({
+    }).pipe(takeUntil(this.destroy$)).subscribe({
       next: r => {
         this.conflictoDetectado.set(r.conflicto);
         this.conflictoOk.set(!r.conflicto);
@@ -590,7 +590,7 @@ export class AulasComponent implements OnInit, OnDestroy {
       return;
     }
     this.savingFranja.set(true);
-    this.api.post(`/aulas/${id}/disponibilidad`, this.franjaForm).subscribe({
+    this.api.post(`/aulas/${id}/disponibilidad`, this.franjaForm).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.notify.success('Franja asignada');
         this.savingFranja.set(false);
@@ -608,7 +608,7 @@ export class AulasComponent implements OnInit, OnDestroy {
 
   eliminarFranja(franjaId: string): void {
     this.savingFranja.set(true);
-    this.api.delete(`/aulas/disponibilidad/${franjaId}`).subscribe({
+    this.api.delete(`/aulas/disponibilidad/${franjaId}`).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.notify.success('Franja liberada');
         this.savingFranja.set(false);

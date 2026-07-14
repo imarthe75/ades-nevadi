@@ -49,8 +49,7 @@ public class CertificadoFastApiAdapter implements CertificadoFastApiPort {
             copyHeader(resp.getHeaders(), headers, "X-Estado-Firma");
             return new ResponseEntity<>(resp.getBody(), headers, HttpStatus.OK);
         } catch (Exception e) {
-            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
-                    "Error al emitir certificado: " + e.getMessage());
+            throw traducirError(e, "Error al emitir certificado");
         }
     }
 
@@ -62,8 +61,7 @@ public class CertificadoFastApiAdapter implements CertificadoFastApiPort {
             if (authHeader != null) req.header(HttpHeaders.AUTHORIZATION, authHeader);
             return ResponseEntity.ok(req.retrieve().body(Map.class));
         } catch (Exception e) {
-            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
-                    "Error al firmar certificado: " + e.getMessage());
+            throw traducirError(e, "Error al firmar certificado");
         }
     }
 
@@ -75,8 +73,7 @@ public class CertificadoFastApiAdapter implements CertificadoFastApiPort {
                     .retrieve()
                     .body(Map.class);
         } catch (Exception e) {
-            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
-                    "Error al verificar certificado: " + e.getMessage());
+            throw traducirError(e, "Error al verificar certificado");
         }
     }
 
@@ -87,8 +84,7 @@ public class CertificadoFastApiAdapter implements CertificadoFastApiPort {
             if (authHeader != null) req.header(HttpHeaders.AUTHORIZATION, authHeader);
             return ResponseEntity.ok(req.retrieve().body(Map.class));
         } catch (Exception e) {
-            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
-                    "Error al generar llave: " + e.getMessage());
+            throw traducirError(e, "Error al generar llave");
         }
     }
 
@@ -102,8 +98,7 @@ public class CertificadoFastApiAdapter implements CertificadoFastApiPort {
             if (authHeader != null) req.header(HttpHeaders.AUTHORIZATION, authHeader);
             return ResponseEntity.ok(req.retrieve().body(Map.class));
         } catch (Exception e) {
-            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
-                    "Error al registrar llave: " + e.getMessage());
+            throw traducirError(e, "Error al registrar llave");
         }
     }
 
@@ -114,13 +109,24 @@ public class CertificadoFastApiAdapter implements CertificadoFastApiPort {
             if (authHeader != null) req.header(HttpHeaders.AUTHORIZATION, authHeader);
             return ResponseEntity.ok(req.retrieve().body(Map.class));
         } catch (Exception e) {
-            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
-                    "Error al obtener llave activa: " + e.getMessage());
+            throw traducirError(e, "Error al obtener llave activa");
         }
     }
 
     private void copyHeader(HttpHeaders source, HttpHeaders target, String name) {
         String value = source.getFirst(name);
         if (value != null) target.set(name, value);
+    }
+
+    /**
+     * Traduce excepciones de RestClient preservando el status real de FastAPI
+     * (ej. 404/400 legítimos) en vez de colapsar todo a 502 — antes un folio
+     * inexistente respondía "Bad Gateway" en vez de 404.
+     */
+    private ResponseStatusException traducirError(Exception e, String contexto) {
+        if (e instanceof org.springframework.web.client.RestClientResponseException rce) {
+            return new ResponseStatusException(HttpStatus.valueOf(rce.getStatusCode().value()), rce.getResponseBodyAsString());
+        }
+        return new ResponseStatusException(HttpStatus.BAD_GATEWAY, contexto + ": " + e.getMessage());
     }
 }

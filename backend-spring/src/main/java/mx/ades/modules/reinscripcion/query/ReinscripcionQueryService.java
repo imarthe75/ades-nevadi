@@ -33,11 +33,10 @@ public class ReinscripcionQueryService {
             "       CONCAT(p.nombre,' ',p.apellido_paterno) AS nombre_estudiante, " +
             "       p.curp, e.matricula, pl.nombre_plantel " +
             "FROM ades_reinscripcion_ciclo rc " +
-            "JOIN ades_inscripciones i ON i.estudiante_id = rc.estudiante_id AND i.ciclo_origen_id = rc.ciclo_origen_id AND i.is_active = TRUE " +
+            "JOIN ades_inscripciones i ON i.estudiante_id = rc.estudiante_id AND i.ciclo_escolar_id = rc.ciclo_origen_id AND i.is_active = TRUE " +
             "JOIN ades_estudiantes e ON e.id = rc.estudiante_id " +
             "JOIN ades_personas p ON p.id = e.persona_id " +
-            "JOIN ades_grupos g ON g.id = i.grupo_id " +
-            "JOIN ades_planteles pl ON pl.id = g.plantel_id " +
+            "JOIN ades_planteles pl ON pl.id = e.plantel_id " +
             "WHERE rc.ciclo_destino_id = ? AND rc.is_active = TRUE ");
 
         List<Object> params = new ArrayList<>();
@@ -78,11 +77,11 @@ public class ReinscripcionQueryService {
         String sqlPlantel =
             "SELECT pl.nombre_plantel, rc.estado, COUNT(*) AS total " +
             "FROM ades_reinscripcion_ciclo rc " +
-            "JOIN ades_inscripciones i ON i.estudiante_id = rc.estudiante_id AND i.ciclo_origen_id = rc.ciclo_origen_id AND i.is_active = TRUE " +
-            "JOIN ades_grupos g ON g.id = i.grupo_id " +
-            "JOIN ades_planteles pl ON pl.id = g.plantel_id " +
+            "JOIN ades_inscripciones i ON i.estudiante_id = rc.estudiante_id AND i.ciclo_escolar_id = rc.ciclo_origen_id AND i.is_active = TRUE " +
+            "JOIN ades_estudiantes e ON e.id = rc.estudiante_id " +
+            "JOIN ades_planteles pl ON pl.id = e.plantel_id " +
             "WHERE rc.ciclo_destino_id = ? AND rc.is_active = TRUE " +
-            "GROUP BY pl.nombre_plantel " +
+            "GROUP BY pl.nombre_plantel, rc.estado " +
             "ORDER BY pl.nombre_plantel";
         List<Map<String, Object>> porPlantel = jdbc.queryForList(sqlPlantel, cicloDestinoId);
 
@@ -99,7 +98,7 @@ public class ReinscripcionQueryService {
             params.add(cicloEscolarId);
         }
 
-        String sql = "SELECT cc.nombre AS concepto, cp.monto_cobrado, cp.monto_pagado, " +
+        String sql = "SELECT cc.nombre_concepto AS concepto, cp.monto_cobrado, cp.monto_pagado, " +
                 "cp.descuento, cp.saldo_pendiente, cp.fecha_vencimiento, cp.estatus " +
                 "FROM ades_cuotas_pagos cp " +
                 "JOIN ades_cuotas_concepto cc ON cc.id = cp.concepto_id " +

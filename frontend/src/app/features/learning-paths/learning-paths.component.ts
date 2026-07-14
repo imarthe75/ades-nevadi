@@ -580,21 +580,21 @@ export class LearningPathsComponent implements OnInit, OnDestroy {
   }
 
   cargarAlertas(): void {
-    this.api.get<AlertaResumen[]>('/ai/alertas/resumen').subscribe({
+    this.api.get<AlertaResumen[]>('/ai/alertas/resumen').pipe(takeUntil(this.destroy$)).subscribe({
       next: r => this.alertas.set(r),
       error: () => {},
     });
   }
 
   cargarPaths(): void {
-    this.api.get<LearningPath[]>('/learning-paths').subscribe(p => this.paths.set(p));
+    this.api.get<LearningPath[]>('/learning-paths').pipe(takeUntil(this.destroy$)).subscribe(p => this.paths.set(p));
   }
 
   cargarAsignaciones(): void {
     this.cargandoAsig.set(true);
     const params: Record<string, string> = {};
     if (this.filtroEstatus) params['estatus'] = this.filtroEstatus;
-    this.api.get<Asignacion[]>('/learning-paths/asignaciones', params).subscribe({
+    this.api.get<Asignacion[]>('/learning-paths/asignaciones', params).pipe(takeUntil(this.destroy$)).subscribe({
       next: a => { this.asignaciones.set(a); this.cargandoAsig.set(false); },
       error: () => this.cargandoAsig.set(false),
     });
@@ -602,7 +602,7 @@ export class LearningPathsComponent implements OnInit, OnDestroy {
 
   verPath(path: LearningPath): void {
     this.pathSeleccionado.set(path);
-    this.api.get<{ recursos: Recurso[] }>(`/learning-paths/${path.id}`).subscribe(d => {
+    this.api.get<{ recursos: Recurso[] }>(`/learning-paths/${path.id}`).pipe(takeUntil(this.destroy$)).subscribe(d => {
       this.recursos.set(d.recursos || []);
     });
     this.showPathDetail = true;
@@ -618,7 +618,7 @@ export class LearningPathsComponent implements OnInit, OnDestroy {
     const params: Record<string, any> = { q: event.query };
     const plantelId = this.ctx.plantel()?.id;
     if (plantelId) params['plantel_id'] = plantelId;
-    this.api.get<any[]>('/portal/buscar', params).subscribe({
+    this.api.get<any[]>('/portal/buscar', params).pipe(takeUntil(this.destroy$)).subscribe({
       next: (r: any) => {
         this.alumnosSuggAsig.set((r ?? []).map((a: any) => ({
           id: a.id,
@@ -638,7 +638,7 @@ export class LearningPathsComponent implements OnInit, OnDestroy {
     const path = this.pathAsignar();
     if (!path || !this.formAsig.estudiante_id) return;
     const { _alumnoObj, ...payload } = this.formAsig;
-    this.api.post(`/learning-paths/${path.id}/asignar`, payload).subscribe(() => {
+    this.api.post(`/learning-paths/${path.id}/asignar`, payload).pipe(takeUntil(this.destroy$)).subscribe(() => {
       this.showAsignar = false;
       this.cargarAsignaciones();
     });
@@ -650,7 +650,7 @@ export class LearningPathsComponent implements OnInit, OnDestroy {
   }
 
   crearPath(): void {
-    this.api.post('/learning-paths', this.form).subscribe(() => {
+    this.api.post('/learning-paths', this.form).pipe(takeUntil(this.destroy$)).subscribe(() => {
       this.showNuevePath = false;
       this.cargarPaths();
     });
@@ -675,7 +675,7 @@ export class LearningPathsComponent implements OnInit, OnDestroy {
     this.iaResult.set(null);
     this.api.post<{ ia_recomendacion: IaRecomendacion }>(
       `/learning-paths/asignaciones/${asig.id}/recomendar-ia`, {}
-    ).subscribe({
+    ).pipe(takeUntil(this.destroy$)).subscribe({
       next: r => {
         this.iaResult.set(r.ia_recomendacion);
         this.iaGenerando.set(false);

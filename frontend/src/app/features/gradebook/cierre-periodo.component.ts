@@ -295,7 +295,7 @@ export class CierrePeriodoComponent implements OnChanges, OnDestroy {
     this.validando.set(true);
     this.api.get(
       `/evaluaciones/periodos/${this.periodoId}/validar-cierre?grupo_id=${this.grupoId}`
-    ).subscribe({
+    ).pipe(takeUntil(this.destroy$)).subscribe({
       next: (r: any) => {
         this.validacion.set(r);
         this.faltantes.set(r.detalles?.alumnos_sin_cal ?? []);
@@ -315,7 +315,7 @@ export class CierrePeriodoComponent implements OnChanges, OnDestroy {
     this.api.post(`/evaluaciones/periodos/${this.periodoId}/cerrar`, {
       grupo_id: this.grupoId,
       notas: this.notas || null,
-    }).subscribe({
+    }).pipe(takeUntil(this.destroy$)).subscribe({
       next: (r: any) => {
         this.cerrando.set(false);
         this.notify.success(

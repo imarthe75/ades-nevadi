@@ -346,7 +346,7 @@ export class PlaneacionComponent implements OnInit, OnDestroy {
       const params: Record<string, string> = {};
       if (plantel) params['plantel_id'] = plantel.id;
       if (ciclo)   params['ciclo_id']   = ciclo.id;
-      this.api.get<any[]>('/grupos', params).subscribe(list => {
+      this.api.get<any[]>('/grupos', params).pipe(takeUntil(this.destroy$)).subscribe(list => {
         this.grupos.set(list.map(g => ({ label: grupoLabel(g) || `${g.nombre_grupo} — ${g.nombre_grado ?? ''}`, value: g.id })));
       });
     });
@@ -362,7 +362,7 @@ export class PlaneacionComponent implements OnInit, OnDestroy {
     this.cargarTemas();
     this.cargarCobertura();
     // Extraer materias únicas de los temas para el filtro
-    this.api.get<Tema[]>('/planeacion/temas', { grupo_id: this.selGrupoId }).subscribe(list => {
+    this.api.get<Tema[]>('/planeacion/temas', { grupo_id: this.selGrupoId }).pipe(takeUntil(this.destroy$)).subscribe(list => {
       const matMap = new Map<string, string>();
       list.forEach(t => matMap.set(t.materia_id, t.nombre_materia));
       this.materiasGrupo.set([...matMap.entries()].map(([value, label]) => ({ label, value, materia_id: value })));
@@ -374,7 +374,7 @@ export class PlaneacionComponent implements OnInit, OnDestroy {
     this.loading.set(true);
     const params: Record<string, string> = { grupo_id: this.selGrupoId };
     if (this.selMateriaId) params['materia_id'] = this.selMateriaId;
-    this.api.get<Tema[]>('/planeacion/temas', params).subscribe({
+    this.api.get<Tema[]>('/planeacion/temas', params).pipe(takeUntil(this.destroy$)).subscribe({
       next: (r) => { this.temas.set(r); this.loading.set(false); },
       error: () => this.loading.set(false),
     });
@@ -382,7 +382,7 @@ export class PlaneacionComponent implements OnInit, OnDestroy {
 
   cargarCobertura(): void {
     if (!this.selGrupoId) return;
-    this.api.get<Cobertura[]>(`/planeacion/cobertura/${this.selGrupoId}`).subscribe(r => this.cobertura.set(r));
+    this.api.get<Cobertura[]>(`/planeacion/cobertura/${this.selGrupoId}`).pipe(takeUntil(this.destroy$)).subscribe(r => this.cobertura.set(r));
   }
 
   abrirPlanear(t: Tema): void {
@@ -398,7 +398,7 @@ export class PlaneacionComponent implements OnInit, OnDestroy {
       tema_id:  this.temaPlanear.tema_id,
       ...this.planForm,
     };
-    this.api.post('/planeacion/clases', body).subscribe(() => {
+    this.api.post('/planeacion/clases', body).pipe(takeUntil(this.destroy$)).subscribe(() => {
       this.showPlanear = false;
       this.cargarTemas();
     });
@@ -407,7 +407,7 @@ export class PlaneacionComponent implements OnInit, OnDestroy {
   marcarImpartido(t: Tema): void {
     if (!t.planeacion_id) return;
     const body = { fecha_ejecucion: new Date().toISOString().split('T')[0] };
-    this.api.post(`/planeacion/clases/${t.planeacion_id}/completar`, body).subscribe(() => {
+    this.api.post(`/planeacion/clases/${t.planeacion_id}/completar`, body).pipe(takeUntil(this.destroy$)).subscribe(() => {
       this.cargarTemas();
       this.cargarCobertura();
     });

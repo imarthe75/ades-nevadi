@@ -292,7 +292,7 @@ export class CalificarTareasComponent implements OnInit, OnDestroy {
   }
 
   loadGrupos() {
-    this.apiService.get('/api/v1/grupos').subscribe(res => {
+    this.apiService.get('/api/v1/grupos').pipe(takeUntil(this.destroy$)).subscribe(res => {
       this.grupos.set((res as any[]).map(g => ({
         label: g.nombre_grupo,
         value: g.ref
@@ -309,6 +309,7 @@ export class CalificarTareasComponent implements OnInit, OnDestroy {
     this.tareaDetalle.set(null);
 
     this.apiService.get(`/api/v1/planeacion/grupo/${grupoId}/tareas-pendientes-calificar`)
+      .pipe(takeUntil(this.destroy$))
       .subscribe(
         res => {
           this.tareas.set(res as any[]);
@@ -333,6 +334,7 @@ export class CalificarTareasComponent implements OnInit, OnDestroy {
     this.tareaSeleccionada = tarea.tarea_id;
 
     this.apiService.get(`/api/v1/planeacion/tareas/${tarea.tarea_id}/detalles`)
+      .pipe(takeUntil(this.destroy$))
       .subscribe(
         res => {
           this.tareaDetalle.set(res as any);
@@ -374,6 +376,7 @@ export class CalificarTareasComponent implements OnInit, OnDestroy {
 
     this.guardando.set(true);
     this.apiService.post('/api/v1/planeacion/calificaciones/tarea-batch', body)
+      .pipe(takeUntil(this.destroy$))
       .subscribe(
         res => {
           this.messageService.add({

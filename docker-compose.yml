@@ -126,34 +126,40 @@ services:
 
   # ---------------------------------------------------------------------------
   # SeaweedFS — almacenamiento S3 compatible para archivos, documentos y logos
+  # DESACTIVADO 2026-07-13: migrado a Oracle Object Storage (bucket ades-archivos,
+  # ver .env MINIO_ENDPOINT/MINIO_ACCESS_KEY/MINIO_SECRET_KEY y Vault secret/ades).
+  # Dejado comentado (no borrado) por si en algún momento se opta por volver a
+  # SeaweedFS — mismo patrón que Vault/Carbone antes de reactivarse. El volumen
+  # seaweedfs-data no se borró, conserva los datos previos si se reactiva.
+  # Nota: minio.ades.setag.mx (nginx, Filer UI) queda con 502 mientras esté apagado.
   # ---------------------------------------------------------------------------
-  seaweedfs:
-    image: chrislusf/seaweedfs:latest
-    container_name: ades-seaweedfs
-    restart: unless-stopped
-    command: server -dir=/data -s3 -s3.port=9000 -filer
-    environment:
-      WEED_S3_AUTH_ENABLED: "true"
-      WEED_S3_ACCESS_KEY:   ${MINIO_ROOT_USER:-ades_minio}
-      WEED_S3_SECRET_KEY:   ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD requerido}
-    volumes:
-      - seaweedfs-data:/data
-      - ./backups:/backups
-    ports:
-      - "127.0.0.1:9000:9000"   # API S3
-      - "127.0.0.1:9333:9333"   # Consola/Master
-      - "127.0.0.1:8888:8888"   # Filer UI
-    networks:
-      - ades-internal
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9333/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    deploy:
-      resources:
-        limits:
-          memory: 256M
+  # seaweedfs:
+  #   image: chrislusf/seaweedfs:latest
+  #   container_name: ades-seaweedfs
+  #   restart: unless-stopped
+  #   command: server -dir=/data -s3 -s3.port=9000 -filer
+  #   environment:
+  #     WEED_S3_AUTH_ENABLED: "true"
+  #     WEED_S3_ACCESS_KEY:   ${MINIO_ROOT_USER:-ades_minio}
+  #     WEED_S3_SECRET_KEY:   ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD requerido}
+  #   volumes:
+  #     - seaweedfs-data:/data
+  #     - ./backups:/backups
+  #   ports:
+  #     - "127.0.0.1:9000:9000"   # API S3
+  #     - "127.0.0.1:9333:9333"   # Consola/Master
+  #     - "127.0.0.1:8888:8888"   # Filer UI
+  #   networks:
+  #     - ades-internal
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-f", "http://localhost:9333/"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         memory: 256M
 
   # ---------------------------------------------------------------------------
   # Authentik — IdP OIDC/OAuth2
@@ -248,41 +254,65 @@ services:
 
   # ---------------------------------------------------------------------------
   # HashiCorp Vault — Gestión de Secretos y Credenciales
-  # DESACTIVADO: Servidor con recursos limitados (2 cores, 12GB)
-  # Habilitar en producción cuando se tenga un servidor dedicado
+  # Modo dev-single-node (storage file, 1 shard Shamir) — suficiente para
+  # centralizar y auditar secretos en un solo plantel/servidor; no es HA.
   # ---------------------------------------------------------------------------
-  # vault:
-  #   image: hashicorp/vault:latest
-  #   container_name: ades-vault
-  #   restart: unless-stopped
-  #   environment:
-  #     SKIP_SETCAP: "true"
-  #     SKIP_CHOWN: "true"
-  #   ports:
-  #     - "127.0.0.1:8200:8200"
-  #   volumes:
-  #     - vault-data:/vault/data
-  #     - ./infrastructure/vault/config:/vault/config:ro
-  #     - vault-init:/vault/init
-  #   command: vault server -config=/vault/config/vault.hcl
-  #   cap_add:
-  #     - IPC_LOCK
-  #   user: root
-  #   networks:
-  #     - ades-internal
+  vault:
+    image: hashicorp/vault:latest
+    container_name: ades-vault
+    restart: unless-stopped
+    environment:
+      SKIP_SETCAP: "true"
+      # SKIP_CHOWN deliberadamente OMITIDO: el proceso vault server corre como
+      # usuario "vault" (no root, aunque el entrypoint arranque como root), y
+      # sin el chown normal del entrypoint /vault/data queda root:root —
+      # "mkdir /vault/data/core: permission denied" al inicializar el barrier.
+    ports:
+      - "127.0.0.1:8200:8200"
+    volumes:
+      - vault-data:/vault/file
+      - ./infrastructure/vault/config:/vault/config:ro
+      - vault-init:/vault/init
+    command: vault server -config=/vault/config/vault.hcl
+    cap_add:
+      - IPC_LOCK
+    user: root
+    networks:
+      - ades-internal
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8200/v1/sys/health?standbyok=true&sealedcode=200&uninitcode=200"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 256M
 
-  # vault-init:
-  #   image: hashicorp/vault:latest
-  #   container_name: ades-vault-init
-  #   depends_on:
-  #     - vault
-  #   volumes:
-  #     - vault-init:/vault/init
-  #     - ./infrastructure/vault/scripts:/vault/scripts:ro
-  #   entrypoint: /vault/scripts/vault-init.sh
-  #   user: root
-  #   networks:
-  #     - ades-internal
+  vault-init:
+    image: hashicorp/vault:latest
+    container_name: ades-vault-init
+    depends_on:
+      - vault
+    environment:
+      POSTGRES_USER:          ${POSTGRES_USER:-ades_admin}
+      POSTGRES_PASSWORD:      ${POSTGRES_PASSWORD}
+      API_SECRET_KEY:         ${API_SECRET_KEY}
+      PII_ENCRYPTION_KEY:     ${PII_ENCRYPTION_KEY}
+      VALKEY_PASSWORD:        ${VALKEY_PASSWORD}
+      MINIO_ENDPOINT:         ${MINIO_ENDPOINT}
+      MINIO_ACCESS_KEY:       ${MINIO_ACCESS_KEY:-ades_minio}
+      MINIO_SECRET_KEY:       ${MINIO_SECRET_KEY}
+      OIDC_CLIENT_SECRET:     ${OIDC_CLIENT_SECRET}
+      ADES_INTERNAL_API_KEY:  ${ADES_INTERNAL_API_KEY}
+    volumes:
+      - vault-init:/vault/init
+      - ./infrastructure/vault/scripts:/vault/scripts:ro
+    entrypoint: /vault/scripts/vault-init.sh
+    user: root
+    networks:
+      - ades-internal
 
   # ---------------------------------------------------------------------------
   # ADES API — FastAPI backend principal
@@ -304,20 +334,24 @@ services:
       LOG_LEVEL:           ${LOG_LEVEL:-info}
       ALLOWED_ORIGINS:     ${ALLOWED_ORIGINS:-http://localhost:4200,https://escolar.institutonevadi.edu.mx}
       BASE_URL:            ${BASE_URL:-https://ades.setag.mx}
-      # VAULT_ADDR:          http://ades-vault:8200    # Desactivado: servidor limitado
+      VAULT_ADDR:          http://ades-vault:8200
       MINIO_SECURE:        ${MINIO_SECURE:-false}
-      MINIO_ENDPOINT:      ${MINIO_ENDPOINT:-localhost:9000}
-      MINIO_ACCESS_KEY:    ${MINIO_ACCESS_KEY:-ades_minio}
-      MINIO_SECRET_KEY:    ${MINIO_SECRET_KEY:-}
+      # MINIO_ENDPOINT/MINIO_ACCESS_KEY/MINIO_SECRET_KEY: servidos por Vault
+      # (config.py hace os.environ.setdefault desde secret/ades) — quitados de
+      # aquí para no duplicar; docker-compose ya no gana por precedencia.
       MINIO_BUCKET:        ${MINIO_BUCKET:-ades}
       # BigBlueButton — Videoconferencias (FASE 26)
       BBB_SERVER_URL:      ${BBB_SERVER_URL:-}
       BBB_SHARED_SECRET:   ${BBB_SHARED_SECRET:-}
+      # Paperless-ngx — OCR de expedientes (FASE 28)
+      PAPERLESS_URL:       http://ades-paperless:8000
+      PAPERLESS_API_TOKEN: ${PAPERLESS_API_TOKEN:-}
       # PgBouncer — asyncpg deshabilita prepared statements vía connect_args en database.py
       # Puerto 5432 = puerto interno del contenedor pgbouncer (el 6432 es solo el mapeo del host)
       DATABASE_URL:        postgresql+asyncpg://${POSTGRES_USER:-ades_admin}:${POSTGRES_PASSWORD}@ades-pgbouncer:5432/ades
     volumes:
       - ./backend:/app:cached     # hot-reload en desarrollo
+      - vault-init:/vault/init:ro
     ports:
       - "127.0.0.1:8000:8000"
     networks:
@@ -327,6 +361,8 @@ services:
         condition: service_healthy
       valkey:
         condition: service_healthy
+      vault-init:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
       interval: 30s
@@ -353,26 +389,44 @@ services:
       # BFF DEBE enviar el client_secret; sin esta var Authentik responde
       # "Invalid client secret" (HTTP 400 en el callback). Ver UserController.
       OIDC_CLIENT_ID:              ${OIDC_CLIENT_ID:-ades-frontend}
-      OIDC_CLIENT_SECRET:          ${OIDC_CLIENT_SECRET:?OIDC_CLIENT_SECRET requerido}
-      # VAULT_ADDR:                  http://ades-vault:8200    # Desactivado: servidor limitado
+      # OIDC_CLIENT_SECRET: servido por Vault (VaultInitializer) — quitado de
+      # aquí para no duplicar, ya verificado que el valor en Vault coincide.
+      VAULT_ENABLED:               "true"
+      VAULT_HOST:                  ades-vault
+      VAULT_PORT:                  8200
+      # VAULT_TOKEN no se pasa aquí — entrypoint.sh lo lee de /vault/init/root_token.txt
+      # (montado desde el volumen compartido vault-init) antes de arrancar el JVM.
+      # SPRING_DATASOURCE_*: se deja explícito (NO se quita) — apunta directo a
+      # ades-postgres en vez de pgbouncer a propósito; Vault sirve la variante
+      # pgbouncer, pero JDBC en modo transacción de pgbouncer requiere
+      # ?prepareThreshold=0 (ver sesión 2026-06-16 PgBouncer SCRAM fix) que no
+      # está resuelto en el datasource actual — cambiarlo sin probarlo a fondo
+      # arriesga romper el arranque del BFF.
       SPRING_DATASOURCE_URL:       jdbc:postgresql://ades-postgres:5432/ades
       SPRING_DATASOURCE_USERNAME:  ${POSTGRES_USER:-ades_admin}
       SPRING_DATASOURCE_PASSWORD:  ${POSTGRES_PASSWORD}
-      SPRING_DATA_REDIS_HOST:      ades-valkey
-      SPRING_DATA_REDIS_PORT:      6379
-      SPRING_DATA_REDIS_PASSWORD:  ${VALKEY_PASSWORD}
-      MINIO_ENDPOINT:              ${MINIO_ENDPOINT:-localhost:9000}
-      MINIO_ROOT_USER:             ${MINIO_ACCESS_KEY:-ades_minio}
-      MINIO_ROOT_PASSWORD:         ${MINIO_SECRET_KEY:-}
+      # SPRING_DATA_REDIS_*/MINIO_*: servidos por Vault (host/puerto/password
+      # verificados idénticos) — quitados de aquí para no duplicar.
       MINIO_SECURE:                ${MINIO_SECURE:-false}
       MINIO_BUCKET:                ${MINIO_BUCKET:-ades}
       # Cuenta admin de Superset — el BFF la usa para autenticarse en la API
       # REST de Superset y generar guest tokens de los dashboards BI.
       SUPERSET_ADMIN_USER:          ${SUPERSET_ADMIN_USER:-admin}
       SUPERSET_ADMIN_PASSWORD:      ${SUPERSET_ADMIN_PASSWORD:?SUPERSET_ADMIN_PASSWORD requerido}
+      # bi.ades.setag.mx — dominio público (nginx, TLS real) usado SOLO para el
+      # embedUrl devuelto al navegador; las llamadas servidor-servidor del BFF
+      # contra Superset siguen usando el hostname interno (superset.url).
+      SUPERSET_PUBLIC_URL:          ${SUPERSET_PUBLIC_URL:-http://ades-superset:8088}
+      SUPERSET_DASHBOARD_INSTITUTO: ${SUPERSET_DASHBOARD_INSTITUTO:-}
+      SUPERSET_DASHBOARD_PLANTEL:   ${SUPERSET_DASHBOARD_PLANTEL:-}
+      SUPERSET_DASHBOARD_DOCENTE:   ${SUPERSET_DASHBOARD_DOCENTE:-}
+      SUPERSET_DASHBOARD_ALUMNO:    ${SUPERSET_DASHBOARD_ALUMNO:-}
       # AD-007: token de solo-lectura para consultar la API de Eventos de
       # Authentik (auditoría de intentos de login fallidos).
       AUTHENTIK_API_TOKEN:          ${AUTHENTIK_API_TOKEN:-}
+      # Paperless-ngx — OCR de expedientes (FASE 28)
+      PAPERLESS_URL:                http://ades-paperless:8000
+      PAPERLESS_API_TOKEN:          ${PAPERLESS_API_TOKEN:-}
       # Cifrado PII (LFPDPPP) — curp/rfc/telefono/email_personal en ades_personas.
       PII_ENCRYPTION_KEY:           ${PII_ENCRYPTION_KEY:?PII_ENCRYPTION_KEY requerido}
       # Backfill de cifrado one-shot: solo procesa filas pii_encryption_status='pending'
@@ -380,6 +434,7 @@ services:
       PII_BACKFILL_RUN:             ${PII_BACKFILL_RUN:-false}
     volumes:
       - ./assets:/srv/assets          # imágenes públicas de convocatorias (rw para uploads)
+      - vault-init:/vault/init:ro
     ports:
       - "127.0.0.1:8080:8080"
     networks:
@@ -389,6 +444,8 @@ services:
         condition: service_healthy
       valkey:
         condition: service_healthy
+      vault-init:
+        condition: service_completed_successfully
     deploy:
       resources:
         limits:
@@ -407,19 +464,22 @@ services:
     restart: unless-stopped
     command: celery -A app.worker.celery_app worker --loglevel=info --concurrency=1
     environment:
-      # VAULT_ADDR:          http://ades-vault:8200    # Desactivado: servidor limitado
+      VAULT_ADDR:          http://ades-vault:8200
       SECRET_KEY:          ${API_SECRET_KEY}
       VALKEY_URL:          redis://:${VALKEY_PASSWORD}@ades-valkey:6379/0
       DATABASE_URL:        postgresql+asyncpg://${POSTGRES_USER:-ades_admin}:${POSTGRES_PASSWORD}@ades-pgbouncer:5432/ades
       ENVIRONMENT:         ${ENVIRONMENT:-development}
       BASE_URL:            ${BASE_URL:-https://ades.setag.mx}
       MINIO_SECURE:        ${MINIO_SECURE:-false}
-      MINIO_ENDPOINT:      ${MINIO_ENDPOINT:-localhost:9000}
-      MINIO_ACCESS_KEY:    ${MINIO_ACCESS_KEY:-ades_minio}
-      MINIO_SECRET_KEY:    ${MINIO_SECRET_KEY:-}
+      # MINIO_ENDPOINT/MINIO_ACCESS_KEY/MINIO_SECRET_KEY: servidos por Vault
+      # (config.py hace os.environ.setdefault desde secret/ades).
       MINIO_BUCKET:        ${MINIO_BUCKET:-ades}
+      # Paperless-ngx — OCR de expedientes (FASE 28), consumido por app/worker/tasks/ocr.py
+      PAPERLESS_URL:       http://ades-paperless:8000
+      PAPERLESS_API_TOKEN: ${PAPERLESS_API_TOKEN:-}
     volumes:
       - ./backend:/app:cached
+      - vault-init:/vault/init:ro
     networks:
       - ades-internal
     depends_on:
@@ -427,10 +487,9 @@ services:
         condition: service_healthy
       valkey:
         condition: service_healthy
-    deploy:
-      resources:
-        limits:
-          memory: 256M
+      vault-init:
+        condition: service_completed_successfully
+
 
   # Celery Beat — tareas programadas (alertas nocturnas, refresco BI)
   celery-beat:
@@ -441,13 +500,14 @@ services:
     restart: unless-stopped
     command: celery -A app.worker.celery_app beat --loglevel=info
     environment:
-      # VAULT_ADDR:          http://ades-vault:8200    # Desactivado: servidor limitado
+      VAULT_ADDR:          http://ades-vault:8200
       SECRET_KEY:          ${API_SECRET_KEY}
       VALKEY_URL:          redis://:${VALKEY_PASSWORD}@ades-valkey:6379/0
       DATABASE_URL:        postgresql+asyncpg://${POSTGRES_USER:-ades_admin}:${POSTGRES_PASSWORD}@ades-pgbouncer:5432/ades
       ENVIRONMENT:         ${ENVIRONMENT:-development}
     volumes:
       - ./backend:/app:cached
+      - vault-init:/vault/init:ro
     networks:
       - ades-internal
     depends_on:
@@ -466,7 +526,7 @@ services:
     restart: unless-stopped
     command: celery -A app.worker.celery_app flower --port=5555 --url-prefix=flower
     environment:
-      # VAULT_ADDR:          http://ades-vault:8200    # Desactivado: servidor limitado
+      VAULT_ADDR:          http://ades-vault:8200
       SECRET_KEY:          ${API_SECRET_KEY}
       VALKEY_URL:          redis://:${VALKEY_PASSWORD}@ades-valkey:6379/0
       DATABASE_URL:        postgresql+asyncpg://${POSTGRES_USER:-ades_admin}:${POSTGRES_PASSWORD}@ades-pgbouncer:5432/ades
@@ -575,35 +635,35 @@ services:
 
   # ---------------------------------------------------------------------------
   # Carbone — generador de reportes PDF/DOCX a partir de plantillas Word/Excel
-  # FASE 18: Boletas, constancias, kardex, reportes de conducta
+  # FASE 18: Boletas, constancias, kardex, reportes de conducta, credencial (PE-014)
   # API interna: POST /render/:templateId  POST /templates
-  # DESACTIVADO: Servidor limitado (2 cores, 12GB). Habilitar con más recursos
+  # Reactivado 2026-07-13 — 7.3GB RAM libres de 11GB, límite 1G aquí es seguro.
   # ---------------------------------------------------------------------------
-  # carbone:
-  #   build:
-  #     context: ./integrations/carbone
-  #     dockerfile: Dockerfile
-  #   container_name: ades-carbone
-  #   restart: unless-stopped
-  #   environment:
-  #     PORT:          3000
-  #     TEMPLATES_DIR: /app/templates
-  #   volumes:
-  #     - carbone-templates:/app/templates
-  #   ports:
-  #     - "127.0.0.1:3001:3000"
-  #   networks:
-  #     - ades-internal
-  #   healthcheck:
-  #     test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/health"]
-  #     interval: 30s
-  #     timeout: 10s
-  #     retries: 3
-  #     start_period: 15s
-  #   deploy:
-  #     resources:
-  #       limits:
-  #         memory: 1G
+  carbone:
+    build:
+      context: ./integrations/carbone
+      dockerfile: Dockerfile
+    container_name: ades-carbone
+    restart: unless-stopped
+    environment:
+      PORT:          3000
+      TEMPLATES_DIR: /app/templates
+    volumes:
+      - carbone-templates:/app/templates
+    ports:
+      - "127.0.0.1:3001:3000"
+    networks:
+      - ades-internal
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
 
   # ---------------------------------------------------------------------------
   # Flowise — constructor visual de flujos de IA (chatbots, agentes, RAG)
@@ -646,36 +706,35 @@ services:
   # FASE 20: alertas académicas en tiempo real a padres, docentes y alumnos
   # Topics: ades_{usuario_id}  Canal de suscripción por usuario
   # DESACTIVADO: Servidor limitado (2 cores, 12GB). Habilitar con más recursos
-  # ---------------------------------------------------------------------------
-  # ntfy:
-  #   image: binwiederhier/ntfy:latest
-  #   container_name: ades-ntfy
-  #   restart: unless-stopped
-  #   command: serve --base-url http://ades-ntfy:80 --behind-proxy
-  #   environment:
-  #     TZ: America/Mexico_City
-  #     NTFY_BASE_URL:          ${NTFY_BASE_URL:-http://notify.ades.setag.mx}
-  #     NTFY_CACHE_FILE:        /var/cache/ntfy/cache.db
-  #     NTFY_AUTH_FILE:         /var/lib/ntfy/auth.db
-  #     NTFY_AUTH_DEFAULT_ACCESS: read-only
-  #     NTFY_BEHIND_PROXY:      "true"
-  #   volumes:
-  #     - ntfy-data:/var/lib/ntfy
-  #     - ntfy-cache:/var/cache/ntfy
-  #   ports:
-  #     - "127.0.0.1:2586:80"
-  #   networks:
-  #     - ades-internal
-  #   healthcheck:
-  #     test: ["CMD", "wget", "-qO-", "http://127.0.0.1:80/v1/health"]
-  #     interval: 30s
-  #     timeout: 10s
-  #     retries: 3
-  #     start_period: 10s
-  #   deploy:
-  #     resources:
-  #       limits:
-  #         memory: 128M
+  ntfy:
+    image: binwiederhier/ntfy:latest
+    container_name: ades-ntfy
+    restart: unless-stopped
+    command: serve --base-url http://ades-ntfy:80 --behind-proxy
+    environment:
+      TZ: America/Mexico_City
+      NTFY_BASE_URL:          ${NTFY_BASE_URL:-http://notify.ades.setag.mx}
+      NTFY_CACHE_FILE:        /var/cache/ntfy/cache.db
+      NTFY_AUTH_FILE:         /var/lib/ntfy/auth.db
+      NTFY_AUTH_DEFAULT_ACCESS: read-only
+      NTFY_BEHIND_PROXY:      "true"
+    volumes:
+      - ntfy-data:/var/lib/ntfy
+      - ntfy-cache:/var/cache/ntfy
+    ports:
+      - "127.0.0.1:2586:80"
+    networks:
+      - ades-internal
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:80/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 128M
 
   # ---------------------------------------------------------------------------
   # Stirling-PDF — procesamiento de PDF (merge, OCR, watermark, compress)
@@ -867,88 +926,88 @@ services:
   # Paperless-ngx — Gestión Documental con OCR (FASE 28)
   # Expedientes digitales del alumno: CURP, actas, certificados previos
   # UI interna en puerto 8010 (accesible vía nginx /docs/)
-  # DESACTIVADO: Servidor limitado (2 cores, 12GB). Habilitar con más recursos
+  # Activado 2026-07-13 — 7.2GB RAM libres de 11GB, límite 1G aquí es seguro.
   # ---------------------------------------------------------------------------
-  # paperless:
-  #   image: ghcr.io/paperless-ngx/paperless-ngx:latest
-  #   container_name: ades-paperless
-  #   restart: unless-stopped
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #     valkey:
-  #       condition: service_healthy
-  #   environment:
-  #     PAPERLESS_DBENGINE:      postgresql
-  #     PAPERLESS_DBHOST:        ades-postgres
-  #     PAPERLESS_DBPORT:        5432
-  #     PAPERLESS_DBNAME:        paperless
-  #     PAPERLESS_DBUSER:        ${POSTGRES_USER:-ades_admin}
-  #     PAPERLESS_DBPASS:        ${POSTGRES_PASSWORD}
-  #     PAPERLESS_REDIS:         redis://:${VALKEY_PASSWORD}@ades-valkey:6379/1
-  #     PAPERLESS_SECRET_KEY:    ${PAPERLESS_SECRET_KEY:-paperless_dev_secret_change_in_prod}
-  #     PAPERLESS_ALLOWED_HOSTS: "*"
-  #     PAPERLESS_CORS_ALLOWED_HOSTS: "http://localhost:4200,https://ades.setag.mx"
-  #     PAPERLESS_OCR_LANGUAGE:  spa
-  #     PAPERLESS_OCR_LANGUAGES: spa+eng
-  #     PAPERLESS_ADMIN_USER:    ${PAPERLESS_ADMIN_USER:-admin}
-  #     PAPERLESS_ADMIN_PASSWORD: ${PAPERLESS_ADMIN_PASSWORD:-paperless_admin_dev}
-  #     PAPERLESS_ADMIN_MAIL:    admin@setag.mx
-  #     PAPERLESS_TIME_ZONE:     America/Mexico_City
-  #     PAPERLESS_URL:           http://ades-paperless:8000
-  #     PAPERLESS_ENABLE_HTTP_REMOTE_USER: "false"
-  #     PAPERLESS_TASK_WORKERS:  1
-  #     PAPERLESS_THREADS_PER_WORKER: 1
-  #   volumes:
-  #     - paperless-data:/usr/src/paperless/data
-  #     - paperless-media:/usr/src/paperless/media
-  #     - paperless-export:/usr/src/paperless/export
-  #   networks:
-  #     - ades-internal
-  #   healthcheck:
-  #     test: ["CMD", "curl", "-fs", "-S", "--max-time", "10", "http://localhost:8000"]
-  #     interval: 30s
-  #     timeout: 15s
-  #     retries: 5
-  #     start_period: 120s
-  #   deploy:
-  #     resources:
-  #       limits:
-  #         memory: 1G
+  paperless:
+    image: ghcr.io/paperless-ngx/paperless-ngx:latest
+    container_name: ades-paperless
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+    environment:
+      PAPERLESS_DBENGINE:      postgresql
+      PAPERLESS_DBHOST:        ades-postgres
+      PAPERLESS_DBPORT:        5432
+      PAPERLESS_DBNAME:        paperless
+      PAPERLESS_DBUSER:        ${POSTGRES_USER:-ades_admin}
+      PAPERLESS_DBPASS:        ${POSTGRES_PASSWORD}
+      PAPERLESS_REDIS:         redis://:${VALKEY_PASSWORD}@ades-valkey:6379/1
+      PAPERLESS_SECRET_KEY:    ${PAPERLESS_SECRET_KEY:-paperless_dev_secret_change_in_prod}
+      PAPERLESS_ALLOWED_HOSTS: "*"
+      PAPERLESS_CORS_ALLOWED_HOSTS: "http://localhost:4200,https://ades.setag.mx"
+      PAPERLESS_OCR_LANGUAGE:  spa
+      PAPERLESS_OCR_LANGUAGES: spa+eng
+      PAPERLESS_ADMIN_USER:    ${PAPERLESS_ADMIN_USER:-admin}
+      PAPERLESS_ADMIN_PASSWORD: ${PAPERLESS_ADMIN_PASSWORD:-paperless_admin_dev}
+      PAPERLESS_ADMIN_MAIL:    admin@setag.mx
+      PAPERLESS_TIME_ZONE:     America/Mexico_City
+      PAPERLESS_URL:           http://ades-paperless:8000
+      PAPERLESS_ENABLE_HTTP_REMOTE_USER: "false"
+      PAPERLESS_TASK_WORKERS:  1
+      PAPERLESS_THREADS_PER_WORKER: 1
+    volumes:
+      - paperless-data:/usr/src/paperless/data
+      - paperless-media:/usr/src/paperless/media
+      - paperless-export:/usr/src/paperless/export
+    networks:
+      - ades-internal
+    healthcheck:
+      test: ["CMD", "curl", "-fs", "-S", "--max-time", "10", "http://localhost:8000"]
+      interval: 30s
+      timeout: 15s
+      retries: 5
+      start_period: 120s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
 
   # ---------------------------------------------------------------------------
   # H5P Service — Contenido Educativo Interactivo
   # FASE 25: Editor y player H5P, xAPI tracking, integración con ades_tareas
-  # DESACTIVADO: Servidor limitado (2 cores, 12GB). Habilitar con más recursos
+  # Activado 2026-07-13 — ya usado activamente por backend/app/api/v1/h5p.py.
   # ---------------------------------------------------------------------------
-  # h5p:
-  #   build:
-  #     context: ./infrastructure/h5p
-  #     dockerfile: Dockerfile
-  #   image: ades-h5p:latest
-  #   container_name: ades-h5p
-  #   restart: unless-stopped
-  #   environment:
-  #     PORT: "8091"
-  #     H5P_DATA_DIR: /data
-  #     ADES_API_URL: http://ades-api:8000
-  #     NODE_ENV: production
-  #   volumes:
-  #     - h5p-data:/data
-  #   ports:
-  #     - "127.0.0.1:8091:8091"
-  #   networks:
-  #     - ades-internal
-  #   healthcheck:
-  #     test: ["CMD", "curl", "-f", "http://localhost:8091/health"]
-  #     interval: 30s
-  #     timeout: 10s
-  #     retries: 3
-  #     start_period: 30s
-  #   deploy:
-  #     resources:
-  #       limits:
-  #         memory: 512M
+  h5p:
+    build:
+      context: ./infrastructure/h5p
+      dockerfile: Dockerfile
+    image: ades-h5p:latest
+    container_name: ades-h5p
+    restart: unless-stopped
+    environment:
+      PORT: "8091"
+      H5P_DATA_DIR: /data
+      ADES_API_URL: http://ades-api:8000
+      NODE_ENV: production
+    volumes:
+      - h5p-data:/data
+    ports:
+      - "127.0.0.1:8091:8091"
+    networks:
+      - ades-internal
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8091/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
 
   # ---------------------------------------------------------------------------
   # PgBouncer — connection pooling para PostgreSQL

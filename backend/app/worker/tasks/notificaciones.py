@@ -209,7 +209,6 @@ def refresh_vistas_materializadas() -> dict:
     CONCURRENT permite lectura durante el refresco (no bloquea).
     """
     VISTAS = [
-        "ades_bi.mv_asistencia_diaria",
         "ades_bi.mv_calificaciones_grupo",
         "ades_bi.mv_riesgo_academico",
         "ades_bi.mv_resumen_plantel",

@@ -252,7 +252,7 @@ export class DisponibilidadComponent implements OnInit, OnDestroy {
 
   buscarDocente(event: { query: string }) {
     if (!event.query || event.query.length < 2) { this.docenteSugerencias.set([]); return; }
-    this.api.get<any>('/profesores', { buscar: event.query }).subscribe({
+    this.api.get<any>('/profesores', { buscar: event.query }).pipe(takeUntil(this.destroy$)).subscribe({
       next: res => {
         const data = res?.data ?? res ?? [];
         this.docenteSugerencias.set(data.map((p: any) => ({
@@ -279,14 +279,14 @@ export class DisponibilidadComponent implements OnInit, OnDestroy {
   cargar() {
     if (!this.profesorId) return;
     this.cargando.set(true);
-    this.api.get<SlotDisponibilidad[]>('/disponibilidad', { profesor_id: this.profesorId }).subscribe({
+    this.api.get<SlotDisponibilidad[]>('/disponibilidad', { profesor_id: this.profesorId }).pipe(takeUntil(this.destroy$)).subscribe({
       next: d => { this.slots.set(d); this.cargando.set(false); this.cargarResumen(); },
       error: () => { this.cargando.set(false); this.notify.error('Error al cargar disponibilidad'); },
     });
   }
 
   cargarResumen() {
-    this.api.get<ResumenDisponibilidad>(`/disponibilidad/docente/${this.profesorId}/resumen`).subscribe({
+    this.api.get<ResumenDisponibilidad>(`/disponibilidad/docente/${this.profesorId}/resumen`).pipe(takeUntil(this.destroy$)).subscribe({
       next: r => this.resumen.set(r),
       error: () => {},
     });
@@ -335,7 +335,7 @@ export class DisponibilidadComponent implements OnInit, OnDestroy {
       horas_semana_max:   this.configHrsMax,
       horas_frente_grupo: this.configHrsFG,
     };
-    this.api.put(`/disponibilidad/docente/${this.profesorId}`, payload).subscribe({
+    this.api.put(`/disponibilidad/docente/${this.profesorId}`, payload).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.guardando.set(false); this.dialogConfig = false;
         this.notify.success('Disponibilidad guardada');

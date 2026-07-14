@@ -1644,7 +1644,7 @@ export class AdminComponent implements OnInit, OnDestroy {
   }
 
   guardarConfigCual(clave: string, valor: any): void {
-    this.api.patch(`/admin/config/${clave}`, { valor }).subscribe({
+    this.api.patch(`/admin/config/${clave}`, { valor }).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => this.notify.success('Guardado', `${clave} actualizado`),
       error: (e) => this.notify.error('Error', e.error?.message ?? 'No se pudo guardar'),
     });
@@ -1662,7 +1662,7 @@ export class AdminComponent implements OnInit, OnDestroy {
       is_active: escala.is_active,
       valores_json: escala._descriptores,
     };
-    this.api.put(`/admin/config/escalas-cualitativas/${escala.id}`, payload).subscribe({
+    this.api.put(`/admin/config/escalas-cualitativas/${escala.id}`, payload).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         escala._modificado = false;
         this.guardandoCual.set(false);
@@ -1718,7 +1718,7 @@ export class AdminComponent implements OnInit, OnDestroy {
     this.loadingSepomexStats.set(true);
     this.api.get<{ estados: number; municipios: number; colonias: number; cps_unicos: number }>(
       '/admin/sepomex/stats'
-    ).subscribe({
+    ).pipe(takeUntil(this.destroy$)).subscribe({
       next: s => { this.sepomexStats.set(s); this.loadingSepomexStats.set(false); },
       error: () => this.loadingSepomexStats.set(false),
     });
@@ -1731,7 +1731,7 @@ export class AdminComponent implements OnInit, OnDestroy {
     const params: Record<string, string> = {};
     const plantelId = this.ctx.plantel()?.id;
     if (plantelId) params['plantel_id'] = plantelId;
-    this.api.get<UsuarioAdmin[]>('/admin/usuarios', params).subscribe({
+    this.api.get<UsuarioAdmin[]>('/admin/usuarios', params).pipe(takeUntil(this.destroy$)).subscribe({
       next: (u) => {
         this.usuarios.set(u);
         this.usuariosDatos.set(u.map(usr => ({
@@ -1754,7 +1754,7 @@ export class AdminComponent implements OnInit, OnDestroy {
 
   cargarCiclos(): void {
     this.loadingCiclos.set(true);
-    this.api.get<CicloAdmin[]>('/admin/ciclos').subscribe({
+    this.api.get<CicloAdmin[]>('/admin/ciclos').pipe(takeUntil(this.destroy$)).subscribe({
       next: (c) => {
         const flat = c.map(x => ({
           ...x,
@@ -1772,7 +1772,7 @@ export class AdminComponent implements OnInit, OnDestroy {
 
   cargarPlanteles(): void {
     this.loadingPlanteles.set(true);
-    this.api.get<PlantelAdmin[]>('/planteles').subscribe({
+    this.api.get<PlantelAdmin[]>('/planteles').pipe(takeUntil(this.destroy$)).subscribe({
       next: (p) => {
         const flat = p.map(x => ({
           ...x,
@@ -1791,7 +1791,7 @@ export class AdminComponent implements OnInit, OnDestroy {
     const plantelId = this.ctx.plantel()?.id;
     if (plantelId) params['plantel_id'] = plantelId;
     if (this.cicloFiltroId) params['ciclo_id'] = this.cicloFiltroId;
-    this.api.get<GrupoAdmin[]>('/admin/grupos', params).subscribe({
+    this.api.get<GrupoAdmin[]>('/admin/grupos', params).pipe(takeUntil(this.destroy$)).subscribe({
       next: (g) => {
         const flat = g.map(x => ({
           ...x,
@@ -1808,20 +1808,20 @@ export class AdminComponent implements OnInit, OnDestroy {
 
   cargarRoles(): void {
     this.loadingRoles.set(true);
-    this.api.get<any[]>('/admin/roles').subscribe({
+    this.api.get<any[]>('/admin/roles').pipe(takeUntil(this.destroy$)).subscribe({
       next: (r) => { this.roles.set(r as any); this.loadingRoles.set(false); },
       error: () => {
-        this.api.get<RolOpt[]>('/catalogs/roles').subscribe(r => { this.roles.set(r); this.loadingRoles.set(false); });
+        this.api.get<RolOpt[]>('/catalogs/roles').pipe(takeUntil(this.destroy$)).subscribe(r => { this.roles.set(r); this.loadingRoles.set(false); });
       },
     });
   }
 
   cargarNiveles(): void {
-    this.api.get<NivelOpt[]>('/catalogs/niveles').subscribe(n => this.niveles.set(n));
+    this.api.get<NivelOpt[]>('/catalogs/niveles').pipe(takeUntil(this.destroy$)).subscribe(n => this.niveles.set(n));
   }
 
   cargarGrados(): void {
-    this.api.get<any[]>('/catalogs/grados?todos_planteles=true').subscribe({
+    this.api.get<any[]>('/catalogs/grados?todos_planteles=true').pipe(takeUntil(this.destroy$)).subscribe({
       next: gs => this.grados.set(gs.map(g => ({
         id: g.id,
         label: `${g.nombre_nivel ?? ''} ${g.nombre_grado ?? g.numero_grado ?? ''}`.trim(),
@@ -1837,7 +1837,7 @@ export class AdminComponent implements OnInit, OnDestroy {
     this.loadingVariables.set(true);
     const params: Record<string, string> = {};
     if (this.grupoSeleccionado) params['grupo'] = this.grupoSeleccionado;
-    this.api.get<VariableSistema[]>('/config/variables', params).subscribe({
+    this.api.get<VariableSistema[]>('/config/variables', params).pipe(takeUntil(this.destroy$)).subscribe({
       next: vars => {
         this.variables.set(vars.map(v => ({
           ...v,
@@ -1912,7 +1912,7 @@ export class AdminComponent implements OnInit, OnDestroy {
 
     const payload = { valor: valorAGuardar, row_version: this.variableEdit.row_version };
     this.guardandoVariable.set(true);
-    this.api.patch(`/config/variables/${this.variableEdit.nombre}`, payload).subscribe({
+    this.api.patch(`/config/variables/${this.variableEdit.nombre}`, payload).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.variableDlgVisible.set(false);
         this.guardandoVariable.set(false);
@@ -1938,7 +1938,7 @@ export class AdminComponent implements OnInit, OnDestroy {
 
   cargarCatalogos(): void {
     this.loadingCatalogos.set(true);
-    this.api.get<Catalogo[]>('/catalogos').subscribe({
+    this.api.get<Catalogo[]>('/catalogos').pipe(takeUntil(this.destroy$)).subscribe({
       next: c => { this.catalogos.set(c); this.loadingCatalogos.set(false); },
       error: () => this.loadingCatalogos.set(false),
     });
@@ -1958,7 +1958,7 @@ export class AdminComponent implements OnInit, OnDestroy {
       this.notify.warning('Campos requeridos', 'Código y nombre son obligatorios');
       return;
     }
-    this.api.post<Catalogo>('/catalogos', this.catalogoForm).subscribe({
+    this.api.post<Catalogo>('/catalogos', this.catalogoForm).pipe(takeUntil(this.destroy$)).subscribe({
       next: cat => {
         this.catalogoDlgVisible.set(false);
         this.notify.success('Catálogo creado');
@@ -1990,7 +1990,7 @@ export class AdminComponent implements OnInit, OnDestroy {
     }
     if (this.itemEdit) {
       const payload = { ...this.itemForm, row_version: this.itemEdit.row_version };
-      this.api.patch(`/catalogos/items/${this.itemEdit.id}`, payload).subscribe({
+      this.api.patch(`/catalogos/items/${this.itemEdit.id}`, payload).pipe(takeUntil(this.destroy$)).subscribe({
         next: () => {
           this.itemDlgVisible.set(false);
           this.notify.success('Item actualizado');
@@ -1999,7 +1999,7 @@ export class AdminComponent implements OnInit, OnDestroy {
         error: (e) => this.notify.error('Error', e.error?.detail),
       });
     } else {
-      this.api.post<CatalogoItem>(`/catalogos/${cat.id}/items`, this.itemForm).subscribe({
+      this.api.post<CatalogoItem>(`/catalogos/${cat.id}/items`, this.itemForm).pipe(takeUntil(this.destroy$)).subscribe({
         next: () => {
           this.itemDlgVisible.set(false);
           this.notify.success('Item agregado');
@@ -2011,7 +2011,7 @@ export class AdminComponent implements OnInit, OnDestroy {
   }
 
   private recargarCatSeleccionado(catId: string): void {
-    this.api.get<Catalogo>(`/catalogos/${catId}`).subscribe({
+    this.api.get<Catalogo>(`/catalogos/${catId}`).pipe(takeUntil(this.destroy$)).subscribe({
       next: c => {
         this.catSeleccionado.set(c);
         this.catalogos.update(list => list.map(x => x.id === c.id ? c : x));
@@ -2043,7 +2043,7 @@ export class AdminComponent implements OnInit, OnDestroy {
     const req$ = c.id
       ? this.api.patch(`/admin/ciclos/${c.id}`, c)
       : this.api.post('/admin/ciclos', c);
-    req$.subscribe({
+    req$.pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.dlgCicloVisible.set(false);
         this.guardandoCiclo.set(false);
@@ -2065,7 +2065,7 @@ export class AdminComponent implements OnInit, OnDestroy {
 
   cargarClavesPlantel(plantelId: string): void {
     this.clavesPlantel.set([]);
-    this.api.get<any[]>(`/planteles/${plantelId}/claves`).subscribe({
+    this.api.get<any[]>(`/planteles/${plantelId}/claves`).pipe(takeUntil(this.destroy$)).subscribe({
       next: c => this.clavesPlantel.set(c),
       error: () => this.clavesPlantel.set([]),
     });
@@ -2076,7 +2076,7 @@ export class AdminComponent implements OnInit, OnDestroy {
     if (!p?.id) return;
     this.api.patch(`/planteles/${p.id}/claves/${c.nivel_educativo_id}`, {
       tipo_clave: c.tipo_clave, clave: c.clave, observaciones: c.observaciones,
-    }).subscribe({
+    }).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => this.notify.success('Clave actualizada', c.nombre_nivel),
       error: e => this.notify.error('Error', e.error?.detail ?? 'No se pudo guardar la clave'),
     });
@@ -2090,7 +2090,7 @@ export class AdminComponent implements OnInit, OnDestroy {
       return;
     }
     this.guardandoPlantel.set(true);
-    this.api.patch(`/admin/planteles/${p.id}`, { nombre_plantel: p.nombre_plantel, clave_ct: p.clave_ct, is_active: p.is_active }).subscribe({
+    this.api.patch(`/admin/planteles/${p.id}`, { nombre_plantel: p.nombre_plantel, clave_ct: p.clave_ct, is_active: p.is_active }).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.dlgPlantelVisible.set(false);
         this.guardandoPlantel.set(false);
@@ -2131,7 +2131,7 @@ export class AdminComponent implements OnInit, OnDestroy {
     const req$ = g.id
       ? this.api.patch(`/admin/grupos/${g.id}`, payload)
       : this.api.post('/admin/grupos', payload);
-    req$.subscribe({
+    req$.pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.dlgGrupoAdminVisible.set(false);
         this.guardandoGrupo.set(false);
@@ -2171,7 +2171,7 @@ export class AdminComponent implements OnInit, OnDestroy {
       curp: f.curp.toUpperCase(), emailInstitucional: f.email_institucional || null,
       genero: f.genero, fechaNacimiento: f.fecha_nacimiento || null,
       rolId: f.rol_id, plantelId: f.plantel_id || null,
-    }).subscribe({
+    }).pipe(takeUntil(this.destroy$)).subscribe({
       next: (res: any) => {
         this.notify.success('Usuario creado',
           `Usuario: ${res.nombre_usuario} — Email: ${res.email_institucional}`);
@@ -2202,7 +2202,7 @@ export class AdminComponent implements OnInit, OnDestroy {
     this.api.patch(`/admin/roles/${r.id}`, {
       descripcion: this.rolEditForm.descripcion,
       nivelAcceso: this.rolEditForm.nivel_acceso,
-    }).subscribe({
+    }).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.notify.success('Éxito', 'Descripción del rol actualizada');
         this.rolDlgVisible.set(false);
@@ -2217,7 +2217,7 @@ export class AdminComponent implements OnInit, OnDestroy {
 
   cargarMenusAdmin(): void {
     this.loadingMenus.set(true);
-    this.api.get<any[]>('/admin/menus').subscribe({
+    this.api.get<any[]>('/admin/menus').pipe(takeUntil(this.destroy$)).subscribe({
       next: (m) => { this.menus.set(m); this.loadingMenus.set(false); },
       error: () => this.loadingMenus.set(false),
     });
@@ -2244,7 +2244,7 @@ export class AdminComponent implements OnInit, OnDestroy {
       nivelMaximo: this.menuEditForm.nivel_maximo,
       nivelMinimo: this.menuEditForm.nivel_minimo,
       activo: this.menuEditForm.activo,
-    }).subscribe({
+    }).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.notify.success('Éxito', 'Menú actualizado');
         this.menuDlgVisible.set(false);
@@ -2261,7 +2261,7 @@ export class AdminComponent implements OnInit, OnDestroy {
     this.loadingPermisos.set(true);
     const params: Record<string, string> = {};
     if (this.permisosRolFiltro) params['rol_id'] = this.permisosRolFiltro;
-    this.api.get<any[]>('/admin/permisos-rol', params).subscribe({
+    this.api.get<any[]>('/admin/permisos-rol', params).pipe(takeUntil(this.destroy$)).subscribe({
       next: (p) => {
         this.permisos.set(p.map(x => ({ ...x, _saving: false })));
         this.loadingPermisos.set(false);
@@ -2276,7 +2276,7 @@ export class AdminComponent implements OnInit, OnDestroy {
       rolId: p.rol_id, menuClave: p.menu_clave,
       puedeVer: p.puede_ver, puedeEditar: p.puede_editar,
       puedeCrear: p.puede_crear, puedeEliminar: p.puede_eliminar,
-    }).subscribe({
+    }).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => { p._saving = false; this.notify.success('Guardado', `Permiso actualizado: ${p.menu_clave}`); },
       error: (e) => { p._saving = false; this.notify.error('Error', e.error?.detail ?? 'Error'); },
     });
@@ -2301,7 +2301,7 @@ export class AdminComponent implements OnInit, OnDestroy {
       puedeEditar: this.nuevoPrmForm.puede_editar,
       puedeCrear: this.nuevoPrmForm.puede_crear,
       puedeEliminar: this.nuevoPrmForm.puede_eliminar,
-    }).subscribe({
+    }).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.notify.success('Guardado', 'Permiso creado/actualizado');
         this.nuevoPrmDlgVisible.set(false);
@@ -2348,7 +2348,7 @@ export class AdminComponent implements OnInit, OnDestroy {
       is_active: this.usuarioEditForm.is_active,
     };
     
-    this.api.patch(`/admin/usuarios/${usr.id}`, payload).subscribe({
+    this.api.patch(`/admin/usuarios/${usr.id}`, payload).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.notify.success('Éxito', 'Usuario actualizado correctamente');
         this.usuarioDlgVisible.set(false);
@@ -2375,7 +2375,7 @@ export class AdminComponent implements OnInit, OnDestroy {
 
   cargarMarca(): void {
     this.loadingMarca.set(true);
-    this.api.get<any[]>('/admin/marca').subscribe({
+    this.api.get<any[]>('/admin/marca').pipe(takeUntil(this.destroy$)).subscribe({
       next: (items) => {
         this.marcaForm = {
           NOMBRE_INSTITUCION: '',
@@ -2413,7 +2413,7 @@ export class AdminComponent implements OnInit, OnDestroy {
       { tipo_elemento: 'FAVICON_URL', valor: this.marcaForm.FAVICON_URL },
       { tipo_elemento: 'COLOR_PRIMARIO', valor: this.marcaForm.COLOR_PRIMARIO },
     ];
-    this.api.put('/admin/marca', payload).subscribe({
+    this.api.put('/admin/marca', payload).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.notify.success('Éxito', 'Identidad institucional actualizada');
         this.guardandoMarca.set(false);
@@ -2430,7 +2430,7 @@ export class AdminComponent implements OnInit, OnDestroy {
 
   cargarReglasPromocion(): void {
     this.loadingReglas.set(true);
-    this.api.get<any[]>('/admin/reglas-promocion').subscribe({
+    this.api.get<any[]>('/admin/reglas-promocion').pipe(takeUntil(this.destroy$)).subscribe({
       next: (niveles) => {
         this.nivelesReglas.set(niveles);
         this.loadingReglas.set(false);
@@ -2449,7 +2449,7 @@ export class AdminComponent implements OnInit, OnDestroy {
       max_anios_reprobados:    nivel.max_anios_reprobados,
       tiene_examen_extra:      nivel.tiene_examen_extra,
     };
-    this.api.patch<any>(`/admin/reglas-promocion/${nivel.id}`, payload).subscribe({
+    this.api.patch<any>(`/admin/reglas-promocion/${nivel.id}`, payload).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.notify.success('Guardado', `Reglas de ${nivel.nombre_nivel} actualizadas`);
         this.guardandoRegla.set(false);
@@ -2472,7 +2472,7 @@ export class AdminComponent implements OnInit, OnDestroy {
     const plantel = this.ctx.plantel();
     if (plantel?.id) payload['plantel_id'] = plantel.id;
 
-    this.api.post<any>('/admin/reglas-promocion/evaluar', payload).subscribe({
+    this.api.post<any>('/admin/reglas-promocion/evaluar', payload).pipe(takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         const r = res.resultado ? JSON.parse(res.resultado) : res;
         this.notify.success(
@@ -2506,7 +2506,7 @@ export class AdminComponent implements OnInit, OnDestroy {
     this.syncSepomexError.set('');
     if (this._syncPollInterval) { clearInterval(this._syncPollInterval); this._syncPollInterval = null; }
 
-    this.api.post<any>('/admin/sepomex/sync', {}).subscribe({
+    this.api.post<any>('/admin/sepomex/sync', {}).pipe(takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         this.syncSepomexLoading.set(false);
         this.syncSepomexTaskId.set(res.task_id);
@@ -2522,7 +2522,7 @@ export class AdminComponent implements OnInit, OnDestroy {
 
   private _iniciarPollSepomex(taskId: string): void {
     this._syncPollInterval = setInterval(() => {
-      this.api.get<any>(`/admin/sepomex/sync/${taskId}`).subscribe({
+      this.api.get<any>(`/admin/sepomex/sync/${taskId}`).pipe(takeUntil(this.destroy$)).subscribe({
         next: (res) => {
           this.syncSepomexEstado.set(res.estado);
           if (res.estado === 'SUCCESS') {
@@ -2552,7 +2552,7 @@ export class AdminComponent implements OnInit, OnDestroy {
       this.cargarNiveles();
     }
 
-    this.api.get<any[]>('/horario-franjas').subscribe({
+    this.api.get<any[]>('/horario-franjas').pipe(takeUntil(this.destroy$)).subscribe({
       next: res => {
         this.franjas.set(res || []);
         this.loadingFranjas.set(false);
@@ -2583,7 +2583,7 @@ export class AdminComponent implements OnInit, OnDestroy {
       ? this.api.put(`/horario-franjas/${this.editFranjaEntry().id}`, body)
       : this.api.post(`/horario-franjas`, body);
     
-    req.subscribe({
+    req.pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.notify.success('Franja guardada correctamente.');
         this.guardandoFranja.set(false);
@@ -2599,7 +2599,7 @@ export class AdminComponent implements OnInit, OnDestroy {
 
   eliminarFranja(f: any): void {
     if (!confirm('¿Eliminar esta franja?')) return;
-    this.api.delete(`/horario-franjas/${f.id}`).subscribe({
+    this.api.delete(`/horario-franjas/${f.id}`).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.notify.success('Franja eliminada.');
         this.cargarFranjas();
@@ -2608,6 +2608,7 @@ export class AdminComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    if (this._syncPollInterval) { clearInterval(this._syncPollInterval); this._syncPollInterval = null; }
     this.destroy$.next();
     this.destroy$.complete();
   }

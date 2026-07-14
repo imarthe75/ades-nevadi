@@ -277,7 +277,7 @@ export class ActaEvaluacionComponent implements OnInit, OnDestroy {
   );
 
   ngOnInit() {
-    this.api.get<GrupoRaw[]>('/reportes/acta/grupos').subscribe({
+    this.api.get<GrupoRaw[]>('/reportes/acta/grupos').pipe(takeUntil(this.destroy$)).subscribe({
       next: g => this._grupos.set(g),
       error: () => this.notify.error('No se pudieron cargar los grupos UAEMEX'),
     });
@@ -303,7 +303,7 @@ export class ActaEvaluacionComponent implements OnInit, OnDestroy {
     this._materias.set([]);
     this.acta.set(null);
     if (!grupoId) return;
-    this.api.get<any[]>(`/reportes/acta/grupos/${grupoId}/materias`).subscribe({
+    this.api.get<any[]>(`/reportes/acta/grupos/${grupoId}/materias`).pipe(takeUntil(this.destroy$)).subscribe({
       next: m => this._materias.set(m),
       error: () => this.notify.error('No se pudieron cargar las materias del grupo'),
     });
@@ -314,7 +314,7 @@ export class ActaEvaluacionComponent implements OnInit, OnDestroy {
     this.cargando.set(true);
     this.acta.set(null);
     const params = { grupo_id: this.grupoSel, materia_id: this.materiaSel };
-    this.api.get<Acta>('/reportes/acta', params).subscribe({
+    this.api.get<Acta>('/reportes/acta', params).pipe(takeUntil(this.destroy$)).subscribe({
       next: a => { this.acta.set(a); this.cargando.set(false); },
       error: e => {
         this.cargando.set(false);

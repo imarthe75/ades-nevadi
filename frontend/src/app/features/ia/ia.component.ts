@@ -426,21 +426,21 @@ export class IaComponent implements OnInit, OnDestroy {
     const plantelId = this.ctx.plantel()?.id;
     if (plantelId) {
       this.api.get<Grupo[]>('/grupos', { plantel_id: plantelId, solo_activos: true, ciclo_vigente: true })
-        .subscribe(g => this.grupos.set(g.map(x => ({ ...x, _label: grupoLabel(x) }))));
+        .pipe(takeUntil(this.destroy$)).subscribe(g => this.grupos.set(g.map(x => ({ ...x, _label: grupoLabel(x) }))));
     }
     this.cargarAlertas();
     this._cargarSesiones();
   }
 
   private _cargarSesiones(): void {
-    this.api.get<any[]>('/ai/mis-sesiones?limite=8').subscribe({
+    this.api.get<any[]>('/ai/mis-sesiones?limite=8').pipe(takeUntil(this.destroy$)).subscribe({
       next: (items) => this.sesionesGuardadas.set(items || []),
       error: () => {},
     });
   }
 
   cargarSesion(sesionId: string): void {
-    this.api.get<any>(`/ai/sesion/${sesionId}`).subscribe({
+    this.api.get<any>(`/ai/sesion/${sesionId}`).pipe(takeUntil(this.destroy$)).subscribe({
       next: (data) => {
         const msgs: Mensaje[] = (data.mensajes || []).map((m: any) => ({
           rol: m.rol as 'user' | 'assistant',
@@ -457,7 +457,7 @@ export class IaComponent implements OnInit, OnDestroy {
   }
 
   eliminarSesion(sesionId: string): void {
-    this.api.delete(`/ai/sesion/${sesionId}`).subscribe({
+    this.api.delete(`/ai/sesion/${sesionId}`).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.sesionesGuardadas.update(s => s.filter(x => x.sesion_id !== sesionId));
         if (this.sesionId === sesionId) this.limpiarChat();
@@ -491,7 +491,7 @@ export class IaComponent implements OnInit, OnDestroy {
       mensaje: texto,
       historial: historial.slice(0, -1),
       contexto,
-    }).subscribe({
+    }).pipe(takeUntil(this.destroy$)).subscribe({
       next: (r) => {
         this.mensajes.update(m => [...m, { rol: 'assistant', contenido: r.respuesta, timestamp: new Date() }]);
         this.cargando.set(false);
@@ -525,13 +525,13 @@ export class IaComponent implements OnInit, OnDestroy {
     const params: Record<string, any> = { atendida: false };
     if (this.selectedGrupo) params['grupo_id'] = this.selectedGrupo.id;
     this.api.get<Alerta[]>('/ai/alertas', params)
-      .subscribe({ next: a => { this.alertas.set(a); this.cargandoAlertas.set(false); }, error: () => this.cargandoAlertas.set(false) });
+      .pipe(takeUntil(this.destroy$)).subscribe({ next: a => { this.alertas.set(a); this.cargandoAlertas.set(false); }, error: () => this.cargandoAlertas.set(false) });
   }
 
   escanearGrupo(): void {
     if (!this.selectedGrupo) return;
     this.escaneando.set(true);
-    this.api.post<any>(`/ai/alertas/scan/${this.selectedGrupo.id}`, {}).subscribe({
+    this.api.post<any>(`/ai/alertas/scan/${this.selectedGrupo.id}`, {}).pipe(takeUntil(this.destroy$)).subscribe({
       next: (r) => {
         this.escaneando.set(false);
         this.notify.success('Escaneo completado', `${r.alertas_generadas} alerta(s) generadas para ${r.alumnos_analizados} alumnos`);
@@ -566,7 +566,7 @@ export class IaComponent implements OnInit, OnDestroy {
     this.api.post<{ respuesta: string; sql_generado?: string; datos?: any[] }>(
       '/chatbot/mensaje',
       { pregunta: q, sesion_id: this.sesiónDatos }
-    ).subscribe({
+    ).pipe(takeUntil(this.destroy$)).subscribe({
       next: resp => {
         this.respuestaDatos.set(resp);
         if (resp.datos?.length) {

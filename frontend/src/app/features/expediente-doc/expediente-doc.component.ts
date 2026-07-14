@@ -430,7 +430,7 @@ export class ExpedienteDocComponent implements OnInit, OnDestroy {
 
   buscarAlumnos(event: { query: string }) {
     this.api.get<any[]>('/portal/buscar', { q: event.query })
-      .subscribe({
+      .pipe(takeUntil(this.destroy$)).subscribe({
         next: (res) => {
           this.alumnosSugeridos.set(
             (res || []).map((a: any) => ({
@@ -451,7 +451,7 @@ export class ExpedienteDocComponent implements OnInit, OnDestroy {
     this.loading.set(true);
     this.docSeleccionado.set(null);
     this.api.get<Expediente>(`/expediente/alumno/${estudianteId}`)
-      .subscribe({
+      .pipe(takeUntil(this.destroy$)).subscribe({
         next: (exp) => {
           this.expediente.set(exp);
           this.loading.set(false);
@@ -494,7 +494,7 @@ export class ExpedienteDocComponent implements OnInit, OnDestroy {
     fd.append('tipo_documento', this.tipoDocumentoNuevo || 'OTRO');
 
     this.api.post<any>(`/expediente/alumno/${alumno.id}/documentos`, fd)
-      .subscribe({
+      .pipe(takeUntil(this.destroy$)).subscribe({
         next: (res) => {
           this.notify.success('Documento subido', res.mensaje);
           this.showSubir.set(false);
@@ -514,7 +514,7 @@ export class ExpedienteDocComponent implements OnInit, OnDestroy {
     const exp = this.expediente();
     if (!exp) return;
     this.api.delete(`/expediente/${exp.id}/documentos/${doc.id}`)
-      .subscribe({
+      .pipe(takeUntil(this.destroy$)).subscribe({
         next: () => {
           this.notify.success('Documento eliminado');
           this.docSeleccionado.set(null);
@@ -529,7 +529,7 @@ export class ExpedienteDocComponent implements OnInit, OnDestroy {
     if (!alumno) return;
     this.loadingIA.set(true);
     this.api.post<AnalisisIA>(`/expediente/alumno/${alumno.id}/analizar-ia`, {})
-      .subscribe({
+      .pipe(takeUntil(this.destroy$)).subscribe({
         next: (res) => {
           this.analisisIA.set(res);
           this.showAnalisis.set(true);
@@ -546,7 +546,7 @@ export class ExpedienteDocComponent implements OnInit, OnDestroy {
     const exp = this.expediente();
     if (!exp) return;
     this.api.post<any>(`/expediente/${exp.id}/verificar`, {})
-      .subscribe({
+      .pipe(takeUntil(this.destroy$)).subscribe({
         next: () => {
           this.notify.success('Expediente verificado', 'Estado actualizado a VERIFICADO');
           if (this.alumnoSeleccionado) this.cargarExpediente(this.alumnoSeleccionado.id);
@@ -560,7 +560,7 @@ export class ExpedienteDocComponent implements OnInit, OnDestroy {
     if (!alumno || this.queryOcr.trim().length < 3) return;
     this.buscandoOcr.set(true);
     this.api.get<any>(`/expediente/alumno/${alumno.id}/buscar?q=${encodeURIComponent(this.queryOcr)}`)
-      .subscribe({
+      .pipe(takeUntil(this.destroy$)).subscribe({
         next: (res) => {
           this.resultadosOcr.set(res.resultados || []);
           this.buscandoOcr.set(false);

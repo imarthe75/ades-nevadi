@@ -428,7 +428,7 @@ export class TareasComponent implements OnInit, OnDestroy {
       this.materiasOpts.set([]);
       this._clearData();
       if (!grupo?.id) return;
-      this.api.get<any[]>('/planes-estudio', { grado_id: grupo.grado_id }).subscribe(planes => {
+      this.api.get<any[]>('/planes-estudio', { grado_id: grupo.grado_id }).pipe(takeUntil(this.destroy$)).subscribe(planes => {
         const materias: Materia[] = (planes as any[]).map((p: any) => p.materia).filter(Boolean);
         this.materiasOpts.set(materias);
       });
@@ -449,7 +449,7 @@ export class TareasComponent implements OnInit, OnDestroy {
     this.api.get<Tarea[]>('/tareas', {
       grupo_id: this.selectedGrupoId,
       materia_id: this.selectedMateriaId,
-    }).subscribe(t => {
+    }).pipe(takeUntil(this.destroy$)).subscribe(t => {
       this.tareas.set(t);
       if (this.esDocente()) {
         this._loadEntregasPendientes();
@@ -464,7 +464,7 @@ export class TareasComponent implements OnInit, OnDestroy {
     if (!alumnoId) return;
     const params: Record<string, any> = {};
     if (this.selectedMateriaId) params['materia_id'] = this.selectedMateriaId;
-    this.api.get<any[]>(`/entregas/alumno/${alumnoId}`, params).subscribe({
+    this.api.get<any[]>(`/entregas/alumno/${alumnoId}`, params).pipe(takeUntil(this.destroy$)).subscribe({
       next: e => this.entregas.set(e),
       error: () => this.entregas.set([]),
     });
@@ -474,7 +474,7 @@ export class TareasComponent implements OnInit, OnDestroy {
     if (!this.selectedGrupoId) return;
     const params: Record<string, any> = {};
     if (this.selectedMateriaId) params['materia_id'] = this.selectedMateriaId;
-    this.api.get<any[]>(`/entregas/pendientes/grupo/${this.selectedGrupoId}`, params).subscribe({
+    this.api.get<any[]>(`/entregas/pendientes/grupo/${this.selectedGrupoId}`, params).pipe(takeUntil(this.destroy$)).subscribe({
       next: e => this.entregasPendientes.set(e),
       error: () => this.entregasPendientes.set([]),
     });
@@ -509,7 +509,7 @@ export class TareasComponent implements OnInit, OnDestroy {
     const req$ = this.tareaEditId
       ? this.api.patch<Tarea>(`/tareas/${this.tareaEditId}`, payload)
       : this.api.post<Tarea>('/tareas', payload);
-    req$.subscribe({
+    req$.pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.saving.set(false); this.showDialog = false;
         this.notify.success(this.tareaEditId ? 'Actualizado' : 'Creado', 'Tarea guardada');
@@ -542,7 +542,7 @@ export class TareasComponent implements OnInit, OnDestroy {
     if (alumnoId) fd.append('alumno_id', alumnoId);
     if (this.uploadComment) fd.append('comentario', this.uploadComment);
     if (this.uploadFile_) fd.append('archivo', this.uploadFile_, this.uploadFile_.name);
-    this.api.postForm<any>('/entregas', fd).subscribe({
+    this.api.postForm<any>('/entregas', fd).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.uploading.set(false); this.uploadVisible = false;
         this.notify.success('Entrega enviada', e.titulo);
@@ -578,7 +578,7 @@ export class TareasComponent implements OnInit, OnDestroy {
     this.api.patch<any>(`/entregas/${e.id}/calificar`, {
       calificacion: this.calificarForm.calificacion,
       comentario:   this.calificarForm.comentario,
-    }).subscribe({
+    }).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.calificando.set(false); this.calificarVisible = false;
         this.notify.success('Calificación guardada', e.alumno_nombre);
@@ -595,7 +595,7 @@ export class TareasComponent implements OnInit, OnDestroy {
     const e = this.calificarEntrega();
     if (!e) return;
     const motivo = this.calificarForm.comentario || 'Sin motivo especificado';
-    this.api.post<any>(`/entregas/${e.id}/excusa?motivo=${encodeURIComponent(motivo)}`, {}).subscribe({
+    this.api.post<any>(`/entregas/${e.id}/excusa?motivo=${encodeURIComponent(motivo)}`, {}).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.calificarVisible = false;
         this.notify.success('Excusa registrada', e.alumno_nombre);
@@ -615,7 +615,7 @@ export class TareasComponent implements OnInit, OnDestroy {
     const e = this.calificarEntrega();
     if (!e) return;
     this.escaneandoPlagio.set(true);
-    this.api.post<any>(`/entregas/${e.id}/plagio-check`, {}).subscribe({
+    this.api.post<any>(`/entregas/${e.id}/plagio-check`, {}).pipe(takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         this.escaneandoPlagio.set(false);
         this.notify.success('Plagio escaneado', `${res.plagio_porcentaje}% similitud`);
@@ -647,7 +647,7 @@ export class TareasComponent implements OnInit, OnDestroy {
     if (this.audioFileForFeedback) fd.append('audio', this.audioFileForFeedback, this.audioFileForFeedback.name);
     if (this.videoFileForFeedback) fd.append('video', this.videoFileForFeedback, this.videoFileForFeedback.name);
     
-    this.api.postForm<any>(`/entregas/${e.id}/feedback-multimedia`, fd).subscribe({
+    this.api.postForm<any>(`/entregas/${e.id}/feedback-multimedia`, fd).pipe(takeUntil(this.destroy$)).subscribe({
       next: (res: any) => {
         this.subiendoMultimedia.set(false);
         this.notify.success('Multimedia guardada', e.alumno_nombre);

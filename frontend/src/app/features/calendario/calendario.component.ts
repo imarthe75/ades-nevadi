@@ -209,7 +209,7 @@ export class CalendarioComponent implements OnInit, OnDestroy {
   }
 
   cargarCiclos() {
-    this.api.get('/catalogs/ciclos').subscribe((r: any) => {
+    this.api.get('/catalogs/ciclos').pipe(takeUntil(this.destroy$)).subscribe((r: any) => {
       this.ciclos.set(r ?? []);
       const vigente = (r ?? []).find((c: any) => c.es_vigente);
       if (vigente && !this.cicloId) {
@@ -220,7 +220,7 @@ export class CalendarioComponent implements OnInit, OnDestroy {
   }
 
   cargarPlanteles() {
-    this.api.get('/planteles').subscribe((r: any) =>
+    this.api.get('/planteles').pipe(takeUntil(this.destroy$)).subscribe((r: any) =>
       this.planteles.set(r.data ?? r ?? []));
   }
 
@@ -231,7 +231,7 @@ export class CalendarioComponent implements OnInit, OnDestroy {
     if (this.tipoFiltro)    url += `&tipo_evento=${this.tipoFiltro}`;
     if (this.plantelFiltro) url += `&plantel_id=${this.plantelFiltro}`;
 
-    this.api.get(url).subscribe({
+    this.api.get(url).pipe(takeUntil(this.destroy$)).subscribe({
       next: (r: any) => {
         const tipoLabels: Record<string, string> = {
           DIA_FESTIVO: 'Día festivo', VACACIONES: 'Vacaciones',
@@ -288,7 +288,7 @@ export class CalendarioComponent implements OnInit, OnDestroy {
       ? this.api.post('/calendario', payload)
       : this.api.patch(`/calendario/${this.eventoId}`, payload);
 
-    req.subscribe({
+    req.pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.guardando.set(false);
         this.notify.success(
@@ -304,7 +304,7 @@ export class CalendarioComponent implements OnInit, OnDestroy {
 
   eliminar() {
     if (!this.eventoId) return;
-    this.api.delete(`/calendario/${this.eventoId}`).subscribe({
+    this.api.delete(`/calendario/${this.eventoId}`).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.notify.success('Eliminado', this.form.nombre_evento);
         this.dialogVisible = false;

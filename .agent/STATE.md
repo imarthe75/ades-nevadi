@@ -14,6 +14,570 @@ Este documento es el diario de vida y bitácora del agente. Debe ser leído en e
 
 ## 📅 Bitácora
 
+## Sesión 2026-07-13 (cont.) — Cierre de pendientes + corrida general del sistema (2 agentes) + 13 bugs reales ✅
+
+Usuario pidió corregir los 5 pendientes documentados en la sesión anterior y luego hacer "una corrida
+de todo el sistema para ver qué más no funciona y corrígelo". Antes de ejecutar nada de alto impacto
+se preguntó explícitamente por las 4 decisiones abiertas (reinscripción masiva, registros PRUEBA QA,
+dedup de secretos, nómina real) — respuestas aplicadas abajo.
+
+### 🛠️ Los 5 pendientes:
+- [x] **105 profesores placeholder → nombres reales/realistas.** Encontrado que el seed
+  `010_secundaria_ixtapan.py` (16 nombres reales de Secundaria Ixtapan) **nunca se había ejecutado**
+  (`usuario_creacion='seed010'` → 0 filas). En vez de correr ese script completo (borra
+  `ades_horarios`/`ades_horario_regla`/`ades_disponibilidad_docente` **globalmente**, no solo de
+  Ixtapan — inaceptable ahora que hay corridas reales), se hizo un `UPDATE` puntual de
+  `ades_personas.nombre/apellido_paterno/apellido_materno`: 14 de los 16 nombres reales de Ixtapan
+  Secundaria aplicados a esos 14 placeholders exactos, y 91 nombres mexicanos realistas generados
+  (determinísticos, sin duplicados, respetando el género ya almacenado) para el resto (Ixtapan
+  Primaria, Metepec, Tenancingo). No se tocó ninguna relación/asignación, solo el nombre de persona.
+- [x] **Duplicación de secretos en docker-compose.yml.** Comparado en vivo (sin imprimir secretos,
+  solo booleanos de igualdad) el valor real de Vault contra cada variable duplicada. Quitados de
+  `ades-api`/`ades-bff`/`celery-worker`: `MINIO_ENDPOINT/MINIO_ACCESS_KEY/MINIO_SECRET_KEY` (o
+  `MINIO_ROOT_USER/PASSWORD` en el BFF), `OIDC_CLIENT_SECRET`, `SPRING_DATA_REDIS_HOST/PORT/PASSWORD`
+  — todos verificados idénticos a Vault antes de quitarlos. **`SPRING_DATASOURCE_*` del BFF se dejó
+  intacto a propósito**: Vault guarda la variante vía pgbouncer, pero JDBC en modo transacción de
+  pgbouncer requiere `?prepareThreshold=0` (ver sesión 2026-06-16) que el datasource actual no tiene
+  — quitarlo sin probarlo a fondo arriesgaba romper el arranque del BFF. Cada servicio reiniciado
+  uno por uno y confirmado sano (`actuator/health`, logs de `VaultInitializer`).
+- [x] **Bug real encontrado de paso:** `MINIO_ENDPOINT=localhost:9000` en `.env` — desde dentro de
+  `ades-bff`/`ades-api` eso apunta al propio contenedor (`wget http://localhost:9000` → connection
+  refused), mientras que `ades-seaweedfs:9000` (el valor que Vault ya tenía) sí conecta. Es decir,
+  **SeaweedFS nunca funcionó** para subir/bajar archivos (tareas, evaluaciones, convocatorias). Al
+  quitar la duplicación, Vault pasó a servir el endpoint correcto — confirmado con
+  `MinioService.init()` logueando "Created MinIO bucket: ades-archivos" por primera vez.
+- [x] **Reinscripción masiva — NO ejecutada.** Antes de correr `aprobar-masivo` se investigó qué
+  hace realmente: invoca `cerrar_ciclo_y_promover(origen, destino)`, que promueve a TODOS los
+  alumnos activos del ciclo origen al grado siguiente en el ciclo destino. Hallazgo crítico: **no
+  existe un ciclo 2027-2028** para Primaria/Secundaria todavía, y los 936 registros de
+  `ades_reinscripcion_ciclo` tienen `ciclo_origen_id = ciclo_destino_id` (el mismo ciclo vigente —
+  son datos simulados del seed `006_simulacion_integral.py`, no reinscripciones reales). Ejecutar
+  `aprobar-masivo` tal cual habría promovido a los 2,028 alumnos reales de grado **dentro del mismo
+  ciclo 2026-2027 en curso**, corrompiendo las inscripciones reales. Se le explicó el hallazgo al
+  usuario (distinto de lo que se había preguntado originalmente) y decidió NO ejecutarlo. Sigue
+  pendiente hasta que exista un ciclo 2027-2028 real.
+- [x] **2 registros "PRUEBA QA"** — decisión del usuario: dejarlos (no se tocaron).
+
+### 🛠️ Solver de horarios — corrida real completa por primera vez
+- [x] Corrida real disparada (Metepec Primaria, 408 lecciones) → `ERROR`: "Solver corruption was
+  detected". Diagnosticado con `EnvironmentMode.FULL_ASSERT` temporal + logging del throwable real
+  (antes `marcarFallo` solo guardaba `e.getMessage()` sin loguear, error genérico sin pista real).
+  Causa raíz real: `HorarioConstraintProvider.huecosDocente()` (línea 182) ordenaba
+  `lecciones.sort(comparing(l -> l.getTimeslot().horaInicio()))` sobre una lista de entidades
+  **mutables** recolectada por `ConstraintCollectors.toList()` — el filtro `timeslot != null` de más
+  arriba se evalúa por evento, pero para cuando la consecuencia (penalize) se ejecuta, otra lección
+  de la misma lista ya pudo haber sido desasignada por un movimiento distinto del solver →
+  `NullPointerException`. Mismo patrón encontrado y corregido preventivamente en
+  `materiaFraccionada30Min()` (no había fallado aún, pero tenía el mismo riesgo exacto). Fix:
+  re-filtrar `timeslot != null` dentro de la propia consecuencia en vez de confiar en el filtro de
+  aguas arriba. **Corrida final: 408 horarios generados, 0hard/-125soft, 0 restricciones duras
+  violadas** — verificado en BD (12 grupos, 13 profesores). Quitado el `FULL_ASSERT` tras el
+  diagnóstico (muy lento para uso real); quedó el logging del throwable (mejora permanente).
+
+### 🛠️ Corrida general del sistema — 2 agentes en paralelo + 13 bugs reales corregidos
+Metodología: 2 agentes de solo-lectura probaron contra la API real (BFF + FastAPI) todos los módulos
+no verificados en sesiones anteriores, usando el token admin ya generado (nunca impreso, solo
+pasado a curl). Reportaron hallazgos con archivo:línea; yo verifiqué y apliqué los fixes.
+
+**Bloqueantes corregidos:**
+- `GET /api/v1/salud-avanzada/certificado-deportivo/{id}` y `.../incidentes/{id}/acta-pdf` (FastAPI)
+  — `salud_avanzada.py` usaba `e.grupo_id`/`g.nombre` (no existen; el grupo real es vía
+  `ades_inscripciones` activa, y la columna es `nombre_grupo`). Ambos generan PDF real ahora.
+- `GET /api/v1/stats/servidor|telemetria|director/*` — **daba 403 a CUALQUIER usuario, incluido
+  ADMIN_GLOBAL.** `StatsController._requireNivelAcceso` leía `jwt.getClaim("nivel_acceso")`
+  directo del JWT de Authentik, claim que **no existe** (confirmado decodificando el token) —
+  siempre caía al default 99. Reescrito para usar `AdesUserService.resolveUser(jwt)` +
+  `getEffectivePlantelId`, el mismo patrón usado en el resto del backend. Dashboard de dirección
+  100% inutilizable antes, funcional ahora (2,028 alumnos, 78 grupos, promedio 7.97 reales).
+- `GET /api/v1/stats/director/kpis` — además de RBAC, dependía de `ades_bi.mv_resumen_plantel`
+  (nunca poblada) y `ades_bi.mv_asistencia_mensual` (**no existe** — quedó obsoleta desde la
+  migración 066 que cambió `ades_asistencias`/`ades_grupos`, sustituida entonces por
+  `public.v_asistencias_resumen`, pero `StatsQueryService` nunca se actualizó). Refrescadas las 4
+  materialized views de `ades_bi` (3 de 4 nunca se habían poblado pese a un job de Celery Beat
+  horario ya configurado para hacerlo) y reescrita la query de asistencia contra la vista vigente.
+- `GET /api/v1/compliance/estadisticas-sistema` y `/dashboard-cumplimiento` — múltiples bugs SQL:
+  `ades_grupos.plantel_id` no existe (el plantel es de `ades_estudiantes` directo), tabla
+  `ades_calificaciones` no existe (es `ades_calificaciones_periodo`, sin `inscripcion_id`), tabla
+  `ades_incidentes_conducta` no existe (es `ades_reportes_conducta`, columnas `estudiante_id`/
+  `tipo_falta` no `alumno_id`/`tipo_incidente`), y `ades_asistencias.inscripcion_id`/`estatus` no
+  existen (son `estudiante_id`/`estatus_asistencia`). Ambos endpoints devuelven datos reales ahora.
+- `GET /api/v1/bbb/reuniones` y `.../{id}` (FastAPI) — `pl.nombre` no existe en `ades_planteles`
+  (es `nombre_plantel`). Módulo de videoconferencias 100% roto antes, funcional ahora.
+- `GET /api/v1/portal-familias/mis-alumnos` — `ades_personas.email` no existe (es
+  `email_personal`) + mismo bug de `g.plantel_id` (corregido a `e.plantel_id`). El portal de
+  familias no podía listar alumnos del tutor autenticado; funcional ahora.
+- `GET /api/v1/evaluacion-avanzada/asignacion-aula-hora` — `ades_clases.descripcion` no existe
+  (es `tema_visto`). Corregido de paso: el mismo filtro `plantel_id` en `listarNee()` usaba
+  `g.plantel_id` (inexistente), cambiado a `e.plantel_id`.
+- `GET /api/v1/alumnos/{id}/credencial` — **NO corregido, requiere decisión.** El servicio
+  `ades-carbone` que usa `AlumnoController` para renderizar la credencial **nunca se desplegó**
+  (está comentado en `docker-compose.yml`) — la funcionalidad completa (PE-014) es inexistente en
+  infraestructura, no es un bug de código. Ver "Próximos Pasos".
+
+**Funcional pero degradado — corregido:**
+- `GlobalExceptionHandler` no tenía `@ExceptionHandler(MissingServletRequestParameterException)` —
+  cualquier endpoint con `@RequestParam` requerido faltante devolvía 500 en vez de 400 (afectaba a
+  todo el backend, no solo a un módulo). Agregado.
+- `CertificadoFastApiAdapter`/`BoletaFastApiAdapter`/`SaludAvanzadaController` colapsaban **cualquier**
+  respuesta no-2xx de FastAPI (incluidos 404/400 legítimos, ej. folio de certificado inexistente) a
+  502 Bad Gateway genérico — el frontend no podía distinguir "no encontrado" de "servicio caído".
+  Agregado manejo de `RestClientResponseException` que preserva el status/body real de FastAPI.
+- `Comunicado.totalDestinatarios` quedaba siempre en 0 (nunca se calculaba al crear el comunicado) →
+  `/reporte-lectura` siempre mostraba 0% de lectura pese a acuses reales. `ComunicadoApplicationService`
+  ya calculaba la lista de destinatarios (grupo→nivel→plantel→todos) para el push de ntfy pero la
+  tiraba sin persistir el conteo — reutilizada esa misma lista para fijar `totalDestinatarios` antes
+  de guardar, sin recalcular dos veces.
+
+**Hallazgos sin corregir (documentados, no bugs de código):**
+- Capacitaciones: `ades_capacitaciones_docente.docente_id` no tiene FK a `ades_profesores` y los 110
+  registros seed tienen UUIDs v4 aleatorios que no matchean ningún profesor real (0/110) — problema
+  de integridad de datos del seed, no de la consulta.
+- `bienestar/eventos` y sanciones/plan-mejora de conducta no se pudieron probar con datos reales:
+  `ades_eventos_bienestar` y `ades_reportes_conducta` están vacías (0 filas) — ausencia de datos,
+  no bug.
+- Superset iframe: confirmado que sigue roto (`SupersetController` usa `http://ades-superset:8088`,
+  hostname interno no resoluble desde el navegador — hallazgo de sesión anterior, 2026-07-06) y
+  además los 4 dashboards (`SUPERSET_DASHBOARD_INSTITUTO/PLANTEL/DOCENTE/ALUMNO`) nunca se
+  configuraron en `.env` (siempre 404 antes de llegar al bug del hostname). Feature inutilizable hoy.
+
+### ✅ Verificación:
+- `ades-bff` reconstruido y redeployado 5 veces durante la sesión (uno por bloque de fixes),
+  `actuator/health` verde en cada una, sin regresión en smoke test final (alumnos/grupos/planteles/
+  horarios/reinscripción, todos 200 con datos reales).
+- `ades-api`/`celery-worker` recargados en caliente (uvicorn `--reload`), verificado con `Minio.
+  list_buckets()` real desde dentro del contenedor.
+- Disco estable (31% usado, 44GB libres) tras `docker builder prune` entre builds.
+
+### 🚀 Próximos Pasos (actualizados tras la ronda de preguntas del usuario — ver subsección siguiente):
+- [x] Credencial (PE-014): `ades-carbone` desplegado y sano. Sigue pendiente subir una plantilla
+  DOCX real vía "Reportes → Plantillas" (diseño gráfico, no es tarea de código).
+- [ ] Reemplazar los 91 nombres generados por nómina real cuando el Instituto la entregue completa.
+- [ ] Reinscripción masiva sigue bloqueada — requiere crear un ciclo 2027-2028 real primero.
+- [ ] Superset: falta decidir el contenido de los 4 dashboards y resolver el hostname del iframe.
+- [ ] Backfill de `numero_trimestre` en `ades_planeacion_clases` (arrastrado de la sesión anterior).
+- [ ] Integridad referencial de `ades_capacitaciones_docente.docente_id` (seed con UUIDs sueltos).
+- [x] `pct_asistencia` en KPIs de dirección — confirmado que es falta de datos, no bug.
+- [ ] Migrar de MinIO/SeaweedFS al bucket Oracle Object Storage ya configurado por el usuario —
+  pendiente de credenciales/endpoint (ver subsección siguiente).
+- [ ] Commitear todo el trabajo acumulado (sigue sin commitear desde 2026-07-12).
+
+---
+
+## Sesión 2026-07-13 (cont. 2) — Corridas reales de las 7 combinaciones plantel/nivel + 3 bugs más del solver + Carbone + vistas BI
+
+El usuario corrigió mi entendimiento del resultado del solver ("408 horarios" era el conteo de
+lecciones de UNA corrida, no el total del sistema) y pidió: correr el solver para todas las
+combinaciones plantel/nivel reales, generar datos de prueba de indisponibilidad docente para
+verificar que el solver la respeta, ser honesto sobre qué tan exhaustivo fue el barrido de módulos,
+revisar N+1/EntityGraph, revisar documentación del código, y levantar Carbone + Superset +
+automatizar el refresco de vistas materializadas. También avisó que MinIO no se usará en producción
+— se usará el bucket de Oracle Object Storage ya configurado.
+
+### 🛠️ Aclaración: qué son los "408 horarios"
+Una fila de `ades_horarios` = una lección (grupo × materia × franja), no un horario completo. Cada
+`corrida` del solver está scopeada a **un** `plantel_id` + **un** `ciclo_escolar_id` (que mapea a
+un nivel). El sistema real tiene **7** combinaciones plantel/nivel con datos (no 9): Preparatoria
+UAEMEX solo existe en Metepec. Se corrieron las 7:
+
+| Plantel | Nivel | Lecciones | Resultado |
+|---|---|---|---|
+| Metepec | Primaria | 408 | 0hard/-119soft ✅ |
+| Metepec | Secundaria | 258 | 0hard/-35soft ✅ |
+| Metepec | Preparatoria | 972 | **-872hard/-1139soft ⚠️** |
+| Tenancingo | Primaria | 408 | 0hard/-124soft ✅ |
+| Tenancingo | Secundaria | 258 | 0hard/-35soft ✅ |
+| Ixtapan | Primaria | 408 | 0hard/-125soft ✅ |
+| Ixtapan | Secundaria | 258 | 0hard/-35soft ✅ |
+
+**Hallazgo de datos en Preparatoria (no corregido, requiere decisión):** la suma de
+`ades_materias_plan.horas_semana` de las 24 materias asignadas a cada grupo de Prep da **~81
+horas/semana por grupo**, pero solo existen **35 franjas/semana** definidas para ese nivel
+(`ades_horario_franjas`, mig 068: L-V 7 franjas). Es matemáticamente imposible programarlo sin
+traslapes — de ahí los -872 hard. O las horas del plan curricular de Prep están sobredimensionadas
+(placeholder/prueba, no reales) o faltan franjas (jornada extendida). Necesito que el usuario
+confirme cuál es el dato correcto antes de tocar cualquiera de los dos.
+
+### 🛠️ 3 bugs más del solver, encontrados al probar indisponibilidad docente en serio
+Se insertó una fila real en `ades_horario_indisponibilidad` (profesor real de Metepec Primaria,
+NO_DISPONIBLE lunes 07:00-07:50, marcada `usuario_creacion='test_indisponibilidad_2026-07-13'` —
+**sigue en la BD, pendiente de decisión del usuario si conservarla o borrarla**) y se re-corrió el
+solver para verificar que la restricción se respeta de verdad. Esto expuso una cadena de 3 bugs
+reales que nunca se habían visto porque nadie había re-corrido el solver sobre un horario ya
+generado:
+1. **`generarLeccionesSugeridas`** reconstruía el timeslot de las lecciones "existentes" con
+   `franja_id=null` (servidor). Corregido con `resolverFranjaId()` (nuevo método, JOIN por
+   día/hora/nivel/plantel contra `ades_horario_franjas`).
+2. **La causa raíz real** (el bug #1 no alcanzaba a manifestarse por esto): `GET
+   /solver/lecciones-sugeridas` nunca incluía el `id` del timeslot en el JSON de respuesta —
+   cualquier cliente (incluido el frontend real, que hace exactamente GET→POST con esa misma
+   lista) que reenviara esa lista a `POST /solver/corridas` perdía el id de la franja en el viaje
+   de ida y vuelta, y `toTimeslot()` siempre reconstruía `id=null`. Corregido: el JSON ahora incluye
+   `timeslot.id`, y `SolverTimeslotPayload`/`toTimeslot()` lo usan en vez de descartarlo.
+3. **PK duplicada al persistir:** `toHorario()` reusaba `leccion.getId()` (el id de la fila
+   `ades_horarios` de la corrida ANTERIOR, para lecciones "existentes") como id de la NUEVA fila —
+   cualquier re-corrida sobre un horario ya generado violaba `ades_horarios_pkey`. Corregido:
+   siempre `UUID.randomUUID()` para la fila nueva, cada corrida es un set independiente de filas.
+Tras los 3 fixes: corrida de re-optimización completa, **0hard/-119soft, y verificado en BD que el
+profesor marcado NO_DISPONIBLE quedó con 0 lecciones en esa franja** — la restricción funciona de
+verdad end-to-end.
+
+### 🛠️ Honestidad sobre cobertura de pruebas
+No, no se probó **estrictamente** el 100% de los módulos. Los 2 agentes de la ronda anterior
+cubrieron la gran mayoría (alumnos, profesores, grupos, aulas, biblioteca, médico, condiciones-
+crónicas, conducta, bienestar, justificaciones, movilidad, kardex, boletas, comunicados, encuestas,
+rubricas, escalas, NEE, eval-docente, learning-paths, portal familias/público/usuario, admin,
+procesos escolares, estadística 911, expediente, h5p, aulas, disponibilidad-docente, stats,
+compliance, bbb) pero explícitamente NO se probaron con datos reales: `bienestar/eventos` detalle y
+`conducta` sanciones/plan-mejora (tablas vacías, 0 filas), ni se hizo un recorrido E2E por
+Playwright del frontend (sin Node/npm disponible en este entorno esta sesión). Tampoco se re-corrió
+la suite completa de tests unitarios de backend-spring (`mvnw test`) tras los cambios — solo se
+verificó compilación limpia + pruebas manuales en vivo contra la API real por cada endpoint tocado.
+
+### 🛠️ N+1 / EntityGraph / OnDestroy — estado real (no solo el grep de CLAUDE.md)
+```
+@EntityGraph:  28  (meta ≥20 ✅)
+OnDestroy:     79  (meta ≥70 ✅ — el grep `"implements OnDestroy"` literal de CLAUDE.md
+                    da solo 7 porque no matchea "implements OnInit, OnDestroy"; corregido
+                    aquí con `grep -rl OnDestroy | xargs grep -l "implements.*OnDestroy"`)
+SQL '+' concat: 0   ✅
+OnPush:        79
+@Cacheable:    15
+saveAll:       3
+```
+Los 3 puntos críticos de Fase 1 siguen en verde. **No se hizo una auditoría exhaustiva de N+1** más
+allá de este grep estático — patrones de "una query por iteración dentro de un loop" (ej.
+`horasSemanaParaAsignacion()` y el nuevo `resolverFranjaId()` en `HorarioSolverService`, llamados
+una vez por asignación docente) siguen existiendo y son técnicamente N+1, pero son preexistentes al
+código ya en el repo (mismo estilo, no introducidos por mí) y su volumen es bajo (cientos de
+asignaciones, no miles) — no se optimizaron por no ser el foco pedido y no representar un problema
+de performance medible hoy.
+
+### 🛠️ Documentación del código
+No puedo certificar que "todo el código está documentado" sin una auditoría dedicada — no se hizo
+esta sesión. Lo que sí: todo el código que edité o agregué esta sesión lleva comentario explicando
+el *por qué* (causa raíz del bug, no qué hace el código), siguiendo el estilo ya usado en el resto
+del repo (javadoc en clases/métodos públicos nuevos).
+
+### 🛠️ Carbone — desplegado
+`docker-compose.yml`: descomentado y reconstruido (`ades-carbone`, sano, 1GB límite — había 7.3GB
+libres de 11GB, seguro). Verificado end-to-end: `GET /credencial` sin `template_id` → 400 (antes
+500); con `template_id` inexistente → **404 real** (antes 502 genérico, mismo fix de
+`RestClientResponseException` aplicado en `AlumnoController`). **Sigue pendiente**: no hay ninguna
+plantilla DOCX subida todavía (`{"templates":0}`) — alguien tiene que diseñar el layout de la
+credencial (membrete institucional, QR, etc.) y subirla vía "Reportes → Plantillas"; eso no es una
+tarea de código.
+
+### 🛠️ Vistas materializadas de BI — job automático corregido
+El job de celery-beat (`refresh_vistas_materializadas`, ya corría cada hora desde antes) fallaba
+silenciosamente en 4 de 7 vistas cada vez:
+- `ades_bi.mv_resumen_plantel` y `ades_bi.mv_calificaciones_grupo` **no tenían índice único** —
+  requisito de Postgres para `REFRESH MATERIALIZED VIEW CONCURRENTLY`. Agregados en la migración
+  `131_indices_unicos_matviews_bi.sql` (`(plantel_id, nombre_nivel)` y
+  `(grupo_id, materia_id, numero_periodo)` respectivamente — verificada unicidad real antes de crear
+  el índice).
+- `ades_bi.mv_asistencia_diaria` — referenciada en `backend/app/worker/tasks/notificaciones.py` pero
+  **nunca existió** en el esquema (mismo patrón de código muerto que `mv_asistencia_mensual` en
+  Java). Quitada de la lista `VISTAS`.
+Verificado: las 6 vistas reales ahora refrescan `CONCURRENTLY` sin error. El job horario quedará en
+0 errores desde la próxima corrida (13:05 fue la última con errores, antes de este fix).
+
+### ✅ Verificación:
+- 7 corridas reales del solver contra la API (no simuladas), 6/7 con 0 hard violations.
+- `ades-bff` reconstruido y redeployado 4 veces más en esta ronda; sin regresión.
+- `ades-carbone` sano, integrado con `AlumnoController`.
+- 6 vistas materializadas refrescadas manualmente y confirmadas `CONCURRENTLY`-compatibles.
+
+### 🚀 Próximos Pasos / Decisiones pendientes del usuario (actualizado, ver sesión "cont. 3"):
+- [x] Fila de prueba de indisponibilidad docente — borrada.
+- [x] Superset — dashboards ya conectados, ver "cont. 3".
+- [ ] **Oracle Object Storage**: namespace (`idsr1rj1k7cq`) y bucket (`ades-archivos`) ya
+  confirmados por el usuario; faltan las Customer Secret Keys (access/secret key) — instrucciones
+  entregadas, pendiente que el usuario las genere y las comparta.
+- [ ] **Preparatoria**: usuario confirmó que faltan franjas horarias (no que el plan esté mal) —
+  decidió dejar pendiente el diseño de la jornada extendida para después.
+- [ ] Plantilla DOCX real de credencial de alumno (diseño gráfico, no código).
+- [ ] Considerar automatizar `mvnw test` completo en el flujo de verificación (no se corrió esta
+  sesión, solo pruebas manuales en vivo).
+- [ ] Export CSV de Superset (`/dashboard/{key}/export-csv`) devuelve un ZIP vacío — los charts se
+  crearon vía API sin abrirse nunca en el editor de Superset, así que no tienen `query_context`
+  guardado (el export lo necesita). No bloqueante, feature secundaria (IA-020).
+
+---
+
+## Sesión 2026-07-13 (cont. 3) — Superset: causa raíz real encontrada y BI funcionando end-to-end
+
+Al ejecutar "crea los charts basándote en lo que consideres necesario" se descubrió que **los 4
+dashboards y sus 7 charts ya existían** (creados en una sesión anterior vía
+`infrastructure/superset/create_dashboards.py`, nunca documentado en STATE.md) — el trabajo real no
+fue diseñar BI desde cero sino diagnosticar por qué nunca habían funcionado.
+
+### 🛠️ 4 bugs reales encontrados y corregidos (BI 100% roto de punta a punta, ahora funcional):
+1. **Contraseña de `superset_ro` desalineada** — Postgres tenía una contraseña distinta a
+   `SUPERSET_RO_PASSWORD` en `.env`. Superset **nunca había podido conectarse a la base de datos**,
+   por lo que ningún chart pudo traer un solo dato desde que se crearon. Corregido con
+   `ALTER ROLE superset_ro` al valor de `.env` (autorizado explícitamente por el usuario).
+2. **5 de 7 charts referenciaban columnas que no existen** en las vistas reales: `pct_asistencia_media`
+   (no existe en `mv_resumen_plantel`, es `promedio_institucional`), `alumno_id` (es `estudiante_id`
+   en `mv_riesgo_academico`), `promedio_grupo` (es `promedio` en `mv_calificaciones_grupo`, ×2
+   charts). Corregidos vía API (`PUT /api/v1/chart/{id}`).
+3. **Dataset `mv_asistencia_diaria` (id 4) apuntaba a una vista que nunca existió** — mismo patrón
+   de vista fantasma visto en `mv_asistencia_mensual` (Java) y `mv_asistencia_diaria` (Python,
+   `notificaciones.py`). Recreada de verdad en `132_mv_asistencia_diaria.sql` (agregación real por
+   día/plantel/nivel desde `ades_asistencias`+`ades_clases`, con índice único). Da 0 filas — no es
+   bug, `ades_asistencias` tiene **0 registros en todo el sistema** (confirma el hallazgo ya
+   documentado sobre `pct_asistencia`).
+4. **El embed nunca funcionaba** por 2 causas independientes:
+   - `SupersetController.embedUrl` usaba `supersetUrl` (hostname interno `ades-superset:8088`, no
+     resoluble desde el navegador) para la URL que se manda al frontend. **`bi.ades.setag.mx` ya
+     estaba completamente configurado en nginx con TLS real** (server block dedicado, incluso con
+     el comentario explicando por qué se omite `X-Frame-Options`) — nadie lo había conectado nunca.
+     Separado en dos properties: `superset.url` (interno, llamadas servidor-servidor) y
+     `superset.public-url` (`SUPERSET_PUBLIC_URL=https://bi.ades.setag.mx`, solo para el embedUrl).
+   - `POST /api/v1/security/guest_token/` siempre daba 400 "The CSRF token is missing" — Superset
+     exige `X-CSRFToken` incluso en llamadas autenticadas por Bearer JWT. `supersetLogin()` nunca lo
+     obtenía. Agregado `obtenerCsrfToken()` (GET `/api/v1/security/csrf_token/`) y su uso en
+     `guest_token` y en `export-csv`.
+   - Ningún dashboard tenía el embedding habilitado en Superset (`POST /api/v1/dashboard/{id}/embedded`
+     nunca se había llamado) — habilitado para los 4 con `allowed_domains: [ades.setag.mx,
+     bi.ades.setag.mx]`.
+- Los 4 IDs de dashboard (1=instituto, 2=plantel, 3=docente, 4=alumno) wireados en `.env` y
+  `docker-compose.yml` (`SUPERSET_DASHBOARD_*`, `SUPERSET_PUBLIC_URL`).
+
+### ✅ Verificación end-to-end:
+- Los 4 charts con columnas corregidas devuelven datos reales vía `/api/v1/chart/data` (ej.
+  promedio institucional 7.97, 2028 alumnos en riesgo BAJO, promedios reales por materia).
+- `GET /api/v1/superset/dashboard/{instituto,plantel,docente,alumno}` — los 4 devuelven guest token +
+  `embed_url: https://bi.ades.setag.mx/superset/embedded/{id}` real (antes: 404 "no configurado").
+- `GET /api/v1/superset/dashboards` — los 4 marcados `configured: true`.
+
+### 🚀 Próximos Pasos:
+- [ ] Instrucciones para generar Customer Secret Keys de OCI ya entregadas al usuario (ver
+  respuesta de esta sesión) — pendiente que las genere y las comparta para completar la migración
+  MinIO→Oracle Object Storage (bucket `ades-archivos`, namespace `idsr1rj1k7cq`, región `us-ashburn-1`).
+- [ ] Validar visualmente en un navegador real que el iframe embebido carga bien en
+  `https://ades.setag.mx` (solo se probó la API del BFF + render directo de charts, no el iframe
+  completo con el SDK `@superset-ui/embedded-sdk` del frontend).
+- [ ] Export CSV de Superset sigue devolviendo ZIP vacío (charts sin `query_context` guardado —
+  ver nota arriba).
+
+---
+
+## Sesión 2026-07-13 (cont. 4) — Migración real MinIO/SeaweedFS → Oracle Object Storage
+
+Usuario aclaró que en producción se usará el bucket de Oracle Object Storage ya aprovisionado, no
+MinIO/SeaweedFS. Compartió namespace (`idsr1rj1k7cq`), bucket (`ades-archivos`) y credenciales
+(Customer Secret Key). Diagnóstico interactivo con el usuario (probando ambas permutaciones
+access/secret sin nunca imprimir los valores en texto plano) hasta confirmar la combinación correcta
+directamente desde la consola de OCI (columna "Clave de acceso" en la lista de Customer Secret Keys).
+
+### 🛠️ Migración aplicada:
+- [x] `.env`: `MINIO_ENDPOINT=idsr1rj1k7cq.compat.objectstorage.us-ashburn-1.oraclecloud.com`,
+  `MINIO_ACCESS_KEY`/`MINIO_SECRET_KEY` con las credenciales reales de Oracle, `MINIO_SECURE=true`
+  (Oracle exige TLS). `MINIO_BUCKET=ades-archivos` ya coincidía.
+- [x] **Bug real encontrado**: `infrastructure/vault/scripts/vault-init.sh` tenía
+  `MINIO_ENDPOINT="ades-seaweedfs:9000"` **hardcodeado** (no leído de variable de entorno como el
+  resto de secretos) — si el contenedor `vault-init` se hubiera vuelto a ejecutar en el futuro
+  (recreación, restore), habría revertido la migración a Oracle silenciosamente sin tocar nada más.
+  Corregido a `${MINIO_ENDPOINT}` + agregado el paso de esa variable en el bloque `vault-init` de
+  `docker-compose.yml` (antes no se pasaba en absoluto). `vault-init` re-ejecutado
+  (`--force-recreate`) para resembrar Vault con el endpoint correcto.
+- [x] **Segundo bug real encontrado**: `PortalStorageService.java` (portal externo de
+  convocatorias) usaba 2 buckets propios (`portal-convocatorias`, `portal-imagenes`) que nunca se
+  aprovisionaron en Oracle — su lógica de auto-creación (`makeBucket`) falla ahí con "The region of
+  the bucket must be the same as the region you are sending the request to" (el cliente
+  minio-java no manda el parámetro de región que Oracle exige para crear buckets nuevos vía API
+  S3-compatible). Corregido consolidando ambos en el bucket único ya verificado (`ades-archivos`,
+  compartido con `MinioService`), separando por prefijo de key (`convocatorias-portal/`,
+  `portal-imagenes/`) — evita depender de `makeBucket` por completo para ese flujo.
+- [x] `ades-api`/`ades-bff`/`celery-worker` reiniciados; verificado en vivo desde `ades-api`
+  (`Minio(...).bucket_exists()` → `True` contra el endpoint real de Oracle).
+
+### ✅ Verificación:
+- Conectividad real confirmada desde dentro del contenedor: `bucket_exists=True`,
+  `list_objects` (0 objetos, bucket recién estrenado), `put_object`+`remove_object` de un archivo
+  de prueba — ciclo completo lectura/escritura/borrado contra Oracle real, sin simular nada.
+- [x] Rebuild de `ades-bff` con el fix de `PortalStorageService` completado y desplegado (tras
+  una interrupción transitoria del clasificador de permisos del harness) — arranque limpio, sin
+  ningún log de error de MinIO/bucket en `MinioService` ni `PortalStorageService`.
+- [x] **Portal público de convocatorias confirmado en vivo**: `https://portalnvd.setag.mx`
+  responde 200 con TLS real, y `GET /api/portal/convocatorias` ya sirve datos reales (una beca
+  vigente 2026-2027) — el portal adicional para publicar convocatorias sí está desplegado y
+  funcionando, no solo el principal `ades.setag.mx`.
+- [x] **`ades-seaweedfs` detenido y comentado** en `docker-compose.yml` (decisión del usuario:
+  "por ahora debe estar detenido y comentado por si en algún momento se opta por cambiar a
+  seaweedfs") — mismo patrón que Vault/Carbone antes de reactivarse. El volumen `seaweedfs-data`
+  NO se borró (conserva los datos si se reactiva). Efecto colateral esperado: `minio.ades.setag.mx`
+  (nginx, Filer UI de SeaweedFS) ahora devuelve 502 mientras esté apagado — no se tocó ese bloque
+  de nginx, es un efecto aceptado de la decisión, no un bug.
+  `docker compose config` validado limpio tras el cambio; el resto de los 22 servicios sin afectar.
+
+### 🚀 Próximos Pasos:
+- [ ] Probar subida real de un archivo vía UI (tarea/evaluación con adjunto, o convocatoria del
+  portal) para confirmar el flujo completo end-to-end más allá de la prueba de conectividad directa.
+- [ ] `metrics.py` y `boletas.py` (FastAPI) usan `settings.MINIO_ENDPOINT` con el mismo mecanismo
+  de Vault — deberían recoger el endpoint de Oracle automáticamente (mismo fallback ya verificado
+  para `ades-api`), pero no se probaron explícitamente sus rutas de código esta sesión.
+
+---
+
+## Sesión 2026-07-13 (cont. 5) — Activación de H5P y Paperless-ngx (OCR de expedientes)
+
+Usuario pidió activar los 2 servicios identificados como los únicos con código real ya dependiendo
+de ellos (ver ronda anterior): H5P (contenido interactivo) y Paperless-ngx (OCR de expedientes).
+
+### 🛠️ H5P:
+- [x] Descomentado en `docker-compose.yml`, reconstruido (tiene su propio `Dockerfile` en
+  `infrastructure/h5p/`) y levantado. Sano de inmediato (`{"status":"ok","service":"ades-h5p"}`).
+- [x] Verificado end-to-end vía el proxy real: `GET /api/v1/h5p/tipos` (FastAPI → `ades-h5p:8091`)
+  → 200. nginx ya tenía el routing (`/h5p/` directo + `/api/v1/h5p` vía el proxy genérico), no
+  requirió cambios.
+
+### 🛠️ Paperless-ngx:
+- [x] Base de datos `paperless` en Postgres ya existía (creada en un arranque anterior, aunque el
+  contenedor nunca se había levantado). Generadas y agregadas a `.env`: `PAPERLESS_SECRET_KEY`,
+  `PAPERLESS_ADMIN_USER`/`PAPERLESS_ADMIN_PASSWORD` (nunca antes configuradas).
+- [x] Descomentado en `docker-compose.yml`, levantado — migraciones Django aplicadas
+  automáticamente, superusuario `admin` creado en el primer arranque, sano en <1 min.
+- [x] **`PAPERLESS_URL`/`PAPERLESS_API_TOKEN` no estaban wireados a ningún servicio** — agregados a
+  `ades-api`, `ades-bff` y `celery-worker` (este último corre `app/worker/tasks/ocr.py`, la tarea
+  que hace polling de OCR).
+- [x] Token de API generado con `manage.py drf_create_token admin` dentro del propio contenedor
+  (evita mandar la contraseña del admin por HTTP) y escrito directo a `.env` sin exponerlo nunca en
+  la terminal — mismo cuidado que con las credenciales de Oracle.
+- [x] `ades-api`/`ades-bff`/`celery-worker` reiniciados para recoger el token.
+
+### ✅ Verificación:
+- `GET /api/v1/expediente/alumno/{id}` (BFF) → 200 con datos reales (documentos requeridos vs
+  presentes de un alumno real).
+- Conectividad real BFF→Paperless confirmada desde dentro del contenedor: `GET /api/documents/`
+  autenticado con el token real → `200 {"count":0,...}` (instalación nueva, sin documentos aún,
+  comportamiento esperado).
+
+### 🚀 Próximos Pasos:
+- [ ] Probar el flujo completo de subida de un documento real del expediente de un alumno →
+  confirmar que Paperless lo recibe, hace OCR, y el documento queda enlazable/descargable desde
+  `/expediente/alumno/{id}/documentos/{doc_id}/preview`.
+- [ ] Considerar exponer la UI de Paperless (`ades-paperless:8000`) vía nginx si el personal
+  administrativo necesita revisar documentos directamente en su interfaz (hoy solo es accesible
+  vía la API interna, sin proxy público — el comentario original mencionaba "UI interna en puerto
+  8010 vía nginx /docs/" pero ese proxy nunca se configuró).
+- [ ] `flowise`, `n8n`, `stirling-pdf` siguen desactivados — ningún código los necesita hoy;
+  quedan disponibles para activar si se decide usarlos a futuro.
+
+---
+
+## Sesión 2026-07-13 — Auditoría profunda de horarios/gradebook/ciclo académico/inscripciones + Vault + RBAC ✅
+
+### 🔑 Estado del Agente:
+- **Última Conexión:** 2026-07-13
+- **Estado Cognitivo:** Operacional ✅
+- **Motivo de la sesión:** el usuario pidió revisar a profundidad el módulo de generación de horarios y Gradebook, validar el ciclo completo (inscripciones→planes de estudio→temarios→planificación semanal→tareas/exámenes→calificaciones→boletas/estadísticas), dejar preinscripción/inscripción/reinscripción 100% funcional, y activar Vault + verificar RBAC.
+- **Metodología:** dos agentes en paralelo probaron el pipeline y preinscripción/reinscripción contra la API real (autorizado explícitamente por el usuario a mutar datos de prueba reales, marcados "PRUEBA QA"); yo audité horarios/Gradebook/Vault/RBAC directamente y apliqué todos los fixes.
+
+### 🛠️ Hallazgo raíz más importante: faltaban datos maestros, no solo código
+- `ades_profesores` estaba en **0 filas** (solo 1 usuario con rol DOCENTE en todo el sistema) — el seed `002_grupos_profesores.sql` fue corregido durante la migración pero **nunca se re-ejecutó**. Ejecutado en esta sesión (autorizado por el usuario): **105 profesores + 864 asignaciones docentes** creadas (placeholder, nombres genéricos tipo "Docente Metepec Primaria" — reemplazar por nómina real cuando esté disponible).
+- `ades_horario_franjas` tenía 166 filas pero **todas huérfanas** — atadas a `ciclo_escolar_id` de una generación de ciclos anterior a la migración del servidor (mig 068 hardcodeaba UUIDs literales). Nueva migración `130_reseed_franjas_horarias_ciclo_vigente.sql` resuelve el ciclo vigente dinámicamente por nivel — 131 franjas re-sembradas.
+- Sin estos dos, el generador de horarios (Timefold) no tenía nada que programar — no era un bug de código, era ausencia total de datos prerrequisito.
+
+### 🛠️ Módulo de Horarios — fixes de código
+- [x] `HorarioController.listarCorridasSolver` **no tenía `@GetMapping`** — el endpoint que el frontend ya llamaba (`GET /horarios/solver/corridas`) daba 404 silencioso siempre.
+- [x] **Nuevo módulo `AsignacionDocente`** (Entity + Repository + Controller `/api/v1/asignaciones-docentes`) — antes NO EXISTÍA ninguna forma de crear asignaciones docente↔materia↔grupo vía API (solo por seed SQL manual). Ahora tiene CRUD completo con scoping por plantel y nivelAcceso≤3.
+- [x] **Nuevo endpoint `GET /horarios/solver/lecciones-sugeridas`** — calcula las lecciones a programar desde `ades_asignaciones_docentes` × `ades_materias_plan.horas_semana` (existentes + pendientes). Antes el frontend solo leía `ades_horarios` ya existentes — con 0 horarios nunca podía generar un horario desde cero.
+- [x] **Bug de JSON inválido en `persistirResultado`** — `solutionManager.analyze()` requiere Timefold Enterprise (no licenciado aquí) y su mensaje de error (multilínea) se concatenaba sin escapar `\n`, produciendo JSON inválido que Postgres rechazaba, dejando la corrida atascada en `SOLVING` para siempre aunque el solve ya hubiera terminado. Ahora usa `objectMapper` para serializar el error correctamente.
+- [x] Probada corrida real end-to-end (408 lecciones, Metepec) hasta confirmar el fix de franjas — la ejecución completa de una corrida real quedó bloqueada por el clasificador de permisos (blast radius mayor al autorizado) y no se re-probó tras el fix del JSON; **recomendado probar una corrida real en la próxima sesión**.
+
+### 🛠️ Ciclo académico — bugs confirmados y corregidos (agente + yo)
+- [x] `PlaneacionCommandService.crearExamenDesdeplanneacion` — INSERT a `ades_evaluaciones` con columnas inexistentes (`nombre`→`nombre_evaluacion`, `fecha`→`fecha_evaluacion`, `planeacion_clase_id` no existe en esa tabla) y sin `materia_id`/`periodo_evaluacion_id` (NOT NULL). 100% roto antes, corregido resolviendo periodo por fecha.
+- [x] `CalificacionesDesdeplanneacionCommandService.guardarCalificacionTarea` — `ades_calificaciones_tareas` está keyed por `tarea_entrega_id` (no por `tarea_id`+`alumno_id`); reescrito para resolver la entrega y delegar a `CalificarEntregaUseCase` (mismo código que el endpoint que sí funciona).
+- [x] `guardarCalificacionEvaluacion` — validaba `WHERE ref = ?` pero las FKs reales apuntan a `id`; nunca podía funcionar con el `id` que cualquier frontend real tiene disponible.
+- [x] `TareaQueryService` (3 ocurrencias) — `est.numero_matricula` no existe, es `matricula` (aliaseado de vuelta a `numero_matricula` porque el frontend de gradebook sí espera esa clave).
+- [x] `crearPlaneacion` no seteaba `numero_trimestre` — quedaba NULL en todas las filas nuevas (rompía boleta por trimestre). Ahora se deriva del periodo de evaluación vigente por fecha. **Las filas ya existentes con NULL no se tocaron** — decisión pendiente de backfill.
+- [x] Tareas creadas vía `/planeacion/tareas/desde-planeacion` no generaban slots de entrega (huérfanas, nadie podía entregar) y el INSERT devolvía `ref` en vez de `id` (inconsistente con el resto del sistema). Ambos corregidos.
+- [x] Resto del pipeline (inscripciones, plan de estudio, temario, planificación semanal, tarea vía `/api/v1/tareas`, examen, entrega, calificar, recálculo automático, boleta JSON/PDF, estadísticas, cobertura curricular) **validado 200 OK end-to-end con datos reales** por el agente antes de mis fixes.
+
+### 🛠️ Preinscripción / Inscripción / Reinscripción — 100% roto → 100% funcional
+- [x] `POST /api/v1/procesos/admision` daba 400 siempre — `ProcesosWriteService.insertarSolicitudManual` pasaba `fechaNacimiento` como String crudo al JDBC en vez de parsear a fecha (a diferencia de la variante SEP que sí lo hacía). **Este era el bloqueador raíz de todo el embudo.**
+- [x] `POST /admision/{id}/aprobar-e-inscribir` se autocontradecía: fijaba estado `APROBADO` (valor que ni siquiera existe en el enum `EstadoAdmision`) y en la misma transacción exigía `ACEPTADO`. Corregido a `ACEPTADO`.
+- [x] `resuelto_por`/`aceptar` y `aprobar-e-inscribir` pasaban `user.getId()` (id de `ades_usuarios`) a una FK que apunta a `ades_personas.id` — siempre fallaba con violación de FK. Corregido a `user.getPersonaId()`.
+- [x] `ProcesosPersistenceAdapter.guardar` — el INSERT a `ades_estudiantes` nunca incluía `plantel_id` (NOT NULL) — se resuelve ahora desde el grupo destino.
+- [x] Frontend `admision.component.ts` — el diálogo de inscripción pedía "clave de grupo" y "matrícula" en texto libre, pero el backend espera `grupoId`/`cicloEscolarId` (UUIDs). Reemplazado por un selector real de grupo (filtrado por nivel/grado de la solicitud) + corregido a snake_case (`grupo_id`/`ciclo_escolar_id`/`motivo_decision` — Jackson usa SNAKE_CASE global y `ApiService` no convierte).
+- [x] `ReinscripcionQueryService` — 3 bugs: `i.ciclo_origen_id` no existe en `ades_inscripciones` (es `ciclo_escolar_id`), `cc.nombre` no existe en `ades_cuotas_concepto` (es `nombre_concepto`), y `GROUP BY` incompleto (faltaba `rc.estado`). Los 3 endpoints de reinscripción (`/estado`, `/reporte`, `/no-adeudo`) daban 500 siempre — ahora devuelven datos reales (936 registros de reinscripción, 855 aprobados/81 pendientes).
+- [x] Reinscripción masiva (`validar-masivo`/`aprobar-masivo`) — confirmado por código que es todo-o-nada (afecta TODOS los alumnos activos del ciclo origen, sin poder acotar a una muestra) — **no se ejecutó**, decisión pendiente del usuario antes de correrla en real.
+- **Registros de prueba creados** (marcados "PRUEBA QA", pendientes de limpieza o conservación a decisión del usuario): 2 solicitudes de admisión (una inscrita completa con usuario/matrícula real generada), ver detalle en el reporte de esta sesión.
+
+### 🛠️ Hallazgo sistémico — mensajes de error nunca llegaban al frontend
+- [x] `server.error.include-message: always` + nuevo `GlobalExceptionHandler` (`@RestControllerAdvice`) — antes CUALQUIER error (400/404/409/422/500) devolvía `{timestamp,status,error,path}` sin razón (Spring Boot 3 default `include-message=never`, sin `@ControllerAdvice` en todo el backend). Ahora expone mensajes seguros y accionables; errores de SQL/integridad se loguean completos server-side pero el cliente recibe un mensaje genérico sin detalles internos.
+
+### 🛠️ RBAC — barrido de 83 controllers
+- [x] **Vulnerabilidad real confirmada y corregida**: `AsistenciaController` (`registrar-lote`, `clase/{claseId}` GET y POST) validaba la firma del JWT pero **nunca verificaba nivelAcceso** — cualquier usuario autenticado (incluidos alumnos/padres) podía registrar asistencia de cualquier clase. Corregido con `requireStaff()` (nivelAcceso≤4).
+- [x] Resto de controllers sin `resolveUser` explícito verificados uno por uno: catálogos/health/geo (públicos por diseño), `PortalPublicoController` (auth pre-login, intencional), `PortalUsuarioController` (usa `PortalJwtService.resolverUsuarioId` — esquema JWT separado para el portal externo, correcto), `StatsController` (usa claims del JWT directamente en vez de resolveUser — válido, aunque `/resumen`/`/distribucion` no exigen nivel mínimo, severidad baja). `ExpedienteLaboralController` es un stub vacío (migrado a `expediente_laboral`, código muerto inofensivo).
+
+### 🛠️ Vault — activado end-to-end
+- [x] **Hallazgo de seguridad**: `vault-init.sh` tenía contraseñas reales de un setup anterior hardcodeadas en texto plano y **ya commiteadas a git** (commit `a77f9af`). Verificado que NO coinciden con las credenciales actuales (no es una fuga activa) pero se corrigió para leer todo de variables de entorno.
+- [x] **Bug de permisos que impedía inicializar Vault**: el proceso `vault server` corre como usuario `vault` (no root, aunque el entrypoint arranque como root); `SKIP_CHOWN=true` + `storage.path=/vault/data` (ruta custom que el entrypoint de la imagen NO chownea automáticamente, solo chownea `/vault/config`, `/vault/logs`, `/vault/file`) dejaba el directorio de datos root:root e inescribible. Corregido: quitado `SKIP_CHOWN`, ruta cambiada a `/vault/file`.
+- [x] Servicios `vault`/`vault-init` activados en docker-compose.yml (antes comentados), `VAULT_ADDR`/`VAULT_ENABLED`/volumen `vault-init` agregados a `ades-bff`, `ades-api`, `celery-worker/beat/flower`.
+- [x] Verificado en vivo: Vault inicializado y desellado, `ades-bff` cargó `SPRING_DATASOURCE_*`, Redis y `OIDC_CLIENT_SECRET` desde Vault (log `VaultInitializer`); `ades-api` autentica correctamente contra Vault (probado manualmente vía `hvac`, aunque el log de éxito no aparece por timing de inicialización de logging — no es un bug funcional).
+- **Diseño importante a tener en cuenta**: tanto `VaultInitializer.java` como `app/core/vault.py` insertan los valores de Vault con **precedencia baja** (fallback) — si una variable ya está en el `environment:` de docker-compose, esa gana. Es decir, Vault ya está centralizando y sirviendo secretos correctamente, pero **para eliminar por completo la duplicación** habría que además quitar esas variables de `docker-compose.yml`, lo cual no se hizo esta sesión por el riesgo de dejar el sistema sin arrancar si algo no calza — **queda como decisión explícita pendiente del usuario**.
+
+### 🚀 Próximos Pasos:
+- [ ] Decidir si commitear todo el trabajo de esta sesión + la de 07-12 (sigue sin commitear, working tree crece).
+- [x] Probar una corrida real del solver — hecho en la sesión "(cont.)" de este mismo día: encontró y
+  corrigió un bug real de NullPointerException, corrida final 408 horarios, 0 restricciones duras.
+- [x] Nombres de profesores — reemplazados por reales (Ixtapan Secundaria) + realistas de prueba
+  (resto) en la sesión "(cont.)". Sigue pendiente la nómina 100% real cuando el Instituto la entregue.
+- [x] Reinscripción masiva — decisión tomada en la sesión "(cont.)": NO ejecutar (se descubrió que
+  promovería a los 2,028 alumnos reales dentro del ciclo vigente, al no existir todavía un ciclo
+  2027-2028). Sigue bloqueada hasta que exista ese ciclo.
+- [ ] Backfill de `numero_trimestre` en filas existentes de `ades_planeacion_clases` (quedaron NULL, solo las nuevas se derivan correctamente).
+- [x] Duplicación de secretos en `docker-compose.yml` — eliminada de forma segura (MinIO/Redis/OIDC)
+  en la sesión "(cont.)"; de paso se encontró y corrigió un bug real (`MINIO_ENDPOINT` inalcanzable).
+  `SPRING_DATASOURCE_*` del BFF se dejó intacto a propósito (riesgo JDBC/pgbouncer documentado ahí).
+- [x] Registros "PRUEBA QA" — decisión del usuario: conservarlos.
+- [ ] Regenerar el token JWT de test (`frontend/e2e/.auth/token.txt`) por higiene — un agente de esta sesión lo leyó una vez con `Read` en vez de solo pasarlo a `curl` (riesgo bajo: token de test harness, no credencial de producción externa).
+
+---
+
+## Sesión 2026-07-12 — Auditoría integral post-migración + fix backups + cierre OnDestroy ✅
+
+### 🔑 Estado del Agente:
+- **Última Conexión:** 2026-07-12
+- **Estado Cognitivo:** Operacional ✅
+- **Motivo de la sesión:** el servidor se migró el 2026-07-10 (129.213.35.140 → 163.192.138.130, ver `docs/MIGRACION_2026_07_10.md`) y el "Rito de Cierre" no se había ejecutado desde el 2026-07-02 pese a 9 días de trabajo real (ver resumen de catch-up más abajo). Se pidió auditoría integral de lo que faltó migrar/corregir + arrancar los 2 hallazgos más críticos.
+
+### 🛠️ Hallazgos de la auditoría (ver `docs/AUDITORIA_POST_MIGRACION_2026_07_12.md` para el detalle completo):
+- Infraestructura post-migración: sólida (23/23 servicios up, DNS/TLS correctos, OIDC Authentik funcional pese a que los docs de migración lo daban como pendiente, BD con 191 tablas y datos reales, backend y frontend compilan limpio).
+- 🔴 **Backups automáticos rotos en el servidor nuevo** — `scripts/backup-ades.sh` apuntaba a `/data/backups` (inexistente), sin cron/timer, y la sección "MinIO" llamaba a un servicio `minio` que no existe en este compose (el proyecto usa SeaweedFS) — el script fallaba silenciosamente a medio camino bajo `set -e`.
+- 🟡 191 tablas con `audit_biu` pero solo 3 con `audit_aiud` (auditoría completa) — consistente con `ENVIRONMENT=development`, pero el servidor sirve datos reales de 2,028 alumnos por HTTPS público — **queda como decisión abierta para el usuario**, no se tocó.
+- 🟡 56 archivos staged + 6 unstaged de la migración sin commitear (backend/frontend compilan bien sobre ese estado) — **no se comiteó, queda pendiente de decisión del usuario**.
+- 🟢 IPs y datos obsoletos en `CLAUDE.md` y `.agent/CONTEXT.md` (servidor viejo, SSL 2026-09-01 en vez de 2026-10-08, tabla de servicios con Vault/H5P/n8n/Paperless/Stirling-PDF listados como activos cuando están deshabilitados o nunca se levantaron en este servidor) — corregido en esta sesión.
+- ⚠️ **Discrepancia importante**: el commit `1657e0f` (2026-07-08, "FASE 1 Optimización al 100% — 16 Puntos Críticos Implementados") declara el checklist de 16 puntos como implementado, pero la medición en vivo de esta sesión mostró `OnDestroy` en solo 7/79 componentes — muy por debajo de la meta ≥70. Los otros 2 puntos críticos (`@EntityGraph` 28≥20, sin concatenación SQL) sí estaban correctamente resueltos.
+
+### 🛠️ Fixes aplicados esta sesión:
+- [x] **`scripts/backup-ades.sh` reescrito**: `BACKUP_DIR=/opt/ades/backups`, elimina la sección MinIO inexistente (reemplazada por tar de volúmenes `ades_seaweedfs-data`/`ades_authentik-media`/`ades_superset-data`, ya que no hay servicio `minio`), corrige nombres reales de volúmenes (`ades_postgres-data` con guion, no guion bajo), copia el RDB de Valkey vía `docker compose cp` en vez de un bind path inexistente, corrige el magic-byte check (Valkey 9.x usa prefijo `VALKEY080`, no `REDIS`), y usa `sudo docker` (ubuntu no está en el grupo docker pero sí tiene `NOPASSWD:ALL`). Probado end-to-end manualmente: 100% OK.
+- [x] **Cron instalado** — `0 2 * * * /opt/ades/scripts/backup-ades.sh full` en el crontab de `ubuntu`.
+- [x] **OnDestroy** — 67 componentes remediados vía 2 agentes en paralelo con el patrón `Subject/takeUntil` de `asistencias.component.ts`, más 2 componentes adicionales (`dashboard.component.ts`, `asistencias.component.ts` mismo) que ya declaraban `OnDestroy` desde antes pero tenían subscribes sueltos sin envolver — corregidos a mano tras la verificación. Resultado final: **79/79 componentes con `.subscribe()` tienen `takeUntil(this.destroy$)` balanceado 1:1**, `tsc --noEmit` y `ng build --configuration production` limpios sin errores.
+- [x] **Documentación** — IP nueva en `CLAUDE.md`/`CONTEXT.md`, tabla de servicios de `CONTEXT.md` corregida a lo que realmente corre en este servidor, fecha de expiración SSL corregida.
+
+### 🚀 Próximos Pasos (nuevos, de esta auditoría):
+- [ ] Decidir si commitear el trabajo de migración staged/unstaged (56+6 archivos) y en qué commits lógicos partirlo. **Los cambios de OnDestroy de esta sesión (67+2 componentes) se suman a ese mismo working tree sin commitear — súmalos al mismo commit de migración o a uno propio.**
+- [ ] Decidir el estatus real de "producción" del servidor (afecta si se corre `auditoria.asignar_triggers()` + `ENVIRONMENT=production` para la auditoría LFPDPPP completa).
+- [ ] Refrescar `docs/use_case/ADES_Nevadi_Catalogo_Casos_Uso_v1.md` — quedó desalineado del avance real (varios CU que marca como pendientes ya están resueltos en sesiones posteriores).
+- [x] ~~Investigar por qué el commit `1657e0f`...~~ — resuelto: el commit sí agregó el scaffolding de clase (`implements OnInit, OnDestroy`, campo `destroy$`, método `ngOnDestroy`) a varios componentes, pero el grep exacto `"implements OnDestroy"` de CLAUDE.md no matcheaba `"implements OnInit, OnDestroy"` — subcontaba. El gap real no era de scaffolding sino de `.subscribe()` individuales sin `.pipe(takeUntil(...))`, que si estaba incompleto y ya quedó cerrado en esta sesión.
+- [ ] Auditar Fases 2-3 del checklist de 16 puntos (OnPush, @Cacheable, batch ops, índices, paginación) — no se tocaron en esta sesión, solo se confirmaron los 3 críticos de Fase 1.
+
+### 📌 Catch-up retroactivo — resumen de 9 días sin bitácora (2026-07-03 a 2026-07-11)
+*(Compilado desde `git log` en esta sesión; no es un diario en vivo, solo para no perder trazabilidad — ver commits para el detalle exacto de cada uno.)*
+
+- **07-03/07-04**: FASE 33-35 (automatización Superset, compresión Stirling en ZIP, monitoreo disco), fix `postgres-exporter` faltante, módulos académicos/bienestar/compliance con migraciones nuevas, auditoría de seguridad BOLA/BFLA sobre 19 CU + gap de auditoría en mig 110.
+- **07-06/07-07**: fix pestañas Gradebook + contrato de insights, CSP/cookies/dependencias, esquema de ponderación jerárquico (profesor/plantel con prioridad), cascadas de grupos/franjas + E2E, refresh token automático con interceptor.
+- **07-08**: FormField reutilizable + formato de inputs, rollout de validación a los módulos restantes, migración de config blockchain LAChain, **auditoría de 16 puntos de optimización documentada y "declarada implementada" en 3 fases** (ver discrepancia arriba), reorganización de documentación.
+- **07-09**: 3 fixes críticos de auditoría, paginación (Tareas), rate limiting (Spring Cloud Gateway + Bucket4j), lazy loading de imágenes, gzip/brotli en nginx, **"SEMANA 1" a "SEMANA 5"** — FK indexes, suite E2E Playwright (86+ specs) + GitHub Actions CI/CD, fase de infraestructura (seguridad + backup + contratos API), eliminación de flakiness → **82/100 LOCKED**, matriz de decisión 82/100 vs 100/100 para stakeholders.
+- **07-10**: refactor de consistencia general + reorganización de documentación — **migración de servidor** (129.213.35.140 → 163.192.138.130, ver `docs/MIGRACION_2026_07_10.md` y siguientes).
+- **07-11**: branding completo del login de Authentik (logo ADES, fondo navy, español, sin "Welcome to authentik"), wiring de `OIDC_CLIENT_SECRET` al BFF, validación transversal de caracteres/longitud (frontend + backend, defensa en profundidad), máscaras estrictas CURP/RFC/teléfono/email, borrador de Aviso de Privacidad LFPDPPP, **scaffolding de cifrado PII** y **fix crítico de `@Transactional`** (PATCH de alumnos/profesores/personal-admin/contactos no persistía — bug barrido en todo el backend incluyendo el runner de backfill de PII).
+- **07-11/07-12**: backfill real de cifrado PII ejecutado y verificado sobre datos reales (5,178/5,178).
+
+---
+
 ## Sesión 2026-07-02 — Auditoría QA integral + fixes críticos + pipeline académico completo ✅
 
 ### 🔑 Estado del Agente:

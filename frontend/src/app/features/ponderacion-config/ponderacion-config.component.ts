@@ -200,7 +200,7 @@ export class PonderacionConfigComponent implements OnInit, OnDestroy {
           es_nee: boolean; items: ItemRow[] } = this.emptyForm();
 
   ngOnInit() {
-    this.api.get('/catalogs/niveles').subscribe((r: any) => this.niveles.set(r ?? []));
+    this.api.get('/catalogs/niveles').pipe(takeUntil(this.destroy$)).subscribe((r: any) => this.niveles.set(r ?? []));
     this.cargarEsquemas();
   }
 
@@ -208,7 +208,7 @@ export class PonderacionConfigComponent implements OnInit, OnDestroy {
     this.cargando.set(true);
     let url = '/esquemas-ponderacion';
     if (this.nivelFiltro) url += `?nivel_educativo_id=${this.nivelFiltro}`;
-    this.api.get(url).subscribe({ next: (r: any) => { this.esquemas.set(r); this.cargando.set(false); },
+    this.api.get(url).pipe(takeUntil(this.destroy$)).subscribe({ next: (r: any) => { this.esquemas.set(r); this.cargando.set(false); },
       error: () => this.cargando.set(false) });
   }
 
@@ -231,7 +231,7 @@ export class PonderacionConfigComponent implements OnInit, OnDestroy {
       items: original.items.map(i => ({ ...i })),
     };
     // Obtener el nivel_educativo_id del esquema
-    this.api.get(`/esquemas-ponderacion?nivel_educativo_id=*`).subscribe(); // noop — usamos lo que ya tenemos
+    this.api.get(`/esquemas-ponderacion?nivel_educativo_id=*`).pipe(takeUntil(this.destroy$)).subscribe(); // noop — usamos lo que ya tenemos
     this.dialogVisible = true;
   }
 
@@ -265,7 +265,7 @@ export class PonderacionConfigComponent implements OnInit, OnDestroy {
     const obs = this.editandoId
       ? this.api.put(`/esquemas-ponderacion/${this.editandoId}`, payload)
       : this.api.post('/esquemas-ponderacion', payload);
-    obs.subscribe(() => {
+    obs.pipe(takeUntil(this.destroy$)).subscribe(() => {
       this.notify.success('Guardado');
       this.dialogVisible = false;
       this.cargarEsquemas();
@@ -273,7 +273,7 @@ export class PonderacionConfigComponent implements OnInit, OnDestroy {
   }
 
   desactivarEsquema(id: string) {
-    this.api.delete(`/esquemas-ponderacion/${id}`).subscribe(() => {
+    this.api.delete(`/esquemas-ponderacion/${id}`).pipe(takeUntil(this.destroy$)).subscribe(() => {
       this.notify.info('Desactivado');
       this.cargarEsquemas();
     });

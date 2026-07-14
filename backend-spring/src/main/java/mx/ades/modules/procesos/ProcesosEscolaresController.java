@@ -237,7 +237,7 @@ public class ProcesosEscolaresController {
         }
 
         writeService.actualizarResolucion(id, body.getDecision(), body.getMotivo(),
-                body.getGrupoAsignadoId(), user.getId(), user.getUsername());
+                body.getGrupoAsignadoId(), user.getPersonaId(), user.getUsername());
 
         return ResponseEntity.ok(Map.of("message", "Solicitud " + body.getDecision().toLowerCase(), "estado", body.getDecision()));
     }
@@ -329,9 +329,11 @@ public class ProcesosEscolaresController {
             "SELECT * FROM ades_solicitudes_admision WHERE id = ?", solicitudId);
         Map<String, Object> sol = solData.get(0);
 
-        // 2. Aprobar la solicitud
-        writeService.actualizarResolucion(solicitudId, "APROBADO",
-            body.getMotivoDecision(), body.getGrupoId(), user.getId(), user.getUsername());
+        // 2. Aprobar la solicitud — el estado debe quedar en ACEPTADO: es el único valor
+        // que ProcesosApplicationService/EstadoAdmision.permitePreinscripcion() acepta para
+        // continuar con la preinscripción (no existe "APROBADO" en el enum de dominio).
+        writeService.actualizarResolucion(solicitudId, "ACEPTADO",
+            body.getMotivoDecision(), body.getGrupoId(), user.getPersonaId(), user.getUsername());
 
         // 3. Crear estudiante + inscripción via use case
         var result = procesarPreinscripcion.ejecutar(

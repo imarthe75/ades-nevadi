@@ -90,6 +90,7 @@ const BANCOS          = ['BBVA','SANTANDER','BANAMEX','BANORTE','HSBC','SCOTIABA
                 <div class="form-row">
                   <label>RFC</label>
                   <input pInputText [(ngModel)]="form.rfc" adesFormat="rfc"
+                    placeholder="XXXX000000XXX"
                     style="font-family:monospace;text-transform:uppercase" />
                 </div>
                 <div class="form-row">

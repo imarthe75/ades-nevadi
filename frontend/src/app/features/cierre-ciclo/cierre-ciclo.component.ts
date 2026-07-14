@@ -260,7 +260,7 @@ export class CierreCicloComponent implements OnInit, OnDestroy {
   }
 
   cargarPlanteles() {
-    this.api.get<PlantelOpt[]>('/catalogs/planteles').subscribe({
+    this.api.get<PlantelOpt[]>('/catalogs/planteles').pipe(takeUntil(this.destroy$)).subscribe({
       next: (data) => this.planteles.set(data),
       error: () => {}
     });
@@ -284,7 +284,7 @@ export class CierreCicloComponent implements OnInit, OnDestroy {
     if (this.alcance() === 'plantel' && this.plantelId()) {
       url += `?plantel_id=${this.plantelId()}`;
     }
-    this.api.get<IndicadoresCiclo>(url).subscribe({
+    this.api.get<IndicadoresCiclo>(url).pipe(takeUntil(this.destroy$)).subscribe({
       next: (data) => {
         this.indicadores.set(data);
         this.cargando.set(false);
@@ -306,7 +306,7 @@ export class CierreCicloComponent implements OnInit, OnDestroy {
       this.descargandoCierre.set(true);
     }
 
-    this.api.postBlob(`/cierre-ciclo/${ciclo.id}/acta-${tipo}`, {}).subscribe({
+    this.api.postBlob(`/cierre-ciclo/${ciclo.id}/acta-${tipo}`, {}).pipe(takeUntil(this.destroy$)).subscribe({
       next: (blob: Blob) => {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -335,7 +335,7 @@ export class CierreCicloComponent implements OnInit, OnDestroy {
   abrirConfirmarCierre() {
     this.cicloDestinoId = null;
     this.cargando.set(true);
-    this.api.get<CicloOpt[]>('/catalogs/ciclos').subscribe({
+    this.api.get<CicloOpt[]>('/catalogs/ciclos').pipe(takeUntil(this.destroy$)).subscribe({
       next: (ciclos) => {
         const cicloActual = this.cicloActivo();
         const filtrados = ciclos
@@ -361,7 +361,7 @@ export class CierreCicloComponent implements OnInit, OnDestroy {
 
     this.cerrandoCiclo.set(true);
 
-    this.api.get<any>(`/cierre-ciclo/${ciclo.id}/validacion-completa`).subscribe({
+    this.api.get<any>(`/cierre-ciclo/${ciclo.id}/validacion-completa`).pipe(takeUntil(this.destroy$)).subscribe({
       next: (validacion) => {
         if (!validacion.valido) {
           this.cerrandoCiclo.set(false);
@@ -375,7 +375,7 @@ export class CierreCicloComponent implements OnInit, OnDestroy {
 
         this.api.post(`/cierre-ciclo/${ciclo.id}/ejecutar`, {
           ciclo_destino_id: this.cicloDestinoId || undefined
-        }).subscribe({
+        }).pipe(takeUntil(this.destroy$)).subscribe({
           next: () => {
             this.notify.success('Ciclo Cerrado', 'El ciclo escolar ha sido cerrado de forma definitiva.');
             this.showConfirmDialog.set(false);

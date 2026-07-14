@@ -306,7 +306,7 @@ export class VerificarComponent implements OnInit, OnDestroy {
 
     this.api.get<VerificacionResult>(
       `/certificados/verificar/${this.folioParam.toUpperCase()}`
-    ).subscribe({
+    ).pipe(takeUntil(this.destroy$)).subscribe({
       next: (r) => { this.result.set(r); this.cargando.set(false); },
       error: () => { this.error.set(true); this.cargando.set(false); },
     });

@@ -357,7 +357,7 @@ export class ReportesComponent implements OnInit, OnDestroy {
   }
 
   verificarCarbone(): void {
-    this.api.get<{disponible:boolean}>('/carbone/status').subscribe({
+    this.api.get<{disponible:boolean}>('/carbone/status').pipe(takeUntil(this.destroy$)).subscribe({
       next: r  => this.carboneOnline.set(r.disponible),
       error: () => this.carboneOnline.set(false),
     });
@@ -365,7 +365,7 @@ export class ReportesComponent implements OnInit, OnDestroy {
 
   cargarPlantillas(): void {
     this.cargandoPlantillas.set(true);
-    this.api.get<Plantilla[]>('/carbone/templates').subscribe({
+    this.api.get<Plantilla[]>('/carbone/templates').pipe(takeUntil(this.destroy$)).subscribe({
       next: p  => { this.plantillas.set(p); this.cargandoPlantillas.set(false); },
       error: () => this.cargandoPlantillas.set(false),
     });
@@ -375,7 +375,7 @@ export class ReportesComponent implements OnInit, OnDestroy {
     const params: Record<string,any> = { pagina: 1, por_pagina: 500 };
     const plantelId = this.ctx.plantel()?.id;
     if (plantelId) params['plantel_id'] = plantelId;
-    this.api.get<{data:Alumno[];total:number}>('/alumnos', params).subscribe({
+    this.api.get<{data:Alumno[];total:number}>('/alumnos', params).pipe(takeUntil(this.destroy$)).subscribe({
       next: resp => {
         this.alumnos.set(resp.data.map(a => ({
           id: a.id,
@@ -390,7 +390,7 @@ export class ReportesComponent implements OnInit, OnDestroy {
     const params: Record<string,any> = { solo_activos: true, ciclo_vigente: true };
     const plantelId = this.ctx.plantel()?.id;
     if (plantelId) params['plantel_id'] = plantelId;
-    this.api.get<any[]>('/grupos', params).subscribe({
+    this.api.get<any[]>('/grupos', params).pipe(takeUntil(this.destroy$)).subscribe({
       next: gs => this.grupos.set(gs.map(g => ({
         id: g.id,
         label: (g._label ?? grupoLabel(g)) || g.nombre_grupo || g.nombre || '—',
@@ -471,7 +471,7 @@ export class ReportesComponent implements OnInit, OnDestroy {
   }
 
   eliminarPlantilla(id: string): void {
-    this.api.delete(`/carbone/templates/${id}`).subscribe({
+    this.api.delete(`/carbone/templates/${id}`).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.plantillas.update(p => p.filter(x => x.id !== id));
         this.notify.success('Eliminada');
@@ -490,7 +490,7 @@ export class ReportesComponent implements OnInit, OnDestroy {
     fd.append('tipo_documento', this.nuevaPlantillaTipo);
     fd.append('descripcion', this.nuevaPlantillaDesc);
 
-    this.api.postFormData<Plantilla>('/carbone/templates', fd).subscribe({
+    this.api.postFormData<Plantilla>('/carbone/templates', fd).pipe(takeUntil(this.destroy$)).subscribe({
       next: p => {
         this.plantillas.update(lst => [...lst, p]);
         this.notify.success('Plantilla subida', p.nombre);

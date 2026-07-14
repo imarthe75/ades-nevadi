@@ -670,7 +670,7 @@ export class ShellComponent implements OnInit, OnDestroy {
   }
 
   loadNotifCount(): void {
-    this.api.get<{ total: number }>('/notificaciones/no-leidas-count').subscribe({
+    this.api.get<{ total: number }>('/notificaciones/no-leidas-count').pipe(takeUntil(this.destroy$)).subscribe({
       next: (r) => this.notifCount.set(r.total),
       error: () => {},
     });
@@ -688,7 +688,7 @@ export class ShellComponent implements OnInit, OnDestroy {
     if (this.notifPanelRef.overlayVisible) {
       this.notifPanelRef.hide();
     } else {
-      this.api.get<Notif[]>('/notificaciones/mis-notificaciones', { limit: 10 }).subscribe({
+      this.api.get<Notif[]>('/notificaciones/mis-notificaciones', { limit: 10 }).pipe(takeUntil(this.destroy$)).subscribe({
         next: (r) => { this.notificaciones.set(r); this.notifPanelRef.show(event); },
         error: () => this.notifPanelRef.show(event),
       });
@@ -697,14 +697,14 @@ export class ShellComponent implements OnInit, OnDestroy {
 
   marcarLeida(n: Notif): void {
     if (n.leido) return;
-    this.api.put(`/notificaciones/${n.id}/leer`, {}).subscribe(() => {
+    this.api.put(`/notificaciones/${n.id}/leer`, {}).pipe(takeUntil(this.destroy$)).subscribe(() => {
       this.notificaciones.update(list => list.map(x => x.id === n.id ? { ...x, leido: true } : x));
       this.notifCount.update(c => Math.max(0, c - 1));
     });
   }
 
   leerTodas(): void {
-    this.api.put('/notificaciones/leer-todas', {}).subscribe(() => {
+    this.api.put('/notificaciones/leer-todas', {}).pipe(takeUntil(this.destroy$)).subscribe(() => {
       this.notificaciones.update(list => list.map(x => ({ ...x, leido: true })));
       this.notifCount.set(0);
     });

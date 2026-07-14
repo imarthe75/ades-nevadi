@@ -281,7 +281,7 @@ export class ReinscripcionComponent implements OnInit, OnDestroy {
   }
 
   cargarCiclos() {
-    this.api.get('/catalogs/ciclos').subscribe((r: any) =>
+    this.api.get('/catalogs/ciclos').pipe(takeUntil(this.destroy$)).subscribe((r: any) =>
       this.ciclos.set(r ?? []));
   }
 
@@ -298,7 +298,7 @@ export class ReinscripcionComponent implements OnInit, OnDestroy {
     let url = `/reinscripcion/${this.cicloDestinoId}/estado?por_pagina=500`;
     if (this.estadoFiltro)  url += `&estado=${this.estadoFiltro}`;
     if (this.plantelFiltro) url += `&plantel_id=${this.plantelFiltro}`;
-    this.api.get(url).subscribe({
+    this.api.get(url).pipe(takeUntil(this.destroy$)).subscribe({
       next: (r: any) => {
         const flat = (r.data ?? []).map((x: any) => ({
           ...x,
@@ -314,7 +314,7 @@ export class ReinscripcionComponent implements OnInit, OnDestroy {
 
   cargarReporte() {
     if (!this.cicloDestinoId) return;
-    this.api.get(`/reinscripcion/${this.cicloDestinoId}/reporte`).subscribe(
+    this.api.get(`/reinscripcion/${this.cicloDestinoId}/reporte`).pipe(takeUntil(this.destroy$)).subscribe(
       (r: any) => this.reporte.set(r)
     );
   }
@@ -325,7 +325,7 @@ export class ReinscripcionComponent implements OnInit, OnDestroy {
     this.api.post(
       `/reinscripcion/${this.cicloDestinoId}/validar-masivo?ciclo_origen_id=${this.cicloOrigenId}`,
       {}
-    ).subscribe({
+    ).pipe(takeUntil(this.destroy$)).subscribe({
       next: (r: any) => {
         this.validando.set(false);
         const res = r.resumen;
@@ -351,7 +351,7 @@ export class ReinscripcionComponent implements OnInit, OnDestroy {
     this.api.post(
       `/reinscripcion/${this.cicloDestinoId}/aprobar-masivo?ciclo_origen_id=${this.cicloOrigenId}`,
       {}
-    ).subscribe({
+    ).pipe(takeUntil(this.destroy$)).subscribe({
       next: (r: any) => {
         this.aprobando.set(false);
         const promo = r.resultado_promocion;
@@ -384,7 +384,7 @@ export class ReinscripcionComponent implements OnInit, OnDestroy {
     this.api.patch(`/reinscripcion/${reg.id}`, {
       accion,
       razon_rechazo: accion === 'RECHAZAR' ? this.razonRechazo : null,
-    }).subscribe({
+    }).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.notify.success(
           accion === 'APROBAR' ? 'Alumno aprobado' : 'Alumno rechazado',

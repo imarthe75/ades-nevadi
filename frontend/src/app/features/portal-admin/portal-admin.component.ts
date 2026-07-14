@@ -1,7 +1,7 @@
 import {
   Component, inject, OnInit, OnDestroy, signal, computed, ViewChild, ElementRef, effect, ChangeDetectionStrategy
 } from '@angular/core';
-import { Subject } from 'rxjs';
+import { Subject, takeUntil } from 'rxjs';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule }        from 'primeng/button';
@@ -359,17 +359,20 @@ export class PortalAdminComponent implements OnInit, OnDestroy {
     if (this.filtroTipo)      params['tipo']        = this.filtroTipo;
     if (this.filtroPlantelId) params['plantel_id']  = this.filtroPlantelId;
     this.api.get<Convocatoria[]>('/portal/admin/convocatorias', params)
+      .pipe(takeUntil(this.destroy$))
       .subscribe({ next: d => { this.convocatorias.set(d ?? []); this.cargando.set(false); },
                   error: ()  => this.cargando.set(false) });
   }
 
   cargarCatalogo() {
     this.api.getAbs<Catalogo>('/api/portal/catalogo')
+      .pipe(takeUntil(this.destroy$))
       .subscribe({ next: d => this.catalogo.set(d ?? { planteles:[], niveles:[], categorias:[], tipos:[] }) });
   }
 
   cargarEstadisticas() {
     this.api.get<any>('/portal/admin/estadisticas')
+      .pipe(takeUntil(this.destroy$))
       .subscribe({ next: d => this.estadisticas.set(d ?? {}) });
   }
 
@@ -417,6 +420,7 @@ export class PortalAdminComponent implements OnInit, OnDestroy {
 
   cargarRequisitosEdicion(id: string) {
     this.api.get<any[]>(`/portal/admin/convocatorias/${id}/requisitos`)
+      .pipe(takeUntil(this.destroy$))
       .subscribe({ next: rows => {
         const reqs = (rows ?? []).map((r: any) => ({
           nombre: r.nombre ?? '',
@@ -449,7 +453,7 @@ export class PortalAdminComponent implements OnInit, OnDestroy {
       ? this.api.put(`/api/v1/portal/admin/convocatorias/${id}`, body)
       : this.api.post<any>('/portal/admin/convocatorias', body);
 
-    req.subscribe({
+    req.pipe(takeUntil(this.destroy$)).subscribe({
       next: () => { this.guardando.set(false); this.cerrarDialog(); this.cargar(); this.cargarEstadisticas(); },
       error: () => this.guardando.set(false)
     });
@@ -476,6 +480,7 @@ export class PortalAdminComponent implements OnInit, OnDestroy {
     const fd = new FormData();
     fd.append('imagen', processedFile);
     this.api.postForm<any>(`/api/v1/portal/admin/convocatorias/${id}/imagen`, fd)
+      .pipe(takeUntil(this.destroy$))
       .subscribe({ next: r => {
         this.form.update(f => ({ ...f, imagenUrl: r.imagen_url }));
         this.cargar();
@@ -484,6 +489,7 @@ export class PortalAdminComponent implements OnInit, OnDestroy {
 
   togglePublicar(c: Convocatoria) {
     this.api.post<any>(`/api/v1/portal/admin/convocatorias/${c.id}/publicar`, {})
+      .pipe(takeUntil(this.destroy$))
       .subscribe({ next: () => this.cargar() });
   }
 
@@ -493,6 +499,7 @@ export class PortalAdminComponent implements OnInit, OnDestroy {
       header: 'Confirmar archivo', icon: 'pi pi-archive',
       accept: () => {
         this.api.delete(`/api/v1/portal/admin/convocatorias/${c.id}`)
+          .pipe(takeUntil(this.destroy$))
           .subscribe({ next: () => { this.cargar(); this.cargarEstadisticas(); }});
       }
     });
@@ -503,6 +510,7 @@ export class PortalAdminComponent implements OnInit, OnDestroy {
     this.cargandoPost.set(true);
     this.postulacionesVisible = true;
     this.api.get<any[]>('/portal/admin/postulaciones', { convocatoria_id: c.id, limit: 200 })
+      .pipe(takeUntil(this.destroy$))
       .subscribe({ next: d => { this.postulaciones.set(d ?? []); this.cargandoPost.set(false); },
                   error: ()  => this.cargandoPost.set(false) });
   }

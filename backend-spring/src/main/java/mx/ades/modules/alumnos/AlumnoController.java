@@ -193,6 +193,10 @@ public class AlumnoController {
             throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Error al generar la credencial");
         } catch (ResponseStatusException e) {
             throw e;
+        } catch (org.springframework.web.client.RestClientResponseException e) {
+            // Preserva el status real de Carbone (ej. 404 "Plantilla no encontrada") en
+            // vez de colapsarlo siempre a 502 Bad Gateway.
+            throw new ResponseStatusException(HttpStatus.valueOf(e.getStatusCode().value()), e.getResponseBodyAsString());
         } catch (Exception e) {
             throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Error al renderizar con Carbone: " + e.getMessage());
         }

@@ -54,9 +54,21 @@ public class ComunicadoApplicationService
         if (Boolean.TRUE.equals(cmd.esRecurrente()) && cmd.periodicidad() != null) {
             c.setProximoEnvio(LocalDateTime.now());
         }
+        List<UUID> recipientIds = resolveRecipients(c);
+        c.setTotalDestinatarios(recipientIds.size());
         Comunicado saved = repo.save(c);
-        triggerPushAsync(saved);
+        triggerPushAsync(saved, recipientIds);
         return saved.getId();
+    }
+
+    /** Misma segmentación grupo→nivel→plantel→todos usada para el push, reutilizada
+     * para que {@code total_destinatarios} refleje el público real en vez de quedar
+     * siempre en el default 0 (rompía el % de lectura en /reporte-lectura). */
+    private List<UUID> resolveRecipients(Comunicado c) {
+        if (c.getGrupoId() != null) return repo.getRecipientsForGrupo(c.getGrupoId());
+        if (c.getNivelEducativoId() != null) return repo.getRecipientsForNivel(c.getNivelEducativoId());
+        if (c.getPlantelId() != null) return repo.getRecipientsForPlantel(c.getPlantelId());
+        return repo.getAllRecipients();
     }
 
     @Override
@@ -94,21 +106,11 @@ public class ComunicadoApplicationService
         repo.save(c);
     }
 
-    private void triggerPushAsync(Comunicado c) {
+    private void triggerPushAsync(Comunicado c, List<UUID> recipientIds) {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.initialize();
         executor.execute(() -> {
             try {
-                List<UUID> recipientIds;
-                if (c.getGrupoId() != null) {
-                    recipientIds = repo.getRecipientsForGrupo(c.getGrupoId());
-                } else if (c.getNivelEducativoId() != null) {
-                    recipientIds = repo.getRecipientsForNivel(c.getNivelEducativoId());
-                } else if (c.getPlantelId() != null) {
-                    recipientIds = repo.getRecipientsForPlantel(c.getPlantelId());
-                } else {
-                    recipientIds = repo.getAllRecipients();
-                }
                 String prioridad = "URGENTE".equalsIgnoreCase(c.getTipoComunicado()) ? "high" : "default";
                 pushService.sendBatchAsync(recipientIds,
                         "URGENTE".equalsIgnoreCase(c.getTipoComunicado()) ? "Nuevo comunicado urgente" : "Nuevo comunicado",

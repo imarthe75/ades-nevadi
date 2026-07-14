@@ -95,6 +95,16 @@ def sync_sepomex_weekly() -> dict:
         conn = psycopg2.connect(settings.DATABASE_URL_SYNC)
         cur = conn.cursor()
         
+        # Load existing country or insert MX
+        cur.execute("SELECT id FROM public.ades_paises WHERE clave_pais = 'MX';")
+        pais_row = cur.fetchone()
+        if not pais_row:
+            cur.execute("INSERT INTO public.ades_paises (clave_pais, nombre_pais) VALUES ('MX', 'México') RETURNING id;")
+            pais_id = cur.fetchone()[0]
+        else:
+            pais_id = pais_row[0]
+        conn.commit()
+
         # Load existing states and municipalities maps
         cur.execute("SELECT id, clave_estado FROM public.ades_estados;")
         estados_map = {row[1]: row[0] for row in cur.fetchall()}
@@ -154,11 +164,30 @@ def sync_sepomex_weekly() -> dict:
             
             estado_uuid = estados_map.get(c_estado)
             if not estado_uuid:
-                continue
+                d_estado = parts[4].strip()
+                estado_uuid = str(uuid.uuid4())
+                cur.execute("""
+                    INSERT INTO public.ades_estados (id, clave_estado, nombre_estado, pais_id)
+                    VALUES (%s, %s, %s, %s)
+                    ON CONFLICT (clave_estado, pais_id) DO UPDATE SET nombre_estado = EXCLUDED.nombre_estado
+                    RETURNING id;
+                """, (estado_uuid, c_estado, d_estado, pais_id))
+                estado_uuid = cur.fetchone()[0]
+                estados_map[c_estado] = estado_uuid
                 
-            municipio_uuid = municipios_map.get((estado_uuid, c_mnpio))
+            mun_key = (estado_uuid, c_mnpio)
+            municipio_uuid = municipios_map.get(mun_key)
             if not municipio_uuid:
-                continue
+                d_mnpio = parts[3].strip()
+                municipio_uuid = str(uuid.uuid4())
+                cur.execute("""
+                    INSERT INTO public.ades_municipios (id, clave_municipio, nombre_municipio, estado_id)
+                    VALUES (%s, %s, %s, %s)
+                    ON CONFLICT (clave_municipio, estado_id) DO UPDATE SET nombre_municipio = EXCLUDED.nombre_municipio
+                    RETURNING id;
+                """, (municipio_uuid, c_mnpio, d_mnpio, estado_uuid))
+                municipio_uuid = cur.fetchone()[0]
+                municipios_map[mun_key] = municipio_uuid
                 
             tipo_asent_uuid = tipos_map.get(c_tipo_asenta)
             
@@ -167,16 +196,28 @@ def sync_sepomex_weekly() -> dict:
             if not loc_uuid:
                 loc_uuid = str(uuid.uuid4())
                 localidades_cache[loc_key] = loc_uuid
-                localidades_to_insert.append((loc_uuid, d_asenta, municipio_uuid, tipo_asent_uuid))
+                localidades_to_insert.append((loc_uuid, d_asenta, municipio_uuid, tipo_asent_uuid, codigo_postal))
                 
-            cps_to_insert.append((str(uuid.uuid4()), codigo_postal, loc_uuid, municipio_uuid, estado_uuid, tipo_asent_uuid))
+            # Batch flush to avoid OOM
+            if len(localidades_to_insert) >= 5000:
+                psycopg2.extras.execute_values(
+                    cur,
+                    """
+                    INSERT INTO public.ades_localidades (id, nombre_localidad, municipio_id, tipo_asentamiento_id, codigo_postal)
+                    VALUES %s ON CONFLICT DO NOTHING;
+                    """,
+                    localidades_to_insert,
+                    page_size=1000
+                )
+                conn.commit()
+                localidades_to_insert.clear()
             
-        # Bulk inserts
+        # Final flush
         if localidades_to_insert:
             psycopg2.extras.execute_values(
                 cur,
                 """
-                INSERT INTO public.ades_localidades (id, nombre_localidad, municipio_id, tipo_asentamiento_id)
+                INSERT INTO public.ades_localidades (id, nombre_localidad, municipio_id, tipo_asentamiento_id, codigo_postal)
                 VALUES %s ON CONFLICT DO NOTHING;
                 """,
                 localidades_to_insert,
@@ -184,26 +225,13 @@ def sync_sepomex_weekly() -> dict:
             )
             conn.commit()
             
-        if cps_to_insert:
-            psycopg2.extras.execute_values(
-                cur,
-                """
-                INSERT INTO public.ades_codigos_postales (id, codigo_postal, localidad_id, municipio_id, estado_id, tipo_asentamiento_id)
-                VALUES %s ON CONFLICT (codigo_postal, localidad_id) DO NOTHING;
-                """,
-                cps_to_insert,
-                page_size=2000
-            )
-            conn.commit()
-            
         cur.close()
         conn.close()
         
-        log.info("SEPOMEX sync completed. Localities loaded: %d, ZIP codes loaded: %d", len(localidades_to_insert), len(cps_to_insert))
+        log.info("SEPOMEX sync completed.")
         return {
             "estado": "ok",
-            "localidades_nuevas": len(localidades_to_insert),
-            "codigos_postales_nuevos": len(cps_to_insert)
+            "mensaje": "Sincronización nacional completada con éxito"
         }
     except Exception as e:
         log.error("Failed to run weekly SEPOMEX sync: %s", str(e))

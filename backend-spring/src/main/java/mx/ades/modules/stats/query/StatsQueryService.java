@@ -246,11 +246,17 @@ public class StatsQueryService {
             WHERE :plantelId::text IS NULL OR plantel_id = :plantelId::uuid
             """;
 
+        // ades_bi.mv_asistencia_mensual quedó obsoleta desde la migración 066
+        // (columnas a.presente/a.fecha/g.plantel_id ya no existen) y nunca se
+        // volvió a crear — se reemplaza por v_asistencias_resumen (vigente,
+        // creada en 074b/077), agregada aquí por plantel vía ades_estudiantes.
         String asistenciaSql = """
             SELECT
-                COALESCE(ROUND(AVG(pct_asistencia), 2), 0) AS pct_asistencia
-            FROM ades_bi.mv_asistencia_mensual
-            WHERE :plantelId::text IS NULL OR plantel_id = :plantelId::uuid
+                COALESCE(ROUND(100.0 * SUM(CASE WHEN v.estatus_asistencia = 'PRESENTE' THEN v.total ELSE 0 END)
+                    / NULLIF(SUM(v.total), 0), 2), 0) AS pct_asistencia
+            FROM v_asistencias_resumen v
+            JOIN ades_estudiantes e ON e.id = v.estudiante_id
+            WHERE :plantelId::text IS NULL OR e.plantel_id = :plantelId::uuid
             """;
 
         String coberturaSql = """

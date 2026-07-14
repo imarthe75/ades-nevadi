@@ -200,7 +200,7 @@ export class MiProgresoComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     // Para demo, se obtiene de ContextService o del perfil del usuario
-    this.api.get('/usuarios/mi-perfil').subscribe((u: any) => {
+    this.api.get('/usuarios/mi-perfil').pipe(takeUntil(this.destroy$)).subscribe((u: any) => {
       if (u.estudiante_id) {
         this.alumnoId = u.estudiante_id;
         this.cargarDatos();
@@ -212,15 +212,15 @@ export class MiProgresoComponent implements OnInit, OnDestroy {
     if (!this.alumnoId) return;
     this.cargando.set(true);
 
-    this.api.get(`/gradebook/alumno/${this.alumnoId}/boleta`).subscribe({
+    this.api.get(`/gradebook/alumno/${this.alumnoId}/boleta`).pipe(takeUntil(this.destroy$)).subscribe({
       next: (r: any) => { this.materias.set(r); this.cargando.set(false); },
       error: () => this.cargando.set(false),
     });
 
-    this.api.get(`/entregas/alumno/${this.alumnoId}?solo_pendientes=true`).subscribe(
+    this.api.get(`/entregas/alumno/${this.alumnoId}?solo_pendientes=true`).pipe(takeUntil(this.destroy$)).subscribe(
       (r: any) => this.pendientes.set(r));
 
-    this.api.get(`/entregas/alumno/${this.alumnoId}`).subscribe(
+    this.api.get(`/entregas/alumno/${this.alumnoId}`).pipe(takeUntil(this.destroy$)).subscribe(
       (r: any) => this.historial.set(r.filter((e: any) => e.estatus_entrega === 'CALIFICADA')));
   }
 
@@ -245,7 +245,7 @@ export class MiProgresoComponent implements OnInit, OnDestroy {
     if (this.archivoSeleccionado) fd.append('archivo', this.archivoSeleccionado);
 
     this.subiendoArchivo.set(true);
-    this.api.post('/entregas', fd).subscribe({
+    this.api.post('/entregas', fd).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.notify.success('Entrega registrada');
         this.dialogSubirVisible = false;

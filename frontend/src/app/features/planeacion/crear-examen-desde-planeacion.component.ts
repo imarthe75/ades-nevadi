@@ -298,7 +298,7 @@ export class CrearExamenDesdeplanneacionComponent implements OnInit, OnDestroy {
   }
 
   loadGrupos() {
-    this.apiService.get('/api/v1/grupos').subscribe(res => {
+    this.apiService.get('/api/v1/grupos').pipe(takeUntil(this.destroy$)).subscribe(res => {
       this.grupos.set((res as any[]).map(g => ({
         label: g.nombre_grupo,
         value: g.ref
@@ -315,6 +315,7 @@ export class CrearExamenDesdeplanneacionComponent implements OnInit, OnDestroy {
     this.planeacionDetalle.set(null);
 
     this.apiService.get(`/api/v1/planeacion/grupo/${grupoId}/planeaciones-activas`)
+      .pipe(takeUntil(this.destroy$))
       .subscribe(
         res => {
           this.planeaciones.set(res as any[]);
@@ -339,6 +340,7 @@ export class CrearExamenDesdeplanneacionComponent implements OnInit, OnDestroy {
     this.planeacionSeleccionada = planeacion.planeacion_id;
 
     this.apiService.get(`/api/v1/planeacion/${planeacion.planeacion_id}/detalles`)
+      .pipe(takeUntil(this.destroy$))
       .subscribe(
         res => {
           this.planeacionDetalle.set(res as any);
@@ -375,6 +377,7 @@ export class CrearExamenDesdeplanneacionComponent implements OnInit, OnDestroy {
 
     this.guardando.set(true);
     this.apiService.post('/api/v1/planeacion/examenes/desde-planeacion', body)
+      .pipe(takeUntil(this.destroy$))
       .subscribe(
         res => {
           this.messageService.add({

@@ -333,7 +333,7 @@ export class EvaluacionesComponent implements OnInit, OnDestroy {
   private _initNiveles(): void {
     const plantel = this.ctx.plantel();
     if (!plantel) return;
-    this.api.get<any[]>(`/planteles/${plantel.id}/niveles`).subscribe({
+    this.api.get<any[]>(`/planteles/${plantel.id}/niveles`).pipe(takeUntil(this.destroy$)).subscribe({
       next: list => {
         this.nivelesOpts.set(list);
         const ctxNivel = this.ctx.nivel();
@@ -347,7 +347,7 @@ export class EvaluacionesComponent implements OnInit, OnDestroy {
 
   private _loadGrados(nivelId: string): void {
     const plantelId = this.ctx.plantel()?.id;
-    this.api.get<any[]>('/catalogs/grados', { nivel_id: nivelId, plantel_id: plantelId || undefined }).subscribe({
+    this.api.get<any[]>('/catalogs/grados', { nivel_id: nivelId, plantel_id: plantelId || undefined }).pipe(takeUntil(this.destroy$)).subscribe({
       next: list => this.gradosOpts.set(list),
     });
   }
@@ -366,7 +366,7 @@ export class EvaluacionesComponent implements OnInit, OnDestroy {
     this.grupos.set([]); this.materias.set([]);
     const plantel = this.ctx.plantel();
     if (plantel && this.form._gradoId) {
-      this.api.get<any[]>('/grupos', { plantel_id: plantel.id, grado_id: this.form._gradoId }).subscribe({
+      this.api.get<any[]>('/grupos', { plantel_id: plantel.id, grado_id: this.form._gradoId }).pipe(takeUntil(this.destroy$)).subscribe({
         next: list => this.grupos.set(list.map((g: any) => ({
           label: grupoLabel(g) || `${g.nombre_grupo} — ${g.nombre_grado ?? ''}`,
           value: g.id,
@@ -380,7 +380,7 @@ export class EvaluacionesComponent implements OnInit, OnDestroy {
     const ciclo = this.ctx.ciclo();
     const params: Record<string, string> = {};
     if (ciclo) params['ciclo_id'] = ciclo.id;
-    this.api.get<Evaluacion[]>('/evaluaciones', params).subscribe({
+    this.api.get<Evaluacion[]>('/evaluaciones', params).pipe(takeUntil(this.destroy$)).subscribe({
       next: (r) => {
         this.evaluaciones.set(r);
         this.evaluacionesDatos.set(r.map(e => ({
@@ -403,12 +403,12 @@ export class EvaluacionesComponent implements OnInit, OnDestroy {
 
   onGrupoChange(): void {
     if (!this.form.grupo_id) return;
-    this.api.get<any[]>('/materias', { grupo_id: this.form.grupo_id }).subscribe(list => {
+    this.api.get<any[]>('/materias', { grupo_id: this.form.grupo_id }).pipe(takeUntil(this.destroy$)).subscribe(list => {
       this.materias.set(list.map(m => ({ label: m.nombre_materia, value: m.id })));
     });
     const ciclo = this.ctx.ciclo();
     if (ciclo) {
-      this.api.get<any[]>('/calificaciones/periodos', { ciclo_id: ciclo.id }).subscribe(list => {
+      this.api.get<any[]>('/calificaciones/periodos', { ciclo_id: ciclo.id }).pipe(takeUntil(this.destroy$)).subscribe(list => {
         this.periodos.set(list.map(p => ({ label: p.nombre_periodo, value: p.id })));
       });
     }
@@ -419,7 +419,7 @@ export class EvaluacionesComponent implements OnInit, OnDestroy {
     if (!eval_data) return;
     this.selEval = eval_data;
     this.activeTab = 'libreta';
-    this.api.get<AlumnoCalif[]>(`/evaluaciones/${eval_data.id}/calificaciones`).subscribe({
+    this.api.get<AlumnoCalif[]>(`/evaluaciones/${eval_data.id}/calificaciones`).pipe(takeUntil(this.destroy$)).subscribe({
       next: (r) => {
         this.alumnos.set(r.map(a => ({ ...a, _editada: false })));
       },
@@ -447,7 +447,7 @@ export class EvaluacionesComponent implements OnInit, OnDestroy {
       payload['ciclo_id'] = ciclo.id;
     }
 
-    this.api.post(`/evaluaciones/${this.selEval!.id}/calificaciones/bulk`, payload).subscribe({
+    this.api.post(`/evaluaciones/${this.selEval!.id}/calificaciones/bulk`, payload).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.saving.set(false);
         this.alumnos.update(list => list.map(a => ({ ...a, _editada: false })));
@@ -495,7 +495,7 @@ export class EvaluacionesComponent implements OnInit, OnDestroy {
     if (ciclo) {
       payload['ciclo_id'] = ciclo.id;
     }
-    this.api.post('/evaluaciones', payload).subscribe({
+    this.api.post('/evaluaciones', payload).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.saving.set(false);
         this.showDialog.set(false);

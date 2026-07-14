@@ -1,6 +1,8 @@
 package mx.ades.modules.planeacion.command;
 
 import lombok.RequiredArgsConstructor;
+import mx.ades.modules.entregas.domain.port.in.CalificarEntregaUseCase;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -11,11 +13,13 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * FASE 4: Guardar calificaciones de tareas y exámenes
+ * FASE 4: Guardar calificaciones de tareas y exámenes desde el flujo de planeación.
  *
  * Maneja:
- * - Guardar calificación de tarea (insert o update)
- * - Guardar calificación de examen
+ * - Guardar calificación de tarea (resuelve la entrega y delega a CalificarEntregaUseCase —
+ *   ades_calificaciones_tareas está keyed por tarea_entrega_id, no por (tarea_id, alumno_id))
+ * - Guardar calificación de examen (ades_calificaciones_evaluaciones sí tiene UNIQUE
+ *   (evaluacion_id, estudiante_id), pero las FKs apuntan a id, no a ref)
  * - Validaciones
  */
 @Service
@@ -23,9 +27,12 @@ import java.util.UUID;
 public class CalificacionesDesdeplanneacionCommandService {
 
     private final JdbcTemplate jdbc;
+    private final CalificarEntregaUseCase calificarEntregaUseCase;
 
     /**
-     * FASE 4: Guardar calificación de una tarea.
+     * Guarda la calificación de una tarea localizando la entrega del alumno y delegando
+     * a {@link CalificarEntregaUseCase} — la misma lógica que usa PATCH /entregas/{id}/calificar,
+     * para no duplicar la persistencia ni saltarse el recálculo automático de gradebook.
      *
      * @param tareaId UUID de la tarea
      * @param alumnoId UUID del alumno
@@ -40,46 +47,25 @@ public class CalificacionesDesdeplanneacionCommandService {
             Double calificacion,
             String comentarios
     ) {
-        // Validar que la tarea existe
-        boolean tareaExiste = Boolean.TRUE.equals(jdbc.queryForObject(
-                "SELECT EXISTS(SELECT 1 FROM ades_tareas WHERE ref = ?::uuid AND is_active = TRUE)",
-                Boolean.class, tareaId.toString()));
-
-        if (!tareaExiste) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Tarea no encontrada");
-        }
-
-        // Validar que el alumno existe
-        boolean alumnoExiste = Boolean.TRUE.equals(jdbc.queryForObject(
-                "SELECT EXISTS(SELECT 1 FROM ades_estudiantes WHERE ref = ?::uuid AND is_active = TRUE)",
-                Boolean.class, alumnoId.toString()));
-
-        if (!alumnoExiste) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Alumno no encontrado");
-        }
-
-        // Validar rango de calificación
         if (calificacion < 0 || calificacion > 10) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Calificación debe estar entre 0 y 10");
         }
 
-        // Insertar o actualizar calificación
-        String sql = """
-            INSERT INTO ades_calificaciones_tareas
-                (tarea_id, alumno_id, calificacion, comentarios)
-            VALUES (?::uuid, ?::uuid, ?, ?)
-            ON CONFLICT (tarea_id, alumno_id)
-                DO UPDATE SET calificacion = EXCLUDED.calificacion,
-                              comentarios = EXCLUDED.comentarios,
-                              fecha_modificacion = NOW()
-            RETURNING ref
-            """;
+        UUID entregaId;
+        try {
+            entregaId = jdbc.queryForObject(
+                    "SELECT id FROM ades_tareas_entregas WHERE tarea_id = ?::uuid AND estudiante_id = ?::uuid AND is_active = TRUE",
+                    UUID.class, tareaId.toString(), alumnoId.toString());
+        } catch (EmptyResultDataAccessException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND,
+                    "No existe entrega de esta tarea para el alumno indicado");
+        }
 
-        UUID calificacionId = jdbc.queryForObject(sql, UUID.class,
-                tareaId.toString(), alumnoId.toString(), calificacion, comentarios);
+        Map<String, Object> resultado = calificarEntregaUseCase.calificar(
+                new CalificarEntregaUseCase.Command(entregaId, calificacion, comentarios, null, "sistema-planeacion"));
 
         return Map.of(
-            "calificacion_id", calificacionId,
+            "calificacion_id", resultado.getOrDefault("id", entregaId),
             "tarea_id", tareaId,
             "alumno_id", alumnoId,
             "calificacion", calificacion,
@@ -103,18 +89,18 @@ public class CalificacionesDesdeplanneacionCommandService {
             Double calificacion,
             String comentarios
     ) {
-        // Validar que la evaluación existe
+        // Validar que la evaluación existe (FK real: ades_calificaciones_evaluaciones.evaluacion_id -> ades_evaluaciones.id)
         boolean evaluacionExiste = Boolean.TRUE.equals(jdbc.queryForObject(
-                "SELECT EXISTS(SELECT 1 FROM ades_evaluaciones WHERE ref = ?::uuid AND is_active = TRUE)",
+                "SELECT EXISTS(SELECT 1 FROM ades_evaluaciones WHERE id = ?::uuid AND is_active = TRUE)",
                 Boolean.class, evaluacionId.toString()));
 
         if (!evaluacionExiste) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Evaluación no encontrada");
         }
 
-        // Validar que el estudiante existe
+        // Validar que el estudiante existe (FK real: ...estudiante_id -> ades_estudiantes.id)
         boolean estudianteExiste = Boolean.TRUE.equals(jdbc.queryForObject(
-                "SELECT EXISTS(SELECT 1 FROM ades_estudiantes WHERE ref = ?::uuid AND is_active = TRUE)",
+                "SELECT EXISTS(SELECT 1 FROM ades_estudiantes WHERE id = ?::uuid AND is_active = TRUE)",
                 Boolean.class, estudianteId.toString()));
 
         if (!estudianteExiste) {

@@ -21,8 +21,13 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Gestión de archivos en MinIO para el portal externo.
- * Bucket dedicado: portal-convocatorias.
+ * Gestión de archivos en el bucket S3 (Oracle Object Storage) para el portal externo.
+ * Comparte el bucket principal ({@code minio.bucket}, ya provisionado y verificado) con
+ * MinioService, separando por prefijo de key ("convocatorias/", "portal-imagenes/") —
+ * antes usaba 2 buckets propios ("portal-convocatorias"/"portal-imagenes") que nunca se
+ * crearon en Oracle; el auto-create con MakeBucketArgs falla ahí con "The region of the
+ * bucket must be the same as the region you are sending the request to" (bug real
+ * encontrado en la migración de SeaweedFS a Oracle, 2026-07-13).
  * Los documentos NUNCA son públicos — solo mediante presigned URLs (15 min).
  */
 @Service
@@ -50,8 +55,11 @@ public class PortalStorageService {
     @Value("${minio.secure:false}")
     private boolean secure;
 
-    @Value("${portal.minio.bucket:portal-convocatorias}")
+    @Value("${minio.bucket:ades-archivos}")
     private String bucket;
+
+    private static final String PREFIX_CONVOCATORIAS = "convocatorias-portal/";
+    private static final String PREFIX_IMAGENES = "portal-imagenes/";
 
     @Value("${portal.assets.dir:/srv/assets/convocatorias}")
     private String assetsDir;
@@ -69,12 +77,14 @@ public class PortalStorageService {
                     .endpoint((secure ? "https://" : "http://") + cleanEndpoint)
                     .credentials(accessKey, secretKey)
                     .build();
+            // No se auto-crea el bucket aquí: es el mismo bucket compartido de MinioService
+            // (ya provisionado); intentar makeBucket sobre un proveedor real (Oracle) sin el
+            // parámetro de región correcto falla — solo se advierte si no existe.
             if (!client.bucketExists(BucketExistsArgs.builder().bucket(bucket).build())) {
-                client.makeBucket(MakeBucketArgs.builder().bucket(bucket).build());
-                log.info("Bucket creado: {}", bucket);
+                log.error("El bucket '{}' no existe — verificar aprovisionamiento.", bucket);
             }
         } catch (Exception e) {
-            log.error("Error inicializando MinIO portal: {}", e.getMessage(), e);
+            log.error("Error inicializando cliente S3 del portal: {}", e.getMessage(), e);
         }
     }
 
@@ -97,7 +107,7 @@ public class PortalStorageService {
         }
 
         String ext = extensionDe(archivo.getOriginalFilename(), mime);
-        String key  = String.format("%s/%s.%s", postulacionId, UUID.randomUUID(), ext);
+        String key  = String.format("%s%s/%s.%s", PREFIX_CONVOCATORIAS, postulacionId, UUID.randomUUID(), ext);
 
         try {
             byte[] bytes = archivo.getBytes();
@@ -136,12 +146,11 @@ public class PortalStorageService {
 
     private static final Set<String> IMAGE_MIMES = Set.of("image/jpeg", "image/png", "image/webp");
     private static final long MAX_IMAGE_BYTES = 2L * 1024 * 1024; // 2 MB
-    private static final String BUCKET_IMAGENES = "portal-imagenes";
 
     /**
      * Sube imagen de convocatoria con escritura dual:
      * 1. Filesystem → /srv/assets/convocatorias/ (servido por nginx, URL pública inmutable)
-     * 2. SeaweedFS S3 → bucket portal-imagenes (respaldo, acceso presigned)
+     * 2. Bucket S3 compartido, prefijo "portal-imagenes/" (respaldo, acceso presigned)
      * Retorna la URL pública nginx para guardar en imagen_url.
      */
     public String subirImagenConvocatoria(UUID convocatoriaId, MultipartFile imagen) {
@@ -174,24 +183,21 @@ public class PortalStorageService {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error al guardar la imagen");
         }
 
-        // 2. Respaldo en SeaweedFS S3 (no bloquea si falla)
+        // 2. Respaldo en el bucket S3 compartido (no bloquea si falla)
         try {
             if (client != null) {
-                if (!client.bucketExists(BucketExistsArgs.builder().bucket(BUCKET_IMAGENES).build())) {
-                    client.makeBucket(MakeBucketArgs.builder().bucket(BUCKET_IMAGENES).build());
-                }
                 try (java.io.ByteArrayInputStream bais = new java.io.ByteArrayInputStream(bytes)) {
                     client.putObject(PutObjectArgs.builder()
-                            .bucket(BUCKET_IMAGENES)
-                            .object("convocatorias/" + filename)
+                            .bucket(bucket)
+                            .object(PREFIX_IMAGENES + filename)
                             .stream(bais, (long) bytes.length, -1L)
                             .contentType(mime)
                             .build());
                 }
-                log.info("Imagen respaldada en SeaweedFS: {}/{}", BUCKET_IMAGENES, filename);
+                log.info("Imagen respaldada en bucket S3: {}/{}{}", bucket, PREFIX_IMAGENES, filename);
             }
         } catch (Exception e) {
-            log.warn("Respaldo SeaweedFS fallido (no crítico): {}", e.getMessage());
+            log.warn("Respaldo S3 fallido (no crítico): {}", e.getMessage());
         }
 
         return publicBaseUrl + "/assets/convocatorias/" + filename;

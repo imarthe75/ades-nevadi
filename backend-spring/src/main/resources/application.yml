@@ -1,5 +1,10 @@
 server:
   port: 8080
+  error:
+    # Sin esto, TODA respuesta de error de la app queda como {timestamp,status,error,path}
+    # sin razón — el frontend siempre muestra "Error" genérico, nunca el motivo real.
+    include-message: always
+    include-binding-errors: always
   servlet:
     session:
       cookie:
@@ -129,6 +134,11 @@ authentik:
 
 superset:
   url: ${SUPERSET_URL:http://ades-superset:8088}
+  # URL pública (bi.ades.setag.mx, ya proxeada por nginx con TLS real) — usada
+  # SOLO para el embedUrl que se devuelve al navegador. "url" (arriba) sigue
+  # siendo el hostname interno de Docker para las llamadas servidor-a-servidor
+  # (login/guest_token) que hace el propio BFF contra Superset.
+  public-url: ${SUPERSET_PUBLIC_URL:http://ades-superset:8088}
   admin-user: ${SUPERSET_ADMIN_USER:admin}
   admin-password: ${SUPERSET_ADMIN_PASSWORD:changeme}
   dashboards:

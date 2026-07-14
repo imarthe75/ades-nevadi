@@ -335,7 +335,7 @@ export class BbbComponent implements OnInit, OnDestroy {
   }
 
   verificarServidor() {
-    this.api.get<any>('/bbb/info').subscribe({
+    this.api.get<any>('/bbb/info').pipe(takeUntil(this.destroy$)).subscribe({
       next: () => this.servidorConfigurado.set(true),
       error: (e) => {
         if (e?.status === 503) this.servidorConfigurado.set(false);
@@ -349,14 +349,14 @@ export class BbbComponent implements OnInit, OnDestroy {
     const params: any = {};
     if (this.ctx.plantel()?.id) params.plantel_id = this.ctx.plantel()?.id;
     if (this.filtroEstado) params.estado = this.filtroEstado;
-    this.api.get<BbbReunion[]>('/bbb/reuniones', params).subscribe({
+    this.api.get<BbbReunion[]>('/bbb/reuniones', params).pipe(takeUntil(this.destroy$)).subscribe({
       next: r => { this.reuniones.set(r); this.cargando.set(false); },
       error: () => this.cargando.set(false),
     });
   }
 
   cargarGrupos() {
-    this.api.get<any[]>('/grupos').subscribe({
+    this.api.get<any[]>('/grupos').pipe(takeUntil(this.destroy$)).subscribe({
       next: g => this.grupos.set(g.map((x: any) => ({ ...x, _label: grupoLabel(x) || x.nombre_grupo }))),
       error: () => {},
     });
@@ -382,7 +382,7 @@ export class BbbComponent implements OnInit, OnDestroy {
     this.api.post('/bbb/reuniones', {
       ...this.crearForm,
       plantel_id: this.ctx.plantel()?.id,
-    }).subscribe({
+    }).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.notify.success('Reunión creada. Comparte el enlace cuando sea el momento.');
         this.crearVisible = false;
@@ -397,7 +397,7 @@ export class BbbComponent implements OnInit, OnDestroy {
   }
 
   unirse(r: BbbReunion, rol: 'moderador' | 'asistente') {
-    this.api.get<{ join_url: string }>(`/bbb/reuniones/${r.id}/join`, { rol }).subscribe({
+    this.api.get<{ join_url: string }>(`/bbb/reuniones/${r.id}/join`, { rol }).pipe(takeUntil(this.destroy$)).subscribe({
       next: d => window.open(d.join_url, '_blank', 'noopener'),
       error: (e) => this.notify.error(e?.error?.detail || 'No se pudo obtener el enlace de acceso'),
     });
@@ -405,7 +405,7 @@ export class BbbComponent implements OnInit, OnDestroy {
 
   terminarReunion(r: BbbReunion) {
     if (!confirm(`¿Terminar la reunión "${r.nombre}"?`)) return;
-    this.api.post(`/bbb/reuniones/${r.id}/terminar`, {}).subscribe({
+    this.api.post(`/bbb/reuniones/${r.id}/terminar`, {}).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => { this.notify.success('Reunión terminada'); this.cargarReuniones(); },
       error: () => this.notify.error('Error al terminar la reunión'),
     });
@@ -413,7 +413,7 @@ export class BbbComponent implements OnInit, OnDestroy {
 
   cancelarReunion(r: BbbReunion) {
     if (!confirm(`¿Cancelar la reunión "${r.nombre}"?`)) return;
-    this.api.delete(`/bbb/reuniones/${r.id}`).subscribe({
+    this.api.delete(`/bbb/reuniones/${r.id}`).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => { this.notify.success('Reunión cancelada'); this.cargarReuniones(); },
       error: () => this.notify.error('Error al cancelar la reunión'),
     });
@@ -424,7 +424,7 @@ export class BbbComponent implements OnInit, OnDestroy {
     this.cargandoGrab.set(true);
     this.grabVisible = true;
     this.grabaciones.set([]);
-    this.api.get<BbbGrabacion[]>(`/bbb/reuniones/${r.id}/grabaciones`).subscribe({
+    this.api.get<BbbGrabacion[]>(`/bbb/reuniones/${r.id}/grabaciones`).pipe(takeUntil(this.destroy$)).subscribe({
       next: g => { this.grabaciones.set(g); this.cargandoGrab.set(false); },
       error: () => this.cargandoGrab.set(false),
     });

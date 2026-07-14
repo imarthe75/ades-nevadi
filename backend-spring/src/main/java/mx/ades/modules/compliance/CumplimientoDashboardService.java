@@ -25,9 +25,10 @@ public class CumplimientoDashboardService {
         Map<String, Object> calificaciones = jdbc.queryForMap("""
             SELECT
                 COUNT(DISTINCT i.estudiante_id) AS total_alumnos_activos,
-                COUNT(DISTINCT c.inscripcion_id) FILTER (WHERE c.calificacion_final IS NOT NULL) AS con_calificacion_capturada
+                COUNT(DISTINCT i.id) FILTER (WHERE cp.calificacion_final IS NOT NULL) AS con_calificacion_capturada
             FROM ades_inscripciones i
-            LEFT JOIN ades_calificaciones c ON c.inscripcion_id = i.id
+            LEFT JOIN ades_calificaciones_periodo cp
+                ON cp.estudiante_id = i.estudiante_id AND cp.grupo_id = i.grupo_id AND cp.is_active = TRUE
             WHERE i.is_active = TRUE
             """);
 

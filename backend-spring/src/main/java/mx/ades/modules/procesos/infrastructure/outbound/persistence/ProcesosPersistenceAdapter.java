@@ -54,12 +54,18 @@ public class ProcesosPersistenceAdapter implements PreinscripcionRepositoryPort 
                 personaId, admision.nombre(), admision.apellidoPaterno(), admision.curp(),
                 command.username(), command.username());
 
+        // plantel_id es NOT NULL en ades_estudiantes — se resuelve desde el grupo destino
+        // (grupo -> grado -> plantel), no llegaba antes y el INSERT siempre fallaba.
+        UUID plantelId = jdbc.queryForObject(
+                "SELECT gr.plantel_id FROM ades_grados gr JOIN ades_grupos g ON g.grado_id = gr.id WHERE g.id = ?",
+                UUID.class, command.grupoId());
+
         UUID estudianteId = UUID.randomUUID();
         String matricula = "MAT-" + (100000 + new Random().nextInt(900000));
         jdbc.update(
-                "INSERT INTO ades_estudiantes (id, persona_id, matricula, usuario_creacion, usuario_modificacion) " +
-                "VALUES (?, ?, ?, ?, ?)",
-                estudianteId, personaId, matricula, command.username(), command.username());
+                "INSERT INTO ades_estudiantes (id, persona_id, matricula, plantel_id, usuario_creacion, usuario_modificacion) " +
+                "VALUES (?, ?, ?, ?, ?, ?)",
+                estudianteId, personaId, matricula, plantelId, command.username(), command.username());
 
         jdbc.update(
                 "INSERT INTO ades_inscripciones " +

@@ -24,18 +24,36 @@ public class PlaneacionCommandService {
     @Transactional
     public Map<String, Object> crearPlaneacion(UUID grupoId, UUID temaId,
                                                LocalDate fecha, String descripcion, String recursos) {
+        // numero_trimestre no llegaba como parámetro y quedaba NULL en todas las filas
+        // (rompía boleta/estadísticas por trimestre); se deriva del periodo de evaluación
+        // vigente del grupo para la fecha planeada.
+        Integer numeroTrimestre = null;
+        try {
+            numeroTrimestre = jdbc.queryForObject(
+                    """
+                    SELECT pe.numero_periodo FROM ades_periodos_evaluacion pe
+                    JOIN ades_grupos g ON g.ciclo_escolar_id = pe.ciclo_escolar_id
+                    WHERE g.id = ? AND ? BETWEEN pe.fecha_inicio AND pe.fecha_fin AND pe.is_active = TRUE
+                    ORDER BY pe.numero_periodo LIMIT 1
+                    """,
+                    Integer.class, grupoId, fecha);
+        } catch (Exception ignored) {
+            // sin periodo configurado para esa fecha — se deja NULL, no bloquea la planeación
+        }
+
         String sql = """
             INSERT INTO ades_planeacion_clases
-                (grupo_id, tema_id, fecha_planeada, descripcion_actividades, recursos_didacticos)
-            VALUES (?::uuid, ?::uuid, ?, ?, ?)
+                (grupo_id, tema_id, fecha_planeada, descripcion_actividades, recursos_didacticos, numero_trimestre)
+            VALUES (?::uuid, ?::uuid, ?, ?, ?, ?)
             ON CONFLICT (grupo_id, tema_id) WHERE is_active = TRUE
                 DO UPDATE SET fecha_planeada           = EXCLUDED.fecha_planeada,
                               descripcion_actividades   = EXCLUDED.descripcion_actividades,
-                              recursos_didacticos       = EXCLUDED.recursos_didacticos
+                              recursos_didacticos       = EXCLUDED.recursos_didacticos,
+                              numero_trimestre          = COALESCE(EXCLUDED.numero_trimestre, ades_planeacion_clases.numero_trimestre)
             RETURNING id
             """;
         UUID id = jdbc.queryForObject(sql, UUID.class,
-                grupoId.toString(), temaId.toString(), fecha, descripcion, recursos);
+                grupoId.toString(), temaId.toString(), fecha, descripcion, recursos, numeroTrimestre);
         return Map.of("id", id, "estado", EstadoTema.PLANEADO.name());
     }
 
@@ -342,6 +360,8 @@ public class PlaneacionCommandService {
         UUID materiaId = (UUID) context.get("materia_id");
 
         // Crear tarea — el trigger heredará automáticamente aprendizajes_esperados[]
+        // OJO: RETURNING id (no ref) — ades_tareas_entregas.tarea_id referencia ades_tareas.id,
+        // y todos los demás endpoints (ej. /tareas/{id}/entregas) tratan "id" como el handle real.
         String sqlCreateTarea = """
             INSERT INTO ades_tareas
                 (grupo_id, materia_id, titulo, descripcion, planeacion_clase_id,
@@ -349,7 +369,7 @@ public class PlaneacionCommandService {
                  instrucciones_url, tipo_item, origen)
             VALUES
                 (?::uuid, ?::uuid, ?, ?, ?::uuid, CURRENT_DATE, ?, ?, ?, ?, 'tarea', 'PLANEACION')
-            RETURNING ref
+            RETURNING id
             """;
 
         java.util.List<Object> params = new java.util.ArrayList<>();
@@ -365,12 +385,28 @@ public class PlaneacionCommandService {
 
         UUID tareaId = jdbc.queryForObject(sqlCreateTarea, UUID.class, params.toArray());
 
+        // Generar slots de entrega PENDIENTE para cada alumno inscrito activo del grupo —
+        // sin esto la tarea queda huérfana: nadie puede entregarla ni ser calificado (a
+        // diferencia de POST /api/v1/tareas, que sí genera estos slots).
+        java.util.List<UUID> estudiantes = jdbc.queryForList(
+                "SELECT estudiante_id FROM ades_inscripciones WHERE grupo_id = ?::uuid AND is_active = TRUE",
+                UUID.class, grupoId.toString());
+        int slots = 0;
+        for (UUID estudianteId : estudiantes) {
+            slots += jdbc.update("""
+                INSERT INTO ades_tareas_entregas (tarea_id, estudiante_id, estatus_entrega)
+                VALUES (?::uuid, ?::uuid, 'PENDIENTE')
+                ON CONFLICT (tarea_id, estudiante_id) DO NOTHING
+                """, tareaId.toString(), estudianteId.toString());
+        }
+
         return Map.of(
             "tarea_id", tareaId,
             "planeacion_clase_id", planeacionClaseId,
             "grupo_id", grupoId,
             "materia_id", materiaId,
             "titulo", titulo,
+            "entregas_generadas", slots,
             "mensaje", "Tarea creada. Aprendizajes esperados heredados automáticamente."
         );
     }
@@ -394,11 +430,13 @@ public class PlaneacionCommandService {
             LocalDate fecha,
             Double puntajeMaximo
     ) {
-        // Verificar que la planeación existe y obtener contexto
+        // Verificar que la planeación existe y obtener contexto (grupo, materia y ciclo,
+        // necesarios para resolver el periodo de evaluación vigente).
         String sqlGetContext = """
-            SELECT pc.grupo_id, t.materia_id
+            SELECT pc.grupo_id, t.materia_id, g.ciclo_escolar_id
             FROM ades_planeacion_clases pc
             JOIN ades_temas t ON t.id = pc.tema_id
+            JOIN ades_grupos g ON g.id = pc.grupo_id
             WHERE pc.ref = ?::uuid AND pc.is_active = TRUE
             """;
 
@@ -411,19 +449,37 @@ public class PlaneacionCommandService {
         }
 
         UUID grupoId = (UUID) context.get("grupo_id");
+        UUID materiaId = (UUID) context.get("materia_id");
+        UUID cicloEscolarId = (UUID) context.get("ciclo_escolar_id");
+
+        // ades_evaluaciones no tiene columna planeacion_clase_id (a diferencia de ades_tareas);
+        // materia_id y periodo_evaluacion_id son NOT NULL y deben resolverse aquí.
+        UUID periodoEvaluacionId;
+        try {
+            periodoEvaluacionId = jdbc.queryForObject(
+                """
+                SELECT id FROM ades_periodos_evaluacion
+                WHERE ciclo_escolar_id = ? AND ? BETWEEN fecha_inicio AND fecha_fin AND is_active = TRUE
+                ORDER BY numero_periodo LIMIT 1
+                """,
+                UUID.class, cicloEscolarId, fecha);
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
+                "No hay un periodo de evaluación configurado para la fecha " + fecha);
+        }
 
         // Crear evaluación (examen)
         String sqlCreateEval = """
             INSERT INTO ades_evaluaciones
-                (grupo_id, nombre, descripcion, fecha, puntaje_maximo, planeacion_clase_id)
-            VALUES (?::uuid, ?, ?, ?, ?, ?::uuid)
+                (grupo_id, materia_id, periodo_evaluacion_id, nombre_evaluacion, descripcion, fecha_evaluacion, puntaje_maximo)
+            VALUES (?::uuid, ?::uuid, ?::uuid, ?, ?, ?, ?)
             RETURNING id
             """;
 
         java.util.UUID evaluacionId = jdbc.queryForObject(sqlCreateEval, UUID.class,
-                grupoId.toString(), nombreEvaluacion, descripcion, fecha,
-                puntajeMaximo != null ? puntajeMaximo : 10.0,
-                planeacionClaseId.toString());
+                grupoId.toString(), materiaId.toString(), periodoEvaluacionId.toString(),
+                nombreEvaluacion, descripcion, fecha,
+                puntajeMaximo != null ? puntajeMaximo : 10.0);
 
         return Map.of(
             "evaluacion_id", evaluacionId,

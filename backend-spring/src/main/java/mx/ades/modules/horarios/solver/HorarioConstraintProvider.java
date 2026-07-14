@@ -178,12 +178,21 @@ public class HorarioConstraintProvider implements ConstraintProvider {
                          l -> l.getTimeslot().diaSemana(),
                          ai.timefold.solver.core.api.score.stream.ConstraintCollectors.toList())
                 .penalize(HardSoftScore.ONE_SOFT, (profId, dia, lecciones) -> {
-                    if (lecciones.size() < 2) return 0;
-                    lecciones.sort(java.util.Comparator.comparing(l -> l.getTimeslot().horaInicio()));
+                    // No confiar en que el timeslot siga no-nulo al momento de esta
+                    // consecuencia: el filter/groupBy de más arriba se evalúa por evento,
+                    // pero esta lista de entidades mutables puede llegar a re-evaluarse
+                    // con una lección ya desasignada por otro movimiento del solver
+                    // (causaba NullPointerException real durante corridas reales — ver
+                    // sesión 2026-07-13).
+                    java.util.List<HorarioLeccion> conTimeslot = lecciones.stream()
+                            .filter(l -> l.getTimeslot() != null)
+                            .sorted(java.util.Comparator.comparing(l -> l.getTimeslot().horaInicio()))
+                            .toList();
+                    if (conTimeslot.size() < 2) return 0;
                     int totalGaps = 0;
-                    for (int i = 0; i < lecciones.size() - 1; i++) {
-                        java.time.LocalTime finActual = lecciones.get(i).getTimeslot().horaFin();
-                        java.time.LocalTime inicioSiguiente = lecciones.get(i + 1).getTimeslot().horaInicio();
+                    for (int i = 0; i < conTimeslot.size() - 1; i++) {
+                        java.time.LocalTime finActual = conTimeslot.get(i).getTimeslot().horaFin();
+                        java.time.LocalTime inicioSiguiente = conTimeslot.get(i + 1).getTimeslot().horaInicio();
                         long minutosHueco = java.time.Duration.between(finActual, inicioSiguiente).toMinutes();
                         // Un receso típico es de ~20 mins. Si es más de 30 mins, se considera hueco.
                         if (minutosHueco > 30) {
@@ -292,11 +301,13 @@ public class HorarioConstraintProvider implements ConstraintProvider {
                          (lesson, regla) -> regla,
                          ai.timefold.solver.core.api.score.stream.ConstraintCollectors.toList((lesson, regla) -> lesson))
                 .filter((grupoId, materia, regla, leccionesList) -> {
-                    long count30 = leccionesList.stream().filter(l -> {
+                    // Mismo riesgo que en huecosDocente: re-filtrar timeslot != null aquí
+                    // en vez de confiar en el filter de más arriba (entidad mutable).
+                    long count30 = leccionesList.stream().filter(l -> l.getTimeslot() != null).filter(l -> {
                         long mins = java.time.Duration.between(l.getTimeslot().horaInicio(), l.getTimeslot().horaFin()).toMinutes();
                         return mins > 0 && mins <= 40;
                     }).count();
-                    long count50 = leccionesList.stream().filter(l -> {
+                    long count50 = leccionesList.stream().filter(l -> l.getTimeslot() != null).filter(l -> {
                         long mins = java.time.Duration.between(l.getTimeslot().horaInicio(), l.getTimeslot().horaFin()).toMinutes();
                         return mins > 40;
                     }).count();

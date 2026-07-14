@@ -257,7 +257,7 @@ export class CondicionesCronicasComponent implements OnInit, OnDestroy {
     this.cargando.set(true);
     const params: any = {};
     if (this.busquedaAlumnoId) params.alumno_id = this.busquedaAlumnoId;
-    this.api.get<Condicion[]>('/condiciones-cronicas', params).subscribe({
+    this.api.get<Condicion[]>('/condiciones-cronicas', params).pipe(takeUntil(this.destroy$)).subscribe({
       next: d => { this.condiciones.set(d); this.cargando.set(false); },
       error: () => { this.cargando.set(false); this.notify.error('Error al cargar condiciones'); },
     });
@@ -292,7 +292,7 @@ export class CondicionesCronicasComponent implements OnInit, OnDestroy {
     const req$ = this.editandoId
       ? this.api.patch(`/condiciones-cronicas/${this.editandoId}`, this.form)
       : this.api.post('/condiciones-cronicas', this.form);
-    req$.subscribe({
+    req$.pipe(takeUntil(this.destroy$)).subscribe({
       next: () => { this.guardando.set(false); this.dialogForm = false; this.notify.success('Condición guardada'); this.cargar(); },
       error: e => { this.guardando.set(false); this.notify.error(e.error?.detail ?? 'Error al guardar'); },
     });
@@ -300,7 +300,7 @@ export class CondicionesCronicasComponent implements OnInit, OnDestroy {
 
   eliminar(c: Condicion) {
     if (!confirm(`¿Eliminar la condición ${c.tipo_condicion} de ${c.alumno_nombre}?`)) return;
-    this.api.delete(`/condiciones-cronicas/${c.id}`).subscribe({
+    this.api.delete(`/condiciones-cronicas/${c.id}`).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => { this.notify.success('Condición eliminada'); this.cargar(); },
       error: e => this.notify.error(e.error?.detail ?? 'Error'),
     });
@@ -308,7 +308,7 @@ export class CondicionesCronicasComponent implements OnInit, OnDestroy {
 
   verAlerta() {
     if (!this.busquedaAlumnoId) return;
-    this.api.get<AlertaEmergencia[]>(`/condiciones-cronicas/alumno/${this.busquedaAlumnoId}/alerta`).subscribe({
+    this.api.get<AlertaEmergencia[]>(`/condiciones-cronicas/alumno/${this.busquedaAlumnoId}/alerta`).pipe(takeUntil(this.destroy$)).subscribe({
       next: d => { this.alertas.set(d); this.dialogAlerta = true; },
       error: () => this.notify.error('Error al cargar alerta de emergencia'),
     });

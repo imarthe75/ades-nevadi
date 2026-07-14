@@ -605,7 +605,7 @@ export class PadresAdminComponent implements OnInit, OnDestroy {
 
   // ─────────────────────────────────────────────────────────────
   ngOnInit(): void {
-    this.api.get<any[]>('/catalogos').subscribe({
+    this.api.get<any[]>('/catalogos').pipe(takeUntil(this.destroy$)).subscribe({
       next: cats => {
         const ocup = cats.find(c => c.codigo === 'CAT_OCUPACIONES');
         if (ocup) this.ocupacionesOpts.set(ocup.items ?? []);
@@ -636,7 +636,7 @@ export class PadresAdminComponent implements OnInit, OnDestroy {
       this.estudiantesSugg.set([]);
       return;
     }
-    this.api.get<any[]>('/portal/buscar', { q: event.query }).subscribe({
+    this.api.get<any[]>('/portal/buscar', { q: event.query }).pipe(takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         this.estudiantesSugg.set((res ?? []).map((a: any) => ({
           id: a.id,
@@ -666,7 +666,7 @@ export class PadresAdminComponent implements OnInit, OnDestroy {
   cargarContactos(): void {
     if (!this.estudianteSeleccionado) return;
     this.loading.set(true);
-    this.api.get<ContactoFamiliar[]>(`/contactos?estudiante_id=${this.estudianteSeleccionado}`).subscribe({
+    this.api.get<ContactoFamiliar[]>(`/contactos?estudiante_id=${this.estudianteSeleccionado}`).pipe(takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         this.contactos.set(Array.isArray(res) ? res : (res as any).data ?? []);
         this.loading.set(false);
@@ -681,7 +681,7 @@ export class PadresAdminComponent implements OnInit, OnDestroy {
   cargarTutores(): void {
     if (!this.estudianteSeleccionado) return;
     this.loadingTutores.set(true);
-    this.api.get<TutorAlumno[]>(`/portal-familias/tutores/${this.estudianteSeleccionado}`).subscribe({
+    this.api.get<TutorAlumno[]>(`/portal-familias/tutores/${this.estudianteSeleccionado}`).pipe(takeUntil(this.destroy$)).subscribe({
       next: (d) => { this.tutores.set(Array.isArray(d) ? d : []); this.loadingTutores.set(false); },
       error: () => { this.loadingTutores.set(false); },
     });
@@ -729,7 +729,7 @@ export class PadresAdminComponent implements OnInit, OnDestroy {
       ? this.api.patch<any>(endpoint, payload)
       : this.api.post<any>(endpoint, payload);
 
-    req.subscribe({
+    req.pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.notify.success('Guardado', `Contacto ${this.contactoEditado ? 'actualizado' : 'creado'} correctamente`);
         this.mostrarFormulario.set(false);
@@ -749,7 +749,7 @@ export class PadresAdminComponent implements OnInit, OnDestroy {
       header: 'Confirmar eliminación',
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
-        this.api.delete(`/contactos/${row.id}`).subscribe({
+        this.api.delete(`/contactos/${row.id}`).pipe(takeUntil(this.destroy$)).subscribe({
           next: () => { this.notify.success('Eliminado', 'Contacto eliminado correctamente'); this.cargarContactos(); },
           error: () => { this.notify.error('Error', 'No se pudo eliminar el contacto'); },
         });
@@ -786,7 +786,7 @@ export class PadresAdminComponent implements OnInit, OnDestroy {
       puede_recoger: this.agregarTutorForm.puedeRecoger,
       nivel_acceso_portal: this.agregarTutorForm.nivelAccesoPortal,
     };
-    this.api.post(`/portal-familias/tutores/${this.estudianteSeleccionado}`, body).subscribe({
+    this.api.post(`/portal-familias/tutores/${this.estudianteSeleccionado}`, body).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.guardandoTutor.set(false);
         this.dlgAgregarTutor = false;
@@ -810,7 +810,7 @@ export class PadresAdminComponent implements OnInit, OnDestroy {
       header: 'Confirmar eliminación',
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
-        this.api.delete(`/portal-familias/tutores/${row.id}`).subscribe({
+        this.api.delete(`/portal-familias/tutores/${row.id}`).pipe(takeUntil(this.destroy$)).subscribe({
           next: () => {
             this.notify.success('Eliminado', 'Vínculo de tutor eliminado');
             if (this.tutorSeleccionado()?.id === row.id) this.tutorSeleccionado.set(null);
@@ -846,7 +846,7 @@ export class PadresAdminComponent implements OnInit, OnDestroy {
       email: this.crearCuentaForm.email,
       nombre_completo: this.crearCuentaForm.nombreCompleto,
     };
-    this.api.post('/portal-familias/crear-usuario', body).subscribe({
+    this.api.post('/portal-familias/crear-usuario', body).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.guardandoTutor.set(false);
         this.dlgCrearCuenta = false;
@@ -882,7 +882,7 @@ export class PadresAdminComponent implements OnInit, OnDestroy {
       puede_comunicarse_docentes: this.accesoForm.puedeComunicarseDocentes,
       razon_restriccion: this.accesoForm.razonRestriccion || null,
     };
-    this.api.post(`/portal-familias/restriccion/${tutor.id}`, body).subscribe({
+    this.api.post(`/portal-familias/restriccion/${tutor.id}`, body).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.guardandoTutor.set(false);
         this.dlgConfigurarAccesos = false;

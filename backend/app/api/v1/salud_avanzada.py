@@ -57,7 +57,7 @@ async def certificado_deportivo(
                     p.apellido_paterno,
                     p.apellido_materno,
                     e.matricula,
-                    g.nombre            AS grupo_nombre,
+                    g.nombre_grupo      AS grupo_nombre,
                     em.tipo_sangre,
                     em.alergias,
                     em.condiciones_cronicas,
@@ -65,7 +65,8 @@ async def certificado_deportivo(
                     ps.cedula_profesional
                 FROM ades_estudiantes e
                 JOIN ades_personas p ON p.id = e.persona_id
-                LEFT JOIN ades_grupos g ON g.id = e.grupo_id
+                LEFT JOIN ades_inscripciones i ON i.estudiante_id = e.id AND i.is_active = true
+                LEFT JOIN ades_grupos g ON g.id = i.grupo_id
                 LEFT JOIN ades_expedientes_medicos em ON em.estudiante_id = e.id AND em.is_active = true
                 LEFT JOIN ades_personal_salud ps
                     ON ps.plantel_id = e.plantel_id AND ps.is_active = true
@@ -128,12 +129,13 @@ async def acta_incidente(
                     p.apellido_paterno,
                     p.apellido_materno,
                     e.matricula,
-                    g.nombre            AS grupo_nombre,
+                    g.nombre_grupo      AS grupo_nombre,
                     ps_p.nombre || ' ' || ps_p.apellido_paterno AS especialista
                 FROM ades_incidentes_medicos im
                 JOIN ades_estudiantes e ON e.id = im.estudiante_id
                 JOIN ades_personas p ON p.id = e.persona_id
-                LEFT JOIN ades_grupos g ON g.id = e.grupo_id
+                LEFT JOIN ades_inscripciones i ON i.estudiante_id = e.id AND i.is_active = true
+                LEFT JOIN ades_grupos g ON g.id = i.grupo_id
                 LEFT JOIN ades_personal_salud ps
                     ON ps.plantel_id = e.plantel_id AND ps.is_active = true
                 LEFT JOIN ades_personas ps_p ON ps_p.id = ps.persona_id

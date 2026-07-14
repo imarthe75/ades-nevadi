@@ -5,6 +5,7 @@ import { ButtonModule } from 'primeng/button';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { MessageModule } from 'primeng/message';
 import { TooltipModule } from 'primeng/tooltip';
+import { Subject, takeUntil } from 'rxjs';
 
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
@@ -84,6 +85,7 @@ type DashKey = 'instituto' | 'plantel' | 'docente' | 'alumno';
   `],
 })
 export class BiComponent implements OnInit, OnDestroy {
+  private readonly destroy$ = new Subject<void>();
   private readonly api  = inject(ApiService);
   private readonly ctx  = inject(ContextService);
   private readonly san  = inject(DomSanitizer);
@@ -103,7 +105,10 @@ export class BiComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void { this.cargar(); }
-  ngOnDestroy(): void {}
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
 
   cargar(): void {
     this.cargando.set(true);
@@ -119,7 +124,7 @@ export class BiComponent implements OnInit, OnDestroy {
     if (ciclo?.id) params['ciclo_id'] = ciclo.id;
     if (nivel?.id) params['nivel_id'] = nivel.id;
 
-    this.api.get<GuestTokenResp>(`/superset/dashboard/${this.dashKey}`, params).subscribe({
+    this.api.get<GuestTokenResp>(`/superset/dashboard/${this.dashKey}`, params).pipe(takeUntil(this.destroy$)).subscribe({
       next: resp => {
         this.embedUrl.set(resp.embed_url);
         const contextParams = new URLSearchParams();

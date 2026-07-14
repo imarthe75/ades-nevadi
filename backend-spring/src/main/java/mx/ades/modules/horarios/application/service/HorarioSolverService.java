@@ -22,6 +22,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 @RequiredArgsConstructor
 public class HorarioSolverService {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(HorarioSolverService.class);
+
     private final SolverManager<HorarioPlan> solverManager;
     private final SolutionManager<HorarioPlan, HardSoftScore> solutionManager;
     private final HorarioCorridaRepository corridaRepository;
@@ -94,6 +96,7 @@ public class HorarioSolverService {
 
     private final mx.ades.modules.horarios.config.HorarioReglaRepository reglaRepository;
     private final mx.ades.modules.horarios.config.HorarioFranjaRepository franjaRepository;
+    private final mx.ades.modules.horarios.AsignacionDocenteRepository asignacionDocenteRepository;
 
     public UUID iniciarCorrida(UUID plantelId, UUID cicloEscolarId, String generadoPor,
             List<HorarioTimeslot> providedTimeslots, List<HorarioLeccion> lecciones) {
@@ -177,6 +180,119 @@ public class HorarioSolverService {
         return corridaId;
     }
 
+    /**
+     * Calcula las lecciones que el generador de horarios debe programar para un plantel/ciclo:
+     * une las ya existentes en {@code ades_horarios} (con su horario ya asignado) con las
+     * pendientes derivadas de {@code ades_asignaciones_docentes} × {@code ades_materias_plan.horas_semana}
+     * que aún no tienen suficientes sesiones agendadas. Sin esto, el solver no tiene forma de
+     * generar un horario desde cero — solo puede reordenar lo que ya existe.
+     */
+    public List<HorarioLeccion> generarLeccionesSugeridas(UUID plantelId, UUID cicloEscolarId) {
+        List<mx.ades.modules.horarios.AsignacionDocente> asignaciones =
+                asignacionDocenteRepository.findByPlantelIdAndCicloEscolarId(plantelId, cicloEscolarId);
+
+        List<HorarioLeccion> resultado = new java.util.ArrayList<>();
+
+        for (mx.ades.modules.horarios.AsignacionDocente asignacion : asignaciones) {
+            List<Horario> existentes = horarioRepository.findByGrupoId(asignacion.getGrupoId()).stream()
+                    .filter(h -> h.getMateriaId().equals(asignacion.getMateriaId())
+                            && h.getCicloEscolarId().equals(cicloEscolarId)
+                            && Boolean.TRUE.equals(h.getIsActive()))
+                    .toList();
+
+            for (Horario h : existentes) {
+                HorarioLeccion leccion = new HorarioLeccion();
+                leccion.setId(h.getId());
+                leccion.setCorridaId(null);
+                leccion.setCicloEscolarId(cicloEscolarId);
+                leccion.setGrupoId(h.getGrupoId());
+                leccion.setMateriaId(h.getMateriaId());
+                leccion.setProfesorId(h.getProfesorId());
+                leccion.setAulaId(h.getAulaId());
+                // El timeslot debe traer el id REAL de ades_horario_franjas — Timefold rechaza
+                // ("outside of the related value range") cualquier valor asignado que no exista,
+                // por identidad completa, en la lista de valores del solver. Antes se creaba con
+                // id=null, lo cual siempre rompía cualquier re-corrida sobre un horario ya generado
+                // (bug real encontrado al reoptimizar). Si la franja original ya no existe, se deja
+                // el timeslot sin asignar (no fijado) para que el solver le busque un lugar válido.
+                UUID franjaId = resolverFranjaId(cicloEscolarId, h.getGrupoId(), h.getDiaSemana(), h.getHoraInicio(), h.getHoraFin());
+                if (franjaId != null) {
+                    leccion.setFijado(h.getFijado());
+                    leccion.setTimeslot(new HorarioTimeslot(franjaId, h.getDiaSemana().intValue(), h.getHoraInicio(), h.getHoraFin(), null));
+                } else {
+                    leccion.setFijado(false);
+                    leccion.setTimeslot(null);
+                }
+                resultado.add(leccion);
+            }
+
+            double horasSemana = horasSemanaParaAsignacion(asignacion.getMateriaId(), asignacion.getGrupoId(), cicloEscolarId);
+            int leccionesRequeridas = Math.max(1, (int) Math.round(horasSemana));
+            int faltantes = leccionesRequeridas - existentes.size();
+            for (int i = 0; i < faltantes; i++) {
+                HorarioLeccion pendiente = new HorarioLeccion();
+                pendiente.setId(UUID.randomUUID());
+                pendiente.setCorridaId(null);
+                pendiente.setCicloEscolarId(cicloEscolarId);
+                pendiente.setGrupoId(asignacion.getGrupoId());
+                pendiente.setMateriaId(asignacion.getMateriaId());
+                pendiente.setProfesorId(asignacion.getProfesorId());
+                pendiente.setAulaId(null);
+                pendiente.setFijado(false);
+                pendiente.setTimeslot(null);
+                resultado.add(pendiente);
+            }
+        }
+        return resultado;
+    }
+
+    /** Resuelve el id real de ades_horario_franjas para el día/hora de un Horario ya existente,
+     * scoping por el nivel/plantel del grupo (una franja puede ser global o específica de plantel). */
+    private UUID resolverFranjaId(UUID cicloEscolarId, UUID grupoId, short diaSemana,
+            java.time.LocalTime horaInicio, java.time.LocalTime horaFin) {
+        try {
+            return jdbc.queryForObject("""
+                SELECT hf.id FROM ades_horario_franjas hf
+                JOIN ades_grupos g ON g.id = ?
+                JOIN ades_grados gr ON gr.id = g.grado_id
+                WHERE hf.ciclo_escolar_id = ? AND hf.dia_semana = ? AND hf.hora_inicio = ? AND hf.hora_fin = ?
+                  AND hf.nivel_educativo_id = gr.nivel_educativo_id
+                  AND (hf.plantel_id IS NULL OR hf.plantel_id = gr.plantel_id)
+                LIMIT 1
+                """, UUID.class, grupoId, cicloEscolarId, diaSemana, horaInicio, horaFin);
+        } catch (Exception e) {
+            log.warn("resolverFranjaId sin match (grupo={}, ciclo={}, dia={}, {}-{}): {}",
+                    grupoId, cicloEscolarId, diaSemana, horaInicio, horaFin, e.toString());
+            return null;
+        }
+    }
+
+    /** Horas/semana desde el plan curricular del grado (ades_materias_plan); si no hay plan publicado, cae a ades_materias.horas_semana. */
+    private double horasSemanaParaAsignacion(UUID materiaId, UUID grupoId, UUID cicloEscolarId) {
+        try {
+            Double horasPlan = jdbc.queryForObject(
+                    """
+                    SELECT mp.horas_semana FROM ades_materias_plan mp
+                    JOIN ades_grupos g ON g.grado_id = mp.grado_id
+                    WHERE mp.materia_id = ? AND g.id = ? AND mp.ciclo_escolar_id = ?
+                      AND mp.is_active = true AND mp.estado_publicacion = 'PUBLICADO'
+                    """,
+                    Double.class, materiaId, grupoId, cicloEscolarId);
+            if (horasPlan != null && horasPlan > 0) {
+                return horasPlan;
+            }
+        } catch (Exception ignored) {
+            // sin fila en el plan curricular para este grado/ciclo — cae al fallback
+        }
+        try {
+            Double horasMateria = jdbc.queryForObject(
+                    "SELECT horas_semana FROM ades_materias WHERE id = ?", Double.class, materiaId);
+            return horasMateria != null ? horasMateria : 1.0;
+        } catch (Exception ignored) {
+            return 1.0;
+        }
+    }
+
     public java.util.Map<String, Object> verificarHorario(UUID plantelId, UUID cicloEscolarId,
             List<HorarioTimeslot> providedTimeslots, List<HorarioLeccion> lecciones) {
         
@@ -241,10 +357,15 @@ public class HorarioSolverService {
 
         String analysisJson = null;
         try {
+            // SolutionManager.analyze() requiere Timefold Enterprise (no licenciado en este
+            // despliegue) — siempre lanza excepción aquí. Se captura y se guarda un JSON de
+            // error válido en vez del breakdown detallado (antes se concatenaba el mensaje
+            // crudo, con saltos de línea, produciendo JSON inválido que abortaba el UPDATE
+            // completo y dejaba la corrida atascada en SOLVING para siempre).
             ScoreAnalysis<HardSoftScore> scoreAnalysis = solutionManager.analyze(solution);
             analysisJson = objectMapper.writeValueAsString(scoreAnalysis);
         } catch (Exception e) {
-            analysisJson = "{\"error\":\"" + escapeJson(e.getMessage()) + "\"}";
+            analysisJson = toErrorJson(e.getMessage());
         }
         
         final String finalAnalysisJson = analysisJson;
@@ -265,16 +386,22 @@ public class HorarioSolverService {
     }
 
     private void marcarFallo(UUID corridaId, Throwable throwable) {
+        log.error("Corrida de solver {} falló", corridaId, throwable);
         corridaRepository.findById(corridaId).ifPresent(corrida -> {
             corrida.setEstado("ERROR");
-            corrida.setScoreAnalysisJson("{\"error\":\"" + escapeJson(throwable.getMessage()) + "\"}");
+            corrida.setScoreAnalysisJson(toErrorJson(throwable.getMessage()));
             corridaRepository.save(corrida);
         });
     }
 
     private Horario toHorario(UUID corridaId, HorarioLeccion leccion) {
         Horario horario = new Horario();
-        horario.setId(leccion.getId());
+        // Id nuevo SIEMPRE, nunca leccion.getId(): cada corrida crea su propio set de filas
+        // ades_horarios ligadas a su corridaId. Cuando la lección viene de "existentes"
+        // (generarLeccionesSugeridas), leccion.getId() es el id de la fila de una corrida
+        // ANTERIOR — reusarlo aquí violaba la PK de ades_horarios en cuanto se reoptimizaba
+        // un horario ya generado (bug real encontrado esta sesión).
+        horario.setId(UUID.randomUUID());
         horario.setGrupoId(leccion.getGrupoId());
         horario.setMateriaId(leccion.getMateriaId());
         horario.setProfesorId(leccion.getProfesorId());
@@ -290,7 +417,12 @@ public class HorarioSolverService {
         return horario;
     }
 
-    private static String escapeJson(String text) {
-        return text == null ? "" : text.replace("\\", "\\\\").replace("\"", "\\\"");
+    /** Serializa un mensaje de error como JSON válido vía Jackson (evita saltos de línea/comillas sin escapar). */
+    private String toErrorJson(String message) {
+        try {
+            return objectMapper.writeValueAsString(java.util.Map.of("error", message == null ? "" : message));
+        } catch (Exception e) {
+            return "{\"error\":\"unknown\"}";
+        }
     }
 }

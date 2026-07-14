@@ -407,7 +407,7 @@ export class CertificadosComponent implements OnInit, OnDestroy {
 
   cargar(): void {
     this.cargando.set(true);
-    this.api.get<Certificado[]>('/certificados').subscribe({
+    this.api.get<Certificado[]>('/certificados').pipe(takeUntil(this.destroy$)).subscribe({
       next: (data) => {
         this.certificados.set(data);
         this.total.set(data.length);
@@ -424,7 +424,7 @@ export class CertificadosComponent implements OnInit, OnDestroy {
 
   buscarAlumnos(query: string): void {
     if (query.length < 2) return;
-    this.api.get<any[]>('/portal/buscar', { q: query }).subscribe({
+    this.api.get<any[]>('/portal/buscar', { q: query }).pipe(takeUntil(this.destroy$)).subscribe({
       next: (data) => {
         this.alumnoOpts.set((data ?? []).map(a => {
           const nom = [a.nombre, a.apellido_paterno, a.apellido_materno].filter(Boolean).join(' ');
@@ -457,7 +457,7 @@ export class CertificadosComponent implements OnInit, OnDestroy {
       ...this.emitirForm,
       ciclo_escolar_id: ciclo.id,
       promedio_final: this.emitirForm.promedio_final || undefined,
-    }).subscribe({
+    }).pipe(takeUntil(this.destroy$)).subscribe({
       next: (blob: Blob) => {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -477,7 +477,7 @@ export class CertificadosComponent implements OnInit, OnDestroy {
 
   firmarCertificado(cert: Certificado): void {
     this.firmando.set(cert.id);
-    this.api.post(`/certificados/${cert.id}/firmar`, {}).subscribe({
+    this.api.post(`/certificados/${cert.id}/firmar`, {}).pipe(takeUntil(this.destroy$)).subscribe({
       next: (r: any) => {
         this.notify.success('Firmado', `Folio ${r.folio} — firma Ed25519 aplicada`);
         this.firmando.set(null);
@@ -499,7 +499,7 @@ export class CertificadosComponent implements OnInit, OnDestroy {
       ciclo_escolar_id: ciclo?.id,
       grado_completado: cert.grado_completado,
       promedio_final:   cert.promedio_final,
-    }).subscribe({
+    }).pipe(takeUntil(this.destroy$)).subscribe({
       next: (blob: Blob) => {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -521,7 +521,7 @@ export class CertificadosComponent implements OnInit, OnDestroy {
   }
 
   cargarLlaveActiva(): void {
-    this.api.get('/certificados/llave/activa').subscribe({
+    this.api.get('/certificados/llave/activa').pipe(takeUntil(this.destroy$)).subscribe({
       next: (l: any) => this.llaveActiva.set(l),
       error: () => {},
     });
@@ -529,7 +529,7 @@ export class CertificadosComponent implements OnInit, OnDestroy {
 
   generarLlave(): void {
     this.generandoLlave.set(true);
-    this.api.post('/certificados/llave/generar', {}).subscribe({
+    this.api.post('/certificados/llave/generar', {}).pipe(takeUntil(this.destroy$)).subscribe({
       next: (r: any) => {
         this.nuevaLlave.set(r);
         this.generandoLlave.set(false);
@@ -548,7 +548,7 @@ export class CertificadosComponent implements OnInit, OnDestroy {
     this.api.post('/certificados/llave/registrar', {
       nombre: `Llave Instituto Nevadi ${new Date().getFullYear()}`,
       clave_publica_b64: llave.publica_b64,
-    }).subscribe({
+    }).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.notify.success('Llave registrada', 'La llave pública queda activa en la BD');
         this.nuevaLlave.set(null);

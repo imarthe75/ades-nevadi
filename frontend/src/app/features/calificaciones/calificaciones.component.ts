@@ -362,7 +362,7 @@ export class CalificacionesComponent implements OnInit, OnDestroy {
 
     // Cargar config cualitativa si aún no está cargada
     if (!this.cualConfig()) {
-      this.api.get<any>('/calificaciones/config-cualitativa', { nivel: 'PRIMARIA' }).subscribe({
+      this.api.get<any>('/calificaciones/config-cualitativa', { nivel: 'PRIMARIA' }).pipe(takeUntil(this.destroy$)).subscribe({
         next: cfg => this.cualConfig.set(cfg),
         error: () => {},
       });
@@ -374,11 +374,11 @@ export class CalificacionesComponent implements OnInit, OnDestroy {
     if (cicloId) planParams['ciclo_id'] = cicloId;
 
     // Cargar planes del grado para obtener las materia_ids vigentes
-    this.api.get<any[]>('/planes-estudio', planParams).subscribe({
+    this.api.get<any[]>('/planes-estudio', planParams).pipe(takeUntil(this.destroy$)).subscribe({
       next: planes => {
         const materiaIds = new Set(planes.map((p: any) => p.materia_id).filter(Boolean));
         // Cargar todas las materias y filtrar por las que están en el plan del grado
-        this.api.get<Materia[]>('/materias').subscribe({
+        this.api.get<Materia[]>('/materias').pipe(takeUntil(this.destroy$)).subscribe({
           next: all => {
             const filtradas = materiaIds.size > 0
               ? all.filter(m => materiaIds.has(m.id))
@@ -393,7 +393,7 @@ export class CalificacionesComponent implements OnInit, OnDestroy {
         const nivelNombre = this.selectedGrupo?.nombre_nivel;
         const params: Record<string, any> = {};
         if (nivelNombre) params['nivel'] = nivelNombre;
-        this.api.get<Materia[]>('/materias', params).subscribe({
+        this.api.get<Materia[]>('/materias', params).pipe(takeUntil(this.destroy$)).subscribe({
           next: all => this.materias.set(all.sort((a, b) => a.nombre_materia.localeCompare(b.nombre_materia))),
           error: () => this.materias.set([]),
         });
@@ -407,7 +407,7 @@ export class CalificacionesComponent implements OnInit, OnDestroy {
     this.api.get<LibretaGrupo>(
       `/calificaciones/grupo/${this.selectedGrupo.id}/libreta`,
       { materia_id: this.selectedMateria.id },
-    ).subscribe(l => this.libreta.set(l));
+    ).pipe(takeUntil(this.destroy$)).subscribe(l => this.libreta.set(l));
   }
 
   isEdited(estudianteId: string, periodo: string): boolean {
@@ -484,7 +484,7 @@ export class CalificacionesComponent implements OnInit, OnDestroy {
     requests.forEach((payload: any) => {
       const endpoint = payload._endpoint;
       const { _endpoint, ...body } = payload;
-      this.api.post(endpoint, body).subscribe({
+      this.api.post(endpoint, body).pipe(takeUntil(this.destroy$)).subscribe({
         next: () => {
           completed++;
           if (completed === requests.length && !hasError) {

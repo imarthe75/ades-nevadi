@@ -5,6 +5,8 @@ import mx.ades.modules.asistencias.domain.port.in.ConsultarAsistenciasPorClaseUs
 import mx.ades.modules.asistencias.domain.port.in.RegistrarAsistenciaMasivaUseCase;
 import mx.ades.modules.asistencias.infrastructure.inbound.rest.dto.AsistenciaResponseDto;
 import mx.ades.modules.asistencias.infrastructure.inbound.rest.dto.RegistrarAsistenciaItemDto;
+import mx.ades.security.AdesUser;
+import mx.ades.security.AdesUserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -25,21 +27,24 @@ public class AsistenciaController {
 
     private final RegistrarAsistenciaMasivaUseCase registrarAsistenciaMasiva;
     private final ConsultarAsistenciasPorClaseUseCase consultarAsistenciasPorClase;
+    private final AdesUserService userService;
 
     @PostMapping("/registrar-lote")
     public ResponseEntity<Void> registrarLote(
             @RequestBody List<RegistrarAsistenciaItemDto> items,
             @AuthenticationPrincipal Jwt jwt) {
-        String usuario = jwt != null ? jwt.getClaimAsString("email") : "sistema";
+        AdesUser user = requireStaff(jwt);
         registrarAsistenciaMasiva.ejecutar(
                 items.stream().map(RegistrarAsistenciaItemDto::toCommand).toList(),
-                usuario);
+                user.getUsername());
         return ResponseEntity.ok().build();
     }
 
     @GetMapping("/clase/{claseId}")
     public ResponseEntity<List<AsistenciaResponseDto>> listarPorClase(
-            @PathVariable("claseId") UUID claseId) {
+            @PathVariable("claseId") UUID claseId,
+            @AuthenticationPrincipal Jwt jwt) {
+        userService.resolveUser(jwt);
         return ResponseEntity.ok(
                 consultarAsistenciasPorClase.ejecutar(claseId).stream()
                         .map(AsistenciaResponseDto::from)
@@ -55,7 +60,8 @@ public class AsistenciaController {
             @PathVariable("claseId") UUID claseId,
             @RequestBody Map<String, Object> body,
             @AuthenticationPrincipal Jwt jwt) {
-        String usuario = jwt.getClaimAsString("email");
+        AdesUser user = requireStaff(jwt);
+        String usuario = user.getUsername();
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> lista = (List<Map<String, Object>>) body.get("asistencias");
         if (lista == null || lista.isEmpty()) return ResponseEntity.ok().build();
@@ -88,5 +94,19 @@ public class AsistenciaController {
             items.stream().map(RegistrarAsistenciaItemDto::toCommand).toList(),
             usuario);
         return ResponseEntity.ok().build();
+    }
+
+    /**
+     * Registrar asistencia es operación de personal escolar (nivelAcceso &le;4).
+     * Antes de este fix, cualquier JWT válido (incluidos alumnos/padres, nivelAcceso
+     * &ge;5) podía invocar estos endpoints — la firma del token se validaba pero
+     * nunca se resolvía el usuario ADES ni se comprobaba su rol (BFLA/OWASP API5).
+     */
+    private AdesUser requireStaff(Jwt jwt) {
+        AdesUser user = userService.resolveUser(jwt);
+        if (user.getNivelAcceso() == null || user.getNivelAcceso() > 4) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Nivel de acceso insuficiente para esta operación");
+        }
+        return user;
     }
 }

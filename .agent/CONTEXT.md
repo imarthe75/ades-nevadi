@@ -225,15 +225,15 @@ Historia y Geografía, Formación Cívica, Educación Física, Tecnología.
 | Auditoría BD | Esquema auditoria triggers PL/pgSQL | 344 triggers biu activos |
 | PgBouncer | Connection pooling transaction mode | 1.25.2 |
 | Monitoreo | Prometheus + Grafana | — |
-| Secretos | HashiCorp Vault | v7 |
-| H5P | Node.js @lumieducation/h5p-server | :8091 |
-| Automatización | n8n workflows | :5678 |
-| Notificaciones | ntfy push notifications | :2586 |
-| OCR | Paperless-ngx + Celery | — |
-| Documentos | Stirling-PDF + Carbone | :8081 / :3001 |
-| Servidor | ARM OCI 4 cores 24 GB RAM | — |
-| Dominio dev | ades.setag.mx 129.213.35.140 | — |
-| SSL | Let's Encrypt válido 2026-09-01 | — |
+| Secretos | Vault deshabilitado — secretos en `.env` (servidor limitado) | ver memoria `vault-disabled-secrets-in-env` |
+| H5P | Definido en compose, no levantado en este servidor (recursos limitados) | :8091 (si se activa) |
+| Automatización | n8n — no levantado en este servidor | — |
+| Notificaciones | ntfy push notifications | ✅ corriendo :2586 |
+| OCR | Paperless-ngx — no levantado en este servidor | — |
+| Documentos | Stirling-PDF + Carbone — comentados en docker-compose.yml, no levantados | — |
+| Servidor | ARM 2 cores / 12 GB RAM — migrado 2026-07-10 | ver `docs/MIGRACION_2026_07_10.md` |
+| Dominio dev | ades.setag.mx 163.192.138.130 (anterior: 129.213.35.140) | — |
+| SSL | Let's Encrypt válido hasta 2026-10-08 | — |
 
 ---
 

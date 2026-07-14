@@ -12,7 +12,16 @@ echo "=== Checking if Vault is initialized ==="
 if ! vault operator init -status >/dev/null 2>&1; then
   echo "Vault is not initialized. Initializing..."
   mkdir -p /vault/init
-  vault operator init -format=json > /vault/init/keys.json
+  # Antes no se validaba el código de salida: si esto fallaba (ej. permiso
+  # denegado al escribir el keyring), igual se imprimía "successfully" y el
+  # script seguía intentando unseal con un keys.json vacío/con el JSON de
+  # error de la API, produciendo prompts interactivos rotos en un contenedor
+  # no-tty. Ahora se aborta explícitamente si el init real falla.
+  if ! vault operator init -format=json > /vault/init/keys.json; then
+    echo "ERROR: vault operator init falló — ver mensaje arriba. Abortando."
+    rm -f /vault/init/keys.json
+    exit 1
+  fi
   chmod 600 /vault/init/keys.json
   echo "Vault initialized successfully."
 else
@@ -43,18 +52,22 @@ if [ -f /vault/init/keys.json ]; then
   # Enable kv-v2
   vault secrets enable -path=secret kv-v2 2>/dev/null || echo "KV engine already enabled."
   
-  # Setup default secrets
+  # Setup default secrets — leídos de variables de entorno (pasadas desde .env vía
+  # docker-compose), nunca hardcodeados en este script (antes tenía credenciales
+  # reales de un setup anterior escritas en texto plano y commiteadas a git).
   vault kv put secret/ades \
-    DATABASE_URL="postgresql+asyncpg://ades_admin:El7xr7qt0Nj-N8Rjs9QO1ul4gD-fYpjo@ades-postgres:5432/ades" \
-    DATABASE_URL_SYNC="postgresql://ades_admin:El7xr7qt0Nj-N8Rjs9QO1ul4gD-fYpjo@ades-postgres:5432/ades" \
-    SECRET_KEY="v0fmzdRZTy22eQ8g0exjYFYLyLsfmthq" \
-    DATABASE_ENCRYPTION_KEY="ades_encryption_key_2026" \
-    VALKEY_URL="redis://:4cbJ20czDNxBCqJYK3kZiCQj9sK_ZqO1@ades-valkey:6379/0" \
-    CELERY_BROKER_URL="redis://:4cbJ20czDNxBCqJYK3kZiCQj9sK_ZqO1@ades-valkey:6379/0" \
-    CELERY_RESULT_URL="redis://:4cbJ20czDNxBCqJYK3kZiCQj9sK_ZqO1@ades-valkey:6379/0" \
-    MINIO_ENDPOINT="ades-seaweedfs:9000" \
-    MINIO_ACCESS_KEY="ades_minio" \
-    MINIO_SECRET_KEY="sTA9yP9Zh6LCRc1UFxLkd_nPh6AsJU_b"
+    DATABASE_URL="postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@ades-pgbouncer:5432/ades" \
+    DATABASE_URL_SYNC="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@ades-pgbouncer:5432/ades" \
+    SECRET_KEY="${API_SECRET_KEY}" \
+    DATABASE_ENCRYPTION_KEY="${PII_ENCRYPTION_KEY}" \
+    VALKEY_URL="redis://:${VALKEY_PASSWORD}@ades-valkey:6379/0" \
+    CELERY_BROKER_URL="redis://:${VALKEY_PASSWORD}@ades-valkey:6379/0" \
+    CELERY_RESULT_URL="redis://:${VALKEY_PASSWORD}@ades-valkey:6379/0" \
+    MINIO_ENDPOINT="${MINIO_ENDPOINT}" \
+    MINIO_ACCESS_KEY="${MINIO_ACCESS_KEY}" \
+    MINIO_SECRET_KEY="${MINIO_SECRET_KEY}" \
+    OIDC_CLIENT_SECRET="${OIDC_CLIENT_SECRET}" \
+    ADES_INTERNAL_API_KEY="${ADES_INTERNAL_API_KEY}"
     
   echo "=== Vault successfully unsealed and secrets loaded ==="
 else

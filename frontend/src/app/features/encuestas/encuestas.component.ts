@@ -672,7 +672,7 @@ export class EncuestasComponent implements OnInit, OnDestroy {
     this.loading.set(true);
     const plantel = this.ctx.plantel();
     const params = plantel ? { plantel_id: plantel.id } : {};
-    this.api.get<Encuesta[]>('/encuestas', params).subscribe({
+    this.api.get<Encuesta[]>('/encuestas', params).pipe(takeUntil(this.destroy$)).subscribe({
       next: (r) => { this.encuestas.set(r); this.loading.set(false); },
       error: () => this.loading.set(false),
     });
@@ -687,7 +687,7 @@ export class EncuestasComponent implements OnInit, OnDestroy {
 
   cargarPreguntas(): void {
     if (!this.selEncuesta) return;
-    this.api.get<any>(`/encuestas/${this.selEncuesta.id}`).subscribe(d => {
+    this.api.get<any>(`/encuestas/${this.selEncuesta.id}`).pipe(takeUntil(this.destroy$)).subscribe(d => {
       this.preguntas.set(d.preguntas ?? []);
       this.initRespuestas();
     });
@@ -702,7 +702,7 @@ export class EncuestasComponent implements OnInit, OnDestroy {
   cargarResultados(): void {
     if (!this.selEncuesta) return;
     this.loadingResultados.set(true);
-    this.api.get<Resultados>(`/encuestas/${this.selEncuesta.id}/resultados`).subscribe({
+    this.api.get<Resultados>(`/encuestas/${this.selEncuesta.id}/resultados`).pipe(takeUntil(this.destroy$)).subscribe({
       next: (r) => { this.resultados.set(r); this.loadingResultados.set(false); },
       error: () => this.loadingResultados.set(false),
     });
@@ -725,7 +725,7 @@ export class EncuestasComponent implements OnInit, OnDestroy {
       plantel_id: plantel?.id ?? null,
       fecha_inicio: this.formNueva.fecha_inicio || null,
       fecha_fin:    this.formNueva.fecha_fin    || null,
-    }).subscribe({
+    }).pipe(takeUntil(this.destroy$)).subscribe({
       next: (r) => {
         this.showNueva = false;
         this.saving.set(false);
@@ -737,14 +737,14 @@ export class EncuestasComponent implements OnInit, OnDestroy {
 
   toggleActiva(): void {
     if (!this.selEncuesta) return;
-    this.api.patch(`/encuestas/${this.selEncuesta.id}/toggle-activa`, {}).subscribe(r => {
+    this.api.patch(`/encuestas/${this.selEncuesta.id}/toggle-activa`, {}).pipe(takeUntil(this.destroy$)).subscribe(r => {
       this.cargar();
     });
   }
 
   eliminarEncuesta(): void {
     if (!this.selEncuesta) return;
-    this.api.delete(`/encuestas/${this.selEncuesta.id}`).subscribe(() => {
+    this.api.delete(`/encuestas/${this.selEncuesta.id}`).pipe(takeUntil(this.destroy$)).subscribe(() => {
       this.selEncuesta = null;
       this.preguntas.set([]);
       this.cargar();
@@ -777,7 +777,7 @@ export class EncuestasComponent implements OnInit, OnDestroy {
       opciones,
       orden:        this.formPreg.orden,
       obligatoria:  this.formPreg.obligatoria,
-    }).subscribe({
+    }).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => { this.showPregunta = false; this.saving.set(false); this.cargarPreguntas(); },
       error: () => this.saving.set(false),
     });
@@ -785,7 +785,7 @@ export class EncuestasComponent implements OnInit, OnDestroy {
 
   eliminarPregunta(p: Pregunta): void {
     if (!this.selEncuesta) return;
-    this.api.delete(`/encuestas/${this.selEncuesta.id}/preguntas/${p.id}`).subscribe(() => {
+    this.api.delete(`/encuestas/${this.selEncuesta.id}/preguntas/${p.id}`).pipe(takeUntil(this.destroy$)).subscribe(() => {
       this.cargarPreguntas();
     });
   }
@@ -813,7 +813,7 @@ export class EncuestasComponent implements OnInit, OnDestroy {
       };
     }).filter(r => r.valor_numerico != null || r.opcion_seleccionada || r.texto_respuesta);
 
-    this.api.post(`/encuestas/${this.selEncuesta.id}/responder`, { respuestas }).subscribe({
+    this.api.post(`/encuestas/${this.selEncuesta.id}/responder`, { respuestas }).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => { this.saving.set(false); this.respuestaEnviada.set(true); this.resultados.set(null); },
       error: () => this.saving.set(false),
     });

@@ -201,7 +201,7 @@ export class JustificacionesComponent implements OnInit, OnDestroy {
     const params: any = {};
     if (this.filtroEstudianteId) params.estudiante_id = this.filtroEstudianteId;
     if (this.filtroEstado) params.estado = this.filtroEstado;
-    this.api.get<Justificacion[]>('/justificaciones', params).subscribe({
+    this.api.get<Justificacion[]>('/justificaciones', params).pipe(takeUntil(this.destroy$)).subscribe({
       next: d => { this.justificaciones.set(d); this.cargando.set(false); },
       error: () => { this.cargando.set(false); this.notify.error('Error al cargar justificaciones'); },
     });
@@ -220,14 +220,14 @@ export class JustificacionesComponent implements OnInit, OnDestroy {
       return;
     }
     this.guardando.set(true);
-    this.api.post('/justificaciones', this.nuevaForm).subscribe({
+    this.api.post('/justificaciones', this.nuevaForm).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => { this.guardando.set(false); this.dialogNueva = false; this.notify.success('Justificación registrada'); this.cargar(); },
       error: e => { this.guardando.set(false); this.notify.error(e.error?.detail ?? 'Error al registrar'); },
     });
   }
 
   resolver(j: Justificacion, accion: string) {
-    this.api.post(`/justificaciones/${j.id}/resolver`, { accion }).subscribe({
+    this.api.post(`/justificaciones/${j.id}/resolver`, { accion }).pipe(takeUntil(this.destroy$)).subscribe({
       next: (r: any) => { this.notify.success(`Justificación ${r.estado}`); this.cargar(); },
       error: e => this.notify.error(e.error?.detail ?? 'Error'),
     });
@@ -243,7 +243,7 @@ export class JustificacionesComponent implements OnInit, OnDestroy {
     if (!this.motivoRechazo.trim()) { this.notify.warning('El motivo es obligatorio'); return; }
     this.guardando.set(true);
     this.api.post(`/justificaciones/${this.rechazandoId}/resolver`,
-      { accion: 'RECHAZAR', motivo_rechazo: this.motivoRechazo }).subscribe({
+      { accion: 'RECHAZAR', motivo_rechazo: this.motivoRechazo }).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => { this.guardando.set(false); this.dialogRechazo = false; this.notify.success('Justificación rechazada'); this.cargar(); },
       error: e => { this.guardando.set(false); this.notify.error(e.error?.detail ?? 'Error'); },
     });

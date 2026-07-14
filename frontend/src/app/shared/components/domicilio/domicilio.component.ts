@@ -151,6 +151,7 @@ interface PersonaContacto {
             <div class="form-row full">
               <label>{{ contactoEdit.medio === 'EMAIL' ? 'Correo electrónico *' : 'Número *' }}</label>
               <input pInputText [(ngModel)]="contactoEdit.valor"
+                [adesFormat]="contactoEdit.medio === 'EMAIL' ? 'email' : (contactoEdit.medio === 'CELULAR' || contactoEdit.medio === 'FIJO' || contactoEdit.medio === 'WHATSAPP' ? 'telefono' : 'safe')"
                 [type]="contactoEdit.medio === 'EMAIL' ? 'email' : 'tel'"
                 [placeholder]="contactoEdit.medio === 'EMAIL' ? 'usuario@correo.com' : '10 dígitos'" />
             </div>
@@ -248,6 +249,7 @@ interface PersonaContacto {
               <label>Código Postal *</label>
               <div class="cp-input-wrap">
                 <input pInputText [(ngModel)]="cpBusqueda"
+                  adesFormat="cp"
                   (ngModelChange)="onCpChange($event)"
                   maxlength="5" placeholder="5 dígitos"
                   style="font-family:monospace;width:100px" />

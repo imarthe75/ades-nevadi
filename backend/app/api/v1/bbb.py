@@ -147,7 +147,7 @@ async def listar_reuniones(
     rows = await db.execute(
         text(f"""
             SELECT r.id, r.meeting_id, r.nombre, r.descripcion, r.tipo,
-                   r.grupo_id, g.nombre_grupo, r.plantel_id, pl.nombre AS plantel_nombre,
+                   r.grupo_id, g.nombre_grupo, r.plantel_id, pl.nombre_plantel AS plantel_nombre,
                    r.fecha_programada, r.duracion_max_min, r.grabar,
                    r.estado, r.participantes_max, r.bienvenida_msg, r.fecha_creacion,
                    p.nombre || ' ' || p.apellido_paterno AS organizador
@@ -238,7 +238,7 @@ async def detalle_reunion(
 ):
     row = await db.execute(
         text("""
-            SELECT r.*, g.nombre_grupo, pl.nombre AS plantel_nombre,
+            SELECT r.*, g.nombre_grupo, pl.nombre_plantel AS plantel_nombre,
                    p.nombre || ' ' || p.apellido_paterno AS organizador
             FROM ades_bbb_reuniones r
             LEFT JOIN ades_grupos g ON r.grupo_id = g.id

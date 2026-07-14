@@ -1,13 +1,14 @@
 # ADES — Claude Code Guidelines
-# Versión: 2.5 | Actualizado: 2026-07-08
-# **NOTA:** Auditoría 16 Puntos de Optimización completada. Ver sección "OPTIMIZACIÓN AL 100%" abajo.
+# Versión: 2.6 | Actualizado: 2026-07-12
+# **NOTA:** Los 3 puntos críticos de Fase 1 (@EntityGraph, OnDestroy, SQL prepared statements)
+# verificados en vivo y en verde el 2026-07-12 — ver sección "OPTIMIZACIÓN AL 100%" abajo.
 
 ## MISIÓN Y CONTEXTO
 
 ADES es el sistema integral de administración escolar del Instituto Nevadi (México).
 3 planteles, 3 niveles educativos (Primaria SEP, Secundaria SEP, Preparatoria UAEMEX).
 Repositorio: https://github.com/imarthe75/ades-nevadi
-Servidor desarrollo: ades.setag.mx (129.213.35.140) — ARM OCI 4 cores 24 GB RAM
+Servidor desarrollo: ades.setag.mx (163.192.138.130) — migrado 2026-07-10 (anterior: 129.213.35.140). 2 cores / 12 GB RAM (ver `docs/MIGRACION_2026_07_10.md`)
 Contexto completo: .agent/CONTEXT.md
 
 **Naturaleza del proyecto:** software **donado** al Instituto Nevadi, institución
@@ -186,14 +187,18 @@ celery -A app.worker.celery_app worker --loglevel=info
 
 ---
 
-## OPTIMIZACIÓN AL 100% — 16 PUNTOS CRÍTICOS (NUEVA — 2026-07-08)
+## OPTIMIZACIÓN AL 100% — 16 PUNTOS CRÍTICOS (verificado en vivo — 2026-07-12)
 
-**Estado actual (auditoría 2026-07-08):**
+**Estado actual (medición en vivo 2026-07-12 — no confiar en el commit `1657e0f` del
+2026-07-08 que declaraba esto "implementado"; la medición real ese día mostraba
+OnDestroy en 7/79, muy por debajo de meta):**
 ```
-@EntityGraph implementados:    0/20 (META) ❌
-OnDestroy implementados:        0/70 (META) ❌
-SQL concatenation vulnerabilidades: DESCONOCIDO ⚠️
+@EntityGraph implementados:    28/20 (META) ✅
+OnDestroy implementados:       79/70 (META) ✅ (67 componentes remediados 2026-07-12)
+SQL concatenation vulnerabilidades: 0 ✅ (grep "'+'" en backend-spring/src)
 ```
+Los 3 puntos críticos de Fase 1 están en verde. Fases 2-3 (índices, paginación,
+OnPush, @Cacheable, etc.) sin auditar en esta sesión.
 
 **Objetivo:** 100% de los 16 puntos implementados en 3 fases.
 

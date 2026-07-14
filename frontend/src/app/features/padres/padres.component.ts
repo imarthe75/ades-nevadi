@@ -375,7 +375,7 @@ export class PadresComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    this.api.get<AlumnoVinculado[]>('/padres/mis-alumnos').subscribe({
+    this.api.get<AlumnoVinculado[]>('/padres/mis-alumnos').pipe(takeUntil(this.destroy$)).subscribe({
       next: lista => {
         this.alumnos.set(lista);
         this.loading.set(false);
@@ -398,7 +398,7 @@ export class PadresComponent implements OnInit, OnDestroy {
       this.estudiantesSugg.set([]);
       return;
     }
-    this.api.get<any[]>('/portal/buscar', { q: event.query }).subscribe({
+    this.api.get<any[]>('/portal/buscar', { q: event.query }).pipe(takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         this.estudiantesSugg.set((res ?? []).map((a: any) => ({
           estudiante_id: a.id,
@@ -434,7 +434,7 @@ export class PadresComponent implements OnInit, OnDestroy {
     this.conductaAlumno.set([]);
 
     // Cargar resumen del portal (reutiliza el endpoint existente)
-    this.api.get<any>(`/portal/alumno/${alumno.estudiante_id}`).subscribe({
+    this.api.get<any>(`/portal/alumno/${alumno.estudiante_id}`).pipe(takeUntil(this.destroy$)).subscribe({
       next: data => {
         this.resumen.set({
           promedio_general: data.kpis?.promedio_general ?? null,
@@ -449,19 +449,19 @@ export class PadresComponent implements OnInit, OnDestroy {
     });
 
     // Calificaciones
-    this.api.get<CalificacionResumen[]>(`/padres/calificaciones/${alumno.estudiante_id}`).subscribe({
+    this.api.get<CalificacionResumen[]>(`/padres/calificaciones/${alumno.estudiante_id}`).pipe(takeUntil(this.destroy$)).subscribe({
       next: c => this.calificaciones.set(c),
       error: () => {},
     });
 
     // Tareas pendientes del alumno
-    this.api.get<any[]>(`/entregas/alumno/${alumno.estudiante_id}`, { solo_pendientes: false }).subscribe({
+    this.api.get<any[]>(`/entregas/alumno/${alumno.estudiante_id}`, { solo_pendientes: false }).pipe(takeUntil(this.destroy$)).subscribe({
       next: e => this.tareasAlumno.set(e),
       error: () => {},
     });
 
     // Reportes de conducta del alumno
-    this.api.get<any[]>('/conducta', { estudiante_id: alumno.estudiante_id }).subscribe({
+    this.api.get<any[]>('/conducta', { estudiante_id: alumno.estudiante_id }).pipe(takeUntil(this.destroy$)).subscribe({
       next: r => this.conductaAlumno.set(r),
       error: () => {},
     });

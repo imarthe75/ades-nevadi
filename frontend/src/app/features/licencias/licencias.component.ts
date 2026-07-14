@@ -263,7 +263,7 @@ export class LicenciasComponent implements OnInit, OnDestroy {
     if (this.filtroEstado) params['estado'] = this.filtroEstado;
     if (this.filtroTipo)   params['tipo']   = this.filtroTipo;
     if (this.filtroNombre) params['q']      = this.filtroNombre;
-    this.api.get<Licencia[]>('/licencias', params).subscribe({
+    this.api.get<Licencia[]>('/licencias', params).pipe(takeUntil(this.destroy$)).subscribe({
       next: data => { this.licencias.set(data); this.cargando.set(false); },
       error: () => { this.cargando.set(false); this.notify.error('Error al cargar licencias'); },
     });
@@ -271,7 +271,7 @@ export class LicenciasComponent implements OnInit, OnDestroy {
 
   buscarPersonal(event: { query: string }) {
     if (!event.query || event.query.length < 2) { this.personalSugerencias.set([]); return; }
-    this.api.get<any>('/profesores', { buscar: event.query }).subscribe({
+    this.api.get<any>('/profesores', { buscar: event.query }).pipe(takeUntil(this.destroy$)).subscribe({
       next: res => {
         const data = res?.data ?? res ?? [];
         this.personalSugerencias.set(data.map((p: any) => ({
@@ -303,7 +303,7 @@ export class LicenciasComponent implements OnInit, OnDestroy {
       motivo:          this.form.motivo || null,
       con_goce_sueldo: this.form.con_goce_sueldo,
     };
-    this.api.post<Licencia>('/licencias', payload).subscribe({
+    this.api.post<Licencia>('/licencias', payload).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.guardando.set(false);
         this.dialogNueva = false;
@@ -320,7 +320,7 @@ export class LicenciasComponent implements OnInit, OnDestroy {
   }
 
   aprobar(lic: Licencia) {
-    this.api.post<Licencia>(`/licencias/${lic.id}/aprobar`, null).subscribe({
+    this.api.post<Licencia>(`/licencias/${lic.id}/aprobar`, null).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => { this.notify.success('Licencia aprobada'); this.cargar(); },
       error: (e) => this.notify.error(e.error?.detail ?? 'Error al aprobar'),
     });
@@ -338,7 +338,7 @@ export class LicenciasComponent implements OnInit, OnDestroy {
     this.api.post<Licencia>(
       `/licencias/${this.licenciaARechazar.id}/rechazar?motivo_rechazo=${encodeURIComponent(this.motivoRechazo)}`,
       null
-    ).subscribe({
+    ).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.guardando.set(false);
         this.dialogRechazar = false;
@@ -350,7 +350,7 @@ export class LicenciasComponent implements OnInit, OnDestroy {
   }
 
   cancelar(lic: Licencia) {
-    this.api.delete(`/licencias/${lic.id}`).subscribe({
+    this.api.delete(`/licencias/${lic.id}`).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => { this.notify.success('Licencia cancelada'); this.cargar(); },
       error: (e) => this.notify.error(e.error?.detail ?? 'Error al cancelar'),
     });

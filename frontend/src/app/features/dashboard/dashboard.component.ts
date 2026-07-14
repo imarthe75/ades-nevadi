@@ -615,7 +615,7 @@ export class DashboardComponent implements OnDestroy {
 
       this.loading.set(true);
       this.errorResumen.set(null);
-      this.api.get<ResumenPlantel>('/stats/resumen', params).subscribe({
+      this.api.get<ResumenPlantel>('/stats/resumen', params).pipe(takeUntil(this.destroy$)).subscribe({
         next: (r) => {
           this.resumen.set(r);
           this.loading.set(false);
@@ -631,7 +631,7 @@ export class DashboardComponent implements OnDestroy {
 
       this.loadingChart.set(true);
       this.errorDistribucion.set(null);
-      this.api.get<DistribucionNivel[]>('/stats/distribucion', params).subscribe({
+      this.api.get<DistribucionNivel[]>('/stats/distribucion', params).pipe(takeUntil(this.destroy$)).subscribe({
         next: (d) => {
           this.distribucion.set(d);
           this.loadingChart.set(false);
@@ -650,7 +650,7 @@ export class DashboardComponent implements OnDestroy {
     if (this.ctx.esAdminGlobal()) {
       this.loadingPlanteles.set(true);
       this.errorPlanteles.set(null);
-      this.api.get<PlantelStats[]>('/planteles/stats').subscribe({
+      this.api.get<PlantelStats[]>('/planteles/stats').pipe(takeUntil(this.destroy$)).subscribe({
         next: s => {
           this.stats.set(s);
           this.loadingPlanteles.set(false);
@@ -702,7 +702,7 @@ export class DashboardComponent implements OnDestroy {
     this.api.patch(`/admin/planteles/${this.plantelEdit.id}`, {
       nombre_plantel: this.plantelEdit.nombre_plantel,
       clave_ct: this.plantelEdit.clave_ct,
-    }).subscribe({
+    }).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.stats.update(list => list.map(s =>
           s.id === this.plantelEdit!.id
@@ -755,7 +755,7 @@ export class DashboardComponent implements OnDestroy {
     const params = plantelId ? { plantel_id: plantelId } : {};
     this.loading.set(true);
     this.errorResumen.set(null);
-    this.api.get<ResumenPlantel>('/stats/resumen', params).subscribe({
+    this.api.get<ResumenPlantel>('/stats/resumen', params).pipe(takeUntil(this.destroy$)).subscribe({
       next: (r) => {
         this.resumen.set(r);
         this.loading.set(false);
@@ -773,7 +773,7 @@ export class DashboardComponent implements OnDestroy {
   recargarPlanteles(): void {
     this.loadingPlanteles.set(true);
     this.errorPlanteles.set(null);
-    this.api.get<PlantelStats[]>('/planteles/stats').subscribe({
+    this.api.get<PlantelStats[]>('/planteles/stats').pipe(takeUntil(this.destroy$)).subscribe({
       next: s => {
         this.stats.set(s);
         this.loadingPlanteles.set(false);

@@ -652,7 +652,7 @@ export class ConductaComponent implements OnInit, OnDestroy {
     const plantelId = ctx.plantel()?.id;
     const params: Record<string, any> = { solo_activos: true, ciclo_vigente: true };
     if (plantelId) params['plantel_id'] = plantelId;
-    api.get<Grupo[]>('/grupos', params).subscribe({
+    api.get<Grupo[]>('/grupos', params).pipe(takeUntil(this.destroy$)).subscribe({
       next: gs => gOpts.set(gs.map(g => ({ ...g, _label: grupoLabel(g) }))),
       error: () => {},
     });
@@ -673,7 +673,7 @@ export class ConductaComponent implements OnInit, OnDestroy {
     const grado   = this.ctx.grado();   if (grado?.id)   params['grado_id']   = grado.id;
     const grupo   = this.ctx.grupo();   if (grupo?.id)   params['grupo_id']   = grupo.id;
 
-    this.api.get<any[]>('/conducta', params).subscribe({
+    this.api.get<any[]>('/conducta', params).pipe(takeUntil(this.destroy$)).subscribe({
       next: r => {
         this.reportes.set(r.map(x => ({
           ...x,
@@ -694,7 +694,7 @@ export class ConductaComponent implements OnInit, OnDestroy {
     this.detalleTab = '0';
     this.loadingDetalle.set(true);
     this.detalle.set(null);
-    this.api.get<any>(`/conducta/${reporte.id}/detalle-completo`).subscribe({
+    this.api.get<any>(`/conducta/${reporte.id}/detalle-completo`).pipe(takeUntil(this.destroy$)).subscribe({
       next: d => {
         this.detalle.set(d);
         // Pre-cargar valores de actualización
@@ -744,7 +744,7 @@ export class ConductaComponent implements OnInit, OnDestroy {
         ? new Date(this.sancionForm.fecha_sancion).toISOString().slice(0, 10)
         : null,
       notificado_padres: this.sancionForm.notificado_padres,
-    }).subscribe({
+    }).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.notify.success('Sanción aplicada');
         this.savingSancion.set(false);
@@ -766,7 +766,7 @@ export class ConductaComponent implements OnInit, OnDestroy {
       estado: this.sancionUpdate.estado,
       notificado_padres: this.sancionUpdate.notificado_padres,
       medio_notificacion: this.sancionUpdate.notificado_padres ? this.sancionUpdate.medio_notificacion : null,
-    }).subscribe({
+    }).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.notify.success('Sanción actualizada');
         this.savingSancion.set(false);
@@ -810,7 +810,7 @@ export class ConductaComponent implements OnInit, OnDestroy {
       fecha_primer_seguimiento: this.planForm.fecha_primer_seguimiento
         ? new Date(this.planForm.fecha_primer_seguimiento).toISOString().slice(0, 10)
         : null,
-    }).subscribe({
+    }).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.notify.success('Plan de mejora creado');
         this.savingPlan.set(false);
@@ -833,7 +833,7 @@ export class ConductaComponent implements OnInit, OnDestroy {
       firmado_padre:    this.planUpdate.firmado_padre,
       firmado_director: this.planUpdate.firmado_director,
       estado:           this.planUpdate.estado,
-    }).subscribe({
+    }).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.notify.success('Plan actualizado');
         this.savingPlan.set(false);
@@ -864,7 +864,7 @@ export class ConductaComponent implements OnInit, OnDestroy {
         ? new Date(this.segForm.fecha_seguimiento).toISOString().slice(0, 10)
         : null,
       nuevo_estado_plan: this.segForm.nuevo_estado_plan,
-    }).subscribe({
+    }).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.notify.success('Seguimiento registrado');
         this.savingSeg.set(false);
@@ -894,7 +894,7 @@ export class ConductaComponent implements OnInit, OnDestroy {
     this.api.post<any>('/conducta', {
       ...payload,
       medida_aplicada: payload.medida_aplicada || null,
-    }).subscribe({
+    }).pipe(takeUntil(this.destroy$)).subscribe({
       next: (r) => {
         this.reportes.update(list => [{
           ...r,
@@ -917,7 +917,7 @@ export class ConductaComponent implements OnInit, OnDestroy {
     const params: Record<string, any> = { q: event.query };
     const plantelId = this.ctx.plantel()?.id;
     if (plantelId) params['plantel_id'] = plantelId;
-    this.api.get<any[]>('/portal/buscar', params).subscribe({
+    this.api.get<any[]>('/portal/buscar', params).pipe(takeUntil(this.destroy$)).subscribe({
       next: (r: any) => {
         this.alumnosSugg.set((r ?? []).map((a: any) => ({
           id: a.id,
@@ -949,7 +949,7 @@ export class ConductaComponent implements OnInit, OnDestroy {
   private recargarDetalle(): void {
     const reporteId = this.selectedReporteId();
     if (!reporteId) return;
-    this.api.get<any>(`/conducta/${reporteId}/detalle-completo`).subscribe({
+    this.api.get<any>(`/conducta/${reporteId}/detalle-completo`).pipe(takeUntil(this.destroy$)).subscribe({
       next: d => {
         this.detalle.set(d);
         if (d.sancion) {

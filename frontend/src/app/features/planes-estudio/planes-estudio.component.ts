@@ -774,7 +774,7 @@ export class PlanesEstudioComponent implements OnInit, OnDestroy {
   // ── Planes NEE (AC-014) ────────────────────────────────────────────────────
 
   cargarPlanesNee(grupoId: string): void {
-    this.api.get<any[]>('/planes-estudio/alternativos', { grupo_id: grupoId }).subscribe({
+    this.api.get<any[]>('/planes-estudio/alternativos', { grupo_id: grupoId }).pipe(takeUntil(this.destroy$)).subscribe({
       next: l => this.planesNee.set(l),
       error: () => this.planesNee.set([]),
     });
@@ -797,7 +797,7 @@ export class PlanesEstudioComponent implements OnInit, OnDestroy {
       grupo_id: grupoId,
       motivo: this.planNeeForm.motivo.trim(),
       materias: this.planNeeForm.materiaIds.map(id => ({ materia_id: id })),
-    }).subscribe({
+    }).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.savingPlanNee.set(false);
         this.dlgPlanNee = false;
@@ -813,7 +813,7 @@ export class PlanesEstudioComponent implements OnInit, OnDestroy {
 
   eliminarPlanNee(id: string): void {
     const grupoId = this.ctx.grupo()?.id;
-    this.api.delete(`/planes-estudio/alternativos/${id}`).subscribe({
+    this.api.delete(`/planes-estudio/alternativos/${id}`).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => { if (grupoId) this.cargarPlanesNee(grupoId); },
       error: e => this.notify.error('Error', e.error?.detail),
     });
@@ -825,7 +825,7 @@ export class PlanesEstudioComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    this.api.get<NivelOpt[]>('/catalogs/niveles').subscribe(n => {
+    this.api.get<NivelOpt[]>('/catalogs/niveles').pipe(takeUntil(this.destroy$)).subscribe(n => {
       const sorted = [...n].sort((a, b) => {
         const ai = NIVEL_ORDER.indexOf(a.nombre_nivel.toUpperCase());
         const bi = NIVEL_ORDER.indexOf(b.nombre_nivel.toUpperCase());
@@ -835,7 +835,7 @@ export class PlanesEstudioComponent implements OnInit, OnDestroy {
       if (sorted.length) this.nivelActivo.set(sorted[0].id);
     });
 
-    this.api.get<CicloOpt[]>('/catalogs/ciclos', { solo_vigentes: true }).subscribe(c => {
+    this.api.get<CicloOpt[]>('/catalogs/ciclos', { solo_vigentes: true }).pipe(takeUntil(this.destroy$)).subscribe(c => {
       this.ciclos.set(c);
       if (c.length) {
         const vigente = c.find(x => x.es_vigente) ?? c[0];
@@ -856,14 +856,14 @@ export class PlanesEstudioComponent implements OnInit, OnDestroy {
   onCicloChange(): void { this.cargarPlan(); }
 
   cargarMaterias(): void {
-    this.api.get<Materia[]>('/materias', { incluir_inactivas: true }).subscribe(m => this.materias.set(m));
+    this.api.get<Materia[]>('/materias', { incluir_inactivas: true }).pipe(takeUntil(this.destroy$)).subscribe(m => this.materias.set(m));
   }
 
   cargarGrados(): void {
     // Planes de Estudio siempre necesita ver los grados de TODOS los planteles
     // (Mapa Curricular los distingue por columna con plantel_nombre) — no filtrar
     // por el plantel del topbar, y pedir explícitamente sin deduplicar.
-    this.api.get<GradoOpt[]>('/catalogs/grados', { todos_planteles: true }).subscribe({
+    this.api.get<GradoOpt[]>('/catalogs/grados', { todos_planteles: true }).pipe(takeUntil(this.destroy$)).subscribe({
       next: g => this.grados.set(g),
       error: () => {},
     });
@@ -882,7 +882,7 @@ export class PlanesEstudioComponent implements OnInit, OnDestroy {
     const requests = ciclosVigentes.map(c =>
       this.api.get<MateriaPlan[]>('/planes-estudio', { ciclo_id: c.id })
     );
-    forkJoin(requests).subscribe({
+    forkJoin(requests).pipe(takeUntil(this.destroy$)).subscribe({
       next: results => { this.plan.set(results.flat()); this.loading.set(false); },
       error: () => this.loading.set(false),
     });
@@ -891,7 +891,7 @@ export class PlanesEstudioComponent implements OnInit, OnDestroy {
   seleccionarNivel(n: NivelOpt): void {
     this.nivelActivo.set(n.id);
     if (!this.gradosActuales().length) {
-      this.api.get<GradoOpt[]>('/catalogs/grados', { nivel_id: n.id, todos_planteles: true }).subscribe(g => {
+      this.api.get<GradoOpt[]>('/catalogs/grados', { nivel_id: n.id, todos_planteles: true }).pipe(takeUntil(this.destroy$)).subscribe(g => {
         this.grados.update(cur => [...cur.filter(x => x.nivel_educativo_id !== n.id), ...g]);
       });
     }
@@ -924,7 +924,7 @@ export class PlanesEstudioComponent implements OnInit, OnDestroy {
       materia_id: materiaId, grado_id: gradoId,
       ciclo_escolar_id: cicloId,
       horas_semana: 4, es_obligatoria: true,
-    }).subscribe({
+    }).pipe(takeUntil(this.destroy$)).subscribe({
       next: p => { this.plan.update(l => [...l, p]); },
       error: e => this.notify.error('Error', e.error?.detail ?? 'Error al asignar'),
     });
@@ -934,14 +934,14 @@ export class PlanesEstudioComponent implements OnInit, OnDestroy {
     const val = +(event.target as HTMLInputElement).value;
     this.editCellKey.set('');
     if (!val || val < 1) return;
-    this.api.patch<MateriaPlan>(`/planes-estudio/${planId}`, { horas_semana: val }).subscribe({
+    this.api.patch<MateriaPlan>(`/planes-estudio/${planId}`, { horas_semana: val }).pipe(takeUntil(this.destroy$)).subscribe({
       next: updated => this.plan.update(l => l.map(p => p.id === planId ? { ...p, horas_semana: updated.horas_semana } : p)),
       error: () => this.notify.error('Error al guardar horas'),
     });
   }
 
   quitarAsignacion(planId: string, materiaId: string, gradoId: string): void {
-    this.api.delete(`/planes-estudio/${planId}`).subscribe({
+    this.api.delete(`/planes-estudio/${planId}`).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => this.plan.update(l => l.filter(p => p.id !== planId)),
       error: e => this.notify.error('Error', e.error?.detail),
     });
@@ -949,7 +949,7 @@ export class PlanesEstudioComponent implements OnInit, OnDestroy {
 
   /** AC-015: publicar/archivar una versión del plan de estudio (materia+grado+ciclo). */
   publicarPlan(planId: string): void {
-    this.api.patch(`/planes-estudio/${planId}/publicar`, {}).subscribe({
+    this.api.patch(`/planes-estudio/${planId}/publicar`, {}).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.plan.update(l => l.map(p => p.id === planId ? { ...p, estado_publicacion: 'PUBLICADO' } : p));
         this.notify.success('Plan publicado');
@@ -959,7 +959,7 @@ export class PlanesEstudioComponent implements OnInit, OnDestroy {
   }
 
   archivarPlan(planId: string): void {
-    this.api.patch(`/planes-estudio/${planId}/archivar`, {}).subscribe({
+    this.api.patch(`/planes-estudio/${planId}/archivar`, {}).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.plan.update(l => l.map(p => p.id === planId ? { ...p, estado_publicacion: 'ARCHIVADO' } : p));
         this.notify.success('Plan archivado');
@@ -992,7 +992,7 @@ export class PlanesEstudioComponent implements OnInit, OnDestroy {
       ? this.api.patch(`/materias/${this.materiaEdit.id}`, this.materiaEdit)
       : this.api.post('/materias', this.materiaEdit);
 
-    req.subscribe({
+    req.pipe(takeUntil(this.destroy$)).subscribe({
       next: (m: any) => {
         this.materias.update(list =>
           this.materiaEdit.id ? list.map(x => x.id === m.id ? m : x) : [...list, m]
@@ -1006,7 +1006,7 @@ export class PlanesEstudioComponent implements OnInit, OnDestroy {
   }
 
   desactivarMateria(m: Materia): void {
-    this.api.patch(`/materias/${m.id}`, { is_active: false }).subscribe({
+    this.api.patch(`/materias/${m.id}`, { is_active: false }).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.materias.update(l => l.map(x => x.id === m.id ? { ...x, is_active: false } : x));
         this.notify.success('Materia desactivada');
@@ -1021,7 +1021,7 @@ export class PlanesEstudioComponent implements OnInit, OnDestroy {
     this.materiaDetalle.set(m);
     this.estadisticasDetalle.set(null);
     this.drawerVisible = true;
-    this.api.get<Estadisticas>(`/materias/${m.id}/estadisticas`).subscribe(e => this.estadisticasDetalle.set(e));
+    this.api.get<Estadisticas>(`/materias/${m.id}/estadisticas`).pipe(takeUntil(this.destroy$)).subscribe(e => this.estadisticasDetalle.set(e));
   }
 
   actividadesTipicas(m: Materia): string[] {
@@ -1068,7 +1068,7 @@ export class PlanesEstudioComponent implements OnInit, OnDestroy {
     }
     this.temarioPlanId.set(p.id);
     this.loadingTemas.set(true);
-    this.api.get<Tema[]>(`/planes-estudio/${p.id}/temas`).subscribe({
+    this.api.get<Tema[]>(`/planes-estudio/${p.id}/temas`).pipe(takeUntil(this.destroy$)).subscribe({
       next: t => { this.temas.set(t); this.loadingTemas.set(false); },
       error: () => this.loadingTemas.set(false),
     });
@@ -1098,7 +1098,7 @@ export class PlanesEstudioComponent implements OnInit, OnDestroy {
       ? this.api.put(`/planes-estudio/${planId}/temas/${this.temaEdit.id}`, this.temaEdit)
       : this.api.post(`/planes-estudio/${planId}/temas`, this.temaEdit);
 
-    req.subscribe({
+    req.pipe(takeUntil(this.destroy$)).subscribe({
       next: (t: any) => {
         this.temas.update(list =>
           this.temaEdit.id ? list.map(x => x.id === t.id ? t : x) : [...list, t]
@@ -1113,7 +1113,7 @@ export class PlanesEstudioComponent implements OnInit, OnDestroy {
 
   eliminarTema(t: Tema): void {
     const planId = this.temarioPlanId();
-    this.api.delete(`/planes-estudio/${planId}/temas/${t.id}`).subscribe({
+    this.api.delete(`/planes-estudio/${planId}/temas/${t.id}`).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => { this.temas.update(l => l.filter(x => x.id !== t.id)); this.notify.success('Tema eliminado'); },
       error: () => this.notify.error('Error al eliminar'),
     });

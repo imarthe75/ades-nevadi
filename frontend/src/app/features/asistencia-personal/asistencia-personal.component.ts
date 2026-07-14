@@ -293,7 +293,7 @@ export class AsistenciaPersonalComponent implements OnInit, OnDestroy {
     if (this.filtroNombre)      params['q']           = this.filtroNombre;
     if (this.filtroFechaInicio) params['fecha_inicio'] = this.toDateStr(this.filtroFechaInicio);
     if (this.filtroFechaFin)    params['fecha_fin']    = this.toDateStr(this.filtroFechaFin);
-    this.api.get<AsistenciaPersonal[]>('/asistencia-personal', params).subscribe({
+    this.api.get<AsistenciaPersonal[]>('/asistencia-personal', params).pipe(takeUntil(this.destroy$)).subscribe({
       next: d => { this.registros.set(d); this.cargando.set(false); },
       error: () => { this.cargando.set(false); this.notify.error('Error al cargar registros'); },
     });
@@ -301,7 +301,7 @@ export class AsistenciaPersonalComponent implements OnInit, OnDestroy {
 
   buscarPersona(event: { query: string }) {
     if (!event.query || event.query.length < 2) { this.personaSugerencias.set([]); return; }
-    this.api.get<any>('/profesores', { buscar: event.query }).subscribe({
+    this.api.get<any>('/profesores', { buscar: event.query }).pipe(takeUntil(this.destroy$)).subscribe({
       next: res => {
         const data = res?.data ?? res ?? [];
         this.personaSugerencias.set(data.map((p: any) => ({
@@ -315,7 +315,7 @@ export class AsistenciaPersonalComponent implements OnInit, OnDestroy {
 
   buscarPersonaReporte(event: { query: string }) {
     if (!event.query || event.query.length < 2) { this.personaReporteSug.set([]); return; }
-    this.api.get<any>('/profesores', { buscar: event.query }).subscribe({
+    this.api.get<any>('/profesores', { buscar: event.query }).pipe(takeUntil(this.destroy$)).subscribe({
       next: res => {
         const data = res?.data ?? res ?? [];
         this.personaReporteSug.set(data.map((p: any) => ({
@@ -359,7 +359,7 @@ export class AsistenciaPersonalComponent implements OnInit, OnDestroy {
           persona_id: this.personaSeleccionada!.value,
           fecha: this.form.fecha instanceof Date ? this.toDateStr(this.form.fecha) : this.form.fecha,
         });
-    req.subscribe({
+    req.pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.guardando.set(false); this.dialogForm = false;
         this.notify.success('Asistencia registrada');
@@ -379,7 +379,7 @@ export class AsistenciaPersonalComponent implements OnInit, OnDestroy {
     this.cargandoReporte.set(true);
     this.api.get<ReportePersonal>('/asistencia-personal/reporte', {
       persona_id: this.personaReporteSelec.value, mes: this.reporteMes, anio: this.reporteAnio,
-    }).subscribe({
+    }).pipe(takeUntil(this.destroy$)).subscribe({
       next: r => {
         this.reporte.set(r); this.cargandoReporte.set(false); this.dialogReporte = false;
         this.notify.success(`Reporte ${this.reporteMes}/${this.reporteAnio} generado`);

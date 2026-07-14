@@ -479,7 +479,7 @@ export class MovilidadComponent implements OnInit, OnDestroy {
   }
 
   cargarCatalogos(): void {
-    this.api.get<any[]>('/grupos').subscribe({
+    this.api.get<any[]>('/grupos').pipe(takeUntil(this.destroy$)).subscribe({
       next: g => this.grupos.set(g ?? []),
       error: () => {},
     });
@@ -487,7 +487,7 @@ export class MovilidadComponent implements OnInit, OnDestroy {
 
   cargar(): void {
     this.cargando.set(true);
-    this.api.get<Baja[]>('/movilidad/bajas', { solo_activas: false }).subscribe({
+    this.api.get<Baja[]>('/movilidad/bajas', { solo_activas: false }).pipe(takeUntil(this.destroy$)).subscribe({
       next: d => { this.bajas.set(Array.isArray(d) ? d : []); this.cargando.set(false); },
       error: () => {
         this.cargando.set(false);
@@ -498,7 +498,7 @@ export class MovilidadComponent implements OnInit, OnDestroy {
 
   cargarCambiosGrupo(): void {
     this.cargandoCambios.set(true);
-    this.api.get<CambioGrupo[]>('/movilidad/cambios-grupo').subscribe({
+    this.api.get<CambioGrupo[]>('/movilidad/cambios-grupo').pipe(takeUntil(this.destroy$)).subscribe({
       next: d => { this.cambiosGrupo.set(Array.isArray(d) ? d : []); this.cargandoCambios.set(false); },
       error: () => { this.cargandoCambios.set(false); },
     });
@@ -534,7 +534,7 @@ export class MovilidadComponent implements OnInit, OnDestroy {
       this.estudiantesSugg.set([]);
       return;
     }
-    this.api.get<any[]>('/portal/buscar', { q: event.query }).subscribe({
+    this.api.get<any[]>('/portal/buscar', { q: event.query }).pipe(takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         this.estudiantesSugg.set((res ?? []).map((a: any) => ({
           id: a.id,
@@ -574,7 +574,7 @@ export class MovilidadComponent implements OnInit, OnDestroy {
       fecha_reingreso: this.bajaTemporalForm.fechaReingreso?.toISOString().split('T')[0] ?? null,
       observaciones: this.bajaTemporalForm.observaciones || null,
     };
-    this.api.post(`/movilidad/baja-temporal/${this.bajaTemporalForm.estudianteId}`, body).subscribe({
+    this.api.post(`/movilidad/baja-temporal/${this.bajaTemporalForm.estudianteId}`, body).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.guardando.set(false);
         this.dlgBajaTemporal = false;
@@ -600,7 +600,7 @@ export class MovilidadComponent implements OnInit, OnDestroy {
       plantel_destino: this.bajaDefinitivaForm.plantelDestino || null,
       observaciones: this.bajaDefinitivaForm.observaciones || null,
     };
-    this.api.post(`/movilidad/baja-definitiva/${this.bajaDefinitivaForm.estudianteId}`, body).subscribe({
+    this.api.post(`/movilidad/baja-definitiva/${this.bajaDefinitivaForm.estudianteId}`, body).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.guardando.set(false);
         this.dlgBajaDefinitiva = false;
@@ -624,7 +624,7 @@ export class MovilidadComponent implements OnInit, OnDestroy {
       plantel_destino_nombre: this.trasladoForm.plantelDestinoNombre,
       motivo: this.trasladoForm.motivo,
     };
-    this.api.post(`/movilidad/traslado/${this.trasladoForm.estudianteId}`, body).subscribe({
+    this.api.post(`/movilidad/traslado/${this.trasladoForm.estudianteId}`, body).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.guardando.set(false);
         this.dlgTraslado = false;
@@ -649,7 +649,7 @@ export class MovilidadComponent implements OnInit, OnDestroy {
       motivo: this.cambioGrupoForm.motivo || null,
       ciclo_escolar_id: this.ctx.ciclo()?.id ?? null,
     };
-    this.api.post(`/movilidad/cambio-grupo/${this.cambioGrupoForm.estudianteId}`, body).subscribe({
+    this.api.post(`/movilidad/cambio-grupo/${this.cambioGrupoForm.estudianteId}`, body).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.guardando.set(false);
         this.dlgCambioGrupo = false;
@@ -678,7 +678,7 @@ export class MovilidadComponent implements OnInit, OnDestroy {
       ciclo_escolar_id: this.ctx.ciclo()?.id ?? null,
       observaciones: this.reactivarForm.observaciones || null,
     };
-    this.api.post(`/movilidad/reactivar/${this.reactivandoBaja.estudiante_id}`, body).subscribe({
+    this.api.post(`/movilidad/reactivar/${this.reactivandoBaja.estudiante_id}`, body).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.guardando.set(false);
         this.dlgReactivar = false;

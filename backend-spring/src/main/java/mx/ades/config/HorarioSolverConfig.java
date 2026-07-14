@@ -50,7 +50,8 @@ public class HorarioSolverConfig {
             HorarioRepository horarioRepository,
             mx.ades.modules.horarios.config.HorarioReglaRepository reglaRepository,
             mx.ades.modules.horarios.config.HorarioFranjaRepository franjaRepository,
-            org.springframework.jdbc.core.JdbcTemplate jdbc) {
-        return new HorarioSolverService(horarioSolverManager, horarioSolutionManager, corridaRepository, horarioRepository, jdbc, reglaRepository, franjaRepository);
+            org.springframework.jdbc.core.JdbcTemplate jdbc,
+            mx.ades.modules.horarios.AsignacionDocenteRepository asignacionDocenteRepository) {
+        return new HorarioSolverService(horarioSolverManager, horarioSolutionManager, corridaRepository, horarioRepository, jdbc, reglaRepository, franjaRepository, asignacionDocenteRepository);
     }
 }

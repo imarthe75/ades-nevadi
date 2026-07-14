@@ -17,6 +17,7 @@ import { SelectButtonModule } from 'primeng/selectbutton';
 import { TooltipModule } from 'primeng/tooltip';
 import { TextareaModule } from 'primeng/textarea';
 import { DragDropModule, CdkDragDrop } from '@angular/cdk/drag-drop';
+import { Subject, takeUntil } from 'rxjs';
 import { HorarioGridComponent, HorarioGridEntry } from '../../shared/components/horario-grid/horario-grid.component';
 
 import { ApiService } from '../../core/services/api.service';
@@ -643,6 +644,7 @@ const HORARIO_GOLDEN_REQUERIDO: Record<string, Record<string, number>> = {
   `],
 })
 export class HorariosComponent implements OnInit, OnDestroy {
+  private readonly destroy$ = new Subject<void>();
   private readonly api = inject(ApiService);
   readonly ctx = inject(ContextService);
   private readonly notify = inject(ApexNotificationService);
@@ -728,11 +730,11 @@ export class HorariosComponent implements OnInit, OnDestroy {
       const plantel = this.ctx.plantel();
       if (plantel?.id) {
         this.api.get<{ data: any[]; total: number }>('/profesores', { plantel_id: plantel.id })
-          .subscribe(resp => this.profesores.set(
+          .pipe(takeUntil(this.destroy$)).subscribe(resp => this.profesores.set(
             resp.data.map((x: any) => ({ ...x, _label: `${x.nombre ?? ''} ${x.apellido_paterno ?? ''}`.trim() || x.numero_empleado }))
           ));
         this.api.get<AulaOpt[]>('/aulas', { plantel_id: plantel.id })
-          .subscribe(a => this.aulas.set(
+          .pipe(takeUntil(this.destroy$)).subscribe(a => this.aulas.set(
             a.map(x => ({ ...x, _label: x.codigo ? `${x.codigo} — ${x.nombre}` : x.nombre }))
           ));
       } else {
@@ -765,6 +767,8 @@ export class HorariosComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.detenerPollingCorrida();
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   onModoChange(): void {
@@ -786,7 +790,7 @@ export class HorariosComponent implements OnInit, OnDestroy {
     if (!grupo) return;
     const gId = grupo.grado_id;
     this.api.get<any[]>('/planes-estudio', { grado_id: gId })
-      .subscribe(p => this.materias.set(p.map((x: any) => x.materia).filter(Boolean)));
+      .pipe(takeUntil(this.destroy$)).subscribe(p => this.materias.set(p.map((x: any) => x.materia).filter(Boolean)));
   }
 
   puedeUsarSolver(): boolean {
@@ -836,7 +840,7 @@ export class HorariosComponent implements OnInit, OnDestroy {
   iniciarPollingCorrida(corridaId: string): void {
     this.detenerPollingCorrida();
     this.corridasPollHandle = setInterval(() => {
-      this.api.get<SolverDetail>(`/horarios/solver/corridas/${corridaId}`).subscribe({
+      this.api.get<SolverDetail>(`/horarios/solver/corridas/${corridaId}`).pipe(takeUntil(this.destroy$)).subscribe({
         next: corrida => {
           this.corridaDetalle.set(corrida);
           this.sincronizarSeleccionDesdeDetalle(corrida);
@@ -873,7 +877,7 @@ export class HorariosComponent implements OnInit, OnDestroy {
       return;
     }
     this.cargandoCorridas.set(true);
-    this.api.get<SolverCorrida[]>('/horarios/solver/corridas', { plantel_id: plantelId, ciclo_id: cicloId }).subscribe({
+    this.api.get<SolverCorrida[]>('/horarios/solver/corridas', { plantel_id: plantelId, ciclo_id: cicloId }).pipe(takeUntil(this.destroy$)).subscribe({
       next: corridas => {
         this.corridasSolver.set(corridas);
         this.cargandoCorridas.set(false);
@@ -898,10 +902,10 @@ export class HorariosComponent implements OnInit, OnDestroy {
       return;
     }
     this.cargandoReporte.set(true);
-    this.api.get<any[]>('/horarios', { plantel_id: plantelId, ciclo_id: cicloId }).subscribe({
+    this.api.get<any[]>('/horarios', { plantel_id: plantelId, ciclo_id: cicloId }).pipe(takeUntil(this.destroy$)).subscribe({
       next: horarios => {
         const payload = this.construirPayloadSolver(horarios ?? [], plantelId, cicloId);
-        this.api.post<any>('/horarios/solver/verificar', payload).subscribe({
+        this.api.post<any>('/horarios/solver/verificar', payload).pipe(takeUntil(this.destroy$)).subscribe({
           next: analysis => {
             this.reporteVerificacion.set(analysis);
             this.cargandoReporte.set(false);
@@ -919,7 +923,7 @@ export class HorariosComponent implements OnInit, OnDestroy {
     });
   }
   seleccionarCorrida(id: string): void {
-    this.api.get<SolverDetail>(`/horarios/solver/corridas/${id}`).subscribe({
+    this.api.get<SolverDetail>(`/horarios/solver/corridas/${id}`).pipe(takeUntil(this.destroy$)).subscribe({
       next: corrida => {
         this.corridaDetalle.set(corrida);
         this.sincronizarSeleccionDesdeDetalle(corrida);
@@ -938,7 +942,7 @@ export class HorariosComponent implements OnInit, OnDestroy {
     const frase = this.reglaFraseIA();
     if (!frase) return;
     this.parseandoRegla.set(true);
-    this.api.post<any>('/ai/horarios/reglas/parse', { frase }).subscribe({
+    this.api.post<any>('/ai/horarios/reglas/parse', { frase }).pipe(takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         this.parseandoRegla.set(false);
         this.reglaInterpretada.set(res.parsed);
@@ -969,7 +973,7 @@ export class HorariosComponent implements OnInit, OnDestroy {
     
     this.guardandoRegla.set(true);
     // Nota: Llama al API de Spring Boot (/api/v1/horarios/reglas)
-    this.api.post<any>('/horarios/reglas', payload).subscribe({
+    this.api.post<any>('/horarios/reglas', payload).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.guardandoRegla.set(false);
         this.mostrarReglasIA.set(false);
@@ -992,10 +996,10 @@ export class HorariosComponent implements OnInit, OnDestroy {
       return;
     }
     this.ejecutandoSolver.set(true);
-    this.api.get<any[]>('/horarios', { plantel_id: plantelId, ciclo_id: cicloId }).subscribe({
+    this.api.get<any[]>('/horarios', { plantel_id: plantelId, ciclo_id: cicloId }).pipe(takeUntil(this.destroy$)).subscribe({
       next: horarios => {
         const payload = this.construirPayloadSolver(horarios ?? [], plantelId, cicloId);
-        this.api.post<SolverCorrida>('/horarios/solver/corridas', payload).subscribe({
+        this.api.post<SolverCorrida>('/horarios/solver/corridas', payload).pipe(takeUntil(this.destroy$)).subscribe({
           next: corrida => {
             this.ejecutandoSolver.set(false);
             this.notify.success('Solver', `Corrida ${corrida.id} creada con estado ${corrida.estado ?? 'N/D'}.`);
@@ -1043,7 +1047,7 @@ export class HorariosComponent implements OnInit, OnDestroy {
     const corridaId = this.corridaDetalle()?.id;
     if (!corridaId || this.horariosSeleccionados.size === 0) return;
     this.mutandoCorrida.set(true);
-    this.api.post<SolverDetail>(`/horarios/solver/corridas/${corridaId}/lock`, { horarioIds: Array.from(this.horariosSeleccionados) }).subscribe({
+    this.api.post<SolverDetail>(`/horarios/solver/corridas/${corridaId}/lock`, { horarioIds: Array.from(this.horariosSeleccionados) }).pipe(takeUntil(this.destroy$)).subscribe({
       next: corrida => {
         this.mutandoCorrida.set(false);
         this.notify.success('Solver', 'Horarios fijados correctamente.');
@@ -1062,7 +1066,7 @@ export class HorariosComponent implements OnInit, OnDestroy {
     const corridaId = this.corridaDetalle()?.id;
     if (!corridaId) return;
     this.mutandoCorrida.set(true);
-    this.api.post<SolverCorrida>(`/horarios/solver/corridas/${corridaId}/regenerar`, { horarioIds: Array.from(this.horariosSeleccionados) }).subscribe({
+    this.api.post<SolverCorrida>(`/horarios/solver/corridas/${corridaId}/regenerar`, { horarioIds: Array.from(this.horariosSeleccionados) }).pipe(takeUntil(this.destroy$)).subscribe({
       next: corrida => {
         this.mutandoCorrida.set(false);
         this.notify.success('Solver', `Nueva corrida ${corrida.id} generada.`);
@@ -1114,12 +1118,12 @@ export class HorariosComponent implements OnInit, OnDestroy {
     const cicloId = this.ctx.ciclo()?.id;
     if (this.modo === 'grupo' && this.selectedGrupoId) {
       this.api.get<any>(`/horarios/grupo/${this.selectedGrupoId}`, cicloId ? { ciclo_id: cicloId } : undefined)
-        .subscribe(r => this.entradas.set(r.entradas || r || []));
+        .pipe(takeUntil(this.destroy$)).subscribe(r => this.entradas.set(r.entradas || r || []));
     } else if (this.modo === 'profesor' && this.esDocenteSelf()) {
       this.cargarMiHorario();
     } else if (this.modo === 'profesor' && this.selectedProfesor) {
       this.api.get<any>(`/horarios/profesor/${this.selectedProfesor.id}`, cicloId ? { ciclo_id: cicloId } : undefined)
-        .subscribe(r => this.entradas.set(r.entradas || r || []));
+        .pipe(takeUntil(this.destroy$)).subscribe(r => this.entradas.set(r.entradas || r || []));
     }
   }
 
@@ -1127,7 +1131,7 @@ export class HorariosComponent implements OnInit, OnDestroy {
   cargarMiHorario(): void {
     const cicloId = this.ctx.ciclo()?.id;
     this.api.get<any>('/horarios/mi-horario', cicloId ? { ciclo_id: cicloId } : undefined)
-      .subscribe({
+      .pipe(takeUntil(this.destroy$)).subscribe({
         next: r => this.entradas.set(r.entradas || r || []),
         error: () => this.notify.error('Mi Horario', 'No se encontró un registro de profesor asociado a tu cuenta'),
       });
@@ -1182,7 +1186,7 @@ export class HorariosComponent implements OnInit, OnDestroy {
       hora_fin: item.hora_fin
     };
     
-    this.api.put(`/horarios/${item.id}`, payload).subscribe({
+    this.api.put(`/horarios/${item.id}`, payload).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.notify.success('Clase movida', 'El horario ha sido actualizado.');
         // Trigger de regeneración del signal
@@ -1258,7 +1262,7 @@ export class HorariosComponent implements OnInit, OnDestroy {
       ? this.api.patch(`/horarios/${this.editEntry.id}`, body)
       : this.api.post('/horarios', body);
 
-    req.subscribe({
+    req.pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.notify.success(this.editEntry ? 'Entrada actualizada.' : 'Entrada agregada al horario.');
         this.guardando.set(false);
@@ -1276,7 +1280,7 @@ export class HorariosComponent implements OnInit, OnDestroy {
     if (!this.editEntry) return;
     if (!confirm('¿Eliminar esta entrada del horario?')) return;
     this.guardando.set(true);
-    this.api.delete(`/horarios/${this.editEntry.id}`).subscribe({
+    this.api.delete(`/horarios/${this.editEntry.id}`).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.notify.success('Entrada eliminada.');
         this.guardando.set(false);
@@ -1297,7 +1301,7 @@ export class HorariosComponent implements OnInit, OnDestroy {
     const params: Record<string, string> = {};
     if (plantelId) params['plantel_id'] = plantelId;
     this.exportandoAsc.set(true);
-    this.api.getBlob(`/horarios/exportar-asc/${cicloId}`, params).subscribe({
+    this.api.getBlob(`/horarios/exportar-asc/${cicloId}`, params).pipe(takeUntil(this.destroy$)).subscribe({
       next: blob => {
         this.exportandoAsc.set(false);
         const url = URL.createObjectURL(blob);
@@ -1331,7 +1335,7 @@ export class HorariosComponent implements OnInit, OnDestroy {
     form.append('reemplazar', String(this.reemplazarAsc));
 
     this.importandoAsc.set(true);
-    this.api.upload<any>(`/horarios/importar-asc/${cicloId}`, form).subscribe({
+    this.api.upload<any>(`/horarios/importar-asc/${cicloId}`, form).pipe(takeUntil(this.destroy$)).subscribe({
       next: r => {
         this.importandoAsc.set(false);
         const detalle = r.errores > 0 ? ` (${r.errores} con error)` : '';

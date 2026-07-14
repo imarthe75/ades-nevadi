@@ -49,7 +49,9 @@ public class ComplianceQueryService {
     }
 
     public Map<String, Object> estadisticasSistema(UUID plantelId, UUID cicloId) {
-        String pf = plantelId != null ? " AND g.plantel_id = ?" : "";
+        // ades_grupos NO tiene columna plantel_id — el plantel del alumno se
+        // obtiene de ades_estudiantes.plantel_id directamente.
+        String pf = plantelId != null ? " AND e2.plantel_id = ?" : "";
         String cf = cicloId != null ? " AND i.ciclo_escolar_id = ?" : "";
 
         List<Object> pList = new ArrayList<>();
@@ -58,29 +60,29 @@ public class ComplianceQueryService {
         Object[] params = pList.toArray();
 
         Map<String, Object> alumnos = jdbc.queryForMap(
-                "SELECT COUNT(DISTINCT i.estudiante_id) AS total_alumnos, COUNT(DISTINCT g.plantel_id) AS planteles " +
-                "FROM ades_inscripciones i JOIN ades_grupos g ON g.id = i.grupo_id " +
+                "SELECT COUNT(DISTINCT i.estudiante_id) AS total_alumnos, COUNT(DISTINCT e2.plantel_id) AS planteles " +
+                "FROM ades_inscripciones i JOIN ades_estudiantes e2 ON e2.id = i.estudiante_id " +
                 "WHERE i.is_active = TRUE" + pf + cf, params);
 
         Map<String, Object> asistencia = jdbc.queryForMap(
-                "SELECT ROUND(100.0 * SUM(CASE WHEN a.estatus = 'PRESENTE' THEN 1 ELSE 0 END) / NULLIF(COUNT(a.id), 0), 2) AS porcentaje_asistencia " +
-                "FROM ades_asistencias a JOIN ades_inscripciones i ON i.id = a.inscripcion_id " +
-                "JOIN ades_grupos g ON g.id = i.grupo_id WHERE i.is_active = TRUE" + pf + cf, params);
+                "SELECT ROUND(100.0 * SUM(CASE WHEN a.estatus_asistencia = 'PRESENTE' THEN 1 ELSE 0 END) / NULLIF(COUNT(a.id), 0), 2) AS porcentaje_asistencia " +
+                "FROM ades_asistencias a JOIN ades_inscripciones i ON i.estudiante_id = a.estudiante_id " +
+                "JOIN ades_estudiantes e2 ON e2.id = i.estudiante_id WHERE i.is_active = TRUE" + pf + cf, params);
 
         Map<String, Object> calificaciones = jdbc.queryForMap(
-                "SELECT ROUND(AVG(c.calificacion_final)::numeric, 2) AS promedio_general " +
-                "FROM ades_calificaciones c JOIN ades_inscripciones i ON i.id = c.inscripcion_id " +
-                "JOIN ades_grupos g ON g.id = i.grupo_id " +
-                "WHERE i.is_active = TRUE AND c.calificacion_final IS NOT NULL" + pf + cf, params);
+                "SELECT ROUND(AVG(cp.calificacion_final)::numeric, 2) AS promedio_general " +
+                "FROM ades_calificaciones_periodo cp " +
+                "JOIN ades_inscripciones i ON i.estudiante_id = cp.estudiante_id AND i.grupo_id = cp.grupo_id " +
+                "JOIN ades_estudiantes e2 ON e2.id = i.estudiante_id " +
+                "WHERE i.is_active = TRUE AND cp.is_active = TRUE AND cp.calificacion_final IS NOT NULL" + pf + cf, params);
 
         List<Object> conductaParams = plantelId != null ? List.of(plantelId) : List.of();
-        String pfc = plantelId != null ? " AND g.plantel_id = ?" : "";
+        String pfc = plantelId != null ? " AND e2.plantel_id = ?" : "";
         Map<String, Object> conducta = jdbc.queryForMap(
                 "SELECT COUNT(*) AS total_incidentes, " +
-                "SUM(CASE WHEN tipo_incidente IN ('GRAVE','MUY_GRAVE') THEN 1 ELSE 0 END) AS graves " +
-                "FROM ades_incidentes_conducta ic " +
-                "JOIN ades_inscripciones i ON i.estudiante_id = ic.alumno_id AND i.is_active = TRUE " +
-                "JOIN ades_grupos g ON g.id = i.grupo_id WHERE ic.is_active = TRUE" + pfc,
+                "SUM(CASE WHEN ic.tipo_falta IN ('GRAVE','MUY_GRAVE') THEN 1 ELSE 0 END) AS graves " +
+                "FROM ades_reportes_conducta ic " +
+                "JOIN ades_estudiantes e2 ON e2.id = ic.estudiante_id WHERE ic.is_active = TRUE" + pfc,
                 conductaParams.toArray());
 
         Map<String, Object> result = new LinkedHashMap<>();
@@ -120,7 +122,7 @@ public class ComplianceQueryService {
 
         if (activas) sql.append(" AND r.is_active = TRUE AND (r.fecha_fin IS NULL OR r.fecha_fin >= CURRENT_DATE)");
         if (tipo != null && !tipo.isBlank()) { sql.append(" AND r.tipo_retencion = ?"); params.add(tipo); }
-        if (plantelId != null) { sql.append(" AND g.plantel_id = ?"); params.add(plantelId); }
+        if (plantelId != null) { sql.append(" AND e.plantel_id = ?"); params.add(plantelId); }
         sql.append(" ORDER BY r.fecha_inicio DESC LIMIT ? OFFSET ?");
         params.add(limit);
         params.add(skip);

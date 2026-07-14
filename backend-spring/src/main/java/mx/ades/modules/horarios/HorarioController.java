@@ -191,6 +191,55 @@ public class HorarioController {
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(mapCorrida(corrida));
     }
 
+    /**
+     * Calcula las lecciones (existentes + pendientes) que hacen falta programar para
+     * un plantel/ciclo, a partir de las asignaciones docente↔materia↔grupo y las horas/semana
+     * del plan curricular. El frontend usa esta lista como payload para iniciar el solver
+     * en vez de depender únicamente de horarios ya creados manualmente.
+     */
+    @GetMapping("/solver/lecciones-sugeridas")
+    public ResponseEntity<Map<String, Object>> leccionesSugeridas(
+            @RequestParam(name = "plantel_id", required = false) UUID plantelId,
+            @RequestParam(name = "ciclo_id", required = true) UUID cicloId,
+            @AuthenticationPrincipal Jwt jwt) {
+        AdesUser user = userService.resolveUser(jwt);
+        UUID effectivePlantel = resolverPlantel(plantelId, user);
+        if (effectivePlantel == null) {
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "plantel_id es requerido");
+        }
+        List<HorarioLeccion> lecciones = horarioSolverService.generarLeccionesSugeridas(effectivePlantel, cicloId);
+        List<Map<String, Object>> mapeadas = lecciones.stream().map(l -> {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("id", l.getId());
+            m.put("grupo_id", l.getGrupoId());
+            m.put("materia_id", l.getMateriaId());
+            m.put("profesor_id", l.getProfesorId());
+            m.put("aula_id", l.getAulaId());
+            m.put("ciclo_escolar_id", l.getCicloEscolarId());
+            m.put("fijado", l.isFijado());
+            if (l.getTimeslot() != null) {
+                Map<String, Object> ts = new LinkedHashMap<>();
+                // El id (franja real) es obligatorio: sin él, reenviar esta misma lista a
+                // POST /solver/corridas (el flujo real del frontend) reconstruye el timeslot
+                // con id=null y Timefold lo rechaza ("outside of the related value range").
+                ts.put("id", l.getTimeslot().id());
+                ts.put("dia_semana", l.getTimeslot().diaSemana());
+                ts.put("hora_inicio", l.getTimeslot().horaInicio());
+                ts.put("hora_fin", l.getTimeslot().horaFin());
+                ts.put("turno", l.getTimeslot().turno());
+                m.put("timeslot", ts);
+            } else {
+                m.put("timeslot", null);
+            }
+            return m;
+        }).toList();
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("lecciones", mapeadas);
+        response.put("total", mapeadas.size());
+        response.put("pendientes", mapeadas.stream().filter(m -> m.get("timeslot") == null).count());
+        return ResponseEntity.ok(response);
+    }
+
     @PostMapping("/solver/verificar")
     public ResponseEntity<Map<String, Object>> verificarHorario(
             @RequestBody SolverRunPayload body,
@@ -220,6 +269,7 @@ public class HorarioController {
         return ResponseEntity.ok(analysis);
     }
 
+    @GetMapping("/solver/corridas")
     public ResponseEntity<List<Map<String, Object>>> listarCorridasSolver(
             @RequestParam(name = "plantel_id", required = false) UUID plantelId,
             @RequestParam(name = "ciclo_id", required = false) UUID cicloId,
@@ -375,6 +425,7 @@ public class HorarioController {
 
     @Data
     public static class SolverTimeslotPayload {
+        private UUID id;
         private Integer diaSemana;
         private String horaInicio;
         private String horaFin;
@@ -418,7 +469,7 @@ public class HorarioController {
             throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "dia_semana debe estar entre 1 y 5");
         }
         return new HorarioTimeslot(
-                null,
+                payload.getId(),
                 payload.getDiaSemana(),
                 LocalTime.parse(payload.getHoraInicio()),
                 LocalTime.parse(payload.getHoraFin()),

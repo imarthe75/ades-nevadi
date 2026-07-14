@@ -285,7 +285,7 @@ export class ExpedienteLaboralComponent implements OnInit, OnDestroy {
     this.cargando.set(true);
     const params: any = {};
     if (this.busquedaNombre) params['q'] = this.busquedaNombre;
-    this.api.get<ExpedienteLab[]>('/expediente-laboral', params).subscribe({
+    this.api.get<ExpedienteLab[]>('/expediente-laboral', params).pipe(takeUntil(this.destroy$)).subscribe({
       next: d => { this.expedientes.set(d); this.cargando.set(false); },
       error: () => { this.cargando.set(false); this.notify.error('Error al cargar expedientes'); },
     });
@@ -293,7 +293,7 @@ export class ExpedienteLaboralComponent implements OnInit, OnDestroy {
 
   buscarPersona(event: { query: string }) {
     if (!event.query || event.query.length < 2) { this.personaSugerencias.set([]); return; }
-    this.api.get<any>('/profesores', { buscar: event.query }).subscribe({
+    this.api.get<any>('/profesores', { buscar: event.query }).pipe(takeUntil(this.destroy$)).subscribe({
       next: res => {
         const data = res?.data ?? res ?? [];
         this.personaSugerencias.set(data.map((p: any) => ({
@@ -342,7 +342,7 @@ export class ExpedienteLaboralComponent implements OnInit, OnDestroy {
         fecha_fin_contrato: this.form.fecha_fin_contrato ? this.toDateStr(this.form.fecha_fin_contrato) : null,
       });
     }
-    req.subscribe({
+    req.pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.guardando.set(false); this.dialogForm = false;
         this.notify.success(this.editandoId ? 'Expediente actualizado' : 'Expediente creado');
@@ -359,7 +359,7 @@ export class ExpedienteLaboralComponent implements OnInit, OnDestroy {
     if (!this.seleccionado() || !this.nuevoDocTipo || !this.nuevoDocUrl) return;
     this.api.post<ExpedienteLab>(`/expediente-laboral/${this.seleccionado()!.id}/documento`,
       { tipo_documento: this.nuevoDocTipo, url: this.nuevoDocUrl }
-    ).subscribe({
+    ).pipe(takeUntil(this.destroy$)).subscribe({
       next: (updated) => {
         this.seleccionado.set(updated); this.nuevoDocTipo = ''; this.nuevoDocUrl = '';
         this.notify.success('Documento registrado');

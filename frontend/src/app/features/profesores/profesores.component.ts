@@ -200,7 +200,7 @@ export class ProfesoresComponent implements OnInit, OnDestroy {
     const grupo   = this.ctx.grupo();   if (grupo?.id)   params['grupo_id']   = grupo.id;
 
     this.loadingTabla.set(true);
-    this.api.get<{ data: Profesor[]; total: number }>('/profesores', params).subscribe({
+    this.api.get<{ data: Profesor[]; total: number }>('/profesores', params).pipe(takeUntil(this.destroy$)).subscribe({
       next: resp => {
         this.profesores.set(resp.data);
         this.totalProfesores.set(resp.total);
@@ -236,7 +236,7 @@ export class ProfesoresComponent implements OnInit, OnDestroy {
   abrirPerfil(row: any): void {
     const prof = row._original || this.profesores().find(p => p.id === row.id);
     if (!prof) return;
-    this.api.get<Profesor>(`/profesores/${prof.id}`).subscribe({
+    this.api.get<Profesor>(`/profesores/${prof.id}`).pipe(takeUntil(this.destroy$)).subscribe({
       next: full => {
         this.profesorSeleccionado.set(full);
         this.perfilVisible.set(true);
@@ -270,7 +270,7 @@ export class ProfesoresComponent implements OnInit, OnDestroy {
       },
       plantel_id: this.ctx.plantel()?.id,
     };
-    this.api.post<Profesor>('/profesores', payload).subscribe({
+    this.api.post<Profesor>('/profesores', payload).pipe(takeUntil(this.destroy$)).subscribe({
       next: (newProf) => {
         this.showDialog.set(false);
         this.loading.set(false);

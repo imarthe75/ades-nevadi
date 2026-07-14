@@ -376,7 +376,7 @@ export class DashboardBolecasYCoberturaComponent implements OnInit, OnDestroy {
   }
 
   loadGrupos() {
-    this.apiService.get('/api/v1/grupos').subscribe(res => {
+    this.apiService.get('/api/v1/grupos').pipe(takeUntil(this.destroy$)).subscribe(res => {
       this.grupos.set((res as any[]).map(g => ({
         label: g.nombre_grupo,
         value: g.ref
@@ -388,9 +388,9 @@ export class DashboardBolecasYCoberturaComponent implements OnInit, OnDestroy {
     const grupoId = this.selGrupoId;
     if (!grupoId) return;
 
-    this.apiService.get(`/api/v1/grupos/${grupoId}`).subscribe(res => {
+    this.apiService.get(`/api/v1/grupos/${grupoId}`).pipe(takeUntil(this.destroy$)).subscribe(res => {
       const grupo = res as any;
-      this.apiService.get(`/api/v1/estudiantes?grupo_id=${grupoId}`).subscribe(alumnos => {
+      this.apiService.get(`/api/v1/estudiantes?grupo_id=${grupoId}`).pipe(takeUntil(this.destroy$)).subscribe(alumnos => {
         this.alumnos.set((alumnos as any[]).map(a => ({
           label: a.nombre_alumno,
           value: a.ref
@@ -408,7 +408,7 @@ export class DashboardBolecasYCoberturaComponent implements OnInit, OnDestroy {
 
     this.apiService.get(
       `/api/v1/planeacion/boleta/${this.selAlumnoId}/${this.selGrupoId}/${this.selTrimestre}`
-    ).subscribe(
+    ).pipe(takeUntil(this.destroy$)).subscribe(
       res => {
         this.boleta.set(res as any);
         this.messageService.add({
@@ -432,7 +432,7 @@ export class DashboardBolecasYCoberturaComponent implements OnInit, OnDestroy {
 
     this.apiService.get(
       `/api/v1/planeacion/cobertura/${this.selGrupoCobertura}/${this.selTrimestreCobertura}`
-    ).subscribe(
+    ).pipe(takeUntil(this.destroy$)).subscribe(
       res => {
         this.cobertura.set(res as any);
       },
@@ -447,7 +447,7 @@ export class DashboardBolecasYCoberturaComponent implements OnInit, OnDestroy {
 
     this.apiService.get(
       `/api/v1/planeacion/cobertura-por-competencia/${this.selGrupoCobertura}/${this.selTrimestreCobertura}`
-    ).subscribe(
+    ).pipe(takeUntil(this.destroy$)).subscribe(
       res => {
         this.coberturaCompetencia.set(res as any[]);
       }

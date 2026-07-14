@@ -346,6 +346,7 @@ export class AlumnosComponent implements OnInit, OnDestroy {
 
     this.loadingTabla.set(true);
     this.api.get<{ data: Estudiante[]; total: number }>('/alumnos', params)
+      .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: resp => {
           this.alumnos.set(resp.data);
@@ -386,7 +387,7 @@ export class AlumnosComponent implements OnInit, OnDestroy {
   abrirPerfil(row: any): void {
     const alumno = row._original || this.alumnos().find(a => a.id === row.id);
     if (!alumno) return;
-    this.api.get<Estudiante>(`/alumnos/${alumno.id}`).subscribe({
+    this.api.get<Estudiante>(`/alumnos/${alumno.id}`).pipe(takeUntil(this.destroy$)).subscribe({
       next: full => {
         this.alumnoSeleccionado.set(full);
         this.perfilVisible.set(true);
@@ -452,7 +453,7 @@ export class AlumnosComponent implements OnInit, OnDestroy {
     };
     this.api.post<{ total: number; exitosos: number; fallidos: { estudianteId: string; error: string }[] }>(
       '/movilidad/cambio-grupo-masivo', payload
-    ).subscribe({
+    ).pipe(takeUntil(this.destroy$)).subscribe({
       next: (resp) => {
         this.asignandoMasivo.set(false);
         this.dlgAsignacionMasiva.set(false);
@@ -505,7 +506,7 @@ export class AlumnosComponent implements OnInit, OnDestroy {
       plantel_id: this.ctx.plantel()?.id,
     };
 
-    this.api.post<Estudiante>('/alumnos', payload).subscribe({
+    this.api.post<Estudiante>('/alumnos', payload).pipe(takeUntil(this.destroy$)).subscribe({
       next: (newAlumno) => {
         this.showDialog.set(false);
         this.loading.set(false);
