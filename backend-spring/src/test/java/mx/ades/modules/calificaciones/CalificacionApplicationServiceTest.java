@@ -70,9 +70,9 @@ class CalificacionApplicationServiceTest {
 
     @Test
     void obtenerBoleta_debeDelegarAlRepositorio() {
-        when(repository.findByEstudianteId(estudianteId)).thenReturn(List.of());
-        List<Calificacion> resultado = service.ejecutar(estudianteId);
-        verify(repository).findByEstudianteId(estudianteId);
+        when(repository.findByEstudianteId(estudianteId, periodoId)).thenReturn(List.of());
+        List<Calificacion> resultado = service.ejecutar(estudianteId, periodoId);
+        verify(repository).findByEstudianteId(estudianteId, periodoId);
         assertNotNull(resultado);
     }
 }

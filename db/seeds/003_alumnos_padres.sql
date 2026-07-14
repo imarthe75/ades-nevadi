@@ -18,11 +18,10 @@ SELECT
     ' G' || gr.numero_grado || g.nombre_grupo,
   'Num' || LPAD(n::TEXT, 2, '0'),
   'NVD',
-  -- CURP ficticio único por alumno
+  -- CURP ficticio único por alumno (18 chars exactos)
   'XAXX' || ne_abr.abr || pl_abr.abr
     || gr.numero_grado || g.nombre_grupo
     || LPAD(n::TEXT,2,'0')
-    || '00HDFNNN'
     || LPAD((ROW_NUMBER() OVER (ORDER BY pl.nombre_plantel, ne.nombre_nivel,
              gr.numero_grado, g.nombre_grupo, n))::TEXT, 3,'0') || 'A',
   CASE WHEN MOD(n,2) = 0 THEN 'F' ELSE 'M' END,
@@ -40,7 +39,7 @@ JOIN ades_ciclos_escolares ce ON ce.id = g.ciclo_escolar_id
 CROSS JOIN LATERAL (VALUES
   (CASE WHEN ne.nombre_nivel = 'PRIMARIA' THEN 'PRI'
         WHEN ne.nombre_nivel = 'SECUNDARIA' THEN 'SEC'
-        ELSE 'PREP' END)
+        ELSE 'PRE' END)
 ) AS ne_abr(abr)
 CROSS JOIN LATERAL (VALUES
   (CASE
@@ -134,8 +133,8 @@ SELECT
   'Padre de ' || per_al.nombre || ' ' || per_al.apellido_paterno,
   'Familia' || per_al.apellido_paterno,
   'NVD',
-  'XPXX' || RIGHT(per_al.curp, 16),
-  CASE WHEN MOD(est_al.id, 2) = 0 THEN 'F' ELSE 'M' END
+  'XPXX' || RIGHT(per_al.curp, 14),
+  CASE WHEN MOD(hashtext(est_al.id::text), 2) = 0 THEN 'F' ELSE 'M' END
 FROM ades_estudiantes est_al
 JOIN ades_personas per_al ON per_al.id = est_al.persona_id
 ON CONFLICT (curp) DO NOTHING;
@@ -156,10 +155,8 @@ JOIN ades_personas per_padre
  AND per_padre.nombre = 'Padre de ' || per_al.nombre || ' ' || per_al.apellido_paterno
 ON CONFLICT DO NOTHING;
 
--- Crear usuario para el padre (cuenta local, sin OIDC)
-INSERT INTO ades_personas
-  -- ya existen, no reinsertar
-SELECT 1 WHERE FALSE;
+-- Crear usuario para el padre (cuenta local, sin OIDC) — las personas ya
+-- existen (insertadas arriba en la sección C), aquí solo se crea el usuario.
 
 -- Usuario padre: username = 'padre.' + matricula_alumno
 INSERT INTO ades_usuarios

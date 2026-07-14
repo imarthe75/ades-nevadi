@@ -342,7 +342,7 @@ for grp,grado,ciclo,_ in GRUPOS:
             md=rng.choice(MEDS); med_r.append((uid(),eid,md,'1 dosis','Cada 8h','08:00','ORAL',f"Dr. {rng.choice(APELLIDOS)}",date(2026,8,24),date(2027,7,9),'Administrar en enfermería',True,SEED_TAG,SEED_TAG))
         for ti in range(rng.randint(1,2)):
             tg='F' if ti==0 else rng.choice("MF"); tf=date(rng.randint(1975,1992),rng.randint(1,12),rng.randint(1,28)); tn,tap,tam=nueva_persona(tg,tf); tpid=uid(); tph=tel(); oc=rng.choice(OCUP)
-            per_t.append((tpid,tn,tap,tam,tf,gen_curp(tn,tap,tam,tf,tg),tg,tph,oc[1],SEED_TAG,SEED_TAG))
+            per_t.append((tpid,tn,tap,tam,tf,gen_curp(tn,tap,tam,tf,tg),tg,tph,SEED_TAG,SEED_TAG))
             rel='MADRE' if (tg=='F' and ti==0) else ('PADRE' if tg=='M' else 'TUTOR')
             tut_r.append((uid(),eid,tpid,rel,ti+1,True,ti==0,ti==0,'COMPLETO',SEED_TAG,SEED_TAG))
             tu=f"tutor.{matr}.{ti+1}"; usr_t.append((uid(),tpid,tu,f"{tu}@tutores.nevadi.edu.mx",ROLES['PADRE_FAMILIA'],g['plantel'],'HASH_OIDC',SEED_TAG,SEED_TAG)); dir_t.append(gen_dir(tpid))
@@ -355,7 +355,7 @@ binsert('ades_direcciones',['id','calle','numero_exterior','localidad_id','codig
 binsert('ades_expedientes_medicos',['id','estudiante_id','tipo_sangre','alergias','seguro_medico_tipo','vacunas_al_dia','usuario_creacion','usuario_modificacion'],exp_r)
 binsert('ades_condiciones_cronicas',['id','alumno_id','tipo_condicion','descripcion','medicacion_nombre','dosis','frecuencia','alergias','medico_responsable','telefono_medico','activa','usuario_creacion','usuario_modificacion'],cron_r)
 binsert('ades_medicamentos_alumno',['id','alumno_id','nombre_medicamento','dosis','frecuencia','horario','via_administracion','prescrito_por','fecha_inicio','fecha_fin','observaciones','is_active','usuario_creacion','usuario_modificacion'],med_r)
-binsert('ades_personas',['id','nombre','apellido_paterno','apellido_materno','fecha_nacimiento','curp','genero','telefono','ocupacion','usuario_creacion','usuario_modificacion'],per_t)
+binsert('ades_personas',['id','nombre','apellido_paterno','apellido_materno','fecha_nacimiento','curp','genero','telefono','usuario_creacion','usuario_modificacion'],per_t)
 binsert('ades_tutores_alumnos',['id','alumno_id','persona_id','relacion','prioridad','puede_recoger','es_responsable_economico','es_contacto_emergencia','nivel_acceso_portal','usuario_creacion','usuario_modificacion'],tut_r)
 binsert('ades_usuarios',['id','persona_id','nombre_usuario','email_institucional','rol_id','plantel_id','clave_hash','usuario_creacion','usuario_modificacion'],usr_t)
 binsert('ades_direcciones',['id','calle','numero_exterior','localidad_id','codigo_postal_id','entidad_tipo','entidad_id','tipo_direccion','es_principal','usuario_creacion','usuario_modificacion'],dir_t)

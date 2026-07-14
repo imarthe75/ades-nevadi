@@ -177,7 +177,7 @@ import { AdesFormatDirective } from '../../shared/directives/ades-format.directi
               <label>Descripción*</label>
               <textarea pTextarea formControlName="descripcion"
                        placeholder="Detalles de la tarea"
-                       rows="3"/>
+                       rows="3"></textarea>
             </div>
 
             <div class="field">

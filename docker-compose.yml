@@ -90,7 +90,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 2G
+          memory: 1G
         reservations:
           memory: 512M
 
@@ -105,7 +105,7 @@ services:
       valkey-server
       --save 60 1
       --loglevel notice
-      --maxmemory 512mb
+      --maxmemory 256mb
       --maxmemory-policy allkeys-lru
       --requirepass ${VALKEY_PASSWORD:?VALKEY_PASSWORD requerido}
     volumes:
@@ -122,7 +122,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 600M
+          memory: 300M
 
   # ---------------------------------------------------------------------------
   # SeaweedFS — almacenamiento S3 compatible para archivos, documentos y logos
@@ -153,7 +153,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512M
+          memory: 256M
 
   # ---------------------------------------------------------------------------
   # Authentik — IdP OIDC/OAuth2
@@ -248,39 +248,41 @@ services:
 
   # ---------------------------------------------------------------------------
   # HashiCorp Vault — Gestión de Secretos y Credenciales
+  # DESACTIVADO: Servidor con recursos limitados (2 cores, 12GB)
+  # Habilitar en producción cuando se tenga un servidor dedicado
   # ---------------------------------------------------------------------------
-  vault:
-    image: hashicorp/vault:latest
-    container_name: ades-vault
-    restart: unless-stopped
-    environment:
-      SKIP_SETCAP: "true"
-      SKIP_CHOWN: "true"
-    ports:
-      - "127.0.0.1:8200:8200"
-    volumes:
-      - vault-data:/vault/data
-      - ./infrastructure/vault/config:/vault/config:ro
-      - vault-init:/vault/init
-    command: vault server -config=/vault/config/vault.hcl
-    cap_add:
-      - IPC_LOCK
-    user: root
-    networks:
-      - ades-internal
+  # vault:
+  #   image: hashicorp/vault:latest
+  #   container_name: ades-vault
+  #   restart: unless-stopped
+  #   environment:
+  #     SKIP_SETCAP: "true"
+  #     SKIP_CHOWN: "true"
+  #   ports:
+  #     - "127.0.0.1:8200:8200"
+  #   volumes:
+  #     - vault-data:/vault/data
+  #     - ./infrastructure/vault/config:/vault/config:ro
+  #     - vault-init:/vault/init
+  #   command: vault server -config=/vault/config/vault.hcl
+  #   cap_add:
+  #     - IPC_LOCK
+  #   user: root
+  #   networks:
+  #     - ades-internal
 
-  vault-init:
-    image: hashicorp/vault:latest
-    container_name: ades-vault-init
-    depends_on:
-      - vault
-    volumes:
-      - vault-init:/vault/init
-      - ./infrastructure/vault/scripts:/vault/scripts:ro
-    entrypoint: /vault/scripts/vault-init.sh
-    user: root
-    networks:
-      - ades-internal
+  # vault-init:
+  #   image: hashicorp/vault:latest
+  #   container_name: ades-vault-init
+  #   depends_on:
+  #     - vault
+  #   volumes:
+  #     - vault-init:/vault/init
+  #     - ./infrastructure/vault/scripts:/vault/scripts:ro
+  #   entrypoint: /vault/scripts/vault-init.sh
+  #   user: root
+  #   networks:
+  #     - ades-internal
 
   # ---------------------------------------------------------------------------
   # ADES API — FastAPI backend principal
@@ -302,12 +304,12 @@ services:
       LOG_LEVEL:           ${LOG_LEVEL:-info}
       ALLOWED_ORIGINS:     ${ALLOWED_ORIGINS:-http://localhost:4200,https://escolar.institutonevadi.edu.mx}
       BASE_URL:            ${BASE_URL:-https://ades.setag.mx}
-      VAULT_ADDR:          http://ades-vault:8200
-      MINIO_SECURE:        ${MINIO_SECURE:-true}
-      MINIO_ENDPOINT:      ${MINIO_ENDPOINT}
-      MINIO_ACCESS_KEY:    ${MINIO_ACCESS_KEY}
-      MINIO_SECRET_KEY:    ${MINIO_SECRET_KEY}
-      MINIO_BUCKET:        ${MINIO_BUCKET}
+      # VAULT_ADDR:          http://ades-vault:8200    # Desactivado: servidor limitado
+      MINIO_SECURE:        ${MINIO_SECURE:-false}
+      MINIO_ENDPOINT:      ${MINIO_ENDPOINT:-localhost:9000}
+      MINIO_ACCESS_KEY:    ${MINIO_ACCESS_KEY:-ades_minio}
+      MINIO_SECRET_KEY:    ${MINIO_SECRET_KEY:-}
+      MINIO_BUCKET:        ${MINIO_BUCKET:-ades}
       # BigBlueButton — Videoconferencias (FASE 26)
       BBB_SERVER_URL:      ${BBB_SERVER_URL:-}
       BBB_SHARED_SECRET:   ${BBB_SHARED_SECRET:-}
@@ -316,7 +318,6 @@ services:
       DATABASE_URL:        postgresql+asyncpg://${POSTGRES_USER:-ades_admin}:${POSTGRES_PASSWORD}@ades-pgbouncer:5432/ades
     volumes:
       - ./backend:/app:cached     # hot-reload en desarrollo
-      - vault-init:/vault/init:ro
     ports:
       - "127.0.0.1:8000:8000"
     networks:
@@ -334,7 +335,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512M
+          memory: 256M
 
   # ---------------------------------------------------------------------------
   # ADES BFF — Spring Boot backend
@@ -353,19 +354,20 @@ services:
       # "Invalid client secret" (HTTP 400 en el callback). Ver UserController.
       OIDC_CLIENT_ID:              ${OIDC_CLIENT_ID:-ades-frontend}
       OIDC_CLIENT_SECRET:          ${OIDC_CLIENT_SECRET:?OIDC_CLIENT_SECRET requerido}
-      VAULT_ADDR:                  http://ades-vault:8200
+      # VAULT_ADDR:                  http://ades-vault:8200    # Desactivado: servidor limitado
       SPRING_DATASOURCE_URL:       jdbc:postgresql://ades-postgres:5432/ades
       SPRING_DATASOURCE_USERNAME:  ${POSTGRES_USER:-ades_admin}
       SPRING_DATASOURCE_PASSWORD:  ${POSTGRES_PASSWORD}
-      MINIO_ENDPOINT:              ${MINIO_ENDPOINT}
-      MINIO_ROOT_USER:             ${MINIO_ACCESS_KEY}
-      MINIO_ROOT_PASSWORD:         ${MINIO_SECRET_KEY}
-      MINIO_SECURE:                ${MINIO_SECURE}
-      MINIO_BUCKET:                ${MINIO_BUCKET}
+      SPRING_DATA_REDIS_HOST:      ades-valkey
+      SPRING_DATA_REDIS_PORT:      6379
+      SPRING_DATA_REDIS_PASSWORD:  ${VALKEY_PASSWORD}
+      MINIO_ENDPOINT:              ${MINIO_ENDPOINT:-localhost:9000}
+      MINIO_ROOT_USER:             ${MINIO_ACCESS_KEY:-ades_minio}
+      MINIO_ROOT_PASSWORD:         ${MINIO_SECRET_KEY:-}
+      MINIO_SECURE:                ${MINIO_SECURE:-false}
+      MINIO_BUCKET:                ${MINIO_BUCKET:-ades}
       # Cuenta admin de Superset — el BFF la usa para autenticarse en la API
-      # REST de Superset y generar guest tokens de los dashboards BI. Nunca se
-      # pasaba al contenedor, cayendo en el fallback admin/changeme de
-      # application.yml (hallazgo 2026-07-03).
+      # REST de Superset y generar guest tokens de los dashboards BI.
       SUPERSET_ADMIN_USER:          ${SUPERSET_ADMIN_USER:-admin}
       SUPERSET_ADMIN_PASSWORD:      ${SUPERSET_ADMIN_PASSWORD:?SUPERSET_ADMIN_PASSWORD requerido}
       # AD-007: token de solo-lectura para consultar la API de Eventos de
@@ -377,7 +379,6 @@ services:
       # (idempotente). Dejar en 'false' salvo para ejecutar el backfill puntual.
       PII_BACKFILL_RUN:             ${PII_BACKFILL_RUN:-false}
     volumes:
-      - vault-init:/vault/init:ro
       - ./assets:/srv/assets          # imágenes públicas de convocatorias (rw para uploads)
     ports:
       - "127.0.0.1:8080:8080"
@@ -391,7 +392,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512M
+          memory: 768M
 
   # ---------------------------------------------------------------------------
   # Celery Worker — tareas asíncronas
@@ -404,22 +405,21 @@ services:
       dockerfile: Dockerfile
     container_name: ades-celery-worker
     restart: unless-stopped
-    command: celery -A app.worker.celery_app worker --loglevel=info --concurrency=2
+    command: celery -A app.worker.celery_app worker --loglevel=info --concurrency=1
     environment:
-      VAULT_ADDR:          http://ades-vault:8200
+      # VAULT_ADDR:          http://ades-vault:8200    # Desactivado: servidor limitado
       SECRET_KEY:          ${API_SECRET_KEY}
       VALKEY_URL:          redis://:${VALKEY_PASSWORD}@ades-valkey:6379/0
       DATABASE_URL:        postgresql+asyncpg://${POSTGRES_USER:-ades_admin}:${POSTGRES_PASSWORD}@ades-pgbouncer:5432/ades
       ENVIRONMENT:         ${ENVIRONMENT:-development}
       BASE_URL:            ${BASE_URL:-https://ades.setag.mx}
-      MINIO_SECURE:        ${MINIO_SECURE:-true}
-      MINIO_ENDPOINT:      ${MINIO_ENDPOINT}
-      MINIO_ACCESS_KEY:    ${MINIO_ACCESS_KEY}
-      MINIO_SECRET_KEY:    ${MINIO_SECRET_KEY}
-      MINIO_BUCKET:        ${MINIO_BUCKET}
+      MINIO_SECURE:        ${MINIO_SECURE:-false}
+      MINIO_ENDPOINT:      ${MINIO_ENDPOINT:-localhost:9000}
+      MINIO_ACCESS_KEY:    ${MINIO_ACCESS_KEY:-ades_minio}
+      MINIO_SECRET_KEY:    ${MINIO_SECRET_KEY:-}
+      MINIO_BUCKET:        ${MINIO_BUCKET:-ades}
     volumes:
       - ./backend:/app:cached
-      - vault-init:/vault/init:ro
     networks:
       - ades-internal
     depends_on:
@@ -430,7 +430,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512M
+          memory: 256M
 
   # Celery Beat — tareas programadas (alertas nocturnas, refresco BI)
   celery-beat:
@@ -441,14 +441,13 @@ services:
     restart: unless-stopped
     command: celery -A app.worker.celery_app beat --loglevel=info
     environment:
-      VAULT_ADDR:          http://ades-vault:8200
+      # VAULT_ADDR:          http://ades-vault:8200    # Desactivado: servidor limitado
       SECRET_KEY:          ${API_SECRET_KEY}
       VALKEY_URL:          redis://:${VALKEY_PASSWORD}@ades-valkey:6379/0
       DATABASE_URL:        postgresql+asyncpg://${POSTGRES_USER:-ades_admin}:${POSTGRES_PASSWORD}@ades-pgbouncer:5432/ades
       ENVIRONMENT:         ${ENVIRONMENT:-development}
     volumes:
       - ./backend:/app:cached
-      - vault-init:/vault/init:ro
     networks:
       - ades-internal
     depends_on:
@@ -456,7 +455,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256M
+          memory: 128M
 
   # Celery Flower — Monitoreo visual de tareas Celery
   celery-flower:
@@ -467,15 +466,15 @@ services:
     restart: unless-stopped
     command: celery -A app.worker.celery_app flower --port=5555 --url-prefix=flower
     environment:
-      VAULT_ADDR:          http://ades-vault:8200
+      # VAULT_ADDR:          http://ades-vault:8200    # Desactivado: servidor limitado
       SECRET_KEY:          ${API_SECRET_KEY}
       VALKEY_URL:          redis://:${VALKEY_PASSWORD}@ades-valkey:6379/0
+      DATABASE_URL:        postgresql+asyncpg://${POSTGRES_USER:-ades_admin}:${POSTGRES_PASSWORD}@ades-pgbouncer:5432/ades
       ENVIRONMENT:         ${ENVIRONMENT:-development}
     ports:
       - "127.0.0.1:5555:5555"
     volumes:
       - ./backend:/app:cached
-      - vault-init:/vault/init:ro
     networks:
       - ades-internal
     depends_on:
@@ -489,7 +488,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256M
+          memory: 128M
 
   # ---------------------------------------------------------------------------
   # ADES Frontend — Angular + PrimeNG
@@ -506,7 +505,7 @@ services:
       API_URL:      http://ades-api:8000
       OIDC_ISSUER:  ${OIDC_ISSUER}
     ports:
-      - "127.0.0.1:4200:80"     # producción: nginx estático en 80 / dev: ng serve en 4200
+      - "127.0.0.1:4200:80"     # producción: nginx estático en 80 (dev: cambiar a :4200 + ver volumes en git history)
     networks:
       - ades-internal
     depends_on:
@@ -545,18 +544,17 @@ services:
       SUPERSET_SECRET_KEY:         ${SUPERSET_SECRET_KEY:?SUPERSET_SECRET_KEY requerido}
       SUPERSET_DATABASE_URI:       postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@ades-postgres:5432/superset
       REDIS_URL:                   redis://:${VALKEY_PASSWORD}@ades-valkey:6379/2
-      # Cuenta admin — antes nunca se pasaba al contenedor y docker-init.sh caía
-      # en el fallback admin/admin de Flask-AppBuilder (hallazgo 2026-07-03).
+      # Cuenta admin
       SUPERSET_ADMIN_USER:         ${SUPERSET_ADMIN_USER:-admin}
       SUPERSET_ADMIN_PASSWORD:     ${SUPERSET_ADMIN_PASSWORD:?SUPERSET_ADMIN_PASSWORD requerido}
       SUPERSET_ADMIN_EMAIL:        ${SUPERSET_ADMIN_EMAIL:-admin@setag.mx}
-      # OIDC con Authentik (mismo IdP que el resto del sistema)
+      # OIDC con Authentik
       OIDC_CLIENT_ID:              ${SUPERSET_OIDC_CLIENT_ID:-superset}
       OIDC_CLIENT_SECRET:          ${SUPERSET_OIDC_CLIENT_SECRET:-}
       OIDC_ISSUER:                 ${SUPERSET_OIDC_ISSUER:-https://auth.ades.setag.mx/application/o/superset/}
       OIDC_DISCOVERY_URL:          ${OIDC_DISCOVERY_URL:-https://auth.ades.setag.mx/application/o/superset/.well-known/openid-configuration}
       OIDC_SCOPES:                 ${OIDC_SCOPES:-openid email profile}
-      # Contraseña del usuario superset_ro (solo lectura a ades_bi)
+      # Contraseña del usuario superset_ro
       SUPERSET_RO_PASSWORD:        ${SUPERSET_RO_PASSWORD}
     volumes:
       - superset-data:/app/superset_home
@@ -564,7 +562,7 @@ services:
       - "127.0.0.1:8088:8088"
     networks:
       - ades-internal
-      - aura-network             # comparte red con Aura para Fase 4 con ClickHouse
+      - aura-network
     depends_on:
       postgres:
         condition: service_healthy
@@ -573,152 +571,155 @@ services:
     deploy:
       resources:
         limits:
-          memory: 1.5G
+          memory: 800M
 
   # ---------------------------------------------------------------------------
   # Carbone — generador de reportes PDF/DOCX a partir de plantillas Word/Excel
   # FASE 18: Boletas, constancias, kardex, reportes de conducta
   # API interna: POST /render/:templateId  POST /templates
+  # DESACTIVADO: Servidor limitado (2 cores, 12GB). Habilitar con más recursos
   # ---------------------------------------------------------------------------
-  carbone:
-    build:
-      context: ./integrations/carbone
-      dockerfile: Dockerfile
-    container_name: ades-carbone
-    restart: unless-stopped
-    environment:
-      PORT:          3000
-      TEMPLATES_DIR: /app/templates
-    volumes:
-      - carbone-templates:/app/templates
-    ports:
-      - "127.0.0.1:3001:3000"   # solo localhost — no exponer directamente
-    networks:
-      - ades-internal
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 15s
-    deploy:
-      resources:
-        limits:
-          memory: 1G            # LibreOffice necesita RAM para conversión PDF
+  # carbone:
+  #   build:
+  #     context: ./integrations/carbone
+  #     dockerfile: Dockerfile
+  #   container_name: ades-carbone
+  #   restart: unless-stopped
+  #   environment:
+  #     PORT:          3000
+  #     TEMPLATES_DIR: /app/templates
+  #   volumes:
+  #     - carbone-templates:/app/templates
+  #   ports:
+  #     - "127.0.0.1:3001:3000"
+  #   networks:
+  #     - ades-internal
+  #   healthcheck:
+  #     test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/health"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 15s
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         memory: 1G
 
   # ---------------------------------------------------------------------------
   # Flowise — constructor visual de flujos de IA (chatbots, agentes, RAG)
   # FASE 17: Chatbot pedagógico + NL→SQL sobre ades_*
   # UI admin: http://localhost:3002 (acceso local solo para configurar flujos)
+  # DESACTIVADO: Servidor limitado (2 cores, 12GB). Habilitar con más recursos
   # ---------------------------------------------------------------------------
-  flowise:
-    image: flowiseai/flowise:latest
-    container_name: ades-flowise
-    restart: unless-stopped
-    environment:
-      PORT:                  3000
-      FLOWISE_USERNAME:      ${FLOWISE_USERNAME:-admin}
-      FLOWISE_PASSWORD:      ${FLOWISE_PASSWORD}
-      FLOWISE_SECRETKEY_OVERWRITE: ${FLOWISE_SECRET_KEY}
-      DATABASE_PATH:         /root/.flowise
-      APIKEY_PATH:           /root/.flowise
-      LOG_PATH:              /root/.flowise/logs
-      # Integración con base de datos PostgreSQL ADES (para Vanna AI / herramientas SQL)
-      OVERRIDE_DATABASE:     true
-    volumes:
-      - flowise-data:/root/.flowise
-    ports:
-      - "127.0.0.1:3002:3000"  # UI de configuración — solo localhost
-    networks:
-      - ades-internal
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/v1/version"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 60s
-    deploy:
-      resources:
-        limits:
-          memory: 1G
+  # flowise:
+  #   image: flowiseai/flowise:latest
+  #   container_name: ades-flowise
+  #   restart: unless-stopped
+  #   environment:
+  #     PORT:                  3000
+  #     FLOWISE_USERNAME:      ${FLOWISE_USERNAME:-admin}
+  #     FLOWISE_PASSWORD:      ${FLOWISE_PASSWORD}
+  #     FLOWISE_SECRETKEY_OVERWRITE: ${FLOWISE_SECRET_KEY}
+  #     DATABASE_PATH:         /root/.flowise
+  #     APIKEY_PATH:           /root/.flowise
+  #     LOG_PATH:              /root/.flowise/logs
+  #     OVERRIDE_DATABASE:     true
+  #   volumes:
+  #     - flowise-data:/root/.flowise
+  #   ports:
+  #     - "127.0.0.1:3002:3000"
+  #   networks:
+  #     - ades-internal
+  #   healthcheck:
+  #     test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/v1/version"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 5
+  #     start_period: 60s
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         memory: 1G
 
   # ---------------------------------------------------------------------------
   # ntfy — push notifications sin Firebase
   # FASE 20: alertas académicas en tiempo real a padres, docentes y alumnos
   # Topics: ades_{usuario_id}  Canal de suscripción por usuario
+  # DESACTIVADO: Servidor limitado (2 cores, 12GB). Habilitar con más recursos
   # ---------------------------------------------------------------------------
-  ntfy:
-    image: binwiederhier/ntfy:latest
-    container_name: ades-ntfy
-    restart: unless-stopped
-    command: serve --base-url http://ades-ntfy:80 --behind-proxy
-    environment:
-      TZ: America/Mexico_City
-      NTFY_BASE_URL:          ${NTFY_BASE_URL:-http://notify.ades.setag.mx}
-      NTFY_CACHE_FILE:        /var/cache/ntfy/cache.db
-      NTFY_AUTH_FILE:         /var/lib/ntfy/auth.db
-      NTFY_AUTH_DEFAULT_ACCESS: read-only
-      NTFY_BEHIND_PROXY:      "true"
-    volumes:
-      - ntfy-data:/var/lib/ntfy
-      - ntfy-cache:/var/cache/ntfy
-    ports:
-      - "127.0.0.1:2586:80"
-    networks:
-      - ades-internal
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:80/v1/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
-    deploy:
-      resources:
-        limits:
-          memory: 128M
+  # ntfy:
+  #   image: binwiederhier/ntfy:latest
+  #   container_name: ades-ntfy
+  #   restart: unless-stopped
+  #   command: serve --base-url http://ades-ntfy:80 --behind-proxy
+  #   environment:
+  #     TZ: America/Mexico_City
+  #     NTFY_BASE_URL:          ${NTFY_BASE_URL:-http://notify.ades.setag.mx}
+  #     NTFY_CACHE_FILE:        /var/cache/ntfy/cache.db
+  #     NTFY_AUTH_FILE:         /var/lib/ntfy/auth.db
+  #     NTFY_AUTH_DEFAULT_ACCESS: read-only
+  #     NTFY_BEHIND_PROXY:      "true"
+  #   volumes:
+  #     - ntfy-data:/var/lib/ntfy
+  #     - ntfy-cache:/var/cache/ntfy
+  #   ports:
+  #     - "127.0.0.1:2586:80"
+  #   networks:
+  #     - ades-internal
+  #   healthcheck:
+  #     test: ["CMD", "wget", "-qO-", "http://127.0.0.1:80/v1/health"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 10s
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         memory: 128M
 
   # ---------------------------------------------------------------------------
   # Stirling-PDF — procesamiento de PDF (merge, OCR, watermark, compress)
   # FASE 21: complemento de Carbone para boletas grupales y expedientes
+  # DESACTIVADO: Servidor limitado (2 cores, 12GB). Habilitar con más recursos
   # ---------------------------------------------------------------------------
-  stirling-pdf:
-    image: frooodle/s-pdf:latest
-    container_name: ades-stirling-pdf
-    restart: unless-stopped
-    environment:
-      DOCKER_ENABLE_SECURITY:      "false"
-      LANGS:                       "es_MX"
-      SYSTEM_DEFAULTLOCALE:        es-MX
-      SYSTEM_GOOGLEVISIBILITY:     "false"
-      UI_APPNAME:                  "ADES PDF"
-      UI_HOMEDESCRIPTION:          "Procesamiento PDF — Instituto Nevadi"
-      JAVA_TOOL_OPTIONS: >-
-        -XX:+ExitOnOutOfMemoryError
-        -XX:+UseG1GC
-        -XX:MaxGCPauseMillis=200
-        -XX:G1HeapRegionSize=4m
-        -XX:G1PeriodicGCInterval=60000
-        -XX:+UseStringDeduplication
-        -XX:+ExplicitGCInvokesConcurrent
-        -Dspring.threads.virtual.enabled=true
-        -Djava.awt.headless=true
-        -XX:InitialRAMPercentage=25
-        -XX:MaxRAMPercentage=65
-        -XX:MaxMetaspaceSize=256m
-    ports:
-      - "127.0.0.1:8081:8080"
-    networks:
-      - ades-internal
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/login"]
-      interval: 30s
-      timeout: 15s
-      retries: 3
-      start_period: 90s
-    deploy:
-      resources:
-        limits:
-          memory: 1.5G
+  # stirling-pdf:
+  #   image: frooodle/s-pdf:latest
+  #   container_name: ades-stirling-pdf
+  #   restart: unless-stopped
+  #   environment:
+  #     DOCKER_ENABLE_SECURITY:      "false"
+  #     LANGS:                       "es_MX"
+  #     SYSTEM_DEFAULTLOCALE:        es-MX
+  #     SYSTEM_GOOGLEVISIBILITY:     "false"
+  #     UI_APPNAME:                  "ADES PDF"
+  #     UI_HOMEDESCRIPTION:          "Procesamiento PDF — Instituto Nevadi"
+  #     JAVA_TOOL_OPTIONS: >-
+  #       -XX:+ExitOnOutOfMemoryError
+  #       -XX:+UseG1GC
+  #       -XX:MaxGCPauseMillis=200
+  #       -XX:G1HeapRegionSize=4m
+  #       -XX:G1PeriodicGCInterval=60000
+  #       -XX:+UseStringDeduplication
+  #       -XX:+ExplicitGCInvokesConcurrent
+  #       -Dspring.threads.virtual.enabled=true
+  #       -Djava.awt.headless=true
+  #       -XX:InitialRAMPercentage=25
+  #       -XX:MaxRAMPercentage=65
+  #       -XX:MaxMetaspaceSize=256m
+  #   ports:
+  #     - "127.0.0.1:8081:8080"
+  #   networks:
+  #     - ades-internal
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-f", "http://localhost:8080/login"]
+  #     interval: 30s
+  #     timeout: 15s
+  #     retries: 3
+  #     start_period: 90s
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         memory: 1.5G
 
   # ---------------------------------------------------------------------------
   # Node Exporter — métricas de host (CPU, memoria, disco) para Prometheus
@@ -753,7 +754,7 @@ services:
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
-      - '--storage.tsdb.retention.time=30d'
+      - '--storage.tsdb.retention.time=7d'
       - '--web.enable-lifecycle'
     volumes:
       - ./infrastructure/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
@@ -771,7 +772,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512M
+          memory: 256M
 
   # ---------------------------------------------------------------------------
   # Grafana — dashboards de monitoreo y BI operativo
@@ -809,152 +810,145 @@ services:
     deploy:
       resources:
         limits:
-          memory: 384M
+          memory: 256M
 
   # ---------------------------------------------------------------------------
   # n8n — automatización de flujos de trabajo
   # FASE 23: alertas académicas, batch boletas, recordatorios documentos
   # UI admin: http://localhost:5678 (solo localhost para configurar flujos)
+  # DESACTIVADO: Servidor limitado (2 cores, 12GB). Habilitar con más recursos
   # ---------------------------------------------------------------------------
-  n8n:
-    image: n8nio/n8n:latest
-    container_name: ades-n8n
-    restart: unless-stopped
-    environment:
-      N8N_HOST:                  ${N8N_HOST}
-      N8N_PORT:                  ${N8N_PORT}
-      N8N_PROTOCOL:              http
-      N8N_EDITOR_BASE_URL:       ${N8N_URL}
-      WEBHOOK_URL:               ${N8N_WEBHOOK_URL}
-      DB_TYPE:                   postgresdb
-      DB_POSTGRESDB_HOST:        ades-postgres
-      DB_POSTGRESDB_DATABASE:    ${N8N_DB}
-      DB_POSTGRESDB_USER:        ${POSTGRES_USER:-ades_admin}
-      DB_POSTGRESDB_PASSWORD:    ${POSTGRES_PASSWORD}
-      N8N_BASIC_AUTH_ACTIVE:     "true"
-      N8N_BASIC_AUTH_USER:       ${N8N_USER}
-      N8N_BASIC_AUTH_PASSWORD:   ${N8N_PASSWORD}
-      N8N_ENCRYPTION_KEY:        ${N8N_ENCRYPTION_KEY}
-      EXECUTIONS_PROCESS:        main
-      # Acceso al backend ADES para webhooks
-      ADES_API_URL:              http://ades-api:8000
-      ADES_API_KEY:              ${ADES_INTERNAL_API_KEY}
-      # Acceso a ntfy para notificaciones
-      NTFY_URL:                  http://ades-ntfy:80
-    volumes:
-      - n8n-data:/home/node/.n8n
-    ports:
-      - "127.0.0.1:5678:5678"
-    networks:
-      - ades-internal
-    depends_on:
-      postgres:
-        condition: service_healthy
-      ntfy:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:5678/healthz"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 60s
-    deploy:
-      resources:
-        limits:
-          memory: 1024M
+  # n8n:
+  #   image: n8nio/n8n:latest
+  #   container_name: ades-n8n
+  #   restart: unless-stopped
+  #   environment:
+  #     N8N_HOST:                  ${N8N_HOST}
+  #     N8N_PORT:                  ${N8N_PORT}
+  #     N8N_PROTOCOL:              http
+  #     N8N_EDITOR_BASE_URL:       ${N8N_URL}
+  #     WEBHOOK_URL:               ${N8N_WEBHOOK_URL}
+  #     DB_TYPE:                   postgresdb
+  #     DB_POSTGRESDB_HOST:        ades-postgres
+  #     DB_POSTGRESDB_DATABASE:    ${N8N_DB}
+  #     DB_POSTGRESDB_USER:        ${POSTGRES_USER:-ades_admin}
+  #     DB_POSTGRESDB_PASSWORD:    ${POSTGRES_PASSWORD}
+  #     N8N_BASIC_AUTH_ACTIVE:     "true"
+  #     N8N_BASIC_AUTH_USER:       ${N8N_USER}
+  #     N8N_BASIC_AUTH_PASSWORD:   ${N8N_PASSWORD}
+  #     N8N_ENCRYPTION_KEY:        ${N8N_ENCRYPTION_KEY}
+  #     EXECUTIONS_PROCESS:        main
+  #     ADES_API_URL:              http://ades-api:8000
+  #     ADES_API_KEY:              ${ADES_INTERNAL_API_KEY}
+  #     NTFY_URL:                  http://ades-ntfy:80
+  #   volumes:
+  #     - n8n-data:/home/node/.n8n
+  #   ports:
+  #     - "127.0.0.1:5678:5678"
+  #   networks:
+  #     - ades-internal
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     ntfy:
+  #       condition: service_healthy
+  #   healthcheck:
+  #     test: ["CMD", "wget", "-qO-", "http://localhost:5678/healthz"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 5
+  #     start_period: 60s
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         memory: 1024M
 
   # ---------------------------------------------------------------------------
   # Paperless-ngx — Gestión Documental con OCR (FASE 28)
   # Expedientes digitales del alumno: CURP, actas, certificados previos
   # UI interna en puerto 8010 (accesible vía nginx /docs/)
-  # Reutiliza: ades-postgres (DB paperless) + ades-valkey (broker DB 1)
+  # DESACTIVADO: Servidor limitado (2 cores, 12GB). Habilitar con más recursos
   # ---------------------------------------------------------------------------
-  paperless:
-    image: ghcr.io/paperless-ngx/paperless-ngx:latest
-    container_name: ades-paperless
-    restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
-      valkey:
-        condition: service_healthy
-    environment:
-      # Base de datos — usa el PostgreSQL existente de ADES
-      PAPERLESS_DBENGINE:      postgresql
-      PAPERLESS_DBHOST:        ades-postgres
-      PAPERLESS_DBPORT:        5432
-      PAPERLESS_DBNAME:        paperless
-      PAPERLESS_DBUSER:        ${POSTGRES_USER:-ades_admin}
-      PAPERLESS_DBPASS:        ${POSTGRES_PASSWORD}
-      # Broker de tareas — reutiliza Valkey con DB separada (db=1) + auth
-      PAPERLESS_REDIS:         redis://:${VALKEY_PASSWORD}@ades-valkey:6379/1
-      # Seguridad
-      PAPERLESS_SECRET_KEY:    ${PAPERLESS_SECRET_KEY:-paperless_dev_secret_change_in_prod}
-      PAPERLESS_ALLOWED_HOSTS: "*"
-      PAPERLESS_CORS_ALLOWED_HOSTS: "http://localhost:4200,https://ades.setag.mx"
-      # OCR — tesseract con español como idioma primario
-      PAPERLESS_OCR_LANGUAGE:  spa
-      PAPERLESS_OCR_LANGUAGES: spa+eng
-      # Configuración de usuario admin inicial
-      PAPERLESS_ADMIN_USER:    ${PAPERLESS_ADMIN_USER:-admin}
-      PAPERLESS_ADMIN_PASSWORD: ${PAPERLESS_ADMIN_PASSWORD:-paperless_admin_dev}
-      PAPERLESS_ADMIN_MAIL:    admin@setag.mx
-      # Configuración de la aplicación
-      PAPERLESS_TIME_ZONE:     America/Mexico_City
-      PAPERLESS_URL:           http://ades-paperless:8000
-      PAPERLESS_ENABLE_HTTP_REMOTE_USER: "false"
-      # Rendimiento
-      PAPERLESS_TASK_WORKERS:  1
-      PAPERLESS_THREADS_PER_WORKER: 1
-    volumes:
-      - paperless-data:/usr/src/paperless/data
-      - paperless-media:/usr/src/paperless/media
-      - paperless-export:/usr/src/paperless/export
-    networks:
-      - ades-internal
-    healthcheck:
-      test: ["CMD", "curl", "-fs", "-S", "--max-time", "10", "http://localhost:8000"]
-      interval: 30s
-      timeout: 15s
-      retries: 5
-      start_period: 120s
-    deploy:
-      resources:
-        limits:
-          memory: 1G
+  # paperless:
+  #   image: ghcr.io/paperless-ngx/paperless-ngx:latest
+  #   container_name: ades-paperless
+  #   restart: unless-stopped
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     valkey:
+  #       condition: service_healthy
+  #   environment:
+  #     PAPERLESS_DBENGINE:      postgresql
+  #     PAPERLESS_DBHOST:        ades-postgres
+  #     PAPERLESS_DBPORT:        5432
+  #     PAPERLESS_DBNAME:        paperless
+  #     PAPERLESS_DBUSER:        ${POSTGRES_USER:-ades_admin}
+  #     PAPERLESS_DBPASS:        ${POSTGRES_PASSWORD}
+  #     PAPERLESS_REDIS:         redis://:${VALKEY_PASSWORD}@ades-valkey:6379/1
+  #     PAPERLESS_SECRET_KEY:    ${PAPERLESS_SECRET_KEY:-paperless_dev_secret_change_in_prod}
+  #     PAPERLESS_ALLOWED_HOSTS: "*"
+  #     PAPERLESS_CORS_ALLOWED_HOSTS: "http://localhost:4200,https://ades.setag.mx"
+  #     PAPERLESS_OCR_LANGUAGE:  spa
+  #     PAPERLESS_OCR_LANGUAGES: spa+eng
+  #     PAPERLESS_ADMIN_USER:    ${PAPERLESS_ADMIN_USER:-admin}
+  #     PAPERLESS_ADMIN_PASSWORD: ${PAPERLESS_ADMIN_PASSWORD:-paperless_admin_dev}
+  #     PAPERLESS_ADMIN_MAIL:    admin@setag.mx
+  #     PAPERLESS_TIME_ZONE:     America/Mexico_City
+  #     PAPERLESS_URL:           http://ades-paperless:8000
+  #     PAPERLESS_ENABLE_HTTP_REMOTE_USER: "false"
+  #     PAPERLESS_TASK_WORKERS:  1
+  #     PAPERLESS_THREADS_PER_WORKER: 1
+  #   volumes:
+  #     - paperless-data:/usr/src/paperless/data
+  #     - paperless-media:/usr/src/paperless/media
+  #     - paperless-export:/usr/src/paperless/export
+  #   networks:
+  #     - ades-internal
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-fs", "-S", "--max-time", "10", "http://localhost:8000"]
+  #     interval: 30s
+  #     timeout: 15s
+  #     retries: 5
+  #     start_period: 120s
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         memory: 1G
 
   # ---------------------------------------------------------------------------
   # H5P Service — Contenido Educativo Interactivo
   # FASE 25: Editor y player H5P, xAPI tracking, integración con ades_tareas
+  # DESACTIVADO: Servidor limitado (2 cores, 12GB). Habilitar con más recursos
   # ---------------------------------------------------------------------------
-  h5p:
-    build:
-      context: ./infrastructure/h5p
-      dockerfile: Dockerfile
-    image: ades-h5p:latest
-    container_name: ades-h5p
-    restart: unless-stopped
-    environment:
-      PORT: "8091"
-      H5P_DATA_DIR: /data
-      ADES_API_URL: http://ades-api:8000
-      NODE_ENV: production
-    volumes:
-      - h5p-data:/data
-    ports:
-      - "127.0.0.1:8091:8091"
-    networks:
-      - ades-internal
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8091/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    deploy:
-      resources:
-        limits:
-          memory: 512M
+  # h5p:
+  #   build:
+  #     context: ./infrastructure/h5p
+  #     dockerfile: Dockerfile
+  #   image: ades-h5p:latest
+  #   container_name: ades-h5p
+  #   restart: unless-stopped
+  #   environment:
+  #     PORT: "8091"
+  #     H5P_DATA_DIR: /data
+  #     ADES_API_URL: http://ades-api:8000
+  #     NODE_ENV: production
+  #   volumes:
+  #     - h5p-data:/data
+  #   ports:
+  #     - "127.0.0.1:8091:8091"
+  #   networks:
+  #     - ades-internal
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-f", "http://localhost:8091/health"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 30s
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         memory: 512M
 
   # ---------------------------------------------------------------------------
   # PgBouncer — connection pooling para PostgreSQL

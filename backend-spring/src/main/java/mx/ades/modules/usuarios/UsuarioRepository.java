@@ -11,22 +11,23 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * PUNTO 1: @EntityGraph implementado para prevenir N+1 queries
+ * Usuario solo mapea una relación JPA real: rol (@ManyToOne). persona_id
+ * y plantel_id son FKs planas — @EntityGraph solo aplica a "rol".
  */
 @Repository
 public interface UsuarioRepository extends JpaRepository<Usuario, UUID> {
 
-    @EntityGraph(attributePaths = {"persona", "roles", "plantel"})
+    @EntityGraph(attributePaths = {"rol"})
     Optional<Usuario> findByOidcSubOrEmailInstitucional(String oidcSub, String emailInstitucional);
 
-    @EntityGraph(attributePaths = {"persona", "roles", "plantel"})
+    @EntityGraph(attributePaths = {"rol"})
     @Query("SELECT u FROM Usuario u WHERE u.oidcSub = :sub OR (u.oidcSub = :username AND :username IS NOT NULL) OR (u.emailInstitucional = :email AND :email IS NOT NULL) OR (u.nombreUsuario = :username AND :username IS NOT NULL) OR (u.nombreUsuario = :email AND :email IS NOT NULL)")
     Optional<Usuario> findByOidcSubOrEmailOrUsername(@Param("sub") String sub, @Param("email") String email, @Param("username") String username);
 
-    @EntityGraph(attributePaths = {"persona", "roles", "plantel"})
+    @EntityGraph(attributePaths = {"rol"})
     Optional<Usuario> findById(UUID id);
 
-    @EntityGraph(attributePaths = {"persona", "roles"})
+    @EntityGraph(attributePaths = {"rol"})
     @Query("SELECT u FROM Usuario u WHERE u.isActive = true")
     List<Usuario> findAllActive();
 }

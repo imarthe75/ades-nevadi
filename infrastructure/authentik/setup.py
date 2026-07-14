@@ -11,11 +11,14 @@ Configura:
 
 Idempotente: puede ejecutarse múltiples veces sin duplicar objetos.
 """
-import json, os, secrets, sys
+import json, os, re, secrets, sys
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError
 
-BASE  = "https://auth.ades.setag.mx"
+# Por defecto localhost:9010 — no depende de DNS/TLS externos ya emitidos,
+# por lo que puede correr como parte del bootstrap ANTES de tener
+# certificados reales. Sobreescribible con AUTHENTIK_API_BASE.
+BASE  = os.environ.get("AUTHENTIK_API_BASE", "http://localhost:9010")
 TOKEN = os.environ.get("AUTHENTIK_BOOTSTRAP_TOKEN", "")
 if not TOKEN:
     sys.exit("ERROR: variable AUTHENTIK_BOOTSTRAP_TOKEN requerida")
@@ -180,6 +183,10 @@ base_provider = {
     "sub_mode":                 "hashed_user_id",
     "include_claims_in_id_token": True,
     "issuer_mode":              "per_provider",
+    # Sin esto Authentik rechaza CUALQUIER request de autorización con
+    # "invalid_request: The request is otherwise malformed" (grant_types
+    # vacío por defecto — bug real encontrado 2026-07-10).
+    "grant_types":              ["authorization_code", "refresh_token"],
 }
 if invalid_flow:
     base_provider["invalidation_flow"] = invalid_flow
@@ -260,14 +267,35 @@ else:
     print("    GOOGLE_OAUTH_CLIENT_SECRET=<secret>")
     print("  Luego: python3 infrastructure/authentik/setup.py")
 
-# ── 7. Resumen ────────────────────────────────────────────────────────────────
+# ── 7. Escribir secretos en .env ────────────────────────────────────────────
+
+def write_env_var(path, key, value):
+    with open(path) as f:
+        content = f.read()
+    pattern = re.compile(rf"^{re.escape(key)}=.*$", re.MULTILINE)
+    line = f"{key}={value}"
+    if pattern.search(content):
+        content = pattern.sub(line, content, count=1)
+    else:
+        content = content.rstrip("\n") + f"\n{line}\n"
+    with open(path, "w") as f:
+        f.write(content)
+
+env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), ".env")
+if os.path.isfile(env_path):
+    write_env_var(env_path, "OIDC_CLIENT_SECRET", ades_secret)
+    write_env_var(env_path, "SUPERSET_OIDC_CLIENT_SECRET", superset_secret)
+    print(f"\n[.env] OIDC_CLIENT_SECRET y SUPERSET_OIDC_CLIENT_SECRET actualizados en {env_path}")
+else:
+    print(f"\n[!] No se encontró {env_path} — actualiza manualmente:")
+    print(f"    OIDC_CLIENT_SECRET={ades_secret}")
+    print(f"    SUPERSET_OIDC_CLIENT_SECRET={superset_secret}")
+
+# ── 8. Resumen ────────────────────────────────────────────────────────────────
 
 print("\n" + "=" * 62)
 print("SETUP COMPLETADO")
 print("=" * 62)
-print("\nActualiza estas variables en .env:")
-print(f"  OIDC_CLIENT_SECRET={ades_secret}")
-print(f"  SUPERSET_OIDC_CLIENT_SECRET={superset_secret}")
 print("\nURLs de configuración OIDC:")
 print(f"  ades-frontend issuer : {BASE}/application/o/ades-frontend/")
 print(f"  superset issuer      : {BASE}/application/o/superset/")

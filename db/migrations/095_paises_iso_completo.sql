@@ -25,7 +25,8 @@ ALTER TABLE ades_paises
   ADD COLUMN IF NOT EXISTS nombre_oficial_es VARCHAR(255),
   ADD COLUMN IF NOT EXISTS codigo_telefono   VARCHAR(12),
   ADD COLUMN IF NOT EXISTS region            VARCHAR(50),
-  ADD COLUMN IF NOT EXISTS emoji_bandera     VARCHAR(10);
+  ADD COLUMN IF NOT EXISTS emoji_bandera     VARCHAR(10),
+  ADD COLUMN IF NOT EXISTS nacionalidad      VARCHAR(60);
 
 -- Constraints únicos (nullable: XK-Kosovo no tiene código ISO oficial)
 DO $$ BEGIN

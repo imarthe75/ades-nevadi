@@ -205,13 +205,13 @@ SELECT
   c.inicio::DATE,
   c.fin::DATE,
   c.tipo,
-  TRUE
+  c.vigente
 FROM (VALUES
-  ('2026-2027', 'PRIMARIA',     '2026-08-24', '2027-07-09', 'ANUAL'),
-  ('2026-2027', 'SECUNDARIA',   '2026-08-24', '2027-07-09', 'ANUAL'),
-  ('26B',       'PREPARATORIA', '2026-08-04', '2027-01-30', 'SEMESTRAL'),
-  ('27A',       'PREPARATORIA', '2027-02-01', '2027-07-09', 'SEMESTRAL')
-) AS c(nombre, nivel, inicio, fin, tipo)
+  ('2026-2027', 'PRIMARIA',     '2026-08-24', '2027-07-09', 'ANUAL',     TRUE),
+  ('2026-2027', 'SECUNDARIA',   '2026-08-24', '2027-07-09', 'ANUAL',     TRUE),
+  ('26B',       'PREPARATORIA', '2026-08-04', '2027-01-30', 'SEMESTRAL', TRUE),
+  ('27A',       'PREPARATORIA', '2027-02-01', '2027-07-09', 'SEMESTRAL', FALSE)
+) AS c(nombre, nivel, inicio, fin, tipo, vigente)
 JOIN ades_niveles_educativos ne ON ne.nombre_nivel = c.nivel
 ON CONFLICT (nombre_ciclo, nivel_educativo_id) DO NOTHING;
 
@@ -494,8 +494,8 @@ ON CONFLICT (numero_grado, nivel_educativo_id, plantel_id) DO NOTHING;
 -- =============================================================================
 
 -- PRIMARIA (materias comunes a todos los grados, horas aproximadas SEP NEM 2022)
-INSERT INTO ades_materias (nombre_materia, clave_materia, nivel_educativo_id, horas_semana, es_inglés)
-SELECT m.nombre, m.clave, ne.id, m.horas, m.ingles
+INSERT INTO ades_materias (nombre_materia, clave_materia, nivel_educativo_id, horas_semana, es_inglés, tipo_materia)
+SELECT m.nombre, m.clave, ne.id, m.horas, m.ingles, 'OFICIAL_SEP_PRIMARIA'
 FROM ades_niveles_educativos ne,
 (VALUES
   ('Lenguajes',                             'PRI-LEN', 8.0, FALSE),
@@ -510,8 +510,8 @@ WHERE ne.nombre_nivel = 'PRIMARIA'
 ON CONFLICT (nombre_materia, nivel_educativo_id) DO NOTHING;
 
 -- SECUNDARIA (Nueva Escuela Mexicana SEP 2022)
-INSERT INTO ades_materias (nombre_materia, clave_materia, nivel_educativo_id, horas_semana, es_inglés)
-SELECT m.nombre, m.clave, ne.id, m.horas, FALSE
+INSERT INTO ades_materias (nombre_materia, clave_materia, nivel_educativo_id, horas_semana, es_inglés, tipo_materia)
+SELECT m.nombre, m.clave, ne.id, m.horas, FALSE, 'OFICIAL_SEP_SECUNDARIA'
 FROM ades_niveles_educativos ne,
 (VALUES
   ('Español',                               'SEC-ESP', 5.0),
@@ -535,9 +535,10 @@ WHERE nombre_materia = 'Inglés'
   AND nivel_educativo_id = (SELECT id FROM ades_niveles_educativos WHERE nombre_nivel = 'SECUNDARIA');
 
 -- PREPARATORIA UAEMEX — Plan de estudios NMS completo (semestres 1-6)
-INSERT INTO ades_materias (nombre_materia, clave_materia, nivel_educativo_id, horas_semana, es_inglés)
+INSERT INTO ades_materias (nombre_materia, clave_materia, nivel_educativo_id, horas_semana, es_inglés, tipo_materia)
 SELECT m.nombre, m.clave, ne.id, m.horas,
-       (m.clave LIKE 'PREP-ING%') AS es_ing
+       (m.clave LIKE 'PREP-ING%') AS es_ing,
+       'OFICIAL_UAEMEX_PREP'
 FROM ades_niveles_educativos ne,
 (VALUES
   -- Semestre 1
@@ -601,7 +602,7 @@ ON CONFLICT (nombre_materia, nivel_educativo_id) DO NOTHING;
 -- =============================================================================
 -- 16. AULAS POR PLANTEL (requerido para aSc TimeTables)
 -- =============================================================================
-INSERT INTO ades_aulas (nombre_aula, plantel_id, tipo_aula, capacidad)
+INSERT INTO ades_aulas (nombre_aula, plantel_id, tipo_aula, capacidad_alumnos)
 SELECT a.nombre, p.id, a.tipo, a.capacidad
 FROM ades_planteles p,
 (VALUES

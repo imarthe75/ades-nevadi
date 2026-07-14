@@ -105,7 +105,7 @@ ON CONFLICT DO NOTHING;
 -- C. AULAS ADICIONALES (laboratorios específicos por plantel)
 -- Las aulas básicas ya se insertaron en el seed 001
 -- =============================================================================
-INSERT INTO ades_aulas (nombre_aula, plantel_id, tipo_aula, capacidad)
+INSERT INTO ades_aulas (nombre_aula, plantel_id, tipo_aula, capacidad_alumnos)
 SELECT a.nombre, pl.id, a.tipo, a.capacidad
 FROM ades_planteles pl,
 (VALUES

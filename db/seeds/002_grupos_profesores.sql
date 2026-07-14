@@ -38,7 +38,7 @@ SELECT
   'NVD',
   'XEXX' || UPPER(LEFT(REGEXP_REPLACE(pl.nombre_plantel,' ','','g'),3))
     || 'P' || gr.numero_grado || g.letra
-    || '00HDFNNN0' || LPAD(
+    || 'HDFNN' || LPAD(
          (ROW_NUMBER() OVER (ORDER BY pl.nombre_plantel, gr.numero_grado, g.letra))::TEXT
        ,2,'0') || 'A',
   'M'
@@ -75,7 +75,7 @@ SELECT
   'Docente Inglés ' || pl.nombre_plantel,
   'Primaria', 'NVD',
   'XEXX' || UPPER(LEFT(REGEXP_REPLACE(pl.nombre_plantel,' ','','g'),3))
-    || 'ING00HDFNNN'
+    || 'INGHDFNN'
     || LPAD((ROW_NUMBER() OVER (ORDER BY pl.nombre_plantel))::TEXT,2,'0') || 'A',
   'F'
 FROM ades_planteles pl
@@ -103,7 +103,7 @@ SELECT
   pl.nombre_plantel || ' Sec', 'NVD',
   'XEXX' || UPPER(LEFT(REGEXP_REPLACE(pl.nombre_plantel,' ','','g'),3))
     || UPPER(LEFT(REGEXP_REPLACE(mat.nombre_materia,'[^A-Za-z]','','g'),3))
-    || '0HDFNNN'
+    || 'HDFN'
     || LPAD((ROW_NUMBER() OVER (ORDER BY pl.nombre_plantel, mat.nombre_materia))::TEXT,3,'0') || 'A',
   'M'
 FROM ades_materias mat
@@ -137,7 +137,7 @@ SELECT
   'Docente ' || mat.nombre_materia,
   'Metepec Prep', 'NVD',
   'XEXXMET' || UPPER(LEFT(REGEXP_REPLACE(mat.nombre_materia,'[^A-Za-z]','','g'),4))
-    || '0HDFNNN'
+    || 'HDFN'
     || LPAD((ROW_NUMBER() OVER (ORDER BY mat.nombre_materia))::TEXT,2,'0') || 'A',
   'M'
 FROM ades_materias mat
@@ -173,11 +173,11 @@ JOIN ades_planteles pl ON pl.id = gr.plantel_id
 JOIN ades_profesores prof ON prof.plantel_id = pl.id
 JOIN ades_personas per ON per.id = prof.persona_id
   AND per.nombre           = 'Docente ' || pl.nombre_plantel || ' Primaria'
-  AND per.apellido_paterno = 'G' || gr.numero_grado || g.nombre_grupo
   AND per.apellido_materno = 'NVD'
 WHERE g.grado_id = gr.id
   AND ne.nombre_nivel = 'PRIMARIA'
-  AND g.profesor_titular_id IS NULL;
+  AND g.profesor_titular_id IS NULL
+  AND per.apellido_paterno = 'G' || gr.numero_grado || g.nombre_grupo;
 
 -- =============================================================================
 -- D. ASIGNACIONES DOCENTES
@@ -249,7 +249,7 @@ ON CONFLICT (grupo_id, materia_id, ciclo_escolar_id) DO NOTHING;
 -- E. USUARIO ADMIN GLOBAL INICIAL
 -- =============================================================================
 INSERT INTO ades_personas (nombre, apellido_paterno, apellido_materno, curp, genero)
-VALUES ('Administrador','Instituto','Nevadi','XEXXADM000000HDFNNN00A','M')
+VALUES ('Administrador','Instituto','Nevadi','XEXXADM000000HDFNN','M')
 ON CONFLICT (curp) DO NOTHING;
 
 INSERT INTO ades_usuarios
@@ -262,7 +262,7 @@ SELECT
 FROM ades_personas per
 CROSS JOIN ades_roles rol
 CROSS JOIN ades_estatus est
-WHERE per.curp = 'XEXXADM000000HDFNNN00A'
+WHERE per.curp = 'XEXXADM000000HDFNN'
   AND rol.nombre_rol = 'ADMIN_GLOBAL'
   AND est.entidad = 'USUARIO' AND est.nombre_estatus = 'ACTIVO'
 ON CONFLICT (nombre_usuario) DO NOTHING;

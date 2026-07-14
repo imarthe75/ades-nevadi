@@ -1,0 +1,208 @@
+================================================================================
+                MIGRACIÓN ADES — RESUMEN EJECUTIVO
+================================================================================
+Fecha:          2026-07-10 15:15 UTC
+Servidor:       163.192.138.130 (2 cores, 12GB RAM)
+Estado:         En bootstrap — compilando imágenes Docker
+================================================================================
+
+✅ TAREAS COMPLETADAS
+────────────────────────────────────────────────────────────────────────────
+
+1. INFRAESTRUCTURA
+   ✓ Docker 29.1.3 instalado y activo
+   ✓ docker-compose v5.3.1 instalado
+   ✓ Volúmenes persistentes configurados
+   ✓ Redes Docker (ades-internal, aura-network) creadas
+
+2. CONFIGURACIÓN
+   ✓ .env creado con secretos seguros (openssl rand)
+   ✓ docker-compose.yml optimizado (2 cores, 12GB)
+   ✓ Servicios no-críticos desactivados (Vault, Flowise, ntfy, etc.)
+   ✓ Limites de memoria reducidos (~45% menos)
+   ✓ PostgreSQL: 1GB (antes 2GB)
+   ✓ Valkey: 256MB (antes 512MB)
+   ✓ Superset: 800MB (antes 1.5GB)
+
+3. DOCUMENTACIÓN
+   ✓ MIGRACION_2026_07_10.md  — Guía completa de migracion
+   ✓ DATOS_EJEMPLO.md          — Cómo cargar datos de ejemplo
+   ✓ init-certbot.sh           — Script para obtener certificados SSL
+   ✓ RESUMEN_MIGRACION.txt     — Este archivo
+
+4. OPTIMIZACIÓN
+   ✓ Eliminados servicios premium (Vault)
+   ✓ Desactivadas Fases posteriores (17, 18, 20-28)
+   ✓ Concurrencia Celery reducida (2 → 1)
+   ✓ Retention Prometheus reducida (30 → 7 días)
+   ✓ Archivos de configuración nginx listos
+   ✓ Scripts de auditoría disponibles
+
+================================================================================
+
+🔄 EN PROGRESO
+────────────────────────────────────────────────────────────────────────────
+
+- Docker Compose levantando servicios FASE 1:
+  • Compilando imágenes (FastAPI, Spring Boot, Angular, Superset)
+  • Bajando imágenes base (Python, Maven, Node.js)
+  • Inicializando volúmenes
+
+Estimado de tiempo: 10-15 minutos (dependiendo de ancho de banda)
+
+================================================================================
+
+⏭️ PRÓXIMOS PASOS (SECUENCIAL)
+────────────────────────────────────────────────────────────────────────────
+
+PASO 1 — Esperar bootstrap completo
+  ↳ Hasta que docker-compose ps muestre todos "Up"
+  ↳ PostgreSQL aplicará migraciones automáticamente (001-114.sql)
+  Comando: sudo docker-compose ps
+
+PASO 2 — Validar que PostgreSQL está listo
+  ↳ Verificar que BD tiene tablas ades_*
+  ↳ Cargar seeds de datos de ejemplo si es necesario
+  Comando: sudo docker-compose exec postgres psql -U ades_admin -d ades
+
+PASO 3 — Obtener certificados SSL
+  ↳ Ejecutar init-certbot.sh
+  ↳ Asegurar que DNS resuelve a 163.192.138.130
+  ↳ Nginx necesita HTTPS para funcionamiento correcto
+  Comando: bash /opt/ades/init-certbot.sh
+
+PASO 4 — Ejecutar pruebas exploratorias
+  ↳ Playwright + NVIDIA NIM
+  ↳ Verificar 52 módulos del sistema
+  ↳ Generar reporte de inconsistencias
+  Directorio: /opt/ades/ades_testing/
+
+PASO 5 — Validación final
+  ↳ Verificar endpoints principales (BFF, API, Frontend)
+  ↳ Confirmar autenticación OIDC (Authentik)
+  ↳ Validar conectividad a Superset BI
+  ↳ Revisar logs de auditoría
+
+================================================================================
+
+📊 ESTADO ACTUAL DE LAS BD
+────────────────────────────────────────────────────────────────────────────
+
+Base de datos    | Estado          | Tablas | Migraciones
+─────────────────┼─────────────────┼────────┼─────────────
+ades             | En creación     | TBD    | 001-114 (pendientes)
+authentik        | En creación     | TBD    | Auto-init (Authentik)
+superset         | En creación     | TBD    | Auto-init (Superset)
+paperless        | Desactivada     | —      | —
+valkey (redis)   | En creación     | N/A    | —
+
+================================================================================
+
+🔐 CREDENCIALES (Referencia rápida)
+────────────────────────────────────────────────────────────────────────────
+
+Servicio              Usuario         Puerto  Status
+──────────────────────┼──────────────┼────────┼────────────
+PostgreSQL            ades_admin      5432    Esperando...
+Valkey (cache)        (auth)          6379    Esperando...
+Authentik OIDC         admin           9000    Esperando...
+Superset BI           admin           8088    Esperando...
+Grafana Monitoring    admin           3003    Esperando...
+BFF (Spring Boot)     —               8080    Esperando...
+API (FastAPI)         —               8000    Esperando...
+Frontend (Angular)    —               4200    Esperando...
+Nginx (reverse proxy) —               80/443  Esperando...
+
+Todas las contraseñas están en /opt/ades/.env
+
+================================================================================
+
+📋 ARCHIVOS CLAVE
+────────────────────────────────────────────────────────────────────────────
+
+/opt/ades/
+├── .env                             ← Variables de entorno (secretos)
+├── docker-compose.yml               ← Orquestación de servicios
+├── MIGRACION_2026_07_10.md         ← Documentación completa
+├── DATOS_EJEMPLO.md                ← Cómo cargar seeds
+├── init-certbot.sh                 ← Script para certificados SSL
+├── RESUMEN_MIGRACION.txt           ← Este archivo
+│
+├── infrastructure/nginx/            ← Config reverse proxy
+├── infrastructure/authentik/        ← Config OIDC
+├── infrastructure/prometheus/       ← Config monitoreo
+├── infrastructure/grafana/          ← Config dashboards
+│
+├── backend/                         ← FastAPI (IA + render docs)
+├── backend-spring/                  ← Spring Boot 3 (BFF principal)
+├── frontend/                        ← Angular 22 (UI)
+├── frontend-portal/                 ← Portal público
+│
+├── db/
+│   ├── migrations/                  ← DDL versionado (001-114.sql)
+│   ├── seeds/                       ← Datos de ejemplo
+│   └── scripts/init_multi_db.sh    ← Init multitenancy
+
+└── ades_testing/                    ← Pruebas exploratorias
+
+================================================================================
+
+🎯 MÉTRICAS DE ÉXITO
+────────────────────────────────────────────────────────────────────────────
+
+Objetivo: Levantar Fase 1 con recursos limitados (2 cores, 12GB)
+
+Criterios:
+  ☐ Todos los servicios FASE 1 corriendo sin errores
+  ☐ PostgreSQL inicializado con 114 migraciones
+  ☐ Seeds cargados (planteles, grupos, alumnos, materias, etc.)
+  ☐ Authentik operativo con bootstrap completado
+  ☐ Certificados SSL válidos (Let's Encrypt)
+  ☐ Frontend compilado y servido por nginx
+  ☐ API accessible vía BFF Spring Boot
+  ☐ Pruebas exploratorias sin fallos críticos
+
+================================================================================
+
+⚠️ NOTAS IMPORTANTES
+────────────────────────────────────────────────────────────────────────────
+
+1. MEMORIA LIMITADA
+   - Servidor con 2 cores y 12GB puede ser lento
+   - No ejecutar múltiples builds Maven simultáneamente
+   - Monitorear: docker stats
+
+2. DNS CRÍTICO PARA SSL
+   - Sin DNS correctamente configurado, Certbot fallará
+   - Verificar: nslookup ades.setag.mx → 163.192.138.130
+   - ngix requiere HTTPS para OIDC
+
+3. SERVICIOS DESACTIVADOS
+   - Para habilitar: descomentar en docker-compose.yml + docker-compose up -d
+   - Requieren servidor con ≥4 cores y 24GB RAM
+
+4. MIGRACIONES AUTOMÁTICAS
+   - PostgreSQL ejecuta migraciones al iniciar (docker-entrypoint-initdb.d)
+   - Primer boot puede tomar 5-10 minutos
+   - NO interrumpir durante este período
+
+5. DATOS DE EJEMPLO
+   - Seeds deben cargarse manualmente DESPUÉS de las migraciones
+   - Ver DATOS_EJEMPLO.md para instrucciones detalladas
+
+================================================================================
+
+👤 RESPONSABLES / CONTACTO
+────────────────────────────────────────────────────────────────────────────
+
+Migración realizada por:  Claude Code Agent
+Fecha:                    2026-07-10 15:15 UTC
+Servidor anterior:        129.213.35.140 (4 cores, 24GB)
+Servidor nuevo:           163.192.138.130 (2 cores, 12GB)
+Institución:              Instituto Nevadi, México
+
+Próxima revisión: 2026-07-10 16:30 UTC (después de bootstrap)
+
+================================================================================
+
+FIN DE DOCUMENTO

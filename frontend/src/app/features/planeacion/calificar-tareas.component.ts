@@ -175,7 +175,7 @@ import { ApiService } from '../../core/services/api.service';
               <td>
                 <textarea pTextarea [(ngModel)]="entrega.comentarios"
                          [disabled]="entrega.calificacion_id !== null && !editando(entrega.entrega_id)"
-                         rows="2" class="w-100" placeholder="Comentarios (opcional)"/>
+                         rows="2" class="w-100" placeholder="Comentarios (opcional)"></textarea>
               </td>
               <td>
                 <p-tag [value]="entrega.calificacion_id ? '✓ Calificado' : '⏳ Pendiente'"

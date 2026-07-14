@@ -154,7 +154,7 @@ import { AdesFormatDirective } from '../../shared/directives/ades-format.directi
               <label>Descripción*</label>
               <textarea pTextarea formControlName="descripcion"
                        placeholder="Describe el tipo de examen y criterios de evaluación"
-                       rows="3"/>
+                       rows="3"></textarea>
             </div>
 
             <div class="field">

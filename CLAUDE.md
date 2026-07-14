@@ -117,6 +117,17 @@ celery -A app.worker.celery_app worker --loglevel=info
 
 > **TODO lo que se desarrolle en ADES debe cumplir SIEMPRE con estos estándares — sin excepción.**
 
+> **⚠️ REGLA CRÍTICA DE ACCESO SSH — NUNCA CERRAR EL PUERTO 22.**
+> El acceso al servidor es únicamente por certificado (sin contraseña por SSH,
+> `PasswordAuthentication no`). Un cierre accidental del puerto 22 (firewall,
+> iptables, security list/NSG) deja el servidor inaccesible de forma
+> irrecuperable — ya ocurrió una vez durante una auditoría de seguridad y
+> obligó a eliminar y recrear el servidor completo. Antes de tocar reglas de
+> firewall/iptables/NSG, verificar SIEMPRE que el puerto 22 permanezca
+> `ACCEPT`. Usuario de respaldo: `ades` (grupo sudo, contraseña solo para
+> `sudo` local — no válida por SSH), con la misma authorized_keys que
+> `ubuntu` para login passwordless por certificado.
+
 | Estándar | Aplicación concreta |
 |---|---|
 | **STRIDE** | Modelar amenazas en cada endpoint y migración nueva |
