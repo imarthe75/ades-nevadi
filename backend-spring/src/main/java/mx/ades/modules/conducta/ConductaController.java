@@ -1,7 +1,13 @@
 package mx.ades.modules.conducta;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import mx.ades.modules.conducta.domain.model.AvanceSeguimiento;
+import mx.ades.modules.conducta.domain.model.EstadoPlan;
 import mx.ades.modules.conducta.domain.model.TipoSancion;
 import mx.ades.modules.conducta.domain.port.in.AplicarSancionCommand;
 import mx.ades.modules.conducta.domain.port.in.AplicarSancionUseCase;
@@ -78,9 +84,16 @@ public class ConductaController {
 
     @Data
     public static class SancionCreateRequest {
+        @NotBlank(message = "tipoSancion es obligatorio")
         private String tipoSancion;
+
+        @NotBlank(message = "justificacion es obligatoria")
+        @Size(min = 20, message = "justificacion debe tener al menos 20 caracteres")
         private String justificacion;
+
+        @NotNull(message = "autorizadoPorId es obligatorio")
         private UUID autorizadoPorId;
+
         private LocalDate fechaSancion;
         private LocalDate fechaFinSancion;
         private Boolean notificadoPadres = false;
@@ -91,8 +104,13 @@ public class ConductaController {
 
     @Data
     public static class PlanMejoraCreateRequest {
+        @NotNull(message = "elaboradoPorId es obligatorio")
         private UUID elaboradoPorId;
+
+        @NotBlank(message = "objetivoGeneral es obligatorio")
+        @Size(min = 20, message = "objetivoGeneral debe tener al menos 20 caracteres")
         private String objetivoGeneral;
+
         private List<Map<String, Object>> compromisosAlumno;
         private List<Map<String, Object>> compromisosPadre;
         private List<Map<String, Object>> compromisosEscuela;
@@ -102,10 +120,16 @@ public class ConductaController {
 
     @Data
     public static class SeguimientoRequest {
+        @NotNull(message = "registradoPorId es obligatorio")
         private UUID registradoPorId;
+
         private LocalDate fechaSeguimiento;
         private String avance = "PARCIAL";
+
+        @NotBlank(message = "descripcion es obligatoria")
+        @Size(min = 20, message = "descripcion debe tener al menos 20 caracteres")
         private String descripcion;
+
         private List<Map<String, Object>> compromisosCumplidos;
         private String accionesAdicionales;
         private String nuevoEstadoPlan;
@@ -154,6 +178,20 @@ public class ConductaController {
     @PostMapping
     public ResponseEntity<ReporteConducta> crear(@RequestBody ReporteCreateRequest body, @AuthenticationPrincipal Jwt jwt) {
         requireStaff(userService.resolveUser(jwt));
+        // estudiante_id, grupo_id, reportado_por_id, tipo_falta y descripcion son NOT NULL
+        // en ades_reportes_conducta (sin default). Antes de este fix el repository.save()
+        // llegaba con campos faltantes hasta el flush de Hibernate y salía como
+        // DataIntegrityViolationException -> 409 genérico en vez de un 422 claro.
+        if (body.getEstudianteId() == null)
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "estudianteId es obligatorio");
+        if (body.getGrupoId() == null)
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "grupoId es obligatorio");
+        if (body.getReportadoPorId() == null)
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "reportadoPorId es obligatorio");
+        if (body.getTipoFalta() == null || body.getTipoFalta().isBlank())
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "tipoFalta es obligatorio");
+        if (body.getDescripcion() == null || body.getDescripcion().isBlank())
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "descripcion es obligatoria");
         ReporteConducta rc = new ReporteConducta();
         rc.setEstudianteId(body.getEstudianteId());
         rc.setGrupoId(body.getGrupoId());
@@ -187,7 +225,7 @@ public class ConductaController {
     @PostMapping("/{reporteId}/sancion")
     public ResponseEntity<Map<String, Object>> aplicarSancion(
             @PathVariable("reporteId") UUID reporteId,
-            @RequestBody SancionCreateRequest body,
+            @RequestBody @Valid SancionCreateRequest body,
             @AuthenticationPrincipal Jwt jwt) {
 
         AdesUser user = userService.resolveUser(jwt);
@@ -195,7 +233,7 @@ public class ConductaController {
 
         UUID sancionId = aplicarSancion.ejecutar(new AplicarSancionCommand(
                 reporteId,
-                TipoSancion.valueOf(body.getTipoSancion()),
+                parseTipoSancion(body.getTipoSancion()),
                 body.getJustificacion(),
                 body.getAutorizadoPorId(),
                 body.getFechaSancion(),
@@ -241,7 +279,7 @@ public class ConductaController {
     @PostMapping("/{reporteId}/plan-mejora")
     public ResponseEntity<Map<String, Object>> crearPlanMejora(
             @PathVariable("reporteId") UUID reporteId,
-            @RequestBody PlanMejoraCreateRequest body,
+            @RequestBody @Valid PlanMejoraCreateRequest body,
             @AuthenticationPrincipal Jwt jwt) {
 
         AdesUser user = userService.resolveUser(jwt);
@@ -287,7 +325,11 @@ public class ConductaController {
         if (pmUpdate.getFechaFirmaAlumno() != null) pm.setFechaFirmaAlumno(pmUpdate.getFechaFirmaAlumno());
         if (pmUpdate.getFechaFirmaPadre() != null) pm.setFechaFirmaPadre(pmUpdate.getFechaFirmaPadre());
         if (pmUpdate.getFechaPrimerSeguimiento() != null) pm.setFechaPrimerSeguimiento(pmUpdate.getFechaPrimerSeguimiento());
-        if (pmUpdate.getEstado() != null) pm.setEstado(pmUpdate.getEstado());
+        // CHECK ades_planes_mejora.estado: solo ACTIVO/EN_PROCESO/CUMPLIDO/INCUMPLIDO/
+        // CANCELADO. Antes no se validaba aquí — un valor arbitrario llegaba hasta el
+        // UPDATE y disparaba la violación del CHECK a nivel BD (409 engañoso) en vez
+        // de un 400 claro (hallazgo de auditoría de consistencia BD↔backend).
+        if (pmUpdate.getEstado() != null) pm.setEstado(EstadoPlan.of(pmUpdate.getEstado()).name());
         if (pmUpdate.getObservacionesCierre() != null) pm.setObservacionesCierre(pmUpdate.getObservacionesCierre());
 
         planRepository.save(pm);
@@ -298,7 +340,7 @@ public class ConductaController {
     public ResponseEntity<SeguimientoPlan> agregarSeguimiento(
             @PathVariable("reporteId") UUID reporteId,
             @PathVariable("planId") UUID planId,
-            @RequestBody SeguimientoRequest body,
+            @RequestBody @Valid SeguimientoRequest body,
             @AuthenticationPrincipal Jwt jwt) {
 
         AdesUser user = userService.resolveUser(jwt);
@@ -308,21 +350,31 @@ public class ConductaController {
                 .filter(p -> p.getReporteConductaId().equals(reporteId) && p.getIsActive())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Plan no encontrado"));
 
+        // CHECK ades_seguimiento_plan.avance: solo SIN_AVANCE/PARCIAL/SATISFACTORIO/
+        // EXCELENTE. CHECK ades_seguimiento_plan.nuevo_estado_plan: NULL o uno de los
+        // 5 estados de EstadoPlan. Ninguno se validaba antes de este fix — un valor
+        // arbitrario llegaba hasta el INSERT/UPDATE y disparaba la violación del CHECK
+        // a nivel BD (409 engañoso) en vez de un 400 claro (hallazgo de auditoría).
+        String avanceValidado = AvanceSeguimiento.of(body.getAvance()).name();
+        String nuevoEstadoValidado = (body.getNuevoEstadoPlan() != null && !body.getNuevoEstadoPlan().isBlank())
+                ? EstadoPlan.of(body.getNuevoEstadoPlan()).name()
+                : null;
+
         SeguimientoPlan sp = new SeguimientoPlan();
         sp.setPlanMejoraId(planId);
         sp.setEstudianteId(pm.getEstudianteId());
         sp.setRegistradoPorId(body.getRegistradoPorId());
         sp.setFechaSeguimiento(body.getFechaSeguimiento() != null ? body.getFechaSeguimiento() : LocalDate.now());
-        sp.setAvance(body.getAvance());
+        sp.setAvance(avanceValidado);
         sp.setDescripcion(body.getDescripcion());
         sp.setCompromisosCumplidos(body.getCompromisosCumplidos());
         sp.setAccionesAdicionales(body.getAccionesAdicionales());
-        sp.setNuevoEstadoPlan(body.getNuevoEstadoPlan());
+        sp.setNuevoEstadoPlan(nuevoEstadoValidado);
 
         SeguimientoPlan saved = seguimientoRepository.save(sp);
 
-        if (body.getNuevoEstadoPlan() != null && !body.getNuevoEstadoPlan().isBlank()) {
-            pm.setEstado(body.getNuevoEstadoPlan());
+        if (nuevoEstadoValidado != null) {
+            pm.setEstado(nuevoEstadoValidado);
             planRepository.save(pm);
         }
 
@@ -335,6 +387,23 @@ public class ConductaController {
         if (user.getNivelAcceso() != null && user.getNivelAcceso() > maxNivel) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "Solo COORDINADOR/DIRECTOR/ADMIN puede realizar esta acción");
+        }
+    }
+
+    /**
+     * Convierte el {@code tipoSancion} recibido en el enum {@link TipoSancion}.
+     * Antes del fix de Jackson, este valor siempre llegaba {@code null} y
+     * {@code TipoSancion.valueOf(null)} lanzaba una {@link NullPointerException} cruda
+     * (500 genérico). Ahora que el dato llega real, un valor no reconocido debe
+     * responder 400 con un mensaje claro en vez de propagar la excepción del enum.
+     */
+    private TipoSancion parseTipoSancion(String tipoSancion) {
+        try {
+            return TipoSancion.valueOf(tipoSancion);
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "tipoSancion inválido: '" + tipoSancion + "'. Valores permitidos: "
+                            + Arrays.toString(TipoSancion.values()));
         }
     }
 

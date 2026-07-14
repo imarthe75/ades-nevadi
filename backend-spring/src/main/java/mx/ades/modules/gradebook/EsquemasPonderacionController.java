@@ -1,5 +1,12 @@
 package mx.ades.modules.gradebook;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import mx.ades.modules.esquemas_ponderacion.application.service.EsquemaApplicationService;
@@ -50,20 +57,38 @@ public class EsquemasPonderacionController {
 
     @Data
     public static class ItemIn {
+        @NotBlank(message = "tipoItem es obligatorio")
         private String tipoItem;
+
         private String nombrePersonalizado;
+
+        @NotNull(message = "pesoPorcentaje es obligatorio")
+        @DecimalMin(value = "0.01", message = "pesoPorcentaje debe ser positivo")
+        @DecimalMax(value = "100", message = "pesoPorcentaje máximo 100 (porcentaje)")
         private Double pesoPorcentaje;
+
         private Integer ordenDisplay = 1;
     }
 
     @Data
     public static class EsquemaIn {
+        @NotBlank(message = "nombre es obligatorio")
+        @Size(max = 120, message = "nombre máximo 120 caracteres")
         private String nombre;
+
+        @NotNull(message = "nivelEducativoId es obligatorio")
         private UUID nivelEducativoId;
+
         private UUID materiaId;
+
+        @NotNull(message = "vigenteDesde es obligatorio")
         private LocalDate vigenteDesde;
+
         private LocalDate vigenteHasta;
-        private List<ItemIn> items;
+
+        @NotEmpty(message = "items son obligatorios (al menos uno)")
+        private List<@Valid ItemIn> items;
+
         private Boolean esNee = false;
         private UUID plantelId;
     }
@@ -148,7 +173,7 @@ public class EsquemasPonderacionController {
 
     @PostMapping
     public ResponseEntity<Map<String, Object>> crearEsquema(
-            @RequestBody EsquemaIn body,
+            @RequestBody @Valid EsquemaIn body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         UUID[] scope = resolverScopeEscritura(user, body.getPlantelId());
@@ -184,7 +209,7 @@ public class EsquemasPonderacionController {
     @PutMapping("/{esquemaId}")
     public ResponseEntity<Map<String, Object>> actualizarEsquema(
             @PathVariable("esquemaId") UUID esquemaId,
-            @RequestBody EsquemaIn body,
+            @RequestBody @Valid EsquemaIn body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         UUID[] scope = resolverScopeEscritura(user, body.getPlantelId());

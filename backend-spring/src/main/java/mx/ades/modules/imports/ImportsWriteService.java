@@ -177,10 +177,12 @@ public class ImportsWriteService {
     }
 
     @Transactional
-    public void insertarMateria(String nombre, String clave, UUID nivelId, Double horasSemana, String usuario) {
+    public void insertarMateria(String nombre, String clave, UUID nivelId, String tipoMateria, Double horasSemana, String usuario) {
+        // tipo_materia es NOT NULL sin default en ades_materias (chk_tipo_materia) —
+        // sin este parámetro el INSERT fallaba siempre con violación de NOT NULL.
         jdbc.update(
-                "INSERT INTO ades_materias (id, nombre_materia, clave_materia, nivel_educativo_id, horas_semana, usuario_creacion, usuario_modificacion) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                UUID.randomUUID(), nombre, clave, nivelId, horasSemana, usuario, usuario);
+                "INSERT INTO ades_materias (id, nombre_materia, clave_materia, nivel_educativo_id, tipo_materia, horas_semana, usuario_creacion, usuario_modificacion) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                UUID.randomUUID(), nombre, clave, nivelId, tipoMateria, horasSemana, usuario, usuario);
     }
 
     @Transactional

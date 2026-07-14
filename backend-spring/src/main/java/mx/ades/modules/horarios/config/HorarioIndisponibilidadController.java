@@ -39,6 +39,15 @@ public class HorarioIndisponibilidadController {
 
         requireStaff(userService.resolveUser(jwt));
 
+        // franja_id es NOT NULL en BD (ades_horario_indisponibilidad) y no tiene default;
+        // sin este chequeo un ítem sin franjaId cae en DataIntegrityViolationException ->
+        // 409 "duplicado o referencia inválida" engañoso en vez de un 400 claro.
+        for (HorarioIndisponibilidad ind : indisponibilidades) {
+            if (ind.getFranjaId() == null) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "franjaId es obligatorio en cada ítem de indisponibilidad");
+            }
+        }
+
         List<HorarioIndisponibilidad> existentes = repository.findByProfesorIdAndCicloEscolarId(profesorId, cicloEscolarId);
         repository.deleteAll(existentes);
 

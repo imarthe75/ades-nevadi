@@ -1,10 +1,13 @@
 package mx.ades.modules.planteles;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -15,6 +18,9 @@ import java.util.UUID;
 @Component
 public class PlantelClaveWriteService {
 
+    // Debe coincidir EXACTAMENTE con el CHECK chk_... de ades_plantel_nivel_clave.tipo_clave (mig 103).
+    private static final Set<String> TIPOS_CLAVE_VALIDOS = Set.of("CCT_SEP", "INCORPORACION_UAEMEX");
+
     private final JdbcTemplate jdbc;
 
     public PlantelClaveWriteService(JdbcTemplate jdbc) {
@@ -24,6 +30,10 @@ public class PlantelClaveWriteService {
     @Transactional
     public void actualizar(UUID plantelId, UUID nivelEducativoId, Map<String, Object> body) {
         String tipoClave = (String) body.getOrDefault("tipo_clave", "CCT_SEP");
+        if (!TIPOS_CLAVE_VALIDOS.contains(tipoClave)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "tipo_clave debe ser CCT_SEP o INCORPORACION_UAEMEX");
+        }
         String clave = (String) body.get("clave");
         String observaciones = (String) body.get("observaciones");
 

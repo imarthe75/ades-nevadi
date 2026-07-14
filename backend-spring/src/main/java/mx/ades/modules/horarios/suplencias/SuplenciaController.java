@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.UUID;
 
@@ -30,10 +31,26 @@ public class SuplenciaController {
             @RequestBody SuplenciaPayload body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
-        
+
+        // profesor_ausente_id y fecha son NOT NULL en ades_suplencias; sin esta validación,
+        // un valor faltante caía en NullPointerException (fecha) o en el 409 genérico de
+        // GlobalExceptionHandler (profesor_ausente_id) en vez de un 400 claro.
+        if (body.getProfesorAusenteId() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "profesor_ausente_id es requerido");
+        }
+        if (body.getFecha() == null || body.getFecha().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "fecha es requerida");
+        }
+        LocalDate fecha;
+        try {
+            fecha = LocalDate.parse(body.getFecha());
+        } catch (DateTimeParseException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "fecha con formato inválido (esperado YYYY-MM-DD)");
+        }
+
         Suplencia suplencia = new Suplencia();
         suplencia.setProfesorAusenteId(body.getProfesorAusenteId());
-        suplencia.setFecha(LocalDate.parse(body.getFecha()));
+        suplencia.setFecha(fecha);
         suplencia.setTimeslotId(body.getTimeslotId());
         suplencia.setHorarioId(body.getHorarioId());
         suplencia.setMotivo(body.getMotivo());

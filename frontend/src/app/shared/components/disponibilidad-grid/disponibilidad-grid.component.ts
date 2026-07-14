@@ -16,9 +16,14 @@ export interface Franja {
 
 export interface Indisponibilidad {
   id?: string;
-  profesorId: string;
-  cicloEscolarId: string;
-  franjaId: string;
+  // Jackson serializa/deserializa esta entidad (HorarioIndisponibilidad) con
+  // spring.jackson.property-naming-strategy: SNAKE_CASE (ver fix HexagonalConfig
+  // 2026-07-14) — los nombres de campo deben coincidir con el JSON real (snake_case),
+  // tanto al leer la respuesta de GET /horario-indisponibilidad como al construir
+  // el payload de POST.
+  profesor_id: string;
+  ciclo_escolar_id: string;
+  franja_id: string;
   tipo: 'DISPONIBLE' | 'CONDICIONAL' | 'NO_DISPONIBLE';
 }
 
@@ -177,7 +182,7 @@ export class DisponibilidadGridComponent implements OnInit, OnChanges, OnDestroy
                 // Por defecto, si hay franja, está DISPONIBLE
                 fList.forEach(f => map.set(f.id, 'DISPONIBLE'));
                 // Sobrescribir con lo guardado
-                iList.forEach(ind => map.set(ind.franjaId, ind.tipo));
+                iList.forEach(ind => map.set(ind.franja_id, ind.tipo));
                 this.estadoMap.set(map);
                 this.cargando.set(false);
               },
@@ -241,9 +246,9 @@ export class DisponibilidadGridComponent implements OnInit, OnChanges, OnDestroy
       // Enviaremos todos los modificados. A nivel base de datos es mejor enviar todo
       // para que el backend borre y reinserte.
       payload.push({
-        profesorId: this.profesorId,
-        cicloEscolarId: cicloId,
-        franjaId: franjaId,
+        profesor_id: this.profesorId,
+        ciclo_escolar_id: cicloId,
+        franja_id: franjaId,
         tipo: tipo
       });
     });

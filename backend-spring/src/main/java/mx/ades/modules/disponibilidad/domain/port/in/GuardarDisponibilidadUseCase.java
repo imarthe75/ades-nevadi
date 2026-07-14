@@ -15,7 +15,19 @@ import java.util.UUID;
 public interface GuardarDisponibilidadUseCase {
 
     record Slot(Integer diaSemana, LocalTime horaInicio, LocalTime horaFin,
-                Boolean disponible, String motivoNoDisponible) {}
+                Boolean disponible, String motivoNoDisponible) {
+        public Slot {
+            // dia_semana, hora_inicio y hora_fin son NOT NULL en ades_disponibilidad_docente;
+            // sin esta validación, un slot incompleto llegaba al INSERT y el usuario recibía
+            // un 409 "duplicado o referencia inválida" engañoso en vez de un 400 claro.
+            if (diaSemana == null)
+                throw new IllegalArgumentException("dia_semana es requerido en cada slot de disponibilidad");
+            if (horaInicio == null)
+                throw new IllegalArgumentException("hora_inicio es requerida en cada slot de disponibilidad");
+            if (horaFin == null)
+                throw new IllegalArgumentException("hora_fin es requerida en cada slot de disponibilidad");
+        }
+    }
 
     record Command(UUID profesorId, UUID cicloEscolarId, List<Slot> slots,
                    Double horasSemanaMax, Double horasFrenteGrupo, String usuario) {

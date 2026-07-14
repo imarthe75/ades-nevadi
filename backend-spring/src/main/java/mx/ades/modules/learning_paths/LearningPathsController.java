@@ -1,5 +1,9 @@
 package mx.ades.modules.learning_paths;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import mx.ades.modules.learning_paths.application.service.LearningPathApplicationService;
@@ -50,6 +54,8 @@ public class LearningPathsController {
 
     @Data
     public static class PathRequest {
+        @NotBlank(message = "nombre es obligatorio")
+        @Size(max = 200, message = "nombre máximo 200 caracteres")
         private String nombre;
         private String descripcion;
         private UUID nivelEducativoId;
@@ -71,6 +77,7 @@ public class LearningPathsController {
 
     @Data
     public static class AsignacionRequest {
+        @NotNull(message = "estudianteId es obligatorio")
         private UUID estudianteId;
         private String motivo;
     }
@@ -157,7 +164,7 @@ public class LearningPathsController {
 
     @PostMapping("")
     public ResponseEntity<Map<String, Object>> crearPath(
-            @RequestBody PathRequest body,
+            @RequestBody @Valid PathRequest body,
             @AuthenticationPrincipal Jwt jwt) {
         userService.resolveUser(jwt);
         try {
@@ -191,7 +198,7 @@ public class LearningPathsController {
     @PostMapping("/{path_id}/asignar")
     public ResponseEntity<Map<String, Object>> asignarPathEndpoint(
             @PathVariable("path_id") UUID pathId,
-            @RequestBody AsignacionRequest body,
+            @RequestBody @Valid AsignacionRequest body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         verificarAccesoEstudiante(user, body.getEstudianteId());

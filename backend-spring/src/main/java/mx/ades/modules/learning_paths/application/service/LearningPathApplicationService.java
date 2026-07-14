@@ -65,6 +65,12 @@ public class LearningPathApplicationService
                                                String descripcion, String urlRecurso,
                                                Integer duracionMin, Boolean obligatorio) {
         if (!repo.existsPath(pathId)) throw new IllegalStateException("Learning path no encontrado");
+        // ades_lp_recursos.titulo es NOT NULL — el DTO de entrada (RecursoRequest) no
+        // tenía ninguna anotación Jakarta ni validación aquí; un titulo nulo llegaba
+        // hasta el INSERT y disparaba una violación NOT NULL a nivel BD en vez de un
+        // 400 claro (hallazgo de auditoría de consistencia BD↔backend).
+        if (titulo == null || titulo.isBlank())
+            throw new IllegalArgumentException("titulo es requerido");
         UUID id = UUID.randomUUID();
         return repo.insertRecurso(id, pathId, orden, tipo, titulo, descripcion, urlRecurso, duracionMin, obligatorio);
     }

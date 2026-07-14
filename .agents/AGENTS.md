@@ -8,3 +8,5 @@
 - **Autoexploración y Autoescaneo de Componentes**: Cada vez que se desarrolle o modifique un componente, este debe ser autoexplorado y autoescaneado para asegurar que sea 100% seguro con respecto a los estándares definidos y cumpla al 100% con la funcionalidad esperada.
 - **Análisis Exploratorios**: Realizar análisis exploratorios profundos antes y durante el diseño o la implementación de cualquier cambio o componente nuevo para identificar posibles fallas, vulnerabilidades o inconsistencias lógicas de manera proactiva.
 - **Documentación Completa del Código**: Todo el código desarrollado o modificado debe estar plenamente documentado (incluyendo comentarios en funciones críticas, clases, modelos, parámetros y cabeceras si aplica), asegurando su legibilidad y mantenibilidad a futuro.
+- **Estandarización de Mensajes de Error**: Todo componente o servicio desarrollado/modificado debe asegurar que las excepciones del sistema, base de datos o de validación no se muestren de forma cruda ni técnica al usuario (evitando stacktraces de lenguajes o frameworks). Deben capturarse centralizadamente y transformarse en mensajes comprensibles, amigables y localizados.
+

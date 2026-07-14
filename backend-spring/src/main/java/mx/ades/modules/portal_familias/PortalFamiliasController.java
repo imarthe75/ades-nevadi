@@ -1,5 +1,10 @@
 package mx.ades.modules.portal_familias;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import mx.ades.modules.portal_familias.domain.port.in.AgregarTutorUseCase;
@@ -39,6 +44,7 @@ public class PortalFamiliasController {
 
     @Data
     public static class TutorIn {
+        @NotNull(message = "personaId es obligatorio")
         private UUID personaId;
         private String relacion = "TUTOR";
         private Boolean esResponsableEconomico = false;
@@ -50,8 +56,13 @@ public class PortalFamiliasController {
 
     @Data
     public static class CrearUsuarioPadreIn {
+        @NotNull(message = "tutorAlumnoId es obligatorio")
         private UUID tutorAlumnoId;
+        @NotBlank(message = "email es obligatorio")
+        @Email(message = "email debe tener un formato válido")
         private String email;
+        @NotBlank(message = "nombreCompleto es obligatorio")
+        @Size(max = 255, message = "nombreCompleto máximo 255 caracteres")
         private String nombreCompleto;
     }
 
@@ -78,7 +89,7 @@ public class PortalFamiliasController {
     @PostMapping("/tutores/{alumno_id}")
     public ResponseEntity<Map<String, Object>> agregarTutor(
             @PathVariable("alumno_id") UUID alumnoId,
-            @RequestBody TutorIn body,
+            @RequestBody @Valid TutorIn body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
 
@@ -117,7 +128,7 @@ public class PortalFamiliasController {
 
     @PostMapping("/crear-usuario")
     public ResponseEntity<Map<String, Object>> crearUsuarioPadre(
-            @RequestBody CrearUsuarioPadreIn body,
+            @RequestBody @Valid CrearUsuarioPadreIn body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
 

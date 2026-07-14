@@ -15,7 +15,10 @@ public record AjusteManual(BigDecimal valor, String justificacion) {
     private static final int MIN_JUSTIFICACION = 20;
 
     public AjusteManual {
-        if (valor == null) throw new NullPointerException("ajuste requerido");
+        // IllegalArgumentException (no NullPointerException): es la excepción que
+        // GlobalExceptionHandler traduce a 400 limpio; una NPE cae en el catch-all
+        // de Exception y produce un 500 genérico ante un simple campo faltante.
+        if (valor == null) throw new IllegalArgumentException("ajuste requerido");
         if (justificacion == null || justificacion.trim().length() < MIN_JUSTIFICACION)
             throw new IllegalArgumentException(
                 "La justificación debe tener al menos " + MIN_JUSTIFICACION + " caracteres");

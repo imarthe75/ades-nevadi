@@ -48,6 +48,12 @@ public interface RegistrarCapacitacionUseCase {
                 throw new IllegalArgumentException("fecha_fin debe ser >= fecha_inicio");
             if (duracionHrs == null || duracionHrs.compareTo(BigDecimal.ZERO) <= 0)
                 throw new IllegalArgumentException("duracion_hrs debe ser positiva");
+            // institucion es NOT NULL en ades_capacitaciones_docente — faltaba esta
+            // validación (hallazgo de auditoría de consistencia BD↔backend); sin ella
+            // un institucion nulo llegaba hasta el INSERT y disparaba una violación
+            // NOT NULL a nivel BD en vez de un 400 claro.
+            if (institucion == null || institucion.isBlank())
+                throw new IllegalArgumentException("institucion es requerida");
         }
     }
 

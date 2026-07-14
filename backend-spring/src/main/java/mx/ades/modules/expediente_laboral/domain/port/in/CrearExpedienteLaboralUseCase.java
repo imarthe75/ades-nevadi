@@ -20,8 +20,12 @@ public interface CrearExpedienteLaboralUseCase {
                    String claveCt, String claveIssste, String usuarioId, int nivelAcceso) {
         public Command {
             if (personaId == null) throw new IllegalArgumentException("persona_id es requerido");
+            // fecha_contratacion es NOT NULL en ades_expediente_laboral (sin default); antes de
+            // este fix faltaba aquí y el INSERT fallaba con DataIntegrityViolationException
+            // (409 genérico en vez de un 422 claro).
+            if (fechaContratacion == null) throw new IllegalArgumentException("fecha_contratacion es requerida");
             if (nivelAcceso > 2) throw new IllegalArgumentException("Solo RH o Dirección puede crear expedientes laborales");
-            if (fechaFinContrato != null && fechaContratacion != null && fechaFinContrato.isBefore(fechaContratacion))
+            if (fechaFinContrato != null && fechaFinContrato.isBefore(fechaContratacion))
                 throw new IllegalArgumentException("fecha_fin_contrato debe ser >= fecha_contratacion");
         }
     }

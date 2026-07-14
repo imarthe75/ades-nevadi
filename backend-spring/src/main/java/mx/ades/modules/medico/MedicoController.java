@@ -74,6 +74,9 @@ public class MedicoController {
             @RequestBody ExpedienteMedico data,
             @AuthenticationPrincipal Jwt jwt) {
         requireStaff(userService.resolveUser(jwt));
+        if (data.getEstudianteId() == null) {
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "estudianteId es obligatorio");
+        }
         expedienteRepository.findByEstudianteId(data.getEstudianteId())
                 .ifPresent(existing -> {
                     throw new ResponseStatusException(HttpStatus.CONFLICT, "El alumno ya tiene expediente médico");
@@ -127,6 +130,16 @@ public class MedicoController {
             @RequestBody IncidenteMedico data,
             @AuthenticationPrincipal Jwt jwt) {
         requireStaff(userService.resolveUser(jwt));
+        // estudiante_id y descripcion son NOT NULL en ades_incidentes_medicos (sin default).
+        // @Column(nullable=false) es solo metadata DDL: sin este chequeo explícito, un
+        // payload incompleto llegaba hasta el flush de Hibernate y salía como
+        // DataIntegrityViolationException -> 409 genérico en vez de un 422 claro.
+        if (data.getEstudianteId() == null) {
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "estudianteId es obligatorio");
+        }
+        if (data.getDescripcion() == null || data.getDescripcion().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "descripcion es obligatoria");
+        }
         return ResponseEntity.status(HttpStatus.CREATED).body(incidenteRepository.save(data));
     }
 

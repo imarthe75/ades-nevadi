@@ -106,6 +106,12 @@ public class ExpedienteController {
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
 
+        // fecha_efectiva es NOT NULL en ades_bajas (sin default); antes de este fix no
+        // había ningún chequeo y el INSERT fallaba con DataIntegrityViolationException
+        // (409 genérico en vez de un 422 claro).
+        if (body.getFechaEfectiva() == null) {
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "fechaEfectiva es obligatoria");
+        }
         TipoBaja tipo = TipoBaja.of(body.getTipoBaja());
         RegistrarBajaUseCase.Result result = registrarBaja.ejecutar(
                 new RegistrarBajaUseCase.Command(
@@ -144,6 +150,15 @@ public class ExpedienteController {
             @RequestBody ExtraordinarioCreate body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+
+        // materia_id y ciclo_escolar_id son NOT NULL en ades_extraordinarias; validar aquí
+        // evita un 409 de integridad de datos confuso y da un 422 claro en su lugar.
+        if (body.getMateriaId() == null) {
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "materia_id es obligatorio");
+        }
+        if (body.getCicloEscolarId() == null) {
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "ciclo_escolar_id es obligatorio");
+        }
 
         UUID newId = writeService.insertExtraordinario(
             estudianteId, body.getMateriaId(), body.getCicloEscolarId(), body.getGrupoId(),

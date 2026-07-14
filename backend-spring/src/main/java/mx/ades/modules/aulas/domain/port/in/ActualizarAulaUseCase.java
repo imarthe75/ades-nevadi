@@ -39,6 +39,12 @@ public interface ActualizarAulaUseCase {
                 throw new IllegalArgumentException("El ID del aula es requerido");
             if (nombreAula == null || nombreAula.isBlank())
                 throw new IllegalArgumentException("El nombre del aula es requerido");
+            if (tipoAula != null && !tipoAula.isBlank()
+                    && !CrearAulaUseCase.TIPOS_AULA_VALIDOS.contains(tipoAula))
+                throw new IllegalArgumentException("tipo_aula inválido: " + tipoAula);
+            if (estadoAula != null && !estadoAula.isBlank()
+                    && !CrearAulaUseCase.ESTADOS_AULA_VALIDOS.contains(estadoAula))
+                throw new IllegalArgumentException("estado_aula inválido: " + estadoAula);
         }
     }
 

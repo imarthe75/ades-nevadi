@@ -20,6 +20,7 @@ public interface RegistrarRetencionUseCase {
         public Command {
             if (alumnoId == null) throw new IllegalArgumentException("alumno_id es requerido");
             if (tipoRetencion == null || tipoRetencion.isBlank()) throw new IllegalArgumentException("tipo_retencion es requerido");
+            if (motivo == null || motivo.isBlank()) throw new IllegalArgumentException("motivo es requerido");
             if (nivelAcceso > 3) throw new IllegalArgumentException("Se requiere Director o superior para registrar retención");
         }
     }

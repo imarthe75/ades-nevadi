@@ -72,14 +72,14 @@ class ConductaDomainTest {
     // ── EstadoPlan ────────────────────────────────────────────────────────────
 
     @Test
-    void borrador_permite_seguimiento() {
-        assertThat(EstadoPlan.BORRADOR.permiteNuevoSeguimiento()).isTrue();
+    void activo_permite_seguimiento() {
+        assertThat(EstadoPlan.ACTIVO.permiteNuevoSeguimiento()).isTrue();
     }
 
     @Test
-    void completado_no_permite_seguimiento_y_es_cerrado() {
-        assertThat(EstadoPlan.COMPLETADO.permiteNuevoSeguimiento()).isFalse();
-        assertThat(EstadoPlan.COMPLETADO.esCerrado()).isTrue();
+    void cumplido_no_permite_seguimiento_y_es_cerrado() {
+        assertThat(EstadoPlan.CUMPLIDO.permiteNuevoSeguimiento()).isFalse();
+        assertThat(EstadoPlan.CUMPLIDO.esCerrado()).isTrue();
     }
 
     @Test

@@ -17,6 +17,15 @@ public interface GuardarCriteriosUseCase {
     record CriterioCalificacion(UUID criterioId, Integer calificacion, String observacion) {
         public CriterioCalificacion {
             if (criterioId == null) throw new IllegalArgumentException("criterio_id es requerido");
+            // ades_eval_docente_criterios.calificacion es SMALLINT NOT NULL. La escala
+            // vive por criterio en ades_criterios_eval_docente.escala_min/escala_max
+            // (default 1-5, sin mecanismo de UI para sobreescribirla — ver
+            // EvalDocenteController: "la escala de calificación por criterio es 1-5").
+            // Se valida aquí para devolver 400 claro en vez de una violación NOT NULL/
+            // fuera-de-rango silenciosa a nivel BD (hallazgo de auditoría).
+            if (calificacion == null) throw new IllegalArgumentException("calificacion es requerida");
+            if (calificacion < 1 || calificacion > 5)
+                throw new IllegalArgumentException("calificacion debe estar entre 1 y 5");
         }
     }
 

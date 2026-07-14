@@ -1,5 +1,7 @@
 package mx.ades.modules.biblioteca;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import mx.ades.modules.biblioteca.domain.model.CategoriaLibro;
 import mx.ades.modules.biblioteca.domain.model.EstatusPrestamo;
@@ -16,6 +18,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -106,6 +109,15 @@ public class BibliotecaController {
             @RequestBody BibliotecaLibro body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        // BibliotecaLibro es entidad JPA (no anotamos validación en la entidad — riesgo
+        // sobre Hibernate); titulo/categoria son NOT NULL en BD, validamos manualmente
+        // para dar un 400 claro en vez de una excepción de dominio no capturada (500).
+        if (body.getTitulo() == null || body.getTitulo().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "titulo es obligatorio");
+        }
+        if (body.getCategoria() == null || body.getCategoria().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "categoria es obligatoria");
+        }
         UUID plantelId = scopePlantel(user, body.getPlantelId());
         int total = body.getEjemplaresTotal() != null ? body.getEjemplaresTotal() : 1;
         var cmd = new RegistrarLibroUseCase.Command(
@@ -189,7 +201,7 @@ public class BibliotecaController {
      */
     @PostMapping("/prestamos")
     public ResponseEntity<Map<String, Object>> prestar(
-            @RequestBody PrestamoRequest body,
+            @RequestBody @Valid PrestamoRequest body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         var cmd = new RegistrarPrestamoUseCase.Command(
@@ -223,7 +235,10 @@ public class BibliotecaController {
 
     // ── Payloads ───────────────────────────────────────────────────────────
     public record PrestamoRequest(
-            UUID libroId, UUID personaId, LocalDate fechaDevolucionEsperada, String observaciones) {}
+            @NotNull(message = "libroId es obligatorio") UUID libroId,
+            @NotNull(message = "personaId es obligatorio") UUID personaId,
+            @NotNull(message = "fechaDevolucionEsperada es obligatoria") LocalDate fechaDevolucionEsperada,
+            String observaciones) {}
 
     public record DevolucionRequest(String estatusFinal, String observaciones) {}
 }

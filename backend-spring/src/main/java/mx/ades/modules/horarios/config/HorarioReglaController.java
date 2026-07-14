@@ -58,7 +58,16 @@ public class HorarioReglaController {
         if (payload.getCicloEscolarId() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "ciclo_escolar_id es requerido");
         }
-        
+        if (payload.getTipo() == null || payload.getTipo().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "tipo es requerido");
+        }
+        // params es NOT NULL en BD (ades_horario_regla, con default '{}'::jsonb, pero Hibernate
+        // envía NULL explícito si el campo llega vacío en el JSON, lo que ignora el default y
+        // produce DataIntegrityViolationException -> 409 engañoso en vez de un 400 claro).
+        if (payload.getParams() == null) {
+            payload.setParams(java.util.Map.of());
+        }
+
         HorarioRegla guardada = reglaRepository.save(payload);
         return ResponseEntity.status(HttpStatus.CREATED).body(guardada);
     }

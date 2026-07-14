@@ -1,5 +1,7 @@
 package mx.ades.modules.reinscripcion;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -55,6 +57,7 @@ public class ReinscripcionController {
 
     @Data
     public static class AccionIndividualPayload {
+        @NotBlank(message = "accion es obligatorio")
         private String accion;
         private String razonRechazo;
     }
@@ -122,7 +125,7 @@ public class ReinscripcionController {
     @PatchMapping("/{registro_id}")
     public ResponseEntity<Map<String, Object>> accionIndividual(
             @PathVariable("registro_id") UUID registroId,
-            @RequestBody AccionIndividualPayload body,
+            @RequestBody @Valid AccionIndividualPayload body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         requireAdmin(user);

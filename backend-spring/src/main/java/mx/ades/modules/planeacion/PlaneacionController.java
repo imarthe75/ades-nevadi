@@ -84,7 +84,13 @@ public class PlaneacionController {
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha_planeada,
             String descripcion_actividades,
             String recursos_didacticos
-    ) {}
+    ) {
+        public PlaneacionCreateRequest {
+            if (grupo_id == null) throw new IllegalArgumentException("grupo_id es requerido");
+            if (tema_id == null) throw new IllegalArgumentException("tema_id es requerido");
+            if (fecha_planeada == null) throw new IllegalArgumentException("fecha_planeada es requerida");
+        }
+    }
 
     @PostMapping("/clases")
     public ResponseEntity<Map<String, Object>> crearPlaneacion(
@@ -101,7 +107,11 @@ public class PlaneacionController {
             UUID clase_id,
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha_ejecucion,
             String comentarios_profesor
-    ) {}
+    ) {
+        public CompletarAvanceRequest {
+            if (fecha_ejecucion == null) throw new IllegalArgumentException("fecha_ejecucion es requerida");
+        }
+    }
 
     @PostMapping("/clases/{planeacion_id}/completar")
     public ResponseEntity<Map<String, Object>> completarTema(
@@ -152,7 +162,11 @@ public class PlaneacionController {
         return ResponseEntity.ok(queries.getPendientesReprogramar(grupoId));
     }
 
-    public record ReprogramarRequest(@DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate nueva_fecha) {}
+    public record ReprogramarRequest(@DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate nueva_fecha) {
+        public ReprogramarRequest {
+            if (nueva_fecha == null) throw new IllegalArgumentException("nueva_fecha es requerida");
+        }
+    }
 
     @PatchMapping("/clases/{planeacion_id}/reprogramar")
     public ResponseEntity<Map<String, Object>> reprogramar(
@@ -205,7 +219,13 @@ public class PlaneacionController {
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha_fin,
             String descripcion_actividades,
             String recursos_didacticos
-    ) {}
+    ) {
+        public PlaneacionSemanalCreateRequest {
+            if (grupo_id == null) throw new IllegalArgumentException("grupo_id es requerido");
+            if (tema_id == null) throw new IllegalArgumentException("tema_id es requerido");
+            if (fecha_planeada == null) throw new IllegalArgumentException("fecha_planeada es requerida");
+        }
+    }
 
     @PostMapping("/semanal")
     public ResponseEntity<Map<String, Object>> crearPlaneacionSemanal(
@@ -289,7 +309,13 @@ public class PlaneacionController {
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha_inicio,
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha_fin,
             List<Map<String, Object>> temas_seleccionados
-    ) {}
+    ) {
+        public CrearPlaneacionSemanalIntegralRequest {
+            if (grupo_id == null) throw new IllegalArgumentException("grupo_id es requerido");
+            if (temas_seleccionados == null || temas_seleccionados.isEmpty())
+                throw new IllegalArgumentException("temas_seleccionados es requerido y no puede estar vacío");
+        }
+    }
 
     @PostMapping("/semanal-integral")
     public ResponseEntity<Map<String, Object>> crearPlaneacionSemanalIntegral(

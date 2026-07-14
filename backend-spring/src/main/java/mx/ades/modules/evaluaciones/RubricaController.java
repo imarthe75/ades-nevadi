@@ -1,5 +1,10 @@
 package mx.ades.modules.evaluaciones;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import mx.ades.modules.evaluaciones.query.RubricaQueryService;
@@ -42,10 +47,20 @@ public class RubricaController {
 
     @Data
     public static class CriterioPayload {
+        @NotBlank(message = "nombreCriterio es obligatorio")
         private String nombreCriterio;
+
         private String descripcion;
+
+        @NotNull(message = "ponderacion es obligatoria")
+        @DecimalMin(value = "0", message = "ponderacion mínima 0")
+        @DecimalMax(value = "100", message = "ponderacion máxima 100 (porcentaje)")
         private BigDecimal ponderacion = BigDecimal.ZERO;
+
         private Integer orden = 1;
+
+        // Se persiste como String (columna jsonb sin @Convert, ver RubricaCriterio.java);
+        // el frontend envía/recibe texto JSON, no un arreglo nativo.
         private String nivelesLogro;
     }
 
@@ -75,6 +90,12 @@ public class RubricaController {
             @RequestBody Rubrica rubrica,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        // Rubrica es entidad JPA (no anotamos validación en la entidad — riesgo sobre
+        // Hibernate); nombre_rubrica es NOT NULL en BD, validamos manualmente para dar
+        // un 422 claro en vez de una excepción de integridad de datos.
+        if (rubrica.getNombreRubrica() == null || rubrica.getNombreRubrica().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "nombre_rubrica es obligatorio");
+        }
         rubrica.setUsuarioCreacion(user.getUsername());
         rubrica.setUsuarioModificacion(user.getUsername());
         return ResponseEntity.status(HttpStatus.CREATED).body(repository.save(rubrica));
@@ -87,6 +108,9 @@ public class RubricaController {
             @RequestBody Rubrica update,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        if (update.getNombreRubrica() == null || update.getNombreRubrica().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "nombre_rubrica es obligatorio");
+        }
         Rubrica rubrica = repository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Rúbrica no encontrada"));
 
@@ -120,7 +144,7 @@ public class RubricaController {
     @CacheEvict(value = "rubricas", allEntries = true)
     public ResponseEntity<RubricaCriterio> addCriterio(
             @PathVariable("rubrica_id") UUID rubricaId,
-            @RequestBody CriterioPayload payload,
+            @RequestBody @Valid CriterioPayload payload,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         if (!repository.existsById(rubricaId)) {
@@ -145,7 +169,7 @@ public class RubricaController {
     public ResponseEntity<Map<String, Object>> updateCriterio(
             @PathVariable("rubrica_id") UUID rubricaId,
             @PathVariable("criterio_id") UUID criterioId,
-            @RequestBody CriterioPayload payload,
+            @RequestBody @Valid CriterioPayload payload,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         RubricaCriterio rc = criterioRepository.findById(criterioId)

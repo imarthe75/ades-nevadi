@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
 import { ApiService } from '../../core/services/api.service';
+import { ContextService } from '../../core/services/context.service';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
@@ -209,6 +210,7 @@ interface ResumenDisponibilidad {
 export class DisponibilidadComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private api = inject(ApiService);
+  private ctx = inject(ContextService);
   private notify = inject(ApexNotificationService);
 
   readonly slotsColumns: ColumnConfig[] = [
@@ -334,6 +336,7 @@ export class DisponibilidadComponent implements OnInit, OnDestroy {
       })),
       horas_semana_max:   this.configHrsMax,
       horas_frente_grupo: this.configHrsFG,
+      ciclo_escolar_id:   this.ctx.ciclo()?.id ?? null,
     };
     this.api.put(`/disponibilidad/docente/${this.profesorId}`, payload).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {

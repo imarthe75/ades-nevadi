@@ -34,6 +34,9 @@ public class BienestarController {
     private final AdesUserService userService;
     private final JdbcTemplate jdbc;
 
+    private static final java.util.Set<String> TIPOS_VALIDOS =
+            java.util.Set.of("ACTIVIDAD_LUDICA", "DIA_TEMATICO", "TALLER_BIENESTAR", "OTRO");
+
     @Data
     public static class EventoRequest {
         private String titulo;
@@ -80,6 +83,11 @@ public class BienestarController {
             throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "El título es obligatorio");
         if (body.getFecha() == null)
             throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "La fecha es obligatoria");
+        // Espejo del CHECK ades_eventos_bienestar_tipo_check — sin este chequeo, un tipo
+        // fuera del enum llegaba hasta el INSERT y violaba el CHECK constraint (409 genérico).
+        if (body.getTipo() != null && !TIPOS_VALIDOS.contains(body.getTipo()))
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
+                "tipo inválido. Valores permitidos: " + TIPOS_VALIDOS);
 
         UUID plantelId = body.getPlantelId() != null ? body.getPlantelId() : user.getPlantelId();
         UUID id = UUID.randomUUID();

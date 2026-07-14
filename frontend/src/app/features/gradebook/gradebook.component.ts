@@ -12,6 +12,8 @@ import { DialogModule } from 'primeng/dialog';
 import { DrawerModule } from 'primeng/drawer';
 import { TabsModule } from 'primeng/tabs';
 import { ProgressBarModule } from 'primeng/progressbar';
+import { DatePickerModule } from 'primeng/datepicker';
+import { TableModule } from 'primeng/table';
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
 import { ExportService } from '../../core/services/export.service';
@@ -95,7 +97,7 @@ interface Insights {
     AdesFormatDirective,
     CommonModule, FormsModule, ButtonModule, SelectModule,
     InputTextModule, InputNumberModule, TagModule, TooltipModule,
-    DialogModule, DrawerModule, TabsModule, ProgressBarModule,
+    DialogModule, DrawerModule, TabsModule, ProgressBarModule, DatePickerModule, TableModule,
     CierrePeriodoComponent, InteractiveGridComponent,
   ],
   template: `
@@ -109,7 +111,7 @@ interface Insights {
     <button pButton icon="pi pi-file-excel" label="Excel" severity="success"
             (click)="exportarExcel()"></button>
     <button pButton icon="pi pi-plus" label="Nueva actividad"
-            (click)="mostrarNuevaActividad = true"></button>
+            (click)="abrirNuevaActividad()"></button>
     <button pButton icon="pi pi-lock" label="Cerrar período" severity="warn"
             pTooltip="Cierre formal del período seleccionado"
             [disabled]="!grupoSel || !periodoSel"
@@ -297,11 +299,28 @@ interface Insights {
         <strong>{{ actividadSeleccionada()?.titulo }}</strong><br>
         <small>{{ actividadSeleccionada()?.nombre_materia }} — {{ actividadSeleccionada()?.nombre_periodo }}</small>
       </div>
-      <app-interactive-grid
-        [data]="entregasActiva()"
-        [columns]="entregasColumns"
-        [loading]="cargandoEntregas()"
-      />
+      <p-table [value]="entregasActiva()" [loading]="cargandoEntregas()" responsiveLayout="scroll">
+        <ng-template pTemplate="header">
+          <tr>
+            <th>Alumno</th>
+            <th style="width:110px">Estado</th>
+            <th style="width:130px">Calificación</th>
+          </tr>
+        </ng-template>
+        <ng-template pTemplate="body" let-e>
+          <tr>
+            <td>{{ e.alumno_nombre }}</td>
+            <td><p-tag [value]="e.estatus_entrega"></p-tag></td>
+            <td>
+              <p-inputNumber [(ngModel)]="e._cal" [min]="0" [max]="10" [minFractionDigits]="1"
+                             placeholder="0.0" styleClass="w-full" />
+            </td>
+          </tr>
+        </ng-template>
+        <ng-template pTemplate="emptymessage">
+          <tr><td colspan="3" style="text-align:center;padding:1.5rem;color:var(--text-muted)">Sin entregas</td></tr>
+        </ng-template>
+      </p-table>
       <div class="mt-3 flex gap-2 justify-end">
         <button pButton label="Guardar calificaciones" icon="pi pi-save"
                 (click)="guardarCalificacionMasiva()"></button>
@@ -341,30 +360,39 @@ interface Insights {
   <div class="grid grid-cols-2 gap-3">
     <div class="field col-span-2">
       <label>Título *</label>
-      <input pInputText [(ngModel)]="nuevaAct.titulo" class="w-full" />
+      <input pInputText [(ngModel)]="nuevaAct.titulo" class="w-full"
+             placeholder="Ej. Examen del bloque 2"
+             pTooltip="Nombre breve y descriptivo de la actividad" tooltipPosition="top" />
     </div>
     <div class="field">
       <label>Tipo</label>
       <p-select [options]="tiposItem" optionLabel="label" optionValue="value"
-                [(ngModel)]="nuevaAct.tipo_item" styleClass="w-full" 
+                [(ngModel)]="nuevaAct.tipo_item" styleClass="w-full"
  [filter]="true" filterPlaceholder="Buscar..."/>
     </div>
     <div class="field">
       <label>Puntaje máximo</label>
-      <p-inputNumber [(ngModel)]="nuevaAct.puntaje_maximo" [min]="0" [step]="0.1"
-                     styleClass="w-full" />
+      <p-inputNumber [(ngModel)]="nuevaAct.puntaje_maximo" [min]="0.01" [max]="10" [step]="0.1"
+                     placeholder="10.0" styleClass="w-full"
+                     pTooltip="Escala oficial SEP: de 0 a 10" tooltipPosition="top" />
     </div>
     <div class="field">
       <label>Fecha asignación</label>
-      <input pInputText type="date" [(ngModel)]="nuevaAct.fecha_asignacion" class="w-full" />
+      <p-datepicker [(ngModel)]="nuevaAct.fecha_asignacion" dateFormat="dd/mm/yy"
+                    [showIcon]="true" placeholder="DD/MM/AAAA"
+                    [style]="{width:'100%'}" [inputStyle]="{width:'100%'}" />
     </div>
     <div class="field">
-      <label>Fecha entrega</label>
-      <input pInputText type="date" [(ngModel)]="nuevaAct.fecha_entrega" class="w-full" />
+      <label>Fecha entrega *</label>
+      <p-datepicker [(ngModel)]="nuevaAct.fecha_entrega" dateFormat="dd/mm/yy"
+                    [showIcon]="true" [minDate]="nuevaAct.fecha_asignacion" placeholder="DD/MM/AAAA"
+                    [style]="{width:'100%'}" [inputStyle]="{width:'100%'}"
+                    pTooltip="No puede ser anterior a la fecha de asignación" tooltipPosition="top" />
     </div>
     <div class="field col-span-2">
       <label>Descripción</label>
       <textarea pInputText [(ngModel)]="nuevaAct.descripcion" rows="2"
+                placeholder="Instrucciones para el alumno (opcional)"
                 class="w-full" style="width:100%;padding:6px;border:1px solid #ccc;border-radius:4px"></textarea>
     </div>
   </div>
@@ -552,11 +580,6 @@ export class GradebookComponent implements OnInit, OnDestroy {
     { field: 'riesgo_str',       header: 'En riesgo (<6)', width: '130px' },
   ];
 
-  readonly entregasColumns: ColumnConfig[] = [
-    { field: 'alumno_nombre',    header: 'Alumno' },
-    { field: 'estatus_entrega',  header: 'Estado',        width: '110px' },
-    { field: 'calificacion_obtenida', header: 'Calificación', width: '120px' },
-  ];
 
   tiposItem = [
     { label: 'Tarea', value: 'tarea' },
@@ -567,10 +590,19 @@ export class GradebookComponent implements OnInit, OnDestroy {
     { label: 'Otro', value: 'otro' },
   ];
 
-  nuevaAct = {
+  nuevaAct: { titulo: string; descripcion: string; tipo_item: string; fecha_asignacion: Date | null; fecha_entrega: Date | null; puntaje_maximo: number } = {
     titulo: '', descripcion: '', tipo_item: 'tarea',
-    fecha_asignacion: '', fecha_entrega: '', puntaje_maximo: 10.0,
+    fecha_asignacion: new Date(), fecha_entrega: null, puntaje_maximo: 10.0,
   };
+
+  private _toIso(d: Date): string {
+    return d.toISOString().substring(0, 10);
+  }
+
+  abrirNuevaActividad(): void {
+    this.nuevaAct = { titulo: '', descripcion: '', tipo_item: 'tarea', fecha_asignacion: new Date(), fecha_entrega: null, puntaje_maximo: 10 };
+    this.mostrarNuevaActividad = true;
+  }
 
   ngOnInit() {
     // ngOnInit no necesita cargar planteles — la cascada vive en el topbar.
@@ -647,7 +679,7 @@ export class GradebookComponent implements OnInit, OnDestroy {
     if (!act) return;
     const items = this.entregasActiva()
       .filter(e => e._cal !== null && e._cal !== undefined)
-      .map(e => ({ alumno_id: e.estudiante_id, calificacion: e._cal!, comentario: e.comentario_profesor }));
+      .map(e => ({ alumnoId: e.estudiante_id, calificacion: e._cal!, comentario: e.comentario_profesor }));
     if (!items.length) return;
     this.api.patch(`/actividades/${act.id}/calificar-masivo`, items).pipe(takeUntil(this.destroy$)).subscribe(() => {
       this.notify.success('Guardado', `${items.length} calificaciones guardadas`);
@@ -683,8 +715,10 @@ export class GradebookComponent implements OnInit, OnDestroy {
 
   recalcularPeriodo() {
     if (!this.grupoSel || !this.periodoSel) return;
-    this.api.post(`/gradebook/periodo/${this.periodoSel}/recalcular-todo`,
-      { grupo_id: this.grupoSel }).pipe(takeUntil(this.destroy$)).subscribe((r: any) => {
+    // recalcularPeriodo() del backend recibe grupo_id/materia_id como query param, no como body
+    // (no tiene @RequestBody) — enviarlo en el body se ignoraba silenciosamente y recalculaba TODO el período.
+    this.api.post(`/gradebook/periodo/${this.periodoSel}/recalcular-todo?grupo_id=${encodeURIComponent(this.grupoSel)}`,
+      {}).pipe(takeUntil(this.destroy$)).subscribe((r: any) => {
       this.notify.info('Recalculado', `${r.recalculados} registros actualizados`);
       this.cargarConcentrado();
     });
@@ -695,16 +729,36 @@ export class GradebookComponent implements OnInit, OnDestroy {
       this.notify.warning('Falta información', 'Selecciona grupo y materia');
       return;
     }
+    if (!this.nuevaAct.titulo || !this.nuevaAct.fecha_entrega) {
+      this.notify.warning('Campos vacíos', 'Título y fecha de entrega son obligatorios');
+      return;
+    }
+    const fechaAsignacion = this.nuevaAct.fecha_asignacion ?? new Date();
+    if (this._toIso(this.nuevaAct.fecha_entrega) < this._toIso(fechaAsignacion)) {
+      this.notify.warning('Fecha inválida', 'La fecha de entrega no puede ser anterior a la de asignación');
+      return;
+    }
+    // ActividadesController.ActividadIn espera camelCase estricto (clase @Data sin @JsonProperty).
     this.api.post('/actividades', {
-      ...this.nuevaAct,
-      grupo_id: this.grupoSel,
-      materia_id: this.materiaSel,
-      periodo_evaluacion_id: this.periodoSel,
-    }).pipe(takeUntil(this.destroy$)).subscribe((r: any) => {
-      this.notify.success('Creada', `${r.slots_creados} slots generados`);
-      this.mostrarNuevaActividad = false;
-      this.nuevaAct = { titulo: '', descripcion: '', tipo_item: 'tarea', fecha_asignacion: '', fecha_entrega: '', puntaje_maximo: 10 };
-      this.cargarActividades();
+      titulo: this.nuevaAct.titulo,
+      descripcion: this.nuevaAct.descripcion,
+      tipoItem: this.nuevaAct.tipo_item,
+      fechaAsignacion: this._toIso(fechaAsignacion),
+      fechaEntrega: this._toIso(this.nuevaAct.fecha_entrega),
+      puntajeMaximo: this.nuevaAct.puntaje_maximo,
+      grupoId: this.grupoSel,
+      materiaId: this.materiaSel,
+      periodoEvaluacionId: this.periodoSel,
+    }).pipe(takeUntil(this.destroy$)).subscribe({
+      next: (r: any) => {
+        this.notify.success('Creada', `${r.slots_creados} slots generados`);
+        this.mostrarNuevaActividad = false;
+        this.nuevaAct = { titulo: '', descripcion: '', tipo_item: 'tarea', fecha_asignacion: new Date(), fecha_entrega: null, puntaje_maximo: 10 };
+        this.cargarActividades();
+      },
+      error: (err: any) => {
+        this.notify.error('Error', err?.error?.message ?? 'No se pudo crear la actividad');
+      },
     });
   }
 

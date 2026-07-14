@@ -1,5 +1,8 @@
 package mx.ades.modules.encuestas;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import mx.ades.modules.encuestas.domain.port.in.ResponderEncuestaUseCase;
@@ -44,7 +47,10 @@ public class EncuestaController {
 
     @Data
     public static class EncuestaCreateRequest {
+        @NotBlank(message = "titulo es obligatorio")
+        @Size(max = 255, message = "titulo máximo 255 caracteres")
         private String titulo;
+
         private String descripcion;
         private String tipo = "SATISFACCION";
         private String audiencia = "ALUMNO";
@@ -58,7 +64,9 @@ public class EncuestaController {
 
     @Data
     public static class PreguntaCreateRequest {
+        @NotBlank(message = "texto es obligatorio")
         private String texto;
+
         private String tipoPregunta = "ESCALA_5";
         private List<String> opciones;
         private Integer orden = 1;
@@ -111,7 +119,7 @@ public class EncuestaController {
 
     @PostMapping
     public ResponseEntity<Encuesta> crear(
-            @RequestBody EncuestaCreateRequest body,
+            @RequestBody @Valid EncuestaCreateRequest body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         Encuesta e = new Encuesta();
@@ -143,7 +151,7 @@ public class EncuestaController {
     @PostMapping("/{id}/preguntas")
     public ResponseEntity<EncuestaPregunta> agregarPregunta(
             @PathVariable("id") UUID id,
-            @RequestBody PreguntaCreateRequest body,
+            @RequestBody @Valid PreguntaCreateRequest body,
             @AuthenticationPrincipal Jwt jwt) {
         requireStaff(userService.resolveUser(jwt));
         EncuestaPregunta p = new EncuestaPregunta();
@@ -160,7 +168,7 @@ public class EncuestaController {
     public ResponseEntity<EncuestaPregunta> actualizarPregunta(
             @PathVariable("id") UUID id,
             @PathVariable("pregunta_id") UUID preguntaId,
-            @RequestBody PreguntaCreateRequest body,
+            @RequestBody @Valid PreguntaCreateRequest body,
             @AuthenticationPrincipal Jwt jwt) {
         requireStaff(userService.resolveUser(jwt));
         EncuestaPregunta p = preguntaRepository.findById(preguntaId)

@@ -124,7 +124,7 @@ public class SaludAvanzadaController {
                 data.getObservaciones(), user.getNivelAcceso(), user.getUsername()));
             return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("id", id.toString(), "message", "Medicamento registrado"));
         } catch (IllegalArgumentException e) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, e.getMessage());
+            throw mapIllegalArgument(e);
         }
     }
 
@@ -138,7 +138,7 @@ public class SaludAvanzadaController {
                 medicamentoId, user.getNivelAcceso(), user.getUsername()));
             return ResponseEntity.ok(Map.of("message", "Medicamento suspendido"));
         } catch (IllegalArgumentException e) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, e.getMessage());
+            throw mapIllegalArgument(e);
         }
     }
 
@@ -158,7 +158,7 @@ public class SaludAvanzadaController {
                 data.getFirmaResponsable(), user.getNivelAcceso(), user.getUsername()));
             return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("id", id.toString(), "message", "Acta de incidente médico generada"));
         } catch (IllegalArgumentException e) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, e.getMessage());
+            throw mapIllegalArgument(e);
         } catch (IllegalStateException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }
@@ -195,7 +195,7 @@ public class SaludAvanzadaController {
                 parseDate(data.getProximaSesion()), user.getNivelAcceso(), user.getUsername()));
             return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("id", id.toString(), "message", "Sesión psicosocial registrada"));
         } catch (IllegalArgumentException e) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, e.getMessage());
+            throw mapIllegalArgument(e);
         }
     }
 
@@ -228,7 +228,7 @@ public class SaludAvanzadaController {
                 data.getRequiereSeguimiento(), user.getNivelAcceso(), user.getUsername()));
             return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("id", id.toString(), "message", "Sesión de tutoría registrada"));
         } catch (IllegalArgumentException e) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, e.getMessage());
+            throw mapIllegalArgument(e);
         }
     }
 
@@ -274,5 +274,20 @@ public class SaludAvanzadaController {
 
     private LocalDate parseDate(String value) {
         return value != null ? LocalDate.parse(value) : null;
+    }
+
+    /**
+     * Los compact constructors de los records {@code Command} de este módulo lanzan
+     * {@code IllegalArgumentException} tanto para el chequeo de {@code nivelAcceso}
+     * (autorización, 403) como para campos NOT NULL faltantes (validación, 422) —
+     * antes de este helper ambos casos colapsaban siempre a 403 Forbidden, lo cual
+     * era engañoso para un usuario con acceso suficiente que solo olvidó un campo.
+     */
+    private ResponseStatusException mapIllegalArgument(IllegalArgumentException e) {
+        String msg = e.getMessage();
+        HttpStatus status = (msg != null && msg.startsWith("Se requiere nivel"))
+                ? HttpStatus.FORBIDDEN
+                : HttpStatus.UNPROCESSABLE_ENTITY;
+        return new ResponseStatusException(status, msg);
     }
 }

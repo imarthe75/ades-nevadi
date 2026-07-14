@@ -99,8 +99,10 @@ class EvalDocenteDomainTest {
 
     @Test
     void command_guardar_sinEvalId_lanzaExcepcion() {
+        // calificacion=3 (dentro de la escala 1-5 válida) para que la construcción
+        // del CriterioCalificacion no lance antes de llegar al assert de Command.
         List<GuardarCriteriosUseCase.CriterioCalificacion> criterios = List.of(
-                new GuardarCriteriosUseCase.CriterioCalificacion(UUID.randomUUID(), 8, null));
+                new GuardarCriteriosUseCase.CriterioCalificacion(UUID.randomUUID(), 3, null));
         assertThatThrownBy(() -> new GuardarCriteriosUseCase.Command(null, criterios))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("eval_id");
@@ -115,9 +117,23 @@ class EvalDocenteDomainTest {
 
     @Test
     void criterioCalificacion_sinCriterioId_lanzaExcepcion() {
-        assertThatThrownBy(() -> new GuardarCriteriosUseCase.CriterioCalificacion(null, 9, null))
+        assertThatThrownBy(() -> new GuardarCriteriosUseCase.CriterioCalificacion(null, 4, null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("criterio_id");
+    }
+
+    @Test
+    void criterioCalificacion_sinCalificacion_lanzaExcepcion() {
+        assertThatThrownBy(() -> new GuardarCriteriosUseCase.CriterioCalificacion(UUID.randomUUID(), null, null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("calificacion");
+    }
+
+    @Test
+    void criterioCalificacion_fueraDeRango_lanzaExcepcion() {
+        assertThatThrownBy(() -> new GuardarCriteriosUseCase.CriterioCalificacion(UUID.randomUUID(), 8, null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("entre 1 y 5");
     }
 
     // ── EnviarEvaluacionUseCase.Command ───────────────────────────────────────

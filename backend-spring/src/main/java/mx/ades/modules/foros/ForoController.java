@@ -1,5 +1,7 @@
 package mx.ades.modules.foros;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import mx.ades.modules.foros.domain.port.in.CrearForoUseCase;
@@ -47,6 +49,7 @@ public class ForoController {
 
     @Data
     public static class ForoCreateRequest {
+        @NotBlank(message = "nombre es obligatorio")
         private String nombre;
         private String descripcion;
         private String tipo = "GRUPO";
@@ -58,23 +61,29 @@ public class ForoController {
 
     @Data
     public static class MensajeForoRequest {
+        @NotBlank(message = "asunto es obligatorio")
         private String asunto;
+        @NotBlank(message = "contenido es obligatorio")
         private String contenido;
         private String adjuntoUrl;
     }
 
     @Data
     public static class RespuestaForoRequest {
+        @NotBlank(message = "contenido es obligatorio")
         private String contenido;
         private String adjuntoUrl;
     }
 
     @Data
     public static class AnuncioRequest {
+        @NotBlank(message = "titulo es obligatorio")
         private String titulo;
+        @NotBlank(message = "contenido es obligatorio")
         private String contenido;
         private UUID plantelId;
         private String nivelEducativo;
+        @NotBlank(message = "fechaInicio es obligatoria")
         private String fechaInicio;
         private String fechaFin;
         private Boolean esUrgente = false;
@@ -93,7 +102,7 @@ public class ForoController {
 
     @PostMapping
     public ResponseEntity<Map<String, Object>> crear(
-            @RequestBody ForoCreateRequest body,
+            @RequestBody @Valid ForoCreateRequest body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         if (user.getNivelAcceso() != null && user.getNivelAcceso() > 3) {
@@ -117,7 +126,7 @@ public class ForoController {
     @PostMapping("/{id}/mensajes")
     public ResponseEntity<Map<String, Object>> publicarMensaje(
             @PathVariable("id") UUID id,
-            @RequestBody MensajeForoRequest body,
+            @RequestBody @Valid MensajeForoRequest body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         PublicarMensajeUseCase.Command cmd = new PublicarMensajeUseCase.Command(
@@ -129,7 +138,7 @@ public class ForoController {
     public ResponseEntity<Map<String, Object>> responderMensaje(
             @PathVariable("foroId") UUID foroId,
             @PathVariable("mensajeId") UUID mensajeId,
-            @RequestBody RespuestaForoRequest body,
+            @RequestBody @Valid RespuestaForoRequest body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         return ResponseEntity.status(HttpStatus.CREATED).body(
@@ -153,7 +162,7 @@ public class ForoController {
 
     @PostMapping("/anuncios")
     public ResponseEntity<Map<String, Object>> publicarAnuncio(
-            @RequestBody AnuncioRequest body,
+            @RequestBody @Valid AnuncioRequest body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         if (user.getNivelAcceso() != null && user.getNivelAcceso() > 3) {

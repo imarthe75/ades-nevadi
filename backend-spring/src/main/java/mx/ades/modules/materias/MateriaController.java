@@ -66,6 +66,8 @@ public class MateriaController {
                 (String) body.get("nombre_materia"),
                 (String) body.get("clave_materia"),
                 body.get("nivel_educativo_id") != null ? UUID.fromString(body.get("nivel_educativo_id").toString()) : null,
+                (String) body.get("tipo_materia"),
+                (String) body.get("campo_formativo"),
                 body.get("horas_semana") != null ? new java.math.BigDecimal(body.get("horas_semana").toString()) : null,
                 body.get("es_ingles") != null ? Boolean.valueOf(body.get("es_ingles").toString()) : false
         );
@@ -85,6 +87,8 @@ public class MateriaController {
                 (String) body.get("nombre_materia"),
                 (String) body.get("clave_materia"),
                 body.get("nivel_educativo_id") != null ? UUID.fromString(body.get("nivel_educativo_id").toString()) : null,
+                (String) body.get("tipo_materia"),
+                (String) body.get("campo_formativo"),
                 body.get("horas_semana") != null ? new java.math.BigDecimal(body.get("horas_semana").toString()) : null,
                 body.get("es_ingles") != null ? Boolean.valueOf(body.get("es_ingles").toString()) : null,
                 body.get("is_active") != null ? Boolean.valueOf(body.get("is_active").toString()) : null

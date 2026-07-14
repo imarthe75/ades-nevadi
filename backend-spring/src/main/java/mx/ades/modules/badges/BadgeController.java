@@ -1,5 +1,9 @@
 package mx.ades.modules.badges;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import mx.ades.modules.badges.application.service.BadgeApplicationService;
@@ -50,11 +54,17 @@ public class BadgeController {
 
     @Data
     public static class BadgeCreateRequest {
+        @NotBlank(message = "nombre es obligatorio")
+        @Size(max = 100, message = "nombre máximo 100 caracteres")
         private String nombre;
+
         private String descripcion;
         private String icono = "pi-star";
         private String color = "#D02030";
+
+        @NotBlank(message = "tipo es obligatorio")
         private String tipo;
+
         private String criterioTipo = "MANUAL";
         private String criterioMetrica;
         private String criterioValor;
@@ -63,7 +73,9 @@ public class BadgeController {
 
     @Data
     public static class OtorgarRequest {
+        @NotNull(message = "estudianteId es obligatorio")
         private UUID estudianteId;
+
         private UUID cicloId;
         private String motivo;
     }
@@ -77,7 +89,7 @@ public class BadgeController {
 
     @PostMapping
     public ResponseEntity<Map<String, Object>> crear(
-            @RequestBody BadgeCreateRequest body,
+            @RequestBody @Valid BadgeCreateRequest body,
             @AuthenticationPrincipal Jwt jwt) {
         userService.resolveUser(jwt);
         BigDecimal valor = body.getCriterioValor() != null ? new BigDecimal(body.getCriterioValor()) : null;
@@ -114,7 +126,7 @@ public class BadgeController {
     @PostMapping("/{badgeId}/otorgar")
     public ResponseEntity<Map<String, Object>> otorgar(
             @PathVariable("badgeId") UUID badgeId,
-            @RequestBody OtorgarRequest body,
+            @RequestBody @Valid OtorgarRequest body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         var cmd = new OtorgarBadgeUseCase.Command(

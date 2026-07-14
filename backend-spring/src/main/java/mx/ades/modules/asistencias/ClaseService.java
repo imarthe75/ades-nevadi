@@ -36,8 +36,34 @@ public class ClaseService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Clase no encontrada"));
     }
 
+    private static final java.util.Set<String> MODALIDADES_VALIDAS =
+            java.util.Set.of("PRESENCIAL", "REMOTA", "HIBRIDA");
+
+    private static void validarModalidad(String modalidad) {
+        if (modalidad != null && !MODALIDADES_VALIDAS.contains(modalidad.toUpperCase())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "modalidad inválida: debe ser PRESENCIAL, REMOTA o HIBRIDA");
+        }
+    }
+
+    /**
+     * Valida las columnas NOT NULL sin default de {@code ades_clases} (grupo_id,
+     * materia_id, profesor_id, fecha_clase, hora_inicio, hora_fin) y el CHECK
+     * {@code ades_clases_modalidad_check} (PRESENCIAL/REMOTA/HIBRIDA) ANTES de
+     * persistir — el controller ({@code ClaseController#crear}) hace bind directo
+     * del JSON al entity JPA sin ninguna anotación de validación, por lo que sin
+     * este chequeo cualquier campo faltante caía directo en
+     * DataIntegrityViolationException -> 409 engañoso.
+     */
     @Transactional
     public Clase crear(Clase clase) {
+        if (clase.getGrupoId() == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "grupoId es obligatorio");
+        if (clase.getMateriaId() == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "materiaId es obligatorio");
+        if (clase.getProfesorId() == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "profesorId es obligatorio");
+        if (clase.getFechaClase() == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "fechaClase es obligatoria");
+        if (clase.getHoraInicio() == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "horaInicio es obligatoria");
+        if (clase.getHoraFin() == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "horaFin es obligatoria");
+        validarModalidad(clase.getModalidad());
         return claseRepository.save(clase);
     }
 
@@ -50,7 +76,10 @@ public class ClaseService {
                 && "SUSPENDIDA".equalsIgnoreCase(update.getEstatusClase())
                 && !"SUSPENDIDA".equalsIgnoreCase(clase.getEstatusClase());
         if (update.getEstatusClase() != null) clase.setEstatusClase(update.getEstatusClase());
-        if (update.getModalidad() != null) clase.setModalidad(update.getModalidad());
+        if (update.getModalidad() != null) {
+            validarModalidad(update.getModalidad());
+            clase.setModalidad(update.getModalidad());
+        }
         if (update.getHoraInicio() != null) clase.setHoraInicio(update.getHoraInicio());
         if (update.getHoraFin() != null) clase.setHoraFin(update.getHoraFin());
         Clase saved = claseRepository.save(clase);

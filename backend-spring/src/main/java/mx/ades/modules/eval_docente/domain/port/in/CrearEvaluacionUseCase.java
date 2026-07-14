@@ -18,6 +18,9 @@ public interface CrearEvaluacionUseCase {
         public Command {
             if (profesorId == null) throw new IllegalArgumentException("profesor_id es requerido");
             if (cicloEscolarId == null) throw new IllegalArgumentException("ciclo_escolar_id es requerido");
+            // evaluador_id es NOT NULL en ades_evaluacion_docente (FK a ades_usuarios) —
+            // faltaba esta validación (hallazgo de auditoría de consistencia BD↔backend).
+            if (evaluadorId == null) throw new IllegalArgumentException("evaluador_id es requerido");
             if (tipoEvaluador == null || tipoEvaluador.isBlank())
                 throw new IllegalArgumentException("tipo_evaluador es requerido");
         }

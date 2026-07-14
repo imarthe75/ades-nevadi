@@ -9,8 +9,10 @@ public interface CalificarMasivoUseCase {
 
     record Command(UUID tareaId, List<ItemCalificacion> items, UUID calificadorId) {
         public Command {
-            if (tareaId == null)     throw new NullPointerException("tareaId requerido");
-            if (calificadorId == null) throw new NullPointerException("calificadorId requerido");
+            // IllegalArgumentException (no NullPointerException): es la excepción que el
+            // GlobalExceptionHandler traduce a 400 limpio; ver ItemCalificacion para el detalle.
+            if (tareaId == null)     throw new IllegalArgumentException("tareaId requerido");
+            if (calificadorId == null) throw new IllegalArgumentException("calificadorId requerido");
             if (items == null || items.isEmpty()) throw new IllegalArgumentException("items no puede estar vacío");
         }
     }

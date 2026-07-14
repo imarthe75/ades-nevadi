@@ -37,17 +37,48 @@ public class ContactosPersistenceAdapter implements ContactosRepositoryPort {
 
     @Override
     public Map<String, Object> insertContacto(RegistrarContactoUseCase.Command cmd) {
+        // ades_contactos_familiares.persona_id es NOT NULL (FK a ades_personas) pero el
+        // formulario de alta solo captura un nombre_completo de una sola pieza (no hay
+        // personaId existente que reutilizar como sí ocurre en portal_familias/AgregarTutorUseCase,
+        // donde el tutor ya es una persona dada de alta). Se crea aquí la persona
+        // correspondiente al contacto familiar para poder satisfacer el NOT NULL —
+        // antes de este fix el INSERT de abajo violaba directamente el constraint
+        // (DataIntegrityViolationException -> 409 "duplicado o referencia inválida" engañoso).
+        UUID personaId = crearPersonaDesdeNombreCompleto(cmd.nombreCompleto());
+
         UUID id = UUID.randomUUID();
         jdbc.update(
             "INSERT INTO ades_contactos_familiares " +
-            "(id, estudiante_id, nombre_completo, parentesco, telefono_principal, email, " +
+            "(id, estudiante_id, persona_id, nombre_completo, parentesco, telefono_principal, email, " +
             "es_tutor_legal, es_contacto_emergencia, puede_recoger, ocupacion, nivel_estudios, rfc, nacionalidad, " +
-            "usuario_creacion, usuario_modificacion) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-            id, cmd.estudianteId(), cmd.nombreCompleto(), cmd.parentesco(), cmd.telefonoPrincipal(), cmd.email(),
+            "usuario_creacion, usuario_modificacion) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            id, cmd.estudianteId(), personaId, cmd.nombreCompleto(), cmd.parentesco(), cmd.telefonoPrincipal(), cmd.email(),
             cmd.esTutorLegal(), cmd.esContactoEmergencia(), cmd.puedeRecoger(), cmd.ocupacion(),
             cmd.nivelEstudios(), cmd.rfc(), cmd.nacionalidad(), cmd.usuarioCreacion(), cmd.usuarioCreacion()
         );
         return jdbc.queryForList(SELECT_COLS, id).get(0);
+    }
+
+    /**
+     * Crea un registro mínimo en {@code ades_personas} a partir de un nombre completo
+     * de una sola pieza (tal como lo envía el formulario de contactos familiares).
+     * {@code ades_personas.nombre} y {@code apellido_paterno} son NOT NULL; se hace un
+     * split conservador: primera palabra = nombre, resto = apellido paterno (si solo hay
+     * una palabra, se reutiliza como apellido paterno para no dejar el campo vacío).
+     */
+    private UUID crearPersonaDesdeNombreCompleto(String nombreCompleto) {
+        String limpio = nombreCompleto == null ? "" : nombreCompleto.trim().replaceAll("\\s+", " ");
+        String[] partes = limpio.isEmpty() ? new String[]{"Sin nombre"} : limpio.split(" ");
+        String nombre = partes[0];
+        String apellidoPaterno = partes.length > 1
+            ? String.join(" ", Arrays.copyOfRange(partes, 1, partes.length))
+            : partes[0];
+
+        UUID personaId = UUID.randomUUID();
+        jdbc.update(
+            "INSERT INTO ades_personas (id, nombre, apellido_paterno) VALUES (?, ?, ?)",
+            personaId, nombre, apellidoPaterno);
+        return personaId;
     }
 
     @Override

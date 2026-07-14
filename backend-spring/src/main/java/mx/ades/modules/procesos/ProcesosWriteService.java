@@ -169,21 +169,34 @@ public class ProcesosWriteService {
         return id;
     }
 
+    /**
+     * Crea un período de evaluación. Ojo: la tabla real {@code ades_periodos_evaluacion}
+     * (definida en 001_initial_schema.sql) usa columnas {@code numero_periodo}/
+     * {@code tipo_periodo}/{@code is_active} — NO {@code nivel_educativo}/{@code tipo_evaluacion}/
+     * {@code abierto} como se asumía antes aquí. La migración 036 intentaba redefinir la
+     * tabla con esas columnas pero usó {@code CREATE TABLE IF NOT EXISTS}, por lo que nunca
+     * se aplicó contra la tabla ya existente de 001 (bug de drift de esquema silencioso:
+     * este método fallaba con "column does not exist" en cada llamada). {@code numeroPeriodo}
+     * es NOT NULL sin default y forma parte de {@code uq_ades_periodos_eval}
+     * (numero_periodo, tipo_periodo, ciclo_escolar_id).
+     */
     @Transactional
-    public UUID crearPeriodoEvaluacion(UUID cicloId, String nombre, String nivel, String tipoEval,
+    public UUID crearPeriodoEvaluacion(UUID cicloId, String nombre, Integer numeroPeriodo, String tipoEval,
                                         LocalDate inicio, LocalDate fin, Boolean abierto, String usuario) {
         UUID id = UUID.randomUUID();
         jdbc.update(
                 "INSERT INTO ades_periodos_evaluacion " +
-                "(id, ciclo_escolar_id, nombre_periodo, nivel_educativo, tipo_evaluacion, fecha_inicio, fecha_fin, abierto, usuario_creacion, usuario_modificacion) " +
+                "(id, ciclo_escolar_id, nombre_periodo, numero_periodo, tipo_periodo, fecha_inicio, fecha_fin, is_active, usuario_creacion, usuario_modificacion) " +
                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                id, cicloId, nombre, nivel, tipoEval, inicio, fin, abierto, usuario, usuario);
+                id, cicloId, nombre, numeroPeriodo,
+                (tipoEval == null || tipoEval.isBlank()) ? "ORDINARIO" : tipoEval,
+                inicio, fin, abierto == null ? Boolean.TRUE : abierto, usuario, usuario);
         return id;
     }
 
     @Transactional
     public void cerrarPeriodo(UUID id, String usuario) {
-        jdbc.update("UPDATE ades_periodos_evaluacion SET abierto = FALSE, usuario_modificacion = ? WHERE id = ?",
+        jdbc.update("UPDATE ades_periodos_evaluacion SET is_active = FALSE, usuario_modificacion = ? WHERE id = ?",
                 usuario, id);
     }
 

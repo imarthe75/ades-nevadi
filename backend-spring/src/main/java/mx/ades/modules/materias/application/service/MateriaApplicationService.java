@@ -35,6 +35,8 @@ public class MateriaApplicationService implements CrearMateriaUseCase, Actualiza
         m.setNombreMateria(cmd.nombreMateria().trim());
         m.setClaveMateria(cmd.claveMateria());
         m.setNivelEducativoId(cmd.nivelEducativoId());
+        m.setTipoMateria(cmd.tipoMateria());
+        m.setCampoFormativo(cmd.campoFormativo());
         m.setHorasSemana(cmd.horasSemana());
         m.setEsIngles(cmd.esIngles() != null ? cmd.esIngles() : false);
         m.setIsActive(true);
@@ -50,6 +52,8 @@ public class MateriaApplicationService implements CrearMateriaUseCase, Actualiza
         m.setNombreMateria(cmd.nombreMateria().trim());
         m.setClaveMateria(cmd.claveMateria());
         m.setNivelEducativoId(cmd.nivelEducativoId());
+        if (cmd.tipoMateria() != null && !cmd.tipoMateria().isBlank()) m.setTipoMateria(cmd.tipoMateria());
+        if (cmd.campoFormativo() != null) m.setCampoFormativo(cmd.campoFormativo().isBlank() ? null : cmd.campoFormativo());
         m.setHorasSemana(cmd.horasSemana());
         if (cmd.esIngles() != null) m.setEsIngles(cmd.esIngles());
         if (cmd.isActive() != null) m.setIsActive(cmd.isActive());

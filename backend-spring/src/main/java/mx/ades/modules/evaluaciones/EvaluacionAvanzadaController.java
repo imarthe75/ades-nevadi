@@ -1,5 +1,9 @@
 package mx.ades.modules.evaluaciones;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -48,8 +52,15 @@ public class EvaluacionAvanzadaController {
 
     @Data
     public static class EscalaCualitativaPayload {
+        @NotBlank(message = "nombre es obligatorio")
         private String nombre;
+
+        // Debe coincidir EXACTAMENTE con el CHECK de ades_escalas_evaluacion.nivel_educativo
+        @NotBlank(message = "nivelEducativo es obligatorio")
+        @Pattern(regexp = "PRIMARIA|SECUNDARIA|PREPARATORIA",
+                message = "nivelEducativo debe ser PRIMARIA, SECUNDARIA o PREPARATORIA")
         private String nivelEducativo;
+
         private String descripcion;
         private String valoresJson;
     }
@@ -67,7 +78,7 @@ public class EvaluacionAvanzadaController {
 
     @PostMapping("/escalas-cualitativas")
     public ResponseEntity<Map<String, Object>> crearEscala(
-            @RequestBody EscalaCualitativaPayload data,
+            @RequestBody @Valid EscalaCualitativaPayload data,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         requireNivel(user, 3);
@@ -112,6 +123,7 @@ public class EvaluacionAvanzadaController {
 
     @Data
     public static class ObservacionPedagogicaPayload {
+        @NotBlank(message = "observacion es requerida")
         private String observacion;
         private String periodo;
         private String tipo = "GENERAL";
@@ -120,7 +132,7 @@ public class EvaluacionAvanzadaController {
     @PostMapping("/observaciones/{alumno_id}")
     public ResponseEntity<Map<String, Object>> guardarObservaciones(
             @PathVariable("alumno_id") UUID alumnoId,
-            @RequestBody ObservacionPedagogicaPayload data,
+            @Valid @RequestBody ObservacionPedagogicaPayload data,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         requireNivel(user, 4);
@@ -154,8 +166,11 @@ public class EvaluacionAvanzadaController {
 
     @Data
     public static class NeePayload {
+        @NotNull(message = "alumno_id es requerido")
         private UUID alumnoId;
+        @NotBlank(message = "tipo_nee es requerido")
         private String tipoNee;
+        @NotBlank(message = "descripcion es requerida")
         private String descripcion;
         private String apoyosRequeridos;
         private String fechaDeteccion;
@@ -175,7 +190,7 @@ public class EvaluacionAvanzadaController {
 
     @PostMapping("/nee")
     public ResponseEntity<Map<String, Object>> registrarNee(
-            @RequestBody NeePayload data,
+            @Valid @RequestBody NeePayload data,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         requireNivel(user, 3);
@@ -215,9 +230,19 @@ public class EvaluacionAvanzadaController {
         AdesUser user = userService.resolveUser(jwt);
         requireNivel(user, 3);
 
+        if (data.getFecha() == null || data.getFecha().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "fecha es requerida");
+        }
+        LocalDate fecha;
+        try {
+            fecha = LocalDate.parse(data.getFecha());
+        } catch (java.time.format.DateTimeParseException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "fecha con formato inválido (esperado YYYY-MM-DD)");
+        }
+
         UUID asignacionId = asignarAulaHora.ejecutar(new AsignarAulaHoraUseCase.Command(
                 data.getClaseId(), data.getAulaId(),
-                LocalDate.parse(data.getFecha()),
+                fecha,
                 SlotHorario.of(data.getHoraInicio(), data.getHoraFin()),
                 data.getObservaciones(), user.getUsername()));
 

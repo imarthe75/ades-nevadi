@@ -40,6 +40,7 @@ interface UsuarioAdmin {
   nombre_completo: string; rol: string; nivel_acceso: number;
   plantel_id: string | null; nivel_educativo_id: string | null;
   nombre_plantel: string | null; nombre_nivel: string | null; is_active: boolean;
+  row_version: number | null;
 }
 interface CicloAdmin {
   id: string; nombre_ciclo: string; nivel_educativo_id: string; nombre_nivel?: string | null;
@@ -2166,11 +2167,11 @@ export class AdminComponent implements OnInit, OnDestroy {
     }
     this.guardandoNuevoUsr.set(true);
     this.api.post('/admin/usuarios', {
-      nombre: f.nombre, apellidoPaterno: f.apellido_paterno,
-      apellidoMaterno: f.apellido_materno || null,
-      curp: f.curp.toUpperCase(), emailInstitucional: f.email_institucional || null,
-      genero: f.genero, fechaNacimiento: f.fecha_nacimiento || null,
-      rolId: f.rol_id, plantelId: f.plantel_id || null,
+      nombre: f.nombre, apellido_paterno: f.apellido_paterno,
+      apellido_materno: f.apellido_materno || null,
+      curp: f.curp.toUpperCase(), email_institucional: f.email_institucional || null,
+      genero: f.genero, fecha_nacimiento: f.fecha_nacimiento || null,
+      rol_id: f.rol_id, plantel_id: f.plantel_id || null,
     }).pipe(takeUntil(this.destroy$)).subscribe({
       next: (res: any) => {
         this.notify.success('Usuario creado',
@@ -2201,7 +2202,7 @@ export class AdminComponent implements OnInit, OnDestroy {
     this.guardandoRol.set(true);
     this.api.patch(`/admin/roles/${r.id}`, {
       descripcion: this.rolEditForm.descripcion,
-      nivelAcceso: this.rolEditForm.nivel_acceso,
+      nivel_acceso: this.rolEditForm.nivel_acceso,
     }).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.notify.success('Éxito', 'Descripción del rol actualizada');
@@ -2241,8 +2242,8 @@ export class AdminComponent implements OnInit, OnDestroy {
     this.guardandoMenu.set(true);
     this.api.patch(`/admin/menus/${m.clave}`, {
       label: this.menuEditForm.label,
-      nivelMaximo: this.menuEditForm.nivel_maximo,
-      nivelMinimo: this.menuEditForm.nivel_minimo,
+      nivel_maximo: this.menuEditForm.nivel_maximo,
+      nivel_minimo: this.menuEditForm.nivel_minimo,
       activo: this.menuEditForm.activo,
     }).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
@@ -2273,9 +2274,9 @@ export class AdminComponent implements OnInit, OnDestroy {
   guardarPermiso(p: any): void {
     p._saving = true;
     this.api.put('/admin/permisos-rol', {
-      rolId: p.rol_id, menuClave: p.menu_clave,
-      puedeVer: p.puede_ver, puedeEditar: p.puede_editar,
-      puedeCrear: p.puede_crear, puedeEliminar: p.puede_eliminar,
+      rol_id: p.rol_id, menu_clave: p.menu_clave,
+      puede_ver: p.puede_ver, puede_editar: p.puede_editar,
+      puede_crear: p.puede_crear, puede_eliminar: p.puede_eliminar,
     }).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => { p._saving = false; this.notify.success('Guardado', `Permiso actualizado: ${p.menu_clave}`); },
       error: (e) => { p._saving = false; this.notify.error('Error', e.error?.detail ?? 'Error'); },
@@ -2295,12 +2296,12 @@ export class AdminComponent implements OnInit, OnDestroy {
     }
     this.guardandoPermiso.set(true);
     this.api.put('/admin/permisos-rol', {
-      rolId: this.permisosRolFiltro,
-      menuClave: this.nuevoPrmForm.menu_clave,
-      puedeVer: this.nuevoPrmForm.puede_ver,
-      puedeEditar: this.nuevoPrmForm.puede_editar,
-      puedeCrear: this.nuevoPrmForm.puede_crear,
-      puedeEliminar: this.nuevoPrmForm.puede_eliminar,
+      rol_id: this.permisosRolFiltro,
+      menu_clave: this.nuevoPrmForm.menu_clave,
+      puede_ver: this.nuevoPrmForm.puede_ver,
+      puede_editar: this.nuevoPrmForm.puede_editar,
+      puede_crear: this.nuevoPrmForm.puede_crear,
+      puede_eliminar: this.nuevoPrmForm.puede_eliminar,
     }).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.notify.success('Guardado', 'Permiso creado/actualizado');
@@ -2320,19 +2321,23 @@ export class AdminComponent implements OnInit, OnDestroy {
     rol_id: '',
     plantel_id: null as string | null,
     is_active: true,
+    row_version: null as number | null,
   };
 
   abrirEditarUsuario(row: any): void {
     const usr: UsuarioAdmin = row._original ?? row;
     this.usuarioEdit.set(usr);
-    
+
     // Buscar rol por nombre
     const matchingRol = this.roles().find(r => r.nombre_rol === usr.rol);
-    
+
     this.usuarioEditForm = {
       rol_id: matchingRol ? matchingRol.id : '',
       plantel_id: usr.plantel_id,
       is_active: usr.is_active,
+      // row_version habilita optimistic locking en el backend (PATCH /admin/usuarios/{id});
+      // sin este valor el chequeo de concurrencia nunca se ejecutaba.
+      row_version: usr.row_version,
     };
     this.usuarioDlgVisible.set(true);
   }
@@ -2341,13 +2346,14 @@ export class AdminComponent implements OnInit, OnDestroy {
     const usr = this.usuarioEdit();
     if (!usr) return;
     this.guardandoUsuario.set(true);
-    
+
     const payload = {
       rol_id: this.usuarioEditForm.rol_id,
       plantel_id: this.usuarioEditForm.plantel_id,
       is_active: this.usuarioEditForm.is_active,
+      row_version: this.usuarioEditForm.row_version,
     };
-    
+
     this.api.patch(`/admin/usuarios/${usr.id}`, payload).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.notify.success('Éxito', 'Usuario actualizado correctamente');
@@ -2577,8 +2583,16 @@ export class AdminComponent implements OnInit, OnDestroy {
       this.notify.warning('Faltan datos', 'Completa día y horas.');
       return;
     }
+    const cicloId = this.franjaForm.ciclo_escolar_id ?? this.ctx.ciclo()?.id;
+    if (!cicloId) {
+      this.notify.warning('Faltan datos', 'No hay un ciclo escolar activo seleccionado.');
+      return;
+    }
     this.guardandoFranja.set(true);
-    const body = { ...this.franjaForm };
+    // ciclo_escolar_id es NOT NULL en BD (ades_horario_franjas) pero el diálogo no lo
+    // expone como campo editable — se toma del ciclo activo en ContextService para
+    // evitar un DataIntegrityViolationException (409) al guardar.
+    const body = { ...this.franjaForm, ciclo_escolar_id: cicloId };
     const req = this.editFranjaEntry() 
       ? this.api.put(`/horario-franjas/${this.editFranjaEntry().id}`, body)
       : this.api.post(`/horario-franjas`, body);

@@ -1,5 +1,7 @@
 package mx.ades.modules.asistencia_personal;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import mx.ades.modules.asistencia_personal.application.service.AsistenciaPersonalApplicationService;
@@ -44,7 +46,9 @@ public class AsistenciaPersonalController {
 
     @Data
     public static class AsistenciaCreate {
+        @NotNull(message = "personaId es obligatorio")
         private UUID personaId;
+        @NotNull(message = "fecha es obligatorio")
         private LocalDate fecha;
         private LocalTime horaEntrada;
         private LocalTime horaSalida;
@@ -84,7 +88,7 @@ public class AsistenciaPersonalController {
 
     @PostMapping
     public ResponseEntity<Map<String, Object>> registrarAsistencia(
-            @RequestBody AsistenciaCreate data,
+            @RequestBody @Valid AsistenciaCreate data,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
 

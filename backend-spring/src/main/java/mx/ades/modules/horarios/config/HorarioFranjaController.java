@@ -45,6 +45,7 @@ public class HorarioFranjaController {
             @RequestBody HorarioFranja entity,
             @AuthenticationPrincipal Jwt jwt) {
         requireStaff(userService.resolveUser(jwt));
+        validarCamposObligatorios(entity);
         return ResponseEntity.ok(repository.save(entity));
     }
 
@@ -55,8 +56,27 @@ public class HorarioFranjaController {
             @AuthenticationPrincipal Jwt jwt) {
         requireStaff(userService.resolveUser(jwt));
         if (!repository.existsById(id)) return ResponseEntity.notFound().build();
+        validarCamposObligatorios(entity);
         entity.setId(id);
         return ResponseEntity.ok(repository.save(entity));
+    }
+
+    /**
+     * {@code HorarioFranja} es una entidad JPA — no se le agregan anotaciones de Bean
+     * Validation directamente (riesgo sobre la capa de persistencia/Hibernate). Se
+     * valida manualmente antes de guardar, ya que las columnas correspondientes son
+     * {@code NOT NULL} en BD (ades_horario_franjas) y de otro modo el error solo se
+     * vería hasta el {@code DataIntegrityViolationException} en el insert.
+     */
+    private void validarCamposObligatorios(HorarioFranja entity) {
+        if (entity.getCicloEscolarId() == null)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "cicloEscolarId es obligatorio");
+        if (entity.getDiaSemana() == null)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "diaSemana es obligatorio");
+        if (entity.getHoraInicio() == null)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "horaInicio es obligatorio");
+        if (entity.getHoraFin() == null)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "horaFin es obligatorio");
     }
 
     @DeleteMapping("/{id}")

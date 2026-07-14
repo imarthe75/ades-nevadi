@@ -7,6 +7,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
+import mx.ades.common.ValidationUtils;
 import mx.ades.modules.evaluaciones.domain.model.ItemCalificacion;
 import mx.ades.modules.evaluaciones.domain.model.TipoItem;
 import mx.ades.modules.evaluaciones.domain.port.in.CalificarMasivoUseCase;
@@ -26,8 +27,6 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -103,24 +102,12 @@ public class TareaController {
 
             @NotNull(message = "puntajeMaximo es obligatorio")
             @DecimalMin(value = "0.01", message = "puntajeMaximo mínimo 0.01")
-            @DecimalMax(value = "100", message = "puntajeMaximo máximo 100")
+            @DecimalMax(value = "10", message = "puntajeMaximo máximo 10 (escala SEP)")
             BigDecimal puntajeMaximo,
 
             String tipoItem,
             Boolean permiteEntregaTarde,
             String instruccionesUrl) {
-    }
-
-    /** Acepta ISO (yyyy-MM-dd) y formato México (dd/MM/yyyy); 500 con mensaje claro si no calza con ninguno. */
-    private static final DateTimeFormatter FORMATO_FECHA_MX = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-
-    private LocalDate parseFecha(String valor, String campo) {
-        try {
-            return valor.contains("/") ? LocalDate.parse(valor, FORMATO_FECHA_MX) : LocalDate.parse(valor);
-        } catch (DateTimeParseException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    campo + " inválida. Use DD/MM/YYYY o YYYY-MM-DD. Recibido: " + valor);
-        }
     }
 
     @PostMapping
@@ -134,10 +121,10 @@ public class TareaController {
                 : TipoItem.TAREA;
 
         LocalDate fechaAsignacion = body.fechaAsignacion() != null && !body.fechaAsignacion().isBlank()
-                ? parseFecha(body.fechaAsignacion(), "fechaAsignacion")
+                ? ValidationUtils.parseFechaFlexible(body.fechaAsignacion(), "fechaAsignacion")
                 : LocalDate.now();
         LocalDate fechaEntrega = body.fechaEntrega() != null && !body.fechaEntrega().isBlank()
-                ? parseFecha(body.fechaEntrega(), "fechaEntrega")
+                ? ValidationUtils.parseFechaFlexible(body.fechaEntrega(), "fechaEntrega")
                 : LocalDate.now().plusDays(7);
 
         if (fechaEntrega.isBefore(fechaAsignacion)) {

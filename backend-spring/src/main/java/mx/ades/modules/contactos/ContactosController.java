@@ -1,5 +1,9 @@
 package mx.ades.modules.contactos;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import mx.ades.modules.contactos.application.service.ContactosApplicationService;
@@ -44,7 +48,12 @@ public class ContactosController {
 
     @Data
     public static class ContactoPayload {
+        // NOTA: no se marca @NotNull porque este mismo DTO se reutiliza para PATCH
+        // (actualizarContacto), donde el estudianteId no viaja en el body — solo es
+        // obligatorio en el alta (POST), verificado manualmente en crearContacto().
         private UUID estudianteId;
+        @NotBlank(message = "nombreCompleto es obligatorio")
+        @Size(max = 100, message = "nombreCompleto máximo 100 caracteres")
         private String nombreCompleto;
         private String parentesco;
         private String telefonoPrincipal;
@@ -61,6 +70,7 @@ public class ContactosController {
 
     @Data
     public static class ExpedienteMedicoPayload {
+        @Size(max = 5, message = "tipoSangre máximo 5 caracteres")
         private String tipoSangre;
         private String alergias;
         private String medicamentosAutorizados;
@@ -68,7 +78,9 @@ public class ContactosController {
         private String observacionesGenerales;
         private String nss;
         private String discapacidad;
+        @Size(max = 30, message = "seguroMedicoTipo máximo 30 caracteres")
         private String seguroMedicoTipo;
+        @Size(max = 50, message = "seguroMedicoNumero máximo 50 caracteres")
         private String seguroMedicoNumero;
         private Boolean vacunasAlDia = true;
         private Boolean padecimientoCronico = false;
@@ -85,11 +97,14 @@ public class ContactosController {
 
     @PostMapping("/contactos")
     public ResponseEntity<Map<String, Object>> crearContacto(
-            @RequestBody ContactoPayload body,
+            @RequestBody @Valid ContactoPayload body,
             @RequestParam(value = "estudiante_id", required = false) UUID estudianteIdParam,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         UUID estId = estudianteIdParam != null ? estudianteIdParam : body.getEstudianteId();
+        if (estId == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "estudianteId es obligatorio");
+        }
 
         ValidationUtils.validarNombrePersona(body.getNombreCompleto(), "El nombre del contacto");
         ValidationUtils.validarTelefono(body.getTelefonoPrincipal());
@@ -119,7 +134,7 @@ public class ContactosController {
     @PatchMapping("/contactos/{contacto_id}")
     public ResponseEntity<Map<String, Object>> actualizarContacto(
             @PathVariable("contacto_id") UUID contactoId,
-            @RequestBody ContactoPayload body,
+            @RequestBody @Valid ContactoPayload body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
 
@@ -178,7 +193,7 @@ public class ContactosController {
     @PutMapping("/expediente-medico/{estudiante_id}")
     public ResponseEntity<Map<String, Object>> actualizarExpedienteMedico(
             @PathVariable("estudiante_id") UUID estudianteId,
-            @RequestBody ExpedienteMedicoPayload body,
+            @RequestBody @Valid ExpedienteMedicoPayload body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         ValidationUtils.validarNSS(body.getNss());

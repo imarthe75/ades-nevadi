@@ -1,5 +1,9 @@
 package mx.ades.modules.direcciones;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import mx.ades.security.AdesUser;
@@ -81,7 +85,7 @@ public class DireccionesController {
 
     @PostMapping("/direcciones")
     public ResponseEntity<Map<String, Object>> crear(
-            @RequestBody DireccionPayload body,
+            @RequestBody @Valid DireccionPayload body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         if (body.getEntidadTipo() == null || body.getEntidadId() == null) {
@@ -95,7 +99,7 @@ public class DireccionesController {
     @PatchMapping("/direcciones/{id}")
     public ResponseEntity<Map<String, Object>> actualizar(
             @PathVariable UUID id,
-            @RequestBody DireccionPayload body,
+            @RequestBody @Valid DireccionPayload body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         List<Map<String, Object>> existing = queryService.fetchDirForUpdate(id);
@@ -144,15 +148,26 @@ public class DireccionesController {
         return ResponseEntity.ok(queryService.listarContactos(personaId));
     }
 
+    // Espejo de los CHECK constraints chk_pc_medio / chk_pc_tipo de ades_persona_contactos
+    // y de las opciones del LOV en domicilio.component.ts (MEDIOS / TIPOS_CONT). El frontend
+    // ya restringe a estos valores vía p-select, pero sin este backstop server-side un
+    // valor fuera del enum caía directo en el CHECK de BD -> 409 genérico "duplicado o
+    // referencia inválida" en vez de un 422 claro.
+    private static final Set<String> MEDIOS_VALIDOS =
+            Set.of("CELULAR", "FIJO", "WHATSAPP", "EMAIL", "TELEGRAM", "FAX", "OTRO");
+    private static final Set<String> TIPOS_CONTACTO_VALIDOS =
+            Set.of("PERSONAL", "TRABAJO", "FAMILIAR", "INSTITUCIONAL", "EMERGENCIA");
+
     @PostMapping("/persona-contactos")
     public ResponseEntity<Map<String, Object>> crearContacto(
-            @RequestBody PersonaContactoPayload body,
+            @RequestBody @Valid PersonaContactoPayload body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         if (body.getPersonaId() == null || body.getMedio() == null || body.getValor() == null) {
             throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
                     "persona_id, medio y valor son requeridos");
         }
+        validarMedioYTipo(body.getMedio(), body.getTipo());
         UUID id = writeService.crearContacto(body, user.getUsername());
         return ResponseEntity.status(HttpStatus.CREATED).body(queryService.getContactoById(id));
     }
@@ -160,7 +175,7 @@ public class DireccionesController {
     @PatchMapping("/persona-contactos/{id}")
     public ResponseEntity<Map<String, Object>> actualizarContacto(
             @PathVariable UUID id,
-            @RequestBody PersonaContactoPayload body,
+            @RequestBody @Valid PersonaContactoPayload body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         List<Map<String, Object>> existing = queryService.fetchContactoForUpdate(id);
@@ -169,8 +184,20 @@ public class DireccionesController {
             int cv = ((Number) existing.get(0).get("row_version")).intValue();
             if (body.getRowVersion() != cv) throw new ResponseStatusException(HttpStatus.CONFLICT, "Conflicto de concurrencia");
         }
+        validarMedioYTipo(body.getMedio(), body.getTipo());
         writeService.actualizarContacto(id, body, user.getUsername());
         return ResponseEntity.ok(queryService.getContactoById(id));
+    }
+
+    private void validarMedioYTipo(String medio, String tipo) {
+        if (medio != null && !MEDIOS_VALIDOS.contains(medio)) {
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
+                    "medio inválido. Valores permitidos: " + MEDIOS_VALIDOS);
+        }
+        if (tipo != null && !TIPOS_CONTACTO_VALIDOS.contains(tipo)) {
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
+                    "tipo inválido. Valores permitidos: " + TIPOS_CONTACTO_VALIDOS);
+        }
     }
 
     @DeleteMapping("/persona-contactos/{id}")
@@ -185,7 +212,9 @@ public class DireccionesController {
 
     @Data
     public static class DireccionPayload {
+        @NotBlank(message = "entidadTipo es obligatorio")
         private String entidadTipo;
+        @NotNull(message = "entidadId es obligatorio")
         private UUID   entidadId;
         private String tipoDireccion;
         private Boolean esPrincipal;
@@ -206,9 +235,13 @@ public class DireccionesController {
 
     @Data
     public static class PersonaContactoPayload {
+        @NotNull(message = "personaId es obligatorio")
         private UUID   personaId;
+        @NotBlank(message = "medio es obligatorio")
         private String medio;
         private String tipo;
+        @NotBlank(message = "valor es obligatorio")
+        @Size(max = 255, message = "valor máximo 255 caracteres")
         private String valor;
         private String etiqueta;
         private Boolean esPrincipal;

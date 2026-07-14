@@ -49,15 +49,16 @@ import org.springframework.context.annotation.Configuration;
  * Los servicios de dominio NO llevan @Service — se instancian aquí
  * para que la capa de dominio permanezca libre de dependencias de Spring.
  */
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 @Configuration
 public class HexagonalConfig {
 
-    @Bean
-    public ObjectMapper objectMapper() {
-        return new ObjectMapper();
-    }
+    // NOTA: NO definir aquí un @Bean ObjectMapper propio — un bean manual (ej. `new
+    // ObjectMapper()`) hace que Spring Boot desactive su autoconfiguración de Jackson,
+    // incluyendo `spring.jackson.property-naming-strategy: SNAKE_CASE` (application.yml)
+    // y el registro automático de JavaTimeModule. Eso rompió silenciosamente ~28 flujos
+    // de creación/edición en todo el sistema (payloads snake_case de Angular deserializados
+    // contra records/DTOs camelCase sin @JsonProperty, campos quedando null). Dejar que
+    // Spring Boot autoconfigure el ObjectMapper vía application.yml.
 
     // ── asistencias (FASE 1) ──────────────────────────────────────────────────
 

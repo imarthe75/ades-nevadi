@@ -1,5 +1,8 @@
 package mx.ades.modules.justificaciones;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import mx.ades.modules.justificaciones.domain.model.AccionJustificacion;
@@ -42,14 +45,18 @@ public class JustificacionController {
 
     @Data
     public static class JustificacionCreate {
+        @NotNull(message = "asistenciaId es obligatorio")
         private UUID   asistenciaId;
         private String tipoJustificacion = "MEDICA";
+
+        @NotBlank(message = "motivo es obligatorio")
         private String motivo;
         private String documentoUrl;
     }
 
     @Data
     public static class ResolucionIn {
+        @NotBlank(message = "accion es obligatoria")
         private String accion;
         private String motivoRechazo;
     }
@@ -70,7 +77,7 @@ public class JustificacionController {
 
     @PostMapping
     public ResponseEntity<Map<String, Object>> crearJustificacion(
-            @RequestBody JustificacionCreate body,
+            @RequestBody @Valid JustificacionCreate body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         var cmd = new RegistrarJustificacionUseCase.Command(
@@ -87,7 +94,7 @@ public class JustificacionController {
     @PostMapping("/{justificacionId}/resolver")
     public ResponseEntity<Map<String, Object>> resolverJustificacion(
             @PathVariable("justificacionId") UUID justificacionId,
-            @RequestBody ResolucionIn body,
+            @RequestBody @Valid ResolucionIn body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         var cmd = new ResolverJustificacionUseCase.Command(

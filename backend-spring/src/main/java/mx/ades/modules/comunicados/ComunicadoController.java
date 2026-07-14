@@ -1,5 +1,8 @@
 package mx.ades.modules.comunicados;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import mx.ades.modules.comunicados.application.service.ComunicadoApplicationService;
@@ -48,8 +51,13 @@ public class ComunicadoController {
 
     @Data
     public static class ComunicadoCreateRequest {
+        @NotBlank(message = "titulo es obligatorio")
+        @Size(max = 255, message = "titulo máximo 255 caracteres")
         private String titulo;
+
+        @NotBlank(message = "contenido es obligatorio")
         private String contenido;
+
         private String tipoComunicado = "GENERAL";
         private UUID plantelId;
         private UUID nivelEducativoId;
@@ -102,7 +110,7 @@ public class ComunicadoController {
 
     @PostMapping
     public ResponseEntity<Map<String, Object>> crear(
-            @RequestBody ComunicadoCreateRequest body,
+            @RequestBody @Valid ComunicadoCreateRequest body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         var cmd = new CrearComunicadoUseCase.Command(

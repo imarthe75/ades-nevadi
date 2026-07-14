@@ -18,6 +18,10 @@ public class PlanMejoraService {
 
     private static final int UMBRAL_CALIFICACION_BAJA = 3;
 
+    /** Valores permitidos por el CHECK de ades_planes_mejora_docente.estado. */
+    private static final java.util.Set<String> ESTADOS_VALIDOS =
+            java.util.Set.of("PENDIENTE", "EN_PROGRESO", "COMPLETADO");
+
     /** Mapeo criterio→recomendación — extensible sin tocar lógica de negocio. */
     private static final Map<String, String> RECOMENDACIONES = Map.of(
             "Puntualidad y asistencia", "Revisar con dirección los horarios de entrada/salida y registrar causas de inasistencia recurrente.",
@@ -69,6 +73,15 @@ public class PlanMejoraService {
 
     @Transactional
     public void actualizarEstado(UUID id, String estado) {
+        // Validación previa al UPDATE: el CHECK de ades_planes_mejora_docente.estado
+        // solo acepta PENDIENTE/EN_PROGRESO/COMPLETADO — sin esto, un valor inválido
+        // llegaba crudo hasta la BD y disparaba una DataIntegrityViolationException
+        // (409 engañoso vía GlobalExceptionHandler) en vez de un 400 claro
+        // (hallazgo de auditoría de consistencia BD↔backend).
+        if (estado == null || !ESTADOS_VALIDOS.contains(estado)) {
+            throw new IllegalArgumentException(
+                    "estado inválido: " + estado + ". Válidos: " + ESTADOS_VALIDOS);
+        }
         int filas = jdbc.update("UPDATE ades_planes_mejora_docente SET estado = ? WHERE id = ? AND is_active = TRUE", estado, id);
         if (filas == 0) {
             throw new org.springframework.web.server.ResponseStatusException(

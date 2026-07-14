@@ -25,6 +25,16 @@ public class Materia extends AdesBaseEntity {
     @Column(name = "nivel_educativo_id", nullable = false)
     private UUID nivelEducativoId;
 
+    /** ENUM en BD (chk_tipo_materia): OFICIAL_SEP_PRIMARIA, OFICIAL_SEP_SECUNDARIA,
+     * OFICIAL_UAEMEX_PREP, NEVADI_FORMATIVA, NEVADI_ENRIQUECIMIENTO, NEVADI_ESPECIALIZADA. */
+    @Column(name = "tipo_materia", nullable = false, length = 50)
+    private String tipoMateria;
+
+    /** ENUM en BD (ck_materias_campo_formativo), nullable: LENGUAJES,
+     * SABERES_PENSAMIENTO_CIENTIFICO, ETICA_NATURALEZA_SOCIEDADES, HUMANO_COMUNITARIO. */
+    @Column(name = "campo_formativo", length = 40)
+    private String campoFormativo;
+
     @Column(name = "horas_semana")
     private BigDecimal horasSemana;
 

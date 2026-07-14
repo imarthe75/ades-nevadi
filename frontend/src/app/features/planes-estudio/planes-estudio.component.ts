@@ -371,6 +371,12 @@ const NIVEL_ORDER = ['PRIMARIA', 'SECUNDARIA', 'PREPARATORIA'];
           <p-select [options]="niveles()" [(ngModel)]="materiaEdit.nivel_educativo_id"
             optionLabel="nombre_nivel" optionValue="id"
  [filter]="true" filterPlaceholder="Buscar..."/>
+          <label>Tipo *</label>
+          <p-select [options]="tiposMateria" [(ngModel)]="materiaEdit.tipo_materia"
+            optionLabel="label" optionValue="value" placeholder="Selecciona tipo..." />
+          <label>Campo formativo</label>
+          <p-select [options]="camposFormativos" [(ngModel)]="materiaEdit.campo_formativo"
+            optionLabel="label" optionValue="value" placeholder="(solo NEM primaria)" [showClear]="true" />
           <label>Horas/semana</label>
           <p-inputnumber [(ngModel)]="materiaEdit.horas_semana" [min]="1" [max]="30" />
           <label>Activa</label>
@@ -592,6 +598,22 @@ export class PlanesEstudioComponent implements OnInit, OnDestroy {
   drawerVisible   = false;
   materiaEdit: any       = null;
   temaEdit: any          = null;
+  /** Debe coincidir con CrearMateriaUseCase.TIPOS_MATERIA_VALIDOS (chk_tipo_materia en BD). */
+  readonly tiposMateria = [
+    { label: 'Oficial SEP Primaria', value: 'OFICIAL_SEP_PRIMARIA' },
+    { label: 'Oficial SEP Secundaria', value: 'OFICIAL_SEP_SECUNDARIA' },
+    { label: 'Oficial UAEMEX Preparatoria', value: 'OFICIAL_UAEMEX_PREP' },
+    { label: 'Nevadi Formativa', value: 'NEVADI_FORMATIVA' },
+    { label: 'Nevadi Enriquecimiento', value: 'NEVADI_ENRIQUECIMIENTO' },
+    { label: 'Nevadi Especializada', value: 'NEVADI_ESPECIALIZADA' },
+  ];
+  /** Debe coincidir con CrearMateriaUseCase.CAMPOS_FORMATIVOS_VALIDOS (ck_materias_campo_formativo en BD). */
+  readonly camposFormativos = [
+    { label: 'Lenguajes', value: 'LENGUAJES' },
+    { label: 'Saberes y Pensamiento Científico', value: 'SABERES_PENSAMIENTO_CIENTIFICO' },
+    { label: 'Ética, Naturaleza y Sociedades', value: 'ETICA_NATURALEZA_SOCIEDADES' },
+    { label: 'De lo Humano y lo Comunitario', value: 'HUMANO_COMUNITARIO' },
+  ];
   materiaDetalle  = signal<Materia | null>(null);
   estadisticasDetalle = signal<Estadisticas | null>(null);
 
@@ -973,7 +995,7 @@ export class PlanesEstudioComponent implements OnInit, OnDestroy {
   filtrarMaterias(): void { /* computed se actualiza automáticamente */ }
 
   abrirNuevaMateria(): void {
-    this.materiaEdit = { nombre_materia:'', clave_materia:'', nivel_educativo_id: this.nivelActivo(), horas_semana: 4, is_active: true };
+    this.materiaEdit = { nombre_materia:'', clave_materia:'', nivel_educativo_id: this.nivelActivo(), tipo_materia: '', campo_formativo: null, horas_semana: 4, is_active: true };
     this.dlgMateria = true;
   }
 
@@ -983,7 +1005,7 @@ export class PlanesEstudioComponent implements OnInit, OnDestroy {
   }
 
   guardarMateria(): void {
-    if (!this.materiaEdit?.nombre_materia || !this.materiaEdit?.nivel_educativo_id) {
+    if (!this.materiaEdit?.nombre_materia || !this.materiaEdit?.nivel_educativo_id || !this.materiaEdit?.tipo_materia) {
       this.notify.warning('Campos requeridos');
       return;
     }

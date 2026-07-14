@@ -128,11 +128,15 @@ export interface ContactoEmergencia {
   persona_id: string;
   nombre_completo: string;
   parentesco?: string | null;
-  telefono?: string | null;
+  // Alineado con la columna real ades_contactos_familiares.telefono_principal
+  // (ContactoPayload.telefonoPrincipal serializa como telefono_principal con
+  // snake_case; "telefono" no existe como columna/campo backend).
+  telefono_principal?: string | null;
   telefono_alt?: string | null;
   email?: string | null;
   es_tutor_legal: boolean;
-  es_contacto_prim: boolean;
+  // Alineado con ContactoPayload.esContactoEmergencia / columna es_contacto_emergencia.
+  es_contacto_emergencia: boolean;
   ocupacion?: string | null;
   nivel_estudios?: string | null;
   rfc?: string | null;

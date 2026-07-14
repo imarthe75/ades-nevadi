@@ -449,11 +449,30 @@ public class ImportsController {
                 }
             }
 
+            // tipo_materia es NOT NULL sin default (chk_tipo_materia) — si la plantilla no la trae,
+            // se infiere del nivel siguiendo el mismo criterio del backfill de la migración 033.
+            String tipoMateria = ImportadorUtil.getCol(row, parsed.getHeaders(), "tipo_materia", "tipo");
+            if (tipoMateria.isEmpty()) {
+                tipoMateria = switch (nombreNivel.trim().toUpperCase()) {
+                    case "PRIMARIA" -> "OFICIAL_SEP_PRIMARIA";
+                    case "SECUNDARIA" -> "OFICIAL_SEP_SECUNDARIA";
+                    case "PREPARATORIA" -> "OFICIAL_UAEMEX_PREP";
+                    default -> "NEVADI_FORMATIVA";
+                };
+            } else {
+                tipoMateria = tipoMateria.trim().toUpperCase();
+                if (!mx.ades.modules.materias.domain.port.in.CrearMateriaUseCase.TIPOS_MATERIA_VALIDOS.contains(tipoMateria)) {
+                    errores.add(new ErrorFila(rowNum, nombreMat, "tipo_materia inválido: '" + tipoMateria + "'"));
+                    continue;
+                }
+            }
+
             try {
                 importWrite.insertarMateria(
                         nombreMat,
                         ImportadorUtil.getCol(row, parsed.getHeaders(), "clave_materia", "clave"),
                         nivelId,
+                        tipoMateria,
                         ImportadorUtil.parseDouble(ImportadorUtil.getCol(row, parsed.getHeaders(), "horas_semana", "horas")),
                         user.getUsername());
                 exitosos++;

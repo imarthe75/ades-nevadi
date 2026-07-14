@@ -3,6 +3,8 @@ package mx.ades.common;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.Map;
 import java.util.regex.Pattern;
 
@@ -14,8 +16,11 @@ public class ValidationUtils {
     // Standard official RFC pattern (12 or 13 characters)
     private static final Pattern RFC_PATTERN = Pattern.compile("^[A-ZÑ&]{3,4}\\d{6}[A-Z\\d]{3}$");
 
-    // Standard simple email pattern
-    private static final Pattern EMAIL_PATTERN = Pattern.compile("^[A-Za-z0-9+_.-]+@(.+)$");
+    // Email pattern alineado al CHECK de BD (chk_cont_fam_email / chk_personas_email_personal:
+    // email ~~ '%@%.%') — exige un '.' después del '@', no solo la presencia de '@'.
+    // Sin este alineamiento, un correo como "user@localhost" pasaba la validación 422
+    // de la app pero violaba el CHECK constraint al insertar (500/409 crudo).
+    private static final Pattern EMAIL_PATTERN = Pattern.compile("^[A-Za-z0-9+_.-]+@.+\\..+$");
 
     // Phone number pattern (exactly 10 digits)
     private static final Pattern PHONE_PATTERN = Pattern.compile("^\\d{10}$");
@@ -155,6 +160,18 @@ public class ValidationUtils {
 
     private static String str(Object o) {
         return o == null ? null : o.toString();
+    }
+
+    private static final DateTimeFormatter FORMATO_FECHA_MX = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+
+    /** Acepta ISO (yyyy-MM-dd) y formato México (dd/MM/yyyy); 400 con mensaje claro si no calza con ninguno. */
+    public static LocalDate parseFechaFlexible(String valor, String campo) {
+        try {
+            return valor.contains("/") ? LocalDate.parse(valor, FORMATO_FECHA_MX) : LocalDate.parse(valor);
+        } catch (DateTimeParseException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    campo + " inválida. Use DD/MM/YYYY o YYYY-MM-DD. Recibido: " + valor);
+        }
     }
 
     // Año mínimo para datos históricos en México (reglamentación educativa SEP comienza ~1921)

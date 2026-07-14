@@ -21,7 +21,12 @@ public interface EmitirConstanciaUseCase {
             LocalDate fechaVencimiento,
             String observaciones,
             UUID emitidaPorId,
-            String username) {}
+            String username) {
+        public Command {
+            if (estudianteId == null) throw new IllegalArgumentException("estudiante_id es requerido");
+            if (tipoConstancia == null || tipoConstancia.isBlank()) throw new IllegalArgumentException("tipo_constancia es requerido");
+        }
+    }
 
     record Result(UUID constanciaId, String folio) {}
 

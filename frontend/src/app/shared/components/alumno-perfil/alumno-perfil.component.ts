@@ -408,7 +408,7 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
                     </div>
                     <div class="contacto-badges">
                       @if (c.es_tutor_legal) { <p-tag value="Tutor Legal" severity="success" /> }
-                      @if (c.es_contacto_prim) { <p-tag value="Principal" severity="info" /> }
+                      @if (c.es_contacto_emergencia) { <p-tag value="Principal" severity="info" /> }
                       <p-button icon="pi pi-pencil" [text]="true" [rounded]="true" size="small"
                         (onClick)="editarContacto(c)" />
                       <p-button icon="pi pi-trash" [text]="true" [rounded]="true" size="small"
@@ -416,7 +416,7 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
                     </div>
                   </div>
                   <div class="contacto-data">
-                    @if (c.telefono) { <span><i class="pi pi-phone"></i> {{ c.telefono }}</span> }
+                    @if (c.telefono_principal) { <span><i class="pi pi-phone"></i> {{ c.telefono_principal }}</span> }
                     @if (c.email) { <span><i class="pi pi-envelope"></i> {{ c.email }}</span> }
                     @if (c.ocupacion) { <span><i class="pi pi-briefcase"></i> {{ c.ocupacion }}</span> }
                   </div>
@@ -436,7 +436,7 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
                   </div>
                   <div class="form-row">
                     <label>Teléfono</label>
-                    <input pInputText [(ngModel)]="contactoEdit.telefono" adesFormat="telefono"
+                    <input pInputText [(ngModel)]="contactoEdit.telefono_principal" adesFormat="telefono"
                       placeholder="10 dígitos" type="tel" />
                   </div>
                   <div class="form-row">
@@ -478,7 +478,7 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
                   </div>
                   <div class="form-row">
                     <label>¿Contacto principal?</label>
-                    <input type="checkbox" [(ngModel)]="contactoEdit.es_contacto_prim" />
+                    <input type="checkbox" [(ngModel)]="contactoEdit.es_contacto_emergencia" />
                   </div>
                   <div class="form-btns">
                     <p-button label="Cancelar" severity="secondary" [text]="true" size="small"
@@ -1002,9 +1002,9 @@ export class AlumnoPerfilComponent implements OnInit, OnChanges, OnDestroy {
 
   abrirNuevoContacto(): void {
     this.contactoEdit = {
-      nombre_completo: '', parentesco: null, telefono: '',
+      nombre_completo: '', parentesco: null, telefono_principal: '',
       telefono_alt: '', email: '', es_tutor_legal: false,
-      es_contacto_prim: false, ocupacion: '', nivel_estudios: null, rfc: '',
+      es_contacto_emergencia: false, ocupacion: '', nivel_estudios: null, rfc: '',
       nacionalidad: 'Mexicana',
     };
     this.editandoContacto.set(true);
@@ -1021,7 +1021,7 @@ export class AlumnoPerfilComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   guardarContacto(): void {
-    if (!this.alumno?.persona?.id) return;
+    if (!this.alumno?.id) return;
 
     const email = (this.contactoEdit.email ?? '').trim();
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
@@ -1030,13 +1030,13 @@ export class AlumnoPerfilComponent implements OnInit, OnChanges, OnDestroy {
       return;
     }
 
-    const tel = (this.contactoEdit.telefono ?? '').replace(/[\s\-\(\)\.]/g, '');
+    const tel = (this.contactoEdit.telefono_principal ?? '').replace(/[\s\-\(\)\.]/g, '');
     if (tel && !/^\d{10}$/.test(tel)) {
       this.msg.add({ severity: 'warn', summary: 'Teléfono inválido',
         detail: 'El teléfono debe tener exactamente 10 dígitos' });
       return;
     }
-    if (tel) this.contactoEdit.telefono = tel;
+    if (tel) this.contactoEdit.telefono_principal = tel;
 
     const telAlt = (this.contactoEdit.telefono_alt ?? '').replace(/[\s\-\(\)\.]/g, '');
     if (telAlt && !/^\d{10}$/.test(telAlt)) {
@@ -1048,9 +1048,11 @@ export class AlumnoPerfilComponent implements OnInit, OnChanges, OnDestroy {
 
     this.savingContacto.set(true);
 
+    // ContactoPayload espera `estudianteId` (FK real de ades_contactos_familiares
+    // es estudiante_id, no persona_id) — se envía el id del alumno actual, no de su persona.
     const isNew = !this.contactoEdit.id;
     const payload = isNew
-      ? { ...this.contactoEdit, persona_id: this.alumno.persona.id }
+      ? { ...this.contactoEdit, estudiante_id: this.alumno.id }
       : { ...this.contactoEdit };
 
     const req = isNew

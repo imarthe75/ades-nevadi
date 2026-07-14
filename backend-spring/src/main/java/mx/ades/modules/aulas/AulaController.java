@@ -168,6 +168,15 @@ public class AulaController {
         if (dia == null || horaInicio == null || horaFin == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "dia_semana, hora_inicio y hora_fin son obligatorios");
         }
+        // Alinea con los CHECK de ades_disponibilidad_aula: dia_semana BETWEEN 1 AND 7
+        // y chk_disp_aula_horas (hora_fin > hora_inicio) — sin esto, un valor fuera de
+        // rango caía en el 409 genérico de GlobalExceptionHandler en vez de un 400 claro.
+        if (dia < 1 || dia > 7) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "dia_semana debe estar entre 1 y 7");
+        }
+        if (horaFin.compareTo(horaInicio) <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "hora_fin debe ser posterior a hora_inicio");
+        }
         UUID newId = UUID.randomUUID();
         jdbc.update(
             "INSERT INTO ades_disponibilidad_aula (id, aula_id, dia_semana, hora_inicio, hora_fin, motivo_bloqueo) " +

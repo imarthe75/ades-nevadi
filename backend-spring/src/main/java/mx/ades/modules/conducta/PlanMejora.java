@@ -68,8 +68,11 @@ public class PlanMejora extends AdesAuditEntity {
     @Column(name = "fecha_firma_padre")
     private LocalDate fechaFirmaPadre;
 
+    // 'ACTIVO' es el único valor inicial válido según el CHECK de
+    // ades_planes_mejora.estado (ACTIVO/EN_PROCESO/CUMPLIDO/INCUMPLIDO/CANCELADO) —
+    // antes decía 'BORRADOR', que nunca fue un valor permitido (hallazgo de auditoría).
     @Column(name = "estado")
-    private String estado = "BORRADOR";
+    private String estado = "ACTIVO";
 
     @Column(name = "observaciones_cierre")
     private String observacionesCierre;

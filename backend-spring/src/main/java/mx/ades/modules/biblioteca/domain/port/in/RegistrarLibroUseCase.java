@@ -32,6 +32,12 @@ public interface RegistrarLibroUseCase {
                 throw new IllegalArgumentException("categoria es requerida");
             if (ejemplaresTotal < 0)
                 throw new IllegalArgumentException("ejemplares_total no puede ser negativo");
+            // CHECK ades_biblioteca_libros: anio_publicacion NULL o entre 1400 y 2200.
+            // El frontend ya limita el input a ese rango (p-inputNumber min/max), pero
+            // el backend no lo validaba — un cliente que llame la API directo podía
+            // disparar la violación del CHECK a nivel BD (hallazgo de auditoría).
+            if (anioPublicacion != null && (anioPublicacion < 1400 || anioPublicacion > 2200))
+                throw new IllegalArgumentException("anio_publicacion debe estar entre 1400 y 2200");
         }
     }
 

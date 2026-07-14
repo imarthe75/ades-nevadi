@@ -366,8 +366,31 @@ export class RubricasComponent implements OnInit, OnDestroy {
     this.selRubrica = r;
     this.api.get<any>(`/rubricas/${r.id}`).pipe(takeUntil(this.destroy$)).subscribe(d => {
       this.detalle.set(d);
-      this.criterios.set(d.criterios ?? []);
+      this.criterios.set((d.criterios ?? []).map((c: any) => ({
+        ...c,
+        niveles_logro: this.parseNivelesLogro(c.niveles_logro),
+      })));
     });
+  }
+
+  /**
+   * `RubricaCriterio.nivelesLogro` se persiste en el backend como String (columna
+   * jsonb sin @Convert, ver RubricaCriterio.java) — el API entrega/recibe este
+   * campo como texto JSON, no como arreglo nativo. Normaliza a NivelLogro[] para
+   * la plantilla.
+   */
+  private parseNivelesLogro(v: unknown): NivelLogro[] | null {
+    if (!v) return null;
+    if (Array.isArray(v)) return v as NivelLogro[];
+    if (typeof v === 'string') {
+      try {
+        const parsed = JSON.parse(v);
+        return Array.isArray(parsed) ? parsed : null;
+      } catch {
+        return null;
+      }
+    }
+    return null;
   }
 
   abrirNueva(): void { this.formNueva = { nombre: '', descripcion: '', materia_id: '', nivel_educativo_id: '' }; this.showNueva = true; }
@@ -392,7 +415,10 @@ export class RubricasComponent implements OnInit, OnDestroy {
       descripcion: this.formCrit.descripcion || null,
       ponderacion: this.formCrit.ponderacion,
       orden: this.formCrit.orden,
-      niveles_logro: nivelesValidos.length ? nivelesValidos : null,
+      // CriterioPayload.nivelesLogro es String (columna jsonb sin @Convert) — debe
+      // enviarse como texto JSON, no como arreglo, o Jackson rechaza el body
+      // (MismatchedInputException: no puede bindear un array a String).
+      niveles_logro: nivelesValidos.length ? JSON.stringify(nivelesValidos) : null,
     }).pipe(takeUntil(this.destroy$)).subscribe(() => { this.showCriterio = false; this.seleccionar(this.selRubrica!); });
   }
 

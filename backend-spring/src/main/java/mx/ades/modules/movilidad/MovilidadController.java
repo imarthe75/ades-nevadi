@@ -1,5 +1,8 @@
 package mx.ades.modules.movilidad;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import mx.ades.modules.movilidad.domain.model.TipoMovilidad;
@@ -48,6 +51,7 @@ public class MovilidadController {
 
     @Data
     public static class CambioGrupoRequest {
+        @NotNull(message = "grupoDestinoId es obligatorio")
         private UUID grupoDestinoId;
         private String motivo;
         private UUID cicloEscolarId;
@@ -56,6 +60,7 @@ public class MovilidadController {
     @Data
     public static class CambioGrupoMasivoRequest {
         private List<UUID> estudianteIds;
+        @NotNull(message = "grupoDestinoId es obligatorio")
         private UUID grupoDestinoId;
         private String motivo;
         private UUID cicloEscolarId;
@@ -65,14 +70,18 @@ public class MovilidadController {
     public static class TrasladoRequest {
         private UUID plantelDestinoId;
         private UUID grupoDestinoId;
+        @NotBlank(message = "motivo es obligatorio")
         private String motivo;
+        @NotBlank(message = "plantelDestinoNombre es obligatorio")
         private String plantelDestinoNombre;
         private String claveCtDestino;
     }
 
     @Data
     public static class BajaRequest {
+        @NotBlank(message = "motivo es obligatorio")
         private String motivo;
+        @NotNull(message = "fechaEfectiva es obligatorio")
         private LocalDate fechaEfectiva;
         private LocalDate fechaReingreso;
         private String plantelDestino;
@@ -82,6 +91,7 @@ public class MovilidadController {
 
     @Data
     public static class ReactivarRequest {
+        @NotNull(message = "grupoId es obligatorio")
         private UUID grupoId;
         private UUID cicloEscolarId;
         private String observaciones;
@@ -101,7 +111,7 @@ public class MovilidadController {
     @PostMapping("/cambio-grupo/{estudiante_id}")
     public ResponseEntity<Map<String, Object>> cambioGrupo(
             @PathVariable("estudiante_id") UUID estudianteId,
-            @RequestBody CambioGrupoRequest body,
+            @RequestBody @Valid CambioGrupoRequest body,
             @AuthenticationPrincipal Jwt jwt) {
 
         AdesUser user = userService.resolveUser(jwt);
@@ -127,7 +137,7 @@ public class MovilidadController {
      */
     @PostMapping("/cambio-grupo-masivo")
     public ResponseEntity<Map<String, Object>> cambioGrupoMasivo(
-            @RequestBody CambioGrupoMasivoRequest body,
+            @RequestBody @Valid CambioGrupoMasivoRequest body,
             @AuthenticationPrincipal Jwt jwt) {
 
         AdesUser user = userService.resolveUser(jwt);
@@ -162,7 +172,7 @@ public class MovilidadController {
     @PostMapping("/traslado/{estudiante_id}")
     public ResponseEntity<Map<String, Object>> traslado(
             @PathVariable("estudiante_id") UUID estudianteId,
-            @RequestBody TrasladoRequest body,
+            @RequestBody @Valid TrasladoRequest body,
             @AuthenticationPrincipal Jwt jwt) {
 
         AdesUser user = userService.resolveUser(jwt);
@@ -181,7 +191,7 @@ public class MovilidadController {
     @PostMapping("/baja-temporal/{estudiante_id}")
     public ResponseEntity<Map<String, Object>> bajaTemporal(
             @PathVariable("estudiante_id") UUID estudianteId,
-            @RequestBody BajaRequest body,
+            @RequestBody @Valid BajaRequest body,
             @AuthenticationPrincipal Jwt jwt) {
 
         AdesUser user = userService.resolveUser(jwt);
@@ -203,7 +213,7 @@ public class MovilidadController {
     @PostMapping("/baja-definitiva/{estudiante_id}")
     public ResponseEntity<Map<String, Object>> bajaDefinitiva(
             @PathVariable("estudiante_id") UUID estudianteId,
-            @RequestBody BajaRequest body,
+            @RequestBody @Valid BajaRequest body,
             @AuthenticationPrincipal Jwt jwt) {
 
         AdesUser user = userService.resolveUser(jwt);
@@ -222,7 +232,7 @@ public class MovilidadController {
     @PostMapping("/reactivar/{estudiante_id}")
     public ResponseEntity<Map<String, Object>> reactivar(
             @PathVariable("estudiante_id") UUID estudianteId,
-            @RequestBody ReactivarRequest body,
+            @RequestBody @Valid ReactivarRequest body,
             @AuthenticationPrincipal Jwt jwt) {
 
         AdesUser user = userService.resolveUser(jwt);

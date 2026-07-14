@@ -1,5 +1,9 @@
 package mx.ades.modules.admin;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -72,10 +76,23 @@ public class AdminController {
 
     @Data
     public static class CicloCreateRequest {
+        @NotBlank(message = "nombreCiclo es obligatorio")
+        @Size(max = 100, message = "nombreCiclo máximo 100 caracteres")
         private String nombreCiclo;
+
+        @NotNull(message = "nivelEducativoId es obligatorio")
         private UUID nivelEducativoId;
+
+        // fechaFin.isBefore(fechaInicio) se evalúa sin chequeo de null previo en
+        // crearCiclo() — antes del fix de Jackson estos campos siempre llegaban null
+        // (NPE silenciada por el bug); ahora que llegan datos reales, deben ser
+        // @NotNull para no romper esa comparación.
+        @NotNull(message = "fechaInicio es obligatoria")
         private LocalDate fechaInicio;
+
+        @NotNull(message = "fechaFin es obligatoria")
         private LocalDate fechaFin;
+
         private String tipoCiclo = "ANUAL";
         private Boolean esVigente = false;
     }
@@ -100,7 +117,7 @@ public class AdminController {
 
     @PostMapping("/ciclos")
     public ResponseEntity<CicloEscolar> crearCiclo(
-            @RequestBody CicloCreateRequest body,
+            @RequestBody @Valid CicloCreateRequest body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         permisoAdmin(user);
@@ -223,6 +240,15 @@ public class AdminController {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No puede crear usuarios con mayor jerarquía");
         }
 
+        // ades_personas.nombre / apellido_paterno son NOT NULL sin default; sin este chequeo,
+        // un payload incompleto pasaba directo a body.getNombre().trim() más abajo y producía
+        // un NullPointerException -> 500 genérico en vez de un 422 con mensaje claro.
+        mx.ades.common.ValidationUtils.validarNombrePersona(body.getNombre(), "El nombre");
+        mx.ades.common.ValidationUtils.validarNombrePersona(body.getApellidoPaterno(), "El apellido paterno");
+        if (body.getNombre() == null || body.getNombre().isBlank())
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "El nombre es obligatorio");
+        if (body.getApellidoPaterno() == null || body.getApellidoPaterno().isBlank())
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "El apellido paterno es obligatorio");
         mx.ades.common.ValidationUtils.validarCURP(body.getCurp());
         mx.ades.common.ValidationUtils.validarEmail(body.getEmailInstitucional());
         mx.ades.common.ValidationUtils.validarFechaNacimiento(body.getFechaNacimiento());
@@ -299,7 +325,12 @@ public class AdminController {
 
     @Data
     public static class MarcaItemUpdate {
+        // tipoElemento se usa con item.getTipoElemento().contains(...) más abajo;
+        // un valor null causaría NPE — antes del fix de Jackson nunca se detectaba
+        // porque el campo siempre llegaba null y jamás alcanzaba ese código.
+        @NotBlank(message = "tipoElemento es obligatorio")
         private String tipoElemento;
+
         private String valor;
     }
 
@@ -313,7 +344,7 @@ public class AdminController {
 
     @PutMapping("/marca")
     public ResponseEntity<Map<String, Object>> actualizarMarca(
-            @RequestBody List<MarcaItemUpdate> items,
+            @RequestBody @Valid List<@Valid MarcaItemUpdate> items,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         PermisoAdmin permiso = permisoAdmin(user);
@@ -348,14 +379,21 @@ public class AdminController {
 
     @Data
     public static class PlantelAdminUpdate {
+        // PATCH de actualización parcial: campos nulos significan "no modificar" (ver
+        // los null-checks abajo), por eso no se marcan @NotBlank; solo se acota longitud.
+        @Size(max = 255, message = "nombrePlantel máximo 255 caracteres")
         private String nombrePlantel;
+
+        @Size(max = 20, message = "claveCt máximo 20 caracteres")
         private String claveCt;
+
+        private Boolean isActive;
     }
 
     @PatchMapping("/planteles/{id}")
     public ResponseEntity<Plantel> actualizarPlantel(
             @PathVariable("id") UUID id,
-            @RequestBody PlantelAdminUpdate body,
+            @RequestBody @Valid PlantelAdminUpdate body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         PermisoAdmin permiso = permisoAdmin(user);
@@ -369,6 +407,7 @@ public class AdminController {
 
         if (body.getNombrePlantel() != null) plantel.setNombrePlantel(body.getNombrePlantel());
         if (body.getClaveCt() != null) plantel.setClaveCt(body.getClaveCt());
+        if (body.getIsActive() != null) plantel.setIsActive(body.getIsActive());
 
         return ResponseEntity.ok(plantelRepository.save(plantel));
     }
@@ -421,6 +460,19 @@ public class AdminController {
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         permisoAdmin(user);
+        // Grupo es entidad JPA (no anotamos validación en la entidad — riesgo sobre
+        // Hibernate); nombre_grupo/grado_id/ciclo_escolar_id son NOT NULL en BD,
+        // validamos manualmente para dar un 400 claro en vez de una excepción de
+        // integridad de datos.
+        if (grupo.getNombreGrupo() == null || grupo.getNombreGrupo().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "nombreGrupo es obligatorio");
+        }
+        if (grupo.getGradoId() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "gradoId es obligatorio");
+        }
+        if (grupo.getCicloEscolarId() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "cicloEscolarId es obligatorio");
+        }
         validarGradoYCicloPertenecenAlMismoNivel(grupo.getGradoId(), grupo.getCicloEscolarId());
         return ResponseEntity.status(HttpStatus.CREATED).body(grupoRepository.save(grupo));
     }

@@ -12,6 +12,7 @@ import { InputNumberModule } from 'primeng/inputnumber';
 import { TextareaModule } from 'primeng/textarea';
 import { TableModule } from 'primeng/table';
 import { TooltipModule } from 'primeng/tooltip';
+import { DatePickerModule } from 'primeng/datepicker';
 
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
@@ -29,7 +30,7 @@ import { AdesFormatDirective } from '../../shared/directives/ades-format.directi
     CommonModule, FormsModule,
     TableModule, CardModule, ButtonModule, TagModule,
     SelectModule, DialogModule, InputTextModule, InputNumberModule,
-    TextareaModule, TooltipModule,
+    TextareaModule, TooltipModule, DatePickerModule,
     InteractiveGridComponent,
   ],
   template: `
@@ -206,19 +207,27 @@ import { AdesFormatDirective } from '../../shared/directives/ades-format.directi
       <div style="display:flex;flex-direction:column;gap:1rem">
         <div>
           <label class="dlg-lbl">Título *</label>
-          <input pInputText [(ngModel)]="form.titulo" style="width:100%" />
+          <input pInputText [(ngModel)]="form.titulo" style="width:100%"
+                 placeholder="Ej. Resolver ejercicios 1-10 del libro"
+                 pTooltip="Nombre breve y descriptivo de la tarea" tooltipPosition="top" />
         </div>
         <div>
           <label class="dlg-lbl">Descripción</label>
-          <input pInputText [(ngModel)]="form.descripcion" style="width:100%" />
+          <input pInputText [(ngModel)]="form.descripcion" style="width:100%"
+                 placeholder="Instrucciones para el alumno (opcional)" />
         </div>
         <div>
-          <label class="dlg-lbl">Fecha de Entrega * (AAAA-MM-DD)</label>
-          <input pInputText [(ngModel)]="form.fecha_entrega" style="width:100%" placeholder="2026-06-30" />
+          <label class="dlg-lbl">Fecha de Entrega *</label>
+          <p-datepicker [(ngModel)]="form.fecha_entrega" dateFormat="dd/mm/yy"
+                        [showIcon]="true" [minDate]="hoy" placeholder="DD/MM/AAAA"
+                        [style]="{width:'100%'}" [inputStyle]="{width:'100%'}"
+                        pTooltip="La fecha de entrega no puede ser anterior a hoy" tooltipPosition="top" />
         </div>
         <div>
           <label class="dlg-lbl">Puntaje Máximo *</label>
-          <p-inputNumber [(ngModel)]="form.puntaje_maximo" [min]="1" [max]="100" styleClass="w-full" />
+          <p-inputNumber [(ngModel)]="form.puntaje_maximo" [min]="0.01" [max]="10" [minFractionDigits]="1"
+                         placeholder="10.0" styleClass="w-full"
+                         pTooltip="Escala oficial SEP: de 0 a 10" tooltipPosition="top" />
         </div>
         <p-button label="Guardar" (onClick)="guardarTarea()" [loading]="saving()" />
       </div>
@@ -268,12 +277,14 @@ import { AdesFormatDirective } from '../../shared/directives/ades-format.directi
             <label class="dlg-lbl">Calificación * (0 – {{ tareaMaxPuntaje() }})</label>
             <p-inputNumber [(ngModel)]="calificarForm.calificacion"
                            [min]="0" [max]="tareaMaxPuntaje()" [minFractionDigits]="1"
-                           styleClass="w-full" />
+                           placeholder="0.0" styleClass="w-full"
+                           [pTooltip]="'Escala 0 a ' + tareaMaxPuntaje() + ' (SEP)'" tooltipPosition="top" />
           </div>
           <div>
             <label class="dlg-lbl">Comentario (opcional)</label>
             <textarea pTextarea [(ngModel)]="calificarForm.comentario" rows="3"
                       placeholder="Retroalimentación para el alumno..."
+                      maxlength="500"
                       style="width:100%;resize:vertical"></textarea>
           </div>
 
@@ -398,7 +409,9 @@ export class TareasComponent implements OnInit, OnDestroy {
   showDialog   = false;
   saving       = signal(false);
   tareaEditId: string | null = null;
-  form = { titulo: '', descripcion: '', fecha_entrega: '', puntaje_maximo: 10 };
+  readonly hoy = new Date();
+  form: { titulo: string; descripcion: string; fecha_entrega: Date | null; puntaje_maximo: number } =
+    { titulo: '', descripcion: '', fecha_entrega: null, puntaje_maximo: 10 };
 
   // ── Upload dialog (alumno) ─────────────────────────────────────────────────
   uploadVisible = false;
@@ -414,9 +427,9 @@ export class TareasComponent implements OnInit, OnDestroy {
   calificarForm    = { calificacion: 0, comentario: '' };
   readonly tareaMaxPuntaje = computed(() => {
     const e = this.calificarEntrega();
-    if (!e) return 100;
+    if (!e) return 10;
     const t = this.tareas().find(t => t.id === e.actividad_id);
-    return t?.puntaje_maximo ?? 100;
+    return t?.puntaje_maximo ?? 10;
   });
 
   constructor() {
@@ -481,15 +494,23 @@ export class TareasComponent implements OnInit, OnDestroy {
   }
 
   // ── Tarea CRUD ──────────────────────────────────────────────────────────────
+  private _toIso(d: Date): string {
+    return d.toISOString().substring(0, 10);
+  }
+
   abrirCreacion(): void {
     this.tareaEditId = null;
-    this.form = { titulo: '', descripcion: '', fecha_entrega: new Date().toISOString().substring(0, 10), puntaje_maximo: 10 };
+    this.form = { titulo: '', descripcion: '', fecha_entrega: null, puntaje_maximo: 10 };
     this.showDialog = true;
   }
 
   abrirEdicion(tarea: Tarea): void {
     this.tareaEditId = tarea.id;
-    this.form = { titulo: tarea.titulo, descripcion: tarea.descripcion || '', fecha_entrega: tarea.fecha_entrega, puntaje_maximo: tarea.puntaje_maximo };
+    this.form = {
+      titulo: tarea.titulo, descripcion: tarea.descripcion || '',
+      fecha_entrega: tarea.fecha_entrega ? new Date(tarea.fecha_entrega) : null,
+      puntaje_maximo: tarea.puntaje_maximo,
+    };
     this.showDialog = true;
   }
 
@@ -498,24 +519,38 @@ export class TareasComponent implements OnInit, OnDestroy {
       this.notify.warning('Campos vacíos', 'Rellena los campos obligatorios');
       return;
     }
+    const hoyIso = this._toIso(new Date());
+    const fechaEntregaIso = this._toIso(this.form.fecha_entrega);
+    if (fechaEntregaIso < hoyIso) {
+      this.notify.warning('Fecha inválida', 'La fecha de entrega no puede ser anterior a hoy');
+      return;
+    }
     this.saving.set(true);
-    const payload = {
-      titulo: this.form.titulo, descripcion: this.form.descripcion,
-      fecha_entrega: this.form.fecha_entrega, puntaje_maximo: this.form.puntaje_maximo,
-      grupo_id: this.selectedGrupoId, materia_id: this.selectedMateriaId,
-      fecha_asignacion: new Date().toISOString().substring(0, 10),
-      permite_entrega_tarde: true, origen: 'MANUAL',
-    };
+    // POST /tareas (crear) espera camelCase estricto (CrearActividadRequest, record Java sin @JsonProperty);
+    // PATCH /tareas/{id} (editar) espera snake_case (TareaQueryService.actualizarTarea, Map<String,Object> crudo).
     const req$ = this.tareaEditId
-      ? this.api.patch<Tarea>(`/tareas/${this.tareaEditId}`, payload)
-      : this.api.post<Tarea>('/tareas', payload);
+      ? this.api.patch<Tarea>(`/tareas/${this.tareaEditId}`, {
+          titulo: this.form.titulo, descripcion: this.form.descripcion,
+          fecha_entrega: fechaEntregaIso, puntaje_maximo: this.form.puntaje_maximo,
+          permite_entrega_tarde: true,
+        })
+      : this.api.post<Tarea>('/tareas', {
+          titulo: this.form.titulo, descripcion: this.form.descripcion,
+          grupoId: this.selectedGrupoId, materiaId: this.selectedMateriaId,
+          fechaAsignacion: hoyIso, fechaEntrega: fechaEntregaIso,
+          puntajeMaximo: this.form.puntaje_maximo,
+          permiteEntregaTarde: true, tipoItem: 'tarea',
+        });
     req$.pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.saving.set(false); this.showDialog = false;
         this.notify.success(this.tareaEditId ? 'Actualizado' : 'Creado', 'Tarea guardada');
         this.loadTareas();
       },
-      error: () => this.saving.set(false),
+      error: (err: any) => {
+        this.saving.set(false);
+        this.notify.error('Error', err?.error?.message ?? 'No se pudo guardar la tarea');
+      },
     });
   }
 

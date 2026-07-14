@@ -450,7 +450,7 @@ export class PortalAdminComponent implements OnInit, OnDestroy {
 
     const id = this.editando()?.id;
     const req = id
-      ? this.api.put(`/api/v1/portal/admin/convocatorias/${id}`, body)
+      ? this.api.put(`/portal/admin/convocatorias/${id}`, body)
       : this.api.post<any>('/portal/admin/convocatorias', body);
 
     req.pipe(takeUntil(this.destroy$)).subscribe({
@@ -479,7 +479,7 @@ export class PortalAdminComponent implements OnInit, OnDestroy {
     }
     const fd = new FormData();
     fd.append('imagen', processedFile);
-    this.api.postForm<any>(`/api/v1/portal/admin/convocatorias/${id}/imagen`, fd)
+    this.api.postForm<any>(`/portal/admin/convocatorias/${id}/imagen`, fd)
       .pipe(takeUntil(this.destroy$))
       .subscribe({ next: r => {
         this.form.update(f => ({ ...f, imagenUrl: r.imagen_url }));
@@ -488,7 +488,7 @@ export class PortalAdminComponent implements OnInit, OnDestroy {
   }
 
   togglePublicar(c: Convocatoria) {
-    this.api.post<any>(`/api/v1/portal/admin/convocatorias/${c.id}/publicar`, {})
+    this.api.post<any>(`/portal/admin/convocatorias/${c.id}/publicar`, {})
       .pipe(takeUntil(this.destroy$))
       .subscribe({ next: () => this.cargar() });
   }
@@ -498,7 +498,7 @@ export class PortalAdminComponent implements OnInit, OnDestroy {
       message: `¿Archivar "${c.titulo}"? Dejará de estar disponible.`,
       header: 'Confirmar archivo', icon: 'pi pi-archive',
       accept: () => {
-        this.api.delete(`/api/v1/portal/admin/convocatorias/${c.id}`)
+        this.api.delete(`/portal/admin/convocatorias/${c.id}`)
           .pipe(takeUntil(this.destroy$))
           .subscribe({ next: () => { this.cargar(); this.cargarEstadisticas(); }});
       }

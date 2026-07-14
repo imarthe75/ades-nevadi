@@ -1,5 +1,7 @@
 package mx.ades.modules.sistema;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import mx.ades.security.AdesUser;
@@ -59,12 +61,31 @@ public class CatalogosSistemaController {
         private Integer rowVersion;
     }
 
+    /** Variante estricta usada solo en creación: codigo/nombre son NOT NULL en BD y no tienen default. */
+    @Data
+    public static class CatalogoCreateRequest {
+        @NotBlank(message = "codigo es obligatorio")
+        private String codigo;
+        @NotBlank(message = "nombre es obligatorio")
+        private String nombre;
+        private String descripcion;
+    }
+
     @Data
     public static class ItemRequest {
         private String valor;
         private String descripcion;
         private Integer orden;
         private Integer rowVersion;
+    }
+
+    /** Variante estricta usada solo en creación: valor es NOT NULL en BD y no tiene default. */
+    @Data
+    public static class ItemCreateRequest {
+        @NotBlank(message = "valor es obligatorio")
+        private String valor;
+        private String descripcion;
+        private Integer orden;
     }
 
     @Data
@@ -75,6 +96,17 @@ public class CatalogosSistemaController {
         private String descripcion;
         private String grupo;
         private Integer rowVersion;
+    }
+
+    /** Variante estricta usada solo en creación: nombre es NOT NULL en BD y no tiene default. */
+    @Data
+    public static class VariableCreateRequest {
+        @NotBlank(message = "nombre es obligatorio")
+        private String nombre;
+        private String tipoValor;
+        private String valor;
+        private String descripcion;
+        private String grupo;
     }
 
     // ──────────────────────────────────────────────────────────────────────────
@@ -99,7 +131,7 @@ public class CatalogosSistemaController {
 
     @PostMapping("/catalogos")
     public ResponseEntity<Catalogo> crearCatalogo(
-            @RequestBody CatalogoRequest body,
+            @RequestBody @Valid CatalogoCreateRequest body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         requireAdmin(user);
@@ -134,7 +166,7 @@ public class CatalogosSistemaController {
     @PostMapping("/catalogos/{id}/items")
     public ResponseEntity<CatalogoItem> agregarItem(
             @PathVariable("id") UUID catalogoId,
-            @RequestBody ItemRequest body,
+            @RequestBody @Valid ItemCreateRequest body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         requireAdmin(user);
@@ -213,7 +245,7 @@ public class CatalogosSistemaController {
 
     @PostMapping("/config/variables")
     public ResponseEntity<VariableSistema> crearVariable(
-            @RequestBody VariableRequest body,
+            @RequestBody @Valid VariableCreateRequest body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         requireAdmin(user);

@@ -1,5 +1,10 @@
 package mx.ades.modules.procesos;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import mx.ades.modules.procesos.domain.port.in.ProcesarPreinscripcionUseCase;
@@ -156,15 +161,24 @@ public class ProcesosEscolaresController {
 
     @Data
     public static class AdmisionRequest {
+        @NotBlank(message = "nombre es obligatorio")
         private String nombre;
+        @NotBlank(message = "apellidoPaterno es obligatorio")
         private String apellidoPaterno;
         private String apellidoMaterno;
+        @NotBlank(message = "fechaNacimiento es obligatorio")
         private String fechaNacimiento;
+        @NotBlank(message = "curp es obligatorio")
         private String curp;
+        @NotBlank(message = "nivelSolicitado es obligatorio")
         private String nivelSolicitado;
+        @NotNull(message = "gradoSolicitado es obligatorio")
         private Integer gradoSolicitado;
+        @NotNull(message = "plantelId es obligatorio")
         private UUID plantelId;
+        @NotBlank(message = "nombreTutor es obligatorio")
         private String nombreTutor;
+        @NotBlank(message = "telefonoTutor es obligatorio")
         private String telefonoTutor;
         private String emailTutor;
         private String escuelaProcedencia;
@@ -193,7 +207,7 @@ public class ProcesosEscolaresController {
 
     @PostMapping("/admision")
     public ResponseEntity<Map<String, Object>> crearSolicitud(
-            @RequestBody AdmisionRequest body,
+            @RequestBody @Valid AdmisionRequest body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
 
@@ -470,8 +484,11 @@ public class ProcesosEscolaresController {
 
     @Data
     public static class OptativaRequest {
+        @NotNull(message = "estudianteId es obligatorio")
         private UUID estudianteId;
+        @NotNull(message = "materiaId es obligatorio")
         private UUID materiaId;
+        @NotNull(message = "cicloEscolarId es obligatorio")
         private UUID cicloEscolarId;
     }
 
@@ -486,7 +503,7 @@ public class ProcesosEscolaresController {
 
     @PostMapping("/optativas")
     public ResponseEntity<Map<String, Object>> inscribirOptativa(
-            @RequestBody OptativaRequest body,
+            @RequestBody @Valid OptativaRequest body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
 
@@ -522,7 +539,12 @@ public class ProcesosEscolaresController {
 
     @Data
     public static class AcuerdoRequest {
+        // alumno_id y tutor_nombre son NOT NULL en ades_acuerdos_convivencia (sin default);
+        // antes de este fix no había ninguna validación y el INSERT fallaba con
+        // DataIntegrityViolationException -> 409 genérico en vez de un 422 claro.
+        @NotNull(message = "alumnoId es obligatorio")
         private UUID alumnoId;
+        @NotBlank(message = "tutorNombre es obligatorio")
         private String tutorNombre;
         private String tutorFirmaHash;
         private String ipFirma;
@@ -530,7 +552,7 @@ public class ProcesosEscolaresController {
 
     @PostMapping("/acuerdo-convivencia")
     public ResponseEntity<Map<String, Object>> registrarAcuerdo(
-            @RequestBody AcuerdoRequest body,
+            @RequestBody @Valid AcuerdoRequest body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
 
@@ -547,11 +569,16 @@ public class ProcesosEscolaresController {
 
     @Data
     public static class CalendarioRequest {
+        @NotBlank(message = "nombre es obligatorio")
         private String nombre;
         private UUID cicloEscolarId;
+        @NotBlank(message = "nivelEducativo es obligatorio")
         private String nivelEducativo;
+        @NotBlank(message = "tipo es obligatorio")
         private String tipo;
+        @NotNull(message = "fechaInicio es obligatorio")
         private LocalDate fechaInicio;
+        @NotNull(message = "fechaFin es obligatorio")
         private LocalDate fechaFin;
         private String descripcion;
         private Boolean esOficial = true;
@@ -569,10 +596,15 @@ public class ProcesosEscolaresController {
 
     @PostMapping("/calendarios-academicos")
     public ResponseEntity<Map<String, Object>> crearEventoCalendario(
-            @RequestBody CalendarioRequest body,
+            @RequestBody @Valid CalendarioRequest body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         requireAdminOrHigher(user);
+
+        if (body.getFechaFin().isBefore(body.getFechaInicio())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "fechaFin no puede ser anterior a fechaInicio");
+        }
 
         UUID id = writeService.crearEventoCalendario(body.getNombre(), body.getCicloEscolarId(),
                 body.getNivelEducativo(), body.getTipo(), body.getFechaInicio(),
@@ -585,24 +617,34 @@ public class ProcesosEscolaresController {
 
     @Data
     public static class PeriodoEvaluacionRequest {
+        @NotNull(message = "cicloEscolarId es obligatorio")
         private UUID cicloEscolarId;
+        @NotBlank(message = "nombrePeriodo es obligatorio")
         private String nombrePeriodo;
-        private String nivelEducativo;
+        @NotNull(message = "numeroPeriodo es obligatorio")
+        private Integer numeroPeriodo;
         private String tipoEvaluacion;
+        @NotNull(message = "fechaInicio es obligatorio")
         private LocalDate fechaInicio;
+        @NotNull(message = "fechaFin es obligatorio")
         private LocalDate fechaFin;
         private Boolean abierto = true;
     }
 
     @PostMapping("/periodos-evaluacion")
     public ResponseEntity<Map<String, Object>> crearPeriodoEvaluacion(
-            @RequestBody PeriodoEvaluacionRequest body,
+            @RequestBody @Valid PeriodoEvaluacionRequest body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         requireAdminOrHigher(user);
 
+        if (body.getFechaFin().isBefore(body.getFechaInicio())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "fechaFin no puede ser anterior a fechaInicio");
+        }
+
         UUID id = writeService.crearPeriodoEvaluacion(body.getCicloEscolarId(), body.getNombrePeriodo(),
-                body.getNivelEducativo(), body.getTipoEvaluacion(), body.getFechaInicio(),
+                body.getNumeroPeriodo(), body.getTipoEvaluacion(), body.getFechaInicio(),
                 body.getFechaFin(), body.getAbierto(), user.getUsername());
 
         return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("id", id.toString(),
@@ -635,6 +677,9 @@ public class ProcesosEscolaresController {
 
     @Data
     public static class EvaluacionRequest {
+        @NotNull(message = "puntuacionDiagnostico es obligatorio")
+        @DecimalMin(value = "0", message = "puntuacionDiagnostico mínimo 0")
+        @DecimalMax(value = "100", message = "puntuacionDiagnostico máximo 100")
         private Double puntuacionDiagnostico;
         private String observacionesDiagnostico;
     }
@@ -642,7 +687,7 @@ public class ProcesosEscolaresController {
     @PatchMapping("/admision/{id}/evaluacion")
     public ResponseEntity<Map<String, Object>> registrarEvaluacionDiagnostica(
             @PathVariable("id") UUID id,
-            @RequestBody EvaluacionRequest body,
+            @RequestBody @Valid EvaluacionRequest body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         requireSecretariaOrHigher(user);
@@ -719,17 +764,20 @@ public class ProcesosEscolaresController {
 
     @Data
     public static class BajaRequest {
+        @NotNull(message = "estudianteId es obligatorio")
         private UUID estudianteId;
         private UUID inscripcionId;
+        @NotBlank(message = "tipoBaja es obligatorio")
         private String tipoBaja;
         private String motivo;
+        @NotNull(message = "fechaEfectiva es obligatorio")
         private LocalDate fechaEfectiva;
         private String observaciones;
     }
 
     @PostMapping("/bajas")
     public ResponseEntity<Map<String, Object>> registrarBaja(
-            @RequestBody BajaRequest body,
+            @RequestBody @Valid BajaRequest body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         requireAdminOrHigher(user);

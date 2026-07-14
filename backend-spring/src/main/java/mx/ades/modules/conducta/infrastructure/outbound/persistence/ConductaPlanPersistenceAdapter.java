@@ -15,7 +15,8 @@ import java.util.UUID;
 /**
  * Adaptador JDBC que implementa {@link PlanMejoraRepositoryPort}.
  * <p>Persiste planes de mejora en {@code ades_planes_mejora} serializando los compromisos
- * como JSONB. El estado inicial es siempre BORRADOR.</p>
+ * como JSONB. El estado inicial es siempre ACTIVO (mismo valor que el DEFAULT de la
+ * columna en BD — ver {@code 034_sanciones_planes_mejora.sql}).</p>
  *
  * @author ADES
  * @since 2026
@@ -42,12 +43,17 @@ public class ConductaPlanPersistenceAdapter implements PlanMejoraRepositoryPort 
     @Override
     public UUID guardar(CrearPlanMejoraUseCase.Command cmd) {
         UUID id = UUID.randomUUID();
+        // CRITICO (hallazgo de auditoría): el estado inicial estaba hardcodeado como
+        // 'BORRADOR', valor que NUNCA existió en el CHECK real de
+        // ades_planes_mejora.estado (solo ACTIVO/EN_PROCESO/CUMPLIDO/INCUMPLIDO/
+        // CANCELADO — ver 034_sanciones_planes_mejora.sql). Esto rompía TODO INSERT
+        // en este endpoint con una violación de CHECK a nivel BD.
         jdbc.update(
                 "INSERT INTO ades_planes_mejora " +
                 "(id, reporte_conducta_id, estudiante_id, ciclo_escolar_id, elaborado_por_id, " +
                 " objetivo_general, compromisos_alumno, compromisos_padre, compromisos_escuela, " +
                 " fecha_primer_seguimiento, estado, is_active, usuario_creacion, usuario_modificacion) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?::jsonb, ?::jsonb, ?::jsonb, ?, 'BORRADOR', TRUE, ?, ?)",
+                "VALUES (?, ?, ?, ?, ?, ?, ?::jsonb, ?::jsonb, ?::jsonb, ?, 'ACTIVO', TRUE, ?, ?)",
                 id,
                 cmd.reporteId(),
                 cmd.estudianteId(),

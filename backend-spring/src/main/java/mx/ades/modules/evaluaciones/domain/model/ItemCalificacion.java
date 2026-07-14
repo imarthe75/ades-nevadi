@@ -14,8 +14,11 @@ import java.util.UUID;
 public record ItemCalificacion(UUID estudianteId, BigDecimal calificacion, String comentario) {
 
     public ItemCalificacion {
-        if (estudianteId == null) throw new NullPointerException("estudianteId requerido");
-        if (calificacion == null) throw new NullPointerException("calificacion requerida");
+        // IllegalArgumentException (no NullPointerException): el GlobalExceptionHandler solo
+        // mapea IllegalArgumentException a 400 limpio; una NPE aquí caería en el catch-all
+        // de Exception y el usuario recibiría un 500 genérico ante un simple campo faltante.
+        if (estudianteId == null) throw new IllegalArgumentException("estudianteId requerido");
+        if (calificacion == null) throw new IllegalArgumentException("calificacion requerida");
         if (calificacion.compareTo(BigDecimal.ZERO) < 0) {
             throw new IllegalArgumentException("La calificación no puede ser negativa");
         }

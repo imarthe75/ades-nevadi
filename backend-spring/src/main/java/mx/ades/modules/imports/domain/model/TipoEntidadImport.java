@@ -28,7 +28,7 @@ public enum TipoEntidadImport {
     MATERIAS(
             2,
             new String[]{"nombre_materia", "clave_materia"},
-            new String[]{"nombre_materia", "clave_materia", "nombre_nivel", "horas_semana"}
+            new String[]{"nombre_materia", "clave_materia", "nombre_nivel", "tipo_materia", "horas_semana"}
     ),
     GRUPOS(
             2,

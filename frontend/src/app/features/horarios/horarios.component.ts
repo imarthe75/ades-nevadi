@@ -176,14 +176,14 @@ const HORARIO_GOLDEN_REQUERIDO: Record<string, Record<string, number>> = {
         <div class="dlg-row">
           @if (modo === 'grupo') {
             <div>
-              <label class="dlg-lbl">Docente</label>
+              <label class="dlg-lbl">Docente *</label>
               <p-select [options]="profesores()" [(ngModel)]="form.profesor_id"
                 optionLabel="_label" optionValue="id"
                 style="width:100%" [filter]="true" filterPlaceholder="Buscar…" placeholder="Docente…" [showClear]="true" />
             </div>
           } @else {
             <div>
-              <label class="dlg-lbl">Grupo</label>
+              <label class="dlg-lbl">Grupo *</label>
               <p-select [options]="gruposOpts()" [(ngModel)]="form.grupo_id"
                 optionLabel="_label" optionValue="id"
                 style="width:100%" [filter]="true" filterPlaceholder="Buscar…" placeholder="Grupo…" [showClear]="true" />
@@ -1186,7 +1186,8 @@ export class HorariosComponent implements OnInit, OnDestroy {
       hora_fin: item.hora_fin
     };
     
-    this.api.put(`/horarios/${item.id}`, payload).pipe(takeUntil(this.destroy$)).subscribe({
+    // HorarioController solo expone @PatchMapping("/{id}") para actualizar — no hay PUT.
+    this.api.patch(`/horarios/${item.id}`, payload).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.notify.success('Clase movida', 'El horario ha sido actualizado.');
         // Trigger de regeneración del signal
@@ -1233,6 +1234,16 @@ export class HorariosComponent implements OnInit, OnDestroy {
   guardar(): void {
     if (!this.form.dia_semana || !this.form.hora_inicio || !this.form.materia_id) {
       this.notify.warning('Validación', 'Completa los campos obligatorios: Día, Hora inicio y Materia.');
+      return;
+    }
+    // profesor_id y grupo_id son NOT NULL en ades_horarios (BD) — el backend los exige
+    // (CrearHorarioUseCase.Command); antes el formulario los dejaba pasar como null.
+    if (this.modo === 'grupo' && !this.form.profesor_id) {
+      this.notify.warning('Validación', 'Selecciona el Docente.');
+      return;
+    }
+    if (this.modo === 'profesor' && !this.form.grupo_id) {
+      this.notify.warning('Validación', 'Selecciona el Grupo.');
       return;
     }
     this.guardando.set(true);

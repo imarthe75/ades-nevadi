@@ -20,7 +20,18 @@ public interface AsignarAulaHoraUseCase {
             LocalDate fecha,
             SlotHorario slot,
             String observaciones,
-            String username) {}
+            String username) {
+        public Command {
+            // aula_id y fecha son NOT NULL en ades_asignaciones_aula; sin esta validación,
+            // aula_id ausente caía en un 409 "duplicado o referencia inválida" engañoso.
+            if (aulaId == null)
+                throw new IllegalArgumentException("aula_id es requerido");
+            if (fecha == null)
+                throw new IllegalArgumentException("fecha es requerida");
+            if (slot == null)
+                throw new IllegalArgumentException("hora_inicio y hora_fin son requeridas");
+        }
+    }
 
     UUID ejecutar(Command command);
 }

@@ -47,7 +47,7 @@ public class AdminQueryService {
     public List<Map<String, Object>> listarUsuarios(String buscar, String rol,
                                                      UUID plantelId, int pagina, int porPagina) {
         StringBuilder sql = new StringBuilder(
-            "SELECT u.id, u.nombre_usuario, u.email_institucional, u.plantel_id, u.nivel_educativo_id, u.is_active, " +
+            "SELECT u.id, u.nombre_usuario, u.email_institucional, u.plantel_id, u.nivel_educativo_id, u.is_active, u.row_version, " +
             "p.nombre || ' ' || p.apellido_paterno || COALESCE(' ' || p.apellido_materno, '') AS nombre_completo, " +
             "r.nombre_rol AS rol, r.nivel_acceso, " +
             "pl.nombre_plantel, nl.nombre_nivel " +

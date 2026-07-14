@@ -80,6 +80,21 @@ public class GlobalExceptionHandler {
                 "Falta el parámetro requerido '" + ex.getParameterName() + "'");
     }
 
+    /**
+     * Captura las validaciones manuales de los records {@code Command} en los puertos
+     * de entrada del dominio hexagonal (patrón usado en ~100+ casos de uso: compact
+     * constructors que lanzan {@code IllegalArgumentException} cuando falta un campo
+     * requerido o un valor no pertenece al enum esperado — equivalente manual a
+     * Jakarta Validation para los muchos endpoints que reciben {@code Map<String,Object>}
+     * en vez de un DTO anotado). Sin este handler, esas validaciones caían en el
+     * catch-all de {@code Exception} y el usuario recibía un 500 genérico en vez de un
+     * 400 con el motivo real (p. ej. "El tipo de materia es requerido").
+     */
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, Object>> handleIllegalArgument(IllegalArgumentException ex) {
+        return body(HttpStatus.BAD_REQUEST, ex.getMessage() != null ? ex.getMessage() : "Datos inválidos");
+    }
+
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<Map<String, Object>> handleIntegrity(DataIntegrityViolationException ex) {
         log.warn("Violación de integridad de datos: {}", ex.getMessage());

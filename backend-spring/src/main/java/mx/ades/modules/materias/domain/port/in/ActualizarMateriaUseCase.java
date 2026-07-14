@@ -17,6 +17,8 @@ public interface ActualizarMateriaUseCase {
             String nombreMateria,
             String claveMateria,
             UUID nivelEducativoId,
+            String tipoMateria,
+            String campoFormativo,
             BigDecimal horasSemana,
             Boolean esIngles,
             Boolean isActive
@@ -26,6 +28,12 @@ public interface ActualizarMateriaUseCase {
                 throw new IllegalArgumentException("El ID de la materia es requerido");
             if (nombreMateria == null || nombreMateria.isBlank())
                 throw new IllegalArgumentException("El nombre de la materia es requerido");
+            if (tipoMateria != null && !tipoMateria.isBlank()
+                    && !CrearMateriaUseCase.TIPOS_MATERIA_VALIDOS.contains(tipoMateria))
+                throw new IllegalArgumentException("tipo_materia inválido: " + tipoMateria);
+            if (campoFormativo != null && !campoFormativo.isBlank()
+                    && !CrearMateriaUseCase.CAMPOS_FORMATIVOS_VALIDOS.contains(campoFormativo))
+                throw new IllegalArgumentException("campo_formativo inválido: " + campoFormativo);
         }
     }
 

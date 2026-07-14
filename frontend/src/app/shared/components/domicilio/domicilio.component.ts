@@ -664,8 +664,11 @@ export class DomicilioComponent implements OnChanges, OnDestroy {
       calle: this.dirEdit.calle || null,
       numero_exterior: this.dirEdit.numero_exterior || null,
       numero_interior: this.dirEdit.numero_interior || null,
-      entre_calle_1: this.dirEdit.entre_calle_1 || null,
-      entre_calle_2: this.dirEdit.entre_calle_2 || null,
+      // NOTA: el campo Java es `entreCalles1`/`entreCalles2` (plural) aunque la
+      // columna de BD y el modelo local usan singular "calle" — con snake_case
+      // JSON debe ser entre_calles_1/entre_calles_2, no entre_calle_1/2.
+      entre_calles_1: this.dirEdit.entre_calle_1 || null,
+      entre_calles_2: this.dirEdit.entre_calle_2 || null,
       referencia: this.dirEdit.referencia || null,
       latitud: this.dirEdit.latitud || null,
       longitud: this.dirEdit.longitud || null,

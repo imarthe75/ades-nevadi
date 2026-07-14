@@ -29,7 +29,13 @@ public class PlanAltWriteService {
             """, id, estudianteId, grupoId, motivo);
 
         for (Map<String, Object> m : materias) {
-            UUID materiaId = UUID.fromString((String) m.get("materia_id"));
+            // materia_id es NOT NULL en ades_planes_estudio_alt_materias; sin esta validación,
+            // UUID.fromString(null) lanza NullPointerException y cae en el 500 genérico
+            // en vez de un 400 claro (mismo patrón detectado en RegistrarRetencionUseCase).
+            Object materiaIdRaw = m.get("materia_id");
+            if (materiaIdRaw == null || materiaIdRaw.toString().isBlank())
+                throw new IllegalArgumentException("materia_id es obligatorio para cada materia del plan alternativo");
+            UUID materiaId = UUID.fromString(materiaIdRaw.toString());
             Double horas = m.get("horas_semana") != null ? ((Number) m.get("horas_semana")).doubleValue() : null;
             jdbc.update("""
                 INSERT INTO ades_planes_estudio_alt_materias (plan_alt_id, materia_id, horas_semana)

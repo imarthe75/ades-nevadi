@@ -105,6 +105,12 @@ public class EvaluacionController {
         if (evaluacion.getGrupoId() == null) {
             throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "grupo_id es obligatorio");
         }
+        if (evaluacion.getMateriaId() == null) {
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "materia_id es obligatorio");
+        }
+        if (evaluacion.getPeriodoEvaluacionId() == null) {
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "periodo_evaluacion_id es obligatorio");
+        }
         if (evaluacion.getFechaEvaluacion() == null) {
             throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "fecha_evaluacion es obligatoria");
         }
@@ -119,6 +125,22 @@ public class EvaluacionController {
         userService.resolveUser(jwt);
         Evaluacion eval = repository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Evaluación no encontrada"));
+
+        if (update.getNombreEvaluacion() == null || update.getNombreEvaluacion().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "nombre_evaluacion es obligatorio");
+        }
+        if (update.getGrupoId() == null) {
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "grupo_id es obligatorio");
+        }
+        if (update.getMateriaId() == null) {
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "materia_id es obligatorio");
+        }
+        if (update.getPeriodoEvaluacionId() == null) {
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "periodo_evaluacion_id es obligatorio");
+        }
+        if (update.getFechaEvaluacion() == null) {
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "fecha_evaluacion es obligatoria");
+        }
 
         eval.setNombreEvaluacion(update.getNombreEvaluacion());
         eval.setDescripcion(update.getDescripcion());

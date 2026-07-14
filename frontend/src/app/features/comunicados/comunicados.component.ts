@@ -318,7 +318,10 @@ export class ComunicadosComponent implements OnInit, OnDestroy {
     const payload = {
       ...this.form,
       plantel_id: plantel?.id ?? null,
-      fecha_vencimiento: this.form.fecha_vencimiento || null,
+      // El backend espera LocalDateTime (ISO 8601 completo); el <input type="date">
+      // solo entrega "yyyy-MM-dd", lo que Jackson rechaza con HttpMessageNotReadableException.
+      // Se fija al final del día para que el comunicado siga vigente durante toda esa fecha.
+      fecha_vencimiento: this.form.fecha_vencimiento ? `${this.form.fecha_vencimiento}T23:59:59` : null,
     };
     this.api.post('/comunicados', payload).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => { this.showDialog.set(false); this.saving.set(false); this.cargar(); },
