@@ -30,7 +30,7 @@ La interfaz está construida bajo el estilo empresarial de Oracle APEX: interact
 | **Planteles** | Metepec · Tenancingo · Ixtapan de la Sal (Estado de México) |
 | **Ciclo SEP** | 2026-2027 (Primaria y Secundaria) |
 | **Ciclo UAEMEX** | 26B / 27A (Preparatoria) |
-| **Servidor** | `ades.setag.mx` · 129.213.35.140 · ARM OCI · 4 cores · 24 GB RAM |
+| **Servidor** | `ades.setag.mx` · ARM OCI · 2 cores · 12 GB RAM |
 
 ### Escala del Sistema (Ciclo 2026-2027)
 
@@ -47,7 +47,7 @@ La interfaz está construida bajo el estilo empresarial de Oracle APEX: interact
 | **Calificaciones** | 76,320 |
 | **Asistencias** | 180,000+ |
 | **Tablas PostgreSQL** | 164 |
-| **Migraciones SQL** | 84 scripts (`001–082` + scripts fechados) |
+| **Migraciones SQL** | 114+ scripts (`001–114` + scripts fechados) |
 | **Roles del sistema** | 18 |
 | **Módulos Angular** | 55+ (lazy-loaded por ruta) |
 | **Endpoints REST** | 200+ (FastAPI) |
@@ -58,7 +58,7 @@ La interfaz está construida bajo el estilo empresarial de Oracle APEX: interact
 
 ## Arquitectura Técnica
 
-ADES tiene dos backends que se complementan: un **BFF Spring Boot** (Backend for Frontend) con arquitectura hexagonal que cubre los 57 módulos de dominio principal, y un **backend FastAPI** asincrónico que atiende las operaciones especializadas de alto rendimiento. Nginx enruta las solicitudes a uno u otro según el prefijo del endpoint, de forma transparente para el cliente Angular.
+ADES tiene dos backends que se complementan: un **BFF Spring Boot** (Backend for Frontend) con arquitectura hexagonal que cubre los 63 módulos de dominio principal, y un **backend FastAPI** asincrónico que atiende las operaciones especializadas de alto rendimiento. Nginx enruta las solicitudes a uno u otro según el prefijo del endpoint, de forma transparente para el cliente Angular.
 
 ### Diagrama de Componentes
 
@@ -88,7 +88,7 @@ ADES tiene dos backends que se complementan: un **BFF Spring Boot** (Backend for
 │                  │  │                                              │
 │  Hexagonal       │  │  Módulos especializados:                     │
 │  Ports & Adapters│  │  · IA: Claude/NVIDIA NIM, alertas, LP       │
-│  57 módulos de   │  │  · OCR: Paperless-ngx + GIN FTS             │
+│  63 módulos de   │  │  · OCR: Paperless-ngx + GIN FTS             │
 │  dominio:        │  │  · PDF: WeasyPrint boletas, Stirling-PDF     │
 │  · alumnos       │  │  · Certificados: Ed25519 + QR               │
 │  · profesores    │  │  · H5P: subida paquetes, xAPI               │
@@ -141,7 +141,7 @@ ADES tiene dos backends que se complementan: un **BFF Spring Boot** (Backend for
 |----------|--------------------------|-------------------------|
 | **Lenguaje** | Python 3.12 | Java 21 |
 | **Framework** | FastAPI + SQLAlchemy async | Spring Boot 3.x + JdbcTemplate/JPA |
-| **Patrón** | Servicios asíncronos de alta carga | Hexagonal (Ports & Adapters), 57 módulos |
+| **Patrón** | Servicios asíncronos de alta carga | Hexagonal (Ports & Adapters), 63 módulos |
 | **Endpoints** | `/api/v1/ai`, `/chatbot`, `/carbone`, `/pdf`, `/expediente`, `/certificados`, `/h5p`, `/bbb`, `/push`, `/webhooks`, `/automations` | Todo `/api/v1/*` restante (alumnos, calificaciones, horarios, RRHH, comunicados, etc.) |
 | **Persistencia** | SQLAlchemy 2.x async + asyncpg | JdbcTemplate (queries SQL) + Spring Data JPA |
 | **Pool BD** | PgBouncer :6432 (statement_cache_size=0) | PgBouncer :6432 (prepareThreshold=0) |
@@ -162,7 +162,7 @@ ADES tiene dos backends que se complementan: un **BFF Spring Boot** (Backend for
 | **IdP / SSO** | Authentik | 2026.5.2 | 9010/9443 | OIDC/OAuth2, MFA TOTP, cuentas locales |
 | **Gestión de secretos** | HashiCorp Vault | latest | 8200 | PKI, llaves privadas, rotación de credenciales |
 | **Backend API** | FastAPI + SQLAlchemy | 0.136+ / 2.0 | 8000 | Asincrónico, Pydantic v2, OpenAPI docs |
-| **BFF Hexagonal** | Spring Boot | 3.x | 8080 | 57 módulos de dominio con puertos y adaptadores |
+| **BFF Hexagonal** | Spring Boot | 3.x | 8080 | 63 módulos de dominio con puertos y adaptadores |
 | **Tareas async** | Celery + Valkey | 5.6+ | — | Background jobs, OCR, notificaciones, refresh MVs |
 | **Monitor Celery** | Flower | latest | 5555 | Monitoreo visual de colas de tareas |
 | **Runtime backend** | Python | 3.12 | — | LTS — `python:3.12-slim-bookworm` |
@@ -528,7 +528,7 @@ Las tablas de mayor volumen están particionadas por `ciclo_escolar_id`:
 
 ## BFF Spring Boot — Arquitectura Hexagonal
 
-El BFF (Backend for Frontend) implementa el patrón de puertos y adaptadores (ADR-0008) para 57 módulos de dominio:
+El BFF (Backend for Frontend) implementa el patrón de puertos y adaptadores (ADR-0008) para 63 módulos de dominio:
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
@@ -551,7 +551,7 @@ El BFF (Backend for Frontend) implementa el patrón de puertos y adaptadores (AD
 └──────────────────────────────────────────────────────────────┘
 ```
 
-**Módulos hexagonales completos (57/57):** alumnos, profesores, materias, planteles, certificados, aulas, boletas, geo, foros, catalogos, y 47 módulos adicionales de dominio.
+**Módulos hexagonales completos (63/63):** alumnos, profesores, materias, planteles, certificados, aulas, boletas, geo, foros, catalogos, y 53 módulos adicionales de dominio.
 
 **Observabilidad:** Micrometer → `/actuator/prometheus` → Grafana dashboard JVM (11 paneles: heap gauge, HTTP req/sec, latencia p50/p95/p99, HikariCP pool, GC pause).
 
@@ -748,7 +748,7 @@ Certificados Let's Encrypt renovados automáticamente vía `certbot` del sistema
 
 - Docker 29+ con Compose v2
 - Ubuntu 24 LTS (ARM64 recomendado — OCI Always Free)
-- RAM: 24 GB mínimo
+- RAM: 12 GB mínimo
 - Almacenamiento: 100 GB en `/opt/ades`
 - Dominio con DNS configurado al servidor
 
