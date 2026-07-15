@@ -64,7 +64,8 @@ public class DisponibilidadDocenteController {
             @RequestParam(value = "ciclo_escolar_id", required = false) UUID cicloEscolarId,
             @RequestParam(value = "q", required = false) String q,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
         return ResponseEntity.ok(query.listar(profesorId, cicloEscolarId, q));
     }
 
@@ -74,6 +75,16 @@ public class DisponibilidadDocenteController {
             @RequestBody BulkDisponibilidadIn data,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        // BFLA fix: guardar/sobrescribir la disponibilidad horaria de un docente no tenía
+        // ningún control de rol — cualquier autenticado (incl. alumno/padre) podía reescribir
+        // la disponibilidad de cualquier profesor. Docentes (nivel 4) solo pueden editar la
+        // suya propia; admin/director/coordinador (nivel<=3) alcance institucional.
+        requireStaff(user);
+        if (user.getNivelAcceso() != null && user.getNivelAcceso() == 4
+                && !profesorId.equals(user.getPersonaId())) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    HttpStatus.FORBIDDEN, "Solo puede editar su propia disponibilidad");
+        }
         List<GuardarDisponibilidadUseCase.Slot> slots = data.getSlots().stream()
                 .map(s -> new GuardarDisponibilidadUseCase.Slot(
                         s.getDiaSemana(), s.getHoraInicio(), s.getHoraFin(),
@@ -91,7 +102,8 @@ public class DisponibilidadDocenteController {
             @PathVariable("profesorId") UUID profesorId,
             @RequestParam(value = "ciclo_escolar_id", required = false) UUID cicloEscolarId,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
         return ResponseEntity.ok(query.resumen(profesorId, cicloEscolarId));
     }
 
@@ -99,14 +111,24 @@ public class DisponibilidadDocenteController {
     public ResponseEntity<List<Map<String, Object>>> cobertura(
             @PathVariable("cicloId") UUID cicloId,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
         return ResponseEntity.ok(query.cobertura(cicloId));
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void eliminar(@PathVariable("id") UUID id, @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
         eliminarSlot.eliminar(id);
+    }
+
+    /** Solo personal escolar (nivelAcceso &le;4) — previene BFLA sobre horarios docentes. */
+    private void requireStaff(AdesUser user) {
+        if (user.getNivelAcceso() == null || user.getNivelAcceso() > 4) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    HttpStatus.FORBIDDEN, "Nivel de acceso insuficiente para esta operación");
+        }
     }
 }

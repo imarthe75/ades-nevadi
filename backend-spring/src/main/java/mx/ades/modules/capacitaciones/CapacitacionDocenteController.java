@@ -56,7 +56,14 @@ public class CapacitacionDocenteController {
             @RequestParam(value = "pagina", defaultValue = "1") int pagina,
             @RequestParam(value = "por_pagina", defaultValue = "30") int porPagina,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        AdesUser user = userService.resolveUser(jwt);
+        // BOLA fix: un docente (nivel 4) podía listar capacitaciones de CUALQUIER docente
+        // pasando un docente_id ajeno (o ninguno, viendo todo el sistema) — inconsistente con
+        // las escrituras de este mismo archivo, que ya restringen nivel 4 a sus propios
+        // registros. Se fuerza el filtro a su propia persona.
+        if (user.getNivelAcceso() != null && user.getNivelAcceso() == 4) {
+            docenteId = user.getPersonaId();
+        }
         pagina = Math.max(pagina, 1);
         porPagina = Math.min(Math.max(porPagina, 1), 200);
         return ResponseEntity.ok(repo.list(docenteId, tipo, modalidad, validado, q, pagina, porPagina));
@@ -95,7 +102,11 @@ public class CapacitacionDocenteController {
     public ResponseEntity<Map<String, Object>> resumen(
             @PathVariable("docenteId") UUID docenteId,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        AdesUser user = userService.resolveUser(jwt);
+        if (user.getNivelAcceso() != null && user.getNivelAcceso() == 4
+                && !user.getPersonaId().equals(docenteId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo puede consultar su propio resumen");
+        }
         List<Map<String, Object>> records = repo.resumen(docenteId);
 
         double totalHrs = 0.0;
@@ -127,10 +138,15 @@ public class CapacitacionDocenteController {
     public ResponseEntity<CapacitacionDocente> detalle(
             @PathVariable("id") UUID id,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
-        return ResponseEntity.ok(repo.findActiveById(id)
+        AdesUser user = userService.resolveUser(jwt);
+        CapacitacionDocente cd = repo.findActiveById(id)
                 .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND, "Capacitación no encontrada")));
+                        HttpStatus.NOT_FOUND, "Capacitación no encontrada"));
+        if (user.getNivelAcceso() != null && user.getNivelAcceso() == 4
+                && !user.getPersonaId().equals(cd.getDocenteId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo puede consultar sus propias capacitaciones");
+        }
+        return ResponseEntity.ok(cd);
     }
 
     @PatchMapping("/{id}")

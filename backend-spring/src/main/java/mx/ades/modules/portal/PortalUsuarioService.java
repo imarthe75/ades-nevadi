@@ -121,9 +121,14 @@ public class PortalUsuarioService {
     }
 
     public String fetchEstadoPostulacion(UUID postulacionId, UUID uid) {
-        return jdbc.queryForObject(
+        // Bug corregido: queryForObject lanza EmptyResultDataAccessException (→ 500 sin manejar)
+        // cuando la postulación no existe o no pertenece al usuario, en vez de permitir que el
+        // controller devuelva 404. queryForList + null es el contrato que ambos llamadores
+        // (subirDocumento/eliminarDocumento) ya esperaban.
+        List<String> rows = jdbc.queryForList(
                 "SELECT estado::TEXT FROM portal.postulaciones WHERE id = ? AND usuario_id = ? AND is_active = TRUE",
                 String.class, postulacionId, uid);
+        return rows.isEmpty() ? null : rows.get(0);
     }
 
     @Transactional

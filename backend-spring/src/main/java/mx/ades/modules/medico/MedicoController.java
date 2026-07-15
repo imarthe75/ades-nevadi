@@ -173,9 +173,18 @@ public class MedicoController {
             @PathVariable("id") UUID id,
             @AuthenticationPrincipal Jwt jwt) {
 
-        userService.resolveUser(jwt);
+        AdesUser user = userService.resolveUser(jwt);
         Map<String, Object> row = personalSaludQueryService.detalle(id);
         if (row == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Personal de salud no encontrado");
+        // BOLA fix: listPersonalSalud() ya scopea por plantel vía getEffectivePlantelId, pero
+        // el detalle por id no lo verificaba — cualquier usuario podía ver el expediente
+        // (CURP, teléfono, email personal) de personal de salud de OTRO plantel por UUID.
+        if (user.getNivelAcceso() != null && user.getNivelAcceso() > 2 && user.getPlantelId() != null) {
+            Object plantelRow = row.get("plantel_id");
+            if (plantelRow != null && !user.getPlantelId().equals(plantelRow)) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No pertenece a su plantel");
+            }
+        }
         return ResponseEntity.ok(row);
     }
 

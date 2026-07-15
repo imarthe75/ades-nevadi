@@ -18,6 +18,7 @@ import mx.ades.security.AdesUser;
 import mx.ades.security.AdesUserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -52,6 +53,7 @@ public class BadgeController {
     private final AutoEvaluarBadgesUseCase autoEvaluarBadges;
     private final BadgeApplicationService service;
     private final BadgeQueryService       query;
+    private final JdbcTemplate            jdbc;
 
     @Data
     public static class BadgeCreateRequest {
@@ -133,8 +135,35 @@ public class BadgeController {
             @PathVariable("estudianteId") UUID estudianteId,
             @RequestParam(value = "ciclo_id", required = false) UUID cicloId,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        AdesUser user = userService.resolveUser(jwt);
+        // BOLA fix: badges de un alumno específico por path param sin ninguna verificación —
+        // cualquier autenticado, incl. padres sin relación de tutoría con ese alumno, podía
+        // consultarlos. Mismo criterio que EntregasController#requireAccesoAlumno.
+        requireAccesoAlumno(user, estudianteId);
         return ResponseEntity.ok(query.badgesAlumno(estudianteId, cicloId));
+    }
+
+    private void requireAccesoAlumno(AdesUser user, UUID alumnoId) {
+        Integer nivelAcceso = user.getNivelAcceso();
+        if (nivelAcceso != null && nivelAcceso <= 4) {
+            if (user.getPlantelId() == null) return;
+            List<UUID> plantelRows = jdbc.queryForList(
+                    "SELECT plantel_id FROM ades_estudiantes WHERE id = ?", UUID.class, alumnoId);
+            if (plantelRows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Alumno no encontrado");
+            if (!user.getPlantelId().equals(plantelRows.get(0))) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "El alumno no pertenece a su plantel");
+            }
+            return;
+        }
+        String email = user.getEmail();
+        Integer count = email == null ? 0 : jdbc.queryForObject(
+                "SELECT COUNT(*) FROM ades_tutores_alumnos ta " +
+                "JOIN ades_personas p ON p.id = ta.persona_id " +
+                "WHERE p.email_personal = ? AND ta.alumno_id = ? AND ta.is_active = TRUE",
+                Integer.class, email, alumnoId);
+        if (count == null || count == 0) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No tienes acceso a este alumno");
+        }
     }
 
     @PostMapping("/{badgeId}/otorgar")

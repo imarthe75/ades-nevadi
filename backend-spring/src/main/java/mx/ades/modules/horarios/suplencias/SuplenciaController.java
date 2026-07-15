@@ -69,7 +69,12 @@ public class SuplenciaController {
     public ResponseEntity<List<Suplencia>> listarSuplencias(
             @RequestParam("fecha") String fechaStr,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        // BFLA fix: el listado de suplencias (qué docente falta, quién lo cubre, motivo) es
+        // igual de sensible que su creación (POST ya exige requireStaff); antes cualquier
+        // autenticado, incl. alumno/padre, podía ver el calendario completo de ausencias
+        // docentes de todos los planteles para cualquier fecha.
+        AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
         return ResponseEntity.ok(suplenciaRepository.findByFechaAndIsActiveTrue(LocalDate.parse(fechaStr)));
     }
 
@@ -77,7 +82,8 @@ public class SuplenciaController {
     public ResponseEntity<List<UUID>> sugerirSuplentes(
             @PathVariable UUID id,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
         Suplencia suplencia = suplenciaRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Suplencia no encontrada"));
         

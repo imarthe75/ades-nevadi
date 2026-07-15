@@ -52,12 +52,23 @@ public class PersonalAdminController {
     public ResponseEntity<Map<String, Object>> get(
             @PathVariable("id") UUID id,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        AdesUser user = userService.resolveUser(jwt);
+        Map<String, Object> row;
         try {
-            return ResponseEntity.ok(queryService.detalle(id));
+            row = queryService.detalle(id);
         } catch (IllegalArgumentException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }
+        // BOLA fix: list() ya scopeaba por plantel vía getEffectivePlantelId, pero el detalle
+        // por id no lo verificaba — un Director/Coordinador de un plantel podía ver el
+        // expediente administrativo de personal de OTRO plantel con solo el UUID.
+        if (user.getNivelAcceso() != null && user.getNivelAcceso() > 2 && user.getPlantelId() != null) {
+            Object plantelRow = row.get("plantel_id");
+            if (plantelRow != null && !user.getPlantelId().equals(plantelRow)) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No pertenece a su plantel");
+            }
+        }
+        return ResponseEntity.ok(row);
     }
 
     @PostMapping

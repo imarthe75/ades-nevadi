@@ -150,6 +150,7 @@ public class PortalUsuarioController {
             HttpServletRequest req, @PathVariable UUID id, @PathVariable UUID docId) {
         UUID uid = jwtService.resolverUsuarioId(req);
         String estado = portalSvc.fetchEstadoPostulacion(id, uid);
+        if (estado == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Postulación no encontrada");
         if (!"BORRADOR".equals(estado)) throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                 "No se pueden eliminar documentos de una postulación enviada");
         String ruta = portalSvc.fetchRutaDocumento(docId, id);

@@ -147,14 +147,31 @@ pasada tras un corte por límite de sesión de API a mitad de trabajo. Verificac
   `LearningPathsController`, `PlanesEstudioController` (planes NEE), `SupersetController`
   (dashboard key no forzado al rol real).
 
-**Casos dudosos, deliberadamente no tocados (revisar en una pasada explícita futura):**
-llamadas `resolveUser(jwt)` sin `requireX` posterior en endpoints de **solo lectura** dentro de
-archivos ya parcialmente remediados: `BadgeController` (listar), `CapacitacionDocenteController`
-(listar), `DisponibilidadDocenteController` (listar/conflictos), `EvalDocenteController`
-(criterios GET), `EvaluacionAvanzadaController`, `MedicoController` (línea 176),
-`PersonalAdminController` (línea 55), `SuplenciaController` (líneas 72/80). También:
-`PortalUsuarioController.eliminarDocumento` puede devolver 500 en vez de 404 si la postulación
-no pertenece al usuario (falla cerrado — no es hueco de seguridad, solo robustez).
+**Casos dudosos — revisados y cerrados (continuación de sesión, 2026-07-15):**
+- `BadgeController.badgesAlumno` — sin verificación de acceso al alumno; agregado
+  `requireAccesoAlumno` (mismo criterio que `EntregasController`). `listar`/`detalle` (catálogo
+  de badges, no datos de alumno) se dejaron sin cambio — riesgo bajo, diseño razonable.
+- `CapacitacionDocenteController` (`listar`/`resumen`/`detalle`) — inconsistente con sus propias
+  escrituras (ya restringían nivel 4 a registros propios); ahora los 3 GET aplican la misma regla.
+- `DisponibilidadDocenteController` — **peor de lo esperado**: ni siquiera las escrituras
+  (`guardar`/`eliminar` disponibilidad de un docente) tenían control de rol. Agregado
+  `requireStaff` a los 5 endpoints + restricción de ownership (nivel 4 solo su propia
+  disponibilidad) en `guardar`.
+- `EvalDocenteController` (criterios GET) y `EvaluacionAvanzadaController.listarEscalas` —
+  catálogos de configuración (dimensiones/ponderaciones, escalas cualitativas), no datos de
+  alumno — confirmado que no requieren cambio.
+- `MedicoController.getPersonalSalud` / `PersonalAdminController.get` — el listado ya scopeaba
+  por plantel vía `getEffectivePlantelId`, pero el detalle por id no lo verificaba. Agregado
+  chequeo de `plantel_id` post-fetch en ambos.
+- `SuplenciaController` (`listarSuplencias`/`sugerirSuplentes`) — agregado `requireStaff`,
+  consistente con el `POST` que ya lo exigía.
+- `PortalUsuarioController.eliminarDocumento` — confirmado el bug: `fetchEstadoPostulacion`
+  usaba `queryForObject` (lanza `EmptyResultDataAccessException` sin capturar → 500) en vez de
+  devolver `null`. Corregido a `queryForList` + null-check (el mismo patrón que `subirDocumento`
+  ya esperaba pero nunca alcanzaba), y agregado el null-check faltante en `eliminarDocumento`.
+
+Verificación final de todo lo anterior: `BUILD SUCCESS`, **555/555 tests**, `ades-bff` estable
+(RestartCount=0) tras redeploy.
 
 Total: 51 archivos modificados en la jornada de R-5 (controllers + query services/application
 services asociados donde el fix lo requería).
