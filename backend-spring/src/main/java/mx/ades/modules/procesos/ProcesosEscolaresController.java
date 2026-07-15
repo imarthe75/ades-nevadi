@@ -124,7 +124,11 @@ public class ProcesosEscolaresController {
             @PathVariable("id") UUID estudianteId,
             @RequestParam(value = "ciclo_id", required = false) UUID cicloId,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        // BOLA fix: el expediente ZIP contiene documentos de identidad/CURP/actas del
+        // alumno; solo llamaba resolveUser() sin verificar rol, así que cualquier cuenta
+        // ADES autenticada (incl. alumnos/padres de OTRO alumno) podía descargar el
+        // expediente completo de cualquier estudiante por id.
+        requireSecretariaOrHigher(userService.resolveUser(jwt));
 
         UUID cicloRef = cicloId;
         if (cicloRef == null) {
@@ -266,7 +270,10 @@ public class ProcesosEscolaresController {
     public ResponseEntity<List<Map<String, Object>>> listarDocumentos(
             @RequestParam(value = "admision_id", required = false) UUID admisionId,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        // BOLA fix: solo resolveUser() sin chequeo de rol — cualquier cuenta ADES
+        // autenticada podía listar los documentos de la solicitud de admisión de
+        // cualquier aspirante por admision_id.
+        requireSecretariaOrHigher(userService.resolveUser(jwt));
         return ResponseEntity.ok(queryService.listarDocumentosAdmision(admisionId));
     }
 
@@ -712,7 +719,9 @@ public class ProcesosEscolaresController {
             @PathVariable("id") UUID id,
             @RequestParam("template_id") String templateId,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        // BOLA fix: la carta de admisión incluye nombre completo, CURP y datos del
+        // tutor del aspirante; solo llamaba resolveUser() sin chequeo de rol.
+        requireSecretariaOrHigher(userService.resolveUser(jwt));
 
         List<Map<String, Object>> sol = queryService.fetchSolicitudParaCarta(id);
         if (sol.isEmpty()) {
@@ -763,7 +772,10 @@ public class ProcesosEscolaresController {
             @RequestParam(value = "skip", defaultValue = "0") int skip,
             @RequestParam(value = "limit", defaultValue = "50") int limit,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        // BOLA fix: el historial de admisión expone el timeline completo (decisiones,
+        // motivos, datos del solicitante) de cualquier expediente por id; solo
+        // llamaba resolveUser() sin chequeo de rol.
+        requireSecretariaOrHigher(userService.resolveUser(jwt));
         skip = Math.max(skip, 0);
         limit = Math.min(Math.max(limit, 1), 200);
         return ResponseEntity.ok(queryService.fetchHistorialAdmision(id, skip, limit));

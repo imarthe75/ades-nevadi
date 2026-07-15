@@ -156,6 +156,25 @@ public class SupersetController {
         return rls;
     }
 
+    /**
+     * BOLA fix (auditoría 2026-07-15): antes solo se forzaba el {@code key} propio del
+     * usuario cuando el path param pedido era literalmente "instituto"; si un usuario
+     * de nivel &gt;0 pedía directamente {@code /dashboard/docente} o {@code /dashboard/plantel}
+     * el valor del cliente se usaba tal cual para resolver el dashboardId (el RLS seguía
+     * calculándose sobre el usuario real, pero exponía la superficie a un dashboard cuyo
+     * dataset podría no tener la columna filtrada por ese nivel, rompiendo el aislamiento
+     * esperado). Ahora se ignora el {@code key} del cliente para cualquier usuario que no
+     * sea ADMIN_GLOBAL (nivelAcceso 0): siempre se sirve el dashboard correspondiente a su
+     * propio rol, sin excepción.
+     */
+    private String resolverDashboardKey(AdesUser user, String requestedKey) {
+        String rolKey = NIVEL_A_KEY.getOrDefault(user.getNivelAcceso(), "alumno");
+        if (user.getNivelAcceso() != null && user.getNivelAcceso() == 0) {
+            return requestedKey; // ADMIN_GLOBAL puede previsualizar cualquier dashboard
+        }
+        return rolKey;
+    }
+
     private String getDashboardId(String key) {
         return switch (key) {
             case "instituto" -> dashboardInstituto;
@@ -171,12 +190,7 @@ public class SupersetController {
             @PathVariable("key") String key,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
-
-        String effectiveKey = key;
-        String rolKey = NIVEL_A_KEY.getOrDefault(user.getNivelAcceso(), "alumno");
-        if ("instituto".equals(key) && (user.getNivelAcceso() == null || user.getNivelAcceso() > 0)) {
-            effectiveKey = rolKey;
-        }
+        String effectiveKey = resolverDashboardKey(user, key);
 
         String dashboardId = getDashboardId(effectiveKey);
         if (dashboardId == null || dashboardId.isBlank()) {
@@ -233,9 +247,7 @@ public class SupersetController {
             @PathVariable("key") String key,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
-        String rolKey = NIVEL_A_KEY.getOrDefault(user.getNivelAcceso(), "alumno");
-        String effectiveKey = "instituto".equals(key) && (user.getNivelAcceso() == null || user.getNivelAcceso() > 0)
-                ? rolKey : key;
+        String effectiveKey = resolverDashboardKey(user, key);
         String dashboardId = getDashboardId(effectiveKey);
         if (dashboardId == null || dashboardId.isBlank()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Dashboard '" + effectiveKey + "' no configurado.");

@@ -96,6 +96,7 @@ public class PortalFamiliasController {
         if (user.getNivelAcceso() > 3) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Se requiere Coordinador o superior");
         }
+        verificarPlantelAlumno(user, alumnoId);
 
         try {
             var cmd = new AgregarTutorUseCase.Command(
@@ -121,6 +122,7 @@ public class PortalFamiliasController {
         if (user.getNivelAcceso() > 3) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Se requiere Coordinador o superior");
         }
+        verificarPlantelTutorAlumno(user, tutorAlumnoId);
 
         appService.desvincular(tutorAlumnoId, user.getId().toString());
         return ResponseEntity.ok(Map.of("message", "Tutor desvinculado"));
@@ -135,6 +137,7 @@ public class PortalFamiliasController {
         if (user.getNivelAcceso() > 2) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Se requiere Admin Plantel o superior");
         }
+        verificarPlantelTutorAlumno(user, body.getTutorAlumnoId());
 
         try {
             appService.crearUsuario(body.getTutorAlumnoId(), body.getEmail(),
@@ -158,6 +161,7 @@ public class PortalFamiliasController {
         if (user.getNivelAcceso() > 2) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Se requiere Admin Plantel o superior");
         }
+        verificarPlantelTutorAlumno(user, tutorAlumnoId);
 
         Map<String, Object> restricciones = new HashMap<>();
         restricciones.put("puede_ver_calificaciones", body.getPuedeVerCalificaciones());
@@ -191,17 +195,52 @@ public class PortalFamiliasController {
 
     /**
      * Personal escolar (nivelAcceso &le;4: admin/director/coordinador/docente) puede consultar
-     * cualquier alumno de su ámbito. Padres/alumnos (nivelAcceso &gt;=5) solo pueden consultar
+     * cualquier alumno de su plantel. Padres/alumnos (nivelAcceso &gt;=5) solo pueden consultar
      * alumnos donde son tutor activo — previene IDOR (OWASP API1 BOLA) sobre datos de menores.
      */
     private void verificarAccesoAlumno(AdesUser user, UUID alumnoId) {
         Integer nivelAcceso = user.getNivelAcceso();
         if (nivelAcceso != null && nivelAcceso <= 4) {
+            verificarPlantelAlumno(user, alumnoId);
             return;
         }
         String email = user.getEmail();
         if (email == null || !queryService.esTutorDeAlumno(email, alumnoId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No tienes acceso a este alumno");
+        }
+    }
+
+    /**
+     * BOLA cross-plantel: un Director/Coordinador (nivelAcceso 1-4) solo debe gestionar
+     * tutores/alumnos de SU plantel, no de cualquier plantel del sistema. Solo ADMIN_GLOBAL
+     * (nivelAcceso 0) queda exento del scoping.
+     */
+    private void verificarPlantelAlumno(AdesUser user, UUID alumnoId) {
+        Integer nivelAcceso = user.getNivelAcceso();
+        if (nivelAcceso == null || nivelAcceso <= 0 || user.getPlantelId() == null) {
+            return;
+        }
+        UUID plantelAlumno = queryService.plantelIdDeAlumno(alumnoId);
+        if (plantelAlumno == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Alumno no encontrado");
+        }
+        if (!user.getPlantelId().equals(plantelAlumno)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "El alumno no pertenece a su plantel");
+        }
+    }
+
+    /** Igual que {@link #verificarPlantelAlumno} pero resolviendo desde el id de la relación tutor-alumno. */
+    private void verificarPlantelTutorAlumno(AdesUser user, UUID tutorAlumnoId) {
+        Integer nivelAcceso = user.getNivelAcceso();
+        if (nivelAcceso == null || nivelAcceso <= 0 || user.getPlantelId() == null) {
+            return;
+        }
+        UUID plantelAlumno = queryService.plantelIdPorTutorAlumno(tutorAlumnoId);
+        if (plantelAlumno == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Relación tutor-alumno no encontrada");
+        }
+        if (!user.getPlantelId().equals(plantelAlumno)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "El alumno no pertenece a su plantel");
         }
     }
 }

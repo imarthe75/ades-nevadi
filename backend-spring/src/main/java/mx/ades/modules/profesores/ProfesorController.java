@@ -54,8 +54,21 @@ public class ProfesorController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Map<String, Object>> get(@PathVariable UUID id) {
-        return ResponseEntity.ok(query.obtener(id));
+    public ResponseEntity<Map<String, Object>> get(
+            @PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
+        // BOLA fix (auditoría 2026-07-15): el detalle incluye PII sensible del docente
+        // (CURP, RFC, teléfono, email personal, fecha de nacimiento); antes no llamaba
+        // a resolveUser() en absoluto — cualquier cuenta ADES autenticada (incl.
+        // alumnos/padres) podía leer el expediente completo de cualquier profesor por id.
+        AdesUser user = userService.resolveUser(jwt);
+        Map<String, Object> profesor = query.obtener(id);
+        if (user.getNivelAcceso() != null && user.getNivelAcceso() > 1 && user.getPlantelId() != null) {
+            Object plantelId = profesor.get("plantel_id");
+            if (plantelId != null && !plantelId.equals(user.getPlantelId())) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No puede consultar un profesor de otro plantel");
+            }
+        }
+        return ResponseEntity.ok(profesor);
     }
 
     @PostMapping

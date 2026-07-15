@@ -4,10 +4,12 @@ import lombok.RequiredArgsConstructor;
 import mx.ades.modules.acta.query.ActaQueryService;
 import mx.ades.security.AdesUser;
 import mx.ades.security.AdesUserService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Map;
@@ -25,6 +27,23 @@ public class ActaController {
     private final AdesUserService  userService;
     private final ActaQueryService query;
 
+    /**
+     * Verifica que el grupo consultado pertenezca al plantel del usuario cuando este
+     * no tiene acceso global (nivelAcceso == 0, sin plantelId asignado). Antes de este
+     * fix, materias()/periodos()/acta() no validaban el plantel del grupo pasado por
+     * path/query param: un DIRECTOR o COORDINADOR_ACADEMICO (nivelAcceso 2-3) de un
+     * plantel podía consultar el acta de calificaciones (nombres, CURP, promedios) de
+     * un grupo de OTRO plantel simplemente adivinando/conociendo su UUID (BOLA, OWASP API1).
+     */
+    private void verificarPlantelDelGrupo(AdesUser user, UUID grupoId) {
+        if (user.getPlantelId() != null) {
+            UUID plantelGrupo = query.plantelDeGrupo(grupoId);
+            if (plantelGrupo != null && !plantelGrupo.equals(user.getPlantelId())) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No puede consultar un grupo de otro plantel");
+            }
+        }
+    }
+
     /** Grupos UAEMEX vigentes para el selector. */
     @GetMapping("/grupos")
     public ResponseEntity<List<Map<String, Object>>> grupos(
@@ -34,8 +53,10 @@ public class ActaController {
         if (user.getNivelAcceso() != null && user.getNivelAcceso() > 3) {
             return ResponseEntity.status(403).build();
         }
-        UUID effectivePlantel = plantelId != null ? plantelId
-                : (user.getNivelAcceso() != null && user.getNivelAcceso() > 1 ? user.getPlantelId() : null);
+        // No-admins (plantelId propio asignado) quedan acotados a su plantel — el
+        // parámetro de query ya NO puede sobreescribirlo (antes sí, permitiendo a un
+        // director/coordinador consultar grupos de otro plantel a voluntad).
+        UUID effectivePlantel = user.getPlantelId() != null ? user.getPlantelId() : plantelId;
         return ResponseEntity.ok(query.gruposUaemex(effectivePlantel));
     }
 
@@ -48,6 +69,7 @@ public class ActaController {
         if (user.getNivelAcceso() != null && user.getNivelAcceso() > 3) {
             return ResponseEntity.status(403).build();
         }
+        verificarPlantelDelGrupo(user, grupoId);
         return ResponseEntity.ok(query.materiasGrupo(grupoId));
     }
 
@@ -60,6 +82,7 @@ public class ActaController {
         if (user.getNivelAcceso() != null && user.getNivelAcceso() > 3) {
             return ResponseEntity.status(403).build();
         }
+        verificarPlantelDelGrupo(user, grupoId);
         return ResponseEntity.ok(query.periodosGrupo(grupoId));
     }
 
@@ -73,6 +96,7 @@ public class ActaController {
         if (user.getNivelAcceso() != null && user.getNivelAcceso() > 3) {
             return ResponseEntity.status(403).build();
         }
+        verificarPlantelDelGrupo(user, grupoId);
         Map<String, Object> result = query.acta(grupoId, materiaId);
         if (result.containsKey("error")) {
             return ResponseEntity.notFound().build();

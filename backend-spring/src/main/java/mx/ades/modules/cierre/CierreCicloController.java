@@ -134,9 +134,21 @@ public class CierreCicloController {
         }
     }
 
+    /**
+     * BFLA CRÍTICO: a diferencia de {@code /ejecutar}, este endpoint legado invocaba
+     * directamente {@code cerrar_ciclo_y_promover()} (cierre irreversible + promoción
+     * masiva de TODOS los alumnos activos) sin pasar por {@code CerrarCicloUseCase.Command}
+     * — es decir, sin ninguna verificación de nivelAcceso. Cualquier cuenta autenticada
+     * (incluido un alumno, nivelAcceso=5) podía cerrar el ciclo escolar completo. Se aplica
+     * el mismo umbral que /ejecutar (Admin/Director, nivelAcceso {@literal <=} 2).
+     */
     @PostMapping
     public ResponseEntity<String> cerrar(@RequestBody CierreCicloRequest request, @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        if (user.getNivelAcceso() == null || user.getNivelAcceso() > 2) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                "Solo administradores o directores pueden realizar el cierre de ciclo");
+        }
         String result = service.cerrarCiclo(request.getCicloOrigenId(), request.getCicloDestinoId(), user.getUsername());
         return ResponseEntity.ok(result);
     }

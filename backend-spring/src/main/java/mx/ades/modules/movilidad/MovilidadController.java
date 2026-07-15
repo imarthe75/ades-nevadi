@@ -286,6 +286,7 @@ public class MovilidadController {
             @RequestParam(value = "limit", defaultValue = "50") int limit,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        requireAcceso(user, TipoMovilidad.CAMBIO_GRUPO);
         UUID plantelFiltro = (user.getNivelAcceso() != null && user.getNivelAcceso() > 1)
                 ? user.getPlantelId() : null;
         return ResponseEntity.ok(

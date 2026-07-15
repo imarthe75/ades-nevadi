@@ -1,5 +1,5 @@
 -- =============================================================================
--- Migración 20260713_0001: Corrección de claves municipales de SEPOMEX
+-- Migración 146: Corrección de claves municipales de SEPOMEX
 -- Corrige Metepec (de 106 a 054), Tenancingo (de 099 a 088), Ixtapan de la Sal (de 057 a 040)
 -- Elimina códigos postales y asentamientos huérfanos importados con claves erróneas
 -- =============================================================================

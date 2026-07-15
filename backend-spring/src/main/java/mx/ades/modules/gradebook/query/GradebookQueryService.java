@@ -16,6 +16,32 @@ public class GradebookQueryService {
 
     private final JdbcTemplate jdbc;
 
+    /**
+     * Resuelve el grupo_id de un registro de calificación de periodo, usado por
+     * GradebookController para aplicar el mismo control de acceso docente↔grupo
+     * (requireAccesoGrupo) que ya protege al resto de módulos académicos.
+     */
+    @Transactional(readOnly = true)
+    public UUID grupoIdDeCalificacion(UUID calPeriodoId) {
+        List<UUID> rows = jdbc.queryForList(
+                "SELECT grupo_id FROM ades_calificaciones_periodo WHERE id = ?", UUID.class, calPeriodoId);
+        return rows.isEmpty() ? null : rows.get(0);
+    }
+
+    /** Verifica tutoría activa (padre/madre autenticado) sobre un alumno — replica el
+     *  criterio ya usado en PortalFamiliasQueryService#esTutorDeAlumno para no acoplar
+     *  este módulo al de portal_familias. */
+    @Transactional(readOnly = true)
+    public boolean esTutorDeAlumno(String email, UUID alumnoId) {
+        if (email == null) return false;
+        Integer count = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM ades_tutores_alumnos ta " +
+                "JOIN ades_personas p ON p.id = ta.persona_id " +
+                "WHERE p.email_personal = ? AND ta.alumno_id = ? AND ta.is_active = TRUE",
+                Integer.class, email, alumnoId);
+        return count != null && count > 0;
+    }
+
     @Transactional(readOnly = true)
     public List<Map<String, Object>> tablaCalificacionesGrupo(UUID periodoId, UUID grupoId, UUID materiaId) {
         StringBuilder sql = new StringBuilder("""

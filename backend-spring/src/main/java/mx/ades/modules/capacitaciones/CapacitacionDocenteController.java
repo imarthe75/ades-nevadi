@@ -67,6 +67,12 @@ public class CapacitacionDocenteController {
             @RequestBody CapacitacionDocente body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        if (user.getNivelAcceso() == null || user.getNivelAcceso() > 4) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado");
+        }
+        if (user.getNivelAcceso() == 4 && !user.getPersonaId().equals(body.getDocenteId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo puede registrar sus propias capacitaciones");
+        }
         var cmd = new RegistrarCapacitacionUseCase.Command(
                 body.getDocenteId(),
                 body.getNombre(),
@@ -133,9 +139,15 @@ public class CapacitacionDocenteController {
             @RequestBody CapacitacionDocente body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        if (user.getNivelAcceso() == null || user.getNivelAcceso() > 4) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado");
+        }
         CapacitacionDocente cd = repo.findActiveById(id)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Capacitación no encontrada"));
+        if (user.getNivelAcceso() == 4 && !user.getPersonaId().equals(cd.getDocenteId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo puede actualizar sus propias capacitaciones");
+        }
 
         if (body.getNombre() != null)       cd.setNombre(body.getNombre());
         if (body.getDescripcion() != null)  cd.setDescripcion(body.getDescripcion());
@@ -168,9 +180,15 @@ public class CapacitacionDocenteController {
             @PathVariable("id") UUID id,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        if (user.getNivelAcceso() == null || user.getNivelAcceso() > 4) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado");
+        }
         CapacitacionDocente cd = repo.findActiveById(id)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Capacitación no encontrada"));
+        if (user.getNivelAcceso() == 4 && !user.getPersonaId().equals(cd.getDocenteId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo puede eliminar sus propias capacitaciones");
+        }
         cd.setIsActive(false);
         cd.setUsuarioModificacion(user.getUsername());
         repo.save(cd);

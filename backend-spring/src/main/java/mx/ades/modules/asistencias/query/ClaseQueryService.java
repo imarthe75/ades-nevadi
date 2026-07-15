@@ -30,15 +30,18 @@ public class ClaseQueryService {
         "c.fecha_clase, c.hora_inicio, c.hora_fin, c.tema_visto, c.observaciones, " +
         "c.estatus_clase, c.modalidad, c.is_active, c.row_version, c.fecha_creacion, c.fecha_modificacion, " +
         "c.usuario_creacion, c.usuario_modificacion, " +
-        "g.nombre_grupo AS grupo_nombre, m.nombre_materia AS materia_nombre " +
+        "g.nombre_grupo AS grupo_nombre, m.nombre_materia AS materia_nombre, gr.plantel_id " +
         "FROM ades_clases c " +
         "LEFT JOIN ades_grupos g ON g.id = c.grupo_id " +
+        "LEFT JOIN ades_grados gr ON gr.id = g.grado_id " +
         "LEFT JOIN ades_materias m ON m.id = c.materia_id ";
 
     private final JdbcTemplate jdbc;
 
+    /** plantelId: scoping obligatorio para no-admins (ver ClaseController.listar). */
     public List<Map<String, Object>> listar(UUID grupoId, UUID materiaId, UUID profesorId,
-                                             LocalDate fechaDesde, LocalDate fechaHasta, String estatus) {
+                                             LocalDate fechaDesde, LocalDate fechaHasta, String estatus,
+                                             UUID plantelId) {
         StringBuilder sql = new StringBuilder(BASE_SELECT + "WHERE c.is_active = TRUE ");
         List<Object> params = new ArrayList<>();
         if (grupoId != null) { sql.append("AND c.grupo_id = ? "); params.add(grupoId); }
@@ -47,6 +50,7 @@ public class ClaseQueryService {
         if (fechaDesde != null) { sql.append("AND c.fecha_clase >= ? "); params.add(fechaDesde); }
         if (fechaHasta != null) { sql.append("AND c.fecha_clase <= ? "); params.add(fechaHasta); }
         if (estatus != null && !estatus.isBlank()) { sql.append("AND c.estatus_clase = ? "); params.add(estatus.toUpperCase()); }
+        if (plantelId != null) { sql.append("AND gr.plantel_id = ? "); params.add(plantelId); }
         sql.append("ORDER BY c.fecha_clase DESC, c.hora_inicio ASC");
         return jdbc.queryForList(sql.toString(), params.toArray());
     }

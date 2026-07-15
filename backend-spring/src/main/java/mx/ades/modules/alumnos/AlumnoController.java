@@ -64,8 +64,32 @@ public class AlumnoController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Map<String, Object>> get(@PathVariable UUID id) {
-        return ResponseEntity.ok(query.obtener(id));
+    public ResponseEntity<Map<String, Object>> get(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal Jwt jwt) {
+        // Antes de este fix no se llamaba a resolveUser(jwt) en absoluto: cualquier
+        // cuenta autenticada (incluyendo padres/alumnos, nivelAcceso >=5) podía leer el
+        // expediente completo de CUALQUIER alumno del sistema por id, sin scoping por
+        // plantel (BOLA, OWASP API1). Se alinea con el mismo criterio ya aplicado en
+        // patch()/update() de este controlador: solo personal escolar, acotado a su plantel.
+        AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
+        Map<String, Object> result = query.obtener(id);
+        verificarPlantelDelAlumno(user, (UUID) result.get("plantel_id"));
+        return ResponseEntity.ok(result);
+    }
+
+    /**
+     * No-admins (nivelAcceso &gt;1 con plantelId propio asignado) quedan acotados a su
+     * propio plantel — evita leer/editar por id el expediente de un alumno de otro
+     * plantel (BOLA, OWASP API1), el mismo criterio ya usado en {@code list()} vía
+     * {@code getEffectivePlantelId}.
+     */
+    private void verificarPlantelDelAlumno(AdesUser user, UUID plantelAlumnoId) {
+        if (user.getNivelAcceso() != null && user.getNivelAcceso() > 1 && user.getPlantelId() != null
+                && plantelAlumnoId != null && !plantelAlumnoId.equals(user.getPlantelId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No puede acceder a un alumno de otro plantel");
+        }
     }
 
     @PostMapping
@@ -90,20 +114,24 @@ public class AlumnoController {
             @RequestBody Map<String, Object> body,
             @AuthenticationPrincipal Jwt jwt) {
 
-        requireStaff(userService.resolveUser(jwt));
+        AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
+
+        // Scoping por plantel: se necesita el registro actual de todos modos para
+        // verificar el plantel (antes solo se cargaba condicionalmente si rowVersion
+        // venía en el body, dejando el PATCH sin scoping cuando no se enviaba versión).
+        Estudiante current = repositoryPort.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Alumno no encontrado"));
+        verificarPlantelDelAlumno(user, current.getPlantelId());
 
         // Optimistic locking: si el cliente envía rowVersion, verificar antes de modificar
         Object rv = body.get("rowVersion");
         if (rv != null) {
             Integer clientVersion = rv instanceof Number n ? n.intValue() : null;
-            if (clientVersion != null) {
-                Estudiante current = repositoryPort.findById(id)
-                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Alumno no encontrado"));
-                if (!clientVersion.equals(current.getRowVersion())) {
-                    throw new ResponseStatusException(HttpStatus.CONFLICT,
-                        "El registro fue modificado. Versión enviada: " + clientVersion +
-                        ", actual: " + current.getRowVersion() + ". Recarga y vuelve a intentarlo.");
-                }
+            if (clientVersion != null && !clientVersion.equals(current.getRowVersion())) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "El registro fue modificado. Versión enviada: " + clientVersion +
+                    ", actual: " + current.getRowVersion() + ". Recarga y vuelve a intentarlo.");
             }
         }
 
@@ -126,9 +154,17 @@ public class AlumnoController {
             @PathVariable UUID id,
             @RequestBody Estudiante update,
             @AuthenticationPrincipal Jwt jwt) {
-        requireStaff(userService.resolveUser(jwt));
+        AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
         Estudiante est = repositoryPort.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Alumno no encontrado"));
+        verificarPlantelDelAlumno(user, est.getPlantelId());
+        // Un no-admin acotado a su plantel tampoco puede reasignar el alumno a OTRO
+        // plantel vía este PUT (movería el expediente fuera de su alcance de control).
+        if (user.getNivelAcceso() != null && user.getNivelAcceso() > 1 && user.getPlantelId() != null
+                && update.getPlantelId() != null && !update.getPlantelId().equals(user.getPlantelId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No puede reasignar el alumno a otro plantel");
+        }
         est.setMatricula(update.getMatricula());
         est.setPersonaId(update.getPersonaId());
         est.setPlantelId(update.getPlantelId());
@@ -160,9 +196,14 @@ public class AlumnoController {
             @PathVariable UUID id,
             @RequestParam("template_id") String templateId,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        // Antes solo se llamaba resolveUser (autenticación) sin requireStaff ni scoping:
+        // cualquier cuenta autenticada podía generar la credencial (con foto, CURP y
+        // matrícula — PII sensible) de CUALQUIER alumno del sistema (BOLA, OWASP API1).
+        AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
 
         Map<String, Object> a = query.datosCredencial(id);
+        verificarPlantelDelAlumno(user, (UUID) a.get("plantel_id"));
         Map<String, Object> payload = new HashMap<>();
         payload.put("matricula", a.get("matricula"));
         payload.put("nombre_completo", (a.get("nombre") + " " + a.get("apellido_paterno") + " " +

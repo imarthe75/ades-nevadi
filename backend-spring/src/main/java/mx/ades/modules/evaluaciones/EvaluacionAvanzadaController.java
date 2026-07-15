@@ -108,6 +108,16 @@ public class EvaluacionAvanzadaController {
 
         List<Map<String, Object>> grpList = queryService.fetchGrupo(grupoId);
         if (grpList.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Grupo no encontrado");
+        // BOLA fix: acta SEP contiene calificaciones y asistencia de todo el grupo; un
+        // Coordinador (nivelAcceso 3, plantel-scoped por diseño) podía generarla para un
+        // grupo de OTRO plantel con solo conocer el UUID. Solo nivel<=2 (admin/director)
+        // tiene alcance institucional real.
+        if (user.getNivelAcceso() != null && user.getNivelAcceso() > 2 && user.getPlantelId() != null) {
+            Object grupoPlantelId = grpList.get(0).get("plantel_id");
+            if (grupoPlantelId != null && !user.getPlantelId().equals(grupoPlantelId)) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "El grupo no pertenece a su plantel");
+            }
+        }
 
         List<Map<String, Object>> registros = queryService.actasSep(grupoId, periodo);
         long totalAlumnos = registros.stream()
@@ -155,7 +165,12 @@ public class EvaluacionAvanzadaController {
             @PathVariable("alumno_id") UUID alumnoId,
             @RequestParam(value = "tipo", required = false) String tipo,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        // BFLA fix: la lectura de observaciones pedagógicas es tan sensible como su
+        // creación (POST ya exige nivelAcceso<=4); antes solo llamaba resolveUser() sin
+        // verificar rol, permitiendo a padres/alumnos (nivelAcceso=5) leer observaciones
+        // pedagógicas de CUALQUIER alumno por path param.
+        AdesUser user = userService.resolveUser(jwt);
+        requireNivel(user, 4);
         if (tipo != null && !tipo.isBlank()) {
             return ResponseEntity.ok(observacionRepository.findByAlumnoIdAndTipoOrderByFechaCreacionDesc(alumnoId, tipo));
         }
@@ -185,7 +200,14 @@ public class EvaluacionAvanzadaController {
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         requireNivel(user, 3);
-        return ResponseEntity.ok(queryService.listarNee(plantelId, tipoNee));
+        // BOLA fix: NEE (necesidades educativas especiales) es dato de salud/educativo
+        // sensible; un Coordinador (nivelAcceso 3, plantel-scoped por diseño) podía pasar
+        // el plantel_id de OTRO plantel (o ninguno) y ver NEE de todo el sistema. Mismo
+        // criterio que Estadistica911Controller#scopePlantel: solo nivel<=2 (admin/
+        // director) tiene alcance institucional real.
+        UUID plantel = (user.getNivelAcceso() != null && user.getNivelAcceso() > 2 && user.getPlantelId() != null)
+                ? user.getPlantelId() : plantelId;
+        return ResponseEntity.ok(queryService.listarNee(plantel, tipoNee));
     }
 
     @PostMapping("/nee")

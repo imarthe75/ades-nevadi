@@ -121,17 +121,35 @@ public class PlanesEstudioController {
 
     // ── AC-014: Planes alternativos/reducidos (NEE) ───────────────────────────
 
+    /**
+     * BOLA fix (auditoría 2026-07-15): planes NEE (necesidades educativas especiales)
+     * son datos sensibles del alumno (diagnóstico/motivo de la reducción curricular);
+     * antes no llamaba a resolveUser() en absoluto — cualquier cuenta ADES autenticada,
+     * incluidos alumnos/padres, podía listarlos de cualquier estudiante o grupo por id.
+     * Se exige personal escolar (nivelAcceso &le;4: admin/director/coordinador/docente),
+     * igual que el resto de operaciones de planeación curricular en este módulo.
+     */
+    private void requireStaff(AdesUser user) {
+        if (user.getNivelAcceso() == null || user.getNivelAcceso() > 4) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Nivel de acceso insuficiente para esta operación");
+        }
+    }
+
     @GetMapping("/alternativos")
     public ResponseEntity<List<Map<String, Object>>> listarAlternativos(
             @RequestParam(name = "estudiante_id", required = false) UUID estudianteId,
-            @RequestParam(name = "grupo_id", required = false) UUID grupoId) {
+            @RequestParam(name = "grupo_id", required = false) UUID grupoId,
+            @AuthenticationPrincipal Jwt jwt) {
+        requireStaff(userService.resolveUser(jwt));
         if (estudianteId != null) return ResponseEntity.ok(planAltQueryService.listarPorEstudiante(estudianteId));
         if (grupoId != null) return ResponseEntity.ok(planAltQueryService.listarPorGrupo(grupoId));
         throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Se requiere estudiante_id o grupo_id");
     }
 
     @GetMapping("/alternativos/{id}/materias")
-    public ResponseEntity<List<Map<String, Object>>> materiasAlternativo(@PathVariable UUID id) {
+    public ResponseEntity<List<Map<String, Object>>> materiasAlternativo(
+            @PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
+        requireStaff(userService.resolveUser(jwt));
         return ResponseEntity.ok(planAltQueryService.materias(id));
     }
 

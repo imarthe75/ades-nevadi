@@ -454,12 +454,30 @@ public class AdminController {
         }
     }
 
+    /**
+     * ADMIN_PLANTEL (nivelAcceso 1) está, por definición, acotado a su propio plantel
+     * (ver {@link PermisoAdmin}). Antes de este fix, crearGrupo()/actualizarGrupoAdmin()
+     * solo verificaban permisoAdmin(user) (¿es admin?) pero no que el grado_id target
+     * perteneciera al plantel del propio admin — permitiendo a un ADMIN_PLANTEL crear o
+     * reasignar grupos hacia el grado de OTRO plantel (BOLA/BFLA, OWASP API1/API5).
+     * Solo ADMIN_GLOBAL (nivelAcceso 0) puede operar entre planteles.
+     */
+    private void verificarGradoDelPlantel(AdesUser user, PermisoAdmin permiso, UUID gradoId) {
+        if (permiso.esAdminGlobal() || gradoId == null) return;
+        Grado grado = gradoRepository.findById(gradoId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Grado no encontrado"));
+        UUID gradoPlantelId = grado.getPlantel() != null ? grado.getPlantel().getId() : null;
+        if (gradoPlantelId != null && !gradoPlantelId.equals(user.getPlantelId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No puede operar sobre un grado de otro plantel");
+        }
+    }
+
     @PostMapping("/grupos")
     public ResponseEntity<Grupo> crearGrupo(
             @RequestBody Grupo grupo,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
-        permisoAdmin(user);
+        PermisoAdmin permiso = permisoAdmin(user);
         // Grupo es entidad JPA (no anotamos validación en la entidad — riesgo sobre
         // Hibernate); nombre_grupo/grado_id/ciclo_escolar_id son NOT NULL en BD,
         // validamos manualmente para dar un 400 claro en vez de una excepción de
@@ -473,6 +491,7 @@ public class AdminController {
         if (grupo.getCicloEscolarId() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "cicloEscolarId es obligatorio");
         }
+        verificarGradoDelPlantel(user, permiso, grupo.getGradoId());
         validarGradoYCicloPertenecenAlMismoNivel(grupo.getGradoId(), grupo.getCicloEscolarId());
         return ResponseEntity.status(HttpStatus.CREATED).body(grupoRepository.save(grupo));
     }
@@ -483,17 +502,25 @@ public class AdminController {
             @RequestBody GrupoAdminUpdate body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
-        permisoAdmin(user);
+        PermisoAdmin permiso = permisoAdmin(user);
 
         Grupo grupo = grupoRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Grupo no encontrado"));
+
+        // El grupo ya existente también debe pertenecer al plantel del admin (evita que
+        // un ADMIN_PLANTEL edite un grupo de otro plantel del que no tiene control alguno).
+        verificarGradoDelPlantel(user, permiso, grupo.getGradoId());
 
         if (body.getNombreGrupo() != null) grupo.setNombreGrupo(body.getNombreGrupo());
         if (body.getCapacidadMaxima() != null) grupo.setCapacidadMaxima(body.getCapacidadMaxima());
         if (body.getTurno() != null) grupo.setTurno(body.getTurno());
         if (body.getProfesorTitularId() != null) grupo.setProfesorTitularId(body.getProfesorTitularId());
         if (body.getIsActive() != null) grupo.setIsActive(body.getIsActive());
-        if (body.getGradoId() != null) grupo.setGradoId(body.getGradoId());
+        if (body.getGradoId() != null) {
+            // Si el PATCH reasigna el grado, el nuevo grado también debe ser del mismo plantel.
+            verificarGradoDelPlantel(user, permiso, body.getGradoId());
+            grupo.setGradoId(body.getGradoId());
+        }
         if (body.getCicloEscolarId() != null) grupo.setCicloEscolarId(body.getCicloEscolarId());
 
         validarGradoYCicloPertenecenAlMismoNivel(grupo.getGradoId(), grupo.getCicloEscolarId());

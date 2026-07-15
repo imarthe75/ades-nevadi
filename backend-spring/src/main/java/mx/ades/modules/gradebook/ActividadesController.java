@@ -99,7 +99,11 @@ public class ActividadesController {
             @RequestParam(value = "periodo_id", required = false) UUID periodoId,
             @RequestParam(value = "tipo_item", required = false) String tipoItem,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        // BOLA fix: solo llamaba resolveUser sin verificar nivelAcceso ni asignación
+        // docente↔grupo — un docente ajeno al grupo (o cualquier otro usuario) podía
+        // listar las actividades/tareas de cualquier grupo del sistema.
+        AdesUser user = userService.resolveUser(jwt);
+        requireAccesoGrupo(user, grupoId);
         return ResponseEntity.ok(queryService.actividadesDeGrupo(grupoId, materiaId, periodoId, tipoItem));
     }
 
@@ -149,7 +153,10 @@ public class ActividadesController {
     public ResponseEntity<List<Map<String, Object>>> entregasDeActividad(
             @PathVariable("actividadId") UUID actividadId,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        // BOLA fix: entregas incluye archivos/comentarios de alumnos por actividad; solo
+        // llamaba resolveUser sin verificar nivelAcceso ni asignación docente↔grupo.
+        AdesUser user = userService.resolveUser(jwt);
+        requireAccesoGrupo(user, grupoIdDeActividad(actividadId));
         return ResponseEntity.ok(queryService.entregasDeActividad(actividadId));
     }
 

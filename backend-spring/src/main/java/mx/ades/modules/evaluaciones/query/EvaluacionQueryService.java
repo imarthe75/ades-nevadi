@@ -133,7 +133,11 @@ public class EvaluacionQueryService {
     }
 
     public List<Map<String, Object>> fetchGrupo(UUID grupoId) {
+        // plantel_id incluido (vía ades_grados) para permitir el scoping por plantel de
+        // no-admins en EvaluacionAvanzadaController#generarActaSep (BOLA fix).
         return jdbc.queryForList(
-            "SELECT id, nombre_grupo FROM ades_grupos WHERE id = ? AND is_active = TRUE", grupoId);
+            "SELECT g.id, g.nombre_grupo, gr.plantel_id " +
+            "FROM ades_grupos g JOIN ades_grados gr ON gr.id = g.grado_id " +
+            "WHERE g.id = ? AND g.is_active = TRUE", grupoId);
     }
 }

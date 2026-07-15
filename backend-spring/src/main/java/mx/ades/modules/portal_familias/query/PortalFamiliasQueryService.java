@@ -27,6 +27,22 @@ public class PortalFamiliasQueryService {
         return jdbc.queryForList(sql, alumnoId);
     }
 
+    /** Plantel del alumno — usado para el scoping cross-plantel de personal (nivelAcceso 1-4). */
+    public UUID plantelIdDeAlumno(UUID alumnoId) {
+        List<UUID> rows = jdbc.queryForList(
+                "SELECT plantel_id FROM ades_estudiantes WHERE id = ?", UUID.class, alumnoId);
+        return rows.isEmpty() ? null : rows.get(0);
+    }
+
+    /** Igual que {@link #plantelIdDeAlumno} pero resolviendo desde el id de la relación tutor-alumno. */
+    public UUID plantelIdPorTutorAlumno(UUID tutorAlumnoId) {
+        List<UUID> rows = jdbc.queryForList(
+                "SELECT e.plantel_id FROM ades_tutores_alumnos ta " +
+                "JOIN ades_estudiantes e ON e.id = ta.alumno_id " +
+                "WHERE ta.id = ?", UUID.class, tutorAlumnoId);
+        return rows.isEmpty() ? null : rows.get(0);
+    }
+
     /** Verifica que el email dado corresponda a un tutor activo vinculado al alumno. */
     public boolean esTutorDeAlumno(String email, UUID alumnoId) {
         Integer count = jdbc.queryForObject(

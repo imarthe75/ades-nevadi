@@ -1,14 +1,26 @@
 # ADES — Claude Code Guidelines
-# Versión: 2.6 | Actualizado: 2026-07-12
+# Versión: 2.8 | Actualizado: 2026-07-15 (ledger de auditoría endurecido SHA-256 + fix
+# usuario_creacion/modificacion en 57 entidades — ver sección "Esquema de auditoría ADES")
 # **NOTA:** Los 3 puntos críticos de Fase 1 (@EntityGraph, OnDestroy, SQL prepared statements)
 # verificados en vivo y en verde el 2026-07-12 — ver sección "OPTIMIZACIÓN AL 100%" abajo.
+#
+# **⚠️ SERVIDOR ÚNICO = PRODUCCIÓN a nivel de infraestructura (decisión 2026-07-15).** Hay un
+# único servidor (ades.setag.mx, 163.192.138.130); no existe entorno separado. TLS público,
+# datos reales cargados. **PERO el sistema aún está en etapa de desarrollo / pre-liberación**
+# (no liberado a usuarios finales). Por eso: backups verificados y cero `docker compose down -v`
+# sin backup previo SIEMPRE; pero `audit_aiud` (log de auditoría completo) y `ENVIRONMENT=production`
+# se **difieren al go-live** — hoy `.env` sigue en `ENVIRONMENT=development`, que es lo correcto
+# en esta etapa. El ledger de auditoría se está endureciendo ahora (SHA-256 + encadenamiento real)
+# para activarlo blindado en la liberación. Plan: `docs/hallazgos/2026-07-15_plan_remediacion.md`
+# (tarea R-1/R-2). Estado de entrega y fiabilidad:
+# `docs/hallazgos/2026-07-15_analisis_honesto_entregabilidad.md`.
 
 ## MISIÓN Y CONTEXTO
 
 ADES es el sistema integral de administración escolar del Instituto Nevadi (México).
 3 planteles, 3 niveles educativos (Primaria SEP, Secundaria SEP, Preparatoria UAEMEX).
 Repositorio: https://github.com/imarthe75/ades-nevadi
-Servidor desarrollo: ades.setag.mx (163.192.138.130) — migrado 2026-07-10 (anterior: 129.213.35.140). 2 cores / 12 GB RAM (ver `docs/MIGRACION_2026_07_10.md`)
+Servidor **ÚNICO = PRODUCCIÓN**: ades.setag.mx (163.192.138.130) — migrado 2026-07-10 (anterior: 129.213.35.140). 2 cores / 12 GB RAM (ver `docs/MIGRACION_2026_07_10.md`). No hay entorno de desarrollo/staging separado: dev y prod son el mismo host.
 Contexto completo: .agent/CONTEXT.md
 
 **Naturaleza del proyecto:** software **donado** al Instituto Nevadi, institución
@@ -157,10 +169,10 @@ celery -A app.worker.celery_app worker --loglevel=info
 
 1. PKs: siempre UUID con `uuidv7()` o `gen_random_uuid()`. NUNCA SERIAL, BIGINT, INTEGER como PK.
 2. FKs: siempre referencian UUID.
-3. **Toda tabla nueva `ades_*` DEBE tener columnas de auditoría:** `ref UUID`, `row_version INTEGER`, `fecha_creacion TIMESTAMPTZ`, `fecha_modificacion TIMESTAMPTZ`, `usuario_creacion TEXT`, `usuario_modificacion TEXT`.
-4. **Triggers de auditoría obligatorios:** al final de cada migración con tablas nuevas llamar `SELECT auditoria.asignar_biu('public.ades_<tabla>');` — aplica `audit_biu` automáticamente. El `audit_aiud` se activa solo en producción.
-5. Cada INSERT/UPDATE: el trigger `audit_biu` gestiona automáticamente `ref` (uuidv7), `row_version`, timestamps y usuarios. No asignar manualmente.
-6. Para producción: `SELECT auditoria.asignar_triggers('public.ades_<tabla>');` activa también `audit_aiud` (log completo en `auditoria.log_auditoria`).
+3. **Toda tabla nueva `ades_*` DEBE tener columnas de auditoría:** `ref UUID`, `row_version INTEGER`, `fecha_creacion TIMESTAMPTZ`, `fecha_modificacion TIMESTAMPTZ`, `usuario_creacion TEXT`, `usuario_modificacion TEXT`. Toda entidad JPA nueva debe heredar de `mx.ades.common.AdesBaseEntity` (o `AdesAuditEntity` si no lleva `ref`) — no declarar estas columnas sueltas en la entidad.
+4. **Triggers de auditoría obligatorios:** al final de cada migración con tablas nuevas llamar `SELECT auditoria.asignar_biu('public.ades_<tabla>');` — aplica `audit_biu` automáticamente. El `audit_aiud` se activa **solo en el go-live** (no basta con que el servidor sea producción de infraestructura — ver banner de estado arriba).
+5. Cada INSERT/UPDATE: el trigger `audit_biu` gestiona automáticamente `ref` (uuidv7), `row_version`, timestamps y usuarios (vía el GUC `app.current_user` propagado por `AuditSessionInterceptor` — ver sección de auditoría abajo). No asignar manualmente.
+6. En el go-live: `SELECT auditoria.asignar_triggers('public.ades_<tabla>');` activa también `audit_aiud` (log completo en `auditoria.log_auditoria`).
 7. Verificar cobertura: `SELECT * FROM auditoria.reporte_cobertura();`
 8. Volúmenes Docker: mapear a `./data/postgres/`, `./data/valkey/`, `./data/minio/`.
 9. UI: estilo Oracle APEX — interactive grids, master-detail, LOV, edición inline.
@@ -174,16 +186,42 @@ celery -A app.worker.celery_app worker --loglevel=info
 17. **Documentación Completa del Código**: Documentar plenamente todo el código desarrollado o modificado (comentarios en funciones críticas, clases, modelos, parámetros y cabeceras), asegurando su legibilidad y mantenibilidad.
 18. **Organización de Documentación**: TODO archivo `.md` generado (reportes, auditorías, análisis, guías) DEBE ir en `docs/` — NUNCA en raíz. Solo `CLAUDE.md` y `README.md` quedan en raíz. `.gitignore` ignora .md en raíz (excepto los 2 permitidos).
 
-### Esquema de auditoría ADES (implementado en 038_auditoria_v2.sql)
+### Esquema de auditoría ADES (v2 en 038_auditoria_v2.sql, endurecido 2026-07-15 en mig. 137-145)
 
 | Elemento | Descripción |
 |---|---|
-| `auditoria.log_auditoria` | Tabla de log con PK UUID, hash MD5 encadenado, TIMESTAMPTZ |
-| `auditoria.fn_auditoria_biu()` | BEFORE INSERT/UPDATE — gestiona ref/row_version/timestamps/usuario |
-| `auditoria.fn_auditoria_aiud()` | AFTER INSERT/UPDATE/DELETE — graba en log_auditoria (solo producción) |
+| `auditoria.log_auditoria` | Ledger hash-encadenado (SHA-256, no MD5). `originaldata`/`executednewdata` son JSONB (agnóstico al esquema, `to_jsonb`). Columnas: `log_seq` (orden), `hash_anterior`/`hash_nuevo` (cadena real: `hash_nuevo = sha256(hash_anterior‖datos)`), `changed_fields` (delta de UPDATE) |
+| `auditoria.fn_auditoria_biu()` | BEFORE INSERT/UPDATE — gestiona ref/row_version/timestamps/usuario_creacion/usuario_modificacion |
+| `auditoria.fn_auditoria_aiud()` | AFTER INSERT/UPDATE/DELETE — graba en log_auditoria con hash SHA-256 encadenado real. **Activación diferida al go-live** (hoy: 0 tablas activas, apagado deliberadamente en etapa de desarrollo) |
+| `auditoria.fn_verificar_cadena()` | Verifica integridad **interna del log** (que cada hash cuadre con el anterior) — detecta manipulación del propio log |
+| `auditoria.fn_reconciliar_tabla(p_tabla regclass)` | Verifica integridad **tabla-vs-log**: compara el estado vivo de cada fila contra su último `executednewdata` — detecta manipulación DIRECTA de la tabla de negocio (bypass de la app) que `fn_verificar_cadena()` no cubre. Requiere `audit_aiud` activo en esa tabla |
 | `auditoria.asignar_biu(tabla)` | Aplica solo `audit_biu` — usar en migraciones DEV |
-| `auditoria.asignar_triggers(tabla)` | Aplica `audit_biu` + `audit_aiud` — usar al pasar a producción |
+| `auditoria.asignar_triggers(tabla)` | Aplica `audit_biu` + `audit_aiud` — usar al pasar a producción/go-live. **Bug corregido 2026-07-15** (mig. 145): usaba `%I` en vez de `%s` en el `format()`, por lo que fallaba con nombres schema-calificados (`'public.ades_x'`) — "relation does not exist" |
 | `auditoria.reporte_cobertura()` | Reporte de cobertura de triggers por tabla |
+| `mx.ades.common.AdesAuditEntity`/`AdesBaseEntity` | `@MappedSuperclass` para entidades JPA — heredar de aquí en vez de declarar columnas de auditoría sueltas (ver hallazgo abajo) |
+| `mx.ades.config.AuditSessionInterceptor` | Aspecto `@Before` que propaga `auth.getName()` (usuario JWT real) a la sesión de Postgres vía `SET LOCAL app.current_user` — leído por `fn_auditoria_biu()` |
+
+**⚠️ Estándar de diseño: NO agregar un campo hash por tabla de negocio.** El ledger centralizado
+en `auditoria.log_auditoria` (agnóstico al esquema vía `to_jsonb`) es suficiente — un hash por
+fila en cada tabla sería redundante (cómputo duplicado), se perdería en `DELETE` físico, y
+obligaría a mantener el trigger por tabla cada vez que cambien columnas. Única excepción
+aceptada: `datos_checksum` en tablas SCD2/catálogos importados, como optimización de
+importación (detectar "sin cambios"), no como mecanismo de seguridad.
+
+**⚠️ Hallazgo crítico corregido 2026-07-15 — `usuario_creacion`/`usuario_modificacion` nunca
+reflejaban al usuario real.** Las 57 entidades que extienden `AdesAuditEntity`/`AdesBaseEntity`
+mapean esas columnas `insertable=false`/`updatable=false` (Regla #5). Pero 121 tablas tienen
+`DEFAULT CURRENT_USER` a nivel de columna, y `fn_auditoria_biu()` solo hacía
+`COALESCE(NEW.usuario_*, CURRENT_USER)` — como Postgres aplica el `DEFAULT` de columna ANTES del
+trigger BEFORE INSERT, `NEW.usuario_creacion` nunca llegaba `NULL`, así que **siempre** quedaba
+en `'ades_admin'` (el rol de conexión, igual para toda la app en un modelo con pooling) y
+`usuario_modificacion` quedaba **congelado para siempre** en el valor de creación en cada
+`UPDATE` (con `updatable=false`, Postgres nunca envía la columna, así que `NEW` = `OLD`, nunca
+`NULL`). Ya existía media solución sin conectar (`AuditSessionInterceptor` seteaba un GUC de
+sesión `app.current_user` que el trigger nunca leía). Corregido: el trigger ahora prioriza el
+GUC de sesión sobre cualquier valor igual a `CURRENT_USER` (tratado como "no provisto"). Antes
+de dar por buena una entidad de auditoría nueva, verificar con una prueba real de UPDATE que
+`usuario_modificacion` cambia — no basta con que compile.
 
 ---
 
@@ -240,7 +278,10 @@ export class CalificacionesComponent implements OnInit, OnDestroy {
   }
 }
 ```
-**Verificación:** `grep -r "implements OnDestroy" frontend/src | wc -l` debe ser ≥ 70  
+**Verificación:** `grep -rlE "implements.*OnDestroy" frontend/src | wc -l` debe ser ≥ 70
+(⚠️ NO usar `grep -r "implements OnDestroy"` sin `-lE`/`.*`: no matchea el caso común
+`implements OnInit, OnDestroy` y reporta falsamente ~7 en vez de 79. Medición real 2026-07-15:
+79/79 componentes = 100%.)  
 **Impacto:** Sin esto → memory leak 1MB × 1000 usuarios = 1GB crash ❌
 
 **Punto 13: Prepared Statements (SQL Injection)**
@@ -273,7 +314,7 @@ List<Alumno> findActive(@Param("email") String email, @Param("activo") Boolean a
 ```bash
 echo "=== FASE 1 ===" && \
 grep -r "@EntityGraph" backend-spring/src | wc -l && \
-grep -r "implements OnDestroy" frontend/src | wc -l && \
+grep -rlE "implements.*OnDestroy" frontend/src | wc -l && \
 grep -r "'+'" backend-spring/src | wc -l && \
 echo "=== FASE 2 ===" && \
 grep -r "ChangeDetectionStrategy.OnPush" frontend/src | wc -l && \
@@ -441,7 +482,9 @@ SUPERSET_OIDC_CLIENT_SECRET=<pendiente — crear app en Authentik>
 
 OPENAI_API_KEY=<en .env>  # usado por el backend para NVIDIA NIM / integrate.api.nvidia.com
 OPENAI_BASE_URL=https://integrate.api.nvidia.com/v1
-ENVIRONMENT=development
+ENVIRONMENT=development   # ⚠️ host único = PRODUCCIÓN (2026-07-15). Aún en 'development';
+                          # cambiar a 'production' es tarea R-2 del plan de remediación
+                          # (efectos: HTTPSRedirect, rate limiting, audit_aiud) — no flip a ciegas.
 ```
 
 ---

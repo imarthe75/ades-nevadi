@@ -142,6 +142,10 @@ public class BibliotecaController {
             @RequestBody BibliotecaLibro body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        BibliotecaLibro libro = query.findLibro(id);
+        if (nivel(user) > 2 && user.getPlantelId() != null && !libro.getPlantelId().equals(user.getPlantelId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No puede modificar un libro de otro plantel");
+        }
         var cmd = new ActualizarLibroUseCase.Command(
                 id, body.getTitulo(), body.getAutor(), body.getIsbn(), body.getEditorial(),
                 body.getAnioPublicacion(), body.getCategoria(), body.getUbicacion(),
@@ -162,6 +166,10 @@ public class BibliotecaController {
             @PathVariable("id") UUID id,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        BibliotecaLibro libro = query.findLibro(id);
+        if (nivel(user) > 2 && user.getPlantelId() != null && !libro.getPlantelId().equals(user.getPlantelId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No puede eliminar un libro de otro plantel");
+        }
         eliminarLibro.eliminar(id, nivel(user));
     }
 
@@ -204,6 +212,10 @@ public class BibliotecaController {
             @RequestBody @Valid PrestamoRequest body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        BibliotecaLibro libro = query.findLibro(body.libroId());
+        if (nivel(user) > 2 && user.getPlantelId() != null && !libro.getPlantelId().equals(user.getPlantelId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No puede prestar un libro de otro plantel");
+        }
         var cmd = new RegistrarPrestamoUseCase.Command(
                 body.libroId(), body.personaId(), scopePlantel(user, null),
                 body.fechaDevolucionEsperada(), body.observaciones(), nivel(user));
@@ -225,6 +237,10 @@ public class BibliotecaController {
             @RequestBody(required = false) DevolucionRequest body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        BibliotecaPrestamo prestamo = query.findPrestamoAbierto(id);
+        if (nivel(user) > 2 && user.getPlantelId() != null && !prestamo.getPlantelId().equals(user.getPlantelId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No puede registrar la devolución de un préstamo de otro plantel");
+        }
         String est = (body != null && body.estatusFinal() != null) ? body.estatusFinal() : "DEVUELTO";
         String obs = body != null ? body.observaciones() : null;
         var cmd = new DevolverPrestamoUseCase.Command(

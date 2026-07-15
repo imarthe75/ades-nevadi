@@ -6,6 +6,7 @@ import mx.ades.modules.eval_docente.domain.port.in.CrearEvaluacionUseCase;
 import mx.ades.modules.eval_docente.domain.port.in.EnviarEvaluacionUseCase;
 import mx.ades.modules.eval_docente.domain.port.in.GuardarCriteriosUseCase;
 import mx.ades.modules.eval_docente.query.EvalDocenteQueryService;
+import mx.ades.modules.eval_docente.domain.port.out.EvalDocenteRepositoryPort;
 import mx.ades.security.AdesUser;
 import mx.ades.security.AdesUserService;
 import org.springframework.http.HttpStatus;
@@ -42,6 +43,7 @@ public class EvalDocenteController {
     private final EnviarEvaluacionUseCase enviarEvaluacionUseCase;
     private final EvalDocenteQueryService queryService;
     private final PlanMejoraService planMejoraService;
+    private final EvalDocenteRepositoryPort repo;
 
     @Data
     public static class EvaluacionCreate {
@@ -71,7 +73,17 @@ public class EvalDocenteController {
             @PathVariable("profesorId") UUID profesorId,
             @RequestParam(value = "ciclo_id", required = false) UUID cicloId,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        // BFLA/BOLA fix: el resumen consolidado de desempeño es dato de personal (dossier
+        // laboral). Antes solo llamaba resolveUser() sin verificar nivelAcceso ni ownership —
+        // cualquier usuario autenticado (incl. padres/alumnos nivelAcceso=5) podía consultar
+        // el resumen de evaluación 360° de CUALQUIER profesor por path param.
+        AdesUser user = userService.resolveUser(jwt);
+        if (user.getNivelAcceso() == null || user.getNivelAcceso() > 4) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado");
+        }
+        if (user.getNivelAcceso() == 4 && !user.getPersonaId().equals(profesorId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo puede consultar su propio resumen");
+        }
         return ResponseEntity.ok(queryService.resumenProfesor(profesorId, cicloId));
     }
 
@@ -80,6 +92,12 @@ public class EvalDocenteController {
             @RequestBody EvaluacionCreate data,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        if (user.getNivelAcceso() == null || user.getNivelAcceso() > 4) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado");
+        }
+        if (user.getNivelAcceso() == 4 && !user.getPersonaId().equals(data.getEvaluadorId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo puede crear evaluaciones donde usted sea el evaluador");
+        }
 
         CrearEvaluacionUseCase.Command cmd;
         try {
@@ -98,7 +116,17 @@ public class EvalDocenteController {
             @PathVariable("evalId") UUID evalId,
             @RequestBody List<CriterioCalificacionDto> criterios,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        AdesUser user = userService.resolveUser(jwt);
+        if (user.getNivelAcceso() == null || user.getNivelAcceso() > 4) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado");
+        }
+        Map<String, Object> eval = repo.fetchEvaluacion(evalId);
+        if (user.getNivelAcceso() == 4 && eval != null) {
+            UUID evaluadorId = (UUID) eval.get("evaluador_id");
+            if (evaluadorId != null && !user.getPersonaId().equals(evaluadorId)) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo puede modificar sus propias evaluaciones");
+            }
+        }
 
         List<GuardarCriteriosUseCase.CriterioCalificacion> domainCriterios = criterios.stream()
                 .map(c -> new GuardarCriteriosUseCase.CriterioCalificacion(
@@ -126,6 +154,16 @@ public class EvalDocenteController {
             @PathVariable("evalId") UUID evalId,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        if (user.getNivelAcceso() == null || user.getNivelAcceso() > 4) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado");
+        }
+        Map<String, Object> eval = repo.fetchEvaluacion(evalId);
+        if (user.getNivelAcceso() == 4 && eval != null) {
+            UUID evaluadorId = (UUID) eval.get("evaluador_id");
+            if (evaluadorId != null && !user.getPersonaId().equals(evaluadorId)) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo puede enviar sus propias evaluaciones");
+            }
+        }
 
         try {
             return ResponseEntity.ok(enviarEvaluacionUseCase.enviar(

@@ -450,11 +450,15 @@ public class ConductaController {
 
     // ── SB-016: Análisis de patrones de conducta (riesgo) ─────────────────────
 
+    // BOLA fix: a diferencia de calcularRiesgo()/recalcularRiesgoGrupo() (ambos con
+    // requireNivel), este GET solo llamaba a resolveUser() — cualquier cuenta autenticada
+    // (incluido un alumno/padre) podía consultar el riesgo conductual de CUALQUIER alumno.
+    // Se alinea con requireStaff(), mismo criterio que el resto del archivo.
     @GetMapping("/riesgo/{estudianteId}")
     public ResponseEntity<Map<String, Object>> riesgoConductual(
             @PathVariable UUID estudianteId,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        requireStaff(userService.resolveUser(jwt));
         return ResponseEntity.ok(riesgoConductualService.obtenerUltimo(estudianteId));
     }
 

@@ -104,8 +104,16 @@ public class AulaController {
     public ResponseEntity<Map<String, Object>> create(
             @RequestBody Map<String, Object> body,
             @AuthenticationPrincipal Jwt jwt) {
-        requireCoordinador(userService.resolveUser(jwt));
+        AdesUser user = userService.resolveUser(jwt);
+        requireCoordinador(user);
         CrearAulaUseCase.Command cmd = buildCrearCmd(body);
+        // Un DIRECTOR/COORDINADOR (nivelAcceso 2-3) acotado a su plantel no puede dar de
+        // alta un aula asignándola a OTRO plantel — antes el plantel_id del body se
+        // aceptaba tal cual, sin scoping (BFLA, OWASP API5).
+        UUID plantelEfectivo = scopePlantelAula(user, cmd.plantelId());
+        if (!Objects.equals(plantelEfectivo, cmd.plantelId())) {
+            cmd = new CrearAulaUseCase.Command(cmd.nombreAula(), plantelEfectivo, cmd.tipoAula(), cmd.capacidadAlumnos());
+        }
         return ResponseEntity.status(HttpStatus.CREATED).body(crearUseCase.crear(cmd));
     }
 
@@ -122,7 +130,9 @@ public class AulaController {
             @PathVariable("id") UUID id,
             @RequestBody Map<String, Object> body,
             @AuthenticationPrincipal Jwt jwt) {
-        requireCoordinador(userService.resolveUser(jwt));
+        AdesUser user = userService.resolveUser(jwt);
+        requireCoordinador(user);
+        verificarPlantelDelAula(user, id);
         return ResponseEntity.ok(actualizarUseCase.actualizar(buildActualizarCmd(id, body)));
     }
 
@@ -139,7 +149,9 @@ public class AulaController {
             @PathVariable("id") UUID id,
             @RequestBody Map<String, Object> body,
             @AuthenticationPrincipal Jwt jwt) {
-        requireCoordinador(userService.resolveUser(jwt));
+        AdesUser user = userService.resolveUser(jwt);
+        requireCoordinador(user);
+        verificarPlantelDelAula(user, id);
         return ResponseEntity.ok(actualizarUseCase.actualizar(buildActualizarCmd(id, body)));
     }
 
@@ -158,10 +170,12 @@ public class AulaController {
             @PathVariable("id") UUID aulaId,
             @RequestBody Map<String, Object> body,
             @AuthenticationPrincipal Jwt jwt) {
-        requireCoordinador(userService.resolveUser(jwt));
+        AdesUser user = userService.resolveUser(jwt);
+        requireCoordinador(user);
         if (!repositoryPort.findById(aulaId).isPresent()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Aula no encontrada");
         }
+        verificarPlantelDelAula(user, aulaId);
         Integer dia = body.get("dia_semana") != null ? ((Number) body.get("dia_semana")).intValue() : null;
         String horaInicio = (String) body.get("hora_inicio");
         String horaFin    = (String) body.get("hora_fin");
@@ -206,7 +220,15 @@ public class AulaController {
     public void eliminarFranja(
             @PathVariable("franjaId") UUID franjaId,
             @AuthenticationPrincipal Jwt jwt) {
-        requireCoordinador(userService.resolveUser(jwt));
+        AdesUser user = userService.resolveUser(jwt);
+        requireCoordinador(user);
+        // BOLA (OWASP API1): franjaId no trae el plantel del aula dueña, así que hay que
+        // resolverlo antes de mutar — sin esto, un Director/Coordinador de otro plantel
+        // podía desactivar la disponibilidad de un aula ajena solo con adivinar el UUID.
+        List<UUID> aulaIds = jdbc.queryForList(
+            "SELECT aula_id FROM ades_disponibilidad_aula WHERE id = ?", UUID.class, franjaId);
+        if (aulaIds.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Franja no encontrada");
+        verificarPlantelDelAula(user, aulaIds.get(0));
         int rows = jdbc.update(
             "UPDATE ades_disponibilidad_aula SET is_active = false WHERE id = ?", franjaId);
         if (rows == 0) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Franja no encontrada");
@@ -262,6 +284,30 @@ public class AulaController {
         Integer nivelAcceso = user.getNivelAcceso();
         if (nivelAcceso == null || nivelAcceso > 3) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Nivel de acceso insuficiente para esta operación");
+        }
+    }
+
+    /** No-admins (plantelId propio asignado) quedan acotados a su plantel — mismo criterio que BibliotecaController. */
+    private UUID scopePlantelAula(AdesUser user, UUID solicitado) {
+        if (user.getNivelAcceso() != null && user.getNivelAcceso() > 1 && user.getPlantelId() != null) {
+            return user.getPlantelId();
+        }
+        return solicitado;
+    }
+
+    /**
+     * Verifica que el aula pertenezca al plantel del usuario cuando este no es admin
+     * global/plantel. Antes de este fix, update()/patch()/agregarFranja()/eliminarFranja()
+     * solo verificaban requireCoordinador() (¿tiene el nivel?) pero no que el aula_id
+     * target perteneciera al plantel del propio coordinador/director — permitiendo editar
+     * o borrar la disponibilidad de un aula de OTRO plantel (BOLA, OWASP API1).
+     */
+    private void verificarPlantelDelAula(AdesUser user, UUID aulaId) {
+        if (user.getNivelAcceso() == null || user.getNivelAcceso() <= 1 || user.getPlantelId() == null) return;
+        Aula aula = repositoryPort.findById(aulaId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Aula no encontrada"));
+        if (aula.getPlantelId() != null && !aula.getPlantelId().equals(user.getPlantelId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No puede operar sobre un aula de otro plantel");
         }
     }
 

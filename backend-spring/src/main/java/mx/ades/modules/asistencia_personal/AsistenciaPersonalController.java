@@ -94,7 +94,10 @@ public class AsistenciaPersonalController {
             @RequestParam(value = "pagina", defaultValue = "1") int pagina,
             @RequestParam(value = "por_pagina", defaultValue = "30") int porPagina,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        // Datos de asistencia de PERSONAL (RH) — sin este chequeo cualquier cuenta
+        // autenticada (incluidos alumnos/padres) podía listar la asistencia de cualquier
+        // empleado (BOLA, OWASP API1).
+        requireStaff(userService.resolveUser(jwt));
         pagina = Math.max(pagina, 1);
         porPagina = Math.min(Math.max(porPagina, 1), 200);
         return ResponseEntity.ok(queryService.listar(personaId, fechaInicio, fechaFin, tipoJornada, q, pagina, porPagina));
@@ -131,7 +134,7 @@ public class AsistenciaPersonalController {
             @RequestParam("mes") int mes,
             @RequestParam("anio") int anio,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        requireStaff(userService.resolveUser(jwt));
         return ResponseEntity.ok(queryService.reporte(personaId, mes, anio));
     }
 
@@ -139,7 +142,7 @@ public class AsistenciaPersonalController {
     public ResponseEntity<Map<String, Object>> detalleAsistencia(
             @PathVariable("id") UUID id,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        requireStaff(userService.resolveUser(jwt));
         try {
             return ResponseEntity.ok(queryService.detalle(id));
         } catch (IllegalArgumentException e) {

@@ -9,12 +9,14 @@ import mx.ades.security.AdesUser;
 import mx.ades.security.AdesUserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -28,12 +30,18 @@ public class AsistenciaController {
     private final RegistrarAsistenciaMasivaUseCase registrarAsistenciaMasiva;
     private final ConsultarAsistenciasPorClaseUseCase consultarAsistenciasPorClase;
     private final AdesUserService userService;
+    private final JdbcTemplate jdbc;
 
     @PostMapping("/registrar-lote")
     public ResponseEntity<Void> registrarLote(
             @RequestBody List<RegistrarAsistenciaItemDto> items,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = requireStaff(jwt);
+        // Un docente (nivelAcceso 4) solo puede registrar asistencia de clases que él mismo
+        // imparte (ades_clases.profesor_id) — sin esto, cualquier docente podía pasar lista
+        // por cualquier claseId ajeno (BOLA/BFLA, OWASP API1/API5).
+        new LinkedHashSet<>(items.stream().map(RegistrarAsistenciaItemDto::claseId).toList())
+                .forEach(claseId -> requireAccesoClase(user, claseId));
         registrarAsistenciaMasiva.ejecutar(
                 items.stream().map(RegistrarAsistenciaItemDto::toCommand).toList(),
                 user.getUsername());
@@ -44,7 +52,11 @@ public class AsistenciaController {
     public ResponseEntity<List<AsistenciaResponseDto>> listarPorClase(
             @PathVariable("claseId") UUID claseId,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        // Antes solo se llamaba resolveUser (autenticación) sin verificar rol ni
+        // asignación: cualquier cuenta autenticada (incluidos alumnos/padres) podía leer
+        // la lista de asistencia de CUALQUIER clase (BOLA, OWASP API1).
+        AdesUser user = requireStaff(jwt);
+        requireAccesoClase(user, claseId);
         return ResponseEntity.ok(
                 consultarAsistenciasPorClase.ejecutar(claseId).stream()
                         .map(AsistenciaResponseDto::from)
@@ -61,6 +73,7 @@ public class AsistenciaController {
             @RequestBody Map<String, Object> body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = requireStaff(jwt);
+        requireAccesoClase(user, claseId);
         String usuario = user.getUsername();
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> lista = (List<Map<String, Object>>) body.get("asistencias");
@@ -108,5 +121,23 @@ public class AsistenciaController {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Nivel de acceso insuficiente para esta operación");
         }
         return user;
+    }
+
+    /**
+     * Admin/Director/Coordinador (nivelAcceso &le;3) tienen alcance institucional; un
+     * Docente (nivelAcceso 4) solo puede leer/escribir asistencia de clases donde él
+     * mismo es el profesor de registro ({@code ades_clases.profesor_id}) — mismo criterio
+     * ya aplicado en ActividadesController (Fase 5) vía {@code ades_asignaciones_docentes}.
+     */
+    private void requireAccesoClase(AdesUser user, UUID claseId) {
+        if (user.getNivelAcceso() != null && user.getNivelAcceso() <= 3) return;
+        Long count = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM ades_clases c " +
+                "JOIN ades_profesores p ON p.id = c.profesor_id " +
+                "WHERE c.id = ? AND p.persona_id = ?",
+                Long.class, claseId, user.getPersonaId());
+        if (count == null || count == 0) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No está asignado a esta clase");
+        }
     }
 }

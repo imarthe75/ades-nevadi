@@ -65,6 +65,7 @@ public class PersonalAdminController {
             @RequestBody Map<String, Object> body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
 
         @SuppressWarnings("unchecked")
         Map<String, Object> per = (Map<String, Object>) body.get("persona");
@@ -96,6 +97,7 @@ public class PersonalAdminController {
             @RequestBody Map<String, Object> body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
 
         @SuppressWarnings("unchecked")
         Map<String, Object> per = (Map<String, Object>) body.get("persona");
@@ -114,11 +116,24 @@ public class PersonalAdminController {
     public void deactivate(
             @PathVariable("id") UUID id,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        requireStaff(userService.resolveUser(jwt));
         try {
             personalAdminService.desactivar(id);
         } catch (IllegalArgumentException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+        }
+    }
+
+    /**
+     * Alta/edición/baja de personal administrativo es operación de personal
+     * escolar (nivelAcceso &le;4), igual que ProfesorController — padres/alumnos
+     * (nivelAcceso &gt;=5) no tienen razón para crear o modificar registros de
+     * personal — previene BFLA (OWASP API5).
+     */
+    private void requireStaff(AdesUser user) {
+        Integer nivelAcceso = user.getNivelAcceso();
+        if (nivelAcceso == null || nivelAcceso > 4) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Nivel de acceso insuficiente para esta operación");
         }
     }
 }

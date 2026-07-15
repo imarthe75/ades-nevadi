@@ -184,7 +184,11 @@ public class MedicoController {
             @RequestBody Map<String, Object> body,
             @AuthenticationPrincipal Jwt jwt) {
 
+        // Alta de personal de salud es igual de sensible que expedientes/incidentes
+        // (mismo requireStaff que el resto del controller); sin este chequeo cualquier
+        // cuenta autenticada, incl. padres/alumnos, podía registrar personal escolar.
         AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
 
         @SuppressWarnings("unchecked")
         Map<String, Object> per = (Map<String, Object>) body.get("persona");
@@ -212,6 +216,7 @@ public class MedicoController {
             @AuthenticationPrincipal Jwt jwt) {
 
         AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
 
         @SuppressWarnings("unchecked")
         Map<String, Object> per = (Map<String, Object>) body.get("persona");
@@ -233,7 +238,7 @@ public class MedicoController {
             @PathVariable("id") UUID id,
             @AuthenticationPrincipal Jwt jwt) {
 
-        userService.resolveUser(jwt);
+        requireStaff(userService.resolveUser(jwt));
         try {
             personalSaludService.desactivar(id);
         } catch (IllegalArgumentException e) {

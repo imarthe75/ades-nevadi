@@ -179,6 +179,27 @@ else
 fi
 
 # ============================================================================
+# 8. Sincronización externa (Oracle Object Storage / S3-compatible)
+# ============================================================================
+echo "[$(date +'%Y-%m-%d %H:%M:%S')] ☁️  Sincronización externa..." | tee -a "$LOG_FILE"
+
+if [ -n "$MINIO_ACCESS_KEY" ] && [ -n "$MINIO_SECRET_KEY" ] && [ -n "$MINIO_ENDPOINT" ] && [ -n "$MINIO_BUCKET" ]; then
+  sudo docker run --rm \
+    -e AWS_ACCESS_KEY_ID="$MINIO_ACCESS_KEY" \
+    -e AWS_SECRET_ACCESS_KEY="$MINIO_SECRET_KEY" \
+    -e AWS_DEFAULT_REGION="us-ashburn-1" \
+    -e AWS_REQUEST_CHECKSUM_CALCULATION="when_required" \
+    -e AWS_RESPONSE_CHECKSUM_VALIDATION="when_required" \
+    -v "$BACKUP_DIR:/backups:ro" \
+    amazon/aws-cli \
+    s3 sync /backups s3://"$MINIO_BUCKET"/backups --endpoint-url "https://$MINIO_ENDPOINT" --delete 2>> "$LOG_FILE" \
+    && echo "  ✅ Sincronización externa: OK" | tee -a "$LOG_FILE" \
+    || echo "  ⚠️  Falló la sincronización a Oracle Object Storage" | tee -a "$LOG_FILE"
+else
+  echo "  ⚠️  Variables S3/MinIO incompletas en .env; omitiendo sincronización" | tee -a "$LOG_FILE"
+fi
+
+# ============================================================================
 # Summary
 # ============================================================================
 echo ""

@@ -69,7 +69,6 @@ public class DisponibilidadDocenteController {
     }
 
     @PutMapping("/docente/{profesorId}")
-    @Transactional
     public ResponseEntity<Map<String, Object>> guardar(
             @PathVariable("profesorId") UUID profesorId,
             @RequestBody BulkDisponibilidadIn data,
@@ -106,7 +105,6 @@ public class DisponibilidadDocenteController {
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @Transactional
     public void eliminar(@PathVariable("id") UUID id, @AuthenticationPrincipal Jwt jwt) {
         userService.resolveUser(jwt);
         eliminarSlot.eliminar(id);

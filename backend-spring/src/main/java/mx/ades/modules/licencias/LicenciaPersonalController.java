@@ -62,7 +62,18 @@ public class LicenciaPersonalController {
             @RequestParam(value = "pagina", defaultValue = "1") int pagina,
             @RequestParam(value = "por_pagina", defaultValue = "30") int porPagina,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        AdesUser user = userService.resolveUser(jwt);
+        // Sin este chequeo, cualquier cuenta autenticada (incluyendo alumnos/padres,
+        // nivelAcceso 5) podía listar licencias de todo el personal — motivo,
+        // observaciones_rh y fechas son datos de RH sensibles (LFPDPPP).
+        if (user.getNivelAcceso() == null || user.getNivelAcceso() > 4) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado");
+        }
+        if (user.getNivelAcceso() == 4) {
+            // DOCENTE/MEDICO/PREFECTO solo puede ver sus propias licencias, sin
+            // importar qué personal_id venga en el query param (evita BOLA).
+            personalId = user.getPersonaId();
+        }
         pagina = Math.max(pagina, 1);
         porPagina = Math.min(Math.max(porPagina, 1), 200);
         return ResponseEntity.ok(repo.list(personalId, estado, tipo, q, pagina, porPagina));
@@ -73,6 +84,12 @@ public class LicenciaPersonalController {
             @RequestBody LicenciaCreateRequest body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        if (user.getNivelAcceso() == null || user.getNivelAcceso() > 4) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado");
+        }
+        if (user.getNivelAcceso() == 4 && !user.getPersonaId().equals(body.getPersonalId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo puede solicitar licencias para sí mismo");
+        }
         var cmd = new SolicitarLicenciaUseCase.Command(
                 body.getPersonalId(),
                 TipoLicencia.of(body.getTipoLicencia()),
@@ -91,10 +108,17 @@ public class LicenciaPersonalController {
     public ResponseEntity<LicenciaPersonal> detalle(
             @PathVariable("id") UUID id,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
-        return ResponseEntity.ok(repo.findActiveById(id)
+        AdesUser user = userService.resolveUser(jwt);
+        if (user.getNivelAcceso() == null || user.getNivelAcceso() > 4) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado");
+        }
+        LicenciaPersonal lp = repo.findActiveById(id)
                 .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND, "Licencia no encontrada")));
+                        HttpStatus.NOT_FOUND, "Licencia no encontrada"));
+        if (user.getNivelAcceso() == 4 && !user.getPersonaId().equals(lp.getPersonalId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo puede consultar sus propias licencias");
+        }
+        return ResponseEntity.ok(lp);
     }
 
     @PatchMapping("/{id}")
@@ -103,6 +127,15 @@ public class LicenciaPersonalController {
             @RequestBody LicenciaPersonal body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        if (user.getNivelAcceso() == null || user.getNivelAcceso() > 4) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado");
+        }
+        LicenciaPersonal lp = repo.findActiveById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Licencia no encontrada"));
+        if (user.getNivelAcceso() == 4 && !user.getPersonaId().equals(lp.getPersonalId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo puede actualizar sus propias licencias");
+        }
         service.actualizar(id, body, user.getUsername());
         return ResponseEntity.ok(Map.of("ok", true));
     }
@@ -141,6 +174,15 @@ public class LicenciaPersonalController {
             @PathVariable("id") UUID id,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        if (user.getNivelAcceso() == null || user.getNivelAcceso() > 4) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado");
+        }
+        LicenciaPersonal lp = repo.findActiveById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Licencia no encontrada"));
+        if (user.getNivelAcceso() == 4 && !user.getPersonaId().equals(lp.getPersonalId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo puede cancelar sus propias licencias");
+        }
         service.cancelar(id, user.getUsername());
     }
 }

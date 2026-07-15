@@ -1,5 +1,5 @@
 -- =============================================================================
--- Migración 20260713_0002: Normalización física 3NF de SEPOMEX
+-- Migración 147: Normalización física 3NF de SEPOMEX
 -- 1. Agregar columna codigo_postal a la tabla ades_localidades
 -- 2. Migrar la información y eliminar la tabla fisica redundante ades_codigos_postales
 -- 3. Crear una vista compatible para no romper consultas existentes del backend (BFF)

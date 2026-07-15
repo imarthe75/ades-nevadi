@@ -258,7 +258,7 @@ services:
   # centralizar y auditar secretos en un solo plantel/servidor; no es HA.
   # ---------------------------------------------------------------------------
   vault:
-    image: hashicorp/vault:latest
+    image: hashicorp/vault@sha256:a296a888b118615dc01d5f1a6846e6d4a7277946caaed5b447008fff5fe06b54
     container_name: ades-vault
     restart: unless-stopped
     environment:
@@ -291,7 +291,7 @@ services:
           memory: 256M
 
   vault-init:
-    image: hashicorp/vault:latest
+    image: hashicorp/vault@sha256:a296a888b118615dc01d5f1a6846e6d4a7277946caaed5b447008fff5fe06b54
     container_name: ades-vault-init
     depends_on:
       - vault
@@ -707,7 +707,7 @@ services:
   # Topics: ades_{usuario_id}  Canal de suscripción por usuario
   # DESACTIVADO: Servidor limitado (2 cores, 12GB). Habilitar con más recursos
   ntfy:
-    image: binwiederhier/ntfy:latest
+    image: binwiederhier/ntfy@sha256:a6d335064ae927c4dbef118e1fa39656b3d2e01472b2a82af5915d5cebfe815f
     container_name: ades-ntfy
     restart: unless-stopped
     command: serve --base-url http://ades-ntfy:80 --behind-proxy
@@ -786,7 +786,7 @@ services:
   # (pg_database_size_bytes); esto añade visibilidad real del disco del host.
   # ---------------------------------------------------------------------------
   node-exporter:
-    image: prom/node-exporter:latest
+    image: prom/node-exporter@sha256:e9cff4fc67b1818f8c97adb115b9f12c9a54b533de86765d4a0effc01b357205
     container_name: ades-node-exporter
     restart: unless-stopped
     command:
@@ -807,7 +807,7 @@ services:
   # FASE 22: scrape FastAPI /metrics, node-exporter, postgres-exporter
   # ---------------------------------------------------------------------------
   prometheus:
-    image: prom/prometheus:latest
+    image: prom/prometheus@sha256:3c42b892cf723fa54d2f262c37a0e1f80aa8c8ddb1da7b9b0df9455a35a7f893
     container_name: ades-prometheus
     restart: unless-stopped
     command:
@@ -838,7 +838,7 @@ services:
   # FASE 22: latencia API, uptime servicios, alertas operacionales
   # ---------------------------------------------------------------------------
   grafana:
-    image: grafana/grafana-oss:latest
+    image: grafana/grafana-oss@sha256:5dad0df181cb644a14e13617b913b261a54f7d4fd4510721dba420929f35bea2
     container_name: ades-grafana
     restart: unless-stopped
     environment:
@@ -929,7 +929,7 @@ services:
   # Activado 2026-07-13 — 7.2GB RAM libres de 11GB, límite 1G aquí es seguro.
   # ---------------------------------------------------------------------------
   paperless:
-    image: ghcr.io/paperless-ngx/paperless-ngx:latest
+    image: ghcr.io/paperless-ngx/paperless-ngx@sha256:6c86cad803970ea782683a8e80e7403444c5bf3cf70de63b4d3c8e87500db92f
     container_name: ades-paperless
     restart: unless-stopped
     depends_on:
@@ -1015,7 +1015,7 @@ services:
   # FastAPI y Spring Boot BFF apuntan aquí en lugar de postgres:5432
   # ---------------------------------------------------------------------------
   pgbouncer:
-    image: edoburu/pgbouncer:latest
+    image: edoburu/pgbouncer@sha256:4c1ca296ef525f108f5d3552cc337c0c09587cf8dae7f0067fd93349e47dc1cd
     container_name: ades-pgbouncer
     restart: unless-stopped
     environment:
@@ -1062,7 +1062,7 @@ services:
   # servidor, no solo las conexiones pooleadas.
   # ---------------------------------------------------------------------------
   postgres-exporter:
-    image: prometheuscommunity/postgres-exporter:latest
+    image: prometheuscommunity/postgres-exporter@sha256:ac5ec343104fae0e2d84a27bb8d69b38430a11910c5382cad85d478d2bab713e
     container_name: ades-postgres-exporter
     restart: unless-stopped
     environment:
@@ -1088,7 +1088,7 @@ services:
   # Scrapeado por Prometheus en job "pgbouncer"
   # ---------------------------------------------------------------------------
   pgbouncer-exporter:
-    image: prometheuscommunity/pgbouncer-exporter:latest
+    image: prometheuscommunity/pgbouncer-exporter@sha256:30f31b6c2efdad3647f8182cc7c1a3a19e42bae5d17387694989f969371c230d
     container_name: ades-pgbouncer-exporter
     restart: unless-stopped
     environment:
@@ -1144,7 +1144,7 @@ services:
   # Renovación: el contenedor verifica cada 12 h y renueva si vence en < 30 días
   # ---------------------------------------------------------------------------
   certbot:
-    image: certbot/certbot:latest
+    image: certbot/certbot@sha256:6bb19cff0b3972a69855686e0ccbd20b98dbfae2aa43845a5df48947ba1401b4
     container_name: ades-certbot
     restart: unless-stopped
     volumes:

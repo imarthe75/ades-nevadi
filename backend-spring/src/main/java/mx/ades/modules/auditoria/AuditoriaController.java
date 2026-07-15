@@ -53,7 +53,7 @@ public class AuditoriaController {
             @RequestParam(value = "por_pagina", defaultValue = "50") int porPagina,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
-        if (user.getNivelAcceso() > 0) {
+        if (user.getNivelAcceso() == null || user.getNivelAcceso() > 0) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo ADMIN_GLOBAL tiene acceso al registro de auditoría");
         }
         pagina = Math.max(pagina, 1);
@@ -74,7 +74,7 @@ public class AuditoriaController {
             @RequestParam(value = "por_pagina", defaultValue = "50") int porPagina,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
-        if (user.getNivelAcceso() > 0) {
+        if (user.getNivelAcceso() == null || user.getNivelAcceso() > 0) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo ADMIN_GLOBAL tiene acceso al registro de auditoría");
         }
         if (authentikApiToken == null || authentikApiToken.isBlank()) {

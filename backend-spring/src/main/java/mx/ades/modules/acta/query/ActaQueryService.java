@@ -55,6 +55,21 @@ public class ActaQueryService {
                 p);
     }
 
+    /** Plantel al que pertenece un grupo (Grupo no mapea plantel_id directo; se resuelve vía grado). */
+    public UUID plantelDeGrupo(UUID grupoId) {
+        MapSqlParameterSource p = new MapSqlParameterSource()
+                .addValue("grupo", grupoId.toString());
+        return jdbc.query(
+                """
+                SELECT gr.plantel_id
+                FROM ades_grupos g
+                JOIN ades_grados gr ON gr.id = g.grado_id
+                WHERE g.id = CAST(:grupo AS uuid)
+                """,
+                p,
+                rs -> rs.next() ? (UUID) rs.getObject("plantel_id") : null);
+    }
+
     /** Materias impartidas en un grupo (con el docente asignado). */
     public List<Map<String, Object>> materiasGrupo(UUID grupoId) {
         MapSqlParameterSource p = new MapSqlParameterSource()

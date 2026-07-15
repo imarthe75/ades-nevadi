@@ -37,6 +37,36 @@ public class BienestarController {
     private static final java.util.Set<String> TIPOS_VALIDOS =
             java.util.Set.of("ACTIVIDAD_LUDICA", "DIA_TEMATICO", "TALLER_BIENESTAR", "OTRO");
 
+    // Nivel mínimo para mutaciones (COORDINADOR = 3; DOCENTE/ALUMNO/PADRE no pueden
+    // crear/editar/borrar eventos institucionales) — mismo umbral que CalendarioController.
+    private static final int NIVEL_MIN_ESCRITURA = 3;
+
+    private void requireRole(AdesUser user) {
+        if (user.getNivelAcceso() == null || user.getNivelAcceso() > NIVEL_MIN_ESCRITURA) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                "Se requiere rol de Coordinador o superior para esta operación");
+        }
+    }
+
+    /**
+     * BOLA cross-plantel: un Coordinador/Director (nivelAcceso 2-3) solo debe poder
+     * modificar/eliminar participantes de eventos de SU plantel (o globales,
+     * plantel_id NULL). Antes de este fix, actualizarParticipantes()/eliminar() solo
+     * verificaban resolveUser() sin comprobar el plantel_id del evento — permitiendo a
+     * un coordinador de un plantel editar/borrar eventos de OTRO plantel con solo
+     * conocer su UUID (OWASP API1 BOLA).
+     */
+    private void verificarPlantelDelEvento(AdesUser user, UUID eventoId) {
+        if (user.getNivelAcceso() == null || user.getNivelAcceso() <= 1 || user.getPlantelId() == null) return;
+        List<Map<String, Object>> rows = jdbc.queryForList(
+                "SELECT plantel_id FROM ades_eventos_bienestar WHERE id = ? AND is_active = TRUE", eventoId);
+        if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Evento no encontrado");
+        Object eventoPlantelId = rows.get(0).get("plantel_id");
+        if (eventoPlantelId != null && !eventoPlantelId.toString().equals(user.getPlantelId().toString())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No puede operar sobre un evento de otro plantel");
+        }
+    }
+
     @Data
     public static class EventoRequest {
         private String titulo;
@@ -79,6 +109,7 @@ public class BienestarController {
             @RequestBody EventoRequest body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        requireRole(user);
         if (body.getTitulo() == null || body.getTitulo().isBlank())
             throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "El título es obligatorio");
         if (body.getFecha() == null)
@@ -89,7 +120,12 @@ public class BienestarController {
             throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
                 "tipo inválido. Valores permitidos: " + TIPOS_VALIDOS);
 
-        UUID plantelId = body.getPlantelId() != null ? body.getPlantelId() : user.getPlantelId();
+        // BFLA fix: antes de este chequeo un Coordinador (nivelAcceso 2-3, no admin)
+        // podía enviar en el body el plantelId de OTRO plantel y el evento se creaba
+        // ahí — el plantel del usuario ahora se fuerza salvo para ADMIN_GLOBAL (0).
+        UUID plantelId = (user.getNivelAcceso() != null && user.getNivelAcceso() > 0 && user.getPlantelId() != null)
+                ? user.getPlantelId()
+                : (body.getPlantelId() != null ? body.getPlantelId() : user.getPlantelId());
         UUID id = UUID.randomUUID();
         jdbc.update("""
             INSERT INTO ades_eventos_bienestar (id, titulo, descripcion, fecha, plantel_id, tipo)
@@ -104,7 +140,9 @@ public class BienestarController {
             @PathVariable UUID id,
             @RequestBody Map<String, Integer> body,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        AdesUser user = userService.resolveUser(jwt);
+        requireRole(user);
+        verificarPlantelDelEvento(user, id);
         Integer count = body.get("participantes_count");
         if (count == null || count < 0)
             throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "participantes_count inválido");
@@ -116,7 +154,9 @@ public class BienestarController {
     @DeleteMapping("/{id}")
     @Transactional
     public ResponseEntity<Void> eliminar(@PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        AdesUser user = userService.resolveUser(jwt);
+        requireRole(user);
+        verificarPlantelDelEvento(user, id);
         int rows = jdbc.update("UPDATE ades_eventos_bienestar SET is_active = FALSE WHERE id = ? AND is_active = TRUE", id);
         if (rows == 0) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Evento no encontrado");
         return ResponseEntity.noContent().build();

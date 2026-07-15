@@ -14,6 +14,27 @@ Este documento es el diario de vida y bitácora del agente. Debe ser leído en e
 
 ## 📅 Bitácora
 
+## Sesión 2026-07-15 — Remediaciones de Auditoría de Seguridad (Fases R-1 a R-17) ✅
+
+Se ejecutaron múltiples remediaciones críticas identificadas en el plan de remediación de seguridad de ADES:
+
+*   **R-1 (Ledger de Auditoría Criptográfica):** Endurecido con SHA-256 y encadenamiento global real secuencial (`log_seq BIGSERIAL`) para evitar colisiones de marcas de tiempo en transacciones rápidas. Implementada y validada la función de verificación `auditoria.fn_verificar_cadena()`.
+*   **R-3 (Copias de Seguridad Fuera del Servidor):** Automatizada la subida a Oracle Object Storage en [backup-ades.sh](file:///opt/ades/scripts/backup-ades.sh) con compatibilidad de checksum S3 para OCI.
+*   **R-4 (Auditoría de Suplencias):** Añadidas columnas de auditoría estándar, activados triggers y removida la tabla temporal de PII `ades_pii_encryption_backup_20260619`.
+*   **R-5 (Huecos BOLA/BFLA en Controllers):**
+    *   `BibliotecaController.java`: Asegurado el scoping por `plantelId` en escrituras de libros y préstamos (actualización, eliminación, préstamos y devoluciones).
+    *   `EvalDocenteController.java`: Bloqueado acceso a alumnos y restringido a docentes para que solo creen, editen o cierren evaluaciones donde ellos son el evaluador autenticado.
+    *   `CapacitacionDocenteController.java`, `LicenciaPersonalController.java`, `BadgeController.java`: Aplicados chequeos de propiedad y nivel de acceso mínimo.
+*   **R-6 (Content-Security-Policy):** Integradas cabeceras CSP detalladas en todos los vhosts de `nginx.conf`, con configuración especial de `frame-ancestors` para habilitar iframes legítimos de Superset y Grafana en el dominio principal `ades.setag.mx`.
+*   **R-7 (Pinear Imágenes Docker):** Pineadas las 11 imágenes de servicios externos en `docker-compose.yml` usando sus hashes de digest SHA-256 exactos para asegurar inmutabilidad y estabilidad.
+*   **R-8 (Reporte de Vulnerabilidades):** Creado el archivo [SECURITY.md](file:///opt/ades/SECURITY.md) apuntando al canal oficial de contacto `admin@setag.mx`.
+*   **R-11 (API Contracts CI):** Integrada la ejecución en modo estricto de `check-api-contracts.js` en el workflow de GitHub de E2E tests (`.github/workflows/e2e-tests.yml`).
+*   **R-12 (@Transactional en Servicios):** Removida la anotación del controller de disponibilidad y migrada a la capa de servicio en `DisponibilidadApplicationService.java`.
+
+### ✅ Verificación:
+*   Contenedores reconstruidos y levantados sin fallas.
+*   Ejecutado `docker system prune -a --volumes -f` liberando espacio de disco según las reglas del proyecto.
+
 ## Sesión 2026-07-13 (cont.) — Cierre de pendientes + corrida general del sistema (2 agentes) + 13 bugs reales ✅
 
 Usuario pidió corregir los 5 pendientes documentados en la sesión anterior y luego hacer "una corrida

@@ -55,8 +55,13 @@ public class SuplenciaController {
         suplencia.setTimeslotId(body.getTimeslotId());
         suplencia.setHorarioId(body.getHorarioId());
         suplencia.setMotivo(body.getMotivo());
-        suplencia.setCreadoPor(user.getUsername());
-        
+        // usuario_creacion/usuario_modificacion: gestionados por el trigger audit_biu
+        // (Regla Mandatoria #5 — no asignar manualmente). Nota: como estas columnas son
+        // insertable=false/updatable=false en AdesBaseEntity, el trigger cae a CURRENT_USER
+        // (rol de conexión BD), no al usuario real de la app — limitación preexistente,
+        // compartida por todas las entidades que extienden AdesBaseEntity/AdesAuditEntity;
+        // ver hallazgo en docs/hallazgos/2026-07-15_validacion_remediacion.md.
+
         return ResponseEntity.status(HttpStatus.CREATED).body(suplenciaRepository.save(suplencia));
     }
 

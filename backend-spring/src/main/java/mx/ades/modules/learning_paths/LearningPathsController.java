@@ -122,6 +122,20 @@ public class LearningPathsController {
         verificarAccesoEstudiante(user, estudianteId);
     }
 
+    /**
+     * BFLA fix (auditoría 2026-07-15): crear/asignar rutas de aprendizaje y disparar
+     * el ajuste automático masivo por grupo son operaciones de personal escolar
+     * (nivelAcceso &le;4); antes solo se verificaba scoping por plantel
+     * (verificarAccesoEstudiante/Grupo), lo cual permitía a un padre o alumno del
+     * mismo plantel crear paths o asignarlos a cualquier estudiante del plantel.
+     */
+    private void requireStaff(AdesUser user) {
+        Integer nivelAcceso = user.getNivelAcceso();
+        if (nivelAcceso == null || nivelAcceso > 4) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Nivel de acceso insuficiente para esta operación");
+        }
+    }
+
     @GetMapping("")
     public ResponseEntity<List<Map<String, Object>>> listarPaths(
             @RequestParam(value = "activos", required = false) Boolean activos,
@@ -166,7 +180,7 @@ public class LearningPathsController {
     public ResponseEntity<Map<String, Object>> crearPath(
             @RequestBody @Valid PathRequest body,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        requireStaff(userService.resolveUser(jwt));
         try {
             var cmd = new CrearLearningPathUseCase.Command(
                 body.getNombre(), body.getDescripcion(), body.getNivelEducativoId(),
@@ -183,7 +197,7 @@ public class LearningPathsController {
             @PathVariable("path_id") UUID pathId,
             @RequestBody RecursoRequest body,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        requireStaff(userService.resolveUser(jwt));
         try {
             return ResponseEntity.status(HttpStatus.CREATED).body(
                 learningPathService.agregarRecurso(pathId, body.getOrden(), body.getTipo(),
@@ -201,6 +215,7 @@ public class LearningPathsController {
             @RequestBody @Valid AsignacionRequest body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
         verificarAccesoEstudiante(user, body.getEstudianteId());
         try {
             var cmd = new AsignarPathUseCase.Command(pathId, body.getEstudianteId(), user.getId(), body.getMotivo());
@@ -233,6 +248,7 @@ public class LearningPathsController {
             @PathVariable("grupo_id") UUID grupoId,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
         verificarAccesoGrupo(user, grupoId);
         int asignadas = learningPathService.asignarAutomatico(grupoId, user.getId());
         if (asignadas == 0) {

@@ -21,6 +21,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -93,7 +94,10 @@ public class BadgeController {
     public ResponseEntity<Map<String, Object>> crear(
             @RequestBody @Valid BadgeCreateRequest body,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        AdesUser user = userService.resolveUser(jwt);
+        if (user.getNivelAcceso() == null || user.getNivelAcceso() > 3) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado");
+        }
         BigDecimal valor = body.getCriterioValor() != null ? new BigDecimal(body.getCriterioValor()) : null;
         var cmd = new CrearBadgeUseCase.Command(
                 body.getNombre(), body.getDescripcion(), body.getIcono(), body.getColor(),
@@ -116,7 +120,10 @@ public class BadgeController {
     public ResponseEntity<Map<String, Object>> eliminar(
             @PathVariable("id") UUID id,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        AdesUser user = userService.resolveUser(jwt);
+        if (user.getNivelAcceso() == null || user.getNivelAcceso() > 3) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado");
+        }
         service.eliminar(id);
         return ResponseEntity.ok(Map.of("ok", true));
     }

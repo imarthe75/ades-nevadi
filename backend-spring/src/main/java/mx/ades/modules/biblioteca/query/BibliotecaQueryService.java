@@ -35,6 +35,11 @@ public class BibliotecaQueryService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Libro no encontrado"));
     }
 
+    public mx.ades.modules.biblioteca.BibliotecaPrestamo findPrestamoAbierto(UUID id) {
+        return repo.findPrestamoAbierto(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Préstamo no encontrado o ya cerrado"));
+    }
+
     public List<Map<String, Object>> listPrestamos(UUID personaId, UUID libroId, String estatus, UUID plantelId,
                                                      int pagina, int porPagina) {
         return repo.listPrestamos(personaId, libroId, estatus, plantelId, pagina, porPagina);

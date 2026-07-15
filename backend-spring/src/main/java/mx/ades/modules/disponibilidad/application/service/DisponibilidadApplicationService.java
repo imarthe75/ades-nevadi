@@ -5,6 +5,7 @@ import mx.ades.modules.disponibilidad.domain.port.in.EliminarSlotUseCase;
 import mx.ades.modules.disponibilidad.domain.port.in.GuardarDisponibilidadUseCase;
 import mx.ades.modules.disponibilidad.domain.port.out.DisponibilidadRepositoryPort;
 import org.springframework.http.HttpStatus;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.UUID;
@@ -19,6 +20,7 @@ import java.util.UUID;
  * @author ADES
  * @since 2026
  */
+@Transactional
 public class DisponibilidadApplicationService
         implements GuardarDisponibilidadUseCase, EliminarSlotUseCase {
 

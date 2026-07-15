@@ -106,7 +106,13 @@ public class SaludAvanzadaController {
             @PathVariable("alumno_id") UUID alumnoId,
             @RequestParam(value = "solo_vigentes", defaultValue = "true") boolean soloVigentes,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        AdesUser user = userService.resolveUser(jwt);
+        // Inconsistente con historialPsicosocial/listarTutorias (mismo controller), que sí
+        // validan nivelAcceso <=3 — sin este chequeo cualquier cuenta autenticada podía leer
+        // los medicamentos autorizados de cualquier alumno (dato de salud sensible, LFPDPPP).
+        if (user.getNivelAcceso() == null || user.getNivelAcceso() > 3) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado");
+        }
         return ResponseEntity.ok(queryService.medicamentos(alumnoId, soloVigentes));
     }
 
@@ -240,7 +246,10 @@ public class SaludAvanzadaController {
             @PathVariable("incidente_id") UUID incidenteId,
             @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authHeader,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        // El acta de incidente médico es un documento de salud sensible (solo se
+        // consume desde el módulo de personal médico/coordinación, ver medico.component.ts);
+        // faltaba el mismo nivelAcceso <=3 que exige generarActaIncidente().
+        requireStaffMedico(userService.resolveUser(jwt));
         return proxyToPdf(API_BASE_URL + "/incidentes/" + incidenteId + "/acta-pdf", authHeader);
     }
 
@@ -249,8 +258,22 @@ public class SaludAvanzadaController {
             @PathVariable("alumno_id") UUID alumnoId,
             @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authHeader,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        // Igual que descargarActaIncidente: sin este chequeo, cualquier cuenta
+        // autenticada podía descargar el certificado deportivo (datos de salud) de
+        // cualquier alumno solo conociendo su UUID.
+        requireStaffMedico(userService.resolveUser(jwt));
         return proxyToPdf(API_BASE_URL + "/certificado-deportivo/" + alumnoId, authHeader);
+    }
+
+    /**
+     * Documentos de salud (actas de incidente, certificados deportivos) — solo
+     * personal médico/coordinación (nivelAcceso &le;3), igual que las escrituras
+     * de este módulo (medicamentos, psicosocial, tutorías).
+     */
+    private void requireStaffMedico(AdesUser user) {
+        if (user.getNivelAcceso() == null || user.getNivelAcceso() > 3) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado");
+        }
     }
 
     private ResponseEntity<byte[]> proxyToPdf(String url, String authHeader) {

@@ -45,13 +45,41 @@ public class CalificacionesController {
 
     private static final Set<String> NIVELES_LOGRO_VALIDOS = Set.of("A", "B", "C", "D");
 
+    /**
+     * BOLA fix: antes de este chequeo, un DOCENTE (nivelAcceso 4) podía calcular/guardar
+     * calificaciones de CUALQUIER grupo/materia del sistema, incluso de otro plantel o de
+     * una materia que no imparte — el chequeo previo solo verificaba "nivelAcceso &le;4"
+     * sin comprobar asignación real. Mismo criterio que
+     * {@code GradebookController#requireAccesoGrupo}: admin/director/coordinador
+     * (nivelAcceso &le;3) conservan alcance institucional; un DOCENTE (4) solo puede
+     * operar sobre grupos donde esté realmente asignado (ades_asignaciones_docentes).
+     */
+    private void requireAccesoGrupo(AdesUser user, UUID grupoId) {
+        Integer nivel = user.getNivelAcceso();
+        if (nivel == null || nivel > 4) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Nivel de acceso insuficiente para esta operación");
+        }
+        if (nivel <= 3) return;
+        Long count = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM ades_asignaciones_docentes ad " +
+                "JOIN ades_profesores p ON p.id = ad.profesor_id " +
+                "WHERE ad.grupo_id = ? AND p.persona_id = ? AND ad.is_active = TRUE",
+                Long.class, grupoId, user.getPersonaId());
+        if (count == null || count == 0) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No está asignado a este grupo");
+        }
+    }
+
     @PostMapping("/calcular")
     public ResponseEntity<Void> calcular(
             @RequestBody CalcularCalificacionDto req,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
-        if (user.getNivelAcceso() != null && user.getNivelAcceso() > 4)
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Sin permisos para calcular calificaciones");
+        List<UUID> grupoRows = jdbc.queryForList(
+                "SELECT grupo_id FROM ades_inscripciones WHERE id = ?", UUID.class, req.inscripcionId());
+        if (grupoRows.isEmpty())
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Inscripción no encontrada");
+        requireAccesoGrupo(user, grupoRows.get(0));
         calcularCalificacionPeriodo.ejecutar(req.estudianteId(), req.inscripcionId(), req.materiaId(), req.periodoId());
         return ResponseEntity.ok().build();
     }
@@ -61,8 +89,7 @@ public class CalificacionesController {
             @RequestBody @Valid GuardarCalificacionManualDto req,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
-        if (user.getNivelAcceso() != null && user.getNivelAcceso() > 4)
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Sin permisos para registrar calificaciones");
+        requireAccesoGrupo(user, req.grupoId());
         return ResponseEntity.ok(
                 CalificacionResponseDto.from(guardarCalificacionManual.ejecutar(req.toDomain())));
     }
@@ -237,8 +264,9 @@ public class CalificacionesController {
             @AuthenticationPrincipal Jwt jwt) {
 
         AdesUser user = userService.resolveUser(jwt);
-        if (user.getNivelAcceso() != null && user.getNivelAcceso() > 4)
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Sin permisos para registrar calificaciones");
+        if (body.getGrupoId() == null)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "grupoId es obligatorio");
+        requireAccesoGrupo(user, body.getGrupoId());
 
         if (body.getNivelLogro() == null || !NIVELES_LOGRO_VALIDOS.contains(body.getNivelLogro()))
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,

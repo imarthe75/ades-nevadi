@@ -203,7 +203,7 @@ public class AlumnoQueryService {
     @Transactional(readOnly = true)
     public Map<String, Object> datosCredencial(UUID id) {
         List<Map<String, Object>> rows = jdbc.queryForList("""
-            SELECT e.id, e.matricula,
+            SELECT e.id, e.matricula, e.plantel_id,
                    COALESCE(p.nombre_social, p.nombre) AS nombre, p.apellido_paterno, p.apellido_materno,
                    p.curp, p.foto_url,
                    pl.nombre_plantel,

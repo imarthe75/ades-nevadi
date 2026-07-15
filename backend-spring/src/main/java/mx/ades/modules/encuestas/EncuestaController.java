@@ -104,7 +104,15 @@ public class EncuestaController {
     }
 
     @GetMapping("/{id}/resultados")
-    public ResponseEntity<Map<String, Object>> resultados(@PathVariable("id") UUID id) {
+    public ResponseEntity<Map<String, Object>> resultados(
+            @PathVariable("id") UUID id,
+            @AuthenticationPrincipal Jwt jwt) {
+        // BOLA/exposición de datos fix: al igual que /respuestas-raw, este endpoint expone
+        // hasta 20 respuestas de texto libre sin agregar por pregunta (mismo nivel de
+        // sensibilidad, incluye detección de acoso/bullying) pero no exigía ni resolver el
+        // JWT — cualquier usuario autenticado podía leer comentarios crudos de cualquier
+        // encuesta por id. Se alinea con requireStaff() ya aplicado en respuestasRaw().
+        requireStaff(userService.resolveUser(jwt));
         return ResponseEntity.ok(queryService.resultados(id));
     }
 

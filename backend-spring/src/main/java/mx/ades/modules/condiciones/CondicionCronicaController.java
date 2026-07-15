@@ -11,6 +11,7 @@ import mx.ades.security.AdesUser;
 import mx.ades.security.AdesUserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -42,6 +43,34 @@ public class CondicionCronicaController {
     private final ActualizarCondicionUseCase actualizarCondicion;
     private final EliminarCondicionUseCase   eliminarCondicion;
     private final CondicionQueryService      query;
+    private final JdbcTemplate               jdbc;
+
+    /**
+     * BOLA fix: las condiciones crónicas (alergias, medicación, discapacidad) son PII
+     * de salud sensible bajo LFPDPPP. Antes de este chequeo, listar()/alertaEmergencia()/
+     * obtener() solo llamaban a resolveUser() sin verificar que el usuario tuviera
+     * relación con el alumno — cualquier cuenta autenticada (incluido un alumno/padre,
+     * nivelAcceso &gt;=5) podía consultar la ficha médica de CUALQUIER alumno del sistema.
+     * Personal escolar (nivelAcceso &le;4) conserva alcance institucional; alumnos/padres
+     * solo pueden consultar la de sí mismos o de un alumno del que son tutor activo
+     * (mismo criterio que BoletasController#verificarAccesoAlumno).
+     */
+    private void verificarAccesoAlumno(AdesUser user, UUID alumnoId) {
+        Integer nivelAcceso = user.getNivelAcceso();
+        if (nivelAcceso != null && nivelAcceso <= 4) {
+            return;
+        }
+        Integer count = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM ades_estudiantes e WHERE e.id = ? AND (" +
+                "  e.persona_id = ? OR EXISTS (" +
+                "    SELECT 1 FROM ades_tutores_alumnos ta JOIN ades_personas p ON p.id = ta.persona_id " +
+                "    WHERE ta.alumno_id = e.id AND ta.is_active = TRUE AND p.email_personal = ?" +
+                "  )" +
+                ")", Integer.class, alumnoId, user.getPersonaId(), user.getEmail());
+        if (count == null || count == 0) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No tienes acceso a la información de este alumno");
+        }
+    }
 
     @GetMapping
     public ResponseEntity<List<Map<String, Object>>> listar(
@@ -49,7 +78,13 @@ public class CondicionCronicaController {
             @RequestParam(value = "tipo_condicion",  required = false) String tipoCondicion,
             @RequestParam(value = "solo_activas", defaultValue = "true") boolean soloActivas,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        AdesUser user = userService.resolveUser(jwt);
+        if (alumnoId != null) {
+            verificarAccesoAlumno(user, alumnoId);
+        } else if (user.getNivelAcceso() != null && user.getNivelAcceso() > 4) {
+            // Sin alumno_id, el listado devolvía la ficha médica de TODOS los alumnos.
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Debe especificar alumno_id");
+        }
         return ResponseEntity.ok(query.list(alumnoId, tipoCondicion, soloActivas));
     }
 
@@ -82,7 +117,8 @@ public class CondicionCronicaController {
     public ResponseEntity<List<Map<String, Object>>> alertaEmergencia(
             @PathVariable("alumnoId") UUID alumnoId,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        AdesUser user = userService.resolveUser(jwt);
+        verificarAccesoAlumno(user, alumnoId);
         return ResponseEntity.ok(query.alertaEmergencia(alumnoId));
     }
 
@@ -90,8 +126,10 @@ public class CondicionCronicaController {
     public ResponseEntity<CondicionCronica> obtener(
             @PathVariable("id") UUID id,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
-        return ResponseEntity.ok(query.findById(id));
+        AdesUser user = userService.resolveUser(jwt);
+        CondicionCronica cc = query.findById(id);
+        verificarAccesoAlumno(user, cc.getAlumnoId());
+        return ResponseEntity.ok(cc);
     }
 
     @PatchMapping("/{id}")

@@ -106,7 +106,10 @@ public class PortalAdminController {
     @GetMapping("/convocatorias/{id}/requisitos")
     public ResponseEntity<List<Map<String, Object>>> listarRequisitos(
             @PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        // Asimétrico vs. el resto del CRUD de convocatorias (todos exigen requireAdmin):
+        // faltaba aquí, dejando el detalle administrativo accesible a cualquier cuenta
+        // ADES autenticada bajo la ruta /portal/admin/.
+        requireAdmin(userService.resolveUser(jwt));
         return ResponseEntity.ok(adminSvc.listarRequisitos(id));
     }
 
@@ -302,7 +305,9 @@ public class PortalAdminController {
     public ResponseEntity<List<Map<String, Object>>> listarSecciones(
             @PathVariable UUID convId,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        // Igual que listarRequisitos: asimétrico frente a crear/actualizar/reordenar/eliminar
+        // secciones (todos con requireAdmin) — faltaba aquí.
+        requireAdmin(userService.resolveUser(jwt));
         return ResponseEntity.ok(adminSvc.listarSecciones(convId));
     }
 

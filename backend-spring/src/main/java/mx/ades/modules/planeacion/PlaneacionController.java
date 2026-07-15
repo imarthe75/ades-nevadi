@@ -103,20 +103,28 @@ public class PlaneacionController {
     @GetMapping("/temas")
     public ResponseEntity<List<Map<String, Object>>> temasConEstado(
             @RequestParam("grupo_id") UUID grupoId,
-            @RequestParam(value = "materia_id", required = false) UUID materiaId) {
+            @RequestParam(value = "materia_id", required = false) UUID materiaId,
+            @AuthenticationPrincipal Jwt jwt) {
+        // BOLA fix: sin chequeo alguno, cualquier cuenta ADES autenticada (incl. alumnos/
+        // padres) podía leer el avance curricular de cualquier grupo del sistema.
+        requireAccesoGrupoPlaneacion(userService.resolveUser(jwt), grupoId);
         return ResponseEntity.ok(queries.getTemasConEstado(grupoId, materiaId));
     }
 
     @GetMapping("/cobertura/{grupo_id}")
     public ResponseEntity<List<Map<String, Object>>> coberturaGrupo(
-            @PathVariable("grupo_id") UUID grupoId) {
+            @PathVariable("grupo_id") UUID grupoId,
+            @AuthenticationPrincipal Jwt jwt) {
+        requireAccesoGrupoPlaneacion(userService.resolveUser(jwt), grupoId);
         return ResponseEntity.ok(queries.getCoberturaGrupo(grupoId));
     }
 
     @GetMapping("/clases")
     public ResponseEntity<List<Map<String, Object>>> listarPlaneacion(
             @RequestParam("grupo_id") UUID grupoId,
-            @RequestParam(value = "materia_id", required = false) UUID materiaId) {
+            @RequestParam(value = "materia_id", required = false) UUID materiaId,
+            @AuthenticationPrincipal Jwt jwt) {
+        requireAccesoGrupoPlaneacion(userService.resolveUser(jwt), grupoId);
         return ResponseEntity.ok(queries.getListarPlaneacion(grupoId, materiaId));
     }
 
@@ -178,7 +186,12 @@ public class PlaneacionController {
     @GetMapping("/alertas-rezago/{ciclo_id}")
     public ResponseEntity<Map<String, Object>> alertasRezago(
             @PathVariable("ciclo_id") UUID cicloId,
-            @RequestParam(value = "umbral_pct", defaultValue = "80.0") Double umbralPct) {
+            @RequestParam(value = "umbral_pct", defaultValue = "80.0") Double umbralPct,
+            @AuthenticationPrincipal Jwt jwt) {
+        // Alcance de todo el ciclo (todos los grupos) — no hay un grupo_id que acotar,
+        // así que se exige personal con alcance institucional (nivelAcceso <=3), igual
+        // que el "recalcular todo el periodo" de GradebookController.
+        requireStaff(userService.resolveUser(jwt));
         return ResponseEntity.ok(queries.getAlertasRezago(cicloId, umbralPct));
     }
 
@@ -186,13 +199,17 @@ public class PlaneacionController {
     public ResponseEntity<Map<String, Object>> planSemana(
             @PathVariable("grupo_id") UUID grupoId,
             @RequestParam("fecha_inicio") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-            LocalDate fechaInicio) {
+            LocalDate fechaInicio,
+            @AuthenticationPrincipal Jwt jwt) {
+        requireAccesoGrupoPlaneacion(userService.resolveUser(jwt), grupoId);
         return ResponseEntity.ok(queries.getPlanSemana(grupoId, fechaInicio));
     }
 
     @GetMapping("/insights/{grupo_id}")
     public ResponseEntity<Map<String, Object>> insightsGrupo(
-            @PathVariable("grupo_id") UUID grupoId) {
+            @PathVariable("grupo_id") UUID grupoId,
+            @AuthenticationPrincipal Jwt jwt) {
+        requireAccesoGrupoPlaneacion(userService.resolveUser(jwt), grupoId);
         return ResponseEntity.ok(queries.getInsightsGrupo(grupoId));
     }
 
@@ -200,7 +217,9 @@ public class PlaneacionController {
 
     @GetMapping("/pendientes-reprogramar/{grupo_id}")
     public ResponseEntity<List<Map<String, Object>>> pendientesReprogramar(
-            @PathVariable("grupo_id") UUID grupoId) {
+            @PathVariable("grupo_id") UUID grupoId,
+            @AuthenticationPrincipal Jwt jwt) {
+        requireAccesoGrupoPlaneacion(userService.resolveUser(jwt), grupoId);
         return ResponseEntity.ok(queries.getPendientesReprogramar(grupoId));
     }
 
@@ -231,7 +250,9 @@ public class PlaneacionController {
             @RequestParam("grupo_id") UUID grupoId,
             @RequestParam(value = "trimestre", required = false) Integer trimestre,
             @RequestParam(value = "semana", required = false) Integer semana,
-            @RequestParam(value = "materia_id", required = false) UUID materiaId) {
+            @RequestParam(value = "materia_id", required = false) UUID materiaId,
+            @AuthenticationPrincipal Jwt jwt) {
+        requireAccesoGrupoPlaneacion(userService.resolveUser(jwt), grupoId);
         return ResponseEntity.ok(queries.getPlaneacionSemanal(grupoId, trimestre, semana, materiaId));
     }
 
@@ -242,7 +263,9 @@ public class PlaneacionController {
     @GetMapping("/cobertura-semanal")
     public ResponseEntity<List<Map<String, Object>>> getCoberturaSemanal(
             @RequestParam("grupo_id") UUID grupoId,
-            @RequestParam(value = "trimestre", required = false) Integer trimestre) {
+            @RequestParam(value = "trimestre", required = false) Integer trimestre,
+            @AuthenticationPrincipal Jwt jwt) {
+        requireAccesoGrupoPlaneacion(userService.resolveUser(jwt), grupoId);
         return ResponseEntity.ok(queries.getCoberturaSemanal(grupoId, trimestre));
     }
 
@@ -317,7 +340,11 @@ public class PlaneacionController {
     @GetMapping("/temario-aprendizajes")
     public ResponseEntity<Map<String, Object>> getTemarioYAprendizajes(
             @RequestParam("materia_id") UUID materiaId,
-            @RequestParam("grado_id") UUID gradoId) {
+            @RequestParam("grado_id") UUID gradoId,
+            @AuthenticationPrincipal Jwt jwt) {
+        // Catálogo curricular (temario/aprendizajes por materia+grado, sin datos de
+        // alumnos ni de un grupo específico) — se exige solo personal escolar.
+        requireStaff(userService.resolveUser(jwt));
         return ResponseEntity.ok(queries.getTemarioYAprendizajes(materiaId, gradoId));
     }
 
@@ -386,7 +413,9 @@ public class PlaneacionController {
      */
     @GetMapping("/grupo/{grupo_id}/planeaciones-activas")
     public ResponseEntity<List<Map<String, Object>>> getPlaneacionesActivas(
-            @PathVariable("grupo_id") UUID grupoId) {
+            @PathVariable("grupo_id") UUID grupoId,
+            @AuthenticationPrincipal Jwt jwt) {
+        requireAccesoGrupoPlaneacion(userService.resolveUser(jwt), grupoId);
         return ResponseEntity.ok(queries.getPlaneacionesDelGrupo(grupoId));
     }
 
@@ -396,8 +425,17 @@ public class PlaneacionController {
      */
     @GetMapping("/{planeacion_id}/detalles")
     public ResponseEntity<Map<String, Object>> getDetallesplanneacion(
-            @PathVariable("planeacion_id") UUID planeacionClaseId) {
-        return ResponseEntity.ok(queries.getDetallesplanneacion(planeacionClaseId));
+            @PathVariable("planeacion_id") UUID planeacionClaseId,
+            @AuthenticationPrincipal Jwt jwt) {
+        AdesUser user = userService.resolveUser(jwt);
+        Map<String, Object> detalles;
+        try {
+            detalles = queries.getDetallesplanneacion(planeacionClaseId);
+        } catch (org.springframework.dao.EmptyResultDataAccessException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Planeación no encontrada");
+        }
+        requireAccesoGrupoPlaneacion(user, (UUID) detalles.get("grupo_id"));
+        return ResponseEntity.ok(detalles);
     }
 
     /**
@@ -496,7 +534,9 @@ public class PlaneacionController {
      */
     @GetMapping("/grupo/{grupo_id}/tareas-pendientes-calificar")
     public ResponseEntity<List<Map<String, Object>>> getTareasPendientes(
-            @PathVariable("grupo_id") UUID grupoId) {
+            @PathVariable("grupo_id") UUID grupoId,
+            @AuthenticationPrincipal Jwt jwt) {
+        requireAccesoGrupoPlaneacion(userService.resolveUser(jwt), grupoId);
         return ResponseEntity.ok(
             calificacionesQueries.getTareasPendientesCalificar(grupoId)
         );
@@ -508,7 +548,11 @@ public class PlaneacionController {
      */
     @GetMapping("/tareas/{tarea_id}/detalles")
     public ResponseEntity<Map<String, Object>> getDetallesTarea(
-            @PathVariable("tarea_id") UUID tareaId) {
+            @PathVariable("tarea_id") UUID tareaId,
+            @AuthenticationPrincipal Jwt jwt) {
+        // Incluye entregas y calificaciones de alumnos del grupo — mismo criterio de
+        // scoping que guardarCalificacionTarea.
+        requireAccesoGrupoPlaneacion(userService.resolveUser(jwt), grupoIdDeTarea(tareaId));
         return ResponseEntity.ok(
             calificacionesQueries.getDetallesTarea(tareaId)
         );
@@ -520,7 +564,9 @@ public class PlaneacionController {
      */
     @GetMapping("/grupo/{grupo_id}/examenes-pendientes-calificar")
     public ResponseEntity<List<Map<String, Object>>> getExamenesPendientes(
-            @PathVariable("grupo_id") UUID grupoId) {
+            @PathVariable("grupo_id") UUID grupoId,
+            @AuthenticationPrincipal Jwt jwt) {
+        requireAccesoGrupoPlaneacion(userService.resolveUser(jwt), grupoId);
         return ResponseEntity.ok(
             calificacionesQueries.getExamenesPendientesCalificar(grupoId)
         );
@@ -532,7 +578,9 @@ public class PlaneacionController {
      */
     @GetMapping("/examenes/{evaluacion_id}/detalles")
     public ResponseEntity<Map<String, Object>> getDetallesEvaluacion(
-            @PathVariable("evaluacion_id") UUID evaluacionId) {
+            @PathVariable("evaluacion_id") UUID evaluacionId,
+            @AuthenticationPrincipal Jwt jwt) {
+        requireAccesoGrupoPlaneacion(userService.resolveUser(jwt), grupoIdDeEvaluacion(evaluacionId));
         return ResponseEntity.ok(
             calificacionesQueries.getDetallesEvaluacion(evaluacionId)
         );
@@ -654,7 +702,13 @@ public class PlaneacionController {
     public ResponseEntity<Map<String, Object>> calcularBoleta(
             @PathVariable("alumno_id") UUID alumnoId,
             @PathVariable("grupo_id") UUID grupoId,
-            @PathVariable("trimestre") Integer trimestre) {
+            @PathVariable("trimestre") Integer trimestre,
+            @AuthenticationPrincipal Jwt jwt) {
+        // BOLA: sin ningún chequeo de autenticación/autorización, cualquier cuenta
+        // ADES autenticada podía calcular la boleta (calificaciones) de cualquier
+        // alumno de cualquier grupo/plantel. Se reusa requireAccesoGrupoPlaneacion,
+        // el mismo control que ya protege guardarCalificacionTarea/Evaluacion.
+        requireAccesoGrupoPlaneacion(userService.resolveUser(jwt), grupoId);
         return ResponseEntity.ok(
             bolecaQueries.calcularBolecaDesdeplanneacion(alumnoId, grupoId, trimestre)
         );
@@ -667,7 +721,9 @@ public class PlaneacionController {
     @GetMapping("/cobertura/{grupo_id}/{trimestre}")
     public ResponseEntity<Map<String, Object>> getCoberturaCurricular(
             @PathVariable("grupo_id") UUID grupoId,
-            @PathVariable("trimestre") Integer trimestre) {
+            @PathVariable("trimestre") Integer trimestre,
+            @AuthenticationPrincipal Jwt jwt) {
+        requireAccesoGrupoPlaneacion(userService.resolveUser(jwt), grupoId);
         return ResponseEntity.ok(
             bolecaQueries.getCoberturaCurricularGrupo(grupoId, trimestre)
         );
@@ -680,7 +736,9 @@ public class PlaneacionController {
     @GetMapping("/cobertura-por-competencia/{grupo_id}/{trimestre}")
     public ResponseEntity<List<Map<String, Object>>> getCoberturaPorCompetencia(
             @PathVariable("grupo_id") UUID grupoId,
-            @PathVariable("trimestre") Integer trimestre) {
+            @PathVariable("trimestre") Integer trimestre,
+            @AuthenticationPrincipal Jwt jwt) {
+        requireAccesoGrupoPlaneacion(userService.resolveUser(jwt), grupoId);
         return ResponseEntity.ok(
             bolecaQueries.getCoberturaPorCompetencia(grupoId, trimestre)
         );

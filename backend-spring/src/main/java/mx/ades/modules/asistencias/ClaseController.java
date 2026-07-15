@@ -42,13 +42,36 @@ public class ClaseController {
             @RequestParam(value = "profesor_id", required = false) UUID profesorId,
             @RequestParam(value = "fecha_desde", required = false) LocalDate fechaDesde,
             @RequestParam(value = "fecha_hasta", required = false) LocalDate fechaHasta,
-            @RequestParam(value = "estatus", required = false) String estatus) {
-        return ResponseEntity.ok(queryService.listar(grupoId, materiaId, profesorId, fechaDesde, fechaHasta, estatus));
+            @RequestParam(value = "estatus", required = false) String estatus,
+            @AuthenticationPrincipal Jwt jwt) {
+        // Antes no se llamaba a resolveUser en absoluto: cualquier cuenta autenticada
+        // (incluidos alumnos/padres) podía listar TODAS las clases del sistema, de
+        // cualquier plantel, sin ningún scoping (BOLA, OWASP API1).
+        AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
+        UUID plantelId = (user.getNivelAcceso() != null && user.getNivelAcceso() > 1) ? user.getPlantelId() : null;
+        return ResponseEntity.ok(queryService.listar(grupoId, materiaId, profesorId, fechaDesde, fechaHasta, estatus, plantelId));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Map<String, Object>> obtener(@PathVariable("id") UUID id) {
-        return ResponseEntity.ok(queryService.obtener(id));
+    public ResponseEntity<Map<String, Object>> obtener(
+            @PathVariable("id") UUID id,
+            @AuthenticationPrincipal Jwt jwt) {
+        AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
+        Map<String, Object> result = queryService.obtener(id);
+        verificarPlantelDeClase(user, result);
+        return ResponseEntity.ok(result);
+    }
+
+    /** No-admins acotados a su propio plantel — evita leer una clase de otro plantel por id. */
+    private void verificarPlantelDeClase(AdesUser user, Map<String, Object> clase) {
+        if (user.getNivelAcceso() != null && user.getNivelAcceso() > 1 && user.getPlantelId() != null) {
+            Object plantelId = clase.get("plantel_id");
+            if (plantelId != null && !plantelId.equals(user.getPlantelId())) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No puede consultar una clase de otro plantel");
+            }
+        }
     }
 
     @PostMapping
@@ -67,7 +90,12 @@ public class ClaseController {
     }
 
     @GetMapping("/{id}/alumnos-esperados")
-    public ResponseEntity<List<Map<String, Object>>> alumnosEsperados(@PathVariable("id") UUID id) {
+    public ResponseEntity<List<Map<String, Object>>> alumnosEsperados(
+            @PathVariable("id") UUID id,
+            @AuthenticationPrincipal Jwt jwt) {
+        AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
+        verificarPlantelDeClase(user, queryService.obtener(id));
         return ResponseEntity.ok(service.alumnosEsperados(id));
     }
 
