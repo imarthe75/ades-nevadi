@@ -681,11 +681,16 @@ export class GradebookComponent implements OnInit, OnDestroy {
       .filter(e => e._cal !== null && e._cal !== undefined)
       .map(e => ({ alumnoId: e.estudiante_id, calificacion: e._cal!, comentario: e.comentario_profesor }));
     if (!items.length) return;
-    this.api.patch(`/actividades/${act.id}/calificar-masivo`, items).pipe(takeUntil(this.destroy$)).subscribe(() => {
-      this.notify.success('Guardado', `${items.length} calificaciones guardadas`);
-      this.drawerCalifVisible = false;
-      this.cargarActividades();
-      this.cargarConcentrado();
+    this.api.patch(`/actividades/${act.id}/calificar-masivo`, items).pipe(takeUntil(this.destroy$)).subscribe({
+      next: () => {
+        this.notify.success('Guardado', `${items.length} calificaciones guardadas`);
+        this.drawerCalifVisible = false;
+        this.cargarActividades();
+        this.cargarConcentrado();
+      },
+      error: (err: any) => {
+        this.notify.error('Error', err?.error?.message ?? err?.error?.detail ?? 'No se pudieron guardar las calificaciones');
+      },
     });
   }
 
@@ -706,10 +711,15 @@ export class GradebookComponent implements OnInit, OnDestroy {
     this.api.post(`/gradebook/${row.cal_periodo_id}/ajuste-manual`, {
       ajuste_manual: this.ajusteValor,
       justificacion_ajuste: this.ajusteJustificacion,
-    }).pipe(takeUntil(this.destroy$)).subscribe(() => {
-      this.notify.success('Ajuste aplicado', 'Calificación actualizada');
-      this.dialogAjusteVisible = false;
-      this.cargarConcentrado();
+    }).pipe(takeUntil(this.destroy$)).subscribe({
+      next: () => {
+        this.notify.success('Ajuste aplicado', 'Calificación actualizada');
+        this.dialogAjusteVisible = false;
+        this.cargarConcentrado();
+      },
+      error: (err: any) => {
+        this.notify.error('Error', err?.error?.message ?? err?.error?.detail ?? 'No se pudo aplicar el ajuste manual');
+      },
     });
   }
 
@@ -718,9 +728,14 @@ export class GradebookComponent implements OnInit, OnDestroy {
     // recalcularPeriodo() del backend recibe grupo_id/materia_id como query param, no como body
     // (no tiene @RequestBody) — enviarlo en el body se ignoraba silenciosamente y recalculaba TODO el período.
     this.api.post(`/gradebook/periodo/${this.periodoSel}/recalcular-todo?grupo_id=${encodeURIComponent(this.grupoSel)}`,
-      {}).pipe(takeUntil(this.destroy$)).subscribe((r: any) => {
-      this.notify.info('Recalculado', `${r.recalculados} registros actualizados`);
-      this.cargarConcentrado();
+      {}).pipe(takeUntil(this.destroy$)).subscribe({
+      next: (r: any) => {
+        this.notify.info('Recalculado', `${r.recalculados} registros actualizados`);
+        this.cargarConcentrado();
+      },
+      error: (err: any) => {
+        this.notify.error('Error', err?.error?.message ?? err?.error?.detail ?? 'No se pudo recalcular el período');
+      },
     });
   }
 

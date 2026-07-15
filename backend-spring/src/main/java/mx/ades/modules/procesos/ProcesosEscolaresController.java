@@ -218,6 +218,12 @@ public class ProcesosEscolaresController {
             @RequestBody @Valid AdmisionRequest body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        // Asimetría BFLA: esta creación de solicitud no exigía ningún nivelAcceso, a
+        // diferencia de sus hermanos listarAdmisiones/resolverAdmision/documentos-admision
+        // (todos requireSecretariaOrHigher). El guard de ruta roleGuard(3) en Angular solo
+        // protege la UI — cualquier cuenta ADES autenticada (incl. padres/alumnos) podía
+        // invocar el endpoint directamente y crear solicitudes de admisión sin pasar por ahí.
+        requireSecretariaOrHigher(user);
 
         mx.ades.common.ValidationUtils.validarCURP(body.getCurp());
         mx.ades.common.ValidationUtils.validarEmail(body.getEmailTutor());

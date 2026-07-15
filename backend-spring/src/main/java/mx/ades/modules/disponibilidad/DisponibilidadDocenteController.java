@@ -121,6 +121,18 @@ public class DisponibilidadDocenteController {
     public void eliminar(@PathVariable("id") UUID id, @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         requireStaff(user);
+        // Asimetría con guardar(): el PUT bulk ya restringe a un Docente (nivel 4) a
+        // editar solo su propia disponibilidad, pero este DELETE por slotId no
+        // verificaba el profesor_id dueño del slot — cualquier Docente podía borrar
+        // el slot de disponibilidad de OTRO profesor conociendo su UUID (BOLA/BFLA,
+        // OWASP API1/API5).
+        if (user.getNivelAcceso() != null && user.getNivelAcceso() == 4) {
+            UUID profesorDueno = eliminarSlot.obtenerProfesorId(id);
+            if (!profesorDueno.equals(user.getPersonaId())) {
+                throw new org.springframework.web.server.ResponseStatusException(
+                        HttpStatus.FORBIDDEN, "Solo puede eliminar slots de su propia disponibilidad");
+            }
+        }
         eliminarSlot.eliminar(id);
     }
 

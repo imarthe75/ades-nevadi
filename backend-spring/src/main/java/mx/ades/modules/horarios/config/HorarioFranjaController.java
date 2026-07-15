@@ -25,8 +25,16 @@ public class HorarioFranjaController {
     public ResponseEntity<List<HorarioFranja>> listAll(
             @RequestParam(required = false) UUID nivelEducativoId,
             @RequestParam(required = false) UUID plantelId,
-            @RequestParam(required = false) UUID cicloId) {
-        
+            @RequestParam(required = false) UUID cicloId,
+            @AuthenticationPrincipal Jwt jwt) {
+        // BOLA fix (asimetría): este endpoint no llamaba resolveUser en absoluto — a
+        // diferencia de create()/update()/delete() de este mismo controller, que sí exigen
+        // requireStaff. No se restringe a staff porque las franjas horarias institucionales
+        // son consultadas también por docentes/UI de disponibilidad; se exige al menos que el
+        // usuario esté registrado en ADES (mismo criterio que AsignacionDocenteController/
+        // HorarioReglaController: lectura abierta a autenticados, escritura restringida).
+        userService.resolveUser(jwt);
+
         List<HorarioFranja> result;
         if (nivelEducativoId != null && plantelId != null && cicloId != null) {
             result = repository.findFranjasAplicables(plantelId, cicloId, nivelEducativoId);

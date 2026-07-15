@@ -48,4 +48,11 @@ public class DisponibilidadApplicationService
         slot.setIsActive(false);
         repo.save(slot);
     }
+
+    @Override
+    public UUID obtenerProfesorId(UUID slotId) {
+        DisponibilidadDocente slot = repo.findById(slotId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Slot no encontrado"));
+        return slot.getProfesorId();
+    }
 }

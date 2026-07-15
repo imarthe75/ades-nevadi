@@ -466,7 +466,7 @@ export class MedicoComponent implements OnInit, OnDestroy {
     const { estudiante_id, ...datos } = exp as any;
     this.api.put(`/expedientes-medicos/${exp.id}`, datos).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => { this.savingExp.set(false); this.notify.success('Expediente actualizado'); },
-      error: () => this.savingExp.set(false),
+      error: (e: any) => { this.savingExp.set(false); this.notify.error('Error', e.error?.detail ?? 'No se pudo actualizar el expediente médico'); },
     });
   }
 
@@ -507,7 +507,7 @@ export class MedicoComponent implements OnInit, OnDestroy {
           }
         });
       },
-      error: () => this.savingInc.set(false),
+      error: (e: any) => { this.savingInc.set(false); this.notify.error('Error', e.error?.detail ?? 'No se pudo registrar el incidente'); },
     });
   }
 
@@ -530,7 +530,7 @@ export class MedicoComponent implements OnInit, OnDestroy {
         this.savingMed.set(false);
         this.notify.success('Medicamento registrado');
       },
-      error: () => this.savingMed.set(false),
+      error: (e: any) => { this.savingMed.set(false); this.notify.error('Error', e.error?.detail ?? 'No se pudo registrar el medicamento'); },
     });
   }
 

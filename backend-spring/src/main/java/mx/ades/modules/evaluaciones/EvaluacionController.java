@@ -57,9 +57,14 @@ public class EvaluacionController {
     public ResponseEntity<Evaluacion> get(@PathVariable("id") UUID id, @AuthenticationPrincipal Jwt jwt) {
         // Hallazgo de auditoría BOLA (Fase 5): este endpoint no llamaba resolveUser —
         // era alcanzable sin ninguna verificación de autenticación local.
-        userService.resolveUser(jwt);
+        AdesUser user = userService.resolveUser(jwt);
         Evaluacion eval = repository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Evaluación no encontrada"));
+        // BOLA fix (asimetría): el fix anterior solo cubrió la falta de resolveUser, pero
+        // seguía sin scoping por grupo — a diferencia de su hermano calificaciones(), que sí
+        // exige requireAccesoGrupoEvaluacion. Cualquier usuario autenticado podía leer el
+        // detalle (grupo, materia, fecha, puntaje) de cualquier evaluación del sistema.
+        requireAccesoGrupoEvaluacion(user, eval.getGrupoId());
         return ResponseEntity.ok(eval);
     }
 

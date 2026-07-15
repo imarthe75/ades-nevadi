@@ -93,7 +93,14 @@ public class DireccionesController {
             @RequestParam("entidad_tipo") String entidadTipo,
             @RequestParam("entidad_id") UUID entidadId,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        // Antes solo se llamaba resolveUser() (autenticación) sin requireStaff: cualquier
+        // cuenta autenticada (incluidos padres/alumnos) podía leer el domicilio y GPS de
+        // CUALQUIER entidad del sistema por entidad_id (BOLA, OWASP API1 — asimetría con
+        // crear()/actualizar()/eliminarDir() de este mismo controlador, que sí exigen
+        // requireStaff()). El frontend (domicilio.component.ts) solo se usa hoy desde
+        // pantallas de personal (alumno-perfil, profesor-perfil, padres-admin).
+        AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
         return ResponseEntity.ok(queryService.listarDirecciones(entidadTipo, entidadId));
     }
 
@@ -160,7 +167,12 @@ public class DireccionesController {
     public ResponseEntity<List<Map<String, Object>>> listarContactos(
             @RequestParam("persona_id") UUID personaId,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        // Misma asimetría que listar() de direcciones: solo resolveUser() sin requireStaff,
+        // permitiendo a cualquier autenticado leer el teléfono/email/PII de contacto de
+        // cualquier persona por persona_id (BOLA, OWASP API1) — se alinea con
+        // crearContacto()/actualizarContacto()/eliminarContacto(), que sí exigen requireStaff().
+        AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
         return ResponseEntity.ok(queryService.listarContactos(personaId));
     }
 

@@ -267,17 +267,23 @@ export class PonderacionConfigComponent implements OnInit, OnDestroy {
     const obs = this.editandoId
       ? this.api.put(`/esquemas-ponderacion/${this.editandoId}`, payload)
       : this.api.post('/esquemas-ponderacion', payload);
-    obs.pipe(takeUntil(this.destroy$)).subscribe(() => {
-      this.notify.success('Guardado');
-      this.dialogVisible = false;
-      this.cargarEsquemas();
+    obs.pipe(takeUntil(this.destroy$)).subscribe({
+      next: () => {
+        this.notify.success('Guardado');
+        this.dialogVisible = false;
+        this.cargarEsquemas();
+      },
+      error: (e: any) => this.notify.error('Error', e?.error?.detail ?? 'No se pudo guardar el esquema de ponderación'),
     });
   }
 
   desactivarEsquema(id: string) {
-    this.api.delete(`/esquemas-ponderacion/${id}`).pipe(takeUntil(this.destroy$)).subscribe(() => {
-      this.notify.info('Desactivado');
-      this.cargarEsquemas();
+    this.api.delete(`/esquemas-ponderacion/${id}`).pipe(takeUntil(this.destroy$)).subscribe({
+      next: () => {
+        this.notify.info('Desactivado');
+        this.cargarEsquemas();
+      },
+      error: (e: any) => this.notify.error('Error', e?.error?.detail ?? 'No se pudo desactivar el esquema'),
     });
   }
 

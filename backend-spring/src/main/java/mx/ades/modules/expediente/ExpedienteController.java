@@ -93,7 +93,11 @@ public class ExpedienteController {
             @RequestParam(value = "pagina", defaultValue = "1") int pagina,
             @RequestParam(value = "por_pagina", defaultValue = "20") int porPagina,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        AdesUser user = userService.resolveUser(jwt);
+        // BOLA fix (asimetría): este dato (bajas/movilidad de un alumno) no tenía scoping por
+        // plantel, a diferencia de buscarDocumentosAlumno() de este mismo controller, que sí
+        // verifica que el alumno pertenezca al plantel del usuario.
+        verificarAccesoAlumno(user, estudianteId);
         pagina = Math.max(pagina, 1);
         porPagina = Math.min(Math.max(porPagina, 1), 200);
         return ResponseEntity.ok(queryService.listarBajas(estudianteId, pagina, porPagina));
@@ -105,6 +109,8 @@ public class ExpedienteController {
             @RequestBody BajaCreate body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        // BOLA fix (asimetría): mismo hallazgo que listarBajas() — sin scoping por plantel.
+        verificarAccesoAlumno(user, estudianteId);
 
         // fecha_efectiva es NOT NULL en ades_bajas (sin default); antes de este fix no
         // había ningún chequeo y el INSERT fallaba con DataIntegrityViolationException
@@ -138,7 +144,9 @@ public class ExpedienteController {
             @RequestParam(value = "pagina", defaultValue = "1") int pagina,
             @RequestParam(value = "por_pagina", defaultValue = "20") int porPagina,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        AdesUser user = userService.resolveUser(jwt);
+        // BOLA fix (asimetría): mismo hallazgo que listarBajas() — sin scoping por plantel.
+        verificarAccesoAlumno(user, estudianteId);
         pagina = Math.max(pagina, 1);
         porPagina = Math.min(Math.max(porPagina, 1), 200);
         return ResponseEntity.ok(queryService.listarExtraordinarios(estudianteId, cicloId, pagina, porPagina));
@@ -150,6 +158,8 @@ public class ExpedienteController {
             @RequestBody ExtraordinarioCreate body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        // BOLA fix (asimetría): mismo hallazgo que listarBajas() — sin scoping por plantel.
+        verificarAccesoAlumno(user, estudianteId);
 
         // materia_id y ciclo_escolar_id son NOT NULL en ades_extraordinarias; validar aquí
         // evita un 409 de integridad de datos confuso y da un 422 claro en su lugar.
@@ -181,6 +191,8 @@ public class ExpedienteController {
             @RequestParam(value = "fecha_examen", required = false) LocalDate fechaExamen,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        // BOLA fix (asimetría): mismo hallazgo que listarBajas() — sin scoping por plantel.
+        verificarAccesoAlumno(user, estudianteIdDeExtraordinario(extraId));
 
         calificarExtraordinario.ejecutar(new CalificarExtraordinarioUseCase.Command(
                 extraId, CalificacionExtra.of(calificacion), acredita, fechaExamen,
@@ -198,7 +210,9 @@ public class ExpedienteController {
             @RequestParam(value = "pagina", defaultValue = "1") int pagina,
             @RequestParam(value = "por_pagina", defaultValue = "20") int porPagina,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        AdesUser user = userService.resolveUser(jwt);
+        // BOLA fix (asimetría): mismo hallazgo que listarBajas() — sin scoping por plantel.
+        verificarAccesoAlumno(user, estudianteId);
         pagina = Math.max(pagina, 1);
         porPagina = Math.min(Math.max(porPagina, 1), 200);
         return ResponseEntity.ok(queryService.listarConstancias(estudianteId, pagina, porPagina));
@@ -210,6 +224,8 @@ public class ExpedienteController {
             @RequestBody ConstanciaCreate body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        // BOLA fix (asimetría): mismo hallazgo que listarBajas() — sin scoping por plantel.
+        verificarAccesoAlumno(user, estudianteId);
 
         EmitirConstanciaUseCase.Result result = emitirConstancia.ejecutar(
                 new EmitirConstanciaUseCase.Command(
@@ -229,7 +245,9 @@ public class ExpedienteController {
     public ResponseEntity<Map<String, Object>> marcarEntregada(
             @PathVariable("constancia_id") UUID constanciaId,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        AdesUser user = userService.resolveUser(jwt);
+        // BOLA fix (asimetría): mismo hallazgo que listarBajas() — sin scoping por plantel.
+        verificarAccesoAlumno(user, estudianteIdDeConstancia(constanciaId));
 
         writeService.marcarConstanciaEntregada(constanciaId);
         List<Map<String, Object>> updated = queryService.fetchConstanciaById(constanciaId);
@@ -245,7 +263,11 @@ public class ExpedienteController {
             @RequestParam(value = "ciclo_id", required = false) UUID cicloId,
             @RequestParam(value = "lite", required = false, defaultValue = "false") boolean lite,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        AdesUser user = userService.resolveUser(jwt);
+        // BOLA fix (asimetría): el detalle completo del expediente (documentos, OCR,
+        // completitud) no tenía scoping por plantel, a diferencia de
+        // buscarDocumentosAlumno() de este mismo controller.
+        verificarAccesoAlumno(user, estudianteId);
         UUID cicloRef = cicloId != null ? cicloId : queryService.cicloActivoId();
         return ResponseEntity.ok(lite
                 ? queryService.detalleExpedienteLite(estudianteId, cicloRef)

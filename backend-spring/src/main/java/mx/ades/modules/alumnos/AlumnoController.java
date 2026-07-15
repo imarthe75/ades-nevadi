@@ -58,7 +58,14 @@ public class AlumnoController {
             @RequestParam(name = "grupo_id",   required = false) UUID grupoId,
             @PageableDefault(size = 20, page = 0) Pageable pageable,
             @AuthenticationPrincipal Jwt jwt) {
+        // Antes solo se llamaba resolveUser() + getEffectivePlantelId() (que únicamente
+        // ACOTA el plantel, sin verificar rol) sin requireStaff: cualquier cuenta
+        // autenticada (incluidos padres/alumnos, nivelAcceso >=5) podía listar el
+        // expediente (CURP, nombre completo, etc.) de TODOS los alumnos de su plantel
+        // (BFLA, OWASP API5 — asimetría con get()/patch()/update()/credencial() de este
+        // mismo controlador, que sí exigen requireStaff()).
         AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
         UUID effectivePlantel = userService.getEffectivePlantelId(user, plantelId);
         return ResponseEntity.ok(query.listar(effectivePlantel, nivelId, gradoId, grupoId, pageable));
     }

@@ -20,6 +20,7 @@ import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
 import { ExportService, ExportColumn } from '../../core/services/export.service';
 import { AdesFormatDirective } from '../../shared/directives/ades-format.directive';
+import { ApexNotificationService } from 'apex-component-library';
 
 type TagSeverity = 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' | undefined;
 
@@ -624,6 +625,7 @@ export class EncuestasComponent implements OnInit, OnDestroy {
   private readonly api      = inject(ApiService);
   readonly ctx              = inject(ContextService);
   private readonly exporter = inject(ExportService);
+  private readonly notify   = inject(ApexNotificationService);
 
   encuestas   = signal<Encuesta[]>([]);
 
@@ -734,23 +736,30 @@ export class EncuestasComponent implements OnInit, OnDestroy {
         this.saving.set(false);
         this.cargar();
       },
-      error: () => this.saving.set(false),
+      error: (e: any) => {
+        this.saving.set(false);
+        this.notify.error('Error al crear encuesta', e?.error?.detail ?? e?.message ?? '');
+      },
     });
   }
 
   toggleActiva(): void {
     if (!this.selEncuesta) return;
-    this.api.patch(`/encuestas/${this.selEncuesta.id}/toggle-activa`, {}).pipe(takeUntil(this.destroy$)).subscribe(r => {
-      this.cargar();
+    this.api.patch(`/encuestas/${this.selEncuesta.id}/toggle-activa`, {}).pipe(takeUntil(this.destroy$)).subscribe({
+      next: () => this.cargar(),
+      error: (e: any) => this.notify.error('Error al cambiar estado de la encuesta', e?.error?.detail ?? e?.message ?? ''),
     });
   }
 
   eliminarEncuesta(): void {
     if (!this.selEncuesta) return;
-    this.api.delete(`/encuestas/${this.selEncuesta.id}`).pipe(takeUntil(this.destroy$)).subscribe(() => {
-      this.selEncuesta = null;
-      this.preguntas.set([]);
-      this.cargar();
+    this.api.delete(`/encuestas/${this.selEncuesta.id}`).pipe(takeUntil(this.destroy$)).subscribe({
+      next: () => {
+        this.selEncuesta = null;
+        this.preguntas.set([]);
+        this.cargar();
+      },
+      error: (e: any) => this.notify.error('Error al eliminar encuesta', e?.error?.detail ?? e?.message ?? ''),
     });
   }
 
@@ -782,14 +791,18 @@ export class EncuestasComponent implements OnInit, OnDestroy {
       obligatoria:  this.formPreg.obligatoria,
     }).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => { this.showPregunta = false; this.saving.set(false); this.cargarPreguntas(); },
-      error: () => this.saving.set(false),
+      error: (e: any) => {
+        this.saving.set(false);
+        this.notify.error('Error al guardar pregunta', e?.error?.detail ?? e?.message ?? '');
+      },
     });
   }
 
   eliminarPregunta(p: Pregunta): void {
     if (!this.selEncuesta) return;
-    this.api.delete(`/encuestas/${this.selEncuesta.id}/preguntas/${p.id}`).pipe(takeUntil(this.destroy$)).subscribe(() => {
-      this.cargarPreguntas();
+    this.api.delete(`/encuestas/${this.selEncuesta.id}/preguntas/${p.id}`).pipe(takeUntil(this.destroy$)).subscribe({
+      next: () => this.cargarPreguntas(),
+      error: (e: any) => this.notify.error('Error al eliminar pregunta', e?.error?.detail ?? e?.message ?? ''),
     });
   }
 

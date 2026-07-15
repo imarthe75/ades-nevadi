@@ -97,6 +97,12 @@ public class EntregasController {
             @RequestParam(value = "archivo", required = false) MultipartFile archivo,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        // BOLA/BFLA fix (asimetría): este endpoint solo llamaba resolveUser, sin ninguna
+        // verificación de acceso, mientras sus hermanos de lectura (entregasDelAlumno,
+        // pendientesDelGrupo) sí exigen requireAccesoAlumno/requireAccesoGrupo — cualquier
+        // usuario autenticado podía subir un archivo/entrega a nombre de CUALQUIER alumno.
+        // Mismo criterio que entregasDelAlumno#requireAccesoAlumno.
+        requireAccesoAlumno(user, alumnoId);
 
         String archivoUrl = null;
         if (archivo != null && !archivo.isEmpty()) {
@@ -120,6 +126,11 @@ public class EntregasController {
             @RequestBody @Valid CalificarIn body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        // BOLA/BFLA fix (asimetría): calificar una entrega no verificaba nivelAcceso ni
+        // asignación docente↔grupo — cualquier usuario autenticado podía calificar la
+        // entrega de cualquier alumno de cualquier grupo. Mismo criterio que
+        // pendientesDelGrupo#requireAccesoGrupo.
+        requireAccesoGrupo(user, grupoIdDeEntrega(entregaId));
 
         CalificarEntregaUseCase.Command cmd;
         try {
@@ -142,6 +153,9 @@ public class EntregasController {
             @RequestParam("motivo") String motivo,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        // BOLA/BFLA fix (asimetría): mismo hallazgo que calificarEntrega — sin verificación
+        // de nivelAcceso ni asignación docente↔grupo.
+        requireAccesoGrupo(user, grupoIdDeEntrega(entregaId));
 
         RegistrarExcusaUseCase.Command cmd;
         try {
@@ -164,6 +178,9 @@ public class EntregasController {
             @RequestParam("motivo") String motivo,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        // BOLA/BFLA fix (asimetría): mismo hallazgo que calificarEntrega/registrarExcusa —
+        // sin verificación de nivelAcceso ni asignación docente↔grupo.
+        requireAccesoGrupo(user, grupoIdDeEntrega(entregaId));
         int rows = entregaRepositoryPort.reabrir(entregaId, motivo, user.getUsername());
         if (rows == 0) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Entrega no encontrada");
         return ResponseEntity.ok(Map.of("id", entregaId.toString(), "estatus_entrega", "PENDIENTE"));
@@ -195,6 +212,18 @@ public class EntregasController {
         if (count == null || count == 0) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No tienes acceso a este alumno");
         }
+    }
+
+    /** Resuelve el grupo_id de la tarea a la que pertenece una entrega, para poder aplicar
+     * requireAccesoGrupo() en las mutaciones sobre entregas individuales (calificar, excusa,
+     * reabrir) que solo reciben el entregaId. */
+    private UUID grupoIdDeEntrega(UUID entregaId) {
+        List<UUID> rows = jdbc.queryForList(
+                "SELECT t.grupo_id FROM ades_tareas_entregas te JOIN ades_tareas t ON t.id = te.tarea_id " +
+                "WHERE te.id = ? AND te.is_active = TRUE",
+                UUID.class, entregaId);
+        if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Entrega no encontrada");
+        return rows.get(0);
     }
 
     /**

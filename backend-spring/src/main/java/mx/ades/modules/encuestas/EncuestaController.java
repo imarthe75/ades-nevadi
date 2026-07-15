@@ -94,12 +94,24 @@ public class EncuestaController {
             @RequestParam(value = "tipo", required = false) String tipo,
             @RequestParam(value = "activa", required = false) Boolean activa,
             @RequestParam(value = "plantel_id", required = false) UUID plantelId,
-            @RequestParam(value = "limit", defaultValue = "50") int limit) {
+            @RequestParam(value = "limit", defaultValue = "50") int limit,
+            @AuthenticationPrincipal Jwt jwt) {
+        // BOLA fix (asimetría): a diferencia de resultados()/respuestasRaw() de este mismo
+        // controller (que ya exigen resolveUser+requireStaff), este listado ni siquiera
+        // resolvía el JWT a un AdesUser registrado en ADES. No se exige requireStaff aquí
+        // porque el listado de metadatos (título/tipo/vigencia) es el mismo que consume la
+        // audiencia ALUMNO/DOCENTE/PADRE para poder responder encuestas.
+        userService.resolveUser(jwt);
         return ResponseEntity.ok(queryService.listar(tipo, activa, plantelId, limit));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Map<String, Object>> detalle(@PathVariable("id") UUID id) {
+    public ResponseEntity<Map<String, Object>> detalle(
+            @PathVariable("id") UUID id,
+            @AuthenticationPrincipal Jwt jwt) {
+        // BOLA fix (asimetría): mismo hallazgo que listar() — sin resolveUser, a diferencia
+        // de resultados()/respuestasRaw() de este mismo controller.
+        userService.resolveUser(jwt);
         return ResponseEntity.ok(queryService.detalle(id));
     }
 

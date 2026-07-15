@@ -85,7 +85,14 @@ public class ClaseController {
             @PathVariable("id") UUID id,
             @RequestBody Clase clase,
             @AuthenticationPrincipal Jwt jwt) {
-        requireStaff(userService.resolveUser(jwt));
+        // Antes solo se llamaba requireStaff() sin verificar el plantel de la clase
+        // existente: un no-admin (Docente/Director/Coordinador acotado a su plantel)
+        // podía editar (PATCH) una clase de OTRO plantel adivinando/conociendo su UUID,
+        // pese a que obtener()/alumnosEsperados() de este mismo controlador ya exigen
+        // verificarPlantelDeClase() (BOLA, OWASP API1 — asimetría entre hermanos GET/PATCH).
+        AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
+        verificarPlantelDeClase(user, queryService.obtener(id));
         return ResponseEntity.ok(service.actualizar(id, clase));
     }
 

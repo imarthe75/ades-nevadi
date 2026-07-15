@@ -58,6 +58,22 @@ public class BibliotecaController {
         return solicitado;
     }
 
+    /**
+     * Los movimientos del acervo (alta/baja/edición de libros, préstamos y devoluciones)
+     * son operación de personal escolar (nivelAcceso &le;4). Antes de este fix, crearLibro/
+     * actualizarLibro/eliminarLibro/prestar/devolver solo aplicaban scopePlantel() (que
+     * ACOTA el plantel objetivo cuando nivel(u)&gt;2, pero nunca rechaza al solicitante) —
+     * cualquier cuenta autenticada, incluidos alumnos/padres (nivelAcceso &ge;5), podía dar
+     * de alta/baja libros y registrar préstamos/devoluciones de su propio plantel (BFLA,
+     * OWASP API5 — asimetría con listarLibros()/obtenerLibro(), que sí son de solo lectura
+     * abiertas a cualquier autenticado por diseño).
+     */
+    private void requireStaff(AdesUser user) {
+        if (nivel(user) > 4) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Nivel de acceso insuficiente para esta operación");
+        }
+    }
+
     // ── Acervo ───────────────────────────────────────────────────────────────
 
     /**
@@ -109,6 +125,7 @@ public class BibliotecaController {
             @RequestBody BibliotecaLibro body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
         // BibliotecaLibro es entidad JPA (no anotamos validación en la entidad — riesgo
         // sobre Hibernate); titulo/categoria son NOT NULL en BD, validamos manualmente
         // para dar un 400 claro en vez de una excepción de dominio no capturada (500).
@@ -142,6 +159,7 @@ public class BibliotecaController {
             @RequestBody BibliotecaLibro body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
         BibliotecaLibro libro = query.findLibro(id);
         if (nivel(user) > 2 && user.getPlantelId() != null && !libro.getPlantelId().equals(user.getPlantelId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No puede modificar un libro de otro plantel");
@@ -166,6 +184,7 @@ public class BibliotecaController {
             @PathVariable("id") UUID id,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
         BibliotecaLibro libro = query.findLibro(id);
         if (nivel(user) > 2 && user.getPlantelId() != null && !libro.getPlantelId().equals(user.getPlantelId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No puede eliminar un libro de otro plantel");
@@ -212,6 +231,7 @@ public class BibliotecaController {
             @RequestBody @Valid PrestamoRequest body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
         BibliotecaLibro libro = query.findLibro(body.libroId());
         if (nivel(user) > 2 && user.getPlantelId() != null && !libro.getPlantelId().equals(user.getPlantelId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No puede prestar un libro de otro plantel");
@@ -237,6 +257,7 @@ public class BibliotecaController {
             @RequestBody(required = false) DevolucionRequest body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
         BibliotecaPrestamo prestamo = query.findPrestamoAbierto(id);
         if (nivel(user) > 2 && user.getPlantelId() != null && !prestamo.getPlantelId().equals(user.getPlantelId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No puede registrar la devolución de un préstamo de otro plantel");

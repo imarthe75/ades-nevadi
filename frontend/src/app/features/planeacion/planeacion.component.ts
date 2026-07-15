@@ -17,6 +17,7 @@ import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
 import { grupoLabel } from '../../core/models';
 import { AdesFormatDirective } from '../../shared/directives/ades-format.directive';
+import { ApexNotificationService } from 'apex-component-library';
 
 type TagSeverity = 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' | undefined;
 
@@ -297,6 +298,7 @@ export class PlaneacionComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private readonly api = inject(ApiService);
   readonly ctx         = inject(ContextService);
+  private readonly notify = inject(ApexNotificationService);
 
   grupos        = signal<{ label: string; value: string }[]>([]);
   temas         = signal<Tema[]>([]);
@@ -402,18 +404,24 @@ export class PlaneacionComponent implements OnInit, OnDestroy {
       ...this.planForm,
       fecha_planeada: this.planForm.fecha_planeada!.toISOString().substring(0, 10),
     };
-    this.api.post('/planeacion/clases', body).pipe(takeUntil(this.destroy$)).subscribe(() => {
-      this.showPlanear = false;
-      this.cargarTemas();
+    this.api.post('/planeacion/clases', body).pipe(takeUntil(this.destroy$)).subscribe({
+      next: () => {
+        this.showPlanear = false;
+        this.cargarTemas();
+      },
+      error: e => this.notify.error('Error', e?.error?.detail ?? 'No se pudo guardar la planeación'),
     });
   }
 
   marcarImpartido(t: Tema): void {
     if (!t.planeacion_id) return;
     const body = { fecha_ejecucion: new Date().toISOString().split('T')[0] };
-    this.api.post(`/planeacion/clases/${t.planeacion_id}/completar`, body).pipe(takeUntil(this.destroy$)).subscribe(() => {
-      this.cargarTemas();
-      this.cargarCobertura();
+    this.api.post(`/planeacion/clases/${t.planeacion_id}/completar`, body).pipe(takeUntil(this.destroy$)).subscribe({
+      next: () => {
+        this.cargarTemas();
+        this.cargarCobertura();
+      },
+      error: e => this.notify.error('Error', e?.error?.detail ?? 'No se pudo marcar la clase como impartida'),
     });
   }
 

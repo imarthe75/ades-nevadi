@@ -39,7 +39,15 @@ public class ReglasPromocionController {
 
     @GetMapping
     public ResponseEntity<List<NivelEducativo>> listar(@AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        // El controlador entero está documentado como "Restringido a nivelAcceso de
+        // administrador (1)", y así lo exigen actualizar()/evaluarPromocionEndpoint();
+        // este GET solo llamaba resolveUser() (autenticación) sin verificar nivelAcceso,
+        // dejando que cualquier cuenta autenticada (incluidos padres/alumnos) leyera las
+        // reglas de promoción (BOLA, OWASP API1 — asimetría con sus hermanos PATCH/POST).
+        AdesUser user = userService.resolveUser(jwt);
+        if (user.getNivelAcceso() == null || user.getNivelAcceso() > 1) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Se requiere nivel de acceso administrador");
+        }
         return ResponseEntity.ok(nivelRepo.findAllByIsActiveTrueOrderByNombreNivel());
     }
 

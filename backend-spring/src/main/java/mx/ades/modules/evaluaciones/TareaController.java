@@ -49,7 +49,14 @@ public class TareaController {
             @RequestParam(value = "materia_id", required = false) UUID materiaId,
             @RequestParam(value = "periodo_id", required = false) UUID periodoId,
             @RequestParam(value = "tipo_item", required = false) String tipoItem,
-            @PageableDefault(size = 20, sort = "fecha_creacion", direction = org.springframework.data.domain.Sort.Direction.DESC) Pageable pageable) {
+            @PageableDefault(size = 20, sort = "fecha_creacion", direction = org.springframework.data.domain.Sort.Direction.DESC) Pageable pageable,
+            @AuthenticationPrincipal Jwt jwt) {
+        // BOLA/BFLA fix (asimetría): este endpoint no llamaba resolveUser ni verificaba nada
+        // — a diferencia de su alias listar() (mismo recurso, vía query params) y de las
+        // mutaciones de este mismo controller, que sí exigen requireAccesoGrupoTarea.
+        // Cualquier usuario autenticado podía listar las tareas de cualquier grupo del sistema.
+        AdesUser user = userService.resolveUser(jwt);
+        requireAccesoGrupoTarea(user, grupoId);
         return ResponseEntity.ok(query.actividadesDeGrupoPaginado(grupoId, materiaId, periodoId, tipoItem, pageable));
     }
 
@@ -68,6 +75,13 @@ public class TareaController {
             throw new ResponseStatusException(
                 org.springframework.http.HttpStatus.BAD_REQUEST,
                 "El parámetro 'grupo_id' es requerido");
+        }
+        // BOLA fix (asimetría): cuando se indica grupo_id, este alias no verificaba que el
+        // usuario tuviera realmente acceso a ESE grupo (solo exigía que el parámetro no
+        // viniera vacío) — un docente podía consultar las tareas de un grupo ajeno con solo
+        // conocer su UUID. Mismo criterio que actividadesDeGrupo()/crearActividad().
+        if (grupoId != null) {
+            requireAccesoGrupoTarea(user, grupoId);
         }
         return ResponseEntity.ok(query.actividadesDeGrupoPaginado(grupoId, materiaId, periodoId, tipoItem, pageable));
     }
@@ -164,7 +178,15 @@ public class TareaController {
     @GetMapping("/{actividad_id}/entregas")
     public ResponseEntity<Page<Map<String, Object>>> entregasDeActividad(
             @PathVariable("actividad_id") UUID actividadId,
-            @PageableDefault(size = 20, sort = "fecha_entrega", direction = org.springframework.data.domain.Sort.Direction.DESC) Pageable pageable) {
+            @PageableDefault(size = 20, sort = "fecha_entrega", direction = org.springframework.data.domain.Sort.Direction.DESC) Pageable pageable,
+            @AuthenticationPrincipal Jwt jwt) {
+        // BOLA/BFLA fix (asimetría): este endpoint no llamaba resolveUser ni verificaba nada
+        // — devuelve archivos/comentarios de entregas de alumnos, tan sensible como el
+        // endpoint equivalente en gradebook.ActividadesController#entregasDeActividad, que
+        // sí exige requireAccesoGrupo. Cualquier usuario autenticado podía leer las entregas
+        // de cualquier actividad del sistema.
+        AdesUser user = userService.resolveUser(jwt);
+        requireAccesoGrupoTarea(user, grupoIdDeTarea(actividadId));
         return ResponseEntity.ok(query.entregasDeActividadPaginado(actividadId, pageable));
     }
 

@@ -636,6 +636,7 @@ export class TareasComponent implements OnInit, OnDestroy {
         this.notify.success('Excusa registrada', e.alumno_nombre);
         this._loadEntregasPendientes();
       },
+      error: (err: any) => this.notify.error('Error', err?.error?.detail ?? 'No se pudo registrar la excusa'),
     });
   }
 

@@ -21,6 +21,7 @@ import { ContextService }   from '../../core/services/context.service';
 import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
 import { compressImageIfNeeded } from '../../core/utils/file-compressor';
 import { AdesFormatDirective } from '../../shared/directives/ades-format.directive';
+import { ApexNotificationService } from 'apex-component-library';
 
 type TagSeverity = 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' | undefined;
 
@@ -251,6 +252,7 @@ export class PortalAdminComponent implements OnInit, OnDestroy {
   private api = inject(ApiService);
   private ctx = inject(ContextService);
   private confirmSvc = inject(ConfirmationService);
+  private notify = inject(ApexNotificationService);
 
   convocatorias  = signal<Convocatoria[]>([]);
   postulaciones  = signal<any[]>([]);
@@ -455,7 +457,10 @@ export class PortalAdminComponent implements OnInit, OnDestroy {
 
     req.pipe(takeUntil(this.destroy$)).subscribe({
       next: () => { this.guardando.set(false); this.cerrarDialog(); this.cargar(); this.cargarEstadisticas(); },
-      error: () => this.guardando.set(false)
+      error: (e: any) => {
+        this.guardando.set(false);
+        this.notify.error('Error', e?.error?.detail ?? 'No se pudo guardar la convocatoria');
+      }
     });
   }
 
@@ -481,16 +486,22 @@ export class PortalAdminComponent implements OnInit, OnDestroy {
     fd.append('imagen', processedFile);
     this.api.postForm<any>(`/portal/admin/convocatorias/${id}/imagen`, fd)
       .pipe(takeUntil(this.destroy$))
-      .subscribe({ next: r => {
-        this.form.update(f => ({ ...f, imagenUrl: r.imagen_url }));
-        this.cargar();
-      }});
+      .subscribe({
+        next: r => {
+          this.form.update(f => ({ ...f, imagenUrl: r.imagen_url }));
+          this.cargar();
+        },
+        error: (e: any) => this.notify.error('Error', e?.error?.detail ?? 'No se pudo subir la imagen'),
+      });
   }
 
   togglePublicar(c: Convocatoria) {
     this.api.post<any>(`/portal/admin/convocatorias/${c.id}/publicar`, {})
       .pipe(takeUntil(this.destroy$))
-      .subscribe({ next: () => this.cargar() });
+      .subscribe({
+        next: () => this.cargar(),
+        error: (e: any) => this.notify.error('Error', e?.error?.detail ?? 'No se pudo publicar/despublicar la convocatoria'),
+      });
   }
 
   archivar(c: Convocatoria) {
@@ -500,7 +511,10 @@ export class PortalAdminComponent implements OnInit, OnDestroy {
       accept: () => {
         this.api.delete(`/portal/admin/convocatorias/${c.id}`)
           .pipe(takeUntil(this.destroy$))
-          .subscribe({ next: () => { this.cargar(); this.cargarEstadisticas(); }});
+          .subscribe({
+            next: () => { this.cargar(); this.cargarEstadisticas(); },
+            error: (e: any) => this.notify.error('Error', e?.error?.detail ?? 'No se pudo archivar la convocatoria'),
+          });
       }
     });
   }
@@ -512,7 +526,7 @@ export class PortalAdminComponent implements OnInit, OnDestroy {
     this.api.get<any[]>('/portal/admin/postulaciones', { convocatoria_id: c.id, limit: 200 })
       .pipe(takeUntil(this.destroy$))
       .subscribe({ next: d => { this.postulaciones.set(d ?? []); this.cargandoPost.set(false); },
-                  error: ()  => this.cargandoPost.set(false) });
+                  error: (e: any) => { this.cargandoPost.set(false); this.notify.error('Error', e?.error?.detail ?? 'No se pudieron cargar las postulaciones'); } });
   }
 
   agregarRequisito() {

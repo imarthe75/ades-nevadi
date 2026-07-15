@@ -110,6 +110,13 @@ public class HorarioController {
             @RequestBody HorarioPayload body,
             @AuthenticationPrincipal Jwt jwt) {
         var user = userService.resolveUser(jwt);
+        // BFLA fix (asimetría): crear un bloque de horario no verificaba nivelAcceso en
+        // absoluto — a diferencia de HorarioFranjaController/HorarioReglaController/
+        // AsignacionDocenteController (mismo paquete), que restringen su configuración a
+        // Coordinador o superior; y del propio frontend, que solo habilita la edición de
+        // horarios para nivelAcceso&le;3 (horarios.component.ts). Cualquier usuario
+        // autenticado, incluido alumno/padre, podía crear bloques de horario arbitrarios.
+        requireStaff(user);
         try {
             UUID id = crearHorarioUseCase.crear(new CrearHorarioUseCase.Command(
                 body.getGrupoId(), body.getMateriaId(), body.getProfesorId(), body.getAulaId(),
@@ -127,6 +134,8 @@ public class HorarioController {
             @RequestBody HorarioPayload body,
             @AuthenticationPrincipal Jwt jwt) {
         var user = userService.resolveUser(jwt);
+        // BFLA fix (asimetría): mismo hallazgo que crear() — sin verificación de nivelAcceso.
+        requireStaff(user);
         try {
             actualizarHorarioUseCase.actualizar(new ActualizarHorarioUseCase.Command(
                 id, body.getMateriaId(), body.getProfesorId(), body.getAulaId(),
@@ -143,7 +152,10 @@ public class HorarioController {
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void eliminar(@PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        AdesUser user = userService.resolveUser(jwt);
+        // BFLA fix (asimetría): mismo hallazgo que crear()/actualizar() — sin verificación
+        // de nivelAcceso, cualquier usuario autenticado podía borrar cualquier bloque de horario.
+        requireStaff(user);
         horarioService.eliminar(id);
     }
 
@@ -307,6 +319,13 @@ public class HorarioController {
             @RequestBody LockPayload body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        // BFLA fix (asimetría): fijar (aplicar como oficiales) los horarios de una corrida es
+        // tan consecuente como iniciar la corrida (iniciarCorridaSolver ya exige
+        // nivelAcceso&le;3), pero solo verificaba coincidencia de plantel — cualquier docente
+        // o alumno/padre de ese mismo plantel podía fijar el horario institucional.
+        if (user.getNivelAcceso() == null || user.getNivelAcceso() > 3) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Permisos insuficientes para fijar horarios de la corrida");
+        }
         HorarioCorrida corrida = horarioCorridaRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Corrida no encontrada"));
         if (user.getNivelAcceso() != null && user.getNivelAcceso() > 1 && user.getPlantelId() != null
@@ -327,6 +346,12 @@ public class HorarioController {
             @RequestBody RegeneratePayload body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        // BFLA fix (asimetría): regenerar una corrida (dispara un nuevo cálculo del solver a
+        // partir de horarios fijados) tiene el mismo impacto que iniciarCorridaSolver
+        // (nivelAcceso&le;3), pero solo verificaba coincidencia de plantel.
+        if (user.getNivelAcceso() == null || user.getNivelAcceso() > 3) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Permisos insuficientes para regenerar la corrida");
+        }
         HorarioCorrida corrida = horarioCorridaRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Corrida no encontrada"));
         if (user.getNivelAcceso() != null && user.getNivelAcceso() > 1 && user.getPlantelId() != null
@@ -452,6 +477,21 @@ public class HorarioController {
     @Data
     public static class RegeneratePayload {
         private List<UUID> horarioIds;
+    }
+
+    /**
+     * Alta/edición/eliminación de bloques de horario individuales es operación de
+     * Coordinador o superior (nivelAcceso &le;3) — mismo umbral que
+     * {@code iniciarCorridaSolver}/{@code importarAsc} de este mismo controller y que
+     * {@code HorarioFranjaController}/{@code HorarioReglaController}/
+     * {@code AsignacionDocenteController} del paquete horarios. El frontend ya oculta la
+     * edición para nivelAcceso&gt;3 (horarios.component.ts); este chequeo lo hace obligatorio
+     * en el servidor.
+     */
+    private void requireStaff(AdesUser user) {
+        if (user.getNivelAcceso() == null || user.getNivelAcceso() > 3) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Nivel de acceso insuficiente para esta operación");
+        }
     }
 
     private UUID resolverPlantel(UUID requestedPlantelId, AdesUser user) {

@@ -107,7 +107,12 @@ public class ContactosController {
     public ResponseEntity<List<Map<String, Object>>> listarContactos(
             @RequestParam("estudiante_id") UUID estudianteId,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        // Antes solo se llamaba resolveUser() sin requireStaff: cualquier cuenta
+        // autenticada (incluidos padres/alumnos) podía leer los contactos familiares
+        // (teléfono, email, tutela legal, flag puedeRecoger) de CUALQUIER estudiante
+        // (BOLA, OWASP API1 — asimetría con crearContacto()/actualizarContacto()/
+        // eliminarContacto(), que sí exigen requireStaff()).
+        requireStaff(userService.resolveUser(jwt));
         return ResponseEntity.ok(queryService.listarContactos(estudianteId));
     }
 
@@ -237,7 +242,11 @@ public class ContactosController {
             @PathVariable("estudiante_id") UUID estudianteId,
             @RequestParam(value = "ciclo_id", required = false) UUID cicloId,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        // Antes solo se llamaba resolveUser() sin requireStaff: cualquier cuenta
+        // autenticada podía leer el estatus de entrega de documentos (y observaciones)
+        // del expediente escolar de CUALQUIER estudiante (BOLA, OWASP API1 — asimetría
+        // con actualizarDocEstatus(), que sí exige requireStaff()).
+        requireStaff(userService.resolveUser(jwt));
         return ResponseEntity.ok(queryService.listarExpedienteDocs(estudianteId, cicloId));
     }
 

@@ -16,6 +16,7 @@ import { DividerModule } from 'primeng/divider';
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
 import { AdesFormatDirective } from '../../shared/directives/ades-format.directive';
+import { ApexNotificationService } from 'apex-component-library';
 
 interface Rubrica {
   id: string;
@@ -327,6 +328,7 @@ export class RubricasComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private readonly api = inject(ApiService);
   readonly ctx = inject(ContextService);
+  private readonly notify = inject(ApexNotificationService);
 
   rubricas = signal<Rubrica[]>([]);
   materias = signal<{ label: string; value: string }[]>([]);
@@ -350,7 +352,10 @@ export class RubricasComponent implements OnInit, OnDestroy {
   cargar(): void {
     const params: Record<string, string> = {};
     if (this.filtroMateriaId) params['materia_id'] = this.filtroMateriaId;
-    this.api.get<Rubrica[]>('/rubricas', params).pipe(takeUntil(this.destroy$)).subscribe(r => this.rubricas.set(r));
+    this.api.get<Rubrica[]>('/rubricas', params).pipe(takeUntil(this.destroy$)).subscribe({
+      next: r => this.rubricas.set(r),
+      error: e => this.notify.error('Error', e?.error?.detail ?? 'No se pudieron cargar las rúbricas'),
+    });
   }
 
   cargarCatalogos(): void {
@@ -364,12 +369,15 @@ export class RubricasComponent implements OnInit, OnDestroy {
 
   seleccionar(r: Rubrica): void {
     this.selRubrica = r;
-    this.api.get<any>(`/rubricas/${r.id}`).pipe(takeUntil(this.destroy$)).subscribe(d => {
-      this.detalle.set(d);
-      this.criterios.set((d.criterios ?? []).map((c: any) => ({
-        ...c,
-        niveles_logro: this.parseNivelesLogro(c.niveles_logro),
-      })));
+    this.api.get<any>(`/rubricas/${r.id}`).pipe(takeUntil(this.destroy$)).subscribe({
+      next: d => {
+        this.detalle.set(d);
+        this.criterios.set((d.criterios ?? []).map((c: any) => ({
+          ...c,
+          niveles_logro: this.parseNivelesLogro(c.niveles_logro),
+        })));
+      },
+      error: e => this.notify.error('Error', e?.error?.detail ?? 'No se pudo cargar el detalle de la rúbrica'),
     });
   }
 
@@ -402,7 +410,10 @@ export class RubricasComponent implements OnInit, OnDestroy {
       descripcion: this.formNueva.descripcion || null,
       materia_id: this.formNueva.materia_id || null,
       nivel_educativo_id: this.formNueva.nivel_educativo_id || null,
-    }).pipe(takeUntil(this.destroy$)).subscribe(() => { this.showNueva = false; this.cargar(); });
+    }).pipe(takeUntil(this.destroy$)).subscribe({
+      next: () => { this.showNueva = false; this.cargar(); },
+      error: e => this.notify.error('Error', e?.error?.detail ?? 'No se pudo crear la rúbrica'),
+    });
   }
 
   abrirCriterio(): void { this.formCrit = this.emptyFormCrit(); this.showCriterio = true; }
@@ -419,22 +430,29 @@ export class RubricasComponent implements OnInit, OnDestroy {
       // enviarse como texto JSON, no como arreglo, o Jackson rechaza el body
       // (MismatchedInputException: no puede bindear un array a String).
       niveles_logro: nivelesValidos.length ? JSON.stringify(nivelesValidos) : null,
-    }).pipe(takeUntil(this.destroy$)).subscribe(() => { this.showCriterio = false; this.seleccionar(this.selRubrica!); });
+    }).pipe(takeUntil(this.destroy$)).subscribe({
+      next: () => { this.showCriterio = false; this.seleccionar(this.selRubrica!); },
+      error: e => this.notify.error('Error', e?.error?.detail ?? 'No se pudo guardar el criterio'),
+    });
   }
 
   eliminarCriterio(c: Criterio): void {
     if (!this.selRubrica) return;
-    this.api.delete(`/rubricas/${this.selRubrica.id}/criterios/${c.id}`).pipe(takeUntil(this.destroy$)).subscribe(() => {
-      this.seleccionar(this.selRubrica!);
+    this.api.delete(`/rubricas/${this.selRubrica.id}/criterios/${c.id}`).pipe(takeUntil(this.destroy$)).subscribe({
+      next: () => this.seleccionar(this.selRubrica!),
+      error: e => this.notify.error('Error', e?.error?.detail ?? 'No se pudo eliminar el criterio'),
     });
   }
 
   eliminarRubrica(): void {
     if (!this.selRubrica) return;
-    this.api.delete(`/rubricas/${this.selRubrica.id}`).pipe(takeUntil(this.destroy$)).subscribe(() => {
-      this.selRubrica = null;
-      this.criterios.set([]);
-      this.cargar();
+    this.api.delete(`/rubricas/${this.selRubrica.id}`).pipe(takeUntil(this.destroy$)).subscribe({
+      next: () => {
+        this.selRubrica = null;
+        this.criterios.set([]);
+        this.cargar();
+      },
+      error: e => this.notify.error('Error', e?.error?.detail ?? 'No se pudo eliminar la rúbrica (verifica que no tenga calificaciones asociadas)'),
     });
   }
 

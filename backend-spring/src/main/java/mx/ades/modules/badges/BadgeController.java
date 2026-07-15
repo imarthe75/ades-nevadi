@@ -172,6 +172,11 @@ public class BadgeController {
             @RequestBody @Valid OtorgarRequest body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        // Antes no había NINGÚN chequeo de rol ni de acceso al alumno (solo resolveUser):
+        // cualquier cuenta autenticada, incl. un padre/alumno sin relación alguna con el
+        // estudiante, podía otorgar una insignia a CUALQUIER estudiante (BFLA/BOLA, OWASP
+        // API1/API5 — asimetría con badgesAlumno(), que sí exige requireAccesoAlumno()).
+        requireAccesoAlumno(user, body.getEstudianteId());
         var cmd = new OtorgarBadgeUseCase.Command(
                 badgeId, body.getEstudianteId(), body.getCicloId(), body.getMotivo(), user.getId());
         boolean nuevo = otorgarBadge.otorgar(cmd);
@@ -184,7 +189,10 @@ public class BadgeController {
             @PathVariable("estudianteId") UUID estudianteId,
             @RequestParam(value = "ciclo_id", required = false) UUID cicloId,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        AdesUser user = userService.resolveUser(jwt);
+        // Misma asimetría que otorgar(): sin chequeo alguno, cualquier autenticado podía
+        // revocar la insignia de cualquier estudiante (BFLA/BOLA, OWASP API1/API5).
+        requireAccesoAlumno(user, estudianteId);
         revocarBadge.revocar(badgeId, estudianteId, cicloId);
         return ResponseEntity.ok(Map.of("ok", true));
     }
