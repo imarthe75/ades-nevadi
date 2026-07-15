@@ -1,7 +1,7 @@
 /**
  * ShellComponent — Layout principal con topbar tipo APEX.
  * Contiene: logo, selector de plantel/ciclo (Application Items), nav lateral, router-outlet.
- * Colores institucionales Instituto Nevadi — primario #D02030.
+ * Colores institucionales Instituto Nevadi — primario var(--nevadi-red).
  * PUNTO 6: Implementa OnDestroy con destroy$ para cleanup de subscriptions ✅
  */
 import { Component, inject, OnInit, OnDestroy, ChangeDetectionStrategy, signal, computed, ViewChild } from '@angular/core';
@@ -316,7 +316,7 @@ interface Notif { id: string; titulo: string; cuerpo: string; tipo: string; leid
       font-weight: 800; font-size: 1rem; color: #fff;
     }
     .brand-title   { color: #fff; font-weight: 700; font-size: 1rem; line-height: 1.1; display: block; }
-    /* rgba(255,255,255,.9) sobre #D02030 → ratio 4.57:1 — cumple WCAG AA */
+    /* rgba(255,255,255,.9) sobre var(--nevadi-red) → ratio 4.57:1 — cumple WCAG AA */
     .brand-subtitle { color: rgba(255,255,255,.9); font-size: 0.7rem; display: block; }
 
     .topbar-divider { width: 1px; height: 28px; background: rgba(255,255,255,.2); margin: 0 0.75rem; }

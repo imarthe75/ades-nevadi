@@ -289,7 +289,7 @@ import { AdesFormatDirective } from '../../shared/directives/ades-format.directi
           </div>
 
           @if (calificarEntrega()?.archivo_url) {
-            <div style="padding:10px; background:#f3f4f6; border-radius:6px; border:1px solid #e5e7eb; display:flex; flex-direction:column; gap:8px;">
+            <div style="padding:10px; background:var(--surface-hover); border-radius:6px; border:1px solid #e5e7eb; display:flex; flex-direction:column; gap:8px;">
               <div style="font-weight:600; font-size:.85rem; display:flex; align-items:center; gap:6px;">
                 <i class="pi pi-shield" style="color:#0284c7"></i> Detección de Plagio (Turnitin)
               </div>
@@ -331,7 +331,7 @@ import { AdesFormatDirective } from '../../shared/directives/ades-format.directi
             }
 
             @if (calificarEntrega()?.feedback_audio_url || calificarEntrega()?.feedback_video_url) {
-              <div style="margin-top:6px; border-top:1px solid #dcfce7; padding-top:6px; display:flex; flex-direction:column; gap:4px; font-size:.8rem;">
+              <div style="margin-top:6px; border-top:1px solid var(--nevadi-sage-light); padding-top:6px; display:flex; flex-direction:column; gap:4px; font-size:.8rem;">
                 <span style="font-weight:600; color:#166534">Feedback guardado:</span>
                 @if (calificarEntrega()?.feedback_audio_url) {
                   <div style="display:flex; align-items:center; gap:4px;">

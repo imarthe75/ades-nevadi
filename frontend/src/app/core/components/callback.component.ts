@@ -21,7 +21,7 @@ import { ProgressSpinnerModule } from 'primeng/progressspinner';
         <span class="cb-label">Iniciando sesión…</span>
       } @else {
         <div class="cb-error">
-          <i class="pi pi-times-circle" style="font-size:2rem;color:#D02030"></i>
+          <i class="pi pi-times-circle" style="font-size:2rem;color:var(--nevadi-red)"></i>
           <p>{{ error() }}</p>
           <a href="/login">Volver al inicio de sesión</a>
         </div>
@@ -36,9 +36,9 @@ import { ProgressSpinnerModule } from 'primeng/progressspinner';
       background: linear-gradient(160deg, #141929 0%, #1E2940 100%);
       color: #fff;
     }
-    .cb-label { font-size: 0.95rem; color: #94A3B8; }
+    .cb-label { font-size: 0.95rem; color: var(--text-muted); }
     .cb-error { text-align: center; color: #fff; }
-    .cb-error a { color: #D02030; text-decoration: none; margin-top: .5rem; display: block; }
+    .cb-error a { color: var(--nevadi-red); text-decoration: none; margin-top: .5rem; display: block; }
   `],
 })
 export class CallbackComponent implements OnInit, OnDestroy {

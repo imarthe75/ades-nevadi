@@ -135,7 +135,7 @@ interface Insights {
   <div class="empty-state">
     <i class="pi pi-book" style="font-size:2.5rem;color:#CBD5E1"></i>
     <h3 style="margin:.5rem 0 .25rem;color:#475569">Selecciona un grupo</h3>
-    <p style="color:#94A3B8;max-width:320px;text-align:center">
+    <p style="color:var(--text-muted);max-width:320px;text-align:center">
       Selecciona el grupo en el menú de contexto superior para ver las actividades, calificaciones y cobertura curricular.
     </p>
   </div>
@@ -165,7 +165,7 @@ interface Insights {
     @if (actividadesFlat().length === 0 && !cargando()) {
       <div class="empty-state" style="padding:3rem">
         <i class="pi pi-inbox" style="font-size:2rem;color:#CBD5E1"></i>
-        <p style="color:#94A3B8">No hay actividades registradas para este grupo.
+        <p style="color:var(--text-muted)">No hay actividades registradas para este grupo.
           Usa "Nueva actividad" para crear la primera.</p>
       </div>
     } @else {
@@ -183,7 +183,7 @@ interface Insights {
     @if (!periodoSel) {
       <div class="empty-state" style="padding:3rem">
         <i class="pi pi-calendar" style="font-size:2rem;color:#CBD5E1"></i>
-        <p style="color:#94A3B8">Selecciona un período de evaluación para ver el concentrado.</p>
+        <p style="color:var(--text-muted)">Selecciona un período de evaluación para ver el concentrado.</p>
       </div>
     } @else {
       <app-interactive-grid
@@ -421,11 +421,11 @@ interface Insights {
     .cal-excelente { color:#15803d; font-weight:600; }
     .cal-bien      { color:#0369a1; font-weight:600; }
     .cal-regular   { color:#b45309; font-weight:600; }
-    .cal-reprobado { color:#dc2626; font-weight:600; }
+    .cal-reprobado { color:var(--color-danger); font-weight:600; }
     :host ::ng-deep .p-datatable-sm .p-datatable-tbody > tr > td { padding:4px 8px; }
-    .kpi-card.kpi-danger { border-color:#dc2626; }
+    .kpi-card.kpi-danger { border-color:var(--color-danger); }
     .kpi-card.kpi-warn   { border-color:#f59e0b; }
-    .kpi-card.kpi-ok     { border-color:#16a34a; }
+    .kpi-card.kpi-ok     { border-color:var(--color-success); }
     .section-title { font-size:.95rem; font-weight:600; margin:1rem 0 .5rem; color:var(--p-text-color); }
     .coverage-list { display:flex; flex-direction:column; gap:.4rem; }
     .coverage-row  { display:grid; grid-template-columns:260px 1fr 120px 120px; align-items:center; gap:8px; padding:4px 0; border-bottom:1px solid var(--p-surface-border); }
@@ -434,9 +434,9 @@ interface Insights {
     .tipo-badge    { font-size:.7rem; color:var(--p-text-muted-color); }
     .coverage-pct  { text-align:right; font-size:.85rem; white-space:nowrap; }
     .coverage-tags { display:flex; gap:4px; flex-wrap:wrap; }
-    .pct-ok        { color:#16a34a; font-weight:600; }
+    .pct-ok        { color:var(--color-success); font-weight:600; }
     .pct-warn      { color:#b45309; font-weight:600; }
-    .pct-danger    { color:#dc2626; font-weight:600; }
+    .pct-danger    { color:var(--color-danger); font-weight:600; }
     .text-muted    { color:var(--p-text-muted-color); }
     .empty-state { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:.75rem; padding:5rem 2rem; }
     .empty-state p { margin:0; font-size:.88rem; }

@@ -77,7 +77,7 @@ interface Catalogo {
   template: `
 <div class="page-header">
   <div class="page-title">
-    <i class="pi pi-megaphone" style="color:#D02030"></i>
+    <i class="pi pi-megaphone" style="color:var(--nevadi-red)"></i>
     <h1>Gestión de Convocatorias</h1>
   </div>
   <div class="page-actions">
@@ -225,7 +225,7 @@ interface Catalogo {
                  min-width:140px; flex:1; }
     .kpi-card.warn { border-color:#f59e0b; }
     .kpi-val   { display:block; font-size:2rem; font-weight:700; color:#1e293b; }
-    .kpi-lbl   { font-size:0.75rem; color:#64748b; }
+    .kpi-lbl   { font-size:0.75rem; color:var(--text-secondary); }
     .filter-bar { display:flex; gap:10px; margin-bottom:16px; align-items:center; flex-wrap:wrap; }
     .form-grid  { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
     .form-col   { display:flex; flex-direction:column; gap:12px; }

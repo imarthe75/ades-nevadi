@@ -197,7 +197,7 @@ export interface ColumnConfig {
 
     /* Fila clickeable */
     .data-row { cursor: pointer; transition: background .1s; }
-    .data-row:hover { background: var(--primary-50, #fef2f3) !important; }
+    .data-row:hover { background: var(--primary-50, var(--nevadi-red-lighter)) !important; }
     .data-row td { font-size: .87rem; }
 
     /* Acciones */

@@ -288,8 +288,8 @@ interface CalificacionResumen {
     }
     .kpi-item { display: flex; flex-direction: column; align-items: center; min-width: 100px; }
     .kval { font-size: 1.6rem; font-weight: 700; color: var(--text-primary); }
-    .kval.alto { color: var(--color-success, #16a34a); }
-    .kval.bajo { color: var(--color-danger, #dc2626); }
+    .kval.alto { color: var(--color-success, var(--color-success)); }
+    .kval.bajo { color: var(--color-danger, var(--color-danger)); }
     .klbl { font-size: .72rem; color: var(--text-secondary); }
     .kpi-sep { width: 1px; height: 40px; background: var(--surface-200); }
 

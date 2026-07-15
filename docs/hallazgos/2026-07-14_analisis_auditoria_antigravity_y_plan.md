@@ -230,16 +230,62 @@ por ninguno de los dos enums. Se armonizó la regla (`puedeCalificarse()` ahora 
 `esCalificable()`) para eliminar el riesgo de que un futuro desarrollador use la copia equivocada, sin
 riesgo de regresión al no haber ningún llamador hoy.
 
-### D6, D7, D8 — deuda de frontend confirmada pero diferida
+### D6, D7, D8 — deuda de frontend: atacados con alcance acotado (2026-07-15)
 
-Los tres hallazgos de estilos/UX son reales (verificado con conteo directo: 12 `<input type="date">`
-nativos conviviendo con 14 `<p-datepicker>`; 479 colores hexadecimales hardcodeados; 75 de 79
-componentes con bloques `styles: [...]` inline) pero son deuda de **consistencia visual**, no bugs
-funcionales — nada se rompe, solo hay inconsistencia estética y de mantenibilidad. Corregirlos bien
-requiere una pasada de diseño con QA visual real (navegador, no solo `tsc`), y tocar 75+ archivos de
-forma automática sin esa verificación es un riesgo de regresión visual injustificado frente al beneficio.
-Quedan documentados aquí para una iniciativa dedicada de consolidación del sistema de diseño, fuera del
-alcance de esta sesión de auditoría de bugs/seguridad.
+Revaloración tras pregunta directa del usuario ("¿es posible atacarlo?"): la evaluación inicial
+("diferir, requiere QA visual") era demasiado categórica — no distinguía entre trabajo mecánico de
+riesgo cero y trabajo que sí requiere juicio de diseño. Se re-triaron los tres por separado:
+
+**D6 — fragmentación de date pickers: ✅ corregido completo.** 12 archivos con `<input type="date">`
+nativo migrados a `<p-datepicker>`, replicando el patrón ya establecido en `tareas.component.ts`
+(campo tipado `Date | null` + conversión a `yyyy-MM-dd` solo al enviar el payload). No fue un simple
+cambio de tag: `p-datepicker` liga a un objeto `Date`, no a un string, así que cada uno de los 12
+archivos necesitó actualizar el tipo del campo, el punto de carga (edición) y el punto de envío
+(creación/guardado), más agregar `DatePickerModule` a los `imports` de los standalone components que
+no lo tenían. Un caso (`admin.component.ts`, ciclo escolar) requirió una interfaz de formulario
+separada (`CicloEditForm`) para no mentirle al tipo de la lista `CicloAdmin[]` que sí sigue viniendo
+como string cruda del API. **Detectado en el camino:** `tsc --noEmit` no atrapa todos los errores de
+tipo que sí atrapa el build real de Angular (`ng build` vía esbuild/angular-compiler) — un error de
+asignación `string`→`Date` en `evaluaciones.component.ts` pasó `tsc` limpio pero rompió el build de
+producción; corregido y confirmado que **el build real siempre debe ser el criterio de verificación
+final para cambios de este tipo**, no solo `tsc`. Compilado, build de producción exitoso, redesplegado
+y confirmado sirviendo en `http://localhost:4200`.
+
+**D7 — colores hexadecimales hardcodeados: ✅ 132 reemplazos exactos aplicados (de 479 usos).**
+Contrario a la evaluación inicial, no eran 479 decisiones de diseño distintas — eran ~479 *usos* de un
+puñado de valores únicos, varios de ellos coincidiendo EXACTAMENTE con tokens ya definidos en
+`styles.scss` (`#DC2626`→`--color-danger`, `#D02030`→`--nevadi-red`, `#64748B`→`--text-secondary`,
+etc.). Se escribió `scripts/replace-hardcoded-colors.js`: extrae los tokens hex de `styles.scss`,
+reemplaza únicamente coincidencias EXACTAS (case-insensitive) por `var(--token)` — cero cambio visual,
+es sustitución mecánica, no un juicio de diseño — y deja sin tocar blancos/negros/grises acromáticos
+(sin token semántico único correcto) y cualquier hex sin match exacto. Resultado: 132 usos en 35
+archivos reemplazados automáticamente y verificados (`--apply`), quedan 347 usos sin token exacto
+para una decisión de diseño real (ampliar la paleta de tokens o dejarlos) — el script corre en modo
+dry-run por defecto y reporta el inventario completo de lo que falta, así que esa decisión futura ya
+tiene datos concretos en vez de "479 colores sueltos". Compilado, build de producción exitoso,
+redesplegado.
+
+**D8 — estilos inline duplicados: 🟡 infraestructura agregada, extracción masiva diferida a propósito.**
+Se escribió `scripts/find-duplicate-styles.js`: extrae los bloques `styles: [\`...\`]` de los 75
+componentes, parte cada uno en reglas CSS de primer nivel, y reporta las que son **byte-idénticas**
+en 3+ archivos distintos (28 reglas encontradas, ej. `.apex-page`/`.apex-title`/`.apex-toolbar*`
+repetidas hasta 15 veces, familia `.page-title`/`.page-subtitle`/`.page-actions` repetida 6-8 veces).
+A diferencia de D6/D7, aquí SÍ se decidió no tocar los 75 archivos existentes: quitar una regla
+duplicada de un componente es seguro en teoría (mismo CSS computado si se promueve a global), pero es
+un cambio mecánico de gran superficie (75 archivos) por un beneficio bajo (bytes de CSS duplicado, no
+un bug) — no se justificaba dentro de esta sesión. Lo que SÍ se hizo: las ~10 reglas de mayor
+repetición (`.apex-page`, `.apex-title`, `.apex-toolbar`, `.apex-toolbar-actions`, `.page-title`,
+`.page-subtitle`, `.page-actions`, `.form-field`, `.form-field.full`) se agregaron como clases
+globales nuevas en `styles.scss` — un cambio puramente aditivo, cero riesgo, que documenta la
+convención real ya en uso y que los componentes nuevos pueden reutilizar sin redeclarar CSS.
+`find-duplicate-styles.js` queda como la lista de trabajo concreta para una limpieza dirigida futura
+(quitar la copia local de cada componente cuya regla ya vive en el global), sin necesidad de
+re-derivar el análisis desde cero.
+
+**Verificación consolidada de las tres:** `tsc --noEmit` limpio, build de producción de Angular
+exitoso (el criterio real, no solo `tsc`), `ades-frontend` reconstruido y redesplegado 3 veces (una
+por cada fase D6/D7/D8) confirmando 200 OK en cada ocasión, guardarraíl de Fase 6
+(`check-api-contracts.js`) sigue en verde tras los cambios.
 
 ---
 
@@ -566,7 +612,7 @@ conviene una red de seguridad barata que impida que se reintroduzca este bug en 
 | 4 — E2E "UI muerta" (Playwright) | 🟡 Media-alta | Alto | 🟡 Parcial (crash-loop crítico resuelto, 2 bugs verificados en vivo) | — |
 | 6 — guardarraíl de CI | 🟢 Media | Bajo | ✅ Completada (2 bugs reales corregidos) | — |
 | 2 — tipos generados (fix estructural) | 🟠 Alta (retorno) | Alto | 🟡 Infraestructura lista, migración pendiente | Reduce necesidad futura de 1, 3, 6 |
-| — Antigravity D1-D8 (cross-check) | — | — | ✅ Completada — 1 bug real (D1), 2 ya resueltos (D3/D5), 1 armonizado (D4), 3 diferidos (D6-D8) | — |
+| — Antigravity D1-D8 (cross-check) | — | — | ✅ Completada — 1 bug real (D1), 2 ya resueltos (D3/D5), 1 armonizado (D4), D6 corregido (12 archivos), D7 132 reemplazos, D8 infraestructura agregada | — |
 | — **Crash-loop `ObjectMapper`** (no planeado) | 🔴 **Crítica** | Bajo | ✅ Resuelto — descubierto solo al redesplegar de verdad | — |
 
 **Nota sobre por qué la evidencia de Antigravity estaba obsoleta:** los hallazgos 001 y 002 citan

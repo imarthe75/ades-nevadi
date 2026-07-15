@@ -7,6 +7,7 @@ import { SelectModule } from 'primeng/select';
 import { TagModule } from 'primeng/tag';
 import { DialogModule } from 'primeng/dialog';
 import { TooltipModule } from 'primeng/tooltip';
+import { DatePickerModule } from 'primeng/datepicker';
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
 import { ApexNotificationService } from 'apex-component-library';
@@ -18,7 +19,7 @@ interface PlantelOpt { id: string; nombre_plantel: string; }
 
 interface EventoForm {
   ciclo_escolar_id: string;
-  fecha_evento: string;
+  fecha_evento: Date | null;
   nombre_evento: string;
   tipo_evento: string;
   aplica_todos_planteles: boolean;
@@ -40,7 +41,7 @@ interface EventoForm {
     AdesFormatDirective,
     CommonModule, FormsModule,
     ButtonModule, SelectModule, TagModule,
-    DialogModule, TooltipModule,
+    DialogModule, TooltipModule, DatePickerModule,
     InteractiveGridComponent,
   ],
   template: `
@@ -97,7 +98,8 @@ interface EventoForm {
     </div>
     <div class="field">
       <label for="fecha-ev">Fecha *</label>
-      <input id="fecha-ev" type="date" pInputText [(ngModel)]="form.fecha_evento" class="w-full" />
+      <p-datepicker inputId="fecha-ev" [(ngModel)]="form.fecha_evento" dateFormat="dd/mm/yy" [showIcon]="true"
+                    placeholder="DD/MM/AAAA" styleClass="w-full" [inputStyle]="{width:'100%'}" />
     </div>
     <div class="field col-span-2">
       <label for="nombre-ev">Nombre del evento *</label>
@@ -135,7 +137,7 @@ interface EventoForm {
     .w-220 { width:220px; } .w-200 { width:200px; } .w-full { width:100%; }
     .resumen-row { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
     .resumen-chip { display:flex; align-items:center; gap:6px;
-                    background:var(--p-surface-50,#f8f9fa);
+                    background:var(--p-surface-50,var(--surface-ground));
                     border:1px solid var(--p-surface-border);
                     border-radius:20px; padding:4px 10px; }
     .resumen-count { font-weight:700; font-size:.9rem; }
@@ -265,7 +267,7 @@ export class CalendarioComponent implements OnInit, OnDestroy {
     this.eventoId = row.id;
     this.form = {
       ciclo_escolar_id:        row.ciclo_escolar_id,
-      fecha_evento:            row.fecha_evento,
+      fecha_evento:            row.fecha_evento ? new Date(row.fecha_evento) : null,
       nombre_evento:           row.nombre_evento,
       tipo_evento:             row.tipo_evento,
       aplica_todos_planteles:  row.aplica_todos_planteles,
@@ -282,6 +284,7 @@ export class CalendarioComponent implements OnInit, OnDestroy {
     this.guardando.set(true);
     const payload = {
       ...this.form,
+      fecha_evento: this.form.fecha_evento!.toISOString().substring(0, 10),
       plantel_id: this.form.aplica_todos_planteles ? null : this.form.plantel_id,
     };
     const req = this.esNuevo
@@ -324,7 +327,7 @@ export class CalendarioComponent implements OnInit, OnDestroy {
 
   private _formVacio(): EventoForm {
     return {
-      ciclo_escolar_id: '', fecha_evento: '', nombre_evento: '',
+      ciclo_escolar_id: '', fecha_evento: null, nombre_evento: '',
       tipo_evento: 'DIA_FESTIVO', aplica_todos_planteles: true, plantel_id: null,
     };
   }

@@ -12,6 +12,7 @@ import { TextareaModule } from 'primeng/textarea';
 import { TooltipModule } from 'primeng/tooltip';
 import { CheckboxModule } from 'primeng/checkbox';
 import { MessageModule } from 'primeng/message';
+import { DatePickerModule } from 'primeng/datepicker';
 
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
@@ -67,7 +68,7 @@ const TIPOS = [
     CommonModule, DatePipe, FormsModule,
     ButtonModule, TagModule, DialogModule,
     SelectModule, InputTextModule, TextareaModule,
-    TooltipModule, CheckboxModule, MessageModule,
+    TooltipModule, CheckboxModule, MessageModule, DatePickerModule,
     InteractiveGridComponent,
   ],
   template: `
@@ -156,7 +157,8 @@ const TIPOS = [
         </div>
         <div class="form-field">
           <label>Fecha vencimiento</label>
-          <input pInputText type="date" [(ngModel)]="form.fecha_vencimiento" style="width:100%" />
+          <p-datepicker [(ngModel)]="form.fecha_vencimiento" dateFormat="dd/mm/yy" [showIcon]="true"
+                        placeholder="DD/MM/AAAA" [style]="{width:'100%'}" [inputStyle]="{width:'100%'}" />
         </div>
         <div class="form-field full">
           <label>Contenido *</label>
@@ -213,7 +215,7 @@ const TIPOS = [
     .form-field  { display:flex; flex-direction:column; gap:.3rem; font-size:.875rem; }
     .form-field.full { grid-column: 1 / -1; }
     label { font-weight:500; font-size:.82rem; }
-    .field-error { color: var(--red-600, #dc2626); font-size: .78rem; }
+    .field-error { color: var(--red-600, var(--color-danger)); font-size: .78rem; }
   `],
 })
 export class ComunicadosComponent implements OnInit, OnDestroy {
@@ -318,10 +320,10 @@ export class ComunicadosComponent implements OnInit, OnDestroy {
     const payload = {
       ...this.form,
       plantel_id: plantel?.id ?? null,
-      // El backend espera LocalDateTime (ISO 8601 completo); el <input type="date">
-      // solo entrega "yyyy-MM-dd", lo que Jackson rechaza con HttpMessageNotReadableException.
-      // Se fija al final del día para que el comunicado siga vigente durante toda esa fecha.
-      fecha_vencimiento: this.form.fecha_vencimiento ? `${this.form.fecha_vencimiento}T23:59:59` : null,
+      // El backend espera LocalDateTime (ISO 8601 completo) — se fija al final del día
+      // para que el comunicado siga vigente durante toda esa fecha.
+      fecha_vencimiento: this.form.fecha_vencimiento
+        ? `${this.form.fecha_vencimiento.toISOString().substring(0, 10)}T23:59:59` : null,
     };
     this.api.post('/comunicados', payload).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => { this.showDialog.set(false); this.saving.set(false); this.cargar(); },
@@ -333,7 +335,7 @@ export class ComunicadosComponent implements OnInit, OnDestroy {
   exportXLSX(): void { this.exporter.toXLSX(this.comunicados(), this.exportCols, 'Comunicados', 'comunicados'); }
 
   private emptyForm() {
-    return { titulo: '', contenido: '', tipo_comunicado: 'GENERAL', requiere_acuse: false, fecha_vencimiento: '' };
+    return { titulo: '', contenido: '', tipo_comunicado: 'GENERAL', requiere_acuse: false, fecha_vencimiento: null as Date | null };
   }
 
   ngOnDestroy(): void {

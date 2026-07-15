@@ -13,6 +13,7 @@ import { TextareaModule } from 'primeng/textarea';
 import { TooltipModule } from 'primeng/tooltip';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { MessageModule } from 'primeng/message';
+import { DatePickerModule } from 'primeng/datepicker';
 import { MessageService } from 'primeng/api';
 import { ApexNotificationService } from 'apex-component-library';
 import { ImportButtonComponent } from '../../shared/components/import-button/import-button.component';
@@ -71,7 +72,7 @@ const NIVELES = [
     AdesFormatDirective,
     CommonModule, FormsModule, ButtonModule, DialogModule,
     InputTextModule, SelectModule, TagModule, ToastModule, TextareaModule,
-    TooltipModule, InputNumberModule, MessageModule, ImportButtonComponent,
+    TooltipModule, InputNumberModule, MessageModule, ImportButtonComponent, DatePickerModule,
     InteractiveGridComponent,
   ],
   providers: [MessageService],
@@ -218,7 +219,8 @@ const NIVELES = [
         </div>
         <div class="flex flex-col gap-1">
           <label class="text-sm font-medium">Fecha de Nacimiento *</label>
-          <input pInputText [(ngModel)]="form.fechaNacimiento" type="date" />
+          <p-datepicker [(ngModel)]="form.fechaNacimiento" dateFormat="dd/mm/yy" [showIcon]="true"
+                        placeholder="DD/MM/AAAA" [style]="{width:'100%'}" [inputStyle]="{width:'100%'}" />
         </div>
         <div class="flex flex-col gap-1">
           <label class="text-sm font-medium">Nivel Solicitado *</label>
@@ -322,7 +324,7 @@ export class AdmisionComponent implements OnInit, OnDestroy {
 
   form = {
     nombre: '', apellidoPaterno: '', apellidoMaterno: '', curp: '',
-    fechaNacimiento: '', nivel: 'PRIMARIA', grado: 1,
+    fechaNacimiento: null as Date | null, nivel: 'PRIMARIA', grado: 1,
     promedio: null as number | null, escuela: '',
     tutorNombre: '', tutorTelefono: '', tutorEmail: '',
   };
@@ -343,7 +345,7 @@ export class AdmisionComponent implements OnInit, OnDestroy {
   }
 
   abrirNueva() {
-    this.form = { nombre: '', apellidoPaterno: '', apellidoMaterno: '', curp: '', fechaNacimiento: '', nivel: 'PRIMARIA', grado: 1, promedio: null, escuela: '', tutorNombre: '', tutorTelefono: '', tutorEmail: '' };
+    this.form = { nombre: '', apellidoPaterno: '', apellidoMaterno: '', curp: '', fechaNacimiento: null, nivel: 'PRIMARIA', grado: 1, promedio: null, escuela: '', tutorNombre: '', tutorTelefono: '', tutorEmail: '' };
     this.dlgNueva = true;
   }
 
@@ -362,7 +364,7 @@ export class AdmisionComponent implements OnInit, OnDestroy {
       nombre: this.form.nombre,
       apellido_paterno: this.form.apellidoPaterno,
       apellido_materno: this.form.apellidoMaterno || null,
-      fecha_nacimiento: this.form.fechaNacimiento,
+      fecha_nacimiento: this.form.fechaNacimiento!.toISOString().substring(0, 10),
       curp: this.form.curp.toUpperCase(),
       nivel_solicitado: this.form.nivel,
       grado_solicitado: this.form.grado,

@@ -278,7 +278,7 @@ interface AlumnoSugerencia {
     </div>
     <div class="field">
       <label>Color</label>
-      <input pInputText [(ngModel)]="form.color" placeholder="#D02030" />
+      <input pInputText [(ngModel)]="form.color" placeholder="var(--nevadi-red)" />
     </div>
     @if (form.criterio_tipo === 'AUTOMATICO') {
       <div class="field">
@@ -602,7 +602,7 @@ export class BadgesComponent implements OnInit, OnDestroy {
   }
 
   defaultForm() {
-    return { nombre: '', descripcion: '', icono: 'pi-star', color: '#D02030',
+    return { nombre: '', descripcion: '', icono: 'pi-star', color: 'var(--nevadi-red)',
              tipo: 'ESPECIAL', criterio_tipo: 'MANUAL', criterio_metrica: null, criterio_valor: null };
   }
 

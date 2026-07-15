@@ -259,7 +259,7 @@ const TIPO_LABELS: Record<string, string> = {
             />
           </div>
         } @else {
-          <div style="text-align:center;padding:2rem;color:#94A3B8">
+          <div style="text-align:center;padding:2rem;color:var(--text-muted)">
             <p-skeleton height="40px" width="100%" styleClass="mb-2" />
             <p-skeleton height="40px" width="100%" styleClass="mb-2" />
             <p-skeleton height="40px" width="100%" />
@@ -281,9 +281,9 @@ const TIPO_LABELS: Record<string, string> = {
     .kpi-score { font-family: var(--font-display); font-size: 2.4rem; font-weight: 800; line-height: 1; }
     .kpi-denom { font-size: 0.9rem; font-weight: 400; opacity: 0.5; }
     .kpi-meta  { font-size: 0.75rem; color: var(--text-color-secondary); margin-top: 0.2rem; }
-    .score-good { color: #16A34A; }
-    .score-mid  { color: #D97706; }
-    .score-low  { color: #DC2626; }
+    .score-good { color: var(--color-success); }
+    .score-mid  { color: var(--color-warning); }
+    .score-low  { color: var(--color-danger); }
 
     .skeleton-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.25rem; }
 
@@ -305,9 +305,9 @@ const TIPO_LABELS: Record<string, string> = {
     .criterio-nombre  { font-weight: 600; font-size: 0.88rem; }
     .criterio-cat     { font-size: 0.73rem; color: var(--text-color-secondary); margin-top: 2px; }
     .criterio-score-badge { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.1rem; color: #fff; flex-shrink: 0; }
-    .criterio-score-badge.score-good { background: #16A34A; }
-    .criterio-score-badge.score-mid  { background: #D97706; }
-    .criterio-score-badge.score-low  { background: #DC2626; }
+    .criterio-score-badge.score-good { background: var(--color-success); }
+    .criterio-score-badge.score-mid  { background: var(--color-warning); }
+    .criterio-score-badge.score-low  { background: var(--color-danger); }
 
     /* Score buttons */
     .score-buttons { display: flex; gap: 0.4rem; align-items: center; }
@@ -319,16 +319,16 @@ const TIPO_LABELS: Record<string, string> = {
       transition: all 0.15s;
     }
     .score-btn:hover { border-color: var(--nevadi-red); }
-    .score-btn.selected.score-btn-good { background: #16A34A; border-color: #16A34A; color: #fff; }
-    .score-btn.selected.score-btn-mid  { background: #D97706; border-color: #D97706; color: #fff; }
-    .score-btn.selected.score-btn-low  { background: #DC2626; border-color: #DC2626; color: #fff; }
+    .score-btn.selected.score-btn-good { background: var(--color-success); border-color: var(--color-success); color: #fff; }
+    .score-btn.selected.score-btn-mid  { background: var(--color-warning); border-color: var(--color-warning); color: #fff; }
+    .score-btn.selected.score-btn-low  { background: var(--color-danger); border-color: var(--color-danger); color: #fff; }
     .score-label { font-size: 0.75rem; color: var(--text-color-secondary); margin-left: 0.5rem; }
 
     .submit-row { display: flex; gap: 0.75rem; align-items: center; justify-content: flex-end; padding-top: 0.75rem; border-top: 1px solid var(--surface-border); }
     .promedio-preview { font-size: 0.9rem; margin-right: auto; }
     .promedio-preview strong { color: var(--nevadi-red); }
 
-    .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; padding: 3rem; color: #94A3B8; text-align: center; }
+    .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; padding: 3rem; color: var(--text-muted); text-align: center; }
     .ciclo-warn  { display: flex; align-items: center; gap: 0.5rem; background: #FFF7ED; border: 1px solid #FED7AA; border-radius: 6px; padding: 0.5rem 0.75rem; font-size: 0.8rem; color: #9A3412; margin-bottom: 0.75rem; }
   `],
 })

@@ -788,7 +788,7 @@ export class DashboardComponent implements OnDestroy {
     });
   }
 
-  color(n: string): string { return NIVEL_COLOR[n] ?? '#94a3b8'; }
+  color(n: string): string { return NIVEL_COLOR[n] ?? 'var(--text-muted)'; }
   icon(n: string):  string { return NIVEL_ICON[n]  ?? 'pi-school'; }
 
   ngOnDestroy(): void {

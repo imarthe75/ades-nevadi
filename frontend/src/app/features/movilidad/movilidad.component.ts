@@ -353,7 +353,7 @@ interface CambioGrupo {
     .dlg-grid { display: flex; flex-direction: column; gap: .75rem; padding: .25rem 0; }
     .field { display: flex; flex-direction: column; gap: .25rem; }
     .field label { font-size: .85rem; font-weight: 500; color: var(--text-color-secondary); }
-    .field-error { color: var(--red-600, #dc2626); font-size: .78rem; }
+    .field-error { color: var(--red-600, var(--color-danger)); font-size: .78rem; }
     .alumno-label { margin: 0; font-size: .9rem; }
   `],
 })

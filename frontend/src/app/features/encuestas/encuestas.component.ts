@@ -14,6 +14,7 @@ import { InputNumberModule } from 'primeng/inputnumber';
 import { CheckboxModule } from 'primeng/checkbox';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { DividerModule } from 'primeng/divider';
+import { DatePickerModule } from 'primeng/datepicker';
 
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
@@ -119,7 +120,7 @@ const TIPOS_PREG = [
     CommonModule, FormsModule,
     ButtonModule, TagModule, DialogModule, SelectModule,
     InputTextModule, TextareaModule, TooltipModule, InputNumberModule,
-    CheckboxModule, ToggleSwitchModule, DividerModule,
+    CheckboxModule, ToggleSwitchModule, DividerModule, DatePickerModule,
     InteractiveGridComponent,
   ],
   template: `
@@ -413,11 +414,13 @@ const TIPOS_PREG = [
         </div>
         <div class="form-field">
           <label>Fecha inicio</label>
-          <input pInputText type="date" [(ngModel)]="formNueva.fecha_inicio" style="width:100%" />
+          <p-datepicker [(ngModel)]="formNueva.fecha_inicio" dateFormat="dd/mm/yy" [showIcon]="true"
+                        placeholder="DD/MM/AAAA" [style]="{width:'100%'}" [inputStyle]="{width:'100%'}" />
         </div>
         <div class="form-field">
           <label>Fecha fin</label>
-          <input pInputText type="date" [(ngModel)]="formNueva.fecha_fin" style="width:100%" />
+          <p-datepicker [(ngModel)]="formNueva.fecha_fin" dateFormat="dd/mm/yy" [showIcon]="true"
+                        placeholder="DD/MM/AAAA" [style]="{width:'100%'}" [inputStyle]="{width:'100%'}" />
         </div>
         <div class="form-field full" style="display:flex; align-items:center; gap:.6rem;">
           <p-checkbox [(ngModel)]="formNueva.anonima" [binary]="true" inputId="anon" />
@@ -723,8 +726,8 @@ export class EncuestasComponent implements OnInit, OnDestroy {
     this.api.post<Encuesta>('/encuestas', {
       ...this.formNueva,
       plantel_id: plantel?.id ?? null,
-      fecha_inicio: this.formNueva.fecha_inicio || null,
-      fecha_fin:    this.formNueva.fecha_fin    || null,
+      fecha_inicio: this.formNueva.fecha_inicio ? this.formNueva.fecha_inicio.toISOString().substring(0, 10) : null,
+      fecha_fin:    this.formNueva.fecha_fin    ? this.formNueva.fecha_fin.toISOString().substring(0, 10)    : null,
     }).pipe(takeUntil(this.destroy$)).subscribe({
       next: (r) => {
         this.showNueva = false;
@@ -839,7 +842,7 @@ export class EncuestasComponent implements OnInit, OnDestroy {
 
   private emptyFormNueva() {
     return { titulo: '', descripcion: '', tipo: 'SATISFACCION', audiencia: 'ALUMNO',
-             fecha_inicio: '', fecha_fin: '', anonima: false };
+             fecha_inicio: null as Date | null, fecha_fin: null as Date | null, anonima: false };
   }
   private emptyFormPreg() {
     return { texto: '', tipo_pregunta: 'ESCALA_5', opcionesTexto: '', orden: 1, obligatoria: true };

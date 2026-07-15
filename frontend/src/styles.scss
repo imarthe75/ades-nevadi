@@ -195,3 +195,26 @@ td.edited {
   background-color: #FFFBEB !important;
   outline: 1px solid var(--color-warning);
 }
+
+// ── Utilidades de layout "estilo APEX" (D8, auditoría 2026-07-15) ─────────────
+// Extraídas de scripts/find-duplicate-styles.js: reglas byte-idénticas repetidas
+// en 3+ componentes vía `styles: [...]` inline. Se agregan aquí como clases
+// globales para que nuevos componentes las reutilicen; los ~75 componentes
+// existentes conservan su copia local por ahora (quitarla es seguro — mismo CSS
+// computado — pero es un cambio mecánico de 75 archivos fuera de alcance de esta
+// sesión; usar el reporte del script como lista de trabajo para una limpieza
+// dirigida futura).
+.apex-page { padding: 1rem; }
+.apex-title { margin: 0; font-size: 1.25rem; font-weight: 600; }
+.apex-toolbar {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: .75rem; flex-wrap: wrap; gap: .5rem;
+}
+.apex-toolbar-actions { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
+
+.page-title { font-size: 1.25rem; font-weight: 700; margin: 0 0 .2rem; }
+.page-subtitle { color: var(--text-secondary); font-size: .82rem; margin: 0; }
+.page-actions { display: flex; gap: .5rem; align-items: center; }
+
+.form-field { display: flex; flex-direction: column; gap: .3rem; font-size: .875rem; }
+.form-field.full { grid-column: 1 / -1; }

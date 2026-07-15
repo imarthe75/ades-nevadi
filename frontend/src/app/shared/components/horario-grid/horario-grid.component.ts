@@ -68,7 +68,7 @@ export interface HorarioGridEntry {
     }
   `,
   styles: [`
-    .empty-state { display: flex; flex-direction: column; align-items: center; gap: 0.75rem; padding: 4rem; color: #94A3B8; }
+    .empty-state { display: flex; flex-direction: column; align-items: center; gap: 0.75rem; padding: 4rem; color: var(--text-muted); }
     
     .horario-grid { overflow-x: auto; }
     .grid-header, .grid-row {

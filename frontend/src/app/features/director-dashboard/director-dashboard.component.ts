@@ -139,9 +139,9 @@ import { ContextService } from '../../core/services/context.service';
 
     .border-left-primary { border-left: 4px solid #0284c7; }
     .border-left-info { border-left: 4px solid #06b6d4; }
-    .border-left-success { border-left: 4px solid #16a34a; }
-    .border-left-warn { border-left: 4px solid #d97706; }
-    .border-left-danger { border-left: 4px solid #dc2626; }
+    .border-left-success { border-left: 4px solid var(--color-success); }
+    .border-left-warn { border-left: 4px solid var(--color-warning); }
+    .border-left-danger { border-left: 4px solid var(--color-danger); }
     .border-left-secondary { border-left: 4px solid #4b5563; }
 
     .kpi-icon {
@@ -157,9 +157,9 @@ import { ContextService } from '../../core/services/context.service';
 
     .text-primary { color: #0284c7; }
     .text-info { color: #06b6d4; }
-    .text-success { color: #16a34a; }
-    .text-warn { color: #d97706; }
-    .text-danger { color: #dc2626; }
+    .text-success { color: var(--color-success); }
+    .text-warn { color: var(--color-warning); }
+    .text-danger { color: var(--color-danger); }
     .text-secondary { color: #4b5563; }
 
     .kpi-content { display: flex; flex-direction: column; }
@@ -284,8 +284,8 @@ export class DirectorDashboardComponent implements OnInit, OnDestroy {
       datasets: [
         {
           label: 'Promedio asignatura',
-          backgroundColor: '#16a34a',
-          borderColor: '#16a34a',
+          backgroundColor: 'var(--color-success)',
+          borderColor: 'var(--color-success)',
           data
         }
       ]

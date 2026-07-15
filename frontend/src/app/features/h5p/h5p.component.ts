@@ -16,6 +16,7 @@ import { TooltipModule } from 'primeng/tooltip';
 import { CardModule } from 'primeng/card';
 import { TabsModule } from 'primeng/tabs';
 import { ProgressBarModule } from 'primeng/progressbar';
+import { DatePickerModule } from 'primeng/datepicker';
 import { ApexNotificationService } from 'apex-component-library';
 import { ContextService } from '../../core/services/context.service';
 import { AuthService } from '../../core/services/auth.service';
@@ -71,7 +72,7 @@ type TabKey = 'biblioteca' | 'mis-resultados';
     CommonModule, FormsModule, DatePipe,
     TableModule, ButtonModule, DialogModule, InputTextModule,
     SelectModule, TagModule, TextareaModule, TooltipModule,
-    CardModule, TabsModule, ProgressBarModule,
+    CardModule, TabsModule, ProgressBarModule, DatePickerModule,
   ],
   template: `
 <div class="apex-page">
@@ -257,11 +258,13 @@ type TabKey = 'biblioteca' | 'mis-resultados';
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
       <div>
         <label class="apex-label">Fecha desde</label>
-        <input pInputText type="date" [(ngModel)]="asignarForm.fecha_desde" class="w-full" />
+        <p-datepicker [(ngModel)]="asignarForm.fecha_desde" dateFormat="dd/mm/yy" [showIcon]="true"
+                      placeholder="DD/MM/AAAA" [style]="{width:'100%'}" [inputStyle]="{width:'100%'}" />
       </div>
       <div>
         <label class="apex-label">Fecha hasta</label>
-        <input pInputText type="date" [(ngModel)]="asignarForm.fecha_hasta" class="w-full" />
+        <p-datepicker [(ngModel)]="asignarForm.fecha_hasta" dateFormat="dd/mm/yy" [showIcon]="true"
+                      placeholder="DD/MM/AAAA" [style]="{width:'100%'}" [inputStyle]="{width:'100%'}" />
       </div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
@@ -318,7 +321,8 @@ export class H5pComponent implements OnInit, OnDestroy {
   // Asignar
   asignarVisible = false;
   asignarContenidoId = '';
-  asignarForm = { grupo_id: '', fecha_desde: '', fecha_hasta: '', intentos_max: 3, puntaje_minimo: 60 };
+  asignarForm: { grupo_id: string; fecha_desde: Date | null; fecha_hasta: Date | null; intentos_max: number; puntaje_minimo: number } =
+    { grupo_id: '', fecha_desde: null, fecha_hasta: null, intentos_max: 3, puntaje_minimo: 60 };
 
   // Computed KPIs
   completadas = computed(() => this.resultadosMios().filter(r => r.completado).length);
@@ -415,7 +419,7 @@ export class H5pComponent implements OnInit, OnDestroy {
 
   abrirAsignar(c: H5PContenido) {
     this.asignarContenidoId = c.id;
-    this.asignarForm = { grupo_id: '', fecha_desde: '', fecha_hasta: '', intentos_max: 3, puntaje_minimo: 60 };
+    this.asignarForm = { grupo_id: '', fecha_desde: null, fecha_hasta: null, intentos_max: 3, puntaje_minimo: 60 };
     this.asignarVisible = true;
   }
 
@@ -428,8 +432,8 @@ export class H5pComponent implements OnInit, OnDestroy {
     this.api.post('/h5p/asignaciones', {
       contenido_id: this.asignarContenidoId,
       grupo_id: this.asignarForm.grupo_id,
-      fecha_desde: this.asignarForm.fecha_desde || null,
-      fecha_hasta: this.asignarForm.fecha_hasta || null,
+      fecha_desde: this.asignarForm.fecha_desde ? this.asignarForm.fecha_desde.toISOString().substring(0, 10) : null,
+      fecha_hasta: this.asignarForm.fecha_hasta ? this.asignarForm.fecha_hasta.toISOString().substring(0, 10) : null,
       intentos_max: this.asignarForm.intentos_max,
       puntaje_minimo: this.asignarForm.puntaje_minimo,
     }).pipe(takeUntil(this.destroy$)).subscribe({

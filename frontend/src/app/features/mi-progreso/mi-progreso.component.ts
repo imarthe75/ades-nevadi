@@ -138,14 +138,14 @@ interface EntregaHistorial extends EntregaPendiente {
     .materias-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:16px; padding:8px 0; }
     .materia-card { background:var(--p-surface-0); border:1px solid var(--p-surface-border);
                     border-radius:8px; padding:16px; }
-    .materia-card.reprobada { border-left:4px solid #dc2626; }
+    .materia-card.reprobada { border-left:4px solid var(--color-danger); }
     .materia-nombre { font-weight:600; margin-bottom:4px; font-size:0.9rem; }
     .materia-cal { font-size:2.4rem; font-weight:700; font-family:'Jost',sans-serif; }
     .score-desglose { display:flex; flex-wrap:wrap; gap:4px; margin-top:8px; }
-    .score-item { font-size:0.75rem; background:#f3f4f6; border-radius:4px; padding:2px 6px; }
+    .score-item { font-size:0.75rem; background:var(--surface-hover); border-radius:4px; padding:2px 6px; }
     .row-vencida td { background:#fff5f5 !important; }
     .cal-excelente { color:#15803d; } .cal-bien { color:#0369a1; }
-    .cal-regular   { color:#b45309; } .cal-reprobado { color:#dc2626; }
+    .cal-regular   { color:#b45309; } .cal-reprobado { color:var(--color-danger); }
   `],
 })
 export class MiProgresoComponent implements OnInit, OnDestroy {
@@ -269,7 +269,7 @@ export class MiProgresoComponent implements OnInit, OnDestroy {
     const pct = this.pctCal(m);
     if (pct >= 80) return '#15803d';
     if (pct >= 60) return '#0369a1';
-    return '#dc2626';
+    return 'var(--color-danger)';
   }
 
   calClass(cal: number | null, escala: number): string {

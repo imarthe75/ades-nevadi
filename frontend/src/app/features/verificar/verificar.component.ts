@@ -126,7 +126,7 @@ interface VerificacionResult {
               @if (result()!.promedio_final) {
                 <tr>
                   <th>Promedio final:</th>
-                  <td><strong style="color:#D02030">{{ result()!.promedio_final }}</strong></td>
+                  <td><strong style="color:var(--nevadi-red)">{{ result()!.promedio_final }}</strong></td>
                 </tr>
               }
               <tr>
@@ -180,32 +180,32 @@ interface VerificacionResult {
           </div>
 
           <!-- Anclaje Blockchain -->
-          <div class="verif-firma-block" style="border-left: 4px solid #16a34a">
+          <div class="verif-firma-block" style="border-left: 4px solid var(--color-success)">
             <div class="verif-section-title">Anclaje en Blockchain (LAChain)</div>
             <div class="verif-firma-row">
               @if (result()!.blockchain_status === 'ANCLADO') {
-                <i class="pi pi-link" style="color:#16a34a;font-size:1.5rem"></i>
+                <i class="pi pi-link" style="color:var(--color-success);font-size:1.5rem"></i>
                 <div>
-                  <div class="verif-firma-label" style="color:#16a34a">Hash anclado de forma inmutable</div>
+                  <div class="verif-firma-label" style="color:var(--color-success)">Hash anclado de forma inmutable</div>
                   <div class="verif-firma-meta">
                     Red: {{ result()!.blockchain_network }} <br>
                     Fecha: {{ result()!.fecha_anclaje | date:'dd/MM/yyyy HH:mm' }} <br>
                     Transacción: 
-                    <a [href]="blockchainLink(result()!.blockchain_tx, result()!.blockchain_network)" target="_blank" style="color:#D02030;text-decoration:none;word-break:break-all;font-family:monospace">
+                    <a [href]="blockchainLink(result()!.blockchain_tx, result()!.blockchain_network)" target="_blank" style="color:var(--nevadi-red);text-decoration:none;word-break:break-all;font-family:monospace">
                       {{ result()!.blockchain_tx }}
                     </a>
                   </div>
                 </div>
               } @else if (result()!.blockchain_status === 'PENDIENTE') {
-                <i class="pi pi-spin pi-spinner" style="color:#d97706;font-size:1.5rem"></i>
+                <i class="pi pi-spin pi-spinner" style="color:var(--color-warning);font-size:1.5rem"></i>
                 <div>
-                  <div class="verif-firma-label" style="color:#d97706">Registro en blockchain pendiente</div>
+                  <div class="verif-firma-label" style="color:var(--color-warning)">Registro en blockchain pendiente</div>
                   <div class="verif-firma-meta">La transacción se está procesando en segundo plano.</div>
                 </div>
               } @else {
-                <i class="pi pi-info-circle" style="color:#64748b;font-size:1.5rem"></i>
+                <i class="pi pi-info-circle" style="color:var(--text-secondary);font-size:1.5rem"></i>
                 <div>
-                  <div class="verif-firma-label" style="color:#64748b">Sin anclaje en Blockchain</div>
+                  <div class="verif-firma-label" style="color:var(--text-secondary)">Sin anclaje en Blockchain</div>
                   <div class="verif-firma-meta">Este certificado aún no ha sido registrado en la blockchain.</div>
                 </div>
               }
@@ -224,7 +224,7 @@ interface VerificacionResult {
   `,
   styles: [`
     .verif-bg {
-      min-height: 100vh; background: #f8f9fa;
+      min-height: 100vh; background: var(--surface-ground);
       display: flex; align-items: center; justify-content: center;
       font-family: 'Inter', Arial, sans-serif; padding: 2rem;
     }
@@ -236,15 +236,15 @@ interface VerificacionResult {
     .verif-header {
       display: flex; align-items: center; gap: 1rem;
       margin-bottom: 2rem; padding-bottom: 1.25rem;
-      border-bottom: 2px solid #D02030;
+      border-bottom: 2px solid var(--nevadi-red);
     }
     .verif-logo {
       width: 48px; height: 48px; border-radius: 10px;
-      background: #D02030; color: #fff;
+      background: var(--nevadi-red); color: #fff;
       display: flex; align-items: center; justify-content: center;
       font-weight: 800; font-size: 1.4rem; flex-shrink: 0;
     }
-    .verif-inst { font-size: 1.2rem; font-weight: 700; color: #D02030; }
+    .verif-inst { font-size: 1.2rem; font-weight: 700; color: var(--nevadi-red); }
     .verif-sub  { font-size: .8rem; color: #888; }
 
     .verif-loading { text-align: center; padding: 3rem; color: #888; }
@@ -286,7 +286,7 @@ interface VerificacionResult {
 
     .verif-footer { text-align: center; font-size: .78rem; color: #aaa; padding-top: 1rem;
       border-top: 1px solid #f1f5f9; }
-    .verif-footer a { color: #D02030; text-decoration: none; }
+    .verif-footer a { color: var(--nevadi-red); text-decoration: none; }
     .verif-footer a:hover { text-decoration: underline; }
   `],
 })

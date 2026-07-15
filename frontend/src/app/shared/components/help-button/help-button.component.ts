@@ -129,7 +129,7 @@ const AYUDA: Record<string, HelpContent> = {
             </div>
           }
         } @else {
-          <p style="color:#64748b;font-size:.85rem">No hay ayuda disponible para este módulo.</p>
+          <p style="color:var(--text-secondary);font-size:.85rem">No hay ayuda disponible para este módulo.</p>
         }
         <div class="help-footer">
           <a routerLink="/ayuda" style="font-size:.78rem;color:var(--primary-color)">Ver manual completo →</a>
@@ -142,7 +142,7 @@ const AYUDA: Record<string, HelpContent> = {
     :host ::ng-deep .help-btn:hover { opacity: 1; }
     .help-titulo { font-weight: 700; font-size: .9rem; margin-bottom: .6rem; display: flex; gap: .4rem; align-items: center; color: var(--primary-color); }
     .help-pasos { padding-left: 1.1rem; margin: 0 0 .5rem; font-size: .83rem; line-height: 1.6; color: #334155; }
-    .help-nota { font-size: .78rem; color: #64748b; background: #f1f5f9; border-radius: 4px; padding: .4rem .6rem; margin-top: .4rem; display: flex; gap: .3rem; }
+    .help-nota { font-size: .78rem; color: var(--text-secondary); background: #f1f5f9; border-radius: 4px; padding: .4rem .6rem; margin-top: .4rem; display: flex; gap: .3rem; }
     .help-footer { margin-top: .6rem; padding-top: .4rem; border-top: 1px solid #e2e8f0; text-align: right; }
   `],
 })

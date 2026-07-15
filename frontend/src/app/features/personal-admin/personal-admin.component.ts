@@ -16,6 +16,7 @@ import { SelectModule } from 'primeng/select';
 import { TabsModule, Tab, TabList, TabPanel, TabPanels } from 'primeng/tabs';
 import { TooltipModule } from 'primeng/tooltip';
 import { TagModule } from 'primeng/tag';
+import { DatePickerModule } from 'primeng/datepicker';
 
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
@@ -148,7 +149,7 @@ function enrichRows(rows: EmpleadoRow[]): EmpleadoRow[] {
     CommonModule, FormsModule, ReactiveFormsModule,
     ButtonModule, InputTextModule, DialogModule, SelectModule,
     TabsModule, Tab, TabList, TabPanel, TabPanels,
-    TooltipModule, TagModule,
+    TooltipModule, TagModule, DatePickerModule,
     InteractiveGridComponent, FormFieldComponent, HelpButtonComponent,
   ],
   template: `
@@ -212,7 +213,8 @@ function enrichRows(rows: EmpleadoRow[]): EmpleadoRow[] {
             <p-select [options]="generoOpts" [formControl]="fcGenero"
               optionLabel="label" optionValue="value" style="width:100%" [showClear]="true" placeholder="Género…" /></div>
           <div><label class="dlg-lbl">Fecha de nacimiento</label>
-            <input pInputText [formControl]="fcFechaNacimiento" type="date" style="width:100%" /></div>
+            <p-datepicker [formControl]="fcFechaNacimiento" dateFormat="dd/mm/yy" [showIcon]="true"
+                          placeholder="DD/MM/AAAA" [style]="{width:'100%'}" [inputStyle]="{width:'100%'}" /></div>
         </div>
         <p style="font-size:.78rem;color:var(--text-secondary);margin:0 0 .5rem">
           Teléfono y email se agregan desde el perfil en la sección <em>Domicilio y Contactos</em>.
@@ -272,7 +274,8 @@ function enrichRows(rows: EmpleadoRow[]): EmpleadoRow[] {
             <p-select [options]="turnoOpts" [formControl]="fcTurno"
               optionLabel="label" optionValue="value" style="width:100%" [showClear]="true" placeholder="Turno…" /></div>
           <div><label class="dlg-lbl">Fecha de ingreso</label>
-            <input pInputText [formControl]="fcFechaIngreso" type="date" style="width:100%" /></div>
+            <p-datepicker [formControl]="fcFechaIngreso" dateFormat="dd/mm/yy" [showIcon]="true"
+                          placeholder="DD/MM/AAAA" [style]="{width:'100%'}" [inputStyle]="{width:'100%'}" /></div>
         </div>
         <div class="dlg-row">
           <div>
@@ -386,16 +389,16 @@ function enrichRows(rows: EmpleadoRow[]): EmpleadoRow[] {
   styles: [`
     .page-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem; }
     .page-header h2 { margin:0; font-size:1.4rem; font-weight:600; }
-    .subtitle { margin:.25rem 0 0; color:#64748b; font-size:.875rem; }
+    .subtitle { margin:.25rem 0 0; color:var(--text-secondary); font-size:.875rem; }
     .dlg-grid { display:flex; flex-direction:column; gap:.75rem; padding:.25rem 0; }
-    .dlg-section-title { font-weight:600; font-size:.8rem; text-transform:uppercase; color:#64748b;
+    .dlg-section-title { font-weight:600; font-size:.8rem; text-transform:uppercase; color:var(--text-secondary);
       letter-spacing:.05em; padding:.25rem 0 .1rem; border-bottom:1px solid #e2e8f0; margin-top:.25rem; }
     .dlg-row { display:grid; grid-template-columns:1fr 1fr; gap:.75rem; }
     .dlg-lbl { display:block; font-size:.78rem; font-weight:500; color:#475569; margin-bottom:.25rem; }
     .perfil-grid { display:flex; flex-direction:column; gap:.6rem; }
     .perfil-row { display:flex; gap:.75rem; align-items:center;
       padding:.5rem .25rem; border-bottom:1px solid #f1f5f9; }
-    .perfil-lbl { min-width:160px; font-size:.8rem; font-weight:500; color:#64748b; }
+    .perfil-lbl { min-width:160px; font-size:.8rem; font-weight:500; color:var(--text-secondary); }
   `],
 })
 export class PersonalAdminComponent implements OnInit, OnDestroy {
@@ -424,7 +427,7 @@ export class PersonalAdminComponent implements OnInit, OnDestroy {
   fcApellidoMaterno = new FormControl('', [Validators.maxLength(100)]);
   fcCURP = new FormControl('', [AdesValidators.isCURP()]);
   fcGenero = new FormControl('');
-  fcFechaNacimiento = new FormControl('');
+  fcFechaNacimiento = new FormControl<Date | null>(null);
   fcEstadoCivil = new FormControl('');
   fcPaisNacimiento = new FormControl('México');
   fcNacionalidad = new FormControl('Mexicana');
@@ -439,7 +442,7 @@ export class PersonalAdminComponent implements OnInit, OnDestroy {
   fcTurno = new FormControl('');
   fcRFC = new FormControl('', [AdesValidators.isRFC()]);
   fcNSS = new FormControl('', [Validators.maxLength(11), AdesValidators.isNumeric()]);
-  fcFechaIngreso = new FormControl('');
+  fcFechaIngreso = new FormControl<Date | null>(null);
 
   formPersona:   PersonaForm   = emptyPersona();
   formLaborales: LaboralesForm = emptyLaborales();
@@ -555,7 +558,7 @@ export class PersonalAdminComponent implements OnInit, OnDestroy {
         apellido_materno: this.fcApellidoMaterno.value || '',
         curp: this.fcCURP.value || '',
         genero: this.fcGenero.value || '',
-        fecha_nacimiento: this.fcFechaNacimiento.value || '',
+        fecha_nacimiento: this.fcFechaNacimiento.value ? this.fcFechaNacimiento.value.toISOString().substring(0, 10) : '',
         estado_civil: this.fcEstadoCivil.value || '',
         pais_nacimiento: this.fcPaisNacimiento.value || 'México',
         nacionalidad: this.fcNacionalidad.value || 'Mexicana',
@@ -573,7 +576,7 @@ export class PersonalAdminComponent implements OnInit, OnDestroy {
         nss: this.fcNSS.value || '',
         clabe: '',
         banco: '',
-        fecha_ingreso_inst: this.fcFechaIngreso.value || '',
+        fecha_ingreso_inst: this.fcFechaIngreso.value ? this.fcFechaIngreso.value.toISOString().substring(0, 10) : '',
       },
     };
 

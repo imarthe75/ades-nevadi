@@ -11,6 +11,7 @@ import { TooltipModule } from 'primeng/tooltip';
 import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
 import { TextareaModule } from 'primeng/textarea';
+import { DatePickerModule } from 'primeng/datepicker';
 
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
@@ -65,7 +66,7 @@ const ESTADO_SEV: Record<string, TagSeverity> = {
     AdesFormatDirective,
     CommonModule, FormsModule,
     ButtonModule, SelectModule, TagModule, ProgressBarModule,
-    TableModule, TooltipModule, DialogModule, InputTextModule, TextareaModule,
+    TableModule, TooltipModule, DialogModule, InputTextModule, TextareaModule, DatePickerModule,
   ],
   template: `
     <div class="page-header">
@@ -200,7 +201,8 @@ const ESTADO_SEV: Record<string, TagSeverity> = {
         <div class="form-grid">
           <div class="form-field full">
             <label>Fecha planeada *</label>
-            <input pInputText type="date" [(ngModel)]="planForm.fecha_planeada" style="width:100%" />
+            <p-datepicker [(ngModel)]="planForm.fecha_planeada" dateFormat="dd/mm/yy" [showIcon]="true"
+                          placeholder="DD/MM/AAAA" [style]="{width:'100%'}" [inputStyle]="{width:'100%'}" />
           </div>
           <div class="form-field full">
             <label>Descripción de actividades</label>
@@ -308,7 +310,8 @@ export class PlaneacionComponent implements OnInit, OnDestroy {
   loading = signal(false);
   showPlanear = false;
   temaPlanear: Tema | null = null;
-  planForm = { fecha_planeada: '', descripcion_actividades: '', recursos_didacticos: '' };
+  planForm: { fecha_planeada: Date | null; descripcion_actividades: string; recursos_didacticos: string } =
+    { fecha_planeada: null, descripcion_actividades: '', recursos_didacticos: '' };
 
   // KPI computeds
   totalImpartidos = computed(() => this.temas().filter(t => t.estado === 'IMPARTIDO').length);
@@ -387,7 +390,7 @@ export class PlaneacionComponent implements OnInit, OnDestroy {
 
   abrirPlanear(t: Tema): void {
     this.temaPlanear = t;
-    this.planForm = { fecha_planeada: '', descripcion_actividades: '', recursos_didacticos: '' };
+    this.planForm = { fecha_planeada: null, descripcion_actividades: '', recursos_didacticos: '' };
     this.showPlanear = true;
   }
 
@@ -397,6 +400,7 @@ export class PlaneacionComponent implements OnInit, OnDestroy {
       grupo_id: this.selGrupoId,
       tema_id:  this.temaPlanear.tema_id,
       ...this.planForm,
+      fecha_planeada: this.planForm.fecha_planeada!.toISOString().substring(0, 10),
     };
     this.api.post('/planeacion/clases', body).pipe(takeUntil(this.destroy$)).subscribe(() => {
       this.showPlanear = false;

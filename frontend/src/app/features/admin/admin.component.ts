@@ -46,6 +46,10 @@ interface CicloAdmin {
   id: string; nombre_ciclo: string; nivel_educativo_id: string; nombre_nivel?: string | null;
   fecha_inicio: string; fecha_fin: string; tipo_ciclo: string; es_vigente: boolean;
 }
+/** Modelo del diálogo de edición — mismo shape que CicloAdmin pero con fechas como Date para p-datepicker. */
+interface CicloEditForm extends Omit<CicloAdmin, 'fecha_inicio' | 'fecha_fin'> {
+  fecha_inicio: Date | null; fecha_fin: Date | null;
+}
 interface PlantelAdmin { id: string; nombre_plantel: string; clave_ct: string | null; is_active: boolean; }
 interface NivelOpt  { id: string; nombre_nivel: string; }
 interface RolOpt    { id: string; nombre_rol: string; nivel_acceso: number; }
@@ -613,7 +617,7 @@ interface Catalogo {
                   <label class="dlg-lbl">Color Primario (Hex)</label>
                   <div style="display:flex; gap:.5rem; align-items:center">
                     <input type="color" [(ngModel)]="marcaForm.COLOR_PRIMARIO" style="width:42px; height:42px; padding:0; border-radius:6px; border:1px solid #ddd; cursor:pointer" />
-                    <input pInputText [(ngModel)]="marcaForm.COLOR_PRIMARIO" placeholder="#D02030" style="flex:1" />
+                    <input pInputText [(ngModel)]="marcaForm.COLOR_PRIMARIO" placeholder="var(--nevadi-red)" style="flex:1" />
                   </div>
                 </div>
               </div>
@@ -1128,7 +1132,8 @@ interface Catalogo {
           </div>
           <div class="field" style="display:flex;flex-direction:column;gap:.35rem">
             <label class="dlg-lbl">Fecha de nacimiento</label>
-            <input pInputText type="date" [(ngModel)]="nuevoUsrForm.fecha_nacimiento" />
+            <p-datepicker [(ngModel)]="nuevoUsrForm.fecha_nacimiento" dateFormat="dd/mm/yy" [showIcon]="true"
+                          placeholder="DD/MM/AAAA" [style]="{width:'100%'}" [inputStyle]="{width:'100%'}" />
           </div>
         </div>
         <div class="field" style="display:flex;flex-direction:column;gap:.35rem">
@@ -1171,11 +1176,13 @@ interface Catalogo {
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:.75rem">
             <div style="display:flex; flex-direction:column; gap:.35rem">
               <label class="dlg-lbl">Fecha inicio *</label>
-              <input pInputText type="date" [(ngModel)]="cicloEdit()!.fecha_inicio" />
+              <p-datepicker [(ngModel)]="cicloEdit()!.fecha_inicio" dateFormat="dd/mm/yy" [showIcon]="true"
+                            placeholder="DD/MM/AAAA" [style]="{width:'100%'}" [inputStyle]="{width:'100%'}" />
             </div>
             <div style="display:flex; flex-direction:column; gap:.35rem">
               <label class="dlg-lbl">Fecha fin *</label>
-              <input pInputText type="date" [(ngModel)]="cicloEdit()!.fecha_fin" />
+              <p-datepicker [(ngModel)]="cicloEdit()!.fecha_fin" dateFormat="dd/mm/yy" [showIcon]="true"
+                            placeholder="DD/MM/AAAA" [style]="{width:'100%'}" [inputStyle]="{width:'100%'}" />
             </div>
           </div>
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:.75rem">
@@ -1299,7 +1306,7 @@ interface Catalogo {
     .page-header { margin-bottom:.5rem; }
     .subtitle { font-size:.82rem; color:var(--text-secondary); margin:0; }
     .scope-bar { display:flex;align-items:center;gap:.6rem;padding:.45rem .75rem;
-      background:var(--primary-50,#fef2f3);border:1px solid var(--primary-100,#fde0e2);
+      background:var(--primary-50,var(--nevadi-red-lighter));border:1px solid var(--primary-100,#fde0e2);
       border-radius:6px;margin-bottom:.75rem;font-size:.8rem;flex-wrap:wrap }
     .scope-bar--global { background:var(--surface-50);border-color:var(--surface-200) }
     .scope-tag { padding:.1rem .45rem;border-radius:4px;font-size:.73rem;font-weight:600 }
@@ -1339,10 +1346,10 @@ interface Catalogo {
       border-radius:.5rem; padding:1.25rem; box-shadow:0 1px 3px rgba(0,0,0,.06); }
     .regla-card-header { margin-bottom:1rem; }
     .regla-titulo { font-size:1rem; font-weight:700; color:var(--text-primary,#1e293b); display:block; }
-    .regla-sub { font-size:.78rem; color:var(--text-secondary,#64748b); }
+    .regla-sub { font-size:.78rem; color:var(--text-secondary,var(--text-secondary)); }
     .regla-fields { display:flex; flex-direction:column; gap:.65rem; }
     .regla-field { display:flex; justify-content:space-between; align-items:center; gap:.5rem; }
-    .regla-field label { font-size:.82rem; color:var(--text-secondary,#64748b); }
+    .regla-field label { font-size:.82rem; color:var(--text-secondary,var(--text-secondary)); }
     .regla-field--toggle { flex-direction:row; }
     /* Evaluación Cualitativa */
     .cual-config-card { background:var(--surface-card,#fff); border:1px solid var(--surface-border);
@@ -1365,7 +1372,7 @@ interface Catalogo {
     .sync-header { display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap }
     .sync-estado { display:flex;align-items:center;gap:.6rem;margin-top:.9rem;padding:.6rem .9rem;border-radius:8px;font-size:.83rem }
     .sync-pending,.sync-started { background:#fef9c3;color:#78350f }
-    .sync-success { background:#dcfce7;color:#14532d }
+    .sync-success { background:var(--nevadi-sage-light);color:#14532d }
     .sync-failure { background:#fee2e2;color:#7f1d1d }
   `],
 })
@@ -1388,7 +1395,7 @@ export class AdminComponent implements OnInit, OnDestroy {
 
   // ── Signals para dialogs de Ciclo / Plantel / Grupo ─────────────────────────
   dlgCicloVisible      = signal(false);
-  cicloEdit            = signal<CicloAdmin | null>(null);
+  cicloEdit            = signal<CicloEditForm | null>(null);
   guardandoCiclo       = signal(false);
   dlgPlantelVisible    = signal(false);
   plantelEdit          = signal<PlantelAdmin | null>(null);
@@ -1495,7 +1502,7 @@ export class AdminComponent implements OnInit, OnDestroy {
   nuevoUsrForm = {
     nombre: '', apellido_paterno: '', apellido_materno: '',
     curp: '', email_institucional: '', genero: 'M',
-    fecha_nacimiento: '', rol_id: '', plantel_id: null as string | null,
+    fecha_nacimiento: null as Date | null, rol_id: '', plantel_id: null as string | null,
   };
 
   columnasUsuarios: ColumnConfig[] = [
@@ -2023,13 +2030,17 @@ export class AdminComponent implements OnInit, OnDestroy {
   // ── Ciclos ─────────────────────────────────────────────────────────────────
 
   abrirNuevoCiclo(): void {
-    this.cicloEdit.set({ id: '', nombre_ciclo: '', nivel_educativo_id: '', fecha_inicio: '', fecha_fin: '', tipo_ciclo: 'ANUAL', es_vigente: false });
+    this.cicloEdit.set({ id: '', nombre_ciclo: '', nivel_educativo_id: '', fecha_inicio: null, fecha_fin: null, tipo_ciclo: 'ANUAL', es_vigente: false });
     this.dlgCicloVisible.set(true);
   }
 
   abrirEditarCiclo(row: any): void {
     const c: CicloAdmin = row._original ?? row;
-    this.cicloEdit.set({ ...c });
+    this.cicloEdit.set({
+      ...c,
+      fecha_inicio: c.fecha_inicio ? new Date(c.fecha_inicio) : null,
+      fecha_fin: c.fecha_fin ? new Date(c.fecha_fin) : null,
+    });
     this.dlgCicloVisible.set(true);
   }
 
@@ -2041,9 +2052,14 @@ export class AdminComponent implements OnInit, OnDestroy {
       return;
     }
     this.guardandoCiclo.set(true);
+    const payload = {
+      ...c,
+      fecha_inicio: c.fecha_inicio.toISOString().substring(0, 10),
+      fecha_fin: c.fecha_fin.toISOString().substring(0, 10),
+    };
     const req$ = c.id
-      ? this.api.patch(`/admin/ciclos/${c.id}`, c)
-      : this.api.post('/admin/ciclos', c);
+      ? this.api.patch(`/admin/ciclos/${c.id}`, payload)
+      : this.api.post('/admin/ciclos', payload);
     req$.pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.dlgCicloVisible.set(false);
@@ -2149,7 +2165,7 @@ export class AdminComponent implements OnInit, OnDestroy {
     this.nuevoUsrForm = {
       nombre: '', apellido_paterno: '', apellido_materno: '',
       curp: '', email_institucional: '', genero: 'M',
-      fecha_nacimiento: '', rol_id: '', plantel_id: null,
+      fecha_nacimiento: null, rol_id: '', plantel_id: null,
     };
     if (this.roles().length === 0) this.cargarRoles();
     this.crearUsrDlgVisible.set(true);
@@ -2170,7 +2186,7 @@ export class AdminComponent implements OnInit, OnDestroy {
       nombre: f.nombre, apellido_paterno: f.apellido_paterno,
       apellido_materno: f.apellido_materno || null,
       curp: f.curp.toUpperCase(), email_institucional: f.email_institucional || null,
-      genero: f.genero, fecha_nacimiento: f.fecha_nacimiento || null,
+      genero: f.genero, fecha_nacimiento: f.fecha_nacimiento ? f.fecha_nacimiento.toISOString().substring(0, 10) : null,
       rol_id: f.rol_id, plantel_id: f.plantel_id || null,
     }).pipe(takeUntil(this.destroy$)).subscribe({
       next: (res: any) => {
@@ -2376,7 +2392,7 @@ export class AdminComponent implements OnInit, OnDestroy {
     ESLOGAN: '',
     LOGO_URL: '',
     FAVICON_URL: '',
-    COLOR_PRIMARIO: '#D02030',
+    COLOR_PRIMARIO: 'var(--nevadi-red)',
   };
 
   cargarMarca(): void {
@@ -2388,12 +2404,12 @@ export class AdminComponent implements OnInit, OnDestroy {
           ESLOGAN: '',
           LOGO_URL: '',
           FAVICON_URL: '',
-          COLOR_PRIMARIO: '#D02030',
+          COLOR_PRIMARIO: 'var(--nevadi-red)',
         };
         for (const item of items) {
           const key = item.tipo_elemento as keyof typeof this.marcaForm;
           if (key === 'COLOR_PRIMARIO') {
-            this.marcaForm[key] = item.color_hex || '#D02030';
+            this.marcaForm[key] = item.color_hex || 'var(--nevadi-red)';
           } else if (key === 'LOGO_URL' || key === 'FAVICON_URL') {
             this.marcaForm[key] = item.url_archivo || '';
           } else if (key in this.marcaForm) {

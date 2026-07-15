@@ -329,7 +329,7 @@ export class CalificacionesComponent implements OnInit, OnDestroy {
 
   nivelColor(nivel: string | null): string {
     const d = this.cualDescriptores().find((x: any) => x.nivel === nivel);
-    return d?.color ?? '#94a3b8';
+    return d?.color ?? 'var(--text-muted)';
   }
 
   columnas       = computed(() => this.libreta()?.periodos ?? []);

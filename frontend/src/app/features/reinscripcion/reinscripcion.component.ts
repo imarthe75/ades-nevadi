@@ -197,14 +197,14 @@ interface CicloOpt   { id: string; nombre_ciclo: string; es_vigente: boolean; }
     .kpi-green .kpi-value { color:#15803d; }
     .kpi-blue  .kpi-value { color:#0369a1; }
     .kpi-orange .kpi-value { color:#b45309; }
-    .kpi-red   .kpi-value { color:#dc2626; }
+    .kpi-red   .kpi-value { color:var(--color-danger); }
     .acciones-masivas {
       display:flex; align-items:center; gap:12px; flex-wrap:wrap;
-      padding:12px 16px; background:var(--p-surface-50,#f8f9fa);
+      padding:12px 16px; background:var(--p-surface-50,var(--surface-ground));
       border:1px solid var(--p-surface-border); border-radius:8px; margin-bottom:16px;
     }
     .text-warning { color:#b45309; }
-    .text-danger  { color:#dc2626; }
+    .text-danger  { color:var(--color-danger); }
     .text-muted   { color:var(--p-text-muted-color); font-size:.85rem; }
     .mt-2 { margin-top:8px; }
     .mt-3 { margin-top:12px; }

@@ -224,7 +224,7 @@ interface ValidacionResult {
     .step-header h3 { margin: 0 0 4px; font-family: 'Jost', sans-serif; }
     .step-header p  { margin: 0; font-size: .9rem; }
     .info-card {
-      background: var(--p-surface-50, #f8f9fa);
+      background: var(--p-surface-50, var(--surface-ground));
       border: 1px solid var(--p-surface-border);
       border-radius: 8px;
       padding: 12px 16px;
@@ -235,13 +235,13 @@ interface ValidacionResult {
     .info-row:last-child { border-bottom: none; }
     .info-label { color: var(--p-text-muted-color); font-size: .9rem; }
     .text-success { color: #15803d; }
-    .text-danger  { color: #dc2626; }
+    .text-danger  { color: var(--color-danger); }
     .text-muted   { color: var(--p-text-muted-color); }
     .confirm-box  { background: #fff5f5; border: 1px solid #fca5a5; border-radius: 8px;
                     padding: 16px; text-align: center; }
     .confirm-input {
       margin-top: 12px; width: 200px; text-align: center;
-      padding: 8px 12px; border: 2px solid #dc2626; border-radius: 6px;
+      padding: 8px 12px; border: 2px solid var(--color-danger); border-radius: 6px;
       font-size: 1.1rem; font-weight: 600; letter-spacing: .05em;
     }
     .mr-1 { margin-right: 4px; }

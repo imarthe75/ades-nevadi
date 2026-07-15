@@ -113,7 +113,7 @@ export interface Indisponibilidad {
     .hora-col { background: var(--surface-50); font-weight: 600; color: var(--text-color-secondary); }
     .celda-estado { cursor: pointer; transition: all 0.2s; user-select: none; font-size: 0.75rem; font-weight: 600; }
     .celda-estado:hover { filter: brightness(0.95); }
-    .disp-verde { background-color: #dcfce7; color: #166534; }
+    .disp-verde { background-color: var(--nevadi-sage-light); color: #166534; }
     .disp-amarillo { background-color: #fef9c3; color: #854d0e; }
     .disp-rojo { background-color: #fee2e2; color: #991b1b; }
     .disp-gris { background-color: var(--surface-100); color: var(--text-color-secondary); cursor: not-allowed; }

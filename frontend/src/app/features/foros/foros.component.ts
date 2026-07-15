@@ -14,6 +14,7 @@ import { TextareaModule } from 'primeng/textarea';
 import { TooltipModule } from 'primeng/tooltip';
 import { CardModule } from 'primeng/card';
 import { TabsModule } from 'primeng/tabs';
+import { DatePickerModule } from 'primeng/datepicker';
 import { MessageService } from 'primeng/api';
 import { ApexNotificationService } from 'apex-component-library';
 import { ContextService } from '../../core/services/context.service';
@@ -75,7 +76,7 @@ interface Anuncio {
     AdesFormatDirective,
     CommonModule, FormsModule, TableModule, ButtonModule, DialogModule,
     InputTextModule, SelectModule, TagModule, ToastModule, TextareaModule,
-    TooltipModule, CardModule, TabsModule,
+    TooltipModule, CardModule, TabsModule, DatePickerModule,
   ],
   providers: [MessageService],
   template: `
@@ -312,7 +313,8 @@ interface Anuncio {
         </div>
         <div class="flex flex-col gap-2">
           <label class="text-sm font-medium">Fecha Inicio *</label>
-          <input pInputText [(ngModel)]="anuncioForm.fechaInicio" type="date" />
+          <p-datepicker [(ngModel)]="anuncioForm.fechaInicio" dateFormat="dd/mm/yy" [showIcon]="true"
+                        placeholder="DD/MM/AAAA" [style]="{width:'100%'}" [inputStyle]="{width:'100%'}" />
         </div>
         <div class="flex items-center gap-2">
           <input type="checkbox" [(ngModel)]="anuncioForm.esUrgente" id="urgente" />
@@ -386,7 +388,8 @@ export class ForosComponent implements OnInit, OnDestroy {
   nuevaRespuestaTexto = '';
 
   foroForm = { nombre: '', descripcion: '', tipo: 'GENERAL', materia_id: null as string | null, es_moderado: false };
-  anuncioForm = { titulo: '', contenido: '', fechaInicio: '', esUrgente: false };
+  anuncioForm: { titulo: string; contenido: string; fechaInicio: Date | null; esUrgente: boolean } =
+    { titulo: '', contenido: '', fechaInicio: null, esUrgente: false };
 
   readonly tiposForo = ['GENERAL', 'PLANTEL', 'GRUPO', 'DOCENTES', 'MATERIA', 'TUTORES'];
 
@@ -476,7 +479,7 @@ export class ForosComponent implements OnInit, OnDestroy {
   }
 
   abrirNuevoAnuncio() {
-    this.anuncioForm = { titulo: '', contenido: '', fechaInicio: new Date().toISOString().split('T')[0], esUrgente: false };
+    this.anuncioForm = { titulo: '', contenido: '', fechaInicio: new Date(), esUrgente: false };
     this.dlgAnuncio = true;
   }
 
@@ -565,7 +568,7 @@ export class ForosComponent implements OnInit, OnDestroy {
     this.http.post('/foros/anuncios', {
       titulo: this.anuncioForm.titulo,
       contenido: this.anuncioForm.contenido,
-      fecha_inicio: this.anuncioForm.fechaInicio,
+      fecha_inicio: this.anuncioForm.fechaInicio!.toISOString().substring(0, 10),
       es_urgente: this.anuncioForm.esUrgente,
       plantel_id: pl ? pl.id : null
     }).pipe(takeUntil(this.destroy$)).subscribe({

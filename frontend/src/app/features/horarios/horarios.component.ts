@@ -573,7 +573,7 @@ const HORARIO_GOLDEN_REQUERIDO: Record<string, Record<string, number>> = {
     .page-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1.25rem; }
     .page-header h2 { margin:0; }
     .subtitle { margin:0; font-size:.82rem; color:var(--p-text-color-secondary); }
-    .empty-state { display: flex; flex-direction: column; align-items: center; gap: 0.75rem; padding: 4rem; color: #94A3B8; }
+    .empty-state { display: flex; flex-direction: column; align-items: center; gap: 0.75rem; padding: 4rem; color: var(--text-muted); }
 
     /* Diálogo */
     .dlg-grid { display:flex; flex-direction:column; gap:.75rem; padding:.5rem 0; }

@@ -109,32 +109,32 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
                 <h4 class="sec-title">Identificación legal</h4>
                 <div class="form-row">
                   <label style="font-weight:500">Nombre(s)
-                    <i class="pi pi-info-circle" style="font-size:.8rem;color:#64748b;margin-left:.3rem"
+                    <i class="pi pi-info-circle" style="font-size:.8rem;color:var(--text-secondary);margin-left:.3rem"
                       pTooltip="Nombres oficiales del alumno tal como aparecen en su acta de nacimiento."></i>
                   </label>
                   <input pInputText [(ngModel)]="form.nombre" adesFormat="nombre" />
                 </div>
                 <div class="form-row">
                   <label style="font-weight:500">Apellido paterno
-                    <i class="pi pi-info-circle" style="font-size:.8rem;color:#64748b;margin-left:.3rem"
+                    <i class="pi pi-info-circle" style="font-size:.8rem;color:var(--text-secondary);margin-left:.3rem"
                       pTooltip="Primer apellido legal del alumno según acta de nacimiento."></i>
                   </label>
                   <input pInputText [(ngModel)]="form.apellido_paterno" adesFormat="nombre" />
                 </div>
                 <div class="form-row">
                   <label style="font-weight:500">Apellido materno
-                    <i class="pi pi-info-circle" style="font-size:.8rem;color:#64748b;margin-left:.3rem"
+                    <i class="pi pi-info-circle" style="font-size:.8rem;color:var(--text-secondary);margin-left:.3rem"
                       pTooltip="Segundo apellido legal del alumno (dejar vacío si no cuenta con él)."></i>
                   </label>
                   <input pInputText [(ngModel)]="form.apellido_materno" adesFormat="nombre" />
                 </div>
                 <div class="form-row" style="flex-direction:column;align-items:flex-start;gap:.35rem">
                   <label style="font-weight:500">CURP
-                    <i class="pi pi-info-circle" style="font-size:.8rem;color:#64748b;margin-left:.3rem"
+                    <i class="pi pi-info-circle" style="font-size:.8rem;color:var(--text-secondary);margin-left:.3rem"
                       pTooltip="Clave Única de Registro de Población oficial (18 caracteres con homoclave). Debe validarse con RENAPO."></i>
                   </label>
                   <input pInputText [(ngModel)]="form.curp" adesFormat="curp" placeholder="AAAA000000HXXXXXX00" style="width:100%;font-family:monospace;text-transform:uppercase" />
-                  <small style="color:#64748b;font-size:.78rem">18 caracteres · formato oficial (solo A-Z y 0-9) · {{ (form.curp || '').length }}/18</small>
+                  <small style="color:var(--text-secondary);font-size:.78rem">18 caracteres · formato oficial (solo A-Z y 0-9) · {{ (form.curp || '').length }}/18</small>
                 </div>
                 <div class="form-row">
                   <label>Género (legal)</label>
@@ -143,7 +143,7 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
                 </div>
                 <div class="form-row" style="flex-direction:column;align-items:flex-start;gap:.35rem">
                   <label style="font-weight:500">Nombre social
-                    <i class="pi pi-info-circle" style="font-size:.8rem;color:#64748b;margin-left:.3rem"
+                    <i class="pi pi-info-circle" style="font-size:.8rem;color:var(--text-secondary);margin-left:.3rem"
                       pTooltip="Nombre con el que el alumno prefiere ser llamado en el aula. Se usa en listas de asistencia. Dejar vacío si coincide con el nombre legal."></i>
                   </label>
                   <input pInputText [(ngModel)]="form.nombre_social" style="width:100%"
@@ -245,7 +245,7 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
                 </div>
                 <div class="form-row">
                   <label style="font-weight:500">Clave CT
-                    <i class="pi pi-info-circle" style="font-size:.8rem;color:#64748b;margin-left:.3rem"
+                    <i class="pi pi-info-circle" style="font-size:.8rem;color:var(--text-secondary);margin-left:.3rem"
                       pTooltip="Clave de Centro de Trabajo (CCT) de la escuela de procedencia. Ej. 15EES0123X"></i>
                   </label>
                   <input pInputText [(ngModel)]="form.clave_ct_procedencia" adesFormat="alfanumerico" [adesMax]="20" />
@@ -319,7 +319,7 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
                 <h4 class="sec-title">Identificación médica</h4>
                 <div class="form-row">
                   <label style="font-weight:500">NSS (IMSS/ISSSTE)
-                    <i class="pi pi-info-circle" style="font-size:.8rem;color:#64748b;margin-left:.3rem"
+                    <i class="pi pi-info-circle" style="font-size:.8rem;color:var(--text-secondary);margin-left:.3rem"
                       pTooltip="Número de Seguridad Social oficial del alumno (11 dígitos)."></i>
                   </label>
                   <input pInputText [(ngModel)]="medForm.nss" adesFormat="numerico" [adesMax]="11"

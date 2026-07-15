@@ -140,12 +140,12 @@ export interface ImportResult {
     .stat-ok    { background: #ecfdf5; border-color: #6ee7b7; }
     .stat-ok .stat-num { color: #059669; }
     .stat-error { background: #fef2f2; border-color: #fca5a5; }
-    .stat-error .stat-num { color: #dc2626; }
+    .stat-error .stat-num { color: var(--color-danger); }
     .stat-zero  { background: var(--surface-100); }
     .stat-zero .stat-num { color: var(--text-color-secondary); }
 
-    .error-title { font-weight: 600; font-size: .85rem; margin: 0 0 .5rem; color: #dc2626; }
-    .error-msg   { font-size: .8rem; color: #dc2626; }
+    .error-title { font-weight: 600; font-size: .85rem; margin: 0 0 .5rem; color: var(--color-danger); }
+    .error-msg   { font-size: .8rem; color: var(--color-danger); }
     .monospace   { font-family: monospace; font-size: .8rem; }
   `],
 })

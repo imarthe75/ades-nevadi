@@ -8,6 +8,7 @@ import { InputTextModule } from 'primeng/inputtext';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { TagModule } from 'primeng/tag';
 import { DialogModule } from 'primeng/dialog';
+import { DatePickerModule } from 'primeng/datepicker';
 import { ApiService } from '../../core/services/api.service';
 import { ApexNotificationService } from 'apex-component-library';
 import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
@@ -33,7 +34,7 @@ interface ItemRow    { tipo_item: string; nombre_personalizado: string | null; p
   standalone: true,
   imports: [
     AdesFormatDirective,CommonModule, FormsModule, ButtonModule, SelectModule,
-            InputTextModule, InputNumberModule, TagModule, DialogModule,
+            InputTextModule, InputNumberModule, TagModule, DialogModule, DatePickerModule,
             InteractiveGridComponent],
   template: `
 <div class="page-header">
@@ -100,7 +101,8 @@ interface ItemRow    { tipo_item: string; nombre_personalizado: string | null; p
     </div>
     <div class="field">
       <label>Vigente desde</label>
-      <input pInputText type="date" [(ngModel)]="form.vigente_desde" class="w-full" />
+      <p-datepicker [(ngModel)]="form.vigente_desde" dateFormat="dd/mm/yy" [showIcon]="true"
+                    placeholder="DD/MM/AAAA" styleClass="w-full" [inputStyle]="{width:'100%'}" />
     </div>
     <div class="field col-span-2 flex items-center gap-2 mt-2">
       <input type="checkbox" id="es_nee" [(ngModel)]="form.es_nee" style="width: 20px; height: 20px; cursor: pointer;" />
@@ -149,7 +151,7 @@ interface ItemRow    { tipo_item: string; nombre_personalizado: string | null; p
     .item-peso   { font-size:0.8rem; font-weight:700; color:#fff; border-radius:12px; padding:2px 8px; }
     .item-total  { font-weight:700; }
     .suma-ok     { color:#15803d; }
-    .suma-error  { color:#dc2626; }
+    .suma-error  { color:var(--color-danger); }
     .item-row    { align-items:center; }
   `],
 })
@@ -196,7 +198,7 @@ export class PonderacionConfigComponent implements OnInit, OnDestroy {
     { label: 'Otro',          value: 'otro' },
   ];
 
-  form: { nombre: string; nivel_educativo_id: string; vigente_desde: string;
+  form: { nombre: string; nivel_educativo_id: string; vigente_desde: Date | null;
           es_nee: boolean; items: ItemRow[] } = this.emptyForm();
 
   ngOnInit() {
@@ -226,7 +228,7 @@ export class PonderacionConfigComponent implements OnInit, OnDestroy {
     this.form = {
       nombre: original.nombre,
       nivel_educativo_id: '',  // will be loaded from row
-      vigente_desde: original.vigente_desde,
+      vigente_desde: original.vigente_desde ? new Date(original.vigente_desde) : null,
       es_nee: original.es_nee ?? false,
       items: original.items.map(i => ({ ...i })),
     };
@@ -237,7 +239,7 @@ export class PonderacionConfigComponent implements OnInit, OnDestroy {
 
   emptyForm() {
     return {
-      nombre: '', nivel_educativo_id: '', vigente_desde: new Date().toISOString().slice(0, 10),
+      nombre: '', nivel_educativo_id: '', vigente_desde: new Date(),
       es_nee: false,
       items: [{ tipo_item: 'examen', nombre_personalizado: '', peso_porcentaje: 70, orden_display: 1 },
               { tipo_item: 'tarea',  nombre_personalizado: '', peso_porcentaje: 20, orden_display: 2 },
@@ -258,7 +260,7 @@ export class PonderacionConfigComponent implements OnInit, OnDestroy {
     const payload = {
       nombre: this.form.nombre,
       nivel_educativo_id: this.form.nivel_educativo_id,
-      vigente_desde: this.form.vigente_desde,
+      vigente_desde: this.form.vigente_desde ? this.form.vigente_desde.toISOString().substring(0, 10) : null,
       es_nee: this.form.es_nee ?? false,
       items: this.form.items.map((it, idx) => ({ ...it, orden_display: idx + 1 })),
     };
@@ -280,7 +282,7 @@ export class PonderacionConfigComponent implements OnInit, OnDestroy {
   }
 
   pesoColor(peso: number): string {
-    if (peso >= 50) return '#D02030';
+    if (peso >= 50) return 'var(--nevadi-red)';
     if (peso >= 20) return '#0369a1';
     return '#6b7280';
   }

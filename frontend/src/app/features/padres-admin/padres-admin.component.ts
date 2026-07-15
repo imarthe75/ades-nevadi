@@ -444,7 +444,7 @@ const NIVELES_ACCESO_PORTAL = [
     .field-toggle { display:flex;align-items:center;gap:.75rem;margin-bottom:.75rem;padding:.5rem .75rem;background:var(--surface-0);border-radius:6px }
     .field-toggle label { margin:0;flex-shrink:0;font-size:.85rem;font-weight:500;min-width:170px }
     .field-toggle small { font-size:.75rem;color:var(--text-color-secondary);margin-left:auto }
-    .validation-errors { background:#fef2f2;padding:1rem;border-radius:6px;margin:.5rem 0;color:#dc2626;font-size:.85rem }
+    .validation-errors { background:#fef2f2;padding:1rem;border-radius:6px;margin:.5rem 0;color:var(--color-danger);font-size:.85rem }
     .validation-errors ul { margin:.5rem 0;padding-left:1.5rem }
     .dlg-grid { display:flex;flex-direction:column;gap:.75rem;padding:.25rem 0 }
   `],

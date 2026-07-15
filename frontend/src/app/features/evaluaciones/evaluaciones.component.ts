@@ -14,6 +14,7 @@ import { InputTextModule } from 'primeng/inputtext';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { TooltipModule } from 'primeng/tooltip';
 import { MessageModule } from 'primeng/message';
+import { DatePickerModule } from 'primeng/datepicker';
 
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
@@ -65,7 +66,7 @@ const TIPO_SEV: Record<string, TagSeverity> = {
     AdesFormatDirective,
     CommonModule, FormsModule,
     ButtonModule, DialogModule, SelectModule, InputTextModule, InputNumberModule,
-    TooltipModule, MessageModule,
+    TooltipModule, MessageModule, DatePickerModule,
     InteractiveGridComponent,
   ],
   template: `
@@ -222,7 +223,8 @@ const TIPO_SEV: Record<string, TagSeverity> = {
         </div>
         <div class="form-field">
           <label>Fecha *</label>
-          <input pInputText type="date" [(ngModel)]="form.fecha_evaluacion" style="width:100%" />
+          <p-datepicker [(ngModel)]="form.fecha_evaluacion" dateFormat="dd/mm/yy" [showIcon]="true"
+                        placeholder="DD/MM/AAAA" [style]="{width:'100%'}" [inputStyle]="{width:'100%'}" />
         </div>
         <div class="form-field">
           <label>Puntaje máximo</label>
@@ -490,7 +492,11 @@ export class EvaluacionesComponent implements OnInit, OnDestroy {
       return;
     }
     this.saving.set(true);
-    const { _nivelId, _gradoId, ...payload } = this.form;
+    const { _nivelId, _gradoId, ...rest } = this.form;
+    const payload: Record<string, unknown> = {
+      ...rest,
+      fecha_evaluacion: this.form.fecha_evaluacion!.toISOString().substring(0, 10),
+    };
     const ciclo = this.ctx.ciclo();
     if (ciclo) {
       payload['ciclo_id'] = ciclo.id;
@@ -514,7 +520,7 @@ export class EvaluacionesComponent implements OnInit, OnDestroy {
       materia_id: '',
       periodo_evaluacion_id: '',
       tipo_evaluacion: 'ORDINARIO',
-      fecha_evaluacion: '',
+      fecha_evaluacion: null as Date | null,
       puntaje_maximo: 10,
     };
   }

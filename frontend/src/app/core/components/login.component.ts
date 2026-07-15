@@ -81,7 +81,7 @@ import { AuthService } from '../services/auth.service';
       font-family: 'Jost', sans-serif;
       font-size: 2.75rem;
       font-weight: 800;
-      color: #1A1F2E;         /* gris carbón, matiz frío — triada H=235° desaturado */
+      color: var(--text-primary);         /* gris carbón, matiz frío — triada H=235° desaturado */
       letter-spacing: -0.04em;
       line-height: 1;
       margin: 0 0 0.25rem;
@@ -91,7 +91,7 @@ import { AuthService } from '../services/auth.service';
       font-family: 'Jost', sans-serif;
       font-size: 1rem;
       font-weight: 600;
-      color: #D02030;          /* rojo Nevadi */
+      color: var(--nevadi-red);          /* rojo Nevadi */
       letter-spacing: 0.06em;
       text-transform: uppercase;
       margin: 0 0 0.5rem;
@@ -99,7 +99,7 @@ import { AuthService } from '../services/auth.service';
 
     .brand-desc {
       font-size: 0.85rem;
-      color: #64748B;
+      color: var(--text-secondary);
       margin: 0 0 2rem;
     }
 
@@ -113,7 +113,7 @@ import { AuthService } from '../services/auth.service';
     /* ── Footer note ── */
     .login-footer {
       font-size: 0.75rem;
-      color: #94A3B8;
+      color: var(--text-muted);
       margin: 1.5rem 0 0;
       line-height: 1.4;
     }

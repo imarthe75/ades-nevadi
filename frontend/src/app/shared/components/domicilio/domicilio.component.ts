@@ -364,7 +364,7 @@ interface PersonaContacto {
               <label>Entre calles</label>
               <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:.4rem;align-items:center">
                 <input pInputText [(ngModel)]="dirEdit.entre_calle_1" placeholder="Primera calle" />
-                <span style="font-size:.75rem;color:#94a3b8">y</span>
+                <span style="font-size:.75rem;color:var(--text-muted)">y</span>
                 <input pInputText [(ngModel)]="dirEdit.entre_calle_2" placeholder="Segunda calle" />
               </div>
             </div>
@@ -419,8 +419,8 @@ interface PersonaContacto {
     }
   `,
   styles: [`
-    .empty-state { color: #94a3b8; font-size: .85rem; padding: .5rem 0; }
-    .empty-msg   { color: #94a3b8; font-size: .82rem; margin: .25rem 0 .5rem; }
+    .empty-state { color: var(--text-muted); font-size: .85rem; padding: .5rem 0; }
+    .empty-msg   { color: var(--text-muted); font-size: .82rem; margin: .25rem 0 .5rem; }
 
     .section-header {
       display: flex; justify-content: space-between; align-items: center;
@@ -442,7 +442,7 @@ interface PersonaContacto {
     .contacto-icon { font-size: 1.1rem; color: var(--primary-color); width: 24px; text-align: center; }
     .contacto-info { flex: 1; min-width: 0; }
     .contacto-valor { font-weight: 600; font-size: .88rem; display: block; }
-    .contacto-meta  { font-size: .75rem; color: #64748b; }
+    .contacto-meta  { font-size: .75rem; color: var(--text-secondary); }
     .contacto-actions { display: flex; gap: .25rem; align-items: center; }
 
     /* Direcciones */
@@ -450,15 +450,15 @@ interface PersonaContacto {
     .dir-card {
       border: 1px solid var(--surface-200); border-radius: 8px; padding: .75rem;
     }
-    .dir-card.principal { border-color: var(--primary-color); background: var(--primary-50, #fef2f3); }
+    .dir-card.principal { border-color: var(--primary-color); background: var(--primary-50, var(--nevadi-red-lighter)); }
     .dir-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: .3rem; }
     .dir-actions { display: flex; gap: .2rem; align-items: center; }
     .dir-detalle { font-size: .88rem; font-weight: 500; margin-bottom: .2rem; }
-    .dir-ubic { font-size: .78rem; color: #64748b; margin-bottom: .2rem; }
+    .dir-ubic { font-size: .78rem; color: var(--text-secondary); margin-bottom: .2rem; }
     .dir-mapa { display: flex; align-items: center; gap: .75rem; font-size: .78rem; margin-top: .25rem; }
     .mapa-link { color: var(--primary-color); text-decoration: none; }
     .mapa-link:hover { text-decoration: underline; }
-    .coords { color: #94a3b8; font-family: monospace; font-size: .72rem; }
+    .coords { color: var(--text-muted); font-family: monospace; font-size: .72rem; }
 
     /* Formularios inline */
     .inline-form {

@@ -49,7 +49,7 @@ interface AlumnoResumen {
   template: `
 <div class="page-header">
   <div class="page-title">
-    <i class="pi pi-id-card" style="color:#D02030"></i>
+    <i class="pi pi-id-card" style="color:var(--nevadi-red)"></i>
     <h1>Portal del Alumno</h1>
   </div>
 </div>
@@ -302,7 +302,7 @@ interface AlumnoResumen {
     .alumno-card { display:flex; align-items:flex-start; gap:1.25rem; padding:1.25rem;
                    background:var(--surface-card); border:1px solid var(--surface-border);
                    border-radius:10px; margin-bottom:1rem; flex-wrap:wrap; }
-    .avatar { width:72px; height:72px; border-radius:50%; background:#D02030;
+    .avatar { width:72px; height:72px; border-radius:50%; background:var(--nevadi-red);
                display:flex; align-items:center; justify-content:center;
                overflow:hidden; flex-shrink:0; }
     .avatar span { color:#fff; font-size:1.5rem; font-family:'Jost',sans-serif; font-weight:700; }

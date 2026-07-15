@@ -113,7 +113,7 @@ const ESTADOS_OPT = [
             placeholder="Descripción del motivo…" style="width:100%"
             [class.p-invalid]="jIntento && !nuevaForm.motivo.trim()"></textarea>
           @if (jIntento && !nuevaForm.motivo.trim()) {
-            <small style="color:#dc2626;font-size:.78rem">El motivo es obligatorio</small>
+            <small style="color:var(--color-danger);font-size:.78rem">El motivo es obligatorio</small>
           }
         </div>
         <div class="flex flex-col gap-1">

@@ -294,14 +294,14 @@ const RIESGO_SEVERITY: Record<string, AlertaSeverity> = {
       flex: 1; overflow-y: auto;
       display: flex; flex-direction: column; gap: 0.75rem;
       padding: 0.5rem;
-      background: #F8F9FA;
+      background: var(--surface-ground);
       border-radius: 8px;
       border: 1px solid var(--surface-border);
     }
     .chat-empty {
       flex: 1; display: flex; flex-direction: column;
       align-items: center; justify-content: center;
-      gap: 0.75rem; color: #94A3B8; text-align: center; padding: 2rem;
+      gap: 0.75rem; color: var(--text-muted); text-align: center; padding: 2rem;
     }
     .message-row { display: flex; }
     .message-row.user     { justify-content: flex-end; }
@@ -332,7 +332,7 @@ const RIESGO_SEVERITY: Record<string, AlertaSeverity> = {
     .typing { padding: 0.5rem 0.9rem; }
     .typing span {
       display: inline-block; width: 7px; height: 7px;
-      border-radius: 50%; background: #94A3B8; margin: 0 2px;
+      border-radius: 50%; background: var(--text-muted); margin: 0 2px;
       animation: bounce 1.2s infinite;
     }
     .typing span:nth-child(2) { animation-delay: .2s; }
@@ -352,7 +352,7 @@ const RIESGO_SEVERITY: Record<string, AlertaSeverity> = {
     /* ── Consulta de Datos (NL→SQL) ────────────────────────────────────────── */
     .datos-layout { display: flex; flex-direction: column; gap: 1rem; }
     .datos-input-bar { display: flex; gap: .5rem; align-items: center; }
-    .datos-respuesta { background: #F8F9FA; border: 1px solid var(--surface-border); border-radius: 8px; padding: 1rem; }
+    .datos-respuesta { background: var(--surface-ground); border: 1px solid var(--surface-border); border-radius: 8px; padding: 1rem; }
     .datos-texto { font-size: .9rem; line-height: 1.6; margin: 0 0 .75rem; }
     .sql-details { margin-top: .5rem; }
     .sql-details summary { font-size: .78rem; color: var(--text-color-secondary); cursor: pointer; }

@@ -11,6 +11,7 @@ import { SelectModule } from 'primeng/select';
 import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
 import { TabsModule, TabList, Tab, TabPanels, TabPanel } from 'primeng/tabs';
+import { DatePickerModule } from 'primeng/datepicker';
 import { MessageService } from 'primeng/api';
 import { ApexNotificationService } from 'apex-component-library';
 import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
@@ -75,7 +76,7 @@ const CATEGORIAS = [
     AdesFormatDirective,
     CommonModule, FormsModule, ButtonModule, DialogModule, InputTextModule,
     InputNumberModule, SelectModule, ToastModule, TooltipModule,
-    TabsModule, TabList, Tab, TabPanels, TabPanel,
+    TabsModule, TabList, Tab, TabPanels, TabPanel, DatePickerModule,
     InteractiveGridComponent,
   ],
   providers: [MessageService],
@@ -199,7 +200,8 @@ const CATEGORIAS = [
         </div>
         <div class="col-span-2 flex flex-col gap-1">
           <label class="text-sm font-medium">Fecha devolución esperada *</label>
-          <input pInputText type="date" [(ngModel)]="formPrestamo.fecha_devolucion_esperada" />
+          <p-datepicker [(ngModel)]="formPrestamo.fecha_devolucion_esperada" dateFormat="dd/mm/yy"
+                        [showIcon]="true" placeholder="DD/MM/AAAA" [style]="{width:'100%'}" [inputStyle]="{width:'100%'}" />
         </div>
         <div class="col-span-2 flex flex-col gap-1">
           <label class="text-sm font-medium">Observaciones</label>
@@ -332,8 +334,8 @@ export class BibliotecaComponent implements OnInit, OnDestroy {
     ejemplares_total: 1,
   };
 
-  formPrestamo = {
-    libro_id: '', persona_id: '', fecha_devolucion_esperada: '', observaciones: '',
+  formPrestamo: { libro_id: string; persona_id: string; fecha_devolucion_esperada: Date | null; observaciones: string } = {
+    libro_id: '', persona_id: '', fecha_devolucion_esperada: null, observaciones: '',
   };
 
   ngOnInit() { this.cargarLibros(); }
@@ -404,7 +406,7 @@ export class BibliotecaComponent implements OnInit, OnDestroy {
 
   abrirNuevoPrestamo() {
     if (this.libros().length === 0) this.cargarLibros();
-    this.formPrestamo = { libro_id: '', persona_id: '', fecha_devolucion_esperada: '', observaciones: '' };
+    this.formPrestamo = { libro_id: '', persona_id: '', fecha_devolucion_esperada: null, observaciones: '' };
     this.dialogPrestamo = true;
   }
 
@@ -414,7 +416,11 @@ export class BibliotecaComponent implements OnInit, OnDestroy {
       return;
     }
     this.guardando.set(true);
-    this.api.post('/biblioteca/prestamos', this.formPrestamo).pipe(takeUntil(this.destroy$)).subscribe({
+    const payload = {
+      ...this.formPrestamo,
+      fecha_devolucion_esperada: this.formPrestamo.fecha_devolucion_esperada!.toISOString().substring(0, 10),
+    };
+    this.api.post('/biblioteca/prestamos', payload).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.guardando.set(false); this.dialogPrestamo = false;
         this.notify.success('Préstamo registrado'); this.cargarLibros(); this.cargarPrestamos();
