@@ -6,7 +6,9 @@ import java.util.Arrays;
  * Estado de una entrega de tarea por parte de un alumno en el módulo entregas.
  * <p>Valores: PENDIENTE (aún no entregada), ENTREGADA (subida, pendiente de calificación),
  * CALIFICADA (revisada por el docente), EXCUSA (exención aceptada).
- * Solo ENTREGADA es calificable; CALIFICADA y EXCUSA son estados terminales.</p>
+ * Solo ENTREGADA es calificable; CALIFICADA y EXCUSA son estados terminales.
+ * Regla unificada con {@link mx.ades.modules.evaluaciones.domain.model.EstatusEntrega}
+ * (auditoría de consistencia 2026-07-15 — hallazgo Antigravity D4).</p>
  *
  * @author ADES
  * @since 2026

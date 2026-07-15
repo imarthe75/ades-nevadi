@@ -1,5 +1,6 @@
 package mx.ades.modules.horarios.config;
 
+import mx.ades.security.AdesUser;
 import mx.ades.security.AdesUserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -48,7 +49,15 @@ public class HorarioReglaController {
             @RequestBody HorarioRegla payload,
             @AuthenticationPrincipal Jwt jwt) {
         var user = userService.resolveUser(jwt);
-        
+        requireStaff(user);
+
+        // BFLA/BOLA: solo Admin Global (nivelAcceso 0) puede fijar un plantel_id distinto
+        // al propio; el resto (Director/Coordinador nivelAcceso 1-3) queda forzado a su
+        // propio plantel, sin importar lo que envíe el body — evita que un admin de
+        // Plantel A cree reglas institucionales a nombre de Plantel B.
+        if (user.getNivelAcceso() != 0) {
+            payload.setPlantelId(user.getPlantelId());
+        }
         if (payload.getPlantelId() == null) {
             if (user.getPlantelId() == null) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "plantel_id es requerido");
@@ -75,7 +84,29 @@ public class HorarioReglaController {
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void eliminar(@PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        var user = userService.resolveUser(jwt);
+        requireStaff(user);
+        HorarioRegla regla = reglaRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Regla de horario no encontrada"));
+        // BOLA: un Director/Coordinador (nivelAcceso 1-3) no puede borrar reglas de otro
+        // plantel; solo Admin Global (nivelAcceso 0) tiene alcance institucional completo.
+        if (user.getNivelAcceso() != 0
+                && regla.getPlantelId() != null
+                && !regla.getPlantelId().equals(user.getPlantelId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No autorizado para eliminar reglas de otro plantel");
+        }
         reglaRepository.deleteById(id);
+    }
+
+    /**
+     * Configurar reglas de horario institucionales (usadas por todos los planteles/
+     * grupos) es operación de Coordinador o superior (nivelAcceso &le;3) — previene
+     * BFLA (OWASP API5), replicando el mismo criterio que {@code HorarioFranjaController}.
+     */
+    private void requireStaff(AdesUser user) {
+        Integer nivelAcceso = user.getNivelAcceso();
+        if (nivelAcceso == null || nivelAcceso > 3) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Nivel de acceso insuficiente para esta operación");
+        }
     }
 }

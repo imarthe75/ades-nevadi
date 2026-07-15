@@ -100,7 +100,15 @@ public class ConductaController {
         private LocalDate fechaNotificacion;
         private String medioNotificacion;
         private String notasAdicionales;
+        // Hallazgo 2026-07-15: el frontend (conducta.component.ts#actualizarSancion) ya
+        // enviaba este campo desde antes, pero el DTO no lo tenía — se descartaba
+        // silenciosamente y el estado de la sanción nunca se actualizaba pese al toast
+        // de éxito. Ver ades_sanciones_disciplinarias_estado_check para los valores reales.
+        private String estado;
     }
+
+    private static final Set<String> ESTADOS_SANCION_VALIDOS =
+            Set.of("APLICADA", "EN_PROCESO", "CUMPLIDA", "APELADA", "REVOCADA");
 
     @Data
     public static class PlanMejoraCreateRequest {
@@ -137,6 +145,13 @@ public class ConductaController {
 
     // ── Reads (delegados a ConductaQueryService) ─────────────────────────────
 
+    // NOTA: los 4 GET siguientes no llamaban a resolveUser(jwt) — quedaban accesibles
+    // a CUALQUIER cuenta autenticada del sistema (incluyendo padres/alumnos, nivelAcceso
+    // >=5) sin ninguna verificación de rol ni scoping por plantel, exponiendo reportes
+    // de conducta, sanciones disciplinarias y planes de mejora de cualquier alumno.
+    // Se restringe a personal escolar (mismo criterio que requireStaff() para escritura)
+    // para prevenir BOLA/BFLA (OWASP API1/API5) sobre datos conductuales sensibles.
+
     @GetMapping
     public ResponseEntity<List<Map<String, Object>>> listar(
             @RequestParam(value = "plantel_id", required = false) UUID plantelId,
@@ -147,19 +162,30 @@ public class ConductaController {
             @RequestParam(value = "tipo_falta", required = false) String tipoFalta,
             @RequestParam(value = "requiere_seguimiento", required = false) Boolean requiereSeguimiento,
             @RequestParam(value = "pagina", defaultValue = "1") int pagina,
-            @RequestParam(value = "por_pagina", defaultValue = "20") int porPagina) {
+            @RequestParam(value = "por_pagina", defaultValue = "20") int porPagina,
+            @AuthenticationPrincipal Jwt jwt) {
 
+        AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
+        UUID plantelFiltro = (user.getNivelAcceso() != null && user.getNivelAcceso() > 1 && user.getPlantelId() != null)
+                ? user.getPlantelId() : plantelId;
         return ResponseEntity.ok(
-                queryService.listar(plantelId, nivelId, gradoId, grupoId, estudianteId, tipoFalta, requiereSeguimiento, pagina, porPagina));
+                queryService.listar(plantelFiltro, nivelId, gradoId, grupoId, estudianteId, tipoFalta, requiereSeguimiento, pagina, porPagina));
     }
 
     @GetMapping("/alumno/{estudianteId}/historial")
-    public ResponseEntity<List<Map<String, Object>>> historial(@PathVariable("estudianteId") UUID estudianteId) {
+    public ResponseEntity<List<Map<String, Object>>> historial(
+            @PathVariable("estudianteId") UUID estudianteId,
+            @AuthenticationPrincipal Jwt jwt) {
+        requireStaff(userService.resolveUser(jwt));
         return ResponseEntity.ok(queryService.historial(estudianteId));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ReporteConducta> obtener(@PathVariable("id") UUID id) {
+    public ResponseEntity<ReporteConducta> obtener(
+            @PathVariable("id") UUID id,
+            @AuthenticationPrincipal Jwt jwt) {
+        requireStaff(userService.resolveUser(jwt));
         ReporteConducta rc = repository.findById(id)
                 .filter(ReporteConducta::getIsActive)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Reporte no encontrado"));
@@ -167,7 +193,10 @@ public class ConductaController {
     }
 
     @GetMapping("/{id}/detalle-completo")
-    public ResponseEntity<Map<String, Object>> detalleCompleto(@PathVariable("id") UUID id) {
+    public ResponseEntity<Map<String, Object>> detalleCompleto(
+            @PathVariable("id") UUID id,
+            @AuthenticationPrincipal Jwt jwt) {
+        requireStaff(userService.resolveUser(jwt));
         Map<String, Object> result = queryService.detalleCompleto(id);
         if (result == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Reporte no encontrado");
         return ResponseEntity.ok(result);
@@ -271,6 +300,11 @@ public class ConductaController {
         if (body.getFechaNotificacion() != null) sd.setFechaNotificacion(body.getFechaNotificacion());
         if (body.getMedioNotificacion() != null) sd.setMedioNotificacion(body.getMedioNotificacion());
         if (body.getNotasAdicionales() != null) sd.setNotasAdicionales(body.getNotasAdicionales());
+        if (body.getEstado() != null) {
+            if (!ESTADOS_SANCION_VALIDOS.contains(body.getEstado()))
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "estado inválido: " + body.getEstado());
+            sd.setEstado(body.getEstado());
+        }
 
         sancionRepository.save(sd);
         return ResponseEntity.ok(Map.of("ok", true));

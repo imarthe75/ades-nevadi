@@ -31,7 +31,7 @@ class SaludAvanzadaDomainTest {
     @Test
     void medicamento_nivelSuperior3_lanzaExcepcion() {
         assertThatThrownBy(() ->
-            new RegistrarMedicamentoUseCase.Command(UUID.randomUUID(), "Paracetamol", null, null, null, "ORAL", null, null, null, null, 4, "user"))
+            new RegistrarMedicamentoUseCase.Command(UUID.randomUUID(), "Paracetamol", "500mg", "cada 8h", null, "ORAL", null, null, null, null, 4, "user"))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("nivel Médico");
     }

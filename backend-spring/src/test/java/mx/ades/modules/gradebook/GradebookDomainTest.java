@@ -31,7 +31,9 @@ class GradebookDomainTest {
 
     @Test
     void ajusteManual_valorNulo_lanzaExcepcion() {
-        assertThrows(NullPointerException.class,
+        // Fase 5: NPE -> IllegalArgumentException (GlobalExceptionHandler mapea 400 solo
+        // a IllegalArgumentException; una NPE caía como 500 genérico).
+        assertThrows(IllegalArgumentException.class,
                 () -> new AjusteManual(null, "justificacion suficientemente larga aqui"));
     }
 

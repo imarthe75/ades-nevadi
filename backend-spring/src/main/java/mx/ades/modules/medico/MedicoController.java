@@ -63,7 +63,13 @@ public class MedicoController {
     // ══════════════════════════════════════════════════════════════════════════
 
     @GetMapping("/expedientes-medicos/alumno/{estudianteId}")
-    public ResponseEntity<ExpedienteMedico> obtenerExpediente(@PathVariable("estudianteId") UUID estudianteId) {
+    public ResponseEntity<ExpedienteMedico> obtenerExpediente(
+            @PathVariable("estudianteId") UUID estudianteId,
+            @AuthenticationPrincipal Jwt jwt) {
+        // Sin resolveUser() aquí, este endpoint quedaba accesible a cualquier cuenta
+        // autenticada del sistema (incluyendo padres/alumnos de otro expediente) sin
+        // ninguna verificación de rol — exponía datos de salud de menores (LFPDPPP).
+        requireStaff(userService.resolveUser(jwt));
         ExpedienteMedico exp = expedienteRepository.findByEstudianteId(estudianteId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Expediente médico no encontrado"));
         return ResponseEntity.ok(exp);
@@ -118,7 +124,11 @@ public class MedicoController {
     public ResponseEntity<List<IncidenteMedico>> incidentesAlumno(
             @PathVariable("estudianteId") UUID estudianteId,
             @RequestParam(value = "pagina", defaultValue = "1") int pagina,
-            @RequestParam(value = "por_pagina", defaultValue = "20") int porPagina) {
+            @RequestParam(value = "por_pagina", defaultValue = "20") int porPagina,
+            @AuthenticationPrincipal Jwt jwt) {
+        // Igual que obtenerExpediente(): faltaba resolveUser(), dejando los incidentes
+        // médicos de cualquier alumno accesibles a cualquier cuenta autenticada.
+        requireStaff(userService.resolveUser(jwt));
         pagina = Math.max(pagina, 1);
         porPagina = Math.min(Math.max(porPagina, 1), 200);
         return ResponseEntity.ok(incidenteRepository.findByEstudianteIdAndIsActiveTrueOrderByFechaIncidenteDesc(

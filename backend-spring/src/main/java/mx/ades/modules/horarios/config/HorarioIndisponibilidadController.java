@@ -25,7 +25,14 @@ public class HorarioIndisponibilidadController {
     @GetMapping
     public ResponseEntity<List<HorarioIndisponibilidad>> getIndisponibilidad(
             @RequestParam UUID profesorId,
-            @RequestParam UUID cicloEscolarId) {
+            @RequestParam UUID cicloEscolarId,
+            @AuthenticationPrincipal Jwt jwt) {
+        // Hallazgo de auditoría BOLA (Fase 5): este endpoint no llamaba resolveUser ni
+        // aplicaba ningún control — cualquier portador de un JWT válido podía consultar
+        // la indisponibilidad (horario personal) de cualquier profesor pasando un
+        // profesorId arbitrario. Se alinea con el mismo criterio ya usado en
+        // saveIndisponibilidad() de este archivo (personal escolar, nivelAcceso &le;4).
+        requireStaff(userService.resolveUser(jwt));
         return ResponseEntity.ok(repository.findByProfesorIdAndCicloEscolarId(profesorId, cicloEscolarId));
     }
 

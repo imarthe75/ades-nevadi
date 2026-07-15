@@ -20,6 +20,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -40,6 +41,7 @@ public class TareaController {
     private final CalificarMasivoUseCase calificarMasivo;
     private final TareaQueryService query;
     private final AdesUserService userService;
+    private final JdbcTemplate jdbc;
 
     @GetMapping("/grupo/{grupo_id}")
     public ResponseEntity<Page<Map<String, Object>>> actividadesDeGrupo(
@@ -76,7 +78,11 @@ public class TareaController {
             @PathVariable("actividad_id") UUID actividadId,
             @RequestBody Map<String, Object> body,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        AdesUser user = userService.resolveUser(jwt);
+        // Hallazgo de auditoría BOLA/BFLA (Fase 5): sin verificación de nivelAcceso ni de
+        // asignación docente↔grupo — cualquier usuario autenticado podía editar cualquier
+        // tarea del sistema (fecha de entrega, puntaje máximo, etc.).
+        requireAccesoGrupoTarea(user, grupoIdDeTarea(actividadId));
         // Delegar al query service para actualizar campos simples
         return ResponseEntity.ok(query.actualizarTarea(actividadId, body));
     }
@@ -115,6 +121,10 @@ public class TareaController {
             @RequestBody @Valid CrearActividadRequest body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        // Hallazgo de auditoría BOLA/BFLA (Fase 5): sin verificación de nivelAcceso ni de
+        // asignación docente↔grupo — cualquier usuario autenticado podía crear tareas
+        // (con slots de entrega generados) para cualquier grupo del sistema.
+        requireAccesoGrupoTarea(user, body.grupoId());
 
         TipoItem tipo = body.tipoItem() != null
                 ? TipoItem.valueOf(body.tipoItem().toUpperCase())
@@ -167,10 +177,46 @@ public class TareaController {
             @RequestBody CalificarMasivoRequest request,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        // Hallazgo de auditoría BOLA/BFLA (Fase 5, ver EvaluacionController#bulkCalificaciones
+        // para el mismo hallazgo en evaluaciones): calificación masiva sin verificar
+        // nivelAcceso ni asignación docente↔grupo — activo más sensible del sistema.
+        requireAccesoGrupoTarea(user, grupoIdDeTarea(actividadId));
 
         int actualizados = calificarMasivo.ejecutar(
                 new CalificarMasivoUseCase.Command(actividadId, request.items(), user.getPersonaId()));
 
         return ResponseEntity.ok(Map.of("actualizados", actualizados));
+    }
+
+    private UUID grupoIdDeTarea(UUID actividadId) {
+        List<UUID> rows = jdbc.queryForList(
+                "SELECT grupo_id FROM ades_tareas WHERE id = ?::uuid AND is_active = TRUE",
+                UUID.class, actividadId.toString());
+        if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Tarea no encontrada");
+        return rows.get(0);
+    }
+
+    /**
+     * Crear/editar tareas y calificar (individual o masivo) es operación de personal
+     * escolar (nivelAcceso &le;4: admin/director/coordinador/docente). Admin/Director/
+     * Coordinador (nivelAcceso &le;3) tienen alcance institucional; un Docente
+     * (nivelAcceso 4) solo puede operar sobre grupos donde esté realmente asignado
+     * (tabla {@code ades_asignaciones_docentes}) — previene BOLA (OWASP API1) y BFLA
+     * (OWASP API5). Hallazgo de auditoría Fase 5: ninguno de estos controles existía.
+     */
+    private void requireAccesoGrupoTarea(AdesUser user, UUID grupoId) {
+        Integer nivel = user.getNivelAcceso();
+        if (nivel == null || nivel > 4) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Nivel de acceso insuficiente para esta operación");
+        }
+        if (nivel <= 3) return; // admin/director/coordinador: alcance institucional
+        Long count = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM ades_asignaciones_docentes ad " +
+                "JOIN ades_profesores p ON p.id = ad.profesor_id " +
+                "WHERE ad.grupo_id = ? AND p.persona_id = ? AND ad.is_active = TRUE",
+                Long.class, grupoId, user.getPersonaId());
+        if (count == null || count == 0) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No está asignado a este grupo");
+        }
     }
 }

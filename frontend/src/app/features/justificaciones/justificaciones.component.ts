@@ -263,7 +263,7 @@ export class JustificacionesComponent implements OnInit, OnDestroy {
   }
 
   asistSev(e: string): TagSev {
-    const m: Record<string, TagSev> = { PRESENTE: 'success', FALTA: 'danger', TARDE: 'warn', TARDANZA: 'warn' };
+    const m: Record<string, TagSev> = { PRESENTE: 'success', AUSENTE: 'danger', TARDE: 'warn' };
     return m[e] ?? 'secondary';
   }
 

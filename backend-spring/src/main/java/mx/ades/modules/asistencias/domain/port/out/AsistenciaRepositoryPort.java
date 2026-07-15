@@ -10,7 +10,7 @@ import java.util.UUID;
  * en la tabla {@code ades_asistencias}.
  *
  * <p>Incluye consulta por clase, guardado masivo con upsert y conteo de asistencias
- * válidas (PRESENTE, TARDANZA, JUSTIFICADO) por estudiante y grupo.</p>
+ * válidas (PRESENTE, TARDE, JUSTIFICADO) por estudiante y grupo.</p>
  *
  * @author ADES
  * @since 2026

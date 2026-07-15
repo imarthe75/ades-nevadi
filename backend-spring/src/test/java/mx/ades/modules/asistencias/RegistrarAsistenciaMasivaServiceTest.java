@@ -65,7 +65,7 @@ class RegistrarAsistenciaMasivaServiceTest {
         var comandos = List.of(
                 new RegistrarAsistenciaCommand(claseId, UUID.randomUUID(), EstatusAsistencia.PRESENTE, null),
                 new RegistrarAsistenciaCommand(claseId, UUID.randomUUID(), EstatusAsistencia.AUSENTE, null),
-                new RegistrarAsistenciaCommand(claseId, UUID.randomUUID(), EstatusAsistencia.TARDANZA, "llegó tarde")
+                new RegistrarAsistenciaCommand(claseId, UUID.randomUUID(), EstatusAsistencia.TARDE, "llegó tarde")
         );
 
         service.ejecutar(comandos, "profesor@nevadi.edu.mx");

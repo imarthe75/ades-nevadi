@@ -37,8 +37,12 @@ public class SancionDisciplinaria extends AdesAuditEntity {
     @Column(name = "fecha_fin_sancion")
     private LocalDate fechaFinSancion;
 
+    // "VIGENTE" (valor anterior) no existe en el CHECK real de BD
+    // (ades_sanciones_disciplinarias_estado_check: APLICADA/EN_PROCESO/CUMPLIDA/
+    // APELADA/REVOCADA) — cada creación de sanción violaba el constraint desde
+    // siempre (JPA envía este default en el INSERT). Hallazgo 2026-07-15.
     @Column(name = "estado")
-    private String estado = "VIGENTE";
+    private String estado = "APLICADA";
 
     @Column(name = "notificado_padres")
     private Boolean notificadoPadres = false;

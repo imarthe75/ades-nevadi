@@ -86,7 +86,7 @@ class EntregasDomainTest {
         assertThatThrownBy(() -> new CalificarEntregaUseCase.Command(
                 UUID.randomUUID(), 110.0, null, UUID.randomUUID(), "profe01"))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("0 y 100");
+                .hasMessageContaining("0 y 10");
     }
 
     @Test

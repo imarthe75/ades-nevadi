@@ -52,7 +52,7 @@ public class AsistenciaController {
     }
 
     private static final Set<String> ESTATUS_VALIDOS =
-        Set.of("PRESENTE", "AUSENTE", "TARDANZA", "JUSTIFICADO");
+        Set.of("PRESENTE", "AUSENTE", "TARDE", "JUSTIFICADO");
 
     /** POST /api/v1/asistencias/clase/{claseId} — frontend sends { asistencias: [{estudiante_id, estatus_asistencia}] } */
     @PostMapping("/clase/{claseId}")

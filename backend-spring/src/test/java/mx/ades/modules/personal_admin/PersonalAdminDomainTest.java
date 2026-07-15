@@ -79,7 +79,7 @@ class PersonalAdminDomainTest {
     void command_sinTipoRol_lanzaExcepcion() {
         assertThatThrownBy(() -> new RegistrarPersonalAdminUseCase.Command(
                 UUID.randomUUID(),
-                Map.of("nombre", "Juan"),
+                Map.of("nombre", "Juan", "apellido_paterno", "Pérez"),
                 Map.of("area", "Administración"),
                 "admin"))
                 .isInstanceOf(IllegalArgumentException.class)

@@ -10,7 +10,7 @@ import java.util.UUID;
  * La entidad JPA vive en infrastructure/outbound/persistence/AsistenciaEntity.java.
  *
  * Regla SEP/UAEMEX: un alumno acredita si asistió >= 80 % de las clases impartidas.
- * TARDANZA y JUSTIFICADO cuentan como asistencia efectiva para el cálculo.
+ * TARDE y JUSTIFICADO cuentan como asistencia efectiva para el cálculo.
  */
 public record Asistencia(
         UUID id,

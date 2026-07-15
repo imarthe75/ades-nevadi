@@ -31,6 +31,7 @@ public class SuplenciaController {
             @RequestBody SuplenciaPayload body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
 
         // profesor_ausente_id y fecha son NOT NULL en ades_suplencias; sin esta validación,
         // un valor faltante caía en NullPointerException (fecha) o en el 409 genérico de
@@ -88,5 +89,19 @@ public class SuplenciaController {
         private UUID timeslotId;
         private UUID horarioId;
         private String motivo;
+    }
+
+    /**
+     * Registrar una suplencia (reasignación de profesor ausente) es operación de
+     * personal escolar (nivelAcceso &le;4: admin/director/coordinador/docente) —
+     * previene BFLA (OWASP API5). Hallazgo de auditoría Fase 5: antes solo se llamaba
+     * resolveUser sin verificar nivelAcceso, permitiendo a cualquier usuario
+     * autenticado (incluido alumno/padre) crear registros de suplencia.
+     */
+    private void requireStaff(AdesUser user) {
+        Integer nivelAcceso = user.getNivelAcceso();
+        if (nivelAcceso == null || nivelAcceso > 4) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Nivel de acceso insuficiente para esta operación");
+        }
     }
 }

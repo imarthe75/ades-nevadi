@@ -18,12 +18,14 @@ class EvaluacionesDomainTest {
 
     @ParameterizedTest(name = "{0}.puedeCalificarse={1}")
     @CsvSource({
-            "PENDIENTE, true",
+            "PENDIENTE, false",
             "ENTREGADA, true",
             "CALIFICADA, false",
             "EXCUSA, false",
     })
     void estatusEntrega_puedeCalificarse(EstatusEntrega estatus, boolean esperado) {
+        // Regla unificada 2026-07-15 (hallazgo Antigravity D4): solo ENTREGADA es
+        // calificable, igual que el enum gemelo del módulo entregas.
         assertEquals(esperado, estatus.puedeCalificarse());
     }
 
@@ -41,7 +43,7 @@ class EvaluacionesDomainTest {
             "TAREA, true",
             "PROYECTO, true",
             "EXAMEN, false",
-            "ACTIVIDAD, false",
+            "OTRO, false",
             "PARTICIPACION, false",
     })
     void tipoItem_requiereEntregaArchivo(TipoItem tipo, boolean esperado) {
@@ -54,7 +56,7 @@ class EvaluacionesDomainTest {
             "PARTICIPACION, true",
             "TAREA, false",
             "PROYECTO, false",
-            "ACTIVIDAD, false",
+            "OTRO, false",
     })
     void tipoItem_esPuntualEnAula(TipoItem tipo, boolean esperado) {
         assertEquals(esperado, tipo.esPuntualEnAula());
@@ -71,7 +73,9 @@ class EvaluacionesDomainTest {
 
     @Test
     void itemCalificacion_estudianteIdNull_lanzaExcepcion() {
-        assertThrows(NullPointerException.class,
+        // Fase 5: NPE -> IllegalArgumentException (GlobalExceptionHandler mapea 400 solo
+        // a IllegalArgumentException; una NPE caía como 500 genérico).
+        assertThrows(IllegalArgumentException.class,
                 () -> new ItemCalificacion(null, BigDecimal.TEN, null));
     }
 

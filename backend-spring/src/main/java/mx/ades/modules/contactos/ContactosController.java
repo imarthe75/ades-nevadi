@@ -46,6 +46,22 @@ public class ContactosController {
     private final ContactosApplicationService contactosService;
     private final ContactosQueryService queryService;
 
+    /**
+     * Contactos familiares (tutela legal, autorización de recogida) y expediente médico
+     * son datos sensibles (LFPDPPP): solo personal escolar (nivelAcceso &le;4:
+     * admin/director/coordinador/docente) puede crearlos, modificarlos o eliminarlos.
+     * Sin este chequeo, cualquier cuenta autenticada (incluyendo padres/alumnos,
+     * nivelAcceso &gt;=5) podía dar de alta o borrar tutores de CUALQUIER alumno —
+     * incluyendo el flag puedeRecoger — o editar el expediente médico de un menor
+     * que no es el suyo. Previene BFLA/BOLA (OWASP API1/API5).
+     */
+    private void requireStaff(AdesUser user) {
+        Integer nivelAcceso = user.getNivelAcceso();
+        if (nivelAcceso == null || nivelAcceso > 4) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Nivel de acceso insuficiente para esta operación");
+        }
+    }
+
     @Data
     public static class ContactoPayload {
         // NOTA: no se marca @NotNull porque este mismo DTO se reutiliza para PATCH
@@ -101,6 +117,7 @@ public class ContactosController {
             @RequestParam(value = "estudiante_id", required = false) UUID estudianteIdParam,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
         UUID estId = estudianteIdParam != null ? estudianteIdParam : body.getEstudianteId();
         if (estId == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "estudianteId es obligatorio");
@@ -137,6 +154,7 @@ public class ContactosController {
             @RequestBody @Valid ContactoPayload body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
 
         ValidationUtils.validarNombrePersona(body.getNombreCompleto(), "El nombre del contacto");
         ValidationUtils.validarTelefono(body.getTelefonoPrincipal());
@@ -174,7 +192,7 @@ public class ContactosController {
     public void eliminarContacto(
             @PathVariable("contacto_id") UUID contactoId,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        requireStaff(userService.resolveUser(jwt));
         try {
             contactosService.eliminar(contactoId);
         } catch (IllegalStateException e) {
@@ -186,7 +204,7 @@ public class ContactosController {
     public ResponseEntity<Map<String, Object>> obtenerExpedienteMedico(
             @PathVariable("estudiante_id") UUID estudianteId,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        requireStaff(userService.resolveUser(jwt));
         return ResponseEntity.ok(contactosService.expedienteMedico(estudianteId));
     }
 
@@ -196,6 +214,7 @@ public class ContactosController {
             @RequestBody @Valid ExpedienteMedicoPayload body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
         ValidationUtils.validarNSS(body.getNss());
         Map<String, Object> fields = new HashMap<>();
         fields.put("tipo_sangre", body.getTipoSangre());
@@ -231,6 +250,7 @@ public class ContactosController {
             @RequestParam(value = "observaciones", required = false) String observaciones,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
         if (!Arrays.asList("PENDIENTE", "ENTREGADO", "INCOMPLETO", "RECHAZADO", "EXENTO").contains(estatus)) {
             throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Estatus inválido");
         }

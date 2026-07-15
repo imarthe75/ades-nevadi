@@ -202,7 +202,11 @@ public class ProcesosEscolaresController {
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         requireSecretariaOrHigher(user);
-        return ResponseEntity.ok(queryService.listarAdmisiones(plantelId, estado, cicloId, skip, limit));
+        // Scoping por plantel: usuarios no-globales (plantelId propio no nulo) solo ven
+        // admisiones de su plantel, sin importar lo que envíe el query param — evita lectura
+        // cross-plantel de datos de solicitantes (nombre, CURP, tutor, teléfono/email).
+        UUID plantelEfectivo = user.getPlantelId() != null ? user.getPlantelId() : plantelId;
+        return ResponseEntity.ok(queryService.listarAdmisiones(plantelEfectivo, estado, cicloId, skip, limit));
     }
 
     @PostMapping("/admision")
@@ -458,7 +462,9 @@ public class ProcesosEscolaresController {
         requireSecretariaOrHigher(user);
         skip = Math.max(skip, 0);
         limit = Math.min(Math.max(limit, 1), 200);
-        return ResponseEntity.ok(queryService.listaEspera(plantelId, nivelSolicitado, skip, limit));
+        // Scoping por plantel — mismo criterio que listarAdmisiones (ver comentario ahí).
+        UUID plantelEfectivo = user.getPlantelId() != null ? user.getPlantelId() : plantelId;
+        return ResponseEntity.ok(queryService.listaEspera(plantelEfectivo, nivelSolicitado, skip, limit));
     }
 
     @PostMapping("/lista-espera/{id}/notificar")
@@ -497,7 +503,8 @@ public class ProcesosEscolaresController {
             @RequestParam(value = "ciclo_id", required = false) UUID cicloId,
             @RequestParam(value = "estudiante_id", required = false) UUID estudianteId,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        AdesUser user = userService.resolveUser(jwt);
+        requireSecretariaOrHigher(user);
         return ResponseEntity.ok(queryService.listarOptativas(cicloId, estudianteId));
     }
 
@@ -506,6 +513,7 @@ public class ProcesosEscolaresController {
             @RequestBody @Valid OptativaRequest body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        requireSecretariaOrHigher(user);
 
         if (!queryService.checkMateriaExists(body.getMateriaId())) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Materia no encontrada");
@@ -528,6 +536,7 @@ public class ProcesosEscolaresController {
             @PathVariable UUID id,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        requireSecretariaOrHigher(user);
         int updated = writeService.darBajaOptativa(id, user.getUsername());
         if (updated == 0) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Inscripción no encontrada o ya inactiva");
@@ -794,6 +803,7 @@ public class ProcesosEscolaresController {
 
     @GetMapping("/bajas")
     public ResponseEntity<List<Map<String, Object>>> listarBajas(
+            @RequestParam(value = "plantel_id", required = false) UUID plantelId,
             @RequestParam(value = "skip", defaultValue = "0") int skip,
             @RequestParam(value = "limit", defaultValue = "50") int limit,
             @AuthenticationPrincipal Jwt jwt) {
@@ -801,7 +811,10 @@ public class ProcesosEscolaresController {
         requireSecretariaOrHigher(user);
         skip = Math.max(skip, 0);
         limit = Math.min(Math.max(limit, 1), 200);
-        return ResponseEntity.ok(queryService.listarBajas(skip, limit));
+        // Scoping por plantel — el query original no filtraba por plantel en absoluto,
+        // exponiendo bajas de TODOS los planteles a cualquier Secretaría/Coordinador/Director.
+        UUID plantelEfectivo = user.getPlantelId() != null ? user.getPlantelId() : plantelId;
+        return ResponseEntity.ok(queryService.listarBajas(plantelEfectivo, skip, limit));
     }
 
     @PostMapping("/bajas/{baja_id}/reactivar")

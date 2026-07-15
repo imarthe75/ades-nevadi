@@ -83,7 +83,9 @@ public class BadgeController {
     @GetMapping
     public ResponseEntity<List<Map<String, Object>>> listar(
             @RequestParam(value = "tipo", required = false) String tipo,
-            @RequestParam(value = "plantel_id", required = false) UUID plantelId) {
+            @RequestParam(value = "plantel_id", required = false) UUID plantelId,
+            @AuthenticationPrincipal Jwt jwt) {
+        userService.resolveUser(jwt);
         return ResponseEntity.ok(query.listar(tipo, plantelId));
     }
 
@@ -103,7 +105,10 @@ public class BadgeController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Map<String, Object>> detalle(@PathVariable("id") UUID id) {
+    public ResponseEntity<Map<String, Object>> detalle(
+            @PathVariable("id") UUID id,
+            @AuthenticationPrincipal Jwt jwt) {
+        userService.resolveUser(jwt);
         return ResponseEntity.ok(query.detalle(id));
     }
 
@@ -119,7 +124,9 @@ public class BadgeController {
     @GetMapping("/alumno/{estudianteId}")
     public ResponseEntity<List<Map<String, Object>>> badgesAlumno(
             @PathVariable("estudianteId") UUID estudianteId,
-            @RequestParam(value = "ciclo_id", required = false) UUID cicloId) {
+            @RequestParam(value = "ciclo_id", required = false) UUID cicloId,
+            @AuthenticationPrincipal Jwt jwt) {
+        userService.resolveUser(jwt);
         return ResponseEntity.ok(query.badgesAlumno(estudianteId, cicloId));
     }
 

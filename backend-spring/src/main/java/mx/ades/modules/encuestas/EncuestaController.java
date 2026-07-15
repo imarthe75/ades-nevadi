@@ -111,7 +111,13 @@ public class EncuestaController {
     @GetMapping("/{id}/respuestas-raw")
     public ResponseEntity<List<Map<String, Object>>> respuestasRaw(
             @PathVariable("id") UUID id,
-            @RequestParam(value = "limit", defaultValue = "200") int limit) {
+            @RequestParam(value = "limit", defaultValue = "200") int limit,
+            @AuthenticationPrincipal Jwt jwt) {
+        // BOLA/exposición de datos fix: las respuestas individuales sin agregar (texto libre
+        // incluido) son material de revisión interna del personal — antes no exigían ni
+        // siquiera JWT resuelto, exponiendo respuestas crudas de encuestas (algunas no
+        // anónimas) a cualquier usuario autenticado, incl. padres/alumnos nivelAcceso=5.
+        requireStaff(userService.resolveUser(jwt));
         return ResponseEntity.ok(queryService.respuestasRaw(id, limit));
     }
 
@@ -122,6 +128,10 @@ public class EncuestaController {
             @RequestBody @Valid EncuestaCreateRequest body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        // BFLA fix: crear encuestas es una operación de personal escolar como el resto de
+        // endpoints de administración de este controller (toggle-activa, preguntas, eliminar);
+        // faltaba aquí el mismo requireStaff() que ya protege a sus pares.
+        requireStaff(user);
         Encuesta e = new Encuesta();
         e.setTitulo(body.getTitulo());
         e.setDescripcion(body.getDescripcion());

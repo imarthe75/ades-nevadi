@@ -73,6 +73,7 @@ public class ReinscripcionController {
             @RequestParam(value = "por_pagina", defaultValue = "50") int porPagina,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        requireAdmin(user);
         return ResponseEntity.ok(queryService.getEstado(cicloDestinoId, estado, plantelId, page, porPagina, user));
     }
 
@@ -80,7 +81,8 @@ public class ReinscripcionController {
     public ResponseEntity<Map<String, Object>> reporteReinscripcion(
             @PathVariable("ciclo_destino_id") UUID cicloDestinoId,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        AdesUser user = userService.resolveUser(jwt);
+        requireAdmin(user);
         return ResponseEntity.ok(queryService.getReporte(cicloDestinoId));
     }
 
@@ -89,13 +91,17 @@ public class ReinscripcionController {
             @PathVariable("estudiante_id") UUID estudianteId,
             @RequestParam(value = "ciclo_escolar_id", required = false) UUID cicloEscolarId,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        AdesUser user = userService.resolveUser(jwt);
+        requireAdmin(user);
         return ResponseEntity.ok(queryService.verificarNoAdeudo(estudianteId, cicloEscolarId));
     }
 
     @GetMapping("/ciclo/{cicloDestinoId}")
     public ResponseEntity<List<ReinscripcionCiclo>> listarPorCicloDestino(
-            @PathVariable("cicloDestinoId") UUID cicloDestinoId) {
+            @PathVariable("cicloDestinoId") UUID cicloDestinoId,
+            @AuthenticationPrincipal Jwt jwt) {
+        AdesUser user = userService.resolveUser(jwt);
+        requireAdmin(user);
         return ResponseEntity.ok(service.listarPorCicloDestino(cicloDestinoId));
     }
 
@@ -143,6 +149,7 @@ public class ReinscripcionController {
             @PathVariable("id") UUID id,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        requireAdmin(user);
         ReinscripcionCiclo r = service.aprobarReinscripcion(id, user.getId());
         return ResponseEntity.ok(r);
     }

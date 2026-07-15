@@ -56,7 +56,7 @@ export const ASISTENCIAS_COLUMNS: ColumnConfig[] = [
   { field: 'asistencia', header: 'Asistencia', sortable: true, filterable: true, width: '100px', editable: true, type: 'select', selectOptions: [
     { label: 'Presente', value: 'PRESENTE' },
     { label: 'Ausente', value: 'AUSENTE' },
-    { label: 'Retardo', value: 'RETARDO' },
+    { label: 'Retardo', value: 'TARDE' },
     { label: 'Justificado', value: 'JUSTIFICADO' }
   ] },
 ];

@@ -253,7 +253,15 @@ public class MovilidadController {
     // ── READS (delegadas a QueryService) ─────────────────────────────────────
 
     @GetMapping("/historial/{estudiante_id}")
-    public ResponseEntity<Map<String, Object>> historial(@PathVariable("estudiante_id") UUID estudianteId) {
+    public ResponseEntity<Map<String, Object>> historial(
+            @PathVariable("estudiante_id") UUID estudianteId,
+            @AuthenticationPrincipal Jwt jwt) {
+        // Faltaba resolveUser(): el historial de movilidad (cambios de grupo, bajas,
+        // traslados) de cualquier alumno quedaba accesible a cualquier cuenta
+        // autenticada sin verificación de rol. Se exige el mismo nivel mínimo que
+        // el resto de las lecturas de movilidad (listarBajas) para prevenir BOLA/BFLA.
+        AdesUser user = userService.resolveUser(jwt);
+        requireAcceso(user, TipoMovilidad.BAJA_TEMPORAL);
         return ResponseEntity.ok(queryService.historial(estudianteId));
     }
 

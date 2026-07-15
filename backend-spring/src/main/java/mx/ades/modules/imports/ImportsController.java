@@ -215,6 +215,10 @@ public class ImportsController {
                 errores.add(new ErrorFila(rowNum, curp, "Plantel no encontrado: '" + clavePlantel + "'"));
                 continue;
             }
+            if (!plantelPermitido(user, plantelId)) {
+                errores.add(new ErrorFila(rowNum, curp, "No tiene permisos para importar alumnos en el plantel '" + clavePlantel + "'"));
+                continue;
+            }
 
             seq++;
             String matricula = String.format("MAT-%06d", seq);
@@ -353,6 +357,10 @@ public class ImportsController {
             UUID plantelId = resolverPlantel(clavePlantel, plantelesClave, plantelesNombre);
             if (plantelId == null) {
                 errores.add(new ErrorFila(rowNum, curp, "Plantel no encontrado: '" + clavePlantel + "'"));
+                continue;
+            }
+            if (!plantelPermitido(user, plantelId)) {
+                errores.add(new ErrorFila(rowNum, curp, "No tiene permisos para importar profesores en el plantel '" + clavePlantel + "'"));
                 continue;
             }
 
@@ -614,6 +622,10 @@ public class ImportsController {
 
             String clavePlantel = ImportadorUtil.getCol(row, parsed.getHeaders(), "clave_plantel", "plantel");
             UUID plantelId = plantelesClave.get(clavePlantel.toLowerCase());
+            if (plantelId != null && !plantelPermitido(user, plantelId)) {
+                errores.add(new ErrorFila(rowNum, nombreAula, "No tiene permisos para importar aulas en el plantel '" + clavePlantel + "'"));
+                continue;
+            }
 
             String tipoAula = ImportadorUtil.getCol(row, parsed.getHeaders(), "tipo_aula", "tipo");
             if (tipoAula.isEmpty()) tipoAula = "SALON";
@@ -756,6 +768,10 @@ public class ImportsController {
                 errores.add(new ErrorFila(rowNum, curp, "Plantel no encontrado: '" + clavePlantel + "'"));
                 continue;
             }
+            if (!plantelPermitido(user, plantelId)) {
+                errores.add(new ErrorFila(rowNum, curp, "No tiene permisos para importar admisiones en el plantel '" + clavePlantel + "'"));
+                continue;
+            }
 
             UUID cicloId = ciclos.get(nombreCiclo.toLowerCase());
             if (cicloId == null) {
@@ -807,5 +823,17 @@ public class ImportsController {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "Permisos insuficientes para importar " + tipo.clave());
         }
+    }
+
+    /**
+     * Scoping por plantel (BOLA): un usuario con {@code plantelId} propio (p.ej. Director de
+     * plantel, nivelAcceso=2) solo puede importar registros para SU plantel — de lo contrario
+     * podría usar el CSV para escribir alumnos/profesores/aulas/admisiones en un plantel ajeno,
+     * simplemente indicando otra {@code clave_plantel} en el archivo. Un usuario global
+     * (Admin, {@code plantelId == null}) no tiene esta restricción. Mismo patrón que
+     * {@code AdminController#listarUsuarios} (plantelId efectivo = el del usuario si no es global).
+     */
+    private boolean plantelPermitido(AdesUser user, UUID plantelId) {
+        return user.getPlantelId() == null || user.getPlantelId().equals(plantelId);
     }
 }

@@ -183,8 +183,12 @@ public class ProcesosQueryService {
                 estudianteId, materiaId, cicloId).isEmpty();
     }
 
-    public List<Map<String, Object>> listarBajas(int skip, int limit) {
-        return jdbc.queryForList(
+    /**
+     * @param plantelId si no es null, restringe el resultado a las bajas de estudiantes de
+     *                  ese plantel — usado para scoping de usuarios no-globales (BOLA fix).
+     */
+    public List<Map<String, Object>> listarBajas(UUID plantelId, int skip, int limit) {
+        StringBuilder sql = new StringBuilder(
                 "SELECT b.id, b.estudiante_id, b.tipo_baja, b.motivo, b.fecha_efectiva, " +
                 "p.nombre || ' ' || p.apellido_paterno AS alumno, g.nombre_grupo AS grupo " +
                 "FROM ades_bajas b " +
@@ -192,7 +196,13 @@ public class ProcesosQueryService {
                 "JOIN ades_personas p ON p.id = e.persona_id " +
                 "LEFT JOIN ades_inscripciones i ON i.id = b.inscripcion_id " +
                 "LEFT JOIN ades_grupos g ON g.id = i.grupo_id " +
-                "ORDER BY b.fecha_creacion DESC LIMIT ? OFFSET ?", limit, skip);
+                "WHERE 1=1 ");
+        List<Object> params = new ArrayList<>();
+        if (plantelId != null) { sql.append("AND e.plantel_id = ? "); params.add(plantelId); }
+        sql.append("ORDER BY b.fecha_creacion DESC LIMIT ? OFFSET ?");
+        params.add(limit);
+        params.add(skip);
+        return jdbc.queryForList(sql.toString(), params.toArray());
     }
 
     public List<Map<String, Object>> fetchBajaParaReactivar(UUID bajaId) {

@@ -44,6 +44,20 @@ public class AsistenciaPersonalController {
     private final AsistenciaPersonalApplicationService asistenciaService;
     private final AsistenciaPersonalQueryService queryService;
 
+    /**
+     * Registrar/eliminar asistencia de personal es una operación administrativa.
+     * Sin este chequeo, cualquier cuenta autenticada (incluyendo padres/alumnos)
+     * podía crear o borrar el registro de asistencia de CUALQUIER empleado — BFLA
+     * (OWASP API5). El PATCH ya delega en ActualizarAsistenciaUseCase, que valida
+     * nivelAcceso &le;3 específicamente para el campo "justificado".
+     */
+    private void requireStaff(AdesUser user) {
+        Integer nivelAcceso = user.getNivelAcceso();
+        if (nivelAcceso == null || nivelAcceso > 4) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Nivel de acceso insuficiente para esta operación");
+        }
+    }
+
     @Data
     public static class AsistenciaCreate {
         @NotNull(message = "personaId es obligatorio")
@@ -91,6 +105,7 @@ public class AsistenciaPersonalController {
             @RequestBody @Valid AsistenciaCreate data,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
 
         TipoJornada tipoJornada;
         try {
@@ -138,6 +153,9 @@ public class AsistenciaPersonalController {
             @RequestBody AsistenciaPatch data,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        // El use case solo valida nivelAcceso<=3 para el campo "justificado"; el resto
+        // de los campos (horas, retardo, observaciones) no tenían ningún chequeo de rol.
+        requireStaff(user);
 
         TipoJornada tipoJornada = null;
         if (data.getTipoJornada() != null) {
@@ -173,6 +191,7 @@ public class AsistenciaPersonalController {
             @PathVariable("id") UUID id,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
         try {
             asistenciaService.eliminar(id, user.getUsername());
         } catch (IllegalArgumentException e) {

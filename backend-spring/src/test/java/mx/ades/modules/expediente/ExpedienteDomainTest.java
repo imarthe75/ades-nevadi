@@ -104,11 +104,11 @@ class ExpedienteDomainTest {
 
     @Test
     void validar_archivo_muy_grande_lanza_excepcion() {
-        long masDeVeinteM = 21L * 1024 * 1024;
+        long masDeDosM = 3L * 1024 * 1024;
         assertThatThrownBy(() ->
-            TipoDocumentoExpediente.validarArchivo("application/pdf", masDeVeinteM)
+            TipoDocumentoExpediente.validarArchivo("application/pdf", masDeDosM)
         ).isInstanceOf(IllegalArgumentException.class)
-         .hasMessageContaining("20 MB");
+         .hasMessageContaining("2 MB");
     }
 
     @Test

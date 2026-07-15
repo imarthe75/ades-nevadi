@@ -132,7 +132,7 @@ export class AsistenciasComponent implements OnDestroy {
   readonly ctx = inject(ContextService);
   private readonly notify = inject(ApexNotificationService);
 
-  readonly estatusOptions: EstatusAsistencia[] = ['PRESENTE', 'AUSENTE', 'TARDANZA', 'JUSTIFICADO'];
+  readonly estatusOptions: EstatusAsistencia[] = ['PRESENTE', 'AUSENTE', 'TARDE', 'JUSTIFICADO'];
   clases = signal<any[]>([]);
   asistencias = signal<AsistenciaLocal[]>([]);
   busqueda = signal('');

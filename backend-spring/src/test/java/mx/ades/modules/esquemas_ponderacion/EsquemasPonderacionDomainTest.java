@@ -25,20 +25,20 @@ class EsquemasPonderacionDomainTest {
 
     @Test
     void item_pesoCero_lanzaExcepcion() {
-        assertThatThrownBy(() -> new ItemPonderacion("EXAMEN", null, 0.0, 1))
+        assertThatThrownBy(() -> new ItemPonderacion("examen", null, 0.0, 1))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("peso_porcentaje");
     }
 
     @Test
     void item_valido_noLanzaExcepcion() {
-        assertThatCode(() -> new ItemPonderacion("EXAMEN", "Examen Bimestral", 60.0, 1))
+        assertThatCode(() -> new ItemPonderacion("examen", "Examen Bimestral", 60.0, 1))
                 .doesNotThrowAnyException();
     }
 
     @Test
     void item_ordenDisplay_defaultUno() {
-        ItemPonderacion item = new ItemPonderacion("TAREA", null, 40.0, null);
+        ItemPonderacion item = new ItemPonderacion("tarea", null, 40.0, null);
         assertEquals(1, item.ordenDisplay());
     }
 
@@ -46,7 +46,7 @@ class EsquemasPonderacionDomainTest {
 
     @Test
     void command_crear_sinNombre_lanzaExcepcion() {
-        List<ItemPonderacion> items = List.of(new ItemPonderacion("EXAMEN", null, 100.0, 1));
+        List<ItemPonderacion> items = List.of(new ItemPonderacion("examen", null, 100.0, 1));
         assertThatThrownBy(() -> new CrearEsquemaUseCase.Command(
                 "", UUID.randomUUID(), null, LocalDate.now(), null,
                 items, UUID.randomUUID(), "admin"))
@@ -57,8 +57,8 @@ class EsquemasPonderacionDomainTest {
     @Test
     void command_crear_sumaNoBaja100_lanzaExcepcion() {
         List<ItemPonderacion> items = List.of(
-                new ItemPonderacion("EXAMEN", null, 60.0, 1),
-                new ItemPonderacion("TAREA", null, 30.0, 2));
+                new ItemPonderacion("examen", null, 60.0, 1),
+                new ItemPonderacion("tarea", null, 30.0, 2));
         assertThatThrownBy(() -> new CrearEsquemaUseCase.Command(
                 "Esquema General", UUID.randomUUID(), null, LocalDate.now(), null,
                 items, UUID.randomUUID(), "admin"))
@@ -69,8 +69,8 @@ class EsquemasPonderacionDomainTest {
     @Test
     void command_crear_suma100_valido() {
         List<ItemPonderacion> items = List.of(
-                new ItemPonderacion("EXAMEN", null, 60.0, 1),
-                new ItemPonderacion("TAREA", null, 40.0, 2));
+                new ItemPonderacion("examen", null, 60.0, 1),
+                new ItemPonderacion("tarea", null, 40.0, 2));
         assertThatCode(() -> new CrearEsquemaUseCase.Command(
                 "Esquema General", UUID.randomUUID(), null, LocalDate.now(), null,
                 items, UUID.randomUUID(), "admin"))
@@ -80,9 +80,9 @@ class EsquemasPonderacionDomainTest {
     @Test
     void command_crear_tresItems_suma100() {
         List<ItemPonderacion> items = List.of(
-                new ItemPonderacion("EXAMEN", null, 40.0, 1),
-                new ItemPonderacion("TAREA", null, 40.0, 2),
-                new ItemPonderacion("PARTICIPACION", null, 20.0, 3));
+                new ItemPonderacion("examen", null, 40.0, 1),
+                new ItemPonderacion("tarea", null, 40.0, 2),
+                new ItemPonderacion("participacion", null, 20.0, 3));
         assertThatCode(() -> new CrearEsquemaUseCase.Command(
                 "Esquema Trimestral", UUID.randomUUID(), UUID.randomUUID(),
                 LocalDate.of(2026, 8, 1), LocalDate.of(2027, 7, 31),
@@ -94,7 +94,7 @@ class EsquemasPonderacionDomainTest {
 
     @Test
     void command_actualizar_sinEsquemaId_lanzaExcepcion() {
-        List<ItemPonderacion> items = List.of(new ItemPonderacion("EXAMEN", null, 100.0, 1));
+        List<ItemPonderacion> items = List.of(new ItemPonderacion("examen", null, 100.0, 1));
         assertThatThrownBy(() -> new ActualizarEsquemaUseCase.Command(
                 null, "Esquema", UUID.randomUUID(), null, LocalDate.now(), null,
                 items, "admin"))
@@ -104,7 +104,7 @@ class EsquemasPonderacionDomainTest {
 
     @Test
     void command_actualizar_pesosNoSuman100_lanzaExcepcion() {
-        List<ItemPonderacion> items = List.of(new ItemPonderacion("EXAMEN", null, 80.0, 1));
+        List<ItemPonderacion> items = List.of(new ItemPonderacion("examen", null, 80.0, 1));
         assertThatThrownBy(() -> new ActualizarEsquemaUseCase.Command(
                 UUID.randomUUID(), "Esquema", UUID.randomUUID(), null, LocalDate.now(), null,
                 items, "admin"))
@@ -115,8 +115,8 @@ class EsquemasPonderacionDomainTest {
     @Test
     void command_actualizar_valido_noLanzaExcepcion() {
         List<ItemPonderacion> items = List.of(
-                new ItemPonderacion("EXAMEN", null, 70.0, 1),
-                new ItemPonderacion("PROYECTO", "Proyecto final", 30.0, 2));
+                new ItemPonderacion("examen", null, 70.0, 1),
+                new ItemPonderacion("proyecto", "Proyecto final", 30.0, 2));
         assertThatCode(() -> new ActualizarEsquemaUseCase.Command(
                 UUID.randomUUID(), "Esquema Actualizado", UUID.randomUUID(), UUID.randomUUID(),
                 LocalDate.now(), null, items, "coord"))

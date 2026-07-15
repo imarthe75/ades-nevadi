@@ -60,9 +60,9 @@ class AsistenciaDomainTest {
     // ── EstatusAsistencia helpers ─────────────────────────────────────────────
 
     @Test
-    void cuentaComoAsistencia_PRESENTE_y_TARDANZA_y_JUSTIFICADO() {
+    void cuentaComoAsistencia_PRESENTE_y_TARDE_y_JUSTIFICADO() {
         assertTrue(EstatusAsistencia.PRESENTE.cuentaComoAsistencia());
-        assertTrue(EstatusAsistencia.TARDANZA.cuentaComoAsistencia());
+        assertTrue(EstatusAsistencia.TARDE.cuentaComoAsistencia());
         assertTrue(EstatusAsistencia.JUSTIFICADO.cuentaComoAsistencia());
         assertFalse(EstatusAsistencia.AUSENTE.cuentaComoAsistencia());
     }

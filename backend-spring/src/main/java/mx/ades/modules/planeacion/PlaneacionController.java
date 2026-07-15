@@ -11,6 +11,7 @@ import mx.ades.security.AdesUserService;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -44,6 +45,7 @@ public class PlaneacionController {
     private final CalificacionesDesdeplanneacionCommandService calificacionesCommands;
     private final BolecaDesdeplanneacionQueryService bolecaQueries;
     private final AdesUserService userService;
+    private final JdbcTemplate jdbc;
 
     /**
      * Planear clases, reprogramar, crear tareas/exámenes vinculados y capturar
@@ -55,6 +57,46 @@ public class PlaneacionController {
         Integer nivelAcceso = user.getNivelAcceso();
         if (nivelAcceso == null || nivelAcceso > 4) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Nivel de acceso insuficiente para esta operación");
+        }
+    }
+
+    private UUID grupoIdDeTarea(UUID tareaId) {
+        if (tareaId == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "tarea_id es requerido");
+        List<UUID> rows = jdbc.queryForList(
+                "SELECT grupo_id FROM ades_tareas WHERE id = ?::uuid AND is_active = TRUE",
+                UUID.class, tareaId.toString());
+        if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Tarea no encontrada");
+        return rows.get(0);
+    }
+
+    private UUID grupoIdDeEvaluacion(UUID evaluacionId) {
+        if (evaluacionId == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "evaluacion_id es requerido");
+        List<UUID> rows = jdbc.queryForList(
+                "SELECT grupo_id FROM ades_evaluaciones WHERE id = ?::uuid AND is_active = TRUE",
+                UUID.class, evaluacionId.toString());
+        if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Evaluación no encontrada");
+        return rows.get(0);
+    }
+
+    /**
+     * Guardar calificaciones (tarea/evaluación, individual o batch) es operación de
+     * personal escolar (nivelAcceso &le;4). Admin/Director/Coordinador (nivelAcceso
+     * &le;3) tienen alcance institucional; un Docente (nivelAcceso 4) solo puede
+     * calificar grupos donde esté realmente asignado (tabla
+     * {@code ades_asignaciones_docentes}) — previene BOLA (OWASP API1). Hallazgo de
+     * auditoría Fase 5: requireStaff() por sí solo no verificaba esta asignación, y
+     * las calificaciones son uno de los activos más sensibles del sistema.
+     */
+    private void requireAccesoGrupoPlaneacion(AdesUser user, UUID grupoId) {
+        requireStaff(user);
+        if (user.getNivelAcceso() <= 3) return; // admin/director/coordinador: alcance institucional
+        Long count = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM ades_asignaciones_docentes ad " +
+                "JOIN ades_profesores p ON p.id = ad.profesor_id " +
+                "WHERE ad.grupo_id = ? AND p.persona_id = ? AND ad.is_active = TRUE",
+                Long.class, grupoId, user.getPersonaId());
+        if (count == null || count == 0) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No está asignado a este grupo");
         }
     }
 
@@ -513,7 +555,12 @@ public class PlaneacionController {
     public ResponseEntity<Map<String, Object>> guardarCalificacionTarea(
             @RequestBody GuardarCalificacionTareaRequest body,
             @AuthenticationPrincipal Jwt jwt) {
-        requireStaff(userService.resolveUser(jwt));
+        AdesUser user = userService.resolveUser(jwt);
+        // Hallazgo de auditoría BOLA/BFLA (Fase 5, mismo hallazgo replicado en
+        // TareaController/ActividadesController/EvaluacionController): requireStaff()
+        // solo validaba nivelAcceso, sin verificar que el docente esté asignado al
+        // grupo real de la tarea — activo más sensible del sistema (calificaciones).
+        requireAccesoGrupoPlaneacion(user, grupoIdDeTarea(body.tarea_id()));
         return ResponseEntity.status(HttpStatus.CREATED).body(
             calificacionesCommands.guardarCalificacionTarea(
                 body.tarea_id(),
@@ -539,7 +586,8 @@ public class PlaneacionController {
     public ResponseEntity<Map<String, Object>> guardarCalificacionEvaluacion(
             @RequestBody GuardarCalificacionEvaluacionRequest body,
             @AuthenticationPrincipal Jwt jwt) {
-        requireStaff(userService.resolveUser(jwt));
+        AdesUser user = userService.resolveUser(jwt);
+        requireAccesoGrupoPlaneacion(user, grupoIdDeEvaluacion(body.evaluacion_id()));
         return ResponseEntity.status(HttpStatus.CREATED).body(
             calificacionesCommands.guardarCalificacionEvaluacion(
                 body.evaluacion_id(),
@@ -563,7 +611,8 @@ public class PlaneacionController {
     public ResponseEntity<Map<String, Object>> guardarCalificacionesTareaBatch(
             @RequestBody GuardarCalificacionesTareaBatchRequest body,
             @AuthenticationPrincipal Jwt jwt) {
-        requireStaff(userService.resolveUser(jwt));
+        AdesUser user = userService.resolveUser(jwt);
+        requireAccesoGrupoPlaneacion(user, grupoIdDeTarea(body.tarea_id()));
         return ResponseEntity.status(HttpStatus.CREATED).body(
             calificacionesCommands.guardarCalificacionesTareaBatch(
                 body.tarea_id(),
@@ -585,7 +634,8 @@ public class PlaneacionController {
     public ResponseEntity<Map<String, Object>> guardarCalificacionesEvaluacionBatch(
             @RequestBody GuardarCalificacionesEvaluacionBatchRequest body,
             @AuthenticationPrincipal Jwt jwt) {
-        requireStaff(userService.resolveUser(jwt));
+        AdesUser user = userService.resolveUser(jwt);
+        requireAccesoGrupoPlaneacion(user, grupoIdDeEvaluacion(body.evaluacion_id()));
         return ResponseEntity.status(HttpStatus.CREATED).body(
             calificacionesCommands.guardarCalificacionesEvaluacionBatch(
                 body.evaluacion_id(),

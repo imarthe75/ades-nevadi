@@ -17,6 +17,11 @@ node_modules/
 dist/
 .angular/
 
+# Tipos generados desde OpenAPI/springdoc (Fase 2 del plan de auditoría 2026-07-14) —
+# artefacto de build que requiere un backend vivo para regenerarse
+# (`npm run generate:api-types`), no una fuente versionable.
+frontend/src/app/core/models/api-types.generated.ts
+
 # Java build artifacts
 backend-spring/target/
 

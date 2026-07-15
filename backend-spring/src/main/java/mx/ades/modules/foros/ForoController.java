@@ -11,6 +11,8 @@ import mx.ades.modules.foros.domain.port.in.PublicarMensajeUseCase;
 import mx.ades.modules.foros.query.ForoQueryService;
 import mx.ades.security.AdesUser;
 import mx.ades.security.AdesUserService;
+
+import java.util.Set;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -46,6 +48,32 @@ public class ForoController {
     private final PublicarAnuncioUseCase publicarAnuncioUseCase;
     private final ForoQueryService queryService;
     private final AdesUserService userService;
+    private final ForoRepository foroRepository;
+
+    /**
+     * Tipos de foro visibles/accesibles para nivelAcceso=5 (alumnos/padres) — mismo criterio
+     * que {@link ForoQueryService#listar}. Notablemente excluye {@code DOCENTES} (foro
+     * exclusivo de personal docente/directivo).
+     */
+    private static final Set<String> TIPOS_FORO_NIVEL5 = Set.of("GENERAL", "PLANTEL", "GRUPO", "TUTORES", "MATERIA");
+
+    /**
+     * BOLA fix: el filtro de tipo de foro en {@code listar()} solo controlaba qué aparecía
+     * en el listado — los endpoints de mensajes/respuestas no verificaban nada y permitían
+     * a cualquier usuario autenticado (incluido nivelAcceso=5) leer o publicar en un foro
+     * {@code DOCENTES} con solo conocer/adivinar su UUID. Se valida aquí el mismo criterio
+     * de tipo antes de cualquier lectura o escritura de mensajes.
+     */
+    private Foro verificarAccesoForo(AdesUser user, UUID foroId) {
+        Foro foro = foroRepository.findById(foroId)
+                .filter(Foro::getIsActive)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Foro no encontrado"));
+        if (user.getNivelAcceso() != null && user.getNivelAcceso() == 5
+                && !TIPOS_FORO_NIVEL5.contains(foro.getTipo())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No tiene acceso a este foro");
+        }
+        return foro;
+    }
 
     @Data
     public static class ForoCreateRequest {
@@ -119,7 +147,10 @@ public class ForoController {
     public ResponseEntity<List<Map<String, Object>>> listarMensajes(
             @PathVariable("id") UUID id,
             @RequestParam(value = "skip", defaultValue = "0") int skip,
-            @RequestParam(value = "limit", defaultValue = "50") int limit) {
+            @RequestParam(value = "limit", defaultValue = "50") int limit,
+            @AuthenticationPrincipal Jwt jwt) {
+        AdesUser user = userService.resolveUser(jwt);
+        verificarAccesoForo(user, id);
         return ResponseEntity.ok(queryService.listarMensajes(id, skip, limit));
     }
 
@@ -129,6 +160,7 @@ public class ForoController {
             @RequestBody @Valid MensajeForoRequest body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        verificarAccesoForo(user, id);
         PublicarMensajeUseCase.Command cmd = new PublicarMensajeUseCase.Command(
                 id, body.getAsunto(), body.getContenido(), body.getAdjuntoUrl(), user.getId());
         return ResponseEntity.status(HttpStatus.CREATED).body(publicarMensajeUseCase.publicar(cmd));
@@ -141,6 +173,7 @@ public class ForoController {
             @RequestBody @Valid RespuestaForoRequest body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        verificarAccesoForo(user, foroId);
         return ResponseEntity.status(HttpStatus.CREATED).body(
                 publicarMensajeUseCase.responder(foroId, mensajeId, body.getContenido(), body.getAdjuntoUrl(), user.getId()));
     }
@@ -148,7 +181,10 @@ public class ForoController {
     @GetMapping("/{foroId}/mensajes/{mensajeId}/respuestas")
     public ResponseEntity<List<Map<String, Object>>> listarRespuestas(
             @PathVariable("foroId") UUID foroId,
-            @PathVariable("mensajeId") UUID mensajeId) {
+            @PathVariable("mensajeId") UUID mensajeId,
+            @AuthenticationPrincipal Jwt jwt) {
+        AdesUser user = userService.resolveUser(jwt);
+        verificarAccesoForo(user, foroId);
         return ResponseEntity.ok(queryService.listarRespuestas(mensajeId));
     }
 

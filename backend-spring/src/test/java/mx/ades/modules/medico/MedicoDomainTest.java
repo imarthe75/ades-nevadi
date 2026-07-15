@@ -40,7 +40,8 @@ class MedicoDomainTest {
     @Test
     void registrar_valido_noLanzaExcepcion() {
         assertThatCode(() ->
-            new RegistrarPersonalSaludUseCase.Command(UUID.randomUUID(), Map.of(), Map.of(), "user"))
+            new RegistrarPersonalSaludUseCase.Command(UUID.randomUUID(),
+                Map.of("nombre", "Ana", "apellido_paterno", "López"), Map.of(), "user"))
             .doesNotThrowAnyException();
     }
 

@@ -94,14 +94,19 @@ public class ComunicadoController {
     @GetMapping("/recurrentes/pendientes")
     public ResponseEntity<List<Map<String, Object>>> recurrentesPendientes(
             @RequestParam(value = "pagina", defaultValue = "1") int pagina,
-            @RequestParam(value = "por_pagina", defaultValue = "50") int porPagina) {
+            @RequestParam(value = "por_pagina", defaultValue = "50") int porPagina,
+            @AuthenticationPrincipal Jwt jwt) {
+        requireCoordinadorOSuperior(userService.resolveUser(jwt));
         pagina = Math.max(pagina, 1);
         porPagina = Math.min(Math.max(porPagina, 1), 200);
         return ResponseEntity.ok(queryService.recurrentesPendientes(pagina, porPagina));
     }
 
     @GetMapping("/{id}/reporte-lectura")
-    public ResponseEntity<Map<String, Object>> reporteLectura(@PathVariable("id") UUID id) {
+    public ResponseEntity<Map<String, Object>> reporteLectura(
+            @PathVariable("id") UUID id,
+            @AuthenticationPrincipal Jwt jwt) {
+        requireCoordinadorOSuperior(userService.resolveUser(jwt));
         Comunicado c = repository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Comunicado no encontrado"));
         return ResponseEntity.ok(queryService.reporteLectura(id, c.getTitulo(),
@@ -113,6 +118,7 @@ public class ComunicadoController {
             @RequestBody @Valid ComunicadoCreateRequest body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        requireCoordinadorOSuperior(user);
         var cmd = new CrearComunicadoUseCase.Command(
                 body.getTitulo(), body.getContenido(), body.getTipoComunicado(),
                 body.getPlantelId(), body.getNivelEducativoId(), body.getGrupoId(),
@@ -134,7 +140,7 @@ public class ComunicadoController {
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void eliminar(@PathVariable("id") UUID id, @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        requireCoordinadorOSuperior(userService.resolveUser(jwt));
         service.eliminar(id);
     }
 
@@ -142,8 +148,22 @@ public class ComunicadoController {
     public ResponseEntity<Map<String, Object>> programarSiguiente(
             @PathVariable("id") UUID id,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        requireCoordinadorOSuperior(userService.resolveUser(jwt));
         LocalDateTime siguiente = programarSiguiente.programarSiguiente(id);
         return ResponseEntity.ok(Map.of("proximo_envio", siguiente.toString()));
+    }
+
+    /**
+     * BFLA fix: crear/eliminar/programar comunicados institucionales (y ver su reporte de
+     * lectura o la cola de recurrentes) es operación de personal escolar — antes de este fix
+     * ningún endpoint de este controller verificaba nivelAcceso, permitiendo a CUALQUIER
+     * usuario autenticado (incluido un padre/alumno nivelAcceso=5) publicar o borrar
+     * comunicados institucionales. Mismo umbral que {@code ForoController} para anuncios
+     * (Coordinador o superior).
+     */
+    private void requireCoordinadorOSuperior(AdesUser user) {
+        if (user.getNivelAcceso() != null && user.getNivelAcceso() > 3) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Se requiere Coordinador o superior");
+        }
     }
 }

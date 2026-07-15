@@ -90,6 +90,7 @@ public class RubricaController {
             @RequestBody Rubrica rubrica,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
         // Rubrica es entidad JPA (no anotamos validación en la entidad — riesgo sobre
         // Hibernate); nombre_rubrica es NOT NULL en BD, validamos manualmente para dar
         // un 422 claro en vez de una excepción de integridad de datos.
@@ -108,6 +109,7 @@ public class RubricaController {
             @RequestBody Rubrica update,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
         if (update.getNombreRubrica() == null || update.getNombreRubrica().isBlank()) {
             throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "nombre_rubrica es obligatorio");
         }
@@ -130,6 +132,7 @@ public class RubricaController {
             @PathVariable("id") UUID id,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
         Rubrica rubrica = repository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Rúbrica no encontrada"));
 
@@ -147,6 +150,7 @@ public class RubricaController {
             @RequestBody @Valid CriterioPayload payload,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
         if (!repository.existsById(rubricaId)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Rúbrica no encontrada");
         }
@@ -172,6 +176,7 @@ public class RubricaController {
             @RequestBody @Valid CriterioPayload payload,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
         RubricaCriterio rc = criterioRepository.findById(criterioId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Criterio no encontrado"));
 
@@ -197,6 +202,7 @@ public class RubricaController {
             @PathVariable("criterio_id") UUID criterioId,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
         RubricaCriterio rc = criterioRepository.findById(criterioId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Criterio no encontrado"));
 
@@ -209,5 +215,19 @@ public class RubricaController {
         criterioRepository.save(rc);
 
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Crear/editar/eliminar rúbricas y criterios (usados para calificar) es operación
+     * de personal escolar (nivelAcceso &le;4: admin/director/coordinador/docente).
+     * Hallazgo de auditoría Fase 5: antes solo se llamaba resolveUser sin verificar
+     * nivelAcceso, permitiendo a cualquier usuario autenticado (incluido alumno/padre,
+     * nivelAcceso &ge;5) crear o borrar rúbricas de evaluación — previene BFLA (OWASP API5).
+     */
+    private void requireStaff(AdesUser user) {
+        Integer nivelAcceso = user.getNivelAcceso();
+        if (nivelAcceso == null || nivelAcceso > 4) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Nivel de acceso insuficiente para esta operación");
+        }
     }
 }

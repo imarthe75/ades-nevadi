@@ -66,7 +66,7 @@ public class AsistenciaPersistenceAdapter implements AsistenciaRepositoryPort {
                 JOIN ades_clases       c ON c.id = a.clase_id
                 WHERE a.estudiante_id = ?
                   AND c.grupo_id      = ?
-                  AND a.estatus_asistencia IN ('PRESENTE', 'TARDANZA', 'JUSTIFICADO')
+                  AND a.estatus_asistencia IN ('PRESENTE', 'TARDE', 'JUSTIFICADO')
                 """;
         Long result = jdbc.queryForObject(sql, Long.class, estudianteId, grupoId);
         return result != null ? result : 0L;

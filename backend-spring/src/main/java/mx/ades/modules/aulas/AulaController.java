@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import mx.ades.modules.aulas.domain.port.in.ActualizarAulaUseCase;
 import mx.ades.modules.aulas.domain.port.in.CrearAulaUseCase;
 import mx.ades.modules.aulas.domain.port.out.AulaRepositoryPort;
+import mx.ades.security.AdesUser;
 import mx.ades.security.AdesUserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -103,7 +104,7 @@ public class AulaController {
     public ResponseEntity<Map<String, Object>> create(
             @RequestBody Map<String, Object> body,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        requireCoordinador(userService.resolveUser(jwt));
         CrearAulaUseCase.Command cmd = buildCrearCmd(body);
         return ResponseEntity.status(HttpStatus.CREATED).body(crearUseCase.crear(cmd));
     }
@@ -121,7 +122,7 @@ public class AulaController {
             @PathVariable("id") UUID id,
             @RequestBody Map<String, Object> body,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        requireCoordinador(userService.resolveUser(jwt));
         return ResponseEntity.ok(actualizarUseCase.actualizar(buildActualizarCmd(id, body)));
     }
 
@@ -138,7 +139,7 @@ public class AulaController {
             @PathVariable("id") UUID id,
             @RequestBody Map<String, Object> body,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        requireCoordinador(userService.resolveUser(jwt));
         return ResponseEntity.ok(actualizarUseCase.actualizar(buildActualizarCmd(id, body)));
     }
 
@@ -157,7 +158,7 @@ public class AulaController {
             @PathVariable("id") UUID aulaId,
             @RequestBody Map<String, Object> body,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        requireCoordinador(userService.resolveUser(jwt));
         if (!repositoryPort.findById(aulaId).isPresent()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Aula no encontrada");
         }
@@ -205,7 +206,7 @@ public class AulaController {
     public void eliminarFranja(
             @PathVariable("franjaId") UUID franjaId,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        requireCoordinador(userService.resolveUser(jwt));
         int rows = jdbc.update(
             "UPDATE ades_disponibilidad_aula SET is_active = false WHERE id = ?", franjaId);
         if (rows == 0) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Franja no encontrada");
@@ -248,6 +249,21 @@ public class AulaController {
     }
 
     // ── helpers ──────────────────────────────────────────────────────────────
+
+    /**
+     * El catálogo de aulas (y sus franjas de disponibilidad/bloqueo) es infraestructura
+     * compartida por todos los grupos del plantel; solo Coordinador o superior
+     * (nivelAcceso &le;3) puede darlo de alta, modificarlo o eliminar franjas — previene
+     * BFLA (OWASP API5). Hallazgo de auditoría Fase 5: antes solo se llamaba resolveUser
+     * sin verificar nivelAcceso, permitiendo a cualquier usuario autenticado (incluido
+     * alumno/padre) crear o borrar aulas y su disponibilidad horaria.
+     */
+    private void requireCoordinador(AdesUser user) {
+        Integer nivelAcceso = user.getNivelAcceso();
+        if (nivelAcceso == null || nivelAcceso > 3) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Nivel de acceso insuficiente para esta operación");
+        }
+    }
 
     private CrearAulaUseCase.Command buildCrearCmd(Map<String, Object> b) {
         return new CrearAulaUseCase.Command(

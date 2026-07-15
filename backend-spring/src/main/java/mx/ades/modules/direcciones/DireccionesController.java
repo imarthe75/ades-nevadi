@@ -40,6 +40,20 @@ public class DireccionesController {
     private final DireccionesQueryService queryService;
     private final DireccionesWriteService writeService;
 
+    /**
+     * Direcciones y medios de contacto son PII (domicilio, GPS, teléfono, email) de
+     * alumnos y personal. Solo personal escolar (nivelAcceso &le;4) puede crear,
+     * modificar o eliminar estos registros — sin este chequeo cualquier cuenta
+     * autenticada (incluyendo padres/alumnos) podía editar o borrar el domicilio de
+     * cualquier entidad del sistema con solo conocer su UUID (BFLA, OWASP API5).
+     */
+    private void requireStaff(AdesUser user) {
+        Integer nivelAcceso = user.getNivelAcceso();
+        if (nivelAcceso == null || nivelAcceso > 4) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Nivel de acceso insuficiente para esta operación");
+        }
+    }
+
     // ── SEPOMEX ───────────────────────────────────────────────────────────────
 
     @GetMapping("/catalogs/sepomex/por-cp")
@@ -88,6 +102,7 @@ public class DireccionesController {
             @RequestBody @Valid DireccionPayload body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
         if (body.getEntidadTipo() == null || body.getEntidadId() == null) {
             throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
                     "entidad_tipo y entidad_id son requeridos");
@@ -102,6 +117,7 @@ public class DireccionesController {
             @RequestBody @Valid DireccionPayload body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
         List<Map<String, Object>> existing = queryService.fetchDirForUpdate(id);
         if (existing.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Dirección no encontrada");
@@ -121,7 +137,7 @@ public class DireccionesController {
     @DeleteMapping("/direcciones/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void eliminarDir(@PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        requireStaff(userService.resolveUser(jwt));
         int n = writeService.eliminarDireccion(id);
         if (n == 0) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Dirección no encontrada");
     }
@@ -129,7 +145,7 @@ public class DireccionesController {
     @PatchMapping("/direcciones/{id}/principal")
     public ResponseEntity<Map<String, Object>> setPrincipal(
             @PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        requireStaff(userService.resolveUser(jwt));
         List<Map<String, Object>> existing = queryService.fetchDirPrincipalRef(id);
         if (existing.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Dirección no encontrada");
         String et = (String) existing.get(0).get("entidad_tipo");
@@ -163,6 +179,7 @@ public class DireccionesController {
             @RequestBody @Valid PersonaContactoPayload body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
         if (body.getPersonaId() == null || body.getMedio() == null || body.getValor() == null) {
             throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
                     "persona_id, medio y valor son requeridos");
@@ -178,6 +195,7 @@ public class DireccionesController {
             @RequestBody @Valid PersonaContactoPayload body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
         List<Map<String, Object>> existing = queryService.fetchContactoForUpdate(id);
         if (existing.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Contacto no encontrado");
         if (body.getRowVersion() != null) {
@@ -203,7 +221,7 @@ public class DireccionesController {
     @DeleteMapping("/persona-contactos/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void eliminarContacto(@PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        requireStaff(userService.resolveUser(jwt));
         int n = writeService.eliminarContacto(id);
         if (n == 0) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Contacto no encontrado");
     }

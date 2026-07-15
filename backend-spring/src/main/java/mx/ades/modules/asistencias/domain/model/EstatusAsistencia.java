@@ -7,7 +7,10 @@ package mx.ades.modules.asistencias.domain.model;
  * <ul>
  *   <li>{@code PRESENTE} — el alumno asistió a la clase.</li>
  *   <li>{@code AUSENTE} — el alumno no asistió.</li>
- *   <li>{@code TARDANZA} — el alumno llegó tarde (NUNCA usar TARDE).</li>
+ *   <li>{@code TARDE} — el alumno llegó tarde (NUNCA usar TARDANZA — el {@code CHECK} real
+ *       {@code chk_estatus_asistencia} de {@code ades_asistencias} solo acepta TARDE; la
+ *       migración 029 ya corrigió una vez este mismo mismatch en
+ *       {@code calcular_calificacion_periodo}, TARDANZA → TARDE).</li>
  *   <li>{@code JUSTIFICADO} — la ausencia fue justificada.</li>
  * </ul>
  * </p>
@@ -18,7 +21,7 @@ package mx.ades.modules.asistencias.domain.model;
 public enum EstatusAsistencia {
     PRESENTE,
     AUSENTE,
-    TARDANZA,
+    TARDE,
     JUSTIFICADO;
 
     public boolean esAusencia() {
@@ -26,6 +29,6 @@ public enum EstatusAsistencia {
     }
 
     public boolean cuentaComoAsistencia() {
-        return this == PRESENTE || this == TARDANZA || this == JUSTIFICADO;
+        return this == PRESENTE || this == TARDE || this == JUSTIFICADO;
     }
 }

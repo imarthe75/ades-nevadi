@@ -40,6 +40,11 @@ import mx.ades.modules.encuestas.domain.port.out.EncuestaRespuestaRepositoryPort
 import mx.ades.modules.learning_paths.application.service.LearningPathApplicationService;
 import mx.ades.modules.learning_paths.domain.port.in.RegistrarProgresoUseCase;
 import mx.ades.modules.learning_paths.domain.port.out.LearningPathRepositoryPort;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -52,13 +57,39 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class HexagonalConfig {
 
-    // NOTA: NO definir aquí un @Bean ObjectMapper propio — un bean manual (ej. `new
-    // ObjectMapper()`) hace que Spring Boot desactive su autoconfiguración de Jackson,
-    // incluyendo `spring.jackson.property-naming-strategy: SNAKE_CASE` (application.yml)
-    // y el registro automático de JavaTimeModule. Eso rompió silenciosamente ~28 flujos
-    // de creación/edición en todo el sistema (payloads snake_case de Angular deserializados
-    // contra records/DTOs camelCase sin @JsonProperty, campos quedando null). Dejar que
-    // Spring Boot autoconfigure el ObjectMapper vía application.yml.
+    // Historial de este bean (para que nadie lo vuelva a "simplificar" sin leer esto):
+    //
+    // 1. Original: `new ObjectMapper()` manual aquí. Un bean manual desactiva TODA la
+    //    autoconfiguración de Jackson de Spring Boot, incluyendo
+    //    `spring.jackson.property-naming-strategy: SNAKE_CASE` (application.yml) y el
+    //    registro automático de JavaTimeModule — rompió silenciosamente ~28 flujos de
+    //    creación/edición (payloads snake_case de Angular deserializados contra
+    //    records/DTOs camelCase sin @JsonProperty, campos quedando null).
+    // 2. Fix (2026-07-14): se eliminó el bean por completo, confiando en que Spring Boot
+    //    autoconfigure un ObjectMapper vía application.yml. Nunca se verificó arrancando
+    //    la app de verdad (solo `mvn compile`/`test`) — beans que inyectan `ObjectMapper`
+    //    por constructor (ej. ConductaPlanPersistenceAdapter) no encontraban ningún bean
+    //    candidato ("No qualifying bean of type ObjectMapper available") y la app
+    //    crasheaba en loop de reinicio (confirmado: 344 reinicios en producción/dev).
+    // 3. Intento (2026-07-15): delegar a `Jackson2ObjectMapperBuilder` autoconfigurado
+    //    (el patrón recomendado en Spring Boot 3.x). Tampoco funcionó — en este stack
+    //    (Spring Boot 4.1.0 / Spring 7.0.8) esa clase existe pero está deprecated/marked
+    //    for removal y Spring NO la autoconfigura como bean inyectable aquí.
+    // 4. Fix real (2026-07-15): construir el ObjectMapper explícitamente, replicando a
+    //    mano exactamente lo que declara application.yml (SNAKE_CASE +
+    //    fail-on-empty-beans: false) más JavaTimeModule para LocalDate/LocalDateTime. Ya
+    //    no depende de que Spring autoconfigure nada — es la única combinación que
+    //    arrancó limpio y mantuvo el contrato SNAKE_CASE. Si `application.yml` cambia su
+    //    sección `spring.jackson.*`, hay que reflejarlo aquí también.
+    @Bean
+    public ObjectMapper objectMapper() {
+        return new ObjectMapper()
+                .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
+                .configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false)
+                .configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false)
+                .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+                .registerModule(new JavaTimeModule());
+    }
 
     // ── asistencias (FASE 1) ──────────────────────────────────────────────────
 

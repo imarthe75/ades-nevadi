@@ -21,7 +21,7 @@ import java.util.UUID;
  * Expone endpoints bajo /api/v1/clases para listar, consultar, crear y actualizar
  * registros de clase, filtrables por grupo, materia, profesor y rango de fechas.
  * Incluye un endpoint auxiliar para obtener los alumnos esperados en una clase.
- * Las clases son la unidad sobre la que se registran asistencias PRESENTE/FALTA/TARDANZA.
+ * Las clases son la unidad sobre la que se registran asistencias PRESENTE/AUSENTE/TARDE.
  *
  * @author ADES
  * @since 2026

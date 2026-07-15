@@ -23,7 +23,8 @@ class HorarioDomainTest {
     @Test
     void crear_diaSemanaInvalido_negativo_lanzaExcepcion() {
         assertThatThrownBy(() ->
-            new CrearHorarioUseCase.Command(UUID.randomUUID(), null, null, null, null, -1, "08:00", "09:00", null, "user"))
+            new CrearHorarioUseCase.Command(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), null,
+                UUID.randomUUID(), -1, "08:00", "09:00", null, "user"))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("dia_semana");
     }
@@ -31,24 +32,54 @@ class HorarioDomainTest {
     @Test
     void crear_diaSemanaInvalido_7_lanzaExcepcion() {
         assertThatThrownBy(() ->
-            new CrearHorarioUseCase.Command(UUID.randomUUID(), null, null, null, null, 7, "08:00", "09:00", null, "user"))
+            new CrearHorarioUseCase.Command(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), null,
+                UUID.randomUUID(), 7, "08:00", "09:00", null, "user"))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("dia_semana");
     }
 
     @Test
+    void crear_sinMateriaId_lanzaExcepcion() {
+        assertThatThrownBy(() ->
+            new CrearHorarioUseCase.Command(UUID.randomUUID(), null, UUID.randomUUID(), null,
+                UUID.randomUUID(), 1, "08:00", "09:00", null, "user"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("materia_id");
+    }
+
+    @Test
+    void crear_sinProfesorId_lanzaExcepcion() {
+        assertThatThrownBy(() ->
+            new CrearHorarioUseCase.Command(UUID.randomUUID(), UUID.randomUUID(), null, null,
+                UUID.randomUUID(), 1, "08:00", "09:00", null, "user"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("profesor_id");
+    }
+
+    @Test
+    void crear_sinCicloEscolarId_lanzaExcepcion() {
+        assertThatThrownBy(() ->
+            new CrearHorarioUseCase.Command(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), null,
+                null, 1, "08:00", "09:00", null, "user"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("ciclo_escolar_id");
+    }
+
+    @Test
     void crear_valido_origenNull_defaultMANUAL() {
         CrearHorarioUseCase.Command cmd = new CrearHorarioUseCase.Command(
-            UUID.randomUUID(), UUID.randomUUID(), null, null, null, 0, "08:00", "09:00", null, "user");
+            UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), null,
+            UUID.randomUUID(), 1, "08:00", "09:00", null, "user");
         assertThat(cmd.origen()).isEqualTo("MANUAL");
     }
 
     @Test
-    void crear_valido_diaSemana0a6_noLanzaExcepcion() {
-        for (int dia = 0; dia <= 6; dia++) {
+    void crear_valido_diaSemana1a5_noLanzaExcepcion() {
+        for (int dia = 1; dia <= 5; dia++) {
             final int d = dia;
             assertThatCode(() ->
-                new CrearHorarioUseCase.Command(UUID.randomUUID(), null, null, null, null, d, "08:00", "09:00", "MANUAL", "user"))
+                new CrearHorarioUseCase.Command(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), null,
+                    UUID.randomUUID(), d, "08:00", "09:00", "MANUAL", "user"))
                 .doesNotThrowAnyException();
         }
     }
