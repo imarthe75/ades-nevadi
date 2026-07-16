@@ -1,0 +1,13 @@
+{% load i18n %}{% load humanize %}{% autoescape off %}{% blocktrans with username=user.username %}Hola {{ username }},{% endblocktrans %}
+
+{% blocktrans %}
+Código de verificación (MFA) de ADES.
+{% endblocktrans %}
+{{ token }}
+{% blocktrans with expires=expires|timeuntil %}
+Si tú no solicitaste este código, puedes ignorar este correo. El código anterior es válido por {{ expires }}.
+{% endblocktrans %}
+
+--
+Instituto Nevadi — Sistema de Administración Escolar (ADES)
+{% endautoescape %}

@@ -201,6 +201,11 @@ services:
       # Authentik para que su endpoint /files/ lo sirva como background del flow
       # (flow.background=ades-flow-background.svg). Sobrevive a reinicializaciones.
       - ./assets/authentik/flow-background.svg:/media/public/ades-flow-background.svg:ro
+      # Plantillas de correo con marca Nevadi (2026-07-16) — Django las busca
+      # primero en /templates antes que en las plantillas propias de cada stage
+      # de Authentik, así que sobrescriben email/base.html y las que mencionaban
+      # "authentik"/"Powered by goauthentik.io" sin tocar el resto del producto.
+      - ./infrastructure/authentik/templates:/templates:ro
     ports:
       - "127.0.0.1:9443:9443"   # HTTPS interno
       - "127.0.0.1:9010:9000"   # HTTP interno (detrás de nginx)
@@ -243,6 +248,9 @@ services:
       - authentik-media:/media
       - /var/run/docker.sock:/var/run/docker.sock          # para blueprints
       - ./infrastructure/authentik:/blueprints/custom:ro  # OIDC apps ADES
+      # Plantillas de correo con marca Nevadi — el worker es quien realmente
+      # renderiza y envía los correos (EmailStage corre en tareas de Celery).
+      - ./infrastructure/authentik/templates:/templates:ro
     networks:
       - ades-internal
     depends_on:

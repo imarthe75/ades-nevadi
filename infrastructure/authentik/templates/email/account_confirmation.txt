@@ -1,0 +1,9 @@
+{% load i18n %}{% autoescape off %}{% translate "¡Bienvenido!" %}
+
+{% translate "Estamos listos para comenzar. Primero, confirma tu cuenta abriendo el siguiente enlace." %}
+
+{{ url }}
+
+--
+Instituto Nevadi — Sistema de Administración Escolar (ADES)
+{% endautoescape %}

@@ -1,0 +1,8 @@
+{% load i18n %}{% autoescape off %}Correo de prueba — ADES Instituto Nevadi
+{% blocktrans %}
+Este es un correo de prueba para confirmar que la configuración de correo de ADES quedó lista.
+{% endblocktrans %}
+
+--
+Instituto Nevadi — Sistema de Administración Escolar (ADES)
+{% endautoescape %}
