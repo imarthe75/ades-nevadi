@@ -240,7 +240,19 @@ export class CierreCicloComponent implements OnInit, OnDestroy {
   });
 
   constructor() {
+    // Seguir el plantel del top bar: si el usuario cambia de plantel (o de
+    // "Todo el Instituto" en Admin Global) mientras está en esta página, el
+    // alcance y el plantel seleccionado aquí deben reflejarlo de inmediato.
     effect(() => {
+      const ctxPlantel = this.ctx.plantel();
+      if (ctxPlantel?.id) {
+        this.alcance.set('plantel');
+        this.plantelId.set(ctxPlantel.id);
+      } else {
+        this.alcance.set('instituto');
+        this.plantelId.set(null);
+      }
+
       const ciclo = this.cicloActivo();
       if (ciclo?.id) {
         this.cargarIndicadores(ciclo.id);
@@ -252,11 +264,6 @@ export class CierreCicloComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.cargarPlanteles();
-    // Pre-seleccionar el plantel del contexto
-    const ctxPlantel = this.ctx.plantel();
-    if (ctxPlantel?.id) {
-      this.plantelId.set(ctxPlantel.id);
-    }
   }
 
   cargarPlanteles() {
