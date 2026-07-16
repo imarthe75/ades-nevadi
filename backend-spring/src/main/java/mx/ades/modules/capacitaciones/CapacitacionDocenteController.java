@@ -12,6 +12,7 @@ import mx.ades.security.AdesUser;
 import mx.ades.security.AdesUserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -45,6 +46,7 @@ public class CapacitacionDocenteController {
     private final ValidarCapacitacionUseCase    validarCapacitacion;
     private final CapacitacionApplicationService service;
     private final CapacitacionRepositoryPort    repo;
+    private final JdbcTemplate                  jdbc;
 
     @GetMapping
     public ResponseEntity<List<Map<String, Object>>> listar(
@@ -64,9 +66,13 @@ public class CapacitacionDocenteController {
         if (user.getNivelAcceso() != null && user.getNivelAcceso() == 4) {
             docenteId = user.getPersonaId();
         }
+        // BOLA fix: Coordinador (nivelAcceso 3) veía capacitaciones de docentes de CUALQUIER
+        // plantel — mismo criterio que Kardex/PersonalAdmin/Licencias.
+        UUID plantelScope = (user.getNivelAcceso() != null && user.getNivelAcceso() == 3)
+                ? user.getPlantelId() : null;
         pagina = Math.max(pagina, 1);
         porPagina = Math.min(Math.max(porPagina, 1), 200);
-        return ResponseEntity.ok(repo.list(docenteId, tipo, modalidad, validado, q, pagina, porPagina));
+        return ResponseEntity.ok(repo.list(docenteId, tipo, modalidad, validado, q, pagina, porPagina, plantelScope));
     }
 
     @PostMapping
@@ -107,6 +113,7 @@ public class CapacitacionDocenteController {
                 && !user.getPersonaId().equals(docenteId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo puede consultar su propio resumen");
         }
+        verificarPlantelDocente(user, docenteId);
         List<Map<String, Object>> records = repo.resumen(docenteId);
 
         double totalHrs = 0.0;
@@ -146,6 +153,7 @@ public class CapacitacionDocenteController {
                 && !user.getPersonaId().equals(cd.getDocenteId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo puede consultar sus propias capacitaciones");
         }
+        verificarPlantelDocente(user, cd.getDocenteId());
         return ResponseEntity.ok(cd);
     }
 
@@ -164,6 +172,7 @@ public class CapacitacionDocenteController {
         if (user.getNivelAcceso() == 4 && !user.getPersonaId().equals(cd.getDocenteId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo puede actualizar sus propias capacitaciones");
         }
+        verificarPlantelDocente(user, cd.getDocenteId());
 
         if (body.getNombre() != null)       cd.setNombre(body.getNombre());
         if (body.getDescripcion() != null)  cd.setDescripcion(body.getDescripcion());
@@ -205,8 +214,25 @@ public class CapacitacionDocenteController {
         if (user.getNivelAcceso() == 4 && !user.getPersonaId().equals(cd.getDocenteId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo puede eliminar sus propias capacitaciones");
         }
+        verificarPlantelDocente(user, cd.getDocenteId());
         cd.setIsActive(false);
         cd.setUsuarioModificacion(user.getUsername());
         repo.save(cd);
+    }
+
+    /**
+     * BOLA fix: Coordinador (nivelAcceso 3) solo puede operar sobre capacitaciones de
+     * docentes de su propio plantel (docenteId aquí resuelve contra ades_profesores.id).
+     */
+    private void verificarPlantelDocente(AdesUser user, UUID docenteId) {
+        if (user.getNivelAcceso() == null || user.getNivelAcceso() != 3 || user.getPlantelId() == null) {
+            return;
+        }
+        List<UUID> rows = jdbc.queryForList(
+                "SELECT plantel_id FROM ades_profesores WHERE id = ?", UUID.class, docenteId);
+        UUID plantelDocente = rows.isEmpty() ? null : rows.get(0);
+        if (plantelDocente != null && !user.getPlantelId().equals(plantelDocente)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "El docente no pertenece a su plantel");
+        }
     }
 }

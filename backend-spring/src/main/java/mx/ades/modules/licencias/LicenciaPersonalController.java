@@ -11,6 +11,7 @@ import mx.ades.security.AdesUser;
 import mx.ades.security.AdesUserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -41,6 +42,7 @@ public class LicenciaPersonalController {
     private final ResolverLicenciaUseCase    resolverLicencia;
     private final LicenciaApplicationService service;
     private final LicenciaRepositoryPort     repo;
+    private final JdbcTemplate               jdbc;
 
     @Data
     public static class LicenciaCreateRequest {
@@ -74,9 +76,14 @@ public class LicenciaPersonalController {
             // importar qué personal_id venga en el query param (evita BOLA).
             personalId = user.getPersonaId();
         }
+        // BOLA fix: Coordinador (nivelAcceso 3) veía licencias de personal de CUALQUIER
+        // plantel — inconsistente con el mismo umbral (nivel>2 → scoping) ya usado en
+        // Kardex/PersonalAdmin/EvaluacionAvanzada. Admin/Director (nivel<=2) mantienen
+        // alcance institucional real, igual que en el resto del sistema.
+        UUID plantelScope = (user.getNivelAcceso() > 2 && user.getNivelAcceso() != 4) ? user.getPlantelId() : null;
         pagina = Math.max(pagina, 1);
         porPagina = Math.min(Math.max(porPagina, 1), 200);
-        return ResponseEntity.ok(repo.list(personalId, estado, tipo, q, pagina, porPagina));
+        return ResponseEntity.ok(repo.list(personalId, estado, tipo, q, pagina, porPagina, plantelScope));
     }
 
     @PostMapping
@@ -118,6 +125,7 @@ public class LicenciaPersonalController {
         if (user.getNivelAcceso() == 4 && !user.getPersonaId().equals(lp.getPersonalId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo puede consultar sus propias licencias");
         }
+        verificarPlantelDeLicencia(user, lp);
         return ResponseEntity.ok(lp);
     }
 
@@ -136,6 +144,7 @@ public class LicenciaPersonalController {
         if (user.getNivelAcceso() == 4 && !user.getPersonaId().equals(lp.getPersonalId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo puede actualizar sus propias licencias");
         }
+        verificarPlantelDeLicencia(user, lp);
         service.actualizar(id, body, user.getUsername());
         return ResponseEntity.ok(Map.of("ok", true));
     }
@@ -183,6 +192,24 @@ public class LicenciaPersonalController {
         if (user.getNivelAcceso() == 4 && !user.getPersonaId().equals(lp.getPersonalId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo puede cancelar sus propias licencias");
         }
+        verificarPlantelDeLicencia(user, lp);
         service.cancelar(id, user.getUsername());
+    }
+
+    /**
+     * BOLA fix: Coordinador (nivelAcceso 3) solo puede operar sobre licencias de personal de
+     * su propio plantel. Resuelve el plantel vía ades_profesores (ver nota en
+     * LicenciaPersistenceAdapter#list — el módulo hoy solo cubre personal docente).
+     */
+    private void verificarPlantelDeLicencia(AdesUser user, LicenciaPersonal lp) {
+        if (user.getNivelAcceso() == null || user.getNivelAcceso() != 3 || user.getPlantelId() == null) {
+            return;
+        }
+        List<UUID> rows = jdbc.queryForList(
+                "SELECT plantel_id FROM ades_profesores WHERE id = ?", UUID.class, lp.getPersonalId());
+        UUID plantelPersonal = rows.isEmpty() ? null : rows.get(0);
+        if (plantelPersonal != null && !user.getPlantelId().equals(plantelPersonal)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "El personal no pertenece a su plantel");
+        }
     }
 }

@@ -190,10 +190,30 @@ retomaron con contexto de dónde quedaron.
 - **Verificación de un reporte externo** ("Auditoría Integral de Consultas y Mapeos", aportado
   por el usuario, origen fuera de esta sesión): su afirmación de "0 Cartesian products" se
   verificó de forma **independiente** con script propio (no el suyo, que no estaba disponible) —
-  603 JOINs escaneados mecánicamente (2 pasadas: text-blocks + concatenación clásica), **0
-  confirmados**; 2 candidatos iniciales descartados tras revisión manual (catálogo Postgres sin
-  alias, mal parseado por el script; `CROSS JOIN` a subconsulta con `LIMIT 1`, acotado por diseño).
-  Corrobora la conclusión del reporte externo con metodología propia y transparente.
+  **3 pasadas** (text-blocks + concatenación clásica + literales sueltos), ~800 queries revisadas
+  (más que las 664 reportadas), **0 Cartesian products confirmados**; solo 6 candidatos iniciales
+  en total, todos descartados tras revisión manual (catálogo Postgres sin alias mal parseado por
+  el script, `CROSS JOIN` a subconsulta con `LIMIT 1` acotado por diseño, y 4 JOINs
+  `ades_grados`↔`ades_grupos` correctamente correlacionados repetidos en `HorarioSolverService`).
+  Corrobora la conclusión del reporte externo con metodología propia, transparente y con cobertura
+  esencialmente completa del código SQL del backend.
+- **Pendientes cerrados 2026-07-16 (a petición explícita del usuario):**
+  - **`licencias`** — Coordinador (nivel 3) operaba sin scoping de plantel en
+    `listar`/`detalle`/`actualizar`/`cancelar` (`aprobar`/`rechazar` ya estaban bien, nivel≤2
+    institucional por diseño). Se verificó primero — antes de tocar nada — que `personal_id`
+    en la práctica real resuelve contra `ades_profesores.id` (no `ades_personas.id` como decía
+    el comentario de la migración 040, ya desactualizado): el frontend
+    (`licencias.component.ts#buscarPersonal`) solo busca `/profesores` y envía `p.id`. La
+    sospecha inicial de "3 tablas de origen distintas" no aplicaba hoy — el módulo solo cubre
+    personal docente en la práctica. Corregido con el mismo patrón de scoping usado en
+    Kardex/PersonalAdmin, documentando la limitación real para cuando se agregue soporte de
+    personal administrativo/salud al selector del frontend.
+  - **Mismo patrón replicado a módulos hermanos no reportados explícitamente pero con el
+    mismo hueco:** `CapacitacionDocenteController` (Coordinador sin scoping de plantel en
+    listar/resumen/detalle/actualizar/eliminar) y `BadgeController` (Coordinador podía crear
+    un badge para cualquier plantel o eliminar el de otro plantel) — ambos corregidos con el
+    mismo criterio.
+  - Verificación final: `BUILD SUCCESS`, **555/555 tests**, `ades-bff` estable tras redeploy.
 - **Nota de proceso:** se detectaron 4 commits reales hechos por un agente sin autorización
   explícita del usuario durante esta sesión (contenido legítimo, sin secretos, pero violación del
   principio "solo comitear cuando se pide"). Corregido: Regla Mandatoria #21 agregada a

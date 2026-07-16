@@ -100,12 +100,19 @@ public class BadgeController {
         if (user.getNivelAcceso() == null || user.getNivelAcceso() > 3) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado");
         }
+        // BOLA fix: un Coordinador (nivel 3) podía crear un badge para CUALQUIER plantel
+        // pasando un plantel_id ajeno en el body; se fuerza al propio. Admin/Director
+        // (nivel<=2) mantienen alcance institucional real.
+        UUID plantelId = body.getPlantelId();
+        if (user.getNivelAcceso() == 3) {
+            plantelId = user.getPlantelId();
+        }
         BigDecimal valor = body.getCriterioValor() != null ? new BigDecimal(body.getCriterioValor()) : null;
         var cmd = new CrearBadgeUseCase.Command(
                 body.getNombre(), body.getDescripcion(), body.getIcono(), body.getColor(),
                 TipoBadge.of(body.getTipo()),
                 CriterioTipo.of(body.getCriterioTipo()),
-                body.getCriterioMetrica(), valor, body.getPlantelId());
+                body.getCriterioMetrica(), valor, plantelId);
         UUID id = crearBadge.crear(cmd);
         return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("id", id));
     }
@@ -125,6 +132,15 @@ public class BadgeController {
         AdesUser user = userService.resolveUser(jwt);
         if (user.getNivelAcceso() == null || user.getNivelAcceso() > 3) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado");
+        }
+        // BOLA fix: un Coordinador (nivel 3) podía eliminar un badge de OTRO plantel por UUID.
+        if (user.getNivelAcceso() == 3 && user.getPlantelId() != null) {
+            List<UUID> rows = jdbc.queryForList(
+                    "SELECT plantel_id FROM ades_badges WHERE id = ?", UUID.class, id);
+            UUID plantelBadge = rows.isEmpty() ? null : rows.get(0);
+            if (plantelBadge != null && !user.getPlantelId().equals(plantelBadge)) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "El badge no pertenece a su plantel");
+            }
         }
         service.eliminar(id);
         return ResponseEntity.ok(Map.of("ok", true));

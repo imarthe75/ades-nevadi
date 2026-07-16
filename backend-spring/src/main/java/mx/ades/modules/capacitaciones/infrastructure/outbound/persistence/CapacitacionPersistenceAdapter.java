@@ -39,13 +39,13 @@ public class CapacitacionPersistenceAdapter implements CapacitacionRepositoryPor
 
     @Override
     public List<Map<String, Object>> list(UUID docenteId, String tipo, String modalidad, Boolean validado, String q,
-                                           int pagina, int porPagina) {
+                                           int pagina, int porPagina, UUID plantelId) {
         StringBuilder sq = new StringBuilder(
                 "SELECT cd.*, " +
                 "  CONCAT(pe.nombre, ' ', pe.apellido_paterno, " +
                 "    CASE WHEN pe.apellido_materno IS NOT NULL THEN CONCAT(' ', pe.apellido_materno) ELSE '' END) AS nombre_docente, " +
                 "  pe.nombre AS nombre_persona, pe.apellido_paterno, pe.apellido_materno, " +
-                "  pr.numero_empleado " +
+                "  pr.numero_empleado, pr.plantel_id " +
                 "FROM ades_capacitaciones_docente cd " +
                 "LEFT JOIN ades_profesores pr ON pr.id = cd.docente_id " +
                 "LEFT JOIN ades_personas pe ON pe.id = pr.persona_id " +
@@ -61,6 +61,9 @@ public class CapacitacionPersistenceAdapter implements CapacitacionRepositoryPor
         if (tipo != null && !tipo.isBlank())     { sq.append("AND cd.tipo_certificacion = ? "); params.add(tipo.toUpperCase()); }
         if (modalidad != null && !modalidad.isBlank()) { sq.append("AND cd.modalidad = ? "); params.add(modalidad.toUpperCase()); }
         if (validado != null)                    { sq.append("AND cd.validado_rh = ? "); params.add(validado); }
+        // BOLA fix: Coordinador (nivelAcceso 3) solo debe ver capacitaciones de docentes de
+        // su propio plantel — antes veía las de todos los planteles del sistema.
+        if (plantelId != null) { sq.append("AND pr.plantel_id = ? "); params.add(plantelId); }
 
         sq.append("ORDER BY cd.fecha_inicio DESC LIMIT ? OFFSET ?");
         params.add(porPagina);
