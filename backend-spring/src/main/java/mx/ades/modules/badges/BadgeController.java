@@ -100,11 +100,13 @@ public class BadgeController {
         if (user.getNivelAcceso() == null || user.getNivelAcceso() > 3) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado");
         }
-        // BOLA fix: un Coordinador (nivel 3) podía crear un badge para CUALQUIER plantel
-        // pasando un plantel_id ajeno en el body; se fuerza al propio. Admin/Director
-        // (nivel<=2) mantienen alcance institucional real.
+        // BOLA fix: un Coordinador/Director/Admin_Plantel (nivel 1-3 — todos roles
+        // explícitamente plantel-acotados, db/seeds/001_datos_base.sql) podía crear un
+        // badge para CUALQUIER plantel pasando un plantel_id ajeno en el body; se fuerza
+        // al propio. Solo ADMIN_GLOBAL (nivel 0) mantiene alcance institucional real.
+        // (Corregido 2026-07-16: el chequeo original solo forzaba en `== 3`.)
         UUID plantelId = body.getPlantelId();
-        if (user.getNivelAcceso() == 3) {
+        if (user.getNivelAcceso() > 0) {
             plantelId = user.getPlantelId();
         }
         BigDecimal valor = body.getCriterioValor() != null ? new BigDecimal(body.getCriterioValor()) : null;
@@ -133,8 +135,9 @@ public class BadgeController {
         if (user.getNivelAcceso() == null || user.getNivelAcceso() > 3) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado");
         }
-        // BOLA fix: un Coordinador (nivel 3) podía eliminar un badge de OTRO plantel por UUID.
-        if (user.getNivelAcceso() == 3 && user.getPlantelId() != null) {
+        // BOLA fix: un Coordinador/Director/Admin_Plantel (nivel 1-3) podía eliminar un
+        // badge de OTRO plantel por UUID (el chequeo original solo disparaba en `== 3`).
+        if (user.getNivelAcceso() > 0 && user.getPlantelId() != null) {
             List<UUID> rows = jdbc.queryForList(
                     "SELECT plantel_id FROM ades_badges WHERE id = ?", UUID.class, id);
             UUID plantelBadge = rows.isEmpty() ? null : rows.get(0);
@@ -162,13 +165,10 @@ public class BadgeController {
     private void requireAccesoAlumno(AdesUser user, UUID alumnoId) {
         Integer nivelAcceso = user.getNivelAcceso();
         if (nivelAcceso != null && nivelAcceso <= 4) {
-            if (user.getPlantelId() == null) return;
             List<UUID> plantelRows = jdbc.queryForList(
                     "SELECT plantel_id FROM ades_estudiantes WHERE id = ?", UUID.class, alumnoId);
             if (plantelRows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Alumno no encontrado");
-            if (!user.getPlantelId().equals(plantelRows.get(0))) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "El alumno no pertenece a su plantel");
-            }
+            userService.verificarPlantel(user, plantelRows.get(0), "El alumno no pertenece a su plantel");
             return;
         }
         String email = user.getEmail();
@@ -192,6 +192,12 @@ public class BadgeController {
         // cualquier cuenta autenticada, incl. un padre/alumno sin relación alguna con el
         // estudiante, podía otorgar una insignia a CUALQUIER estudiante (BFLA/BOLA, OWASP
         // API1/API5 — asimetría con badgesAlumno(), que sí exige requireAccesoAlumno()).
+        // BFLA fix (2026-07-16): requireAccesoAlumno() por sí solo deja pasar a cualquier
+        // tutor con relación activa al alumno — otorgar/revocar insignias es una acción de
+        // staff (mismo piso que crear()/eliminar()), no autoservicio de padres/tutores.
+        if (user.getNivelAcceso() == null || user.getNivelAcceso() > 3) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado");
+        }
         requireAccesoAlumno(user, body.getEstudianteId());
         var cmd = new OtorgarBadgeUseCase.Command(
                 badgeId, body.getEstudianteId(), body.getCicloId(), body.getMotivo(), user.getId());
@@ -208,6 +214,10 @@ public class BadgeController {
         AdesUser user = userService.resolveUser(jwt);
         // Misma asimetría que otorgar(): sin chequeo alguno, cualquier autenticado podía
         // revocar la insignia de cualquier estudiante (BFLA/BOLA, OWASP API1/API5).
+        // BFLA fix (2026-07-16): piso de staff, ver nota en otorgar().
+        if (user.getNivelAcceso() == null || user.getNivelAcceso() > 3) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado");
+        }
         requireAccesoAlumno(user, estudianteId);
         revocarBadge.revocar(badgeId, estudianteId, cicloId);
         return ResponseEntity.ok(Map.of("ok", true));

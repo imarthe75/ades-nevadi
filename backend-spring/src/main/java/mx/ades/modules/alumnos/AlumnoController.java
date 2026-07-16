@@ -87,16 +87,14 @@ public class AlumnoController {
     }
 
     /**
-     * No-admins (nivelAcceso &gt;1 con plantelId propio asignado) quedan acotados a su
-     * propio plantel — evita leer/editar por id el expediente de un alumno de otro
-     * plantel (BOLA, OWASP API1), el mismo criterio ya usado en {@code list()} vía
-     * {@code getEffectivePlantelId}.
+     * No-admins quedan acotados a su propio plantel — evita leer/editar por id el
+     * expediente de un alumno de otro plantel (BOLA, OWASP API1), el mismo criterio
+     * ya usado en {@code list()} vía {@code getEffectivePlantelId}. (Corregido
+     * 2026-07-16 — decisión explícita del usuario: solo ADMIN_GLOBAL exento, ver
+     * AdesUserService#getEffectivePlantelId.)
      */
     private void verificarPlantelDelAlumno(AdesUser user, UUID plantelAlumnoId) {
-        if (user.getNivelAcceso() != null && user.getNivelAcceso() > 1 && user.getPlantelId() != null
-                && plantelAlumnoId != null && !plantelAlumnoId.equals(user.getPlantelId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No puede acceder a un alumno de otro plantel");
-        }
+        userService.verificarPlantel(user, plantelAlumnoId, "No puede acceder a un alumno de otro plantel");
     }
 
     @PostMapping
@@ -168,9 +166,8 @@ public class AlumnoController {
         verificarPlantelDelAlumno(user, est.getPlantelId());
         // Un no-admin acotado a su plantel tampoco puede reasignar el alumno a OTRO
         // plantel vía este PUT (movería el expediente fuera de su alcance de control).
-        if (user.getNivelAcceso() != null && user.getNivelAcceso() > 1 && user.getPlantelId() != null
-                && update.getPlantelId() != null && !update.getPlantelId().equals(user.getPlantelId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No puede reasignar el alumno a otro plantel");
+        if (update.getPlantelId() != null) {
+            userService.verificarPlantel(user, update.getPlantelId(), "No puede reasignar el alumno a otro plantel");
         }
         est.setMatricula(update.getMatricula());
         est.setPersonaId(update.getPersonaId());

@@ -62,12 +62,10 @@ public class PersonalAdminController {
         // BOLA fix: list() ya scopeaba por plantel vía getEffectivePlantelId, pero el detalle
         // por id no lo verificaba — un Director/Coordinador de un plantel podía ver el
         // expediente administrativo de personal de OTRO plantel con solo el UUID.
-        if (user.getNivelAcceso() != null && user.getNivelAcceso() > 2 && user.getPlantelId() != null) {
-            Object plantelRow = row.get("plantel_id");
-            if (plantelRow != null && !user.getPlantelId().equals(plantelRow)) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No pertenece a su plantel");
-            }
-        }
+        // (Corregido 2026-07-16: el umbral original `> 2` dejaba a Director y
+        // Admin_Plantel sin restricción; ahora usa el helper compartido, mismo
+        // criterio == 0 exento que Kardex/Badge/Capacitacion/Licencia.)
+        userService.verificarPlantel(user, (UUID) row.get("plantel_id"), "No pertenece a su plantel");
         return ResponseEntity.ok(row);
     }
 
@@ -159,18 +157,12 @@ public class PersonalAdminController {
      * UUID. Aplica el mismo criterio que get() a las mutaciones.
      */
     private void requireMismoPlantel(AdesUser user, UUID id) {
-        if (user.getNivelAcceso() == null || user.getNivelAcceso() <= 2 || user.getPlantelId() == null) {
-            return;
-        }
         Map<String, Object> row;
         try {
             row = queryService.detalle(id);
         } catch (IllegalArgumentException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }
-        Object plantelRow = row.get("plantel_id");
-        if (plantelRow != null && !user.getPlantelId().equals(plantelRow)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No pertenece a su plantel");
-        }
+        userService.verificarPlantel(user, (UUID) row.get("plantel_id"), "No pertenece a su plantel");
     }
 }

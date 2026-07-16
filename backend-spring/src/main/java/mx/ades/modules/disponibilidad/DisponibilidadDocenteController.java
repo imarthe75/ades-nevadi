@@ -81,7 +81,7 @@ public class DisponibilidadDocenteController {
         // suya propia; admin/director/coordinador (nivel<=3) alcance institucional.
         requireStaff(user);
         if (user.getNivelAcceso() != null && user.getNivelAcceso() == 4
-                && !profesorId.equals(user.getPersonaId())) {
+                && !profesorId.equals(user.getProfesorId())) {
             throw new org.springframework.web.server.ResponseStatusException(
                     HttpStatus.FORBIDDEN, "Solo puede editar su propia disponibilidad");
         }
@@ -128,7 +128,7 @@ public class DisponibilidadDocenteController {
         // OWASP API1/API5).
         if (user.getNivelAcceso() != null && user.getNivelAcceso() == 4) {
             UUID profesorDueno = eliminarSlot.obtenerProfesorId(id);
-            if (!profesorDueno.equals(user.getPersonaId())) {
+            if (!profesorDueno.equals(user.getProfesorId())) {
                 throw new org.springframework.web.server.ResponseStatusException(
                         HttpStatus.FORBIDDEN, "Solo puede eliminar slots de su propia disponibilidad");
             }

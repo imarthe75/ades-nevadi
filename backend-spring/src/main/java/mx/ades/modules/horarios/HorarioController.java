@@ -304,10 +304,7 @@ public class HorarioController {
         AdesUser user = userService.resolveUser(jwt);
         HorarioCorrida corrida = horarioCorridaRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Corrida no encontrada"));
-        if (user.getNivelAcceso() != null && user.getNivelAcceso() > 1 && user.getPlantelId() != null
-                && !user.getPlantelId().equals(corrida.getPlantelId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No puedes consultar corridas de otro plantel");
-        }
+        userService.verificarPlantel(user, corrida.getPlantelId(), "No puedes consultar corridas de otro plantel");
         Map<String, Object> response = new LinkedHashMap<>(mapCorrida(corrida));
         response.put("horarios", queryService.porCorrida(id));
         return ResponseEntity.ok(response);
@@ -328,10 +325,7 @@ public class HorarioController {
         }
         HorarioCorrida corrida = horarioCorridaRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Corrida no encontrada"));
-        if (user.getNivelAcceso() != null && user.getNivelAcceso() > 1 && user.getPlantelId() != null
-                && !user.getPlantelId().equals(corrida.getPlantelId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No puedes modificar corridas de otro plantel");
-        }
+        userService.verificarPlantel(user, corrida.getPlantelId(), "No puedes modificar corridas de otro plantel");
         horarioSolverService.fijarHorariosDeCorrida(id, body.getHorarioIds());
         HorarioCorrida corridaActualizada = horarioCorridaRepository.findById(id)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "No se pudo recuperar la corrida actualizada"));
@@ -354,10 +348,7 @@ public class HorarioController {
         }
         HorarioCorrida corrida = horarioCorridaRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Corrida no encontrada"));
-        if (user.getNivelAcceso() != null && user.getNivelAcceso() > 1 && user.getPlantelId() != null
-                && !user.getPlantelId().equals(corrida.getPlantelId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No puedes regenerar corridas de otro plantel");
-        }
+        userService.verificarPlantel(user, corrida.getPlantelId(), "No puedes regenerar corridas de otro plantel");
         UUID nuevaCorridaId = horarioSolverService.regenerarDesdeCorrida(id, body.getHorarioIds(), user.getUsername());
         HorarioCorrida nuevaCorrida = horarioCorridaRepository.findById(nuevaCorridaId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "No se pudo recuperar la corrida regenerada"));
@@ -376,9 +367,7 @@ public class HorarioController {
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         // No-admins quedan acotados a su propio plantel (evita fuga cross-plantel)
-        if (user.getNivelAcceso() != null && user.getNivelAcceso() > 1 && user.getPlantelId() != null) {
-            plantelId = user.getPlantelId();
-        }
+        plantelId = userService.getEffectivePlantelId(user, plantelId);
         String xml = ascService.exportarXml(cicloId, plantelId);
         byte[] content = xml.getBytes(StandardCharsets.UTF_8);
 
@@ -405,9 +394,7 @@ public class HorarioController {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Permisos insuficientes para importar horarios");
         }
         // No-admins acotados a su plantel
-        if (user.getNivelAcceso() > 1 && user.getPlantelId() != null) {
-            plantelId = user.getPlantelId();
-        }
+        plantelId = userService.getEffectivePlantelId(user, plantelId);
         if (file.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El archivo no contiene datos");
         }
@@ -495,10 +482,7 @@ public class HorarioController {
     }
 
     private UUID resolverPlantel(UUID requestedPlantelId, AdesUser user) {
-        if (user.getNivelAcceso() != null && user.getNivelAcceso() > 1 && user.getPlantelId() != null) {
-            return user.getPlantelId();
-        }
-        return requestedPlantelId;
+        return userService.getEffectivePlantelId(user, requestedPlantelId);
     }
 
     private HorarioTimeslot toTimeslot(SolverTimeslotPayload payload) {

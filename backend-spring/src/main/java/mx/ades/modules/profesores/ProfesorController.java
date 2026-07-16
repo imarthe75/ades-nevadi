@@ -62,12 +62,9 @@ public class ProfesorController {
         // alumnos/padres) podía leer el expediente completo de cualquier profesor por id.
         AdesUser user = userService.resolveUser(jwt);
         Map<String, Object> profesor = query.obtener(id);
-        if (user.getNivelAcceso() != null && user.getNivelAcceso() > 1 && user.getPlantelId() != null) {
-            Object plantelId = profesor.get("plantel_id");
-            if (plantelId != null && !plantelId.equals(user.getPlantelId())) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No puede consultar un profesor de otro plantel");
-            }
-        }
+        // (Corregido 2026-07-16 — decisión explícita del usuario: umbral original `>1`
+        // dejaba a ADMIN_PLANTEL sin restricción; ver AdesUserService#getEffectivePlantelId.)
+        userService.verificarPlantel(user, (UUID) profesor.get("plantel_id"), "No puede consultar un profesor de otro plantel");
         return ResponseEntity.ok(profesor);
     }
 
@@ -125,24 +122,21 @@ public class ProfesorController {
     }
 
     /**
-     * BOLA fix: helper compartido por patch()/update() con el mismo criterio que get() —
-     * Director/Coordinador (nivelAcceso &gt;1) solo puede mutar profesores de su propio
-     * plantel; superadmin (nivelAcceso 1) sin restricción.
+     * BOLA fix: helper compartido por patch()/update() con el mismo criterio que get()
+     * (vía {@code AdesUserService#getEffectivePlantelId}/{@code verificarPlantel}) —
+     * solo ADMIN_GLOBAL (nivelAcceso 0) mantiene alcance institucional real; el resto,
+     * incluido ADMIN_PLANTEL, solo puede mutar profesores de su propio plantel.
+     * (Corregido 2026-07-16 — decisión explícita del usuario: ver
+     * AdesUserService#getEffectivePlantelId.)
      */
     private void requireMismoPlantel(AdesUser user, UUID id) {
-        if (user.getNivelAcceso() == null || user.getNivelAcceso() <= 1 || user.getPlantelId() == null) {
-            return;
-        }
         Map<String, Object> profesor;
         try {
             profesor = query.obtener(id);
         } catch (RuntimeException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Profesor no encontrado");
         }
-        Object plantelId = profesor.get("plantel_id");
-        if (plantelId != null && !plantelId.equals(user.getPlantelId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No puede modificar un profesor de otro plantel");
-        }
+        userService.verificarPlantel(user, (UUID) profesor.get("plantel_id"), "No puede modificar un profesor de otro plantel");
     }
 
     /**

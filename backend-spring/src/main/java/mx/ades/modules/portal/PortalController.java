@@ -54,14 +54,16 @@ public class PortalController {
      */
     private void verificarAccesoEstudiante(AdesUser user, UUID estudianteId) {
         Integer nivelAcceso = user.getNivelAcceso();
-        if (nivelAcceso == null || nivelAcceso <= 1) return;
+        if (nivelAcceso == null || nivelAcceso <= 0) return;
         if (nivelAcceso <= 4) {
-            Long count = jdbc.queryForObject(
-                    "SELECT COUNT(*) FROM ades_estudiantes WHERE id = ? AND plantel_id = ?",
-                    Long.class, estudianteId, user.getPlantelId());
-            if (count == null || count == 0) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "El estudiante no pertenece a su plantel");
-            }
+            // Corregido 2026-07-16: el umbral original (`<= 1`, exento) dejaba a
+            // ADMIN_PLANTEL sin restricción — inconsistente con el "mismo criterio"
+            // que este Javadoc afirma compartir con PortalFamiliasController
+            // (que ya usa nivelAcceso 0 como único exento).
+            List<UUID> rows = jdbc.queryForList(
+                    "SELECT plantel_id FROM ades_estudiantes WHERE id = ?", UUID.class, estudianteId);
+            if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Alumno no encontrado");
+            userService.verificarPlantel(user, rows.get(0), "El estudiante no pertenece a su plantel");
             return;
         }
         String email = user.getEmail();

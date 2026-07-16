@@ -67,14 +67,60 @@ public class AdesUserService {
 
     /**
      * Devuelve el plantel_id efectivo para queries de datos sensibles.
-     * - nivel_acceso = 1 (superadmin): usa el plantelId del request (puede ser null = todos)
-     * - nivel_acceso > 1: fuerza el plantel del usuario — no puede ver datos de otros planteles
+     * - nivel_acceso = 0 (ADMIN_GLOBAL): usa el plantelId del request (puede ser null = todos)
+     * - nivel_acceso &gt; 0: fuerza el plantel del usuario — no puede ver datos de otros planteles
+     * <p>
+     * (Corregido 2026-07-16 — decisión explícita del usuario: el umbral original
+     * {@code > 1} trataba nivel_acceso 1 = ADMIN_PLANTEL como "superadmin" con alcance
+     * institucional libre, contradiciendo tanto la descripción del rol en
+     * {@code db/seeds/001_datos_base.sql} ("Administrador de un plantel específico")
+     * como {@code PermisoAdmin.puedeEditarOtrosPlantelUsuarios()}, que ya restringe la
+     * operación cross-plantel a solo nivel_acceso 0. Este método es el punto central
+     * usado por ~10 controladores — AlumnoController, BienestarController,
+     * AsignacionDocenteController, LearningPathsController, MedicoController,
+     * MovilidadController, PersonalAdminController, PortalController,
+     * ProfesorController, StatsController — así que corregirlo aquí propaga el fix a
+     * todos ellos sin tocar cada uno.
      */
     public UUID getEffectivePlantelId(AdesUser user, UUID requestedPlantelId) {
-        if (user.getNivelAcceso() != null && user.getNivelAcceso() > 1 && user.getPlantelId() != null) {
+        if (user.getNivelAcceso() != null && user.getNivelAcceso() > 0 && user.getPlantelId() != null) {
             return user.getPlantelId();
         }
         return requestedPlantelId;
+    }
+
+    /**
+     * BOLA fix compartido (2026-07-16): verifica que el plantel de una entidad — ya
+     * resuelto por el llamador via su propio QueryService/JdbcTemplate, cada módulo
+     * conserva su propia forma de averiguarlo — coincida con el plantel del usuario
+     * autenticado, con un umbral único y consistente: solo nivelAcceso 0
+     * (ADMIN_GLOBAL) mantiene alcance institucional real; TODO el resto de roles
+     * (1=ADMIN_PLANTEL, 2=DIRECTOR, 3=COORDINADOR_ACADEMICO, 4=DOCENTE, ... —
+     * db/seeds/001_datos_base.sql) está acotado a su propio plantel.
+     * <p>
+     * Antes de este helper cada controlador reimplementaba esta comparación con su
+     * propio umbral copiado a mano — y en la práctica cada uno usaba uno distinto
+     * ({@code == 3}, {@code <= 1}, {@code <= 2}, {@code > 2}...), dejando roles
+     * explícitamente plantel-acotados sin restricción en unos módulos sí y en otros
+     * no (hallazgo code-review 2026-07-16). Centralizar solo la decisión de
+     * autorización aquí — no el query de resolución del plantel de la entidad, que
+     * varía demasiado entre módulos (JOINs, tablas distintas) — hace que el próximo
+     * endpoint que llame a este método reciba el umbral correcto por defecto.
+     *
+     * @param user             usuario autenticado
+     * @param plantelEntidadId plantel_id real de la entidad consultada, o {@code null}
+     *                         si no se pudo resolver (en cuyo caso no se aplica el
+     *                         chequeo — responsabilidad del llamador lanzar 404 si
+     *                         la entidad no existe)
+     * @param mensajeError     mensaje del 403 si el plantel no coincide
+     */
+    public void verificarPlantel(AdesUser user, UUID plantelEntidadId, String mensajeError) {
+        if (user.getNivelAcceso() == null || user.getNivelAcceso() == 0 || user.getPlantelId() == null) {
+            return;
+        }
+        if (plantelEntidadId != null && !user.getPlantelId().equals(plantelEntidadId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, mensajeError);
+        }
     }
 
     private AdesUser buildAdesUser(Usuario usuario) {
@@ -94,6 +140,19 @@ public class AdesUserService {
                 nombreCompleto = jdbc.queryForObject(
                         "SELECT TRIM(CONCAT(nombre, ' ', apellido_paterno, ' ', COALESCE(apellido_materno, ''))) FROM ades_personas WHERE id = ?",
                         String.class, usuario.getPersonaId());
+            } catch (Exception e) {}
+        }
+
+        // Resuelve ades_profesores.id para el docente autenticado — distinto de
+        // persona_id (ver hallazgo 2026-07-16: comparar personaId contra columnas
+        // docente_id/profesor_id/personal_id, que en realidad referencian
+        // ades_profesores.id, bloqueaba el autoservicio de todo docente real).
+        UUID profesorId = null;
+        if (usuario.getPersonaId() != null) {
+            try {
+                profesorId = jdbc.queryForObject(
+                        "SELECT id FROM ades_profesores WHERE persona_id = ?",
+                        UUID.class, usuario.getPersonaId());
             } catch (Exception e) {}
         }
 
@@ -163,6 +222,7 @@ public class AdesUserService {
                 .username(usuario.getNombreUsuario())
                 .email(usuario.getEmailInstitucional())
                 .personaId(usuario.getPersonaId())
+                .profesorId(profesorId)
                 .plantelId(usuario.getPlantelId())
                 .nivelEducativoId(usuario.getNivelEducativoId())
                 .gradoId(gradoId)

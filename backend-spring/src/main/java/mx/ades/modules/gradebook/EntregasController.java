@@ -194,13 +194,10 @@ public class EntregasController {
     private void requireAccesoAlumno(AdesUser user, UUID alumnoId) {
         Integer nivelAcceso = user.getNivelAcceso();
         if (nivelAcceso != null && nivelAcceso <= 4) {
-            if (user.getPlantelId() == null) return;
             List<UUID> plantelRows = jdbc.queryForList(
                     "SELECT plantel_id FROM ades_estudiantes WHERE id = ?", UUID.class, alumnoId);
             if (plantelRows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Alumno no encontrado");
-            if (!user.getPlantelId().equals(plantelRows.get(0))) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "El alumno no pertenece a su plantel");
-            }
+            userService.verificarPlantel(user, plantelRows.get(0), "El alumno no pertenece a su plantel");
             return;
         }
         String email = user.getEmail();

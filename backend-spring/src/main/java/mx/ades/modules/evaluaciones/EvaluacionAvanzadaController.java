@@ -108,16 +108,11 @@ public class EvaluacionAvanzadaController {
 
         List<Map<String, Object>> grpList = queryService.fetchGrupo(grupoId);
         if (grpList.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Grupo no encontrado");
-        // BOLA fix: acta SEP contiene calificaciones y asistencia de todo el grupo; un
-        // Coordinador (nivelAcceso 3, plantel-scoped por diseño) podía generarla para un
-        // grupo de OTRO plantel con solo conocer el UUID. Solo nivel<=2 (admin/director)
-        // tiene alcance institucional real.
-        if (user.getNivelAcceso() != null && user.getNivelAcceso() > 2 && user.getPlantelId() != null) {
-            Object grupoPlantelId = grpList.get(0).get("plantel_id");
-            if (grupoPlantelId != null && !user.getPlantelId().equals(grupoPlantelId)) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "El grupo no pertenece a su plantel");
-            }
-        }
+        // BOLA fix: acta SEP contiene calificaciones y asistencia de todo el grupo.
+        // (Corregido 2026-07-16: el umbral original `> 2` dejaba a Director y
+        // Admin_Plantel sin restricción cross-plantel; ahora usa el helper
+        // compartido, mismo criterio que Kardex/PersonalAdmin/Badge/Capacitacion.)
+        userService.verificarPlantel(user, (UUID) grpList.get(0).get("plantel_id"), "El grupo no pertenece a su plantel");
 
         List<Map<String, Object>> registros = queryService.actasSep(grupoId, periodo);
         long totalAlumnos = registros.stream()
@@ -201,11 +196,10 @@ public class EvaluacionAvanzadaController {
         AdesUser user = userService.resolveUser(jwt);
         requireNivel(user, 3);
         // BOLA fix: NEE (necesidades educativas especiales) es dato de salud/educativo
-        // sensible; un Coordinador (nivelAcceso 3, plantel-scoped por diseño) podía pasar
-        // el plantel_id de OTRO plantel (o ninguno) y ver NEE de todo el sistema. Mismo
-        // criterio que Estadistica911Controller#scopePlantel: solo nivel<=2 (admin/
-        // director) tiene alcance institucional real.
-        UUID plantel = (user.getNivelAcceso() != null && user.getNivelAcceso() > 2 && user.getPlantelId() != null)
+        // sensible. (Corregido 2026-07-16: el umbral original `> 2` dejaba a Director y
+        // Admin_Plantel sin restricción — solo nivelAcceso 0/ADMIN_GLOBAL mantiene
+        // alcance institucional real, mismo criterio que el resto de los módulos.)
+        UUID plantel = (user.getNivelAcceso() != null && user.getNivelAcceso() > 0 && user.getPlantelId() != null)
                 ? user.getPlantelId() : plantelId;
         return ResponseEntity.ok(queryService.listarNee(plantel, tipoNee));
     }
@@ -279,9 +273,9 @@ public class EvaluacionAvanzadaController {
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         LocalDate fecha = fechaStr != null && !fechaStr.isBlank() ? LocalDate.parse(fechaStr) : null;
-        // BOLA fix (asimetría): mismo criterio que listarNee() — no-admins (nivelAcceso > 2)
-        // quedan acotados a su propio plantel.
-        UUID plantel = (user.getNivelAcceso() != null && user.getNivelAcceso() > 2 && user.getPlantelId() != null)
+        // BOLA fix (asimetría): mismo criterio que listarNee() — solo ADMIN_GLOBAL
+        // (nivelAcceso 0) mantiene alcance institucional real.
+        UUID plantel = (user.getNivelAcceso() != null && user.getNivelAcceso() > 0 && user.getPlantelId() != null)
                 ? user.getPlantelId() : null;
         return ResponseEntity.ok(queryService.listarAsignacionesAula(aulaId, fecha, plantel));
     }

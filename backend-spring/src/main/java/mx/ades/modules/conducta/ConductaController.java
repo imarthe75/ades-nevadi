@@ -167,8 +167,7 @@ public class ConductaController {
 
         AdesUser user = userService.resolveUser(jwt);
         requireStaff(user);
-        UUID plantelFiltro = (user.getNivelAcceso() != null && user.getNivelAcceso() > 1 && user.getPlantelId() != null)
-                ? user.getPlantelId() : plantelId;
+        UUID plantelFiltro = userService.getEffectivePlantelId(user, plantelId);
         return ResponseEntity.ok(
                 queryService.listar(plantelFiltro, nivelId, gradoId, grupoId, estudianteId, tipoFalta, requiereSeguimiento, pagina, porPagina));
     }

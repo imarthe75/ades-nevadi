@@ -57,14 +57,10 @@ public class BienestarController {
      * conocer su UUID (OWASP API1 BOLA).
      */
     private void verificarPlantelDelEvento(AdesUser user, UUID eventoId) {
-        if (user.getNivelAcceso() == null || user.getNivelAcceso() <= 1 || user.getPlantelId() == null) return;
         List<Map<String, Object>> rows = jdbc.queryForList(
                 "SELECT plantel_id FROM ades_eventos_bienestar WHERE id = ? AND is_active = TRUE", eventoId);
         if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Evento no encontrado");
-        Object eventoPlantelId = rows.get(0).get("plantel_id");
-        if (eventoPlantelId != null && !eventoPlantelId.toString().equals(user.getPlantelId().toString())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No puede operar sobre un evento de otro plantel");
-        }
+        userService.verificarPlantel(user, (UUID) rows.get(0).get("plantel_id"), "No puede operar sobre un evento de otro plantel");
     }
 
     @Data

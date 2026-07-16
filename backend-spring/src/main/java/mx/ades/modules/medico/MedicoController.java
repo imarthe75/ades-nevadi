@@ -179,12 +179,10 @@ public class MedicoController {
         // BOLA fix: listPersonalSalud() ya scopea por plantel vía getEffectivePlantelId, pero
         // el detalle por id no lo verificaba — cualquier usuario podía ver el expediente
         // (CURP, teléfono, email personal) de personal de salud de OTRO plantel por UUID.
-        if (user.getNivelAcceso() != null && user.getNivelAcceso() > 2 && user.getPlantelId() != null) {
-            Object plantelRow = row.get("plantel_id");
-            if (plantelRow != null && !user.getPlantelId().equals(plantelRow)) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No pertenece a su plantel");
-            }
-        }
+        // (Corregido 2026-07-16 — decisión explícita del usuario: el umbral original `> 2`
+        // dejaba a Director y Admin_Plantel sin restricción; ver
+        // AdesUserService#getEffectivePlantelId.)
+        userService.verificarPlantel(user, (UUID) row.get("plantel_id"), "No pertenece a su plantel");
         return ResponseEntity.ok(row);
     }
 

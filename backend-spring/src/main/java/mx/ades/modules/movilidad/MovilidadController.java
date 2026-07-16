@@ -267,15 +267,11 @@ public class MovilidadController {
         // traslados, cambios de grupo) de un alumno de OTRO plantel con solo conocer su
         // UUID — sin este chequeo no había scoping por plantelId, a diferencia de
         // listarBajas/listarCambiosGrupo (mismo criterio de este controller).
-        if (user.getNivelAcceso() != null && user.getNivelAcceso() > 1 && user.getPlantelId() != null) {
-            UUID plantelAlumno = queryService.plantelDeEstudiante(estudianteId);
-            if (plantelAlumno == null) {
-                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Alumno no encontrado");
-            }
-            if (!user.getPlantelId().equals(plantelAlumno)) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "El alumno no pertenece a su plantel");
-            }
+        UUID plantelAlumno = queryService.plantelDeEstudiante(estudianteId);
+        if (plantelAlumno == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Alumno no encontrado");
         }
+        userService.verificarPlantel(user, plantelAlumno, "El alumno no pertenece a su plantel");
         return ResponseEntity.ok(queryService.historial(estudianteId));
     }
 
@@ -307,8 +303,7 @@ public class MovilidadController {
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         requireAcceso(user, TipoMovilidad.CAMBIO_GRUPO);
-        UUID plantelFiltro = (user.getNivelAcceso() != null && user.getNivelAcceso() > 1)
-                ? user.getPlantelId() : null;
+        UUID plantelFiltro = userService.getEffectivePlantelId(user, null);
         return ResponseEntity.ok(
                 queryService.listarCambiosGrupo(estudianteId, plantelId, plantelFiltro, skip, limit));
     }

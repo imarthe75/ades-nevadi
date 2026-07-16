@@ -68,7 +68,10 @@ class AdesExplorer:
         async with async_playwright() as p:
             logger.info(f"Iniciando Playwright en {BASE_URL}")
             browser = await p.chromium.launch(headless=True)
-            context = await browser.new_context(viewport={"width": 1920, "height": 1080})
+            context = await browser.new_context(
+                viewport={"width": 1920, "height": 1080},
+                ignore_https_errors=True
+            )
             
             await self._setup_context_listeners(context)
             page = await context.new_page()
@@ -105,15 +108,48 @@ class AdesExplorer:
     async def _authenticate(self, page: Page):
         """Autenticar en ADES."""
         try:
+            logger.info(f"Navigating to {BASE_URL}/login")
             await page.goto(f"{BASE_URL}/login", wait_until="networkidle", timeout=30000)
-            await page.fill('input[name="username"]', ADES_USER)
+            logger.info(f"Current page URL: {page.url}")
+            
+            # Click the landing button to redirect if present
+            if "Iniciar sesión con cuenta institucional" in await page.content():
+                logger.info("Clicking landing button to redirect to Authentik...")
+                await page.click('button.p-button')
+                await page.wait_for_load_state("networkidle")
+                logger.info(f"Redirected to: {page.url}")
+            
+            # Wait for either uidField or ID ak-identifier-input input field (within Authentik web component)
+            try:
+                logger.info("Waiting for Authentik input fields (uidField, ak-identifier-input)...")
+                await page.wait_for_selector('input[name="uidField"], #ak-identifier-input', state="visible", timeout=20000)
+            except Exception:
+                # Capture debug state
+                await page.screenshot(path=str(OUTPUT_DIR / "auth_timeout.png"))
+                with open(OUTPUT_DIR / "auth_timeout.html", "w") as f:
+                    f.write(await page.content())
+                raise
+                
+            logger.info("Filling username...")
+            if await page.locator('input[name="uidField"]').count() > 0:
+                await page.fill('input[name="uidField"]', ADES_USER)
+            else:
+                await page.fill('#ak-identifier-input', ADES_USER)
+                
             await page.fill('input[name="password"]', ADES_PASSWORD)
-            await page.click('button[type="submit"]')
+            
+            # Click submit button
+            submit_btn = page.locator('button[type="submit"], input[type="submit"], button.pf-m-primary')
+            await submit_btn.first.click()
+            
             await page.wait_for_url(lambda url: "/dashboard" in str(url), timeout=30000)
             await asyncio.sleep(2)
             logger.info("✓ Autenticación exitosa")
         except Exception as e:
-            logger.error(f"Error de autenticación: {e}")
+            logger.error(f"Error de autenticación en la URL {page.url}: {e}")
+            await page.screenshot(path=str(OUTPUT_DIR / "auth_error.png"))
+            with open(OUTPUT_DIR / "auth_error.html", "w") as f:
+                f.write(await page.content())
             raise
 
     async def _setup_context_listeners(self, context: BrowserContext):
@@ -138,8 +174,11 @@ class AdesExplorer:
         """Capturar módulo."""
         try:
             url = f"{BASE_URL}{module['path']}"
-            await page.goto(url, wait_until="networkidle", timeout=30000)
-            await asyncio.sleep(1)
+            try:
+                await page.goto(url, wait_until="load", timeout=15000)
+            except Exception as timeout_error:
+                logger.warning(f"  ⚠️ Timeout waiting for page load on {module['id']}, capturing current state: {timeout_error}")
+            await asyncio.sleep(2)
             
             screenshot = await page.screenshot()
             dom_html = await page.content()

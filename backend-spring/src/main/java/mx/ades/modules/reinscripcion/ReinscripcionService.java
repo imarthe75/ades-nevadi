@@ -72,7 +72,10 @@ public class ReinscripcionService {
             filters.add("g.plantel_id = ?");
             params.add(plantelId);
         }
-        if (user.getNivelAcceso() != null && user.getNivelAcceso() > 1 && user.getPlantelId() != null) {
+        // Solo ADMIN_GLOBAL (nivelAcceso 0) mantiene alcance institucional real
+        // (corregido 2026-07-16 — decisión explícita del usuario, ver
+        // AdesUserService#getEffectivePlantelId).
+        if (user.getNivelAcceso() != null && user.getNivelAcceso() > 0 && user.getPlantelId() != null) {
             filters.add("g.plantel_id = ?");
             params.add(user.getPlantelId());
         }

@@ -59,9 +59,7 @@ public class CalendarioController {
 
         AdesUser user = userService.resolveUser(jwt);
         // Forzar plantel del usuario para no-admins (evita lectura cross-plantel)
-        if (user.getNivelAcceso() != null && user.getNivelAcceso() > 1 && user.getPlantelId() != null) {
-            plantelId = user.getPlantelId();
-        }
+        plantelId = userService.getEffectivePlantelId(user, plantelId);
 
         StringBuilder sql = new StringBuilder(
             "SELECT c.id, c.ciclo_escolar_id, ce.nombre_ciclo, " +
@@ -95,7 +93,7 @@ public class CalendarioController {
         if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Evento no encontrado");
         // Verificar acceso por plantel para no-admins
         Object eventPlantelId = rows.get(0).get("plantel_id");
-        if (user.getNivelAcceso() != null && user.getNivelAcceso() > 1 && user.getPlantelId() != null
+        if (user.getNivelAcceso() != null && user.getNivelAcceso() > 0 && user.getPlantelId() != null
                 && eventPlantelId != null
                 && !eventPlantelId.toString().equals(user.getPlantelId().toString())
                 && !Boolean.TRUE.equals(rows.get(0).get("aplica_todos_planteles"))) {

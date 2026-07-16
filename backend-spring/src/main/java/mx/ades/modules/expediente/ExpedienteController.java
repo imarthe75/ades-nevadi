@@ -397,15 +397,10 @@ public class ExpedienteController {
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         // Verificar que el alumno pertenece al plantel del usuario (para no-admins globales)
-        if (user.getNivelAcceso() != null && user.getNivelAcceso() > 1 && user.getPlantelId() != null) {
-            boolean tieneAcceso = !jdbc.queryForList(
-                "SELECT id FROM ades_estudiantes WHERE id = ?::uuid AND plantel_id = ?::uuid AND is_active = true",
-                estudianteId, user.getPlantelId()).isEmpty();
-            if (!tieneAcceso) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "Sin acceso al expediente del alumno solicitado");
-            }
-        }
+        List<UUID> plantelRows = jdbc.queryForList(
+                "SELECT plantel_id FROM ades_estudiantes WHERE id = ?", UUID.class, estudianteId);
+        UUID plantelAlumno = plantelRows.isEmpty() ? null : plantelRows.get(0);
+        userService.verificarPlantel(user, plantelAlumno, "Sin acceso al expediente del alumno solicitado");
         if (!paperlessSvc.hasToken()) {
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Paperless-ngx no configurado.");
         }
@@ -534,6 +529,13 @@ public class ExpedienteController {
     private void verificarAccesoAlumno(AdesUser user, UUID estudianteId) {
         Integer nivelAcceso = user.getNivelAcceso();
         if (nivelAcceso != null && nivelAcceso <= 4) {
+            // BOLA fix: "alcance institucional" no significa cross-plantel — personal
+            // escolar sigue acotado a su propio plantel (mismo criterio que
+            // BadgeController#requireAccesoAlumno).
+            List<UUID> plantelRows = jdbc.queryForList(
+                    "SELECT plantel_id FROM ades_estudiantes WHERE id = ?", UUID.class, estudianteId);
+            if (plantelRows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Alumno no encontrado");
+            userService.verificarPlantel(user, plantelRows.get(0), "El alumno no pertenece a su plantel");
             return;
         }
         Integer count = jdbc.queryForObject(

@@ -49,7 +49,7 @@ public class ClaseController {
         // cualquier plantel, sin ningún scoping (BOLA, OWASP API1).
         AdesUser user = userService.resolveUser(jwt);
         requireStaff(user);
-        UUID plantelId = (user.getNivelAcceso() != null && user.getNivelAcceso() > 1) ? user.getPlantelId() : null;
+        UUID plantelId = userService.getEffectivePlantelId(user, null);
         return ResponseEntity.ok(queryService.listar(grupoId, materiaId, profesorId, fechaDesde, fechaHasta, estatus, plantelId));
     }
 
@@ -66,12 +66,7 @@ public class ClaseController {
 
     /** No-admins acotados a su propio plantel — evita leer una clase de otro plantel por id. */
     private void verificarPlantelDeClase(AdesUser user, Map<String, Object> clase) {
-        if (user.getNivelAcceso() != null && user.getNivelAcceso() > 1 && user.getPlantelId() != null) {
-            Object plantelId = clase.get("plantel_id");
-            if (plantelId != null && !plantelId.equals(user.getPlantelId())) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No puede consultar una clase de otro plantel");
-            }
-        }
+        userService.verificarPlantel(user, (UUID) clase.get("plantel_id"), "No puede consultar una clase de otro plantel");
     }
 
     @PostMapping

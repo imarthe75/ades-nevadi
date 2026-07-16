@@ -13,6 +13,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -50,6 +51,13 @@ public class BoletasController {
     private void verificarAccesoAlumno(AdesUser user, UUID estudianteId) {
         Integer nivelAcceso = user.getNivelAcceso();
         if (nivelAcceso != null && nivelAcceso <= 4) {
+            // BOLA fix: "alcance institucional" no significa cross-plantel — personal
+            // escolar sigue acotado a su propio plantel (mismo criterio que
+            // BadgeController#requireAccesoAlumno).
+            List<UUID> plantelRows = jdbc.queryForList(
+                    "SELECT plantel_id FROM ades_estudiantes WHERE id = ?", UUID.class, estudianteId);
+            if (plantelRows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Alumno no encontrado");
+            userService.verificarPlantel(user, plantelRows.get(0), "El alumno no pertenece a su plantel");
             return;
         }
         Integer count = jdbc.queryForObject(

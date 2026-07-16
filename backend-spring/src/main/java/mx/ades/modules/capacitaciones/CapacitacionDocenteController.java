@@ -64,11 +64,12 @@ public class CapacitacionDocenteController {
         // las escrituras de este mismo archivo, que ya restringen nivel 4 a sus propios
         // registros. Se fuerza el filtro a su propia persona.
         if (user.getNivelAcceso() != null && user.getNivelAcceso() == 4) {
-            docenteId = user.getPersonaId();
+            docenteId = user.getProfesorId();
         }
-        // BOLA fix: Coordinador (nivelAcceso 3) veía capacitaciones de docentes de CUALQUIER
-        // plantel — mismo criterio que Kardex/PersonalAdmin/Licencias.
-        UUID plantelScope = (user.getNivelAcceso() != null && user.getNivelAcceso() == 3)
+        // BOLA fix: cualquier nivel plantel-acotado (1-4) veía capacitaciones de docentes de
+        // CUALQUIER plantel — solo nivelAcceso 0 (ADMIN_GLOBAL) mantiene alcance
+        // institucional real (mismo criterio que verificarPlantelDocente/Licencias).
+        UUID plantelScope = (user.getNivelAcceso() != null && user.getNivelAcceso() > 0)
                 ? user.getPlantelId() : null;
         pagina = Math.max(pagina, 1);
         porPagina = Math.min(Math.max(porPagina, 1), 200);
@@ -83,7 +84,7 @@ public class CapacitacionDocenteController {
         if (user.getNivelAcceso() == null || user.getNivelAcceso() > 4) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado");
         }
-        if (user.getNivelAcceso() == 4 && !user.getPersonaId().equals(body.getDocenteId())) {
+        if (user.getNivelAcceso() == 4 && !body.getDocenteId().equals(user.getProfesorId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo puede registrar sus propias capacitaciones");
         }
         var cmd = new RegistrarCapacitacionUseCase.Command(
@@ -110,7 +111,7 @@ public class CapacitacionDocenteController {
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         if (user.getNivelAcceso() != null && user.getNivelAcceso() == 4
-                && !user.getPersonaId().equals(docenteId)) {
+                && !docenteId.equals(user.getProfesorId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo puede consultar su propio resumen");
         }
         verificarPlantelDocente(user, docenteId);
@@ -150,7 +151,7 @@ public class CapacitacionDocenteController {
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Capacitación no encontrada"));
         if (user.getNivelAcceso() != null && user.getNivelAcceso() == 4
-                && !user.getPersonaId().equals(cd.getDocenteId())) {
+                && !cd.getDocenteId().equals(user.getProfesorId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo puede consultar sus propias capacitaciones");
         }
         verificarPlantelDocente(user, cd.getDocenteId());
@@ -169,7 +170,7 @@ public class CapacitacionDocenteController {
         CapacitacionDocente cd = repo.findActiveById(id)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Capacitación no encontrada"));
-        if (user.getNivelAcceso() == 4 && !user.getPersonaId().equals(cd.getDocenteId())) {
+        if (user.getNivelAcceso() == 4 && !cd.getDocenteId().equals(user.getProfesorId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo puede actualizar sus propias capacitaciones");
         }
         verificarPlantelDocente(user, cd.getDocenteId());
@@ -211,7 +212,7 @@ public class CapacitacionDocenteController {
         CapacitacionDocente cd = repo.findActiveById(id)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Capacitación no encontrada"));
-        if (user.getNivelAcceso() == 4 && !user.getPersonaId().equals(cd.getDocenteId())) {
+        if (user.getNivelAcceso() == 4 && !cd.getDocenteId().equals(user.getProfesorId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo puede eliminar sus propias capacitaciones");
         }
         verificarPlantelDocente(user, cd.getDocenteId());
@@ -221,18 +222,17 @@ public class CapacitacionDocenteController {
     }
 
     /**
-     * BOLA fix: Coordinador (nivelAcceso 3) solo puede operar sobre capacitaciones de
-     * docentes de su propio plantel (docenteId aquí resuelve contra ades_profesores.id).
+     * BOLA fix: cualquier nivel plantel-acotado (1=ADMIN_PLANTEL, 2=DIRECTOR,
+     * 3=COORDINADOR_ACADEMICO, 4=DOCENTE — ver db/seeds/001_datos_base.sql) solo puede
+     * operar sobre capacitaciones de docentes de su propio plantel (docenteId aquí
+     * resuelve contra ades_profesores.id). Solo nivelAcceso 0 (ADMIN_GLOBAL) mantiene
+     * alcance institucional real. (Corregido 2026-07-16: el chequeo original solo
+     * disparaba en `== 3`, dejando a Director sin restricción cross-plantel.)
      */
     private void verificarPlantelDocente(AdesUser user, UUID docenteId) {
-        if (user.getNivelAcceso() == null || user.getNivelAcceso() != 3 || user.getPlantelId() == null) {
-            return;
-        }
         List<UUID> rows = jdbc.queryForList(
                 "SELECT plantel_id FROM ades_profesores WHERE id = ?", UUID.class, docenteId);
         UUID plantelDocente = rows.isEmpty() ? null : rows.get(0);
-        if (plantelDocente != null && !user.getPlantelId().equals(plantelDocente)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "El docente no pertenece a su plantel");
-        }
+        userService.verificarPlantel(user, plantelDocente, "El docente no pertenece a su plantel");
     }
 }

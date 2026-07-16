@@ -35,10 +35,11 @@ public class KardexController {
         if (user.getNivelAcceso() != null && user.getNivelAcceso() > 3) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado");
         }
-        UUID scope = plantelId;
-        if (scope == null && user.getNivelAcceso() != null && user.getNivelAcceso() > 1) {
-            scope = user.getPlantelId();
-        }
+        // (Corregido 2026-07-16: el chequeo original solo forzaba el plantel propio si
+        // el request NO traía plantel_id — un Coordinador podía pasar explícitamente el
+        // plantel_id de otro plantel y consultarlo. Ahora usa getEffectivePlantelId, que
+        // siempre fuerza el plantel propio para no-admins sin importar el valor pedido.)
+        UUID scope = userService.getEffectivePlantelId(user, plantelId);
         return ResponseEntity.ok(query.gruposUaemex(scope));
     }
 
@@ -80,24 +81,14 @@ public class KardexController {
     }
 
     private void verificarPlantelDeGrupo(AdesUser user, UUID grupoId) {
-        if (user.getNivelAcceso() == null || user.getNivelAcceso() <= 1 || user.getPlantelId() == null) {
-            return;
-        }
         UUID plantelGrupo = query.plantelIdDeGrupo(grupoId);
         if (plantelGrupo == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Grupo no encontrado");
-        if (!user.getPlantelId().equals(plantelGrupo)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "El grupo no pertenece a su plantel");
-        }
+        userService.verificarPlantel(user, plantelGrupo, "El grupo no pertenece a su plantel");
     }
 
     private void verificarPlantelDeEstudiante(AdesUser user, UUID estudianteId) {
-        if (user.getNivelAcceso() == null || user.getNivelAcceso() <= 1 || user.getPlantelId() == null) {
-            return;
-        }
         UUID plantelEstudiante = query.plantelIdDeEstudiante(estudianteId);
         if (plantelEstudiante == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Alumno no encontrado");
-        if (!user.getPlantelId().equals(plantelEstudiante)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "El alumno no pertenece a su plantel");
-        }
+        userService.verificarPlantel(user, plantelEstudiante, "El alumno no pertenece a su plantel");
     }
 }

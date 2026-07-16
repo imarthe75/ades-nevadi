@@ -81,7 +81,7 @@ public class EvalDocenteController {
         if (user.getNivelAcceso() == null || user.getNivelAcceso() > 4) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado");
         }
-        if (user.getNivelAcceso() == 4 && !user.getPersonaId().equals(profesorId)) {
+        if (user.getNivelAcceso() == 4 && !profesorId.equals(user.getProfesorId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo puede consultar su propio resumen");
         }
         return ResponseEntity.ok(queryService.resumenProfesor(profesorId, cicloId));
@@ -95,7 +95,7 @@ public class EvalDocenteController {
         if (user.getNivelAcceso() == null || user.getNivelAcceso() > 4) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado");
         }
-        if (user.getNivelAcceso() == 4 && !user.getPersonaId().equals(data.getEvaluadorId())) {
+        if (user.getNivelAcceso() == 4 && !data.getEvaluadorId().equals(user.getId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo puede crear evaluaciones donde usted sea el evaluador");
         }
 
@@ -123,7 +123,7 @@ public class EvalDocenteController {
         Map<String, Object> eval = repo.fetchEvaluacion(evalId);
         if (user.getNivelAcceso() == 4 && eval != null) {
             UUID evaluadorId = (UUID) eval.get("evaluador_id");
-            if (evaluadorId != null && !user.getPersonaId().equals(evaluadorId)) {
+            if (evaluadorId != null && !evaluadorId.equals(user.getId())) {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo puede modificar sus propias evaluaciones");
             }
         }
@@ -160,7 +160,7 @@ public class EvalDocenteController {
         Map<String, Object> eval = repo.fetchEvaluacion(evalId);
         if (user.getNivelAcceso() == 4 && eval != null) {
             UUID evaluadorId = (UUID) eval.get("evaluador_id");
-            if (evaluadorId != null && !user.getPersonaId().equals(evaluadorId)) {
+            if (evaluadorId != null && !evaluadorId.equals(user.getId())) {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo puede enviar sus propias evaluaciones");
             }
         }

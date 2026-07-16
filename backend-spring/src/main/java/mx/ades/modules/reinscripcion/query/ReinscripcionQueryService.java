@@ -24,6 +24,21 @@ public class ReinscripcionQueryService {
         this.jdbc = jdbc;
     }
 
+    /**
+     * Lista el estado de reinscripción de alumnos para un ciclo destino, paginado.
+     * CLAUDE.md Regla #20 — claves del {@code Map<String,Object>} devuelto:
+     * <ul>
+     *   <li>{@code data}: {@code List<Map<String,Object>>}, cada fila con las claves
+     *       {@code id}, {@code estudiante_id}, {@code estado}, {@code ciclo_origen_id},
+     *       {@code ciclo_destino_id}, {@code aprobado_por}, {@code razon_rechazo},
+     *       {@code fecha_aprobacion}, {@code alumno} (nombre completo, alias SQL — el
+     *       frontend consume esta clave, no {@code nombre_estudiante}), {@code curp},
+     *       {@code matricula}, {@code nombre_plantel}</li>
+     *   <li>{@code total}: {@code Integer}, total de filas sin paginar</li>
+     *   <li>{@code page}: {@code Integer}, página solicitada (1-indexed)</li>
+     *   <li>{@code por_pagina}: {@code Integer}, tamaño de página</li>
+     * </ul>
+     */
     public Map<String, Object> getEstado(UUID cicloDestinoId, String estado,
                                           UUID plantelId, int page, int porPagina,
                                           mx.ades.security.AdesUser user) {

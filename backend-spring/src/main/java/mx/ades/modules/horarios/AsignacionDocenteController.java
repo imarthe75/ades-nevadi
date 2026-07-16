@@ -120,9 +120,6 @@ public class AsignacionDocenteController {
      * listar()): usuarios con nivelAcceso &gt; 1 quedan acotados a su propio plantel.
      */
     private void verificarPlantelDeGrupo(AdesUser user, UUID grupoId) {
-        if (user.getNivelAcceso() == null || user.getNivelAcceso() <= 1 || user.getPlantelId() == null) {
-            return;
-        }
         UUID plantelDeGrupo;
         try {
             plantelDeGrupo = jdbc.queryForObject(
@@ -132,9 +129,7 @@ public class AsignacionDocenteController {
         } catch (Exception e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Grupo no encontrado");
         }
-        if (plantelDeGrupo == null || !plantelDeGrupo.equals(user.getPlantelId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "El grupo no pertenece a su plantel");
-        }
+        userService.verificarPlantel(user, plantelDeGrupo, "El grupo no pertenece a su plantel");
     }
 
     @Data

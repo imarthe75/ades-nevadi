@@ -89,34 +89,28 @@ public class LearningPathsController {
     }
 
     /**
-     * BOLA (OWASP API1) — para no-admins (nivelAcceso &gt; 1, ver AdesUserService#getEffectivePlantelId),
-     * fuerza que el estudiante consultado pertenezca al plantel del usuario. Hallazgo de auditoría
-     * 2026-07-04, corregido 2026-07-06.
+     * BOLA (OWASP API1) — para no-admins, fuerza que el estudiante consultado
+     * pertenezca al plantel del usuario. Hallazgo de auditoría 2026-07-04, corregido
+     * 2026-07-06. (Corregido 2026-07-16 — decisión explícita del usuario: solo
+     * ADMIN_GLOBAL exento, ver AdesUserService#getEffectivePlantelId.)
      */
     private void verificarAccesoEstudiante(AdesUser user, UUID estudianteId) {
-        if (user.getNivelAcceso() == null || user.getNivelAcceso() <= 1) return;
-        Long count = jdbc.queryForObject(
-                "SELECT COUNT(*) FROM ades_estudiantes WHERE id = ? AND plantel_id = ?",
-                Long.class, estudianteId, user.getPlantelId());
-        if (count == null || count == 0) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "El estudiante no pertenece a su plantel");
-        }
+        List<UUID> rows = jdbc.queryForList(
+                "SELECT plantel_id FROM ades_estudiantes WHERE id = ?", UUID.class, estudianteId);
+        if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Estudiante no encontrado");
+        userService.verificarPlantel(user, rows.get(0), "El estudiante no pertenece a su plantel");
     }
 
     private void verificarAccesoGrupo(AdesUser user, UUID grupoId) {
-        if (user.getNivelAcceso() == null || user.getNivelAcceso() <= 1) return;
-        Long count = jdbc.queryForObject("""
-                SELECT COUNT(*) FROM ades_grupos g
+        UUID plantelGrupo = jdbc.queryForObject("""
+                SELECT gr.plantel_id FROM ades_grupos g
                 JOIN ades_grados gr ON gr.id = g.grado_id
-                WHERE g.id = ? AND gr.plantel_id = ?
-                """, Long.class, grupoId, user.getPlantelId());
-        if (count == null || count == 0) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "El grupo no pertenece a su plantel");
-        }
+                WHERE g.id = ?
+                """, UUID.class, grupoId);
+        userService.verificarPlantel(user, plantelGrupo, "El grupo no pertenece a su plantel");
     }
 
     private void verificarAccesoAsignacion(AdesUser user, UUID asignacionId) {
-        if (user.getNivelAcceso() == null || user.getNivelAcceso() <= 1) return;
         UUID estudianteId = jdbc.queryForObject(
                 "SELECT estudiante_id FROM ades_lp_asignaciones WHERE id = ?", UUID.class, asignacionId);
         verificarAccesoEstudiante(user, estudianteId);

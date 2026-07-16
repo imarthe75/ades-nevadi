@@ -143,15 +143,10 @@ public class CalificacionesController {
                 "Sin permisos para acceder a la libreta del grupo");
         }
         // Para no-admin: verificar que el grupo pertenece al plantel del usuario
-        if (user.getNivelAcceso() != null && user.getNivelAcceso() > 1 && user.getPlantelId() != null) {
-            boolean perteneceAPlantel = !jdbc.queryForList(
-                "SELECT id FROM ades_grupos WHERE id = ?::uuid AND plantel_id = ?::uuid",
-                grupoId, user.getPlantelId()).isEmpty();
-            if (!perteneceAPlantel) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "Sin acceso al grupo solicitado");
-            }
-        }
+        List<UUID> grupoPlantelRows = jdbc.queryForList(
+                "SELECT plantel_id FROM ades_grupos WHERE id = ?::uuid", UUID.class, grupoId);
+        UUID grupoPlantelId = grupoPlantelRows.isEmpty() ? null : grupoPlantelRows.get(0);
+        userService.verificarPlantel(user, grupoPlantelId, "Sin acceso al grupo solicitado");
 
         // 1. Períodos activos del ciclo del grupo
         List<Map<String, Object>> periodos = jdbc.queryForList(

@@ -31,6 +31,7 @@ public class AdesUser {
     private final String username;
     private final String email;
     private final UUID personaId;
+    private final UUID profesorId;
     private final UUID plantelId;
     private final UUID nivelEducativoId;
     private final UUID gradoId;

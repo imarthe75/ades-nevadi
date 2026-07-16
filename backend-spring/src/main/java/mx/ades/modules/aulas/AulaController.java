@@ -289,10 +289,7 @@ public class AulaController {
 
     /** No-admins (plantelId propio asignado) quedan acotados a su plantel — mismo criterio que BibliotecaController. */
     private UUID scopePlantelAula(AdesUser user, UUID solicitado) {
-        if (user.getNivelAcceso() != null && user.getNivelAcceso() > 1 && user.getPlantelId() != null) {
-            return user.getPlantelId();
-        }
-        return solicitado;
+        return userService.getEffectivePlantelId(user, solicitado);
     }
 
     /**
@@ -303,12 +300,9 @@ public class AulaController {
      * o borrar la disponibilidad de un aula de OTRO plantel (BOLA, OWASP API1).
      */
     private void verificarPlantelDelAula(AdesUser user, UUID aulaId) {
-        if (user.getNivelAcceso() == null || user.getNivelAcceso() <= 1 || user.getPlantelId() == null) return;
         Aula aula = repositoryPort.findById(aulaId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Aula no encontrada"));
-        if (aula.getPlantelId() != null && !aula.getPlantelId().equals(user.getPlantelId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No puede operar sobre un aula de otro plantel");
-        }
+        userService.verificarPlantel(user, aula.getPlantelId(), "No puede operar sobre un aula de otro plantel");
     }
 
     private CrearAulaUseCase.Command buildCrearCmd(Map<String, Object> b) {

@@ -216,31 +216,19 @@ public class PortalFamiliasController {
      * (nivelAcceso 0) queda exento del scoping.
      */
     private void verificarPlantelAlumno(AdesUser user, UUID alumnoId) {
-        Integer nivelAcceso = user.getNivelAcceso();
-        if (nivelAcceso == null || nivelAcceso <= 0 || user.getPlantelId() == null) {
-            return;
-        }
         UUID plantelAlumno = queryService.plantelIdDeAlumno(alumnoId);
         if (plantelAlumno == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Alumno no encontrado");
         }
-        if (!user.getPlantelId().equals(plantelAlumno)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "El alumno no pertenece a su plantel");
-        }
+        userService.verificarPlantel(user, plantelAlumno, "El alumno no pertenece a su plantel");
     }
 
     /** Igual que {@link #verificarPlantelAlumno} pero resolviendo desde el id de la relación tutor-alumno. */
     private void verificarPlantelTutorAlumno(AdesUser user, UUID tutorAlumnoId) {
-        Integer nivelAcceso = user.getNivelAcceso();
-        if (nivelAcceso == null || nivelAcceso <= 0 || user.getPlantelId() == null) {
-            return;
-        }
         UUID plantelAlumno = queryService.plantelIdPorTutorAlumno(tutorAlumnoId);
         if (plantelAlumno == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Relación tutor-alumno no encontrada");
         }
-        if (!user.getPlantelId().equals(plantelAlumno)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "El alumno no pertenece a su plantel");
-        }
+        userService.verificarPlantel(user, plantelAlumno, "El alumno no pertenece a su plantel");
     }
 }
