@@ -41,13 +41,16 @@ import { AuthService } from '../services/auth.service';
     </div>
   `,
   styles: [`
-    /* ── Wrapper: fondo oscuro del triada (H=235°, muy desaturado) ── */
+    /* ── Wrapper: imagen institucional Nevadi + overlay navy (mismo triada
+       H=235° que antes) para mantener legibilidad de la card blanca ── */
     .login-wrapper {
       display: flex;
       align-items: center;
       justify-content: center;
       min-height: 100vh;
-      background: linear-gradient(160deg, #141929 0%, #1E2940 50%, #161E30 100%);
+      background:
+        linear-gradient(160deg, rgba(20,25,41,.82) 0%, rgba(30,41,64,.78) 50%, rgba(22,30,48,.85) 100%),
+        url('/nevadi-login-bg.jpg') center / cover no-repeat;
     }
 
     /* ── Card flotante ── */

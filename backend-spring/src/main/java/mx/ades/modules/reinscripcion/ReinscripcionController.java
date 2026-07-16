@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -41,6 +42,7 @@ public class ReinscripcionController {
     private final AdesUserService userService;
     private final ProcesarAccionReinscripcionUseCase procesarAccionReinscripcion;
     private final ReinscripcionQueryService queryService;
+    private final JdbcTemplate jdbc;
 
     private static final int NIVEL_ADMIN = 3;
 
@@ -118,13 +120,29 @@ public class ReinscripcionController {
         return ResponseEntity.ok(Map.of("ok", true, "resumen", resumen));
     }
 
+    /**
+     * BFLA fix (2026-07-16, docs/hallazgos/2026-07-16_auditoria_gaps_no_revisados.md
+     * #1 — ReinscripcionController): a diferencia del resto de escrituras de este
+     * controller (scoping por plantel posible), {@code aprobarMasivo} dispara la
+     * función de BD {@code cerrar_ciclo_y_promover()} — que NO es plantel-consciente
+     * por diseño: cierra {@code es_vigente} del ciclo origen y promueve TODAS las
+     * inscripciones del ciclo para los 3 planteles a la vez (Regla de negocio "1 año
+     * vigente por sistema", ver CLAUDE.md). No existe forma correcta de "acotar por
+     * plantel" una operación que apaga/enciende el ciclo escolar completo — la única
+     * corrección segura es restringir quién puede dispararla: solo ADMIN_GLOBAL
+     * (nivelAcceso 0), no Coordinador/Director/Admin de un solo plantel (nivelAcceso
+     * &le;3 como el resto del controller).
+     */
     @PostMapping("/{ciclo_destino_id}/aprobar-masivo")
     public ResponseEntity<Map<String, Object>> aprobarMasivo(
             @PathVariable("ciclo_destino_id") UUID cicloDestinoId,
             @RequestParam("ciclo_origen_id") UUID cicloOrigenId,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
-        requireAdmin(user);
+        if (user.getNivelAcceso() == null || user.getNivelAcceso() > 0) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Solo ADMIN_GLOBAL puede aprobar y cerrar el ciclo escolar institucional");
+        }
         return ResponseEntity.ok(queryService.aprobarMasivo(cicloOrigenId, cicloDestinoId, user.getId()));
     }
 
@@ -135,6 +153,7 @@ public class ReinscripcionController {
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         requireAdmin(user);
+        verificarAccesoRegistro(user, registroId);
 
         AccionReinscripcion accion = AccionReinscripcion.of(body.getAccion());
         ProcesarAccionReinscripcionUseCase.Result result = procesarAccionReinscripcion.ejecutar(
@@ -150,6 +169,7 @@ public class ReinscripcionController {
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         requireAdmin(user);
+        verificarAccesoRegistro(user, id);
         ReinscripcionCiclo r = service.aprobarReinscripcion(id, user.getId());
         return ResponseEntity.ok(r);
     }
@@ -161,6 +181,7 @@ public class ReinscripcionController {
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         requireAdmin(user);
+        verificarAccesoRegistro(user, id);
         ReinscripcionCiclo r = service.rechazarReinscripcion(id, request.getRazonRechazo());
         return ResponseEntity.ok(r);
     }
@@ -181,5 +202,19 @@ public class ReinscripcionController {
         if (user.getNivelAcceso() == null || user.getNivelAcceso() > NIVEL_ADMIN) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo DIRECTOR/ADMIN puede ejecutar esta acción");
         }
+    }
+
+    /**
+     * BOLA fix (2026-07-16): accionIndividual/aprobar/rechazar operan sobre UN registro
+     * de {@code ades_reinscripcion_ciclo} por id — sin este chequeo, un Coordinador de
+     * un plantel podía aprobar/rechazar la reinscripción de un alumno de OTRO plantel.
+     */
+    private void verificarAccesoRegistro(AdesUser user, UUID registroId) {
+        List<UUID> plantelRows = jdbc.queryForList(
+                "SELECT e.plantel_id FROM ades_reinscripcion_ciclo rc " +
+                "JOIN ades_estudiantes e ON e.id = rc.estudiante_id " +
+                "WHERE rc.id = ?", UUID.class, registroId);
+        if (plantelRows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Registro de reinscripción no encontrado");
+        userService.verificarPlantel(user, plantelRows.get(0), "El registro no pertenece a su plantel");
     }
 }

@@ -1,27 +1,29 @@
 import { test, expect } from '@playwright/test';
+import { getRealToken, CUENTAS_REALES } from '../fixtures/real-tokens';
 
+// Hallazgo corregido 2026-07-16 (docs/hallazgos/2026-07-16_auditoria_gaps_no_revisados.md
+// #4): authToken se declaraba pero nunca se asignaba (`Authorization: Bearer undefined`
+// en todas las requests) — ningún test validaba paginación real, todos fallaban en 401
+// antes de tocar la lógica de negocio. Ahora usa un JWT real de Authentik (ADMIN_GLOBAL,
+// alcance institucional libre) y un grupo/materia reales con tareas seeded en BD.
 test.describe('Paginación — Tareas API', () => {
   const baseUrl = process.env.BASE_URL || 'http://localhost:4200';
   const apiUrl = process.env.API_URL || 'http://localhost:8080';
   let authToken: string;
-  let grupoId: string;
-  let materiaId: string;
+  const grupoId = '019f4e48-b0c3-7a66-9742-fdab93a4876a';
+  const materiaId = '019f4e44-b45e-7ba4-a3ec-e01ebead8c03';
 
   test.beforeAll(async () => {
-    // Setup: obtener token y IDs necesarios (asumiendo que ya existen en BD)
-    // En prueba real, esto vendría de fixtures o setup global
+    authToken = getRealToken(CUENTAS_REALES.ADMIN_GLOBAL);
   });
 
   test('GET /api/v1/tareas retorna Page<Map<>> con paginación', async ({ request }) => {
-    // NOTA: Este test requiere autenticación válida
-    // Para propósitos de demostración, usamos mock de respuesta esperada
-
     const response = await request.get(`${apiUrl}/api/v1/tareas`, {
       params: {
         page: 0,
         size: 20,
-        grupo_id: 'mock-grupo-id',
-        materia_id: 'mock-materia-id',
+        grupo_id: grupoId,
+        materia_id: materiaId,
       },
       headers: {
         'Authorization': `Bearer ${authToken}`,
@@ -57,7 +59,7 @@ test.describe('Paginación — Tareas API', () => {
   });
 
   test('GET /api/v1/tareas/{id}/entregas retorna Page<Map<>> paginado', async ({ request }) => {
-    const tareaId = 'mock-tarea-id';
+    const tareaId = '019f547e-530d-70a7-8f2b-82bf676f68fc';
 
     const response = await request.get(`${apiUrl}/api/v1/tareas/${tareaId}/entregas`, {
       params: {
@@ -97,7 +99,7 @@ test.describe('Paginación — Tareas API', () => {
       params: {
         page: 0,
         size: 10,
-        grupo_id: 'mock-id',
+        grupo_id: grupoId,
       },
       headers: {
         'Authorization': `Bearer ${authToken}`,
@@ -115,7 +117,7 @@ test.describe('Paginación — Tareas API', () => {
         params: {
           page: 1,
           size: 10,
-          grupo_id: 'mock-id',
+          grupo_id: grupoId,
         },
         headers: {
           'Authorization': `Bearer ${authToken}`,
@@ -135,7 +137,7 @@ test.describe('Paginación — Tareas API', () => {
       params: {
         page: 0,
         size: 20,
-        grupo_id: 'mock-id',
+        grupo_id: grupoId,
       },
       headers: {
         'Authorization': `Bearer ${authToken}`,
@@ -151,7 +153,7 @@ test.describe('Paginación — Tareas API', () => {
   test('Default page size es 20', async ({ request }) => {
     const response = await request.get(`${apiUrl}/api/v1/tareas`, {
       params: {
-        grupo_id: 'mock-id',
+        grupo_id: grupoId,
         // NO pasar page/size → usar defaults
       },
       headers: {

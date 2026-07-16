@@ -1,7 +1,13 @@
 # ADES — Claude Code Guidelines
-# Versión: 2.9 | Actualizado: 2026-07-16 (cierre de cola larga BOLA/BFLA de scoping por plantel —
-# 15 controllers, patrón `AdesUserService#verificarPlantel` — ver `docs/hallazgos/
-# 2026-07-16_reporte_fiabilidad_3dias_y_plan.md` y bitácora en `.agent/STATE.md`)
+# Versión: 2.11 | Actualizado: 2026-07-16 (los 25 hallazgos de
+# docs/hallazgos/2026-07-16_auditoria_gaps_no_revisados.md CORREGIDOS y verificados —
+# 14 controllers Spring + 4 endpoints FastAPI + Grafana + JWT aud + xlsx CVE + JaCoCo/
+# vitest coverage + 2 imágenes pineadas + migración 150 + gate npm audit real en CI +
+# E2E B1/B2/B3 con auth real. `mvn test` 555+/555+ verde, `mvn package` y `ng build
+# --configuration production` verdes. **Código corregido y verificado localmente —
+# AÚN NO desplegado al servidor único de producción** (requiere confirmación explícita
+# antes de reconstruir/reiniciar ades-bff, ades-api, nginx, ades-frontend). Ver bitácora
+# completa en `.agent/STATE.md`.
 # **NOTA:** Los 3 puntos críticos de Fase 1 (@EntityGraph, OnDestroy, SQL prepared statements)
 # verificados en vivo y en verde el 2026-07-12 — ver sección "OPTIMIZACIÓN AL 100%" abajo.
 #

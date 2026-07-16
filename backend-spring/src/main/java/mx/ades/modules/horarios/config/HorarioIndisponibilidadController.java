@@ -5,6 +5,7 @@ import mx.ades.security.AdesUser;
 import mx.ades.security.AdesUserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +22,7 @@ public class HorarioIndisponibilidadController {
 
     private final HorarioIndisponibilidadRepository repository;
     private final AdesUserService userService;
+    private final JdbcTemplate jdbc;
 
     @GetMapping
     public ResponseEntity<List<HorarioIndisponibilidad>> getIndisponibilidad(
@@ -32,7 +34,9 @@ public class HorarioIndisponibilidadController {
         // la indisponibilidad (horario personal) de cualquier profesor pasando un
         // profesorId arbitrario. Se alinea con el mismo criterio ya usado en
         // saveIndisponibilidad() de este archivo (personal escolar, nivelAcceso &le;4).
-        requireStaff(userService.resolveUser(jwt));
+        AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
+        verificarAccesoProfesor(user, profesorId);
         return ResponseEntity.ok(repository.findByProfesorIdAndCicloEscolarId(profesorId, cicloEscolarId));
     }
 
@@ -44,7 +48,9 @@ public class HorarioIndisponibilidadController {
             @RequestBody List<HorarioIndisponibilidad> indisponibilidades,
             @AuthenticationPrincipal Jwt jwt) {
 
-        requireStaff(userService.resolveUser(jwt));
+        AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
+        verificarAccesoProfesor(user, profesorId);
 
         // franja_id es NOT NULL en BD (ades_horario_indisponibilidad) y no tiene default;
         // sin este chequeo un ítem sin franjaId cae en DataIntegrityViolationException ->
@@ -79,5 +85,19 @@ public class HorarioIndisponibilidadController {
         if (nivelAcceso == null || nivelAcceso > 4) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Nivel de acceso insuficiente para esta operación");
         }
+    }
+
+    /**
+     * BOLA fix (2026-07-16, docs/hallazgos/2026-07-16_auditoria_gaps_no_revisados.md
+     * #1 — HorarioIndisponibilidadController): requireStaff() solo validaba
+     * nivelAcceso — un docente de un plantel podía leer y, más grave,
+     * SOBRESCRIBIR COMPLETAMENTE (borra+reinserta en saveIndisponibilidad) la
+     * disponibilidad de un profesor de OTRO plantel solo conociendo su UUID.
+     */
+    private void verificarAccesoProfesor(AdesUser user, UUID profesorId) {
+        List<UUID> plantelRows = jdbc.queryForList(
+                "SELECT plantel_id FROM ades_profesores WHERE id = ?", UUID.class, profesorId);
+        if (plantelRows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Profesor no encontrado");
+        userService.verificarPlantel(user, plantelRows.get(0), "El profesor no pertenece a su plantel");
     }
 }

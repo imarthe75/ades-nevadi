@@ -18,6 +18,7 @@ import mx.ades.security.AdesUserService;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.client.RestClient;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -54,6 +55,7 @@ public class ConductaController {
     private final CrearPlanMejoraUseCase crearPlanMejora;
     private final ConductaQueryService queryService;
     private final RiesgoConductualService riesgoConductualService;
+    private final JdbcTemplate jdbc;
     private final RestClient restClient = RestClient.builder().build();
 
     private static final String API_BASE_URL = "http://ades-api:8000/api/v1/conducta";
@@ -176,7 +178,9 @@ public class ConductaController {
     public ResponseEntity<List<Map<String, Object>>> historial(
             @PathVariable("estudianteId") UUID estudianteId,
             @AuthenticationPrincipal Jwt jwt) {
-        requireStaff(userService.resolveUser(jwt));
+        AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
+        verificarAccesoEstudiante(user, estudianteId);
         return ResponseEntity.ok(queryService.historial(estudianteId));
     }
 
@@ -184,10 +188,12 @@ public class ConductaController {
     public ResponseEntity<ReporteConducta> obtener(
             @PathVariable("id") UUID id,
             @AuthenticationPrincipal Jwt jwt) {
-        requireStaff(userService.resolveUser(jwt));
+        AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
         ReporteConducta rc = repository.findById(id)
                 .filter(ReporteConducta::getIsActive)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Reporte no encontrado"));
+        verificarAccesoEstudiante(user, rc.getEstudianteId());
         return ResponseEntity.ok(rc);
     }
 
@@ -195,7 +201,9 @@ public class ConductaController {
     public ResponseEntity<Map<String, Object>> detalleCompleto(
             @PathVariable("id") UUID id,
             @AuthenticationPrincipal Jwt jwt) {
-        requireStaff(userService.resolveUser(jwt));
+        AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
+        verificarAccesoReporte(user, id);
         Map<String, Object> result = queryService.detalleCompleto(id);
         if (result == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Reporte no encontrado");
         return ResponseEntity.ok(result);
@@ -205,7 +213,8 @@ public class ConductaController {
 
     @PostMapping
     public ResponseEntity<ReporteConducta> crear(@RequestBody ReporteCreateRequest body, @AuthenticationPrincipal Jwt jwt) {
-        requireStaff(userService.resolveUser(jwt));
+        AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
         // estudiante_id, grupo_id, reportado_por_id, tipo_falta y descripcion son NOT NULL
         // en ades_reportes_conducta (sin default). Antes de este fix el repository.save()
         // llegaba con campos faltantes hasta el flush de Hibernate y salía como
@@ -220,6 +229,7 @@ public class ConductaController {
             throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "tipoFalta es obligatorio");
         if (body.getDescripcion() == null || body.getDescripcion().isBlank())
             throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "descripcion es obligatoria");
+        verificarAccesoEstudiante(user, body.getEstudianteId());
         ReporteConducta rc = new ReporteConducta();
         rc.setEstudianteId(body.getEstudianteId());
         rc.setGrupoId(body.getGrupoId());
@@ -238,10 +248,12 @@ public class ConductaController {
             @RequestBody ReporteCreateRequest body,
             @AuthenticationPrincipal Jwt jwt) {
 
-        requireStaff(userService.resolveUser(jwt));
+        AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
         ReporteConducta rc = repository.findById(id)
                 .filter(ReporteConducta::getIsActive)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Reporte no encontrado"));
+        verificarAccesoEstudiante(user, rc.getEstudianteId());
 
         if (body.getDescripcion() != null) rc.setDescripcion(body.getDescripcion());
         if (body.getMedidaAplicada() != null) rc.setMedidaAplicada(body.getMedidaAplicada());
@@ -258,6 +270,7 @@ public class ConductaController {
 
         AdesUser user = userService.resolveUser(jwt);
         int nivelAcceso = user.getNivelAcceso() != null ? user.getNivelAcceso() : 99;
+        verificarAccesoReporte(user, reporteId);
 
         UUID sancionId = aplicarSancion.ejecutar(new AplicarSancionCommand(
                 reporteId,
@@ -288,6 +301,7 @@ public class ConductaController {
         if (user.getNivelAcceso() != null && user.getNivelAcceso() > 3) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Sin permiso para actualizar sanciones");
         }
+        verificarAccesoReporte(user, reporteId);
 
         SancionDisciplinaria sd = sancionRepository.findById(sancionId)
                 .filter(s -> s.getReporteConductaId().equals(reporteId) && s.getIsActive())
@@ -317,6 +331,7 @@ public class ConductaController {
 
         AdesUser user = userService.resolveUser(jwt);
         requireNivel(user, 3);
+        verificarAccesoReporte(user, reporteId);
 
         UUID planId = crearPlanMejora.ejecutar(new CrearPlanMejoraUseCase.Command(
                 reporteId,
@@ -343,6 +358,7 @@ public class ConductaController {
 
         AdesUser user = userService.resolveUser(jwt);
         requireNivel(user, 3);
+        verificarAccesoReporte(user, reporteId);
 
         PlanMejora pm = planRepository.findById(planId)
                 .filter(p -> p.getReporteConductaId().equals(reporteId) && p.getIsActive())
@@ -378,6 +394,7 @@ public class ConductaController {
 
         AdesUser user = userService.resolveUser(jwt);
         requireNivel(user, 3);
+        verificarAccesoReporte(user, reporteId);
 
         PlanMejora pm = planRepository.findById(planId)
                 .filter(p -> p.getReporteConductaId().equals(reporteId) && p.getIsActive())
@@ -424,6 +441,34 @@ public class ConductaController {
     }
 
     /**
+     * BOLA fix (2026-07-16, docs/hallazgos/2026-07-16_auditoria_gaps_no_revisados.md
+     * #1 — ConductaController): todos los endpoints de este controller validaban
+     * nivelAcceso (BFLA) pero ninguno validaba el plantel de la entidad accedida
+     * (BOLA) — un docente/coordinador de un plantel podía leer y escribir reportes,
+     * sanciones y planes de mejora de alumnos de OTRO plantel solo conociendo el
+     * UUID. Mismo patrón central que {@code SaludAvanzadaController#verificarAccesoAlumno}.
+     */
+    private void verificarAccesoEstudiante(AdesUser user, UUID estudianteId) {
+        List<UUID> plantelRows = jdbc.queryForList(
+                "SELECT plantel_id FROM ades_estudiantes WHERE id = ?", UUID.class, estudianteId);
+        if (plantelRows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Alumno no encontrado");
+        userService.verificarPlantel(user, plantelRows.get(0), "El alumno no pertenece a su plantel");
+    }
+
+    private void verificarAccesoGrupo(AdesUser user, UUID grupoId) {
+        List<UUID> plantelRows = jdbc.queryForList(
+                "SELECT gr.plantel_id FROM ades_grupos g " +
+                "JOIN ades_grados gr ON gr.id = g.grado_id " +
+                "WHERE g.id = ?", UUID.class, grupoId);
+        if (plantelRows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Grupo no encontrado");
+        userService.verificarPlantel(user, plantelRows.get(0), "El grupo no pertenece a su plantel");
+    }
+
+    private void verificarAccesoReporte(AdesUser user, UUID reporteId) {
+        verificarAccesoEstudiante(user, resolveEstudianteId(reporteId));
+    }
+
+    /**
      * Convierte el {@code tipoSancion} recibido en el enum {@link TipoSancion}.
      * Antes del fix de Jackson, este valor siempre llegaba {@code null} y
      * {@code TipoSancion.valueOf(null)} lanzaba una {@link NullPointerException} cruda
@@ -457,7 +502,9 @@ public class ConductaController {
     public ResponseEntity<Map<String, Object>> riesgoConductual(
             @PathVariable UUID estudianteId,
             @AuthenticationPrincipal Jwt jwt) {
-        requireStaff(userService.resolveUser(jwt));
+        AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
+        verificarAccesoEstudiante(user, estudianteId);
         return ResponseEntity.ok(riesgoConductualService.obtenerUltimo(estudianteId));
     }
 
@@ -467,6 +514,7 @@ public class ConductaController {
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         requireNivel(user, 4);
+        verificarAccesoEstudiante(user, estudianteId);
         return ResponseEntity.ok(riesgoConductualService.calcular(estudianteId));
     }
 
@@ -476,6 +524,7 @@ public class ConductaController {
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         requireNivel(user, 3);
+        verificarAccesoGrupo(user, grupoId);
         return ResponseEntity.ok(riesgoConductualService.recalcularGrupo(grupoId));
     }
 
@@ -488,6 +537,7 @@ public class ConductaController {
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         requireNivel(user, 3);
+        verificarAccesoReporte(user, reporteId);
         try {
             RestClient.RequestHeadersSpec<?> request = restClient.get().uri(API_BASE_URL + "/" + reporteId + "/acta-pdf");
             if (authHeader != null) request.header(HttpHeaders.AUTHORIZATION, authHeader);

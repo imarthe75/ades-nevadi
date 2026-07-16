@@ -148,7 +148,7 @@ public class ProcesosQueryService {
 
     public List<Map<String, Object>> fetchSolicitudEstado(UUID id) {
         return jdbc.queryForList(
-                "SELECT estado FROM ades_solicitudes_admision WHERE id = ?", id);
+                "SELECT estado, plantel_id FROM ades_solicitudes_admision WHERE id = ?", id);
     }
 
     public List<Map<String, Object>> fetchSolicitudParaCarta(UUID id) {

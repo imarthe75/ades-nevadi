@@ -142,6 +142,30 @@ public class PortalAdminService {
                 org.springframework.http.HttpStatus.NOT_FOUND, "Convocatoria no encontrada");
     }
 
+    /**
+     * BOLA fix (2026-07-16, docs/hallazgos/2026-07-16_auditoria_gaps_no_revisados.md
+     * #1 — PortalAdminController): resuelve el plantel_id de una convocatoria (NULL =
+     * global) para que el controller pueda validar contra el plantel del usuario.
+     */
+    public UUID getPlantelConvocatoria(UUID convId) {
+        List<UUID> rows = jdbc.queryForList(
+                "SELECT plantel_id FROM portal.convocatorias WHERE id = ?", UUID.class, convId);
+        if (rows.isEmpty()) throw new org.springframework.web.server.ResponseStatusException(
+                org.springframework.http.HttpStatus.NOT_FOUND, "Convocatoria no encontrada");
+        return rows.get(0);
+    }
+
+    /** Resuelve el plantel_id de la convocatoria asociada a una postulación. */
+    public UUID getPlantelPostulacion(UUID postulacionId) {
+        List<UUID> rows = jdbc.queryForList(
+                "SELECT c.plantel_id FROM portal.postulaciones po " +
+                "JOIN portal.convocatorias c ON c.id = po.convocatoria_id " +
+                "WHERE po.id = ?", UUID.class, postulacionId);
+        if (rows.isEmpty()) throw new org.springframework.web.server.ResponseStatusException(
+                org.springframework.http.HttpStatus.NOT_FOUND, "Postulación no encontrada");
+        return rows.get(0);
+    }
+
     @Transactional
     public void insertarRequisitos(UUID convId, List<PortalAdminController.RequisitoRequest> reqs, String usuario) {
         for (PortalAdminController.RequisitoRequest r : reqs) {
@@ -161,7 +185,7 @@ public class PortalAdminService {
     }
 
     public List<Map<String, Object>> listarPostulaciones(UUID convocatoriaId, String estado,
-            String q, int limit, int skip) {
+            String q, int limit, int skip, UUID plantelFiltro) {
         StringBuilder sql = new StringBuilder("""
             SELECT po.id, po.folio, po.estado, po.fecha_envio, po.fecha_creacion,
                    u.nombre_completo, u.email, u.telefono,
@@ -179,6 +203,15 @@ public class PortalAdminService {
             sql.append("AND (u.nombre_completo ILIKE ? OR u.email ILIKE ? OR po.folio ILIKE ?) ");
             String like = "%" + q + "%";
             params.add(like); params.add(like); params.add(like);
+        }
+        // BOLA fix (2026-07-16): sin convocatoria_id explícito, esta lista devolvía
+        // postulaciones de TODAS las convocatorias (incluidas las de otro plantel) a
+        // cualquier Admin/Director — se filtra por el plantel efectivo del usuario
+        // (NULL para ADMIN_GLOBAL = sin restricción; convocatorias globales de la
+        // institución, plantel_id IS NULL, se mantienen visibles a todos).
+        if (plantelFiltro != null) {
+            sql.append("AND (c.plantel_id = ? OR c.plantel_id IS NULL) ");
+            params.add(plantelFiltro);
         }
         sql.append("ORDER BY po.fecha_creacion DESC LIMIT ? OFFSET ?");
         params.add(Math.min(limit, 200)); params.add(skip);
@@ -230,7 +263,7 @@ public class PortalAdminService {
             """, estado.toUpperCase(), observaciones, usuario, id);
     }
 
-    public List<Map<String, Object>> exportarPostulaciones(UUID convocatoriaId) {
+    public List<Map<String, Object>> exportarPostulaciones(UUID convocatoriaId, UUID plantelFiltro) {
         return jdbc.queryForList("""
             SELECT po.folio, po.estado, po.fecha_envio,
                    u.nombre_completo, u.email, u.telefono,
@@ -240,8 +273,9 @@ public class PortalAdminService {
             JOIN portal.convocatorias c ON c.id = po.convocatoria_id
             WHERE po.is_active = TRUE
               AND (?::uuid IS NULL OR po.convocatoria_id = ?)
+              AND (?::uuid IS NULL OR c.plantel_id = ? OR c.plantel_id IS NULL)
             ORDER BY c.titulo, po.estado, u.nombre_completo
-            """, convocatoriaId, convocatoriaId);
+            """, convocatoriaId, convocatoriaId, plantelFiltro, plantelFiltro);
     }
 
     public List<Map<String, Object>> listarArco(String estado, int skip, int limit) {

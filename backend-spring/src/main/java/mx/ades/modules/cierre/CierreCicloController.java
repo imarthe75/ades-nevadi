@@ -57,7 +57,12 @@ public class CierreCicloController {
         if (user.getNivelAcceso() == null || user.getNivelAcceso() > 2) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado.");
         }
-        return ResponseEntity.ok(queryService.indicadores(cicloId, plantelId)
+        // BOLA fix (2026-07-16, docs/hallazgos/2026-07-16_auditoria_gaps_no_revisados.md
+        // #1 — CierreCicloController): plantel_id era un filtro opcional sin forzar —
+        // un Director (nivelAcceso 2, plantel-scoped) que lo omitía, o pasaba el de
+        // otro plantel, veía matrícula/promedio institucional completo de los 3 planteles.
+        UUID plantelFiltro = userService.getEffectivePlantelId(user, plantelId);
+        return ResponseEntity.ok(queryService.indicadores(cicloId, plantelFiltro)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                 "No se encontraron datos para el ciclo escolar especificado.")));
     }

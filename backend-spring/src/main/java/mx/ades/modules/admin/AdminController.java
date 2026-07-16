@@ -240,6 +240,16 @@ public class AdminController {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No puede crear usuarios con mayor jerarquía");
         }
 
+        // BOLA fix (2026-07-16, docs/hallazgos/2026-07-16_auditoria_gaps_no_revisados.md
+        // #1 — AdminController): puedeEditarOtrosPlantelUsuarios() ya se usaba en
+        // actualizarUsuario() (PATCH) pero no aquí — un ADMIN_PLANTEL podía enviar el
+        // plantelId de OTRO plantel en el body y crear ahí una cuenta nueva (incluso otro
+        // ADMIN_PLANTEL, ya que puedeAsignarRol solo valida jerarquía de rol, no plantel).
+        if (!permiso.puedeEditarOtrosPlantelUsuarios() && user.getPlantelId() != null
+                && body.getPlantelId() != null && !user.getPlantelId().equals(body.getPlantelId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No puede crear usuarios en otro plantel");
+        }
+
         // ades_personas.nombre / apellido_paterno son NOT NULL sin default; sin este chequeo,
         // un payload incompleto pasaba directo a body.getNombre().trim() más abajo y producía
         // un NullPointerException -> 500 genérico en vez de un 422 con mensaje claro.

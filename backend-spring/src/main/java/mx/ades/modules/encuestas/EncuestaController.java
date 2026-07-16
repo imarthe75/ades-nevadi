@@ -124,7 +124,9 @@ public class EncuestaController {
         // sensibilidad, incluye detección de acoso/bullying) pero no exigía ni resolver el
         // JWT — cualquier usuario autenticado podía leer comentarios crudos de cualquier
         // encuesta por id. Se alinea con requireStaff() ya aplicado en respuestasRaw().
-        requireStaff(userService.resolveUser(jwt));
+        AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
+        verificarAccesoEncuesta(user, id);
         return ResponseEntity.ok(queryService.resultados(id));
     }
 
@@ -137,7 +139,9 @@ public class EncuestaController {
         // incluido) son material de revisión interna del personal — antes no exigían ni
         // siquiera JWT resuelto, exponiendo respuestas crudas de encuestas (algunas no
         // anónimas) a cualquier usuario autenticado, incl. padres/alumnos nivelAcceso=5.
-        requireStaff(userService.resolveUser(jwt));
+        AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
+        verificarAccesoEncuesta(user, id);
         return ResponseEntity.ok(queryService.respuestasRaw(id, limit));
     }
 
@@ -157,7 +161,9 @@ public class EncuestaController {
         e.setDescripcion(body.getDescripcion());
         e.setTipo(body.getTipo());
         e.setAudiencia(body.getAudiencia());
-        e.setPlantelId(body.getPlantelId());
+        // BOLA fix (2026-07-16): plantelId viaja en el body sin validar — mass assignment
+        // que permitía a personal de un plantel crear encuestas asignadas a otro.
+        e.setPlantelId(userService.getEffectivePlantelId(user, body.getPlantelId()));
         e.setNivelEducativoId(body.getNivelEducativoId());
         e.setGrupoId(body.getGrupoId());
         e.setFechaInicio(body.getFechaInicio());
@@ -171,9 +177,11 @@ public class EncuestaController {
     public ResponseEntity<Encuesta> toggleActiva(
             @PathVariable("id") UUID id,
             @AuthenticationPrincipal Jwt jwt) {
-        requireStaff(userService.resolveUser(jwt));
+        AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
         Encuesta enc = repository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Encuesta no encontrada"));
+        userService.verificarPlantel(user, enc.getPlantelId(), "La encuesta no pertenece a su plantel");
         enc.setActiva(!enc.getActiva());
         return ResponseEntity.ok(repository.save(enc));
     }
@@ -183,7 +191,9 @@ public class EncuestaController {
             @PathVariable("id") UUID id,
             @RequestBody @Valid PreguntaCreateRequest body,
             @AuthenticationPrincipal Jwt jwt) {
-        requireStaff(userService.resolveUser(jwt));
+        AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
+        verificarAccesoEncuesta(user, id);
         EncuestaPregunta p = new EncuestaPregunta();
         p.setEncuestaId(id);
         p.setTexto(body.getTexto());
@@ -200,7 +210,9 @@ public class EncuestaController {
             @PathVariable("pregunta_id") UUID preguntaId,
             @RequestBody @Valid PreguntaCreateRequest body,
             @AuthenticationPrincipal Jwt jwt) {
-        requireStaff(userService.resolveUser(jwt));
+        AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
+        verificarAccesoEncuesta(user, id);
         EncuestaPregunta p = preguntaRepository.findById(preguntaId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Pregunta no encontrada"));
         p.setTexto(body.getTexto());
@@ -217,7 +229,9 @@ public class EncuestaController {
             @PathVariable("id") UUID id,
             @PathVariable("pregunta_id") UUID preguntaId,
             @AuthenticationPrincipal Jwt jwt) {
-        requireStaff(userService.resolveUser(jwt));
+        AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
+        verificarAccesoEncuesta(user, id);
         EncuestaPregunta p = preguntaRepository.findById(preguntaId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Pregunta no encontrada"));
         p.setIsActive(false);
@@ -251,9 +265,11 @@ public class EncuestaController {
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void eliminar(@PathVariable("id") UUID id, @AuthenticationPrincipal Jwt jwt) {
-        requireStaff(userService.resolveUser(jwt));
+        AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
         Encuesta e = repository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Encuesta no encontrada"));
+        userService.verificarPlantel(user, e.getPlantelId(), "La encuesta no pertenece a su plantel");
         e.setIsActive(false);
         repository.save(e);
     }
@@ -268,5 +284,19 @@ public class EncuestaController {
         if (nivelAcceso == null || nivelAcceso > 4) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Nivel de acceso insuficiente para esta operación");
         }
+    }
+
+    /**
+     * BOLA fix (2026-07-16, docs/hallazgos/2026-07-16_auditoria_gaps_no_revisados.md
+     * #1 — EncuestaController): requireStaff() (BFLA) no verificaba el plantel de la
+     * encuesta (BOLA) — personal de un plantel podía leer respuestas de texto libre
+     * (detección de bullying, según comentario del propio módulo) y administrar
+     * encuestas de OTRO plantel. {@code plantelId == null} = encuesta institucional,
+     * visible/editable por cualquier staff (mismo criterio que convocatorias globales).
+     */
+    private void verificarAccesoEncuesta(AdesUser user, UUID encuestaId) {
+        Encuesta enc = repository.findById(encuestaId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Encuesta no encontrada"));
+        userService.verificarPlantel(user, enc.getPlantelId(), "La encuesta no pertenece a su plantel");
     }
 }

@@ -23,6 +23,7 @@ la respuesta completa con tabla de datos + texto explicativo.
 from __future__ import annotations
 
 import logging
+import re
 import uuid
 from typing import Any
 
@@ -192,6 +193,46 @@ async def _flowise_chat(pregunta: str, sesion_id: str, override_config: dict) ->
 
 # ── NL→SQL con Vanna AI ───────────────────────────────────────────────────────
 
+# Hallazgo CRÍTICO corregido 2026-07-16 (docs/hallazgos/
+# 2026-07-16_auditoria_gaps_no_revisados.md #2): el único control server-side sobre
+# el SQL generado por el LLM era `sql_upper.startswith("SELECT")` — el aislamiento
+# por plantel/rol se aplicaba SOLO como texto sugerido al LLM (_build_rls_context),
+# nunca verificado. Un "SELECT" válido en Postgres puede seguir siendo destructivo
+# (SELECT INTO crea tablas, una CTE puede envolver un DELETE/UPDATE ... RETURNING,
+# una función volátil puede escribir), y `db.execute(text(sql + " LIMIT 200"))`
+# concatenaba texto crudo sin bloquear ";" apilado. Mitigación en dos capas
+# independientes (ninguna confía en que el LLM "se porte bien"):
+#   1. Blacklist de palabras clave + rechazo de ";" (defensa superficial, se puede
+#      evadir con ofuscación — no es la garantía real).
+#   2. `SET TRANSACTION READ ONLY` antes de ejecutar — Postgres rechaza CUALQUIER
+#      escritura a nivel de motor, sin importar cómo esté disfrazada en el SQL. Esta
+#      es la garantía real; la capa 1 solo reduce ruido/costo de intentos obvios.
+# Pendiente (fuera de alcance de este fix puntual): el filtro POR_PLANTEL/POR_ALUMNO
+# sigue siendo un hint de prompt, no una política RLS de Postgres real — la
+# corrección definitiva es habilitar Row-Level Security nativo de Postgres
+# (ENABLE ROW LEVEL SECURITY + CREATE POLICY) sobre las tablas expuestas aquí,
+# keyed por el mismo GUC app.current_user que ya usa AuditSessionInterceptor.
+_SQL_PALABRAS_PROHIBIDAS = re.compile(
+    r"\b(INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|TRUNCATE|GRANT|REVOKE|CALL|COPY|"
+    r"EXECUTE|MERGE|VACUUM|REINDEX|INTO|LISTEN|NOTIFY|LOCK|SET|RESET|DO)\b",
+    re.IGNORECASE,
+)
+
+
+def _validar_sql_generado(sql: str) -> None:
+    """Defensa superficial (capa 1) — la garantía real es READ ONLY en _vanna_sql."""
+    if ";" in sql.rstrip().rstrip(";"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Consulta rechazada: no se permiten múltiples sentencias SQL",
+        )
+    if _SQL_PALABRAS_PROHIBIDAS.search(sql):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Consulta rechazada: contiene una operación no permitida en el asistente de datos",
+        )
+
+
 async def _vanna_sql(pregunta: str, rls_ctx: dict, db: AsyncSession, llm: LLMService) -> tuple[str, list[dict]]:
     """Genera una consulta SQL a partir de lenguaje natural usando el LLM y la ejecuta aplicando RLS.
 
@@ -235,9 +276,13 @@ async def _vanna_sql(pregunta: str, rls_ctx: dict, db: AsyncSession, llm: LLMSer
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Solo se permiten consultas SELECT en el asistente de datos",
         )
+    _validar_sql_generado(sql)
 
-    # Ejecutar con límite de filas
+    # Ejecutar con límite de filas. SET TRANSACTION READ ONLY debe ser el primer
+    # comando de la transacción (session fresca por request vía get_db) — es la
+    # garantía real que impide cualquier escritura, no la validación de arriba.
     try:
+        await db.execute(text("SET TRANSACTION READ ONLY"))
         result = await db.execute(text(sql + " LIMIT 200"))
         cols = list(result.keys())
         rows = [dict(zip(cols, row)) for row in result.fetchall()]

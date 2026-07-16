@@ -102,6 +102,12 @@ public class DireccionesQueryService {
                 "WHERE id = ? AND is_active = TRUE", id);
     }
 
+    /** Usado por eliminarDir() (2026-07-16) para resolver entidad_tipo/entidad_id antes de borrar y poder verificar plantel. */
+    public List<Map<String, Object>> fetchDirEntidad(UUID id) {
+        return jdbc.queryForList(
+                "SELECT entidad_tipo, entidad_id FROM ades_direcciones WHERE id = ? AND is_active = TRUE", id);
+    }
+
     public List<Map<String, Object>> fetchDirPrincipalRef(UUID id) {
         return jdbc.queryForList(
                 "SELECT entidad_tipo, entidad_id FROM ades_direcciones WHERE id = ? AND is_active = TRUE", id);
@@ -127,6 +133,6 @@ public class DireccionesQueryService {
 
     public List<Map<String, Object>> fetchContactoForUpdate(UUID id) {
         return jdbc.queryForList(
-                "SELECT row_version FROM ades_persona_contactos WHERE id = ? AND is_active = TRUE", id);
+                "SELECT persona_id, row_version FROM ades_persona_contactos WHERE id = ? AND is_active = TRUE", id);
     }
 }

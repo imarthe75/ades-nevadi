@@ -56,6 +56,18 @@ public class ProcesosEscolaresController {
         }
     }
 
+    /**
+     * BOLA fix (2026-07-16, docs/hallazgos/2026-07-16_auditoria_gaps_no_revisados.md
+     * #1 — ProcesosEscolaresController): registrarBaja/reactivarEstudiante no
+     * verificaban el plantel del alumno — asimetría con listarBajas (sí scopeado).
+     */
+    private void verificarAccesoEstudiante(AdesUser user, UUID estudianteId) {
+        List<UUID> plantelRows = jdbc.queryForList(
+                "SELECT plantel_id FROM ades_estudiantes WHERE id = ?", UUID.class, estudianteId);
+        if (plantelRows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Alumno no encontrado");
+        userService.verificarPlantel(user, plantelRows.get(0), "El alumno no pertenece a su plantel");
+    }
+
     // ── FASE 34: Importación SEP & Descarga ZIP Expediente ─────────────────────
 
     /**
@@ -260,6 +272,12 @@ public class ProcesosEscolaresController {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Solicitud no encontrada");
         }
         String estado = (String) sol.get(0).get("estado");
+        // BOLA fix (2026-07-16, docs/hallazgos/2026-07-16_auditoria_gaps_no_revisados.md
+        // #1 — ProcesosEscolaresController): asimetría con listarAdmisiones (sí scopeado
+        // arriba) — resolverAdmision/registrarBaja/reactivarEstudiante no verificaban el
+        // plantel de la solicitud/alumno, permitiendo a Admin/Secretaría de un plantel
+        // aceptar/rechazar admisiones o dar de baja/reactivar alumnos de OTRO plantel.
+        userService.verificarPlantel(user, (UUID) sol.get(0).get("plantel_id"), "La solicitud no pertenece a su plantel");
         if (!"PENDIENTE".equalsIgnoreCase(estado)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La solicitud ya fue resuelta: " + estado);
         }
@@ -808,6 +826,7 @@ public class ProcesosEscolaresController {
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         requireAdminOrHigher(user);
+        verificarAccesoEstudiante(user, body.getEstudianteId());
 
         UUID id = writeService.registrarBaja(body.getEstudianteId(), body.getInscripcionId(),
                 body.getTipoBaja(), body.getMotivo(), body.getFechaEfectiva(),
@@ -849,6 +868,7 @@ public class ProcesosEscolaresController {
         Map<String, Object> bm = baja.get(0);
         UUID estudianteId = (UUID) bm.get("estudiante_id");
         UUID inscripcionId = (UUID) bm.get("inscripcion_id");
+        verificarAccesoEstudiante(user, estudianteId);
 
         writeService.reactivarEstudiante(bajaId, estudianteId, inscripcionId, user.getUsername());
 

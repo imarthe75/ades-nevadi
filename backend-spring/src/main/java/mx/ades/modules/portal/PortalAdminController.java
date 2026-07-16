@@ -38,6 +38,25 @@ public class PortalAdminController {
         }
     }
 
+    /**
+     * BOLA fix (2026-07-16, docs/hallazgos/2026-07-16_auditoria_gaps_no_revisados.md
+     * #1 — PortalAdminController): requireAdmin() (nivelAcceso &le;2, incluye
+     * ADMIN_PLANTEL/DIRECTOR plantel-scoped) no verificaba el plantel de la
+     * convocatoria — permitía administrar/exportar convocatorias y postulaciones de
+     * OTRO plantel. {@code plantel_id IS NULL} = convocatoria institucional (visible
+     * y editable por cualquier admin, por diseño — ver comentario de columna en
+     * mig. 058).
+     */
+    private void verificarAccesoConvocatoria(AdesUser user, UUID convId) {
+        userService.verificarPlantel(user, adminSvc.getPlantelConvocatoria(convId),
+                "La convocatoria no pertenece a su plantel");
+    }
+
+    private void verificarAccesoPostulacion(AdesUser user, UUID postulacionId) {
+        userService.verificarPlantel(user, adminSvc.getPlantelPostulacion(postulacionId),
+                "La postulación no pertenece a su plantel");
+    }
+
     // ─────────────────────────────────────────────────────────
     // CONVOCATORIAS — CRUD
     // ─────────────────────────────────────────────────────────
@@ -52,7 +71,8 @@ public class PortalAdminController {
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         requireAdmin(user);
-        return ResponseEntity.ok(adminSvc.listarConvocatorias(categoria, tipo, plantelId, limit, skip));
+        UUID plantelFiltro = userService.getEffectivePlantelId(user, plantelId);
+        return ResponseEntity.ok(adminSvc.listarConvocatorias(categoria, tipo, plantelFiltro, limit, skip));
     }
 
     @Data
@@ -91,8 +111,12 @@ public class PortalAdminController {
         String categoria = body.getCategoria() != null && !body.getCategoria().isBlank()
                 ? body.getCategoria().toUpperCase()
                 : adminSvc.inferirCategoria(body.getTipo().toUpperCase());
+        // BOLA fix (2026-07-16): plantelId viaja en el body sin validar — un admin de
+        // un plantel podía crear convocatorias asignadas a OTRO plantel (mass
+        // assignment). getEffectivePlantelId fuerza el propio plantel para no-globales.
+        UUID plantelEfectivo = userService.getEffectivePlantelId(user, body.getPlantelId());
         UUID id = adminSvc.crearConvocatoria(categoria, body.getTipo(), body.getTitulo(),
-                body.getDescripcion(), body.getRequisitosGenerales(), body.getPlantelId(),
+                body.getDescripcion(), body.getRequisitosGenerales(), plantelEfectivo,
                 body.getNivelEducativoId(), body.getFechaInicioPostulacion(),
                 body.getFechaCierrePostulacion(), body.getCupoMaximo(), body.getImagenUrl(),
                 body.getAvisoPrivacidadVersion() != null ? body.getAvisoPrivacidadVersion() : "1.0",
@@ -109,7 +133,9 @@ public class PortalAdminController {
         // Asimétrico vs. el resto del CRUD de convocatorias (todos exigen requireAdmin):
         // faltaba aquí, dejando el detalle administrativo accesible a cualquier cuenta
         // ADES autenticada bajo la ruta /portal/admin/.
-        requireAdmin(userService.resolveUser(jwt));
+        AdesUser user = userService.resolveUser(jwt);
+        requireAdmin(user);
+        verificarAccesoConvocatoria(user, id);
         return ResponseEntity.ok(adminSvc.listarRequisitos(id));
     }
 
@@ -120,11 +146,13 @@ public class PortalAdminController {
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         requireAdmin(user);
+        verificarAccesoConvocatoria(user, id);
         String categoria = body.getCategoria() != null && !body.getCategoria().isBlank()
                 ? body.getCategoria().toUpperCase()
                 : adminSvc.inferirCategoria(body.getTipo().toUpperCase());
+        UUID plantelEfectivo = userService.getEffectivePlantelId(user, body.getPlantelId());
         int updated = adminSvc.actualizarConvocatoria(id, categoria, body.getTipo(), body.getTitulo(),
-                body.getDescripcion(), body.getRequisitosGenerales(), body.getPlantelId(),
+                body.getDescripcion(), body.getRequisitosGenerales(), plantelEfectivo,
                 body.getNivelEducativoId(), body.getFechaInicioPostulacion(),
                 body.getFechaCierrePostulacion(), body.getCupoMaximo(), body.getImagenUrl(),
                 user.getUsername());
@@ -141,6 +169,7 @@ public class PortalAdminController {
             @PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         requireAdmin(user);
+        verificarAccesoConvocatoria(user, id);
         int upd = adminSvc.togglePublicar(id, user.getUsername());
         if (upd == 0) throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         return ResponseEntity.ok(Map.of("ok", true));
@@ -154,6 +183,7 @@ public class PortalAdminController {
         AdesUser user = userService.resolveUser(jwt);
         requireAdmin(user);
         adminSvc.verifyConvocatoriaExists(id);
+        verificarAccesoConvocatoria(user, id);
         String url = storage.subirImagenConvocatoria(id, imagen);
         adminSvc.actualizarImagenUrl(id, url, user.getUsername());
         log.info("Imagen de convocatoria {} actualizada: {}", id, url);
@@ -164,6 +194,7 @@ public class PortalAdminController {
     public ResponseEntity<Void> eliminar(@PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         requireAdmin(user);
+        verificarAccesoConvocatoria(user, id);
         adminSvc.eliminarConvocatoria(id, user.getUsername());
         return ResponseEntity.noContent().build();
     }
@@ -182,7 +213,9 @@ public class PortalAdminController {
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         requireAdmin(user);
-        return ResponseEntity.ok(adminSvc.listarPostulaciones(convocatoriaId, estado, q, limit, skip));
+        if (convocatoriaId != null) verificarAccesoConvocatoria(user, convocatoriaId);
+        UUID plantelFiltro = userService.getEffectivePlantelId(user, null);
+        return ResponseEntity.ok(adminSvc.listarPostulaciones(convocatoriaId, estado, q, limit, skip, plantelFiltro));
     }
 
     @GetMapping("/postulaciones/{id}")
@@ -190,6 +223,7 @@ public class PortalAdminController {
             @PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         requireAdmin(user);
+        verificarAccesoPostulacion(user, id);
         List<Map<String, Object>> rows = adminSvc.detallePostulacion(id);
         if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         Map<String, Object> post = new HashMap<>(rows.get(0));
@@ -218,6 +252,7 @@ public class PortalAdminController {
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         requireAdmin(user);
+        verificarAccesoPostulacion(user, id);
         List<Map<String, Object>> rows = adminSvc.fetchPostulacionParaCambioEstado(id);
         if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         adminSvc.cambiarEstadoPostulacion(id, body.getEstado(), body.getObservaciones(), user.getUsername());
@@ -235,7 +270,9 @@ public class PortalAdminController {
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         requireAdmin(user);
-        return ResponseEntity.ok(adminSvc.exportarPostulaciones(convocatoriaId));
+        if (convocatoriaId != null) verificarAccesoConvocatoria(user, convocatoriaId);
+        UUID plantelFiltro = userService.getEffectivePlantelId(user, null);
+        return ResponseEntity.ok(adminSvc.exportarPostulaciones(convocatoriaId, plantelFiltro));
     }
 
     // ─────────────────────────────────────────────────────────
@@ -307,7 +344,9 @@ public class PortalAdminController {
             @AuthenticationPrincipal Jwt jwt) {
         // Igual que listarRequisitos: asimétrico frente a crear/actualizar/reordenar/eliminar
         // secciones (todos con requireAdmin) — faltaba aquí.
-        requireAdmin(userService.resolveUser(jwt));
+        AdesUser user = userService.resolveUser(jwt);
+        requireAdmin(user);
+        verificarAccesoConvocatoria(user, convId);
         return ResponseEntity.ok(adminSvc.listarSecciones(convId));
     }
 
@@ -319,6 +358,7 @@ public class PortalAdminController {
         AdesUser user = userService.resolveUser(jwt);
         requireAdmin(user);
         adminSvc.verifyConvocatoriaExists(convId);
+        verificarAccesoConvocatoria(user, convId);
         String datosJson = body.getDatos() != null
                 ? new com.fasterxml.jackson.databind.ObjectMapper().valueToTree(body.getDatos()).toString()
                 : null;
@@ -335,6 +375,7 @@ public class PortalAdminController {
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         requireAdmin(user);
+        verificarAccesoConvocatoria(user, convId);
         String datosJson = body.getDatos() != null
                 ? new com.fasterxml.jackson.databind.ObjectMapper().valueToTree(body.getDatos()).toString()
                 : null;
@@ -351,6 +392,7 @@ public class PortalAdminController {
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         requireAdmin(user);
+        verificarAccesoConvocatoria(user, convId);
         if (body.getIds() == null || body.getIds().isEmpty())
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "ids requeridos");
         adminSvc.reordenarSecciones(body.getIds(), convId, user.getUsername());
@@ -364,6 +406,7 @@ public class PortalAdminController {
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         requireAdmin(user);
+        verificarAccesoConvocatoria(user, convId);
         adminSvc.eliminarSeccion(seccionId, convId, user.getUsername());
         return ResponseEntity.noContent().build();
     }

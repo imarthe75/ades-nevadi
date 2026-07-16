@@ -15,11 +15,18 @@ import java.util.List;
 import java.time.Duration;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.oauth2.core.OAuth2Error;
+import org.springframework.security.oauth2.core.OAuth2TokenValidator;
+import org.springframework.security.oauth2.core.OAuth2TokenValidatorResult;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtTimestampValidator;
+import org.springframework.security.oauth2.jwt.JwtValidationException;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestOperations;
+import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
 
 @Configuration
 @EnableMethodSecurity
@@ -54,14 +61,41 @@ public class SecurityConfig {
     @Value("${spring.security.oauth2.resourceserver.jwt.jwk-set-uri}")
     private String jwkSetUri;
 
+    @Value("${ades.oidc.client-id}")
+    private String oidcClientId;
+
+    /**
+     * Validador de audiencia (2026-07-16, docs/hallazgos/
+     * 2026-07-16_auditoria_gaps_no_revisados.md #3 — hueco confirmado por auditoría):
+     * {@code NimbusJwtDecoder.withJwkSetUri(...).build()} sin {@code .jwtValidator()}
+     * adicional solo valida firma + {@code exp}/{@code nbf} — nunca {@code aud}. Riesgo
+     * de "confused deputy": un JWT válido firmado por el mismo Authentik pero emitido
+     * para OTRA aplicación OIDC de la misma instancia (ej. Superset, que comparte el
+     * mismo servidor Authentik) podría ser aceptado por este BFF si comparte clave de
+     * firma. FastAPI (core/security.py) ya validaba {@code audience=OIDC_CLIENT_ID}
+     * correctamente — este fix alinea el lado Spring con el mismo criterio.
+     */
+    private OAuth2TokenValidator<Jwt> audienceValidator() {
+        return jwt -> {
+            if (jwt.getAudience() != null && jwt.getAudience().contains(oidcClientId)) {
+                return OAuth2TokenValidatorResult.success();
+            }
+            return OAuth2TokenValidatorResult.failure(new OAuth2Error(
+                    "invalid_token", "El token no fue emitido para esta aplicación (aud)", null));
+        };
+    }
+
     @Bean
     public JwtDecoder jwtDecoder() {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(Duration.ofSeconds(10));
         factory.setReadTimeout(Duration.ofSeconds(10));
-        
+
         RestTemplate restTemplate = new RestTemplate(factory);
-        return NimbusJwtDecoder.withJwkSetUri(jwkSetUri).restOperations(restTemplate).build();
+        NimbusJwtDecoder decoder = NimbusJwtDecoder.withJwkSetUri(jwkSetUri).restOperations(restTemplate).build();
+        decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(
+                new JwtTimestampValidator(), audienceValidator()));
+        return decoder;
     }
 
     @Bean

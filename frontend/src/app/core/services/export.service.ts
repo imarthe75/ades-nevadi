@@ -3,7 +3,14 @@
  *
  * Formatos soportados:
  *   - CSV  : sin dependencias externas
- *   - XLSX : SheetJS (xlsx@0.18.5), genera libro real de Excel
+ *   - XLSX : SheetJS (xlsx@0.20.3), genera libro real de Excel. Corregido
+ *            2026-07-16 (docs/hallazgos/2026-07-16_auditoria_gaps_no_revisados.md
+ *            #3): 0.18.5 tenía 2 CVE (prototype pollution GHSA-4r6h-8v6p-xvw6,
+ *            ReDoS GHSA-5pgg-2g8v-p4x9) sin fix publicado en el registro npm —
+ *            SheetJS dejó de publicar parches ahí; el remedio oficial documentado
+ *            por el propio proyecto es instalar desde su CDN
+ *            (package.json: "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/..."),
+ *            misma API, sin cambios de código en este archivo.
  *   - PDF  : descarga desde endpoint backend (WeasyPrint)
  *
  * Uso:

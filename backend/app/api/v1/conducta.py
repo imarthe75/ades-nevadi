@@ -18,7 +18,7 @@ from fastapi.responses import Response as FastResponse
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session
 
-from app.core.security import get_ades_user
+from app.core.security import get_ades_user, AdesUser
 from app.core.config import settings
 
 router = APIRouter(prefix="/conducta", tags=["conducta"])
@@ -42,9 +42,18 @@ def _render_pdf(template_name: str, ctx: dict) -> bytes:
 @router.get("/{reporte_id}/acta-pdf")
 async def acta_conducta(
     reporte_id: uuid.UUID,
-    _user=Depends(get_ades_user),
+    user: AdesUser = Depends(get_ades_user),
 ):
-    """Genera el Acta de Evaluación de Conducta (SB-017). Devuelve PDF."""
+    """Genera el Acta de Evaluación de Conducta (SB-017). Devuelve PDF.
+
+    BOLA ALTO corregido 2026-07-16 (docs/hallazgos/
+    2026-07-16_auditoria_gaps_no_revisados.md #2): este endpoint no verificaba
+    absolutamente nada más allá de un JWT válido — a diferencia de
+    ConductaController.java (Spring), que sí quedó corregido el mismo día para su
+    propio acta-pdf, este lado FastAPI (llamado directo por el proxy de Spring, pero
+    también alcanzable si algún día se expone sin pasar por el BFF) fallaba en
+    cadena. Se agrega el mismo chequeo de plantel que el resto del módulo.
+    """
 
     def _gen() -> bytes | None:
         with _sync_db_session() as session:
@@ -61,6 +70,7 @@ async def acta_conducta(
                     p.apellido_paterno,
                     p.apellido_materno,
                     e.matricula,
+                    e.plantel_id         AS plantel_id,
                     g.nombre_grupo       AS grupo_nombre,
                     rp.nombre || ' ' || rp.apellido_paterno AS reportado_por
                 FROM ades_reportes_conducta rc
@@ -74,6 +84,8 @@ async def acta_conducta(
 
             if not row:
                 return None
+            if not user.es_admin_global and user.plantel_id and str(row["plantel_id"]) != str(user.plantel_id):
+                raise HTTPException(status_code=403, detail="El reporte no pertenece a su plantel")
 
             nombre_alumno = " ".join(filter(None, [
                 row["apellido_paterno"], row["apellido_materno"], row["nombre"],

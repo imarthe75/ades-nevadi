@@ -72,6 +72,18 @@ jobs:
           SECURITY_ISSUES=$(grep -i "security\|xss\|injection" /tmp/eslint.txt | wc -l || echo 0)
           [ "$SECURITY_ISSUES" -eq 0 ] && echo "✅ No security linting issues" || echo "⚠️  Found $SECURITY_ISSUES issues"
 
+      # Corregido 2026-07-16 (docs/hallazgos/2026-07-16_auditoria_gaps_no_revisados.md
+      # #3): "npm audit" nunca corría en ningún workflow — el hallazgo real de hoy
+      # (xlsx con 2 CVE HIGH) solo se encontró con una corrida manual. A diferencia del
+      # step "OWASP Dependency Check" de abajo (cosmético: `|| true` en toda la cadena +
+      # `continue-on-error: true`, nunca puede fallar el build), este SÍ es un gate real:
+      # sin `|| true` ni continue-on-error, el exit code no-cero de `npm audit` ante
+      # HIGH/CRITICAL bloquea el job.
+      - name: npm audit (Frontend, bloqueante)
+        run: |
+          cd frontend
+          npm audit --omit=dev --audit-level=high
+
       - name: Check for SQL concatenation
         run: |
           CONCAT=$(grep -r "'+'" backend-spring/src --include="*.java" 2>/dev/null | wc -l || echo 0)
@@ -108,27 +120,54 @@ jobs:
             fi
           fi
 
+          # Corregido 2026-07-16 (docs/hallazgos/2026-07-16_auditoria_gaps_no_revisados.md
+          # #3): antes este step era enteramente cosmético (`|| true` en cada comando +
+          # continue-on-error abajo) — nunca podía fallar el build sin importar cuántas
+          # vulnerabilidades encontrara. El `|| true` de la DESCARGA se mantiene (un
+          # fallo de red/GitHub releases no es evidencia de una vulnerabilidad real, no
+          # debe bloquear el merge); el del ESCANEO se quita.
           if [ -x "$HOME/dependency-check/bin/dependency-check.sh" ]; then
             "$HOME/dependency-check/bin/dependency-check.sh" \
               --project "ADES" \
               --scan . \
               --format JSON \
-              --out /tmp/dependency-check.json || true
+              --out /tmp/dependency-check.json
           else
-            echo "⚠️ Dependency Check binary not found or not executable"
+            echo "⚠️ Dependency Check binary not found or not executable — scan omitido, no bloquea (fallo de descarga, no de dependencias)"
           fi
 
           python << 'EOF'
-          import json
+          import json, sys
           try:
             with open('/tmp/dependency-check.json') as f:
               data = json.load(f)
-            vulns = len(data.get('reportSchema', {}).get('vulnerabilities', []))
-            print(f"⚠️  Found {vulns} known vulnerabilities in dependencies")
-          except:
-            print("ℹ️  Dependency check skipped (download may have failed)")
+          except FileNotFoundError:
+            print("ℹ️  Dependency check omitido (descarga del binario falló) — no bloquea")
+            sys.exit(0)
+
+          # Solo bloquea si el JSON se parseó correctamente Y hay hallazgos reales
+          # HIGH/CRITICAL — un cambio de schema entre versiones del binario no debe
+          # colapsar a "0 vulnerabilidades" silenciosamente ni tampoco a un fallo
+          # espurio del job por un KeyError.
+          deps = data.get('dependencies', [])
+          altos = []
+          for dep in deps:
+            for v in dep.get('vulnerabilities', []) or []:
+              severidad = (
+                  (v.get('cvssv3') or {}).get('baseSeverity')
+                  or (v.get('cvssv2') or {}).get('severity')
+                  or ''
+              ).upper()
+              if severidad in ('HIGH', 'CRITICAL'):
+                altos.append(f"{dep.get('fileName', '?')}: {v.get('name', '?')} ({severidad})")
+
+          if altos:
+            print(f"::error::{len(altos)} vulnerabilidades HIGH/CRITICAL encontradas:")
+            for a in altos[:10]:
+              print(f"  {a}")
+            sys.exit(1)
+          print("✅ Sin vulnerabilidades HIGH/CRITICAL en dependency-check")
           EOF
-        continue-on-error: true
 
       - name: Upload results
         if: always()

@@ -10,6 +10,7 @@ import mx.ades.security.AdesUser;
 import mx.ades.security.AdesUserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -39,6 +40,7 @@ public class DireccionesController {
     private final AdesUserService userService;
     private final DireccionesQueryService queryService;
     private final DireccionesWriteService writeService;
+    private final JdbcTemplate jdbc;
 
     /**
      * Direcciones y medios de contacto son PII (domicilio, GPS, teléfono, email) de
@@ -52,6 +54,42 @@ public class DireccionesController {
         if (nivelAcceso == null || nivelAcceso > 4) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Nivel de acceso insuficiente para esta operación");
         }
+    }
+
+    /**
+     * BOLA fix (2026-07-16, docs/hallazgos/2026-07-16_auditoria_gaps_no_revisados.md
+     * #1 — DireccionesController): requireStaff() (BFLA) existía pero ningún endpoint
+     * verificaba el plantel de la persona dueña de la dirección/contacto (BOLA) —
+     * personal de un plantel podía leer/editar domicilio+GPS+teléfono/email de
+     * personas de OTRO plantel. En la práctica {@code entidad_tipo} siempre es
+     * "PERSONA" (verificado en BD viva) y {@code entidad_id} referencia
+     * {@code ades_personas.id}; el plantel se resuelve vía la tabla de rol
+     * (estudiante/profesor/personal administrativo) o, si la persona es solo un
+     * tutor/contacto familiar sin rol propio, vía el alumno al que representa.
+     * Si no se puede resolver el plantel (persona sin ninguno de estos vínculos),
+     * {@code verificarPlantel} no aplica el chequeo — mismo criterio que el resto
+     * del sistema para entidades sin plantel resoluble.
+     */
+    private void verificarAccesoPersona(AdesUser user, UUID personaId) {
+        List<UUID> rows = jdbc.queryForList(
+                "SELECT COALESCE(e.plantel_id, prof.plantel_id, pa.plantel_id, est2.plantel_id) " +
+                "FROM ades_personas per " +
+                "LEFT JOIN ades_estudiantes e ON e.persona_id = per.id " +
+                "LEFT JOIN ades_profesores prof ON prof.persona_id = per.id " +
+                "LEFT JOIN ades_personal_administrativo pa ON pa.persona_id = per.id " +
+                "LEFT JOIN ades_contactos_familiares cf ON cf.tutor_persona_id = per.id AND cf.is_active = TRUE " +
+                "LEFT JOIN ades_estudiantes est2 ON est2.id = cf.estudiante_id " +
+                "WHERE per.id = ? LIMIT 1", UUID.class, personaId);
+        if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Persona no encontrada");
+        userService.verificarPlantel(user, rows.get(0), "La persona no pertenece a su plantel");
+    }
+
+    private void verificarAccesoEntidad(AdesUser user, String entidadTipo, UUID entidadId) {
+        if ("PERSONA".equals(entidadTipo)) {
+            verificarAccesoPersona(user, entidadId);
+        }
+        // Otros entidad_tipo no existen hoy en BD (verificado 2026-07-16); si se agregan
+        // en el futuro, extender esta rama en vez de dejarlos sin scoping silenciosamente.
     }
 
     // ── SEPOMEX ───────────────────────────────────────────────────────────────
@@ -101,6 +139,7 @@ public class DireccionesController {
         // pantallas de personal (alumno-perfil, profesor-perfil, padres-admin).
         AdesUser user = userService.resolveUser(jwt);
         requireStaff(user);
+        verificarAccesoEntidad(user, entidadTipo, entidadId);
         return ResponseEntity.ok(queryService.listarDirecciones(entidadTipo, entidadId));
     }
 
@@ -114,6 +153,7 @@ public class DireccionesController {
             throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
                     "entidad_tipo y entidad_id son requeridos");
         }
+        verificarAccesoEntidad(user, body.getEntidadTipo(), body.getEntidadId());
         UUID id = writeService.crearDireccion(body, user.getUsername());
         return ResponseEntity.status(HttpStatus.CREATED).body(queryService.getDirById(id));
     }
@@ -137,6 +177,7 @@ public class DireccionesController {
         }
         String et = (String) existing.get(0).get("entidad_tipo");
         UUID ei = (UUID) existing.get(0).get("entidad_id");
+        verificarAccesoEntidad(user, et, ei);
         writeService.actualizarDireccion(id, body, et, ei, user.getUsername());
         return ResponseEntity.ok(queryService.getDirById(id));
     }
@@ -144,7 +185,11 @@ public class DireccionesController {
     @DeleteMapping("/direcciones/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void eliminarDir(@PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
-        requireStaff(userService.resolveUser(jwt));
+        AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
+        List<Map<String, Object>> existing = queryService.fetchDirEntidad(id);
+        if (existing.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Dirección no encontrada");
+        verificarAccesoEntidad(user, (String) existing.get(0).get("entidad_tipo"), (UUID) existing.get(0).get("entidad_id"));
         int n = writeService.eliminarDireccion(id);
         if (n == 0) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Dirección no encontrada");
     }
@@ -152,11 +197,13 @@ public class DireccionesController {
     @PatchMapping("/direcciones/{id}/principal")
     public ResponseEntity<Map<String, Object>> setPrincipal(
             @PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
-        requireStaff(userService.resolveUser(jwt));
+        AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
         List<Map<String, Object>> existing = queryService.fetchDirPrincipalRef(id);
         if (existing.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Dirección no encontrada");
         String et = (String) existing.get(0).get("entidad_tipo");
         UUID ei = (UUID) existing.get(0).get("entidad_id");
+        verificarAccesoEntidad(user, et, ei);
         writeService.setPrincipalDireccion(id, et, ei);
         return ResponseEntity.ok(queryService.getDirById(id));
     }
@@ -173,6 +220,7 @@ public class DireccionesController {
         // crearContacto()/actualizarContacto()/eliminarContacto(), que sí exigen requireStaff().
         AdesUser user = userService.resolveUser(jwt);
         requireStaff(user);
+        verificarAccesoPersona(user, personaId);
         return ResponseEntity.ok(queryService.listarContactos(personaId));
     }
 
@@ -196,6 +244,7 @@ public class DireccionesController {
             throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
                     "persona_id, medio y valor son requeridos");
         }
+        verificarAccesoPersona(user, body.getPersonaId());
         validarMedioYTipo(body.getMedio(), body.getTipo());
         UUID id = writeService.crearContacto(body, user.getUsername());
         return ResponseEntity.status(HttpStatus.CREATED).body(queryService.getContactoById(id));
@@ -210,6 +259,7 @@ public class DireccionesController {
         requireStaff(user);
         List<Map<String, Object>> existing = queryService.fetchContactoForUpdate(id);
         if (existing.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Contacto no encontrado");
+        verificarAccesoPersona(user, (UUID) existing.get(0).get("persona_id"));
         if (body.getRowVersion() != null) {
             int cv = ((Number) existing.get(0).get("row_version")).intValue();
             if (body.getRowVersion() != cv) throw new ResponseStatusException(HttpStatus.CONFLICT, "Conflicto de concurrencia");
@@ -233,7 +283,11 @@ public class DireccionesController {
     @DeleteMapping("/persona-contactos/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void eliminarContacto(@PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
-        requireStaff(userService.resolveUser(jwt));
+        AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
+        List<Map<String, Object>> existing = queryService.fetchContactoForUpdate(id);
+        if (existing.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Contacto no encontrado");
+        verificarAccesoPersona(user, (UUID) existing.get(0).get("persona_id"));
         int n = writeService.eliminarContacto(id);
         if (n == 0) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Contacto no encontrado");
     }

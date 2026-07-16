@@ -239,6 +239,30 @@
           </excludes>
         </configuration>
       </plugin>
+      <!-- JaCoCo (2026-07-16, docs/hallazgos/2026-07-16_auditoria_gaps_no_revisados.md
+           #4): la cobertura de tests nunca se pudo medir porque no había NINGÚN plugin
+           configurado — ni siquiera un goal que correr. `mvn test` ahora genera
+           target/site/jacoco/index.html automáticamente al final de la fase test. -->
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <version>0.8.12</version>
+        <executions>
+          <execution>
+            <id>jacoco-prepare-agent</id>
+            <goals>
+              <goal>prepare-agent</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>jacoco-report</id>
+            <phase>test</phase>
+            <goals>
+              <goal>report</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
   </build>
 </project>

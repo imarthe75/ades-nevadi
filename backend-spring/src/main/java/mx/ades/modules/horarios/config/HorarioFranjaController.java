@@ -52,7 +52,12 @@ public class HorarioFranjaController {
     public ResponseEntity<HorarioFranja> create(
             @RequestBody HorarioFranja entity,
             @AuthenticationPrincipal Jwt jwt) {
-        requireStaff(userService.resolveUser(jwt));
+        AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
+        // BOLA fix (2026-07-16): plantelId viaja en el body sin validar contra el
+        // plantel del usuario — un coordinador de un plantel podía crear/mover franjas
+        // horarias de OTRO plantel (mass assignment del campo plantelId).
+        userService.verificarPlantel(user, entity.getPlantelId(), "No puede crear franjas de otro plantel");
         validarCamposObligatorios(entity);
         return ResponseEntity.ok(repository.save(entity));
     }
@@ -62,8 +67,12 @@ public class HorarioFranjaController {
             @PathVariable UUID id,
             @RequestBody HorarioFranja entity,
             @AuthenticationPrincipal Jwt jwt) {
-        requireStaff(userService.resolveUser(jwt));
-        if (!repository.existsById(id)) return ResponseEntity.notFound().build();
+        AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
+        HorarioFranja existente = repository.findById(id).orElse(null);
+        if (existente == null) return ResponseEntity.notFound().build();
+        userService.verificarPlantel(user, existente.getPlantelId(), "La franja no pertenece a su plantel");
+        userService.verificarPlantel(user, entity.getPlantelId(), "No puede mover la franja a otro plantel");
         validarCamposObligatorios(entity);
         entity.setId(id);
         return ResponseEntity.ok(repository.save(entity));
@@ -89,8 +98,11 @@ public class HorarioFranjaController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
-        requireStaff(userService.resolveUser(jwt));
-        if (!repository.existsById(id)) return ResponseEntity.notFound().build();
+        AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
+        HorarioFranja existente = repository.findById(id).orElse(null);
+        if (existente == null) return ResponseEntity.notFound().build();
+        userService.verificarPlantel(user, existente.getPlantelId(), "La franja no pertenece a su plantel");
         repository.deleteById(id);
         return ResponseEntity.ok().build();
     }

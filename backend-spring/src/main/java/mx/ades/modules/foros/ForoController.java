@@ -49,6 +49,7 @@ public class ForoController {
     private final ForoQueryService queryService;
     private final AdesUserService userService;
     private final ForoRepository foroRepository;
+    private final MensajeForoRepository mensajeForoRepository;
 
     /**
      * Tipos de foro visibles/accesibles para nivelAcceso=5 (alumnos/padres) — mismo criterio
@@ -72,6 +73,12 @@ public class ForoController {
                 && !TIPOS_FORO_NIVEL5.contains(foro.getTipo())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No tiene acceso a este foro");
         }
+        // BOLA fix (2026-07-16, docs/hallazgos/2026-07-16_auditoria_gaps_no_revisados.md
+        // #1 — ForoController): el chequeo de tipo (arriba) no validaba plantel — un
+        // docente de un plantel podía leer/publicar en el foro tipo PLANTEL de OTRO
+        // plantel. plantel_id NULL (foros GENERAL/GRUPO/MATERIA sin plantel propio) no
+        // aplica el chequeo.
+        userService.verificarPlantel(user, foro.getPlantelId(), "El foro no pertenece a su plantel");
         return foro;
     }
 
@@ -136,9 +143,11 @@ public class ForoController {
         if (user.getNivelAcceso() != null && user.getNivelAcceso() > 3) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Se requiere Coordinador o superior");
         }
+        // BOLA fix (2026-07-16): plantelId viaja en el body sin validar (mass assignment).
+        UUID plantelEfectivo = userService.getEffectivePlantelId(user, body.getPlantelId());
         CrearForoUseCase.Command cmd = new CrearForoUseCase.Command(
                 body.getNombre(), body.getDescripcion(), body.getTipo(),
-                body.getGrupoId(), body.getPlantelId(), body.getMateriaId(),
+                body.getGrupoId(), plantelEfectivo, body.getMateriaId(),
                 body.getEsModerado(), user.getId(), user.getNivelAcceso());
         return ResponseEntity.status(HttpStatus.CREATED).body(crearForoUseCase.crear(cmd));
     }
@@ -210,8 +219,9 @@ public class ForoController {
         if (user.getNivelAcceso() != null && user.getNivelAcceso() > 3) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Se requiere Coordinador o superior");
         }
+        UUID plantelEfectivo = userService.getEffectivePlantelId(user, body.getPlantelId());
         PublicarAnuncioUseCase.Command cmd = new PublicarAnuncioUseCase.Command(
-                body.getTitulo(), body.getContenido(), body.getPlantelId(),
+                body.getTitulo(), body.getContenido(), plantelEfectivo,
                 body.getNivelEducativo(), body.getFechaInicio(), body.getFechaFin(),
                 body.getEsUrgente(), user.getNivelAcceso());
         return ResponseEntity.status(HttpStatus.CREATED).body(publicarAnuncioUseCase.publicar(cmd));
@@ -223,6 +233,11 @@ public class ForoController {
             @RequestParam("estado") String estado,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        // BOLA fix (2026-07-16): sin este chequeo, un Coordinador de un plantel podía
+        // moderar (aprobar/ocultar) mensajes del foro de OTRO plantel.
+        MensajeForo mensaje = mensajeForoRepository.findById(mensajeId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Mensaje no encontrado"));
+        verificarAccesoForo(user, mensaje.getForoId());
         return ResponseEntity.ok(moderarMensajeUseCase.moderar(mensajeId, estado, user.getNivelAcceso()));
     }
 }

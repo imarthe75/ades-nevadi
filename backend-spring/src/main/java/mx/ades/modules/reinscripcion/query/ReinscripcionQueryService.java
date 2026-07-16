@@ -65,7 +65,14 @@ public class ReinscripcionQueryService {
             sql.append("AND pl.id = ? ");
             params.add(plantelId);
         }
-        if (user.getNivelAcceso() != null && user.getNivelAcceso() > 3 && user.getPlantelId() != null) {
+        // BOLA fix (2026-07-16, docs/hallazgos/2026-07-16_auditoria_gaps_no_revisados.md
+        // #1 — ReinscripcionController): el umbral original (`> 3`) nunca podía dispararse
+        // — este método solo es alcanzable con nivelAcceso <=3 (gate de requireAdmin en el
+        // controller), así que el filtro de plantel para "> 3" era código muerto y CUALQUIER
+        // Coordinador/Director/Admin de un plantel veía el estado de reinscripción de los 3
+        // planteles. Umbral corregido a > 0, igual que AdesUserService#verificarPlantel:
+        // solo ADMIN_GLOBAL mantiene alcance institucional libre.
+        if (user.getNivelAcceso() != null && user.getNivelAcceso() > 0 && user.getPlantelId() != null) {
             sql.append("AND pl.id = ? ");
             params.add(user.getPlantelId());
         }

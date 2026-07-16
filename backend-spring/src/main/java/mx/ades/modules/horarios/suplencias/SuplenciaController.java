@@ -7,6 +7,7 @@ import mx.ades.security.AdesUser;
 import mx.ades.security.AdesUserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -25,6 +26,7 @@ public class SuplenciaController {
     private final SuplenciaRepository suplenciaRepository;
     private final AdesUserService userService;
     private final HorarioRepository horarioRepository;
+    private final JdbcTemplate jdbc;
 
     @PostMapping
     public ResponseEntity<Suplencia> crearSuplencia(
@@ -39,6 +41,7 @@ public class SuplenciaController {
         if (body.getProfesorAusenteId() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "profesor_ausente_id es requerido");
         }
+        verificarAccesoProfesor(user, body.getProfesorAusenteId());
         if (body.getFecha() == null || body.getFecha().isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "fecha es requerida");
         }
@@ -75,7 +78,12 @@ public class SuplenciaController {
         // docentes de todos los planteles para cualquier fecha.
         AdesUser user = userService.resolveUser(jwt);
         requireStaff(user);
-        return ResponseEntity.ok(suplenciaRepository.findByFechaAndIsActiveTrue(LocalDate.parse(fechaStr)));
+        UUID plantelFiltro = userService.getEffectivePlantelId(user, null);
+        LocalDate fecha = LocalDate.parse(fechaStr);
+        if (plantelFiltro != null) {
+            return ResponseEntity.ok(suplenciaRepository.findByFechaAndIsActiveTrueAndPlantel(fecha, plantelFiltro));
+        }
+        return ResponseEntity.ok(suplenciaRepository.findByFechaAndIsActiveTrue(fecha));
     }
 
     @GetMapping("/{id}/sugerencias")
@@ -86,7 +94,8 @@ public class SuplenciaController {
         requireStaff(user);
         Suplencia suplencia = suplenciaRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Suplencia no encontrada"));
-        
+        verificarAccesoProfesor(user, suplencia.getProfesorAusenteId());
+
         // MVP: This would normally query AdesDisponibilidadDocente and cross-check with HorarioRepository 
         // for available teachers in that timeslot.
         // For now, returning an empty list as a stub for Phase B
@@ -114,5 +123,12 @@ public class SuplenciaController {
         if (nivelAcceso == null || nivelAcceso > 4) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Nivel de acceso insuficiente para esta operación");
         }
+    }
+
+    private void verificarAccesoProfesor(AdesUser user, UUID profesorId) {
+        List<UUID> plantelRows = jdbc.queryForList(
+                "SELECT plantel_id FROM ades_profesores WHERE id = ?", UUID.class, profesorId);
+        if (plantelRows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Profesor no encontrado");
+        userService.verificarPlantel(user, plantelRows.get(0), "El profesor no pertenece a su plantel");
     }
 }

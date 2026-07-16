@@ -111,6 +111,7 @@ ades:
   bff:
     api-prefix: /api/v1
   oidc:
+    client-id: ${OIDC_CLIENT_ID:ades-frontend}
     client-secret: ${OIDC_CLIENT_SECRET:}
   pii:
     # AES-256-GCM para curp/rfc/telefono/email_personal en ades_personas (LFPDPPP).

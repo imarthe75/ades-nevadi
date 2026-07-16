@@ -846,8 +846,11 @@ services:
       GF_SECURITY_ADMIN_USER:           ${GRAFANA_ADMIN_USER:-admin}
       GF_SECURITY_ADMIN_PASSWORD:       ${GRAFANA_ADMIN_PASSWORD}
       GF_USERS_ALLOW_SIGN_UP:           "false"
-      GF_AUTH_ANONYMOUS_ENABLED:        "true"
-      GF_AUTH_ANONYMOUS_ORG_ROLE:       "Viewer"
+      # Corregido 2026-07-16: con auth_basic ahora exigido en nginx (location / de
+      # monitor.ades.setag.mx) para todo el vhost, el acceso anónimo de Grafana ya
+      # no es necesario y quedaba como segunda vía de exposición sin credenciales
+      # si nginx se reconfigura mal en el futuro — defensa en profundidad.
+      GF_AUTH_ANONYMOUS_ENABLED:        "false"
       GF_SECURITY_ALLOW_EMBEDDING:      "true"
       GF_INSTALL_PLUGINS:               "grafana-piechart-panel"
       GF_PATHS_PROVISIONING:            /etc/grafana/provisioning
@@ -1110,7 +1113,10 @@ services:
   # Rutas: /api → ades-api, /auth → authentik, /bi → superset, / → frontend
   # ---------------------------------------------------------------------------
   nginx:
-    image: nginx:alpine
+    # Pineado 2026-07-16 (docs/hallazgos/2026-07-16_auditoria_gaps_no_revisados.md
+    # #3): era el único servicio del sistema aún en tag flotante — y es el punto de
+    # entrada TLS de todo el tráfico. nginx:alpine @ 2026-07-16.
+    image: nginx:alpine@sha256:7068961d45b07b2af510ac002e9daa63a1d3eba2111202d6768798690800fffd
     container_name: ades-nginx
     restart: unless-stopped
     volumes:

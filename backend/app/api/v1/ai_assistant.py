@@ -228,34 +228,48 @@ async def listar_alertas(
     grupo_id: uuid.UUID | None = None,
     atendida: bool = False,
     db: AsyncSession = Depends(get_db),
-    _user: dict = Depends(get_current_user),
+    user: AdesUser = Depends(get_ades_user),
 ):
     """Obtiene el listado de alertas académicas de estudiantes filtradas por grupo y estado de atención.
 
     Args:
-        plantel_id: Identificador opcional del plantel para filtrar.
+        plantel_id: Identificador opcional del plantel para filtrar (ignorado para
+            usuarios no-globales, ver hallazgo de seguridad abajo).
         grupo_id: Identificador opcional del grupo escolar.
         atendida: Estado de atención de la alerta (por defecto False).
         db: Sesión asíncrona de base de datos.
-        _user: Diccionario con la información del usuario autenticado.
+        user: Usuario ADES autenticado (resuelto con nivel_acceso/plantel_id).
 
     Returns:
         Una lista de objetos de tipo AlertaOut con las alertas coincidentes.
     """
+    # BOLA CRÍTICO corregido 2026-07-16 (docs/hallazgos/
+    # 2026-07-16_auditoria_gaps_no_revisados.md #2): plantel_id se aceptaba como
+    # parámetro pero nunca se usaba en el WHERE — cualquier autenticado (además,
+    # con get_current_user, sin resolver nivel_acceso/plantel_id) veía alertas de
+    # riesgo/abandono de los 3 planteles. Se fuerza el plantel efectivo del usuario
+    # (None solo para es_admin_global) vía JOIN a grupo→grado→plantel_id.
     from sqlalchemy import text
-    where = ["is_active = TRUE", "atendida = :atendida"]
+    where = ["ea.is_active = TRUE", "ea.atendida = :atendida"]
     params: dict = {"atendida": atendida}
 
     if grupo_id:
-        where.append("grupo_id = :gid")
+        where.append("ea.grupo_id = :gid")
         params["gid"] = str(grupo_id)
 
+    plantel_efectivo = plantel_id if user.es_admin_global else user.plantel_id
+    if plantel_efectivo:
+        where.append("gr.plantel_id = :pid")
+        params["pid"] = str(plantel_efectivo)
+
     sql = f"""
-        SELECT id, estudiante_id, grupo_id, tipo_alerta, nivel_riesgo, descripcion,
-               datos_calculo, generada_por, atendida, fecha_creacion::text
-        FROM ades_alertas_academicas
+        SELECT ea.id, ea.estudiante_id, ea.grupo_id, ea.tipo_alerta, ea.nivel_riesgo, ea.descripcion,
+               ea.datos_calculo, ea.generada_por, ea.atendida, ea.fecha_creacion::text
+        FROM ades_alertas_academicas ea
+        JOIN ades_grupos g ON g.id = ea.grupo_id
+        JOIN ades_grados gr ON gr.id = g.grado_id
         WHERE {' AND '.join(where)}
-        ORDER BY fecha_creacion DESC
+        ORDER BY ea.fecha_creacion DESC
         LIMIT 100
     """
     rows = (await db.execute(text(sql), params)).mappings().all()
@@ -265,25 +279,32 @@ async def listar_alertas(
 @router.get("/alertas/resumen")
 async def resumen_alertas(
     db: AsyncSession = Depends(get_db),
-    _user: dict = Depends(get_current_user),
+    user: AdesUser = Depends(get_ades_user),
 ):
     """Obtiene el conteo total de alertas no atendidas y activas agrupadas por tipo y nivel de riesgo.
 
     Args:
         db: Sesión asíncrona de base de datos.
-        _user: Información del usuario autenticado.
+        user: Usuario ADES autenticado (resuelto con nivel_acceso/plantel_id).
 
     Returns:
         Una lista de diccionarios que representan los conteos por grupo de tipo/riesgo.
     """
     from sqlalchemy import text
-    rows = (await db.execute(text("""
-        SELECT tipo_alerta, nivel_riesgo, COUNT(*) AS count
-          FROM ades_alertas_academicas
-         WHERE atendida = FALSE AND is_active = TRUE
-         GROUP BY tipo_alerta, nivel_riesgo
-         ORDER BY tipo_alerta, nivel_riesgo
-    """))).mappings().all()
+    where = "ea.atendida = FALSE AND ea.is_active = TRUE"
+    params: dict = {}
+    if not user.es_admin_global and user.plantel_id:
+        where += " AND gr.plantel_id = :pid"
+        params["pid"] = str(user.plantel_id)
+    rows = (await db.execute(text(f"""
+        SELECT ea.tipo_alerta, ea.nivel_riesgo, COUNT(*) AS count
+          FROM ades_alertas_academicas ea
+          JOIN ades_grupos g ON g.id = ea.grupo_id
+          JOIN ades_grados gr ON gr.id = g.grado_id
+         WHERE {where}
+         GROUP BY ea.tipo_alerta, ea.nivel_riesgo
+         ORDER BY ea.tipo_alerta, ea.nivel_riesgo
+    """), params)).mappings().all()
     return [dict(r) for r in rows]
 
 
@@ -292,7 +313,7 @@ async def scan_alertas_grupo(
     grupo_id: uuid.UUID,
     ciclo_id: uuid.UUID | None = None,
     db: AsyncSession = Depends(get_db),
-    _user: dict = Depends(get_current_user),
+    user: AdesUser = Depends(get_ades_user),
 ):
     """Ejecuta un escaneo automático sobre un grupo escolar para detectar y generar alertas académicas.
 
@@ -304,15 +325,32 @@ async def scan_alertas_grupo(
         grupo_id: Identificador del grupo a escanear.
         ciclo_id: Identificador del ciclo escolar (usa el vigente por defecto).
         db: Sesión asíncrona de base de datos.
-        _user: Información del usuario autenticado.
+        user: Usuario ADES autenticado (resuelto con nivel_acceso/plantel_id).
 
     Returns:
         Un resumen indicando el número de alertas generadas y alumnos analizados.
 
     Raises:
-        HTTPException: Si no se encuentra un ciclo escolar vigente.
+        HTTPException: Si no se encuentra un ciclo escolar vigente o el grupo no
+            pertenece al plantel del usuario.
     """
     from sqlalchemy import text
+
+    # BOLA fix (2026-07-16): sin este chequeo, cualquier autenticado podía disparar
+    # el escaneo (y la escritura de alertas resultante) sobre un grupo de OTRO plantel.
+    if not user.es_admin_global and user.plantel_id:
+        plantel_grupo = (await db.execute(
+            text("""
+                SELECT gr.plantel_id FROM ades_grupos g
+                JOIN ades_grados gr ON gr.id = g.grado_id
+                WHERE g.id = :gid
+            """),
+            {"gid": str(grupo_id)},
+        )).scalar_one_or_none()
+        if plantel_grupo is None:
+            raise HTTPException(status_code=404, detail="Grupo no encontrado")
+        if str(plantel_grupo) != str(user.plantel_id):
+            raise HTTPException(status_code=403, detail="El grupo no pertenece a su plantel")
 
     # Ciclo vigente si no se especificó
     if not ciclo_id:

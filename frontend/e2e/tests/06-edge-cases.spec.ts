@@ -1,4 +1,10 @@
 import { test, expect, Browser, BrowserContext, Page } from '@playwright/test';
+import { getRealToken, CUENTAS_REALES } from '../fixtures/real-tokens';
+
+// IDs reales de BD (2026-07-16) para las pruebas B1/B3 de aislamiento cross-plantel:
+// alumno y grupo de Tenancingo, distinto del plantel de DOCENTE_METEPEC/COORDINADOR_METEPEC.
+const ALUMNO_OTRO_PLANTEL = 'abb500ad-eaf2-405d-9819-212ae9c16a39'; // Tenancingo
+const GRUPO_OTRO_PLANTEL = '019f4e48-b0c6-7bdb-b016-d802d765775a';  // Tenancingo
 
 /**
  * SEMANA 5 — Edge Cases E2E Suite (25 tests)
@@ -104,39 +110,57 @@ test.describe('06-edge-cases — Concurrent, RBAC, Network, Timeouts', () => {
   // SUITE B: RBAC Boundary Violations
   // ============================================================================
 
-  test('B1: DOCENTE cannot access PLANTEL_2 alumno', async ({ request, page }) => {
-    const alumnoId = '550e8400-e29b-41d4-a716-446655440002'; // Plantel 2
-    const token = 'docente-plantel-1-token';
+  // BOLA/BFLA real fix (2026-07-16, docs/hallazgos/
+  // 2026-07-16_auditoria_gaps_no_revisados.md #4): B1/B2/B3 usaban tokens literales
+  // falsos ('docente-plantel-1-token', etc.) — nunca ejercitaban el camino real de
+  // autorización (probablemente 401, no 403, si el BFF llegaba a evaluarlos). Ahora
+  // usan JWT reales de Authentik (cuentas test.* ya existentes, ver real-tokens.ts)
+  // contra IDs reales de otro plantel (Tenancingo) y los endpoints reales del BFF
+  // (no `/api/v1/usuarios` POST ni `/roster`, que no existen — 404 siempre).
 
-    const response = await request.get(`/api/v1/alumnos/${alumnoId}`, {
+  test('B1: DOCENTE cannot access otro-plantel alumno', async ({ request }) => {
+    const token = getRealToken(CUENTAS_REALES.DOCENTE_METEPEC);
+    test.skip(!token, 'No se pudo obtener token real de Authentik para DOCENTE_METEPEC');
+
+    const response = await request.get(`/api/v1/alumnos/${ALUMNO_OTRO_PLANTEL}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
 
-    // Assert: 403 Forbidden
+    // Assert: 403 Forbidden (verificarPlantel en AlumnoController)
     expect(response.status()).toBe(403);
   });
 
   test('B2: COORDINADOR cannot create USER (admin only)', async ({ request }) => {
+    const token = getRealToken(CUENTAS_REALES.COORDINADOR_METEPEC);
+    test.skip(!token, 'No se pudo obtener token real de Authentik para COORDINADOR_METEPEC');
+
     const newUser = {
-      email: 'test@example.com',
-      rol: 'DOCENTE',
-      nombre: 'Test User'
+      email: 'e2e-test-no-crear@institutonevadi.edu.mx',
+      rolId: '00000000-0000-0000-0000-000000000000',
+      nombre: 'E2E Test',
+      apellidoPaterno: 'NoDebeCrearse',
+      curp: 'EEEE000000HDFRRR00',
     };
 
-    const response = await request.post(`/api/v1/usuarios`, {
+    // Endpoint real (AdminController.crearUsuario) — /api/v1/usuarios (UsuariosController)
+    // solo expone GET /mi-perfil, nunca existió un POST ahí (siempre 404, no 403).
+    const response = await request.post(`/api/v1/admin/usuarios`, {
       data: newUser,
-      headers: { 'Authorization': `Bearer coordinador-token` }
+      headers: { 'Authorization': `Bearer ${token}` }
     });
 
-    // Assert: 403 Forbidden
+    // Assert: 403 Forbidden (permisoAdmin() exige nivelAcceso <=1; COORDINADOR=3)
     expect(response.status()).toBe(403);
   });
 
-  test('B3: Cross-plantel GRUPO access blocked', async ({ request }) => {
-    const grupoId = '550e8400-e29b-41d4-a716-446655440003'; // Plantel 2
-    const token = 'docente-plantel-1-token';
+  test('B3: Cross-plantel GRADE-ANALYTICS access blocked', async ({ request }) => {
+    const token = getRealToken(CUENTAS_REALES.COORDINADOR_METEPEC);
+    test.skip(!token, 'No se pudo obtener token real de Authentik para COORDINADOR_METEPEC');
 
-    const response = await request.get(`/api/v1/grupos/${grupoId}/roster`, {
+    // /grupos/{id}/roster nunca existió en el BFF (siempre 404) — se usa el
+    // endpoint real corregido hoy (GradeAnalyticsController#tendenciasGrupo) que
+    // sí valida plantel vía verificarAccesoGrupo().
+    const response = await request.get(`/api/v1/grade-analytics/tendencias/${GRUPO_OTRO_PLANTEL}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
 

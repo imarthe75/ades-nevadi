@@ -14,6 +14,190 @@ Este documento es el diario de vida y bitácora del agente. Debe ser leído en e
 
 ## 📅 Bitácora
 
+## Sesión 2026-07-16 (cont. 2) — Remediación completa de los 25 hallazgos del reporte anterior ✅
+
+Encargo del usuario tras el reporte de auditoría de la sesión previa ("continúa revisando hasta
+finalizar el proceso planificado"): corregir, uno por uno, los 25 puntos de la sección 7 de
+`docs/hallazgos/2026-07-16_auditoria_gaps_no_revisados.md`, en el orden de prioridad ahí
+recomendado. Los 25 quedaron corregidos y verificados. **No se desplegó nada a producción** —
+todo el trabajo es código/config/migración de BD verificado localmente; el redeploy de
+ades-bff/ades-api/nginx/ades-frontend queda pendiente de confirmación explícita del usuario.
+
+### 🛠️ 14 controllers Spring corregidos (patrón `AdesUserService#verificarPlantel`, mismo de la ronda 07-16 anterior):
+`ConductaController` (13 endpoints — el más severo, datos disciplinarios de menores),
+`GradeAnalyticsController` (6 endpoints, no tenía NI nivelAcceso ni plantel), `DireccionesController`
+(9 endpoints, resolución de plantel polimórfica vía `ades_estudiantes`/`ades_profesores`/
+`ades_personal_administrativo`/`ades_contactos_familiares`), `HorarioIndisponibilidadController`,
+`HorarioFranjaController` (incl. mass-assignment de `plantelId` en el body), `SuplenciaController`
+(`listarSuplencias` seguía sin filtrar tras el fix de 07-15 — solo se había agregado `requireStaff`,
+no el filtro real; se agregó `findByFechaAndIsActiveTrueAndPlantel` nativo), `CierreCicloController`
+(`obtenerIndicadores`), `ReinscripcionController` (hallazgo colateral: `getEstado()` tenía un umbral
+`> 3` que nunca podía dispararse porque el propio gate del controller ya exige `<=3` — código muerto,
+corregido a `> 0`; `aprobarMasivo` se restringió a ADMIN_GLOBAL únicamente porque dispara
+`cerrar_ciclo_y_promover()`, una función de BD que NO es plantel-consciente por diseño — cierra
+`es_vigente` del ciclo completo institucional, no tiene sentido intentar "acotarla por plantel"),
+`ProcesosEscolaresController` (`resolverAdmision`/`registrarBaja`/`reactivarEstudiante`),
+`PortalAdminController` (convocatorias/postulaciones — `plantel_id IS NULL` = convocatoria global,
+por diseño, se mantiene visible a todo staff), `EncuestaController`, `ForoController` (incl.
+`moderar()` resolviendo el foro vía `MensajeForoRepository`), `GrupoController`,
+`AdminController.crearUsuario()` (asimetría con `actualizarUsuario`, que sí tenía el chequeo).
+
+### 🛠️ FastAPI (`backend/app/api/v1/`) — 4 endpoints, nunca auditado hasta ayer:
+- **`/chatbot/sql`** (crítico): el aislamiento por plantel era solo un hint de texto al LLM. Se
+  agregó `SET TRANSACTION READ ONLY` antes de ejecutar el SQL generado (garantía real de Postgres,
+  no evadible por ofuscación) + blacklist de palabras clave + rechazo de `;` (defensa superficial).
+  El filtro POR_PLANTEL/POR_ALUMNO real vía RLS nativo de Postgres queda como mejora futura
+  documentada in-line — construir políticas RLS reales es un proyecto aparte, no un fix puntual.
+- **`/ai/alertas`, `/ai/alertas/resumen`, `/ai/alertas/scan/{grupo_id}`** (crítico): `plantel_id`
+  era un parámetro aceptado pero nunca usado en el `WHERE`; cambiado `get_current_user` →
+  `get_ades_user` + JOIN a `ades_grupos`/`ades_grados` para forzar el plantel efectivo.
+- **`/certificados`** (alto): sin RBAC ni scoping; ahora exige `estudiante_id` para no-staff y
+  valida su plantel, mismo criterio que `CertificadosController.java` (Spring).
+- **`/conducta/{id}/acta-pdf`** (alto): cero chequeos; ahora valida plantel vía `e.plantel_id`.
+
+### 🛠️ Infraestructura y supply chain:
+- **Grafana sin auth** — `auth_basic` agregado a `location /` de `monitor.ades.setag.mx`
+  (reutiliza el mismo `.htpasswd` que ya protegía Flower) + `GF_AUTH_ANONYMOUS_ENABLED: false`
+  como defensa en profundidad. Nota: el iframe de `monitor.component.ts` ahora mostrará el prompt
+  nativo de Basic Auth la primera vez — degradación de UX aceptada a cambio de cerrar el hueco;
+  SSO real vía Authentik (Grafana soporta OAuth genérico) queda como mejora futura.
+- **JWT sin validar `aud`** — `SecurityConfig.java`: `DelegatingOAuth2TokenValidator` con
+  `JwtTimestampValidator` + validador de audiencia custom contra `ades.oidc.client-id`
+  (`OIDC_CLIENT_ID=ades-frontend`, ya inyectado en `ades-bff` — sin cambios de `.env`).
+- **`xlsx` con 2 CVE HIGH sin fix en npm** — SheetJS dejó de publicar parches al registro npm;
+  remedio oficial: instalar desde su propio CDN. `package.json`: `"xlsx":
+  "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"` (mismo API, sin cambios de código;
+  verificado con `tsc --noEmit` limpio). De paso, `npm audit fix` resolvió 2 CVE adicionales de
+  devDependencies (`@babel/core`, `esbuild`) que aparecieron en el audit completo pero no en el
+  `--omit=dev` original. `quill` (XSS, requiere bump breaking) y `undici` (transitivo de
+  `@angular/build`, sin fix no-breaking disponible) quedan pendientes — documentados, no forzados.
+- **Cobertura de tests medida por primera vez**: JaCoCo agregado a `pom.xml` →
+  **6.2% de instrucciones / 6.9% de líneas** cubiertas en backend (`mvn test` genera
+  `target/site/jacoco/index.html`). `@vitest/coverage-v8` instalado en frontend — el tooling ya
+  funciona (antes fallaba con "package required but not found"), pero el proyecto solo tiene 2
+  tests unitarios en total, así que un % ahí no es un dato significativo todavía.
+- **Imágenes sin pinear**: `nginx:alpine` (docker-compose.yml, el único punto de entrada TLS) y
+  `node:20-slim` (base del Dockerfile de `ades-h5p`) pineadas por digest SHA-256.
+- **Migración 150** (`ades_log_autenticacion`): agregadas las 5 columnas de auditoría faltantes
+  (Regla #3) + `audit_biu` (Regla #4), backfill desde `fecha_login` existente. Aplicada en vivo y
+  verificada: `PENDIENTE_AIUD` (estado correcto, igual que las otras 180 tablas — `audit_aiud` se
+  difiere al go-live). Único hueco real que quedaba del censo de 184 tablas de la sesión anterior.
+- **Gate cosmético de CI**: `security-audit.yml` — el step "OWASP Dependency Check" tenía `|| true`
+  en toda la cadena de comandos + `continue-on-error: true`, nunca podía fallar el build sin
+  importar cuántas vulnerabilidades encontrara. Se quitó el `|| true` del escaneo (se mantiene solo
+  en la descarga, un fallo de red no es evidencia de vulnerabilidad real) y se agregó lógica real
+  de `sys.exit(1)` en HIGH/CRITICAL. Se agregó además un step nuevo `npm audit --omit=dev
+  --audit-level=high` (bloqueante de verdad, sin parsing custom — el exit code de npm ya lo es).
+
+### 🛠️ E2E — cobertura "fantasma" corregida con autenticación real:
+Hallazgo previo al fix: **ninguna** de las cuentas de prueba de `fixtures/users.ts`
+(`docente.primaria@test.ades`, etc.) existe en el Authentik real — son datos ficticios que nunca
+se aprovisionaron. Se encontraron en su lugar cuentas `test.*@institutonevadi.edu.mx` **reales y
+activas** en Authentik (`test.docente`, `test.coordinador_academico`, `test.admin_plantel`, más
+`admin` ya usado por `global-setup.ts`). Nuevo helper `e2e/fixtures/real-tokens.ts` (mismo
+mecanismo `IDToken.new()` vía `ak shell` que `global-setup.ts`, parametrizado por email) —
+deliberadamente no crea cuentas nuevas en Authentik de producción, decisión de alcance explícita.
+
+- **B1/B2/B3** de `06-edge-cases.spec.ts` (los únicos 3 tests de esa suite que son de seguridad
+  real, el resto — Suites A/C/D/E/F/G, 20 tests más — sigue siendo scaffold con selectores/IDs
+  ficticios, fuera de alcance de este fix) reescritos con tokens reales + IDs reales de BD
+  (alumno/grupo de Tenancingo) contra los endpoints reales del BFF (`/api/v1/usuarios` POST y
+  `/grupos/{id}/roster` **no existen** — siempre 404, nunca 403; se corrigieron a
+  `/api/v1/admin/usuarios` y `/api/v1/grade-analytics/tendencias/{id}`).
+- **Verificado end-to-end contra producción viva** (solo lectura, sin desplegar mi código):
+  B1 → 403 ✅ (fix de sesión previa, ya en prod), B2 → 403 ✅ (ya en prod), B3 → 200 (esperado:
+  el fix de `GradeAnalyticsController` de hoy aún no está desplegado — confirma que el test
+  detecta correctamente el hueco y validará el fix una vez se despliegue).
+- `paginacion-tareas.spec.ts`: `authToken` nunca asignada + 4 IDs `mock-*` reemplazados por token
+  real (ADMIN_GLOBAL) + grupo/materia/tarea reales con datos seeded.
+
+### ✅ Verificación:
+- `mvn compile` limpio en cada punto de control intermedio.
+- **`mvn test`: 555+/555+ en verde** (corrida completa final, incluyendo el validador de `aud`).
+- `mvn package -DskipTests`: jar generado sin error (`ades-bff-0.1.0.jar`, 129 MB).
+- `ng build --configuration production`: bundle generado sin error (solo 2 warnings preexistentes
+  no relacionados — directiva no usada, presupuesto de bundle — ninguno introducido hoy).
+- `tsc --noEmit` limpio sobre los 3 archivos TS tocados (`real-tokens.ts` + 2 specs) y sobre el
+  árbol completo de la app tras el bump de `xlsx`.
+- `docker compose config --quiet` limpio tras los cambios de `docker-compose.yml`.
+- YAML de `security-audit.yml` validado con `pyyaml`.
+- Migración 150 aplicada en vivo contra la BD de producción y verificada con
+  `auditoria.reporte_cobertura()`.
+
+### 🚀 Próximos Pasos (Siguiente Sesión):
+- [ ] **Decisión del usuario: ¿desplegar hoy?** Todo el código está listo y verificado, pero
+  ades-bff/ades-api/nginx/ades-frontend siguen corriendo las versiones de ayer. Redeploy requiere
+  confirmación explícita antes de reconstruir/reiniciar contenedores de producción.
+- [ ] `git add` + commit — nada de esta sesión se comiteó (regla del proyecto: solo si el usuario
+  lo pide explícitamente).
+- [ ] Decidir reemplazo de `quill` (XSS, requiere bump breaking a 2.0.2) y evaluar si `undici`
+  (transitivo de `@angular/build`) tiene mitigación sin esperar upstream.
+- [ ] Suites A/C/D/E/F/G de `06-edge-cases.spec.ts` (20 tests) siguen siendo scaffold con
+  selectores/IDs ficticios — mismo patrón que B1/B2/B3 antes del fix de hoy, pero no son tests de
+  seguridad (concurrencia, red, validación de UI, rendimiento) así que quedaron fuera del alcance
+  de esta sesión.
+- [ ] Migrar el aislamiento POR_PLANTEL/POR_ALUMNO de `/chatbot/sql` de hint-de-prompt a Row-Level
+  Security nativo de Postgres — la mitigación de hoy (READ ONLY + blacklist) es real pero no
+  reemplaza RLS de verdad; es un proyecto de varias políticas, no un fix puntual.
+- [ ] Se detectó un cambio no relacionado en `frontend/src/app/features/cierre-ciclo/
+  cierre-ciclo.component.ts` (reactividad al plantel del top bar) que no forma parte de esta
+  sesión — parece trabajo en paralelo del usuario en el editor; no se tocó.
+
+## Sesión 2026-07-16 (cont.) — Auditoría de huecos no revisados (5 investigaciones paralelas) — solo análisis, sin corregir 🔍
+
+Encargo del usuario: buscar específicamente lo que quedó FUERA de alcance de las auditorías
+previas (no repetir lo ya cubierto), para seguir avanzando hacia >90% de fiabilidad. Se lanzaron
+5 investigaciones paralelas con verificación en vivo (lectura completa de código, SQL real contra
+la BD de producción, `npm audit` real, inspección de `nginx.conf`). Reporte completo:
+`docs/hallazgos/2026-07-16_auditoria_gaps_no_revisados.md`. **No se corrigió nada en esta
+sesión** — es diagnóstico, la remediación queda pendiente de decisión del usuario.
+
+**Hallazgo principal: la "cola larga" BOLA/BFLA que el banner de este archivo da por cerrada NO
+lo está.** El barrido de los 41 de 83 controllers Spring que no usan `verificarPlantel` encontró
+**14 controllers adicionales con huecos reales** (`ConductaController` el más severo — 13
+endpoints sin chequeo de plantel sobre datos disciplinarios de menores, pese a estar marcado
+"corregido" desde 07-04/06; también `GradeAnalyticsController`, `DireccionesController`,
+`HorarioIndisponibilidadController`, `SuplenciaController`, `ReinscripcionController`,
+`CierreCicloController`, `ProcesosEscolaresController`, `PortalAdminController`,
+`EncuestaController`, `ForoController`, `GrupoController`, `HorarioFranjaController`,
+`AdminController.crearUsuario()`). Patrón repetido: el endpoint de listado queda bien scopeado,
+el de mutación/agregación al lado no.
+
+**El backend FastAPI (`backend/app/`) nunca había tenido una auditoría de seguridad dedicada —
+se encontraron 2 huecos CRÍTICOS:** `/chatbot/sql` aísla por plantel solo con un hint de texto en
+el prompt del LLM (bypasseable con una CTE disfrazada de SELECT), expuesto directo por nginx sin
+pasar por el BFF; `/ai/alertas` acepta `plantel_id` pero nunca lo usa en el WHERE — cualquier
+autenticado ve alertas de riesgo de los 3 planteles. `/conducta/*/acta-pdf` falla en cadena en
+FastAPI Y Spring a la vez. `GET /certificados` sin RBAC ni scoping.
+
+**Infraestructura — 1 hallazgo crítico nuevo:** Grafana en `monitor.ades.setag.mx` accesible SIN
+autenticación (anónimo Viewer habilitado + sin `auth_basic` en nginx, pese a que el comentario
+del propio archivo dice "solo admin, acceso VPN/IP"). El resto de infra se confirmó en buen
+estado: CSP en 7/7 vhosts, 11 imágenes pineadas por digest, `check-api-contracts.js` bloqueante
+en CI. Pero el gate de supply-chain (OWASP Dependency Check) es cosmético (`|| true` +
+`continue-on-error` en toda la cadena) y `npm audit` real encontró `xlsx` con 2 CVE HIGH sin fix
+disponible. JWT del BFF Spring no valida `aud` (sí lo valida FastAPI).
+
+**Testing — cobertura "fantasma" confirmada:** solo 6/21 specs E2E corren en CI. Los 2 specs que
+deberían probar exactamente los 403 cross-plantel (`06-edge-cases.spec.ts`,
+`paginacion-tareas.spec.ts`, 27 tests) usan tokens falsos/`undefined` — ninguno de los fixes BOLA
+de las últimas 2 sesiones (ni los 14 nuevos de hoy, una vez corregidos) tiene protección de
+regresión E2E real. Cobertura de tests no es solo "nunca medida": es **no medible hoy** sin
+instalar tooling (backend sin plugin JaCoCo, frontend sin `@vitest/coverage-v8`).
+
+**BD:** censo completo de 184 tablas `ades_*` — 180 correctas, 3 excepciones legítimas
+(bitácoras internas del propio sistema de auditoría), 1 gap real persistente
+(`ades_log_autenticacion`, ya conocido desde 07-15). Cadena de hash del ledger íntegra
+(`fn_verificar_cadena()` limpio).
+
+### 🚀 Próximos Pasos (orden de prioridad recomendado en el reporte):
+- [ ] Agregar `auth_basic` a la ruta `/` de Grafana en `nginx.conf` (mismo patrón que `/flower/`) — cambio de bajo riesgo, no toca firewall/puerto 22.
+- [ ] Aplicar `verificarPlantel` a los 14 controllers Spring listados arriba, empezando por `ConductaController` y `GradeAnalyticsController`.
+- [ ] Corregir `/chatbot/sql` (RLS por prompt → filtro real) y `/ai/alertas*` (usar el `plantel_id` que ya se recibe) en FastAPI.
+- [ ] Conectar `06-edge-cases.spec.ts`/`paginacion-tareas.spec.ts` a autenticación OIDC real.
+- [ ] Decidir reemplazo de `xlsx` (CVE sin fix), agregar validación de `aud` al `JwtDecoder` de Spring, instalar JaCoCo + `@vitest/coverage-v8` para medir cobertura real por primera vez.
+- [ ] Pinear `nginx:alpine`/`ades-h5p:latest`, corregir `ades_log_autenticacion`, quitar el `|| true` cosmético del step OWASP en `security-audit.yml`.
+
 ## Sesión 2026-07-16 — Plan de remediación BOLA/BFLA de `2026-07-16_reporte_fiabilidad_3dias_y_plan.md` (Día 1-5) ✅
 
 Ejecutado el plan completo del reporte de fiabilidad de 3 días: cierre de la cola larga de huecos

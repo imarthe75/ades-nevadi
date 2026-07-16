@@ -179,14 +179,36 @@ async def listar_certificados(
     tipo_certificado: Optional[str]  = None,
     limit: int = 50,
     db: AsyncSession = Depends(get_db),
-    _user: dict = Depends(get_current_user),
+    user: AdesUser = Depends(get_ades_user),
 ):
+    # BOLA ALTO corregido 2026-07-16 (docs/hallazgos/
+    # 2026-07-16_auditoria_gaps_no_revisados.md #2): usaba get_current_user (solo
+    # verifica el JWT, sin resolver nivel_acceso/plantel_id) y no tenía RBAC ni
+    # scoping — cualquier autenticado (incl. alumno/padre) listaba folio/promedio/
+    # estado de los últimos 50 certificados de CUALQUIER alumno de CUALQUIER
+    # plantel. Mismo criterio que CertificadosController.java (Spring, ya
+    # corregido): personal (nivel_acceso<=4) mantiene alcance de su plantel;
+    # alumno/padre debe especificar estudiante_id, verificado contra su plantel.
+    if user.nivel_acceso > 4 and not estudiante_id:
+        raise HTTPException(status_code=403, detail="Debe especificar estudiante_id")
+
     filters = ["c.is_active = TRUE"]
     params: dict = {"limit": limit}
 
     if estudiante_id:
+        plantel_alumno = (await db.execute(
+            text("SELECT plantel_id FROM ades_estudiantes WHERE id = :eid"),
+            {"eid": str(estudiante_id)},
+        )).scalar_one_or_none()
+        if plantel_alumno is None:
+            raise HTTPException(status_code=404, detail="Alumno no encontrado")
+        if not user.es_admin_global and user.plantel_id and str(plantel_alumno) != str(user.plantel_id):
+            raise HTTPException(status_code=403, detail="El alumno no pertenece a su plantel")
         filters.append("c.estudiante_id = :est_id::uuid")
         params["est_id"] = str(estudiante_id)
+    elif not user.es_admin_global and user.plantel_id:
+        filters.append("est.plantel_id = :pid::uuid")
+        params["pid"] = str(user.plantel_id)
     if tipo_certificado:
         filters.append("c.tipo_certificado = :tipo")
         params["tipo"] = tipo_certificado
