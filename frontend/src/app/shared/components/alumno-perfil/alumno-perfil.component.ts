@@ -19,7 +19,8 @@ import { InputNumberModule } from 'primeng/inputnumber';
 import { TextareaModule } from 'primeng/textarea';
 import { TagModule } from 'primeng/tag';
 import { ToastModule } from 'primeng/toast';
-import { MessageService } from 'primeng/api';
+import { MessageService, ConfirmationService } from 'primeng/api';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ApiService } from '../../../core/services/api.service';
 import { AdesFormatDirective } from '../../directives/ades-format.directive';
 import { DomicilioComponent } from '../domicilio/domicilio.component';
@@ -68,10 +69,12 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
     InputNumberModule, TextareaModule,
     AdesFormatDirective,
     DomicilioComponent,
+    ConfirmDialogModule,
   ],
-  providers: [MessageService],
+  providers: [MessageService, ConfirmationService],
   template: `
     <p-toast />
+    <p-confirmDialog />
 
     <p-drawer [(visible)]="visible" position="right"
       [style]="{width:'560px'}" [header]="alumno?.persona?.nombre_completo ?? 'Perfil del Alumno'"
@@ -580,6 +583,7 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
 export class AlumnoPerfilComponent implements OnInit, OnChanges, OnDestroy {
   private readonly api = inject(ApiService);
   private readonly msg = inject(MessageService);
+  private readonly confirm = inject(ConfirmationService);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly destroy$ = new Subject<void>();
 
@@ -1073,9 +1077,17 @@ export class AlumnoPerfilComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   eliminarContacto(id: string): void {
-    this.api.delete(`/contactos/${id}`)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(() => this.cargarContactos());
+    const nombre = this.contactos().find(c => c.id === id)?.nombre_completo ?? 'este contacto';
+    this.confirm.confirm({
+      message: `¿Eliminar contacto "${nombre}"?`,
+      header: 'Confirmar eliminación',
+      icon: 'pi pi-exclamation-triangle',
+      accept: () => {
+        this.api.delete(`/contactos/${id}`)
+          .pipe(takeUntil(this.destroy$))
+          .subscribe(() => this.cargarContactos());
+      },
+    });
   }
 
   onCerrar(): void {

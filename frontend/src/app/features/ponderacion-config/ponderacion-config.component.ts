@@ -9,6 +9,8 @@ import { InputNumberModule } from 'primeng/inputnumber';
 import { TagModule } from 'primeng/tag';
 import { DialogModule } from 'primeng/dialog';
 import { DatePickerModule } from 'primeng/datepicker';
+import { ConfirmationService } from 'primeng/api';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ApiService } from '../../core/services/api.service';
 import { ApexNotificationService } from 'apex-component-library';
 import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
@@ -35,8 +37,10 @@ interface ItemRow    { tipo_item: string; nombre_personalizado: string | null; p
   imports: [
     AdesFormatDirective,CommonModule, FormsModule, ButtonModule, SelectModule,
             InputTextModule, InputNumberModule, TagModule, DialogModule, DatePickerModule,
-            InteractiveGridComponent],
+            InteractiveGridComponent, ConfirmDialogModule],
+  providers: [ConfirmationService],
   template: `
+<p-confirmDialog />
 <div class="page-header">
   <div class="page-title"><i class="pi pi-sliders-h"></i> Configurar Ponderaciones</div>
   <div class="page-actions">
@@ -159,6 +163,7 @@ export class PonderacionConfigComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private api = inject(ApiService);
   private readonly notify = inject(ApexNotificationService);
+  private readonly confirm = inject(ConfirmationService);
 
   niveles  = signal<NivelOpt[]>([]);
   esquemas = signal<EsquemaRow[]>([]);
@@ -278,12 +283,20 @@ export class PonderacionConfigComponent implements OnInit, OnDestroy {
   }
 
   desactivarEsquema(id: string) {
-    this.api.delete(`/esquemas-ponderacion/${id}`).pipe(takeUntil(this.destroy$)).subscribe({
-      next: () => {
-        this.notify.info('Desactivado');
-        this.cargarEsquemas();
+    const nombre = this.esquemas().find(e => e.id === id)?.nombre ?? 'este esquema';
+    this.confirm.confirm({
+      message: `¿Desactivar el esquema de ponderación "${nombre}"?`,
+      header: 'Confirmar eliminación',
+      icon: 'pi pi-exclamation-triangle',
+      accept: () => {
+        this.api.delete(`/esquemas-ponderacion/${id}`).pipe(takeUntil(this.destroy$)).subscribe({
+          next: () => {
+            this.notify.info('Desactivado');
+            this.cargarEsquemas();
+          },
+          error: (e: any) => this.notify.error('Error', e?.error?.detail ?? 'No se pudo desactivar el esquema'),
+        });
       },
-      error: (e: any) => this.notify.error('Error', e?.error?.detail ?? 'No se pudo desactivar el esquema'),
     });
   }
 

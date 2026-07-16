@@ -8,6 +8,8 @@ import { AutoCompleteModule } from 'primeng/autocomplete';
 import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
 import { DividerModule } from 'primeng/divider';
+import { ConfirmationService } from 'primeng/api';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
 import { ApexNotificationService } from 'apex-component-library';
@@ -52,9 +54,12 @@ const TIPO_LABELS: Record<string, string> = {
   imports: [
     CommonModule, FormsModule, ButtonModule, SelectModule, AutoCompleteModule,
     TagModule, TooltipModule, DividerModule, InteractiveGridComponent,
+    ConfirmDialogModule,
   ],
+  providers: [ConfirmationService],
   template: `
     <div class="apex-page">
+      <p-confirmDialog />
       <div class="apex-page-header">
         <div>
           <h2 class="apex-title">Materias Optativas</h2>
@@ -154,6 +159,7 @@ export class OptativasComponent implements OnInit, OnDestroy {
   private readonly api    = inject(ApiService);
   private readonly notify = inject(ApexNotificationService);
   readonly ctx            = inject(ContextService);
+  private readonly confirm = inject(ConfirmationService);
 
   estudiantesSugg    = signal<any[]>([]);
   alumnoSeleccionadoObj: any = null;
@@ -307,13 +313,20 @@ export class OptativasComponent implements OnInit, OnDestroy {
   }
 
   darDeBaja(row: any): void {
-    this.api.delete(`/procesos/optativas/${row.id}`).pipe(takeUntil(this.destroy$)).subscribe({
-      next: () => {
-        this.notify.success('Baja registrada', `${row.nombre_materia} eliminada de las optativas`);
-        this.cargarInscritas();
-      },
-      error: (e: any) => {
-        this.notify.error('Error', e?.error?.message ?? 'No se pudo dar de baja la optativa');
+    this.confirm.confirm({
+      message: `¿Dar de baja la optativa "${row.nombre_materia}"?`,
+      header: 'Confirmar eliminación',
+      icon: 'pi pi-exclamation-triangle',
+      accept: () => {
+        this.api.delete(`/procesos/optativas/${row.id}`).pipe(takeUntil(this.destroy$)).subscribe({
+          next: () => {
+            this.notify.success('Baja registrada', `${row.nombre_materia} eliminada de las optativas`);
+            this.cargarInscritas();
+          },
+          error: (e: any) => {
+            this.notify.error('Error', e?.error?.message ?? 'No se pudo dar de baja la optativa');
+          },
+        });
       },
     });
   }

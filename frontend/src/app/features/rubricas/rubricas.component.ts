@@ -12,6 +12,8 @@ import { TextareaModule } from 'primeng/textarea';
 import { TooltipModule } from 'primeng/tooltip';
 import { TagModule } from 'primeng/tag';
 import { DividerModule } from 'primeng/divider';
+import { ConfirmationService } from 'primeng/api';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
 
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
@@ -61,8 +63,11 @@ const NIVEL_COLORS = ['var(--red-400)', 'var(--yellow-400)', 'var(--teal-400)', 
     ButtonModule, TableModule, DialogModule, SelectModule,
     InputTextModule, InputNumberModule, TextareaModule,
     TooltipModule, TagModule, DividerModule,
+    ConfirmDialogModule,
   ],
+  providers: [ConfirmationService],
   template: `
+    <p-confirmDialog />
     <div class="page-header">
       <div>
         <h2 class="page-title">Rúbricas de Evaluación</h2>
@@ -329,6 +334,7 @@ export class RubricasComponent implements OnInit, OnDestroy {
   private readonly api = inject(ApiService);
   readonly ctx = inject(ContextService);
   private readonly notify = inject(ApexNotificationService);
+  private readonly confirm = inject(ConfirmationService);
 
   rubricas = signal<Rubrica[]>([]);
   materias = signal<{ label: string; value: string }[]>([]);
@@ -438,21 +444,36 @@ export class RubricasComponent implements OnInit, OnDestroy {
 
   eliminarCriterio(c: Criterio): void {
     if (!this.selRubrica) return;
-    this.api.delete(`/rubricas/${this.selRubrica.id}/criterios/${c.id}`).pipe(takeUntil(this.destroy$)).subscribe({
-      next: () => this.seleccionar(this.selRubrica!),
-      error: e => this.notify.error('Error', e?.error?.detail ?? 'No se pudo eliminar el criterio'),
+    this.confirm.confirm({
+      message: `¿Eliminar el criterio "${c.nombre_criterio}"?`,
+      header: 'Confirmar eliminación',
+      icon: 'pi pi-exclamation-triangle',
+      accept: () => {
+        this.api.delete(`/rubricas/${this.selRubrica!.id}/criterios/${c.id}`).pipe(takeUntil(this.destroy$)).subscribe({
+          next: () => this.seleccionar(this.selRubrica!),
+          error: e => this.notify.error('Error', e?.error?.detail ?? 'No se pudo eliminar el criterio'),
+        });
+      },
     });
   }
 
   eliminarRubrica(): void {
     if (!this.selRubrica) return;
-    this.api.delete(`/rubricas/${this.selRubrica.id}`).pipe(takeUntil(this.destroy$)).subscribe({
-      next: () => {
-        this.selRubrica = null;
-        this.criterios.set([]);
-        this.cargar();
+    const rubrica = this.selRubrica;
+    this.confirm.confirm({
+      message: `¿Eliminar la rúbrica "${rubrica.nombre_rubrica}"?`,
+      header: 'Confirmar eliminación',
+      icon: 'pi pi-exclamation-triangle',
+      accept: () => {
+        this.api.delete(`/rubricas/${rubrica.id}`).pipe(takeUntil(this.destroy$)).subscribe({
+          next: () => {
+            this.selRubrica = null;
+            this.criterios.set([]);
+            this.cargar();
+          },
+          error: e => this.notify.error('Error', e?.error?.detail ?? 'No se pudo eliminar la rúbrica (verifica que no tenga calificaciones asociadas)'),
+        });
       },
-      error: e => this.notify.error('Error', e?.error?.detail ?? 'No se pudo eliminar la rúbrica (verifica que no tenga calificaciones asociadas)'),
     });
   }
 

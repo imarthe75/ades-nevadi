@@ -13,6 +13,8 @@ import { TooltipModule } from 'primeng/tooltip';
 import { CardModule } from 'primeng/card';
 import { TabsModule } from 'primeng/tabs';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
+import { ConfirmationService } from 'primeng/api';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ApexNotificationService } from 'apex-component-library';
 import { ContextService } from '../../core/services/context.service';
 import { AuthService } from '../../core/services/auth.service';
@@ -78,9 +80,11 @@ const ESTADO_SEV: Record<string, string> = {
     CommonModule, FormsModule, DatePipe,
     TableModule, ButtonModule, DialogModule, InputTextModule,
     SelectModule, TagModule, TextareaModule, TooltipModule,
-    CardModule, TabsModule, ToggleSwitchModule,
+    CardModule, TabsModule, ToggleSwitchModule, ConfirmDialogModule,
   ],
+  providers: [ConfirmationService],
   template: `
+<p-confirmDialog />
 <div class="apex-page">
   <!-- KPI Strip -->
   <div class="apex-kpi-strip" style="margin-bottom:1rem">
@@ -290,6 +294,7 @@ export class BbbComponent implements OnInit, OnDestroy {
   private notify = inject(ApexNotificationService);
   private ctx = inject(ContextService);
   private auth = inject(AuthService);
+  private readonly confirm = inject(ConfirmationService);
 
   // State
   reuniones = signal<BbbReunion[]>([]);
@@ -412,10 +417,16 @@ export class BbbComponent implements OnInit, OnDestroy {
   }
 
   cancelarReunion(r: BbbReunion) {
-    if (!confirm(`¿Cancelar la reunión "${r.nombre}"?`)) return;
-    this.api.delete(`/bbb/reuniones/${r.id}`).pipe(takeUntil(this.destroy$)).subscribe({
-      next: () => { this.notify.success('Reunión cancelada'); this.cargarReuniones(); },
-      error: () => this.notify.error('Error al cancelar la reunión'),
+    this.confirm.confirm({
+      message: `¿Cancelar la reunión "${r.nombre}"?`,
+      header: 'Confirmar eliminación',
+      icon: 'pi pi-exclamation-triangle',
+      accept: () => {
+        this.api.delete(`/bbb/reuniones/${r.id}`).pipe(takeUntil(this.destroy$)).subscribe({
+          next: () => { this.notify.success('Reunión cancelada'); this.cargarReuniones(); },
+          error: () => this.notify.error('Error al cancelar la reunión'),
+        });
+      },
     });
   }
 

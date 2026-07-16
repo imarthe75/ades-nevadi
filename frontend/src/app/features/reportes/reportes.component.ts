@@ -20,6 +20,8 @@ import { FileUploadModule } from 'primeng/fileupload';
 import { MessageModule } from 'primeng/message';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
+import { ConfirmationService } from 'primeng/api';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
 
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
@@ -64,10 +66,11 @@ const TIPOS_DOC = [
     ButtonModule, SelectModule, TagModule,
     TabsModule,
     TooltipModule, FileUploadModule, MessageModule, ProgressSpinnerModule, ToggleSwitchModule,
-    InteractiveGridComponent,
+    InteractiveGridComponent, ConfirmDialogModule,
   ],
+  providers: [ConfirmationService],
   template: `
-
+    <p-confirmDialog />
     <div class="page-header">
       <div>
         <h2>Generador de Reportes</h2>
@@ -296,6 +299,7 @@ export class ReportesComponent implements OnInit, OnDestroy {
   readonly ctx = inject(ContextService);
   private readonly auth = inject(AuthService);
   private readonly notify = inject(ApexNotificationService);
+  private readonly confirm = inject(ConfirmationService);
 
   tabActivo          = signal('generar');
   plantillas         = signal<Plantilla[]>([]);
@@ -471,12 +475,20 @@ export class ReportesComponent implements OnInit, OnDestroy {
   }
 
   eliminarPlantilla(id: string): void {
-    this.api.delete(`/carbone/templates/${id}`).pipe(takeUntil(this.destroy$)).subscribe({
-      next: () => {
-        this.plantillas.update(p => p.filter(x => x.id !== id));
-        this.notify.success('Eliminada');
+    const nombre = this.plantillas().find(p => p.id === id)?.nombre ?? 'esta plantilla';
+    this.confirm.confirm({
+      message: `¿Eliminar la plantilla "${nombre}"?`,
+      header: 'Confirmar eliminación',
+      icon: 'pi pi-exclamation-triangle',
+      accept: () => {
+        this.api.delete(`/carbone/templates/${id}`).pipe(takeUntil(this.destroy$)).subscribe({
+          next: () => {
+            this.plantillas.update(p => p.filter(x => x.id !== id));
+            this.notify.success('Eliminada');
+          },
+          error: () => this.notify.error('Error al eliminar'),
+        });
       },
-      error: () => this.notify.error('Error al eliminar'),
     });
   }
 

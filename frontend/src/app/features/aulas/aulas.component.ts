@@ -20,6 +20,8 @@ import { TagModule } from 'primeng/tag';
 import { DialogModule } from 'primeng/dialog';
 import { TabsModule } from 'primeng/tabs';
 import { DividerModule } from 'primeng/divider';
+import { ConfirmationService } from 'primeng/api';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
 
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
@@ -76,10 +78,12 @@ const ESTADO_SEVERITY: Record<string, TagSeverity> = {
     CommonModule, FormsModule,
     ButtonModule, SelectModule, InputTextModule, InputNumberModule,
     ToggleSwitchModule, TagModule, DialogModule, TabsModule,
-    DividerModule,
+    DividerModule, ConfirmDialogModule,
     InteractiveGridComponent, ImportButtonComponent,
   ],
+  providers: [ConfirmationService],
   template: `
+    <p-confirmDialog />
     <div class="page-header">
       <div>
         <h2>Aulas y Espacios Físicos</h2>
@@ -341,6 +345,7 @@ export class AulasComponent implements OnInit, OnDestroy {
   readonly ctx            = inject(ContextService);
   private readonly notify = inject(ApexNotificationService);
   private readonly export = inject(ExportService);
+  private readonly confirm = inject(ConfirmationService);
 
   // ── State ─────────────────────────────────────────────────────
   aulas    = signal<any[]>([]);
@@ -607,17 +612,24 @@ export class AulasComponent implements OnInit, OnDestroy {
   }
 
   eliminarFranja(franjaId: string): void {
-    this.savingFranja.set(true);
-    this.api.delete(`/aulas/disponibilidad/${franjaId}`).pipe(takeUntil(this.destroy$)).subscribe({
-      next: () => {
-        this.notify.success('Franja liberada');
-        this.savingFranja.set(false);
-        const id = this.editandoId();
-        if (id) this.cargarFranjas(id);
-      },
-      error: (e: any) => {
-        this.notify.error('Error', e.error?.detail ?? 'Error al eliminar');
-        this.savingFranja.set(false);
+    this.confirm.confirm({
+      message: '¿Eliminar esta franja de disponibilidad del aula?',
+      header: 'Confirmar eliminación',
+      icon: 'pi pi-exclamation-triangle',
+      accept: () => {
+        this.savingFranja.set(true);
+        this.api.delete(`/aulas/disponibilidad/${franjaId}`).pipe(takeUntil(this.destroy$)).subscribe({
+          next: () => {
+            this.notify.success('Franja liberada');
+            this.savingFranja.set(false);
+            const id = this.editandoId();
+            if (id) this.cargarFranjas(id);
+          },
+          error: (e: any) => {
+            this.notify.error('Error', e.error?.detail ?? 'Error al eliminar');
+            this.savingFranja.set(false);
+          },
+        });
       },
     });
   }

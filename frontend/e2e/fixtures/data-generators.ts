@@ -11,18 +11,37 @@ function letra(set: string) {
   return set[Math.floor(Math.random() * set.length)];
 }
 
+/**
+ * Genera una CURP de 18 caracteres que cumple el patrón RENAPO real
+ * (`^[A-Z]{4}\d{6}[HMX][A-Z]{5}[A-Z\d]\d$`, ver `ApexValidators.isCURP()`).
+ * <p>
+ * Bug corregido (2026-07-16): la versión anterior concatenaba 4+1+1=6 letras
+ * antes de la fecha (`apellidoPat` ya era un bloque de 4 caracteres por sí
+ * solo, en vez de solo letra+vocal), produciendo un string de 19 caracteres
+ * que NUNCA pasaba la regex — el botón "Guardar" del alta rápida de alumno
+ * quedaba deshabilitado para siempre y los tests que crean un alumno
+ * (ALU-02, AUD-01, fuzz de alumnos) hacían timeout de 30s esperando un click
+ * que nunca podía completarse. Estructura real: 4 letras (1ª letra apellido
+ * paterno + 1ª vocal interna + 1ª letra apellido materno + 1ª letra nombre)
+ * + 6 dígitos (fecha) + sexo + 2 letras entidad + 3 consonantes internas +
+ * diferenciador alfanumérico + dígito verificador = 18.
+ */
 export function curpValido(): string {
-  const apellidoPat = letra(CONSONANTES) + letra(VOCALES) + letra(CONSONANTES) + letra(CONSONANTES);
-  const apellidoMat = letra(CONSONANTES);
-  const nombre      = letra(CONSONANTES);
+  const letra1 = letra(CONSONANTES);
+  const vocal  = letra(VOCALES);
+  const letra3 = letra(CONSONANTES);
+  const letra4 = letra(CONSONANTES);
   const año  = String(faker.number.int({ min: 2000, max: 2012 })).slice(2);
   const mes  = String(faker.number.int({ min: 1, max: 12 })).padStart(2, '0');
   const dia  = String(faker.number.int({ min: 1, max: 28 })).padStart(2, '0');
   const sexo = faker.helpers.arrayElement(['H', 'M']);
   const edo  = faker.helpers.arrayElement(['MC','DF','JL','PU','GR','VZ']);
-  const cod  = faker.string.alphanumeric(3).toUpperCase();
-  const dv   = faker.string.numeric(1);
-  return `${apellidoPat}${apellidoMat}${nombre}${año}${mes}${dia}${sexo}${edo}${cod}${dv}`;
+  const cons1 = letra(CONSONANTES);
+  const cons2 = letra(CONSONANTES);
+  const cons3 = letra(CONSONANTES);
+  const diferenciador = letra(CONSONANTES + VOCALES + '0123456789');
+  const dv = faker.string.numeric(1);
+  return `${letra1}${vocal}${letra3}${letra4}${año}${mes}${dia}${sexo}${edo}${cons1}${cons2}${cons3}${diferenciador}${dv}`;
 }
 
 export function curpInvalido(): string {

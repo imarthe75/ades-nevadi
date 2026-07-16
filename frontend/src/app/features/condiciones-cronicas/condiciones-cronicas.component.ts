@@ -10,7 +10,8 @@ import { SelectModule } from 'primeng/select';
 import { ToastModule } from 'primeng/toast';
 import { CheckboxModule } from 'primeng/checkbox';
 import { TooltipModule } from 'primeng/tooltip';
-import { MessageService } from 'primeng/api';
+import { MessageService, ConfirmationService } from 'primeng/api';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ApexNotificationService } from 'apex-component-library';
 import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
 import { AdesFormatDirective } from '../../shared/directives/ades-format.directive';
@@ -75,11 +76,12 @@ const TIPOS = [
     AdesFormatDirective,
     CommonModule, FormsModule, ButtonModule, DialogModule,
     InputTextModule, SelectModule, ToastModule, CheckboxModule, TooltipModule,
-    InteractiveGridComponent,
+    InteractiveGridComponent, ConfirmDialogModule,
   ],
-  providers: [MessageService],
+  providers: [MessageService, ConfirmationService],
   template: `
     <p-toast />
+    <p-confirmDialog />
     <div class="apex-page">
       <div class="apex-toolbar">
         <h2 class="apex-title">Condiciones Crónicas de Alumnos</h2>
@@ -212,6 +214,7 @@ export class CondicionesCronicasComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private api = inject(ApiService);
   private notify = inject(ApexNotificationService);
+  private readonly confirm = inject(ConfirmationService);
 
   readonly condicionesColumns: ColumnConfig[] = [
     { field: 'alumno_str',   header: 'Alumno' },
@@ -299,10 +302,16 @@ export class CondicionesCronicasComponent implements OnInit, OnDestroy {
   }
 
   eliminar(c: Condicion) {
-    if (!confirm(`¿Eliminar la condición ${c.tipo_condicion} de ${c.alumno_nombre}?`)) return;
-    this.api.delete(`/condiciones-cronicas/${c.id}`).pipe(takeUntil(this.destroy$)).subscribe({
-      next: () => { this.notify.success('Condición eliminada'); this.cargar(); },
-      error: e => this.notify.error(e.error?.detail ?? 'Error'),
+    this.confirm.confirm({
+      message: `¿Eliminar la condición ${c.tipo_condicion} de ${c.alumno_nombre}?`,
+      header: 'Confirmar eliminación',
+      icon: 'pi pi-exclamation-triangle',
+      accept: () => {
+        this.api.delete(`/condiciones-cronicas/${c.id}`).pipe(takeUntil(this.destroy$)).subscribe({
+          next: () => { this.notify.success('Condición eliminada'); this.cargar(); },
+          error: e => this.notify.error(e.error?.detail ?? 'Error'),
+        });
+      },
     });
   }
 

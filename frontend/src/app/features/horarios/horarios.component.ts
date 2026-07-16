@@ -17,6 +17,8 @@ import { SelectButtonModule } from 'primeng/selectbutton';
 import { TooltipModule } from 'primeng/tooltip';
 import { TextareaModule } from 'primeng/textarea';
 import { DragDropModule, CdkDragDrop } from '@angular/cdk/drag-drop';
+import { ConfirmationService } from 'primeng/api';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { Subject, takeUntil } from 'rxjs';
 import { HorarioGridComponent, HorarioGridEntry } from '../../shared/components/horario-grid/horario-grid.component';
 
@@ -137,9 +139,12 @@ const HORARIO_GOLDEN_REQUERIDO: Record<string, Record<string, number>> = {
     CommonModule, FormsModule,
     ButtonModule, SelectModule, TagModule, DialogModule,
     InputTextModule, SelectButtonModule, TooltipModule,
-    DragDropModule, HorarioGridComponent
+    DragDropModule, HorarioGridComponent,
+    ConfirmDialogModule
   ],
+  providers: [ConfirmationService],
   template: `
+    <p-confirmDialog />
     <!-- ── Diálogo crear/editar entrada ── -->
     <p-dialog
       [visible]="showDialog()"
@@ -648,6 +653,7 @@ export class HorariosComponent implements OnInit, OnDestroy {
   private readonly api = inject(ApiService);
   readonly ctx = inject(ContextService);
   private readonly notify = inject(ApexNotificationService);
+  private readonly confirm = inject(ConfirmationService);
 
   readonly dias = DIAS.slice(1).map((label, i) => ({ num: i + 1, label }));
   readonly diasOpts = DIAS.slice(1).map((label, i) => ({ label, value: i + 1 }));
@@ -1289,18 +1295,25 @@ export class HorariosComponent implements OnInit, OnDestroy {
 
   eliminar(): void {
     if (!this.editEntry) return;
-    if (!confirm('¿Eliminar esta entrada del horario?')) return;
-    this.guardando.set(true);
-    this.api.delete(`/horarios/${this.editEntry.id}`).pipe(takeUntil(this.destroy$)).subscribe({
-      next: () => {
-        this.notify.success('Entrada eliminada.');
-        this.guardando.set(false);
-        this.showDialog.set(false);
-        this.cargar();
-      },
-      error: () => {
-        this.notify.error('Error al eliminar.');
-        this.guardando.set(false);
+    const entry = this.editEntry;
+    this.confirm.confirm({
+      message: `¿Eliminar la entrada de horario de "${entry.nombre_materia ?? 'esta clase'}"?`,
+      header: 'Confirmar eliminación',
+      icon: 'pi pi-exclamation-triangle',
+      accept: () => {
+        this.guardando.set(true);
+        this.api.delete(`/horarios/${entry.id}`).pipe(takeUntil(this.destroy$)).subscribe({
+          next: () => {
+            this.notify.success('Entrada eliminada.');
+            this.guardando.set(false);
+            this.showDialog.set(false);
+            this.cargar();
+          },
+          error: () => {
+            this.notify.error('Error al eliminar.');
+            this.guardando.set(false);
+          },
+        });
       },
     });
   }

@@ -13,6 +13,8 @@ import { TabsModule } from 'primeng/tabs';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { AutoCompleteModule } from 'primeng/autocomplete';
 import { ProgressBarModule } from 'primeng/progressbar';
+import { ConfirmationService } from 'primeng/api';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
 
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
@@ -65,9 +67,11 @@ interface AlumnoSugerencia {
     ButtonModule, TableModule, TagModule, DialogModule, SelectModule,
     InputTextModule, TextareaModule, TooltipModule, TabsModule,
     InputNumberModule, AutoCompleteModule, ProgressBarModule,
-    InteractiveGridComponent,
+    InteractiveGridComponent, ConfirmDialogModule,
   ],
+  providers: [ConfirmationService],
   template: `
+<p-confirmDialog />
 <div class="page-header">
   <div class="page-title">
     <i class="pi pi-star-fill" style="color:#F39C12"></i>
@@ -389,6 +393,7 @@ export class BadgesComponent implements OnInit, OnDestroy {
   private api     = inject(ApiService);
   private ctx     = inject(ContextService);
   private exporter = inject(ExportService);
+  private readonly confirm = inject(ConfirmationService);
 
   readonly badgeAlumnosColumns: ColumnConfig[] = [
     { field: 'nombre_alumno', header: 'Alumno' },
@@ -514,10 +519,16 @@ export class BadgesComponent implements OnInit, OnDestroy {
     this.cargarBadges();
   }
 
-  async eliminar(b: Badge) {
-    if (!confirm(`¿Eliminar la insignia "${b.nombre}"?`)) return;
-    await this.api.delete(`/badges/${b.id}`).toPromise();
-    this.cargarBadges();
+  eliminar(b: Badge) {
+    this.confirm.confirm({
+      message: `¿Eliminar la insignia "${b.nombre}"?`,
+      header: 'Confirmar eliminación',
+      icon: 'pi pi-exclamation-triangle',
+      accept: async () => {
+        await this.api.delete(`/badges/${b.id}`).toPromise();
+        this.cargarBadges();
+      },
+    });
   }
 
   async verBadge(b: Badge) {
@@ -546,11 +557,18 @@ export class BadgesComponent implements OnInit, OnDestroy {
     await this.seleccionarAlumno({ value: al });
   }
 
-  async revocar(b: BadgeAlumno) {
+  revocar(b: BadgeAlumno) {
     const al = this.alumnoSeleccionado();
-    if (!al || !confirm('¿Revocar esta insignia?')) return;
-    await this.api.delete(`/badges/${b.id}/otorgados/${al.id}`).toPromise();
-    await this.seleccionarAlumno({ value: al });
+    if (!al) return;
+    this.confirm.confirm({
+      message: `¿Revocar la insignia "${b.nombre}"?`,
+      header: 'Confirmar eliminación',
+      icon: 'pi pi-exclamation-triangle',
+      accept: async () => {
+        await this.api.delete(`/badges/${b.id}/otorgados/${al.id}`).toPromise();
+        await this.seleccionarAlumno({ value: al });
+      },
+    });
   }
 
   // ── auto-evaluación ──────────────────────────────────────────────────────────

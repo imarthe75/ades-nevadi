@@ -14,6 +14,8 @@ import { FileUploadModule } from 'primeng/fileupload';
 import { ProgressBarModule } from 'primeng/progressbar';
 import { TooltipModule } from 'primeng/tooltip';
 import { TableModule } from 'primeng/table';
+import { ConfirmationService } from 'primeng/api';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ApexNotificationService } from 'apex-component-library';
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
@@ -93,8 +95,11 @@ const TIPOS_DOCUMENTO = [
     ButtonModule, TagModule, DialogModule, SelectModule,
     InputTextModule, AutoCompleteModule, ProgressSpinnerModule,
     FileUploadModule, ProgressBarModule, TooltipModule, TableModule,
+    ConfirmDialogModule,
   ],
+  providers: [ConfirmationService],
   template: `
+    <p-confirmDialog />
     <div class="page-header">
       <div>
         <h2>Expediente Digital</h2>
@@ -374,6 +379,7 @@ export class ExpedienteDocComponent implements OnInit, OnDestroy {
   private ctx = inject(ContextService);
   private notify = inject(ApexNotificationService);
   private sanitizer = inject(DomSanitizer);
+  private readonly confirm = inject(ConfirmationService);
 
   // State
   loading = signal(false);
@@ -513,15 +519,22 @@ export class ExpedienteDocComponent implements OnInit, OnDestroy {
   eliminarDoc(doc: Documento) {
     const exp = this.expediente();
     if (!exp) return;
-    this.api.delete(`/expediente/${exp.id}/documentos/${doc.id}`)
-      .pipe(takeUntil(this.destroy$)).subscribe({
-        next: () => {
-          this.notify.success('Documento eliminado');
-          this.docSeleccionado.set(null);
-          if (this.alumnoSeleccionado) this.cargarExpediente(this.alumnoSeleccionado.id);
-        },
-        error: (e) => this.notify.error('Error', e.error?.detail || e.message),
-      });
+    this.confirm.confirm({
+      message: `¿Eliminar el documento "${doc.nombre_archivo ?? doc.tipo_label}"?`,
+      header: 'Confirmar eliminación',
+      icon: 'pi pi-exclamation-triangle',
+      accept: () => {
+        this.api.delete(`/expediente/${exp.id}/documentos/${doc.id}`)
+          .pipe(takeUntil(this.destroy$)).subscribe({
+            next: () => {
+              this.notify.success('Documento eliminado');
+              this.docSeleccionado.set(null);
+              if (this.alumnoSeleccionado) this.cargarExpediente(this.alumnoSeleccionado.id);
+            },
+            error: (e) => this.notify.error('Error', e.error?.detail || e.message),
+          });
+      },
+    });
   }
 
   analizarIA() {

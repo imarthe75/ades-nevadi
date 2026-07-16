@@ -18,6 +18,8 @@ import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { TabsModule } from 'primeng/tabs';
 import { SelectModule } from 'primeng/select';
 import { TooltipModule } from 'primeng/tooltip';
+import { ConfirmationService } from 'primeng/api';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
 
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
@@ -76,10 +78,12 @@ interface Medicamento {
     CommonModule, FormsModule,
     ButtonModule, InputTextModule, TextareaModule, CardModule,
     TagModule, DialogModule, DividerModule, ToggleSwitchModule, TabsModule,
-    SelectModule, TooltipModule, InteractiveGridComponent, ApexTimelineComponent
+    SelectModule, TooltipModule, InteractiveGridComponent, ApexTimelineComponent,
+    ConfirmDialogModule
   ],
+  providers: [ConfirmationService],
   template: `
-
+    <p-confirmDialog />
     <div class="page-header">
       <div>
         <h2>Expediente Médico</h2>
@@ -340,6 +344,7 @@ export class MedicoComponent implements OnInit, OnDestroy {
   private readonly api = inject(ApiService);
   readonly ctx = inject(ContextService);
   private readonly notify = inject(ApexNotificationService);
+  private readonly confirm = inject(ConfirmationService);
 
   alumnosOpts = signal<Estudiante[]>([]);
   selectedAlumnoId: string | null = null;
@@ -537,12 +542,20 @@ export class MedicoComponent implements OnInit, OnDestroy {
   suspenderMedicamento(medId: string): void {
     const alumno = this.alumnoSeleccionado();
     if (!alumno) return;
-    this.api.delete(`/salud-avanzada/medicamentos/${medId}`).pipe(takeUntil(this.destroy$)).subscribe({
-      next: () => {
-        this.cargarMedicamentos(alumno.id);
-        this.notify.success('Medicamento suspendido');
+    const med = this.medicamentos().find(m => m.id === medId);
+    this.confirm.confirm({
+      message: `¿Suspender el medicamento "${med?.nombre_medicamento ?? ''}"?`,
+      header: 'Confirmar eliminación',
+      icon: 'pi pi-exclamation-triangle',
+      accept: () => {
+        this.api.delete(`/salud-avanzada/medicamentos/${medId}`).pipe(takeUntil(this.destroy$)).subscribe({
+          next: () => {
+            this.cargarMedicamentos(alumno.id);
+            this.notify.success('Medicamento suspendido');
+          },
+          error: () => this.notify.error('Error al suspender medicamento'),
+        });
       },
-      error: () => this.notify.error('Error al suspender medicamento'),
     });
   }
 

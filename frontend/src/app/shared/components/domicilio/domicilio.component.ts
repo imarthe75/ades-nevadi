@@ -19,7 +19,8 @@ import { TagModule } from 'primeng/tag';
 import { ToastModule } from 'primeng/toast';
 import { DividerModule } from 'primeng/divider';
 import { TooltipModule } from 'primeng/tooltip';
-import { MessageService } from 'primeng/api';
+import { MessageService, ConfirmationService } from 'primeng/api';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ApiService } from '../../../core/services/api.service';
 import { AdesFormatDirective } from '../../directives/ades-format.directive';
 
@@ -83,10 +84,12 @@ interface PersonaContacto {
     CommonModule, FormsModule,
     ButtonModule, InputTextModule, SelectModule, TextareaModule,
     TagModule, ToastModule, DividerModule, TooltipModule,
+    ConfirmDialogModule,
   ],
-  providers: [MessageService],
+  providers: [MessageService, ConfirmationService],
   template: `
     <p-toast />
+    <p-confirmDialog />
 
     @if (!personaId) {
       <div class="empty-state">
@@ -510,6 +513,7 @@ export class DomicilioComponent implements OnChanges, OnDestroy {
   private readonly api = inject(ApiService);
   private readonly http = inject(HttpClient);
   private readonly msg = inject(MessageService);
+  private readonly confirm = inject(ConfirmationService);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly destroy$ = new Subject<void>();
 
@@ -701,12 +705,21 @@ export class DomicilioComponent implements OnChanges, OnDestroy {
   }
 
   eliminarDireccion(id: string): void {
-    this.api.delete(`/direcciones/${id}`)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: () => this.cargarDirecciones(),
-        error: () => {},
-      });
+    const dir = this.direcciones().find(d => d.id === id);
+    const desc = dir ? `${dir.calle ?? ''} ${dir.numero_exterior ?? ''}`.trim() || dir.tipo_direccion : 'esta dirección';
+    this.confirm.confirm({
+      message: `¿Eliminar la dirección "${desc}"?`,
+      header: 'Confirmar eliminación',
+      icon: 'pi pi-exclamation-triangle',
+      accept: () => {
+        this.api.delete(`/direcciones/${id}`)
+          .pipe(takeUntil(this.destroy$))
+          .subscribe({
+            next: () => this.cargarDirecciones(),
+            error: () => {},
+          });
+      },
+    });
   }
 
   setPrincipal(id: string): void {
@@ -830,12 +843,21 @@ export class DomicilioComponent implements OnChanges, OnDestroy {
   }
 
   eliminarContacto(id: string): void {
-    this.api.delete(`/persona-contactos/${id}`)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: () => this.cargarContactos(),
-        error: () => {},
-      });
+    const c = this.contactos().find(x => x.id === id);
+    const desc = c?.valor ?? c?.etiqueta ?? 'este medio de contacto';
+    this.confirm.confirm({
+      message: `¿Eliminar el medio de contacto "${desc}"?`,
+      header: 'Confirmar eliminación',
+      icon: 'pi pi-exclamation-triangle',
+      accept: () => {
+        this.api.delete(`/persona-contactos/${id}`)
+          .pipe(takeUntil(this.destroy$))
+          .subscribe({
+            next: () => this.cargarContactos(),
+            error: () => {},
+          });
+      },
+    });
   }
 
   // ── helpers ──────────────────────────────────────────────────────────────

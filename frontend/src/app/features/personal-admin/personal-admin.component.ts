@@ -17,6 +17,8 @@ import { TabsModule, Tab, TabList, TabPanel, TabPanels } from 'primeng/tabs';
 import { TooltipModule } from 'primeng/tooltip';
 import { TagModule } from 'primeng/tag';
 import { DatePickerModule } from 'primeng/datepicker';
+import { ConfirmationService } from 'primeng/api';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
 
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
@@ -151,8 +153,11 @@ function enrichRows(rows: EmpleadoRow[]): EmpleadoRow[] {
     TabsModule, Tab, TabList, TabPanel, TabPanels,
     TooltipModule, TagModule, DatePickerModule,
     InteractiveGridComponent, FormFieldComponent, HelpButtonComponent,
+    ConfirmDialogModule,
   ],
+  providers: [ConfirmationService],
   template: `
+    <p-confirmDialog />
     <!-- ── Diálogo Alta ─────────────────────────────────────────────────── -->
     <p-dialog
       [visible]="showDialog()"
@@ -409,6 +414,7 @@ export class PersonalAdminComponent implements OnInit, OnDestroy {
   private fb    = inject(FormBuilder);
   private readonly notify = inject(ApexNotificationService);
   readonly inputFormatters = inject(InputFormattersService);
+  private readonly confirm = inject(ConfirmationService);
 
   tabActivo     = signal<string>('directivos');
   loading       = signal(false);
@@ -627,18 +633,26 @@ export class PersonalAdminComponent implements OnInit, OnDestroy {
   darDeBaja(): void {
     const sel = this.seleccionado();
     if (!sel) return;
-    const endpoint = this.modoSalud() ? `/personal-salud/${sel.id}` : `/personal-admin/${sel.id}`;
-    this.guardando.set(true);
-    this.api.delete(endpoint).pipe(takeUntil(this.destroy$)).subscribe({
-      next: () => {
-        this.notify.success('Dado de baja', 'Registro desactivado (soft delete)');
-        this.perfilVisible.set(false);
-        this.guardando.set(false);
-        if (this.modoSalud()) this.cargarSalud(); else this.cargarAdmin();
-      },
-      error: (e: any) => {
-        this.notify.error('Error', e?.error?.message ?? 'No se pudo dar de baja');
-        this.guardando.set(false);
+    const nombre = sel.nombre_completo ?? `${sel.nombre} ${sel.apellido_paterno}`;
+    this.confirm.confirm({
+      message: `¿Dar de baja a "${nombre}"?`,
+      header: 'Confirmar eliminación',
+      icon: 'pi pi-exclamation-triangle',
+      accept: () => {
+        const endpoint = this.modoSalud() ? `/personal-salud/${sel.id}` : `/personal-admin/${sel.id}`;
+        this.guardando.set(true);
+        this.api.delete(endpoint).pipe(takeUntil(this.destroy$)).subscribe({
+          next: () => {
+            this.notify.success('Dado de baja', 'Registro desactivado (soft delete)');
+            this.perfilVisible.set(false);
+            this.guardando.set(false);
+            if (this.modoSalud()) this.cargarSalud(); else this.cargarAdmin();
+          },
+          error: (e: any) => {
+            this.notify.error('Error', e?.error?.message ?? 'No se pudo dar de baja');
+            this.guardando.set(false);
+          },
+        });
       },
     });
   }

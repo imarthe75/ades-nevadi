@@ -16,6 +16,8 @@ import { CardModule } from 'primeng/card';
 import { TagModule } from 'primeng/tag';
 import { SelectModule } from 'primeng/select';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
+import { ConfirmationService } from 'primeng/api';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
 
 import { ApiService } from '../../core/services/api.service';
@@ -57,10 +59,11 @@ const RIESGO_SEVERITY: Record<string, AlertaSeverity> = {
     CommonModule, FormsModule,
     ButtonModule, InputTextModule, TabsModule, CardModule,
     TagModule, SelectModule, ProgressSpinnerModule,
-    InteractiveGridComponent,
+    InteractiveGridComponent, ConfirmDialogModule,
   ],
+  providers: [ConfirmationService],
   template: `
-
+    <p-confirmDialog />
     <div class="page-header">
       <div>
         <h2>Asistente Pedagógico IA</h2>
@@ -368,6 +371,7 @@ export class IaComponent implements OnInit, OnDestroy {
   private readonly api = inject(ApiService);
   readonly ctx = inject(ContextService);
   private readonly notify = inject(ApexNotificationService);
+  private readonly confirm = inject(ConfirmationService);
 
   @ViewChild('messagesContainer') messagesContainer?: ElementRef<HTMLDivElement>;
 
@@ -457,13 +461,20 @@ export class IaComponent implements OnInit, OnDestroy {
   }
 
   eliminarSesion(sesionId: string): void {
-    this.api.delete(`/ai/sesion/${sesionId}`).pipe(takeUntil(this.destroy$)).subscribe({
-      next: () => {
-        this.sesionesGuardadas.update(s => s.filter(x => x.sesion_id !== sesionId));
-        if (this.sesionId === sesionId) this.limpiarChat();
-        this.notify.success('Conversación eliminada');
+    this.confirm.confirm({
+      message: '¿Eliminar esta conversación con el asistente IA?',
+      header: 'Confirmar eliminación',
+      icon: 'pi pi-exclamation-triangle',
+      accept: () => {
+        this.api.delete(`/ai/sesion/${sesionId}`).pipe(takeUntil(this.destroy$)).subscribe({
+          next: () => {
+            this.sesionesGuardadas.update(s => s.filter(x => x.sesion_id !== sesionId));
+            if (this.sesionId === sesionId) this.limpiarChat();
+            this.notify.success('Conversación eliminada');
+          },
+          error: () => this.notify.error('Error al eliminar conversación'),
+        });
       },
-      error: () => this.notify.error('Error al eliminar conversación'),
     });
   }
 

@@ -8,6 +8,8 @@ import { TagModule } from 'primeng/tag';
 import { DialogModule } from 'primeng/dialog';
 import { TooltipModule } from 'primeng/tooltip';
 import { DatePickerModule } from 'primeng/datepicker';
+import { ConfirmationService } from 'primeng/api';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
 import { ApexNotificationService } from 'apex-component-library';
@@ -42,9 +44,11 @@ interface EventoForm {
     CommonModule, FormsModule,
     ButtonModule, SelectModule, TagModule,
     DialogModule, TooltipModule, DatePickerModule,
-    InteractiveGridComponent,
+    InteractiveGridComponent, ConfirmDialogModule,
   ],
+  providers: [ConfirmationService],
   template: `
+<p-confirmDialog />
 <div class="page-header">
   <div class="page-title"><i class="pi pi-calendar"></i> Calendario Escolar</div>
   <div class="page-actions">
@@ -154,6 +158,7 @@ export class CalendarioComponent implements OnInit, OnDestroy {
   private api    = inject(ApiService);
   private ctx    = inject(ContextService);
   private notify = inject(ApexNotificationService);
+  private readonly confirm = inject(ConfirmationService);
 
   ciclos   = signal<CicloOpt[]>([]);
   planteles = signal<PlantelOpt[]>([]);
@@ -307,11 +312,18 @@ export class CalendarioComponent implements OnInit, OnDestroy {
 
   eliminar() {
     if (!this.eventoId) return;
-    this.api.delete(`/calendario/${this.eventoId}`).pipe(takeUntil(this.destroy$)).subscribe({
-      next: () => {
-        this.notify.success('Eliminado', this.form.nombre_evento);
-        this.dialogVisible = false;
-        this.cargar();
+    this.confirm.confirm({
+      message: `¿Eliminar el evento "${this.form.nombre_evento}"?`,
+      header: 'Confirmar eliminación',
+      icon: 'pi pi-exclamation-triangle',
+      accept: () => {
+        this.api.delete(`/calendario/${this.eventoId}`).pipe(takeUntil(this.destroy$)).subscribe({
+          next: () => {
+            this.notify.success('Eliminado', this.form.nombre_evento);
+            this.dialogVisible = false;
+            this.cargar();
+          },
+        });
       },
     });
   }

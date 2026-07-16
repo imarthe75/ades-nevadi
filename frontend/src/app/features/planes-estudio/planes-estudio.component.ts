@@ -29,6 +29,8 @@ import { DrawerModule } from 'primeng/drawer';
 import { TooltipModule } from 'primeng/tooltip';
 import { ProgressBarModule } from 'primeng/progressbar';
 import { MessageModule } from 'primeng/message';
+import { ConfirmationService } from 'primeng/api';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
 import { ApexNotificationService } from 'apex-component-library';
@@ -95,10 +97,11 @@ const NIVEL_ORDER = ['PRIMARIA', 'SECUNDARIA', 'PREPARATORIA'];
     InputNumberModule, InputTextModule, ToggleSwitchModule,
     DialogModule, DrawerModule, TooltipModule,
     ProgressBarModule, MessageModule, ImportButtonComponent,
-    InteractiveGridComponent,
+    InteractiveGridComponent, ConfirmDialogModule,
   ],
+  providers: [ConfirmationService],
   template: `
-
+    <p-confirmDialog />
     <div class="page-header">
       <div>
         <h2>Planes y Programas de Estudio</h2>
@@ -573,6 +576,7 @@ export class PlanesEstudioComponent implements OnInit, OnDestroy {
   private readonly api = inject(ApiService);
   private readonly notify = inject(ApexNotificationService);
   readonly ctx       = inject(ContextService);
+  private readonly confirm = inject(ConfirmationService);
 
   // ── Datos base ─────────────────────────────────────────────────────────────
   niveles        = signal<NivelOpt[]>([]);
@@ -834,10 +838,17 @@ export class PlanesEstudioComponent implements OnInit, OnDestroy {
   }
 
   eliminarPlanNee(id: string): void {
-    const grupoId = this.ctx.grupo()?.id;
-    this.api.delete(`/planes-estudio/alternativos/${id}`).pipe(takeUntil(this.destroy$)).subscribe({
-      next: () => { if (grupoId) this.cargarPlanesNee(grupoId); },
-      error: e => this.notify.error('Error', e.error?.detail),
+    this.confirm.confirm({
+      message: '¿Eliminar este plan NEE (Necesidades Educativas Especiales)?',
+      header: 'Confirmar eliminación',
+      icon: 'pi pi-exclamation-triangle',
+      accept: () => {
+        const grupoId = this.ctx.grupo()?.id;
+        this.api.delete(`/planes-estudio/alternativos/${id}`).pipe(takeUntil(this.destroy$)).subscribe({
+          next: () => { if (grupoId) this.cargarPlanesNee(grupoId); },
+          error: e => this.notify.error('Error', e.error?.detail),
+        });
+      },
     });
   }
 
@@ -963,9 +974,17 @@ export class PlanesEstudioComponent implements OnInit, OnDestroy {
   }
 
   quitarAsignacion(planId: string, materiaId: string, gradoId: string): void {
-    this.api.delete(`/planes-estudio/${planId}`).pipe(takeUntil(this.destroy$)).subscribe({
-      next: () => this.plan.update(l => l.filter(p => p.id !== planId)),
-      error: e => this.notify.error('Error', e.error?.detail),
+    const nombreMateria = this.materias().find(m => m.id === materiaId)?.nombre_materia ?? 'esta materia';
+    this.confirm.confirm({
+      message: `¿Quitar la asignación de "${nombreMateria}" de este grado?`,
+      header: 'Confirmar eliminación',
+      icon: 'pi pi-exclamation-triangle',
+      accept: () => {
+        this.api.delete(`/planes-estudio/${planId}`).pipe(takeUntil(this.destroy$)).subscribe({
+          next: () => this.plan.update(l => l.filter(p => p.id !== planId)),
+          error: e => this.notify.error('Error', e.error?.detail),
+        });
+      },
     });
   }
 
@@ -1134,10 +1153,17 @@ export class PlanesEstudioComponent implements OnInit, OnDestroy {
   }
 
   eliminarTema(t: Tema): void {
-    const planId = this.temarioPlanId();
-    this.api.delete(`/planes-estudio/${planId}/temas/${t.id}`).pipe(takeUntil(this.destroy$)).subscribe({
-      next: () => { this.temas.update(l => l.filter(x => x.id !== t.id)); this.notify.success('Tema eliminado'); },
-      error: () => this.notify.error('Error al eliminar'),
+    this.confirm.confirm({
+      message: `¿Eliminar el tema "${t.nombre_tema}"?`,
+      header: 'Confirmar eliminación',
+      icon: 'pi pi-exclamation-triangle',
+      accept: () => {
+        const planId = this.temarioPlanId();
+        this.api.delete(`/planes-estudio/${planId}/temas/${t.id}`).pipe(takeUntil(this.destroy$)).subscribe({
+          next: () => { this.temas.update(l => l.filter(x => x.id !== t.id)); this.notify.success('Tema eliminado'); },
+          error: () => this.notify.error('Error al eliminar'),
+        });
+      },
     });
   }
 

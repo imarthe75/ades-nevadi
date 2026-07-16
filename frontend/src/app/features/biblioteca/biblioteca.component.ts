@@ -12,7 +12,8 @@ import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
 import { TabsModule, TabList, Tab, TabPanels, TabPanel } from 'primeng/tabs';
 import { DatePickerModule } from 'primeng/datepicker';
-import { MessageService } from 'primeng/api';
+import { MessageService, ConfirmationService } from 'primeng/api';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ApexNotificationService } from 'apex-component-library';
 import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
 import { AdesFormatDirective } from '../../shared/directives/ades-format.directive';
@@ -77,11 +78,12 @@ const CATEGORIAS = [
     CommonModule, FormsModule, ButtonModule, DialogModule, InputTextModule,
     InputNumberModule, SelectModule, ToastModule, TooltipModule,
     TabsModule, TabList, Tab, TabPanels, TabPanel, DatePickerModule,
-    InteractiveGridComponent,
+    InteractiveGridComponent, ConfirmDialogModule,
   ],
-  providers: [MessageService],
+  providers: [MessageService, ConfirmationService],
   template: `
     <p-toast />
+    <p-confirmDialog />
     <div class="apex-page">
       <div class="apex-toolbar">
         <h2 class="apex-title">Biblioteca</h2>
@@ -257,6 +259,7 @@ export class BibliotecaComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private api = inject(ApiService);
   private notify = inject(ApexNotificationService);
+  private readonly confirm = inject(ConfirmationService);
 
   tab = 'acervo';
   categorias = CATEGORIAS;
@@ -385,10 +388,16 @@ export class BibliotecaComponent implements OnInit, OnDestroy {
   }
 
   eliminarLibro(l: Libro) {
-    if (!confirm(`¿Eliminar "${l.titulo}" del acervo?`)) return;
-    this.api.delete(`/biblioteca/libros/${l.id}`).pipe(takeUntil(this.destroy$)).subscribe({
-      next: () => { this.notify.success('Libro eliminado'); this.cargarLibros(); },
-      error: e => this.notify.error(e.error?.message ?? e.error?.detail ?? 'Error'),
+    this.confirm.confirm({
+      message: `¿Eliminar "${l.titulo}" del acervo?`,
+      header: 'Confirmar eliminación',
+      icon: 'pi pi-exclamation-triangle',
+      accept: () => {
+        this.api.delete(`/biblioteca/libros/${l.id}`).pipe(takeUntil(this.destroy$)).subscribe({
+          next: () => { this.notify.success('Libro eliminado'); this.cargarLibros(); },
+          error: e => this.notify.error(e.error?.message ?? e.error?.detail ?? 'Error'),
+        });
+      },
     });
   }
 

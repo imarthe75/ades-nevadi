@@ -66,10 +66,49 @@ request.
   y no a regresión de los fixes, confirmado con logs del contenedor antes de escalar a la corrida
   completa.
 - `10-rbac.spec.ts` agregado a `e2e-tests.yml` (antes solo corrían 5 de 21 specs en CI).
-- Corrida completa de los 21 specs E2E contra el stack real tras ampliar el pool — ver resultado
-  al pie de este archivo / `docs/hallazgos/` de esta fecha.
+- **Corrida completa de los 21 specs E2E (372 tests, ~32 min) contra el stack real tras ampliar
+  el pool: 291 passed / 50 failed / 31 skipped.** Los 50 fallos se clasificaron uno por uno con
+  causa raíz verificada (no asumida) — **cero atribuibles a los 15 controllers corregidos hoy**:
+  - **15 fallos:** bug real encontrado en `frontend/e2e/fixtures/data-generators.ts` —
+    `curpValido()` generaba CURPs de 19 caracteres (6 letras iniciales en vez de 4) que nunca
+    pasaban `ApexValidators.isCURP()` (regex RENAPO real), dejando el botón "Guardar" del alta
+    rápida de alumno deshabilitado para siempre. Afectaba `ALU-02/03/11/12`, 8×`ALU-D`,
+    `FUZZ-01`, `AUD-01`, `CON-12`, `CAOS-09/15`. **Corregido** (estructura CURP real: 4 letras +
+    6 dígitos + sexo + 5 letras + diferenciador + dígito verificador = 18) y **verificado**: (1)
+    10,000 simulaciones en Node → 100% pasan la regex real; (2) corrida dirigida de
+    `02-alumnos.spec.ts` post-fix → `ALU-02`/`ALU-03`/`ALU-D-fuzz` pasan (antes: timeout de 30s).
+  - **23 fallos:** `06-edge-cases.spec.ts` usa tokens literales falsos hardcodeados
+    (`'docente-plantel-1-token'`, etc.) nunca conectados a OIDC real — confirmado con curl que el
+    BFF responde 401 correcto (el test espera 403, asumiendo un token válido con rol equivocado).
+    Scaffold sin terminar, preexistente.
+  - **4 fallos:** `paginacion-tareas.spec.ts` — `authToken` declarado pero nunca asignado
+    (`undefined`) → `Authorization: Bearer undefined` → 401 esperado. Mismo patrón de scaffold.
+  - **1 fallo:** `12-certificados.spec.ts` CER-E2E-10 — `page.goto(..., {waitUntil:'networkidle'})`
+    nunca alcanza networkidle por polling de fondo de la SPA; falla en la navegación, antes de
+    tocar cualquier endpoint de `CertificadosController`.
+  - **6 fallos:** `19-cascadas-grupos.spec.ts` — dialog de alta de grupo no visible / hook
+    `window.ng` ausente (build de producción, no dev-mode); módulo de Grupos, sin archivos
+    tocados hoy.
+  - **11 fallos residuales tras el fix del CURP** (`ALU-11`, `ALU-12`, 8×`ALU-D`, `ALU-05`):
+    causa DISTINTA a `curpValido()` — esos tests dejan CURP vacía/inválida a propósito para
+    probar el aviso al usuario, pero `AlumnosPage.save()` hace `.click()` sin `{force:true}` y
+    cuelga 30s esperando un botón que está correctamente deshabilitado. **No corregido** — la
+    corrección real depende de una decisión de producto (¿el botón debe permitir el intento y
+    mostrar un toast de advertencia, o seguir deshabilitado silenciosamente?) fuera del alcance
+    de esta sesión de seguridad; documentado para decisión del usuario.
+  - Detalle completo tabla-por-tabla en `docs/hallazgos/2026-07-16_correcciones_bola_bfla_aplicadas.md`.
 
 ### 🚀 Próximos Pasos (Siguiente Sesión):
+- [ ] **Decisión de producto pendiente:** ¿el botón "Guardar" del alta de alumno debe permitir el
+  click con CURP inválida y mostrar un toast de advertencia, o seguir deshabilitado
+  silenciosamente? Los tests `ALU-11`/`ALU-12`/`ALU-D` (11 de ellos) asumen la primera opción;
+  el comportamiento actual de `alumnos.component.ts` implementa la segunda. Una vez decidido,
+  ajustar `AlumnosPage.save()` (`{force:true}` + assertions) o el componente Angular.
+  - [ ] Investigar `19-cascadas-grupos.spec.ts` (6 fallos, dialog "Nuevo grupo" no visible) y
+  `12-certificados.spec.ts` CER-E2E-10 (`networkidle` nunca se alcanza) — no se profundizó hoy
+  por estar fuera del alcance BOLA/BFLA, pero son hallazgos reales de la corrida completa.
+- [ ] Terminar de conectar `06-edge-cases.spec.ts` y `paginacion-tareas.spec.ts` a autenticación
+  OIDC real (27 tests combinados actualmente son scaffolds con tokens falsos/`undefined`).
 - [ ] Accesibilidad (35-40%, sin ninguna ronda de auditoría dedicada) y cobertura de tests medida
   (JaCoCo backend / coverage frontend) — próximo foco natural una vez autorización esté
   verdaderamente cerrado.

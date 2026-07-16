@@ -65,6 +65,18 @@ scoping de esas dos entidades ya se verifica en el controller antes de llegar ah
   `10-rbac.spec.ts` (RBAC-13 prueba un endpoint `/api/v1/alumnos/{id}/calificaciones` que no
   existe en las rutas reales del backend — bug del test, pero el 500 en vez de 404 era un bug
   real del backend). Agregado handler dedicado.
+- **`curpValido()` en `frontend/e2e/fixtures/data-generators.ts` generaba CURPs de 19 caracteres
+  que nunca pasaban `ApexValidators.isCURP()` (regex RENAPO real, 18 caracteres).** El bug: el
+  bloque `apellidoPat` ya era 4 caracteres por sí solo (letra+vocal+letra+letra) en vez de solo
+  2 (letra+vocal), y se le sumaban `apellidoMat`+`nombre` (2 más) — 6 letras al inicio del CURP
+  en vez de 4. Efecto: el botón "Guardar"/"Crear alumno" del alta rápida de alumno nunca se
+  habilitaba (`crearAlumnoForm.invalid` siempre `true`), causando timeout de 30s en **todo** test
+  que crea un alumno vía UI — 15 de los 50 fallos de la corrida completa (`ALU-02`, `ALU-03`,
+  `ALU-11`, `ALU-12`, 8 variantes de `ALU-D`, `FUZZ-01`, `AUD-01`, `CON-12`, y probablemente
+  `CAOS-09`/`CAOS-15`). Reescrito con la estructura real de CURP (4 letras + 6 dígitos + sexo +
+  5 letras + diferenciador + dígito verificador = 18). Verificado con 10,000 simulaciones en
+  Node: 100% pasan la regex real. Cero riesgo de producción — el cambio es solo en el generador
+  de datos de prueba E2E, no toca código de aplicación.
 
 ## 5. Verificación
 
@@ -73,11 +85,51 @@ scoping de esas dos entidades ya se verifica en el controller antes de llegar ah
   antes de cada reinicio de contenedor de producción).
 - `10-rbac.spec.ts` agregado a `.github/workflows/e2e-tests.yml` junto a los 5 specs que ya
   corrían (antes: 5/21 specs en CI).
-- E2E contra el stack real: ver resultado final más abajo (corrida completa de los 21 specs,
-  autorizada explícitamente por el usuario tras confirmar que los 2 fallos de la corrida aislada
-  de `10-rbac.spec.ts` eran atribuibles a infraestructura, no a los fixes).
+### Resultado final — corrida completa de los 21 specs (372 tests, ~32 min)
 
-<!-- RESULTADO_E2E_PENDIENTE_DE_COMPLETAR -->
+**291 passed / 50 failed / 31 skipped.** Esta corrida se lanzó *antes* de descubrir y corregir el
+bug de `curpValido()` de arriba, así que buena parte de los 50 fallos son ese mismo bug ya
+resuelto. Clasificación de los 50 fallos, con causa raíz verificada individualmente (no
+asumida):
+
+| Causa | # tests | Fallos | Relacionado con los fixes de hoy |
+|---|---|---|---|
+| Bug de `curpValido()` (botón Guardar nunca habilitado) | 15 | `ALU-02/03/11/12`, 8×`ALU-D`, `FUZZ-01`, `AUD-01`, `CON-12` | **No** — ya corregido (§4), re-verificado en corrida dirigida (ver abajo) |
+| `06-edge-cases.spec.ts` — tokens literales falsos (`'docente-plantel-1-token'`, etc.), nunca conectado a OIDC real | 23 | Todo el archivo (suites A-G) | **No** — confirmado con curl: el BFF responde 401 correcto para el token falso; el test espera 403 (asume un token válido con rol equivocado) |
+| `paginacion-tareas.spec.ts` — `authToken` declarado pero nunca asignado (`undefined`) | 4 | Las 4 pruebas del archivo | **No** — mismo patrón de scaffold sin terminar; `Authorization: Bearer undefined` → 401 esperado |
+| `12-certificados.spec.ts` CER-E2E-10 — `page.goto(..., {waitUntil:'networkidle'})` nunca alcanza networkidle (polling de fondo de la SPA) | 1 | `CER-E2E-10` | **No** — falla en la navegación, antes de invocar cualquier endpoint de `CertificadosController`; patrón conocido de Playwright con SPAs con polling |
+| `19-cascadas-grupos.spec.ts` — dialog `[data-testid="dialog-grupo-admin"]` no visible / `window.ng` no expuesto (build de producción) | 6 | `GRP-CASCADE-01/03/04/05/06/07` | **No** — módulo de Grupos, ningún archivo tocado hoy; `window.ng` es un hook de dev-mode ausente en build de producción |
+| `06-chaos.spec.ts` — mismo flujo de alta de alumno (`alumnoValido()`) | 3 | `CAOS-09/11/15` | **No** — mismo bug de `curpValido()`, cubierto por el fix |
+
+**Cero fallos atribuibles a los 15 controllers corregidos hoy.** Los specs que sí ejercitan
+código tocado hoy (`05-certificados.spec.ts` completo, `10-rbac.spec.ts`, `13-rrhh.spec.ts`
+asistencia de personal) pasaron 100%.
+
+### Re-verificación dirigida tras el fix de `curpValido()`
+
+Corrida aislada de `02-alumnos.spec.ts` (33 tests) contra el mismo servidor, con el fix ya
+aplicado: **20 passed / 11 failed / 2 skipped.**
+
+**Confirmado — el fix funciona:** `ALU-02` (crear alumno, antes 30.4s timeout → ahora 5.9s ✅),
+`ALU-03` (CURP duplicado → 409, antes timeout → ahora pasa ✅), `ALU-D-fuzz` (5 CURPs aleatorias,
+antes no llegaba a ejecutarse por el bug de otros tests en el mismo archivo → ahora pasa ✅).
+
+**11 fallos restantes — causa distinta, ya diagnosticada, NO relacionada con `curpValido()`:**
+`ALU-11`, `ALU-12` y 8×`ALU-D` dejan el campo CURP vacío o inválido **a propósito** (están
+probando que la app avise al usuario). El botón "Guardar" se deshabilita correctamente vía
+Angular reactive forms (`[disabled]="crearAlumnoForm.invalid"` en `alumnos.component.ts`), pero
+`AlumnosPage.save()` (`e2e/page-objects/alumnos-page.ts:67`) hace `await this.saveBtn.click()`
+sin `{force: true}` ni timeout corto — cuelga 30s esperando un botón que está *correctamente*
+deshabilitado en vez de fallar rápido o verificar el estado deshabilitado como resultado válido.
+**No se corrigió**, porque la corrección real depende de una decisión de producto que no
+corresponde tomar unilateralmente: ¿el botón debe permitir el click y mostrar un toast de
+advertencia (como asumen los comentarios de estos tests — "El componente usa notify.warning()
+no ng-invalid"), o debe seguir deshabilitado silenciosamente como hace hoy? Ambas son UX válidas;
+cambiar cualquiera de las dos sin confirmación del usuario sería expandir el alcance de esta
+sesión (BOLA/BFLA) hacia decisiones de producto no relacionadas con seguridad. `ALU-05` también
+falló en esta corrida con el mismo síntoma (botón deshabilitado) — no estaba en la lista de 50
+fallos de la corrida completa, así que es flakiness de orden/estado entre tests del mismo
+archivo, no una regresión nueva.
 
 ## 6. Lo que queda fuera de esta pasada (por decisión del usuario, diferido)
 

@@ -17,6 +17,8 @@ import { CardModule } from 'primeng/card';
 import { TabsModule } from 'primeng/tabs';
 import { ProgressBarModule } from 'primeng/progressbar';
 import { DatePickerModule } from 'primeng/datepicker';
+import { ConfirmationService } from 'primeng/api';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ApexNotificationService } from 'apex-component-library';
 import { ContextService } from '../../core/services/context.service';
 import { AuthService } from '../../core/services/auth.service';
@@ -73,9 +75,12 @@ type TabKey = 'biblioteca' | 'mis-resultados';
     TableModule, ButtonModule, DialogModule, InputTextModule,
     SelectModule, TagModule, TextareaModule, TooltipModule,
     CardModule, TabsModule, ProgressBarModule, DatePickerModule,
+    ConfirmDialogModule,
   ],
+  providers: [ConfirmationService],
   template: `
 <div class="apex-page">
+  <p-confirmDialog />
   <!-- KPI Strip -->
   <div class="apex-kpi-strip" style="margin-bottom:1rem">
     <div class="apex-kpi-card">
@@ -292,6 +297,7 @@ export class H5pComponent implements OnInit, OnDestroy {
   private ctx = inject(ContextService);
   private auth = inject(AuthService);
   private sanitizer = inject(DomSanitizer);
+  private readonly confirm = inject(ConfirmationService);
 
   // State
   contenidos = signal<H5PContenido[]>([]);
@@ -447,10 +453,16 @@ export class H5pComponent implements OnInit, OnDestroy {
   }
 
   confirmarEliminar(c: H5PContenido) {
-    if (!confirm(`¿Eliminar "${c.titulo}"? Se perderán todos los resultados asociados.`)) return;
-    this.api.delete(`/h5p/contenidos/${c.id}`).pipe(takeUntil(this.destroy$)).subscribe({
-      next: () => { this.notify.success('Contenido eliminado'); this.cargarContenidos(); },
-      error: () => this.notify.error('Error al eliminar'),
+    this.confirm.confirm({
+      message: `¿Eliminar "${c.titulo}"? Se perderán todos los resultados asociados.`,
+      header: 'Confirmar eliminación',
+      icon: 'pi pi-exclamation-triangle',
+      accept: () => {
+        this.api.delete(`/h5p/contenidos/${c.id}`).pipe(takeUntil(this.destroy$)).subscribe({
+          next: () => { this.notify.success('Contenido eliminado'); this.cargarContenidos(); },
+          error: () => this.notify.error('Error al eliminar'),
+        });
+      },
     });
   }
 

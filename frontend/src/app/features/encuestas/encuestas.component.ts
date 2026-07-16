@@ -15,6 +15,8 @@ import { CheckboxModule } from 'primeng/checkbox';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { DividerModule } from 'primeng/divider';
 import { DatePickerModule } from 'primeng/datepicker';
+import { ConfirmationService } from 'primeng/api';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
 
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
@@ -122,9 +124,11 @@ const TIPOS_PREG = [
     ButtonModule, TagModule, DialogModule, SelectModule,
     InputTextModule, TextareaModule, TooltipModule, InputNumberModule,
     CheckboxModule, ToggleSwitchModule, DividerModule, DatePickerModule,
-    InteractiveGridComponent,
+    InteractiveGridComponent, ConfirmDialogModule,
   ],
+  providers: [ConfirmationService],
   template: `
+    <p-confirmDialog />
     <div class="page-header">
       <div>
         <h2 class="page-title">Encuestas y Sondeos</h2>
@@ -626,6 +630,7 @@ export class EncuestasComponent implements OnInit, OnDestroy {
   readonly ctx              = inject(ContextService);
   private readonly exporter = inject(ExportService);
   private readonly notify   = inject(ApexNotificationService);
+  private readonly confirm  = inject(ConfirmationService);
 
   encuestas   = signal<Encuesta[]>([]);
 
@@ -753,13 +758,21 @@ export class EncuestasComponent implements OnInit, OnDestroy {
 
   eliminarEncuesta(): void {
     if (!this.selEncuesta) return;
-    this.api.delete(`/encuestas/${this.selEncuesta.id}`).pipe(takeUntil(this.destroy$)).subscribe({
-      next: () => {
-        this.selEncuesta = null;
-        this.preguntas.set([]);
-        this.cargar();
+    const encuesta = this.selEncuesta;
+    this.confirm.confirm({
+      message: `¿Eliminar la encuesta "${encuesta.titulo}"?`,
+      header: 'Confirmar eliminación',
+      icon: 'pi pi-exclamation-triangle',
+      accept: () => {
+        this.api.delete(`/encuestas/${encuesta.id}`).pipe(takeUntil(this.destroy$)).subscribe({
+          next: () => {
+            this.selEncuesta = null;
+            this.preguntas.set([]);
+            this.cargar();
+          },
+          error: (e: any) => this.notify.error('Error al eliminar encuesta', e?.error?.detail ?? e?.message ?? ''),
+        });
       },
-      error: (e: any) => this.notify.error('Error al eliminar encuesta', e?.error?.detail ?? e?.message ?? ''),
     });
   }
 
@@ -800,9 +813,17 @@ export class EncuestasComponent implements OnInit, OnDestroy {
 
   eliminarPregunta(p: Pregunta): void {
     if (!this.selEncuesta) return;
-    this.api.delete(`/encuestas/${this.selEncuesta.id}/preguntas/${p.id}`).pipe(takeUntil(this.destroy$)).subscribe({
-      next: () => this.cargarPreguntas(),
-      error: (e: any) => this.notify.error('Error al eliminar pregunta', e?.error?.detail ?? e?.message ?? ''),
+    const encuestaId = this.selEncuesta.id;
+    this.confirm.confirm({
+      message: `¿Eliminar la pregunta "${p.texto}"?`,
+      header: 'Confirmar eliminación',
+      icon: 'pi pi-exclamation-triangle',
+      accept: () => {
+        this.api.delete(`/encuestas/${encuestaId}/preguntas/${p.id}`).pipe(takeUntil(this.destroy$)).subscribe({
+          next: () => this.cargarPreguntas(),
+          error: (e: any) => this.notify.error('Error al eliminar pregunta', e?.error?.detail ?? e?.message ?? ''),
+        });
+      },
     });
   }
 

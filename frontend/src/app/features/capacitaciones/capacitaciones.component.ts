@@ -14,7 +14,8 @@ import { DatePickerModule } from 'primeng/datepicker';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { CardModule } from 'primeng/card';
 import { AutoCompleteModule } from 'primeng/autocomplete';
-import { MessageService } from 'primeng/api';
+import { MessageService, ConfirmationService } from 'primeng/api';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ApexNotificationService } from 'apex-component-library';
 import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
 import { AdesFormatDirective } from '../../shared/directives/ades-format.directive';
@@ -81,11 +82,12 @@ interface CapacitacionForm {
     InputTextModule, SelectModule, TextareaModule,
     TagModule, ToastModule, DatePickerModule,
     InputNumberModule, CardModule, AutoCompleteModule,
-    InteractiveGridComponent,
+    InteractiveGridComponent, ConfirmDialogModule,
   ],
-  providers: [MessageService],
+  providers: [MessageService, ConfirmationService],
   template: `
     <p-toast />
+    <p-confirmDialog />
 
     <div class="apex-page">
       <!-- Toolbar -->
@@ -271,6 +273,7 @@ export class CapacitacionesComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private api = inject(ApiService);
   private notify = inject(ApexNotificationService);
+  private readonly confirm = inject(ConfirmationService);
 
   capacitaciones = signal<Capacitacion[]>([]);
 
@@ -430,9 +433,16 @@ export class CapacitacionesComponent implements OnInit, OnDestroy {
   }
 
   eliminar(cap: Capacitacion) {
-    this.api.delete(`/capacitaciones/${cap.id}`).pipe(takeUntil(this.destroy$)).subscribe({
-      next: () => { this.notify.success('Capacitación eliminada'); this.cargar(); },
-      error: (e: any) => this.notify.error(e.error?.detail ?? 'Error al eliminar'),
+    this.confirm.confirm({
+      message: `¿Eliminar la capacitación "${cap.nombre}"?`,
+      header: 'Confirmar eliminación',
+      icon: 'pi pi-exclamation-triangle',
+      accept: () => {
+        this.api.delete(`/capacitaciones/${cap.id}`).pipe(takeUntil(this.destroy$)).subscribe({
+          next: () => { this.notify.success('Capacitación eliminada'); this.cargar(); },
+          error: (e: any) => this.notify.error(e.error?.detail ?? 'Error al eliminar'),
+        });
+      },
     });
   }
 
