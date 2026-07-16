@@ -22,8 +22,15 @@ public class ExpedienteLaboralPersistenceAdapter implements ExpedienteLaboralRep
 
     private final JdbcTemplate jdbc;
 
+    /**
+     * BOLA fix (2026-07-16): {@code plantelId} filtra por el plantel resuelto vía
+     * COALESCE entre las 3 tablas que pueden vincular una persona a un plantel
+     * (docente, personal administrativo, personal de salud) — {@code null} para
+     * nivelAcceso 0 (alcance institucional), forzado al plantel del usuario en el
+     * resto de roles por {@code AdesUserService#getEffectivePlantelId}.
+     */
     @Override
-    public List<Map<String, Object>> list(UUID personaId, String tipoContrato, String q) {
+    public List<Map<String, Object>> list(UUID personaId, String tipoContrato, String q, UUID plantelId) {
         StringBuilder sql = new StringBuilder(
             "SELECT el.*, " +
             "  CONCAT(pe.nombre, ' ', pe.apellido_paterno, CASE WHEN pe.apellido_materno IS NOT NULL " +
@@ -41,8 +48,31 @@ public class ExpedienteLaboralPersistenceAdapter implements ExpedienteLaboralRep
             params.add(like); params.add(like); params.add(like);
         }
         if (tipoContrato != null && !tipoContrato.isBlank()) { sql.append("AND el.tipo_contrato = ? "); params.add(tipoContrato); }
+        if (plantelId != null) {
+            sql.append("AND COALESCE(" +
+                "(SELECT plantel_id FROM ades_profesores WHERE persona_id = el.persona_id), " +
+                "(SELECT plantel_id FROM ades_personal_administrativo WHERE persona_id = el.persona_id), " +
+                "(SELECT plantel_id FROM ades_personal_salud WHERE persona_id = el.persona_id)" +
+                ") = ? ");
+            params.add(plantelId);
+        }
         sql.append("ORDER BY el.fecha_creacion DESC");
         return jdbc.queryForList(sql.toString(), params.toArray());
+    }
+
+    /**
+     * Resuelve el plantel de una persona (docente, administrativo o personal de
+     * salud) para el chequeo BOLA de plantel en el controller.
+     */
+    @Override
+    public UUID plantelDePersona(UUID personaId) {
+        List<UUID> rows = jdbc.queryForList(
+            "SELECT COALESCE(" +
+            "(SELECT plantel_id FROM ades_profesores WHERE persona_id = ?), " +
+            "(SELECT plantel_id FROM ades_personal_administrativo WHERE persona_id = ?), " +
+            "(SELECT plantel_id FROM ades_personal_salud WHERE persona_id = ?)" +
+            ")", UUID.class, personaId, personaId, personaId);
+        return rows.isEmpty() ? null : rows.get(0);
     }
 
     @Override

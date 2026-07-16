@@ -47,8 +47,18 @@ spring:
     password: ${SPRING_DATASOURCE_PASSWORD:${POSTGRES_PASSWORD:changeme}}
     driver-class-name: org.postgresql.Driver
     hikari:
-      maximum-pool-size: 10
-      minimum-idle: 5
+      # Ampliado 2026-07-16 (10→25): el pool de 10 se saturaba bajo carga real
+      # concurrente (HikariPool "Connection is not available" con 18 requests en
+      # espera durante prueba E2E — ver docs/hallazgos/2026-07-16_reporte_fiabilidad_3dias_y_plan.md).
+      # El BFF conecta directo a ades-postgres (no vía pgbouncer, ver comentario en
+      # docker-compose.yml sobre SPRING_DATASOURCE_URL), así que este valor consume
+      # conexiones reales de Postgres — max_connections por defecto es 100 y el resto
+      # de servicios (Authentik, Superset, FastAPI, Celery) pasan por pgbouncer, no
+      # compiten 1:1 por este cupo. 25 deja margen amplio para cientos de usuarios
+      # concurrentes (cada request retiene la conexión solo durante la transacción,
+      # no por toda la sesión del usuario).
+      maximum-pool-size: 25
+      minimum-idle: 8
       idle-timeout: 600000
       connection-timeout: 30000
       max-lifetime: 1800000

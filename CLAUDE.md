@@ -1,6 +1,7 @@
 # ADES — Claude Code Guidelines
-# Versión: 2.8 | Actualizado: 2026-07-15 (ledger de auditoría endurecido SHA-256 + fix
-# usuario_creacion/modificacion en 57 entidades — ver sección "Esquema de auditoría ADES")
+# Versión: 2.9 | Actualizado: 2026-07-16 (cierre de cola larga BOLA/BFLA de scoping por plantel —
+# 15 controllers, patrón `AdesUserService#verificarPlantel` — ver `docs/hallazgos/
+# 2026-07-16_reporte_fiabilidad_3dias_y_plan.md` y bitácora en `.agent/STATE.md`)
 # **NOTA:** Los 3 puntos críticos de Fase 1 (@EntityGraph, OnDestroy, SQL prepared statements)
 # verificados en vivo y en verde el 2026-07-12 — ver sección "OPTIMIZACIÓN AL 100%" abajo.
 #
@@ -73,6 +74,7 @@ Ver ADR-0011 para el plan de boleta NEM.
 | **Claves CCT/UAEMEX por nivel** | Mig 103: `ades_plantel_nivel_clave` — 6 CCT SEP reales verificados (Metepec/Tenancingo/Ixtapan × Primaria/Secundaria); incorporación UAEMEX Preparatoria pendiente de oficio institucional |
 | **19 CU auditoría 2026-07-03** | Mig 104-113: planes NEE, publicar/archivar plan, credencial alumno, modalidad clase, reprogramar planeación, reabrir entrega, plagio real (Jaccard), plan de mejora docente, timeline admisión, ajuste dinámico learning path, narrativa IA, exportación CSV BI, riesgo conductual, acta conducta PDF, eventos bienestar, auditoría login fallido (Authentik Events API), compliance LFPDPPP. Catálogo: 192/230 (83.5%) |
 | **Auditoría seguridad 2026-07-04/06** | BOLA/BFLA corregidos (conducta, planes-estudio, plantel-claves, plan-mejora, learning-paths), mig 114 fix auditoría, headers nginx (HSTS/X-Frame/X-Content-Type/Referrer), 2 bugs reales en Gradebook (p-tablist faltante + contrato insights roto), ADR-0012 claves CCT |
+| **Auditoría seguridad 2026-07-16** | Cola larga BOLA/BFLA cross-plantel cerrada en 15 controllers (patrón `AdesUserService#verificarPlantel`); barrido de variantes encontró el mismo bug replicado en 7 archivos no capturados por el grep original (Entregas/Calificaciones/Planeacion/Gradebook/Tarea/Evaluacion). HikariCP `maximum-pool-size` 10→25 (saturación real bajo carga confirmada en logs). `GlobalExceptionHandler` ahora mapea `NoResourceFoundException`→404 (antes 500). 555/555 tests + E2E real en servidor único. Detalle: `docs/hallazgos/2026-07-16_reporte_fiabilidad_3dias_y_plan.md` |
 
 ---
 

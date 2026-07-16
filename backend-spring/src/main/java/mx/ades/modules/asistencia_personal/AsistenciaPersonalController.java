@@ -58,6 +58,26 @@ public class AsistenciaPersonalController {
         }
     }
 
+    /**
+     * BOLA fix (2026-07-16): requireStaff() solo verifica nivelAcceso — sin ningún
+     * chequeo de plantel, personal administrativo de un plantel podía leer/editar la
+     * asistencia de CUALQUIER empleado de CUALQUIER plantel (mismo patrón ya confirmado
+     * real en ExpedienteLaboralController).
+     */
+    private void verificarAccesoPersona(AdesUser user, UUID personaId) {
+        userService.verificarPlantel(user, queryService.plantelDePersona(personaId),
+                "El empleado no pertenece a su plantel");
+    }
+
+    private void verificarAccesoRegistro(AdesUser user, UUID registroId) {
+        try {
+            Map<String, Object> registro = queryService.detalle(registroId);
+            verificarAccesoPersona(user, (UUID) registro.get("persona_id"));
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+        }
+    }
+
     @Data
     public static class AsistenciaCreate {
         @NotNull(message = "personaId es obligatorio")
@@ -97,10 +117,16 @@ public class AsistenciaPersonalController {
         // Datos de asistencia de PERSONAL (RH) — sin este chequeo cualquier cuenta
         // autenticada (incluidos alumnos/padres) podía listar la asistencia de cualquier
         // empleado (BOLA, OWASP API1).
-        requireStaff(userService.resolveUser(jwt));
+        AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
         pagina = Math.max(pagina, 1);
         porPagina = Math.min(Math.max(porPagina, 1), 200);
-        return ResponseEntity.ok(queryService.listar(personaId, fechaInicio, fechaFin, tipoJornada, q, pagina, porPagina));
+        if (personaId != null) {
+            verificarAccesoPersona(user, personaId);
+            return ResponseEntity.ok(queryService.listar(personaId, fechaInicio, fechaFin, tipoJornada, q, pagina, porPagina, null));
+        }
+        UUID plantelId = userService.getEffectivePlantelId(user, null);
+        return ResponseEntity.ok(queryService.listar(null, fechaInicio, fechaFin, tipoJornada, q, pagina, porPagina, plantelId));
     }
 
     @PostMapping
@@ -109,6 +135,7 @@ public class AsistenciaPersonalController {
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         requireStaff(user);
+        verificarAccesoPersona(user, data.getPersonaId());
 
         TipoJornada tipoJornada;
         try {
@@ -134,7 +161,9 @@ public class AsistenciaPersonalController {
             @RequestParam("mes") int mes,
             @RequestParam("anio") int anio,
             @AuthenticationPrincipal Jwt jwt) {
-        requireStaff(userService.resolveUser(jwt));
+        AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
+        verificarAccesoPersona(user, personaId);
         return ResponseEntity.ok(queryService.reporte(personaId, mes, anio));
     }
 
@@ -142,7 +171,9 @@ public class AsistenciaPersonalController {
     public ResponseEntity<Map<String, Object>> detalleAsistencia(
             @PathVariable("id") UUID id,
             @AuthenticationPrincipal Jwt jwt) {
-        requireStaff(userService.resolveUser(jwt));
+        AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
+        verificarAccesoRegistro(user, id);
         try {
             return ResponseEntity.ok(queryService.detalle(id));
         } catch (IllegalArgumentException e) {
@@ -159,6 +190,7 @@ public class AsistenciaPersonalController {
         // El use case solo valida nivelAcceso<=3 para el campo "justificado"; el resto
         // de los campos (horas, retardo, observaciones) no tenían ningún chequeo de rol.
         requireStaff(user);
+        verificarAccesoRegistro(user, id);
 
         TipoJornada tipoJornada = null;
         if (data.getTipoJornada() != null) {
@@ -195,6 +227,7 @@ public class AsistenciaPersonalController {
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         requireStaff(user);
+        verificarAccesoRegistro(user, id);
         try {
             asistenciaService.eliminar(id, user.getUsername());
         } catch (IllegalArgumentException e) {

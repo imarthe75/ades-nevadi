@@ -14,6 +14,7 @@ import mx.ades.security.AdesUser;
 import mx.ades.security.AdesUserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -43,6 +44,7 @@ public class JustificacionController {
     private final RegistrarJustificacionUseCase registrarJustificacion;
     private final ResolverJustificacionUseCase  resolverJustificacion;
     private final JustificacionQueryService     query;
+    private final JdbcTemplate jdbc;
 
     @Data
     public static class JustificacionCreate {
@@ -75,10 +77,16 @@ public class JustificacionController {
         // lectura no verificaba nada — cualquier usuario autenticado (incl. padres/alumnos)
         // podía listar justificaciones (motivo, documentoUrl de tipo médico) de CUALQUIER
         // alumno del sistema, sin scoping alguno.
-        requireCoordAcademico(userService.resolveUser(jwt));
+        AdesUser user = userService.resolveUser(jwt);
+        requireCoordAcademico(user);
         pagina = Math.max(pagina, 1);
         porPagina = Math.min(Math.max(porPagina, 1), 200);
-        return ResponseEntity.ok(query.list(estudianteId, estado, grupoId, pagina, porPagina));
+        if (estudianteId != null) {
+            verificarAccesoEstudiante(user, estudianteId);
+            return ResponseEntity.ok(query.list(estudianteId, estado, grupoId, pagina, porPagina, null));
+        }
+        UUID plantelId = userService.getEffectivePlantelId(user, null);
+        return ResponseEntity.ok(query.list(null, estado, grupoId, pagina, porPagina, plantelId));
     }
 
     @PostMapping
@@ -90,6 +98,7 @@ public class JustificacionController {
         // cualquier usuario autenticado podía registrar una justificación (con documento y
         // motivo médico/familiar) sobre la asistencia de CUALQUIER alumno.
         requireCoordAcademico(user);
+        verificarAccesoAsistencia(user, body.getAsistenciaId());
         var cmd = new RegistrarJustificacionUseCase.Command(
                 body.getAsistenciaId(),
                 TipoJustificacion.of(body.getTipoJustificacion()),
@@ -107,6 +116,8 @@ public class JustificacionController {
             @RequestBody @Valid ResolucionIn body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        requireCoordAcademico(user);
+        verificarAccesoJustificacion(user, justificacionId);
         var cmd = new ResolverJustificacionUseCase.Command(
                 justificacionId,
                 AccionJustificacion.of(body.getAccion()),
@@ -123,7 +134,9 @@ public class JustificacionController {
             @PathVariable("justificacionId") UUID justificacionId,
             @AuthenticationPrincipal Jwt jwt) {
         // BFLA fix (asimetría): mismo hallazgo que listarJustificaciones().
-        requireCoordAcademico(userService.resolveUser(jwt));
+        AdesUser user = userService.resolveUser(jwt);
+        requireCoordAcademico(user);
+        verificarAccesoJustificacion(user, justificacionId);
         return ResponseEntity.ok(query.findById(justificacionId));
     }
 
@@ -139,5 +152,30 @@ public class JustificacionController {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "Sin permisos para justificaciones (requiere COORDINADOR+)");
         }
+    }
+
+    /**
+     * BOLA fix (2026-07-16): requireCoordAcademico() solo verifica nivelAcceso — sin
+     * ningún chequeo de plantel, Coordinador/Director/Admin_Plantel de un plantel
+     * podía listar/crear/resolver/ver justificaciones (motivo, documento médico) de
+     * CUALQUIER alumno de CUALQUIER plantel.
+     */
+    private void verificarAccesoEstudiante(AdesUser user, UUID estudianteId) {
+        List<UUID> rows = jdbc.queryForList(
+                "SELECT plantel_id FROM ades_estudiantes WHERE id = ?", UUID.class, estudianteId);
+        if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Alumno no encontrado");
+        userService.verificarPlantel(user, rows.get(0), "El alumno no pertenece a su plantel");
+    }
+
+    private void verificarAccesoAsistencia(AdesUser user, UUID asistenciaId) {
+        UUID estudianteId = query.estudianteDeAsistencia(asistenciaId);
+        if (estudianteId == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Asistencia no encontrada");
+        verificarAccesoEstudiante(user, estudianteId);
+    }
+
+    private void verificarAccesoJustificacion(AdesUser user, UUID justificacionId) {
+        UUID asistenciaId = query.asistenciaDeJustificacion(justificacionId);
+        if (asistenciaId == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Justificación no encontrada");
+        verificarAccesoAsistencia(user, asistenciaId);
     }
 }

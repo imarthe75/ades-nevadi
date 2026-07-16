@@ -124,13 +124,28 @@ public class AsistenciaController {
     }
 
     /**
-     * Admin/Director/Coordinador (nivelAcceso &le;3) tienen alcance institucional; un
-     * Docente (nivelAcceso 4) solo puede leer/escribir asistencia de clases donde él
-     * mismo es el profesor de registro ({@code ades_clases.profesor_id}) — mismo criterio
-     * ya aplicado en ActividadesController (Fase 5) vía {@code ades_asignaciones_docentes}.
+     * Admin/Director/Coordinador (nivelAcceso &le;3) tienen alcance institucional dentro
+     * de su propio plantel; un Docente (nivelAcceso 4) solo puede leer/escribir asistencia
+     * de clases donde él mismo es el profesor de registro ({@code ades_clases.profesor_id})
+     * — mismo criterio ya aplicado en ActividadesController (Fase 5) vía
+     * {@code ades_asignaciones_docentes}.
+     * <p>
+     * (Corregido 2026-07-16 — BOLA: el {@code return} temprano para nivelAcceso&le;3
+     * nunca verificaba el plantel de la clase — Admin_Plantel/Director/Coordinador de
+     * un plantel podían leer/escribir asistencia de clases de CUALQUIER plantel. Solo
+     * nivelAcceso 0 mantiene alcance libre, ver {@code AdesUserService#verificarPlantel}.)
      */
     private void requireAccesoClase(AdesUser user, UUID claseId) {
-        if (user.getNivelAcceso() != null && user.getNivelAcceso() <= 3) return;
+        if (user.getNivelAcceso() != null && user.getNivelAcceso() <= 3) {
+            List<UUID> plantelRows = jdbc.queryForList(
+                    "SELECT gr.plantel_id FROM ades_clases c " +
+                    "JOIN ades_grupos g ON g.id = c.grupo_id " +
+                    "JOIN ades_grados gr ON gr.id = g.grado_id " +
+                    "WHERE c.id = ?", UUID.class, claseId);
+            if (plantelRows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Clase no encontrada");
+            userService.verificarPlantel(user, plantelRows.get(0), "La clase no pertenece a su plantel");
+            return;
+        }
         Long count = jdbc.queryForObject(
                 "SELECT COUNT(*) FROM ades_clases c " +
                 "JOIN ades_profesores p ON p.id = c.profesor_id " +

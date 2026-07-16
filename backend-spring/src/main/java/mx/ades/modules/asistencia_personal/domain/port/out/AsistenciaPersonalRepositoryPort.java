@@ -21,7 +21,7 @@ import java.util.UUID;
  */
 public interface AsistenciaPersonalRepositoryPort {
     List<Map<String, Object>> list(UUID personaId, LocalDate fechaInicio, LocalDate fechaFin, String tipoJornada, String q,
-                                    int pagina, int porPagina);
+                                    int pagina, int porPagina, UUID plantelId);
     boolean existeRegistro(UUID personaId, LocalDate fecha);
     void insert(RegistrarAsistenciaUseCase.Command cmd);
     void update(RegistrarAsistenciaUseCase.Command cmd);
@@ -31,4 +31,5 @@ public interface AsistenciaPersonalRepositoryPort {
     Map<String, Object> fetchById(UUID id);
     List<Map<String, Object>> reporte(UUID personaId, int mes, int anio);
     void softDelete(UUID id, String usuario);
+    UUID plantelDePersona(UUID personaId);
 }

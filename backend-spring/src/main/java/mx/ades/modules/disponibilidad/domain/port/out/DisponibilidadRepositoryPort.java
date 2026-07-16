@@ -17,7 +17,7 @@ import java.util.UUID;
  * @since 2026
  */
 public interface DisponibilidadRepositoryPort {
-    List<Map<String, Object>> list(UUID profesorId, UUID cicloEscolarId, String q);
+    List<Map<String, Object>> list(UUID profesorId, UUID cicloEscolarId, String q, UUID plantelId);
     void softDeleteByProfesor(UUID profesorId, UUID cicloEscolarId);
     void createSlot(UUID profesorId, UUID cicloEscolarId, GuardarDisponibilidadUseCase.Slot slot, String usuario);
     void updateProfesorHoras(UUID profesorId, Double horasSemanaMax, Double horasFrenteGrupo, String usuario);
@@ -25,5 +25,6 @@ public interface DisponibilidadRepositoryPort {
     DisponibilidadDocente save(DisponibilidadDocente slot);
     List<Map<String, Object>> resumen(UUID profesorId, UUID cicloEscolarId);
     Map<String, Object> getProfesorHoras(UUID profesorId);
-    List<Map<String, Object>> cobertura(UUID cicloId);
+    List<Map<String, Object>> cobertura(UUID cicloId, UUID plantelId);
+    UUID plantelDeProfesor(UUID profesorId);
 }

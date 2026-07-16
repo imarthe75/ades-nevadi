@@ -9,6 +9,7 @@ import mx.ades.security.AdesUserService;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -39,6 +40,7 @@ public class CertificadosController {
     private final CertificadoQueryService queryService;
     private final EmitirCertificadoUseCase emitirUseCase;
     private final CertificadoFastApiPort fastApiPort;
+    private final JdbcTemplate jdbc;
 
     // Nivel mínimo para emitir/firmar certificados (SECRETARIA_ACADEMICA/COORDINADOR = 3)
     private static final int NIVEL_MIN_EMISION = 3;
@@ -71,6 +73,31 @@ public class CertificadosController {
         }
     }
 
+    /**
+     * BOLA fix (2026-07-16): requireEmisor() solo verifica nivelAcceso — sin esto,
+     * Secretaría Académica/Coordinador (nivel 1-3) de un plantel podía emitir/firmar/
+     * consultar certificados académicos (documento oficial con calificaciones) de un
+     * alumno de CUALQUIER plantel.
+     */
+    private void verificarAccesoAlumno(AdesUser user, UUID estudianteId) {
+        List<UUID> rows = jdbc.queryForList(
+                "SELECT plantel_id FROM ades_estudiantes WHERE id = ?", UUID.class, estudianteId);
+        if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Alumno no encontrado");
+        userService.verificarPlantel(user, rows.get(0), "El alumno no pertenece a su plantel");
+    }
+
+    private UUID estudianteDeCertificado(UUID certId) {
+        List<UUID> rows = jdbc.queryForList(
+                "SELECT estudiante_id FROM ades_certificados WHERE id = ?", UUID.class, certId);
+        if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Certificado no encontrado");
+        return rows.get(0);
+    }
+
+    private UUID parseUuid(Object value) {
+        if (value == null) return null;
+        try { return UUID.fromString(value.toString()); } catch (IllegalArgumentException e) { return null; }
+    }
+
     @GetMapping("")
     public ResponseEntity<List<Map<String, Object>>> listarCertificados(
             @RequestParam(value = "estudiante_id", required = false) UUID estudianteId,
@@ -85,7 +112,12 @@ public class CertificadosController {
         if (user.getNivelAcceso() != null && user.getNivelAcceso() > 4 && estudianteId == null) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Debe especificar estudiante_id");
         }
-        return ResponseEntity.ok(queryService.listar(estudianteId, tipoCertificado, limit));
+        if (estudianteId != null) {
+            verificarAccesoAlumno(user, estudianteId);
+            return ResponseEntity.ok(queryService.listar(estudianteId, tipoCertificado, limit, null));
+        }
+        UUID plantelId = userService.getEffectivePlantelId(user, null);
+        return ResponseEntity.ok(queryService.listar(null, tipoCertificado, limit, plantelId));
     }
 
     @PostMapping("/emitir")
@@ -93,7 +125,10 @@ public class CertificadosController {
             @RequestBody Map<String, Object> body,
             @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authHeader,
             @AuthenticationPrincipal Jwt jwt) {
-        requireEmisor(userService.resolveUser(jwt));
+        AdesUser user = userService.resolveUser(jwt);
+        requireEmisor(user);
+        UUID estudianteId = parseUuid(body.get("estudiante_id"));
+        if (estudianteId != null) verificarAccesoAlumno(user, estudianteId);
         return emitirUseCase.emitir(body, authHeader);
     }
 
@@ -102,7 +137,9 @@ public class CertificadosController {
             @PathVariable("cert_id") UUID certId,
             @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authHeader,
             @AuthenticationPrincipal Jwt jwt) {
-        requireEmisor(userService.resolveUser(jwt));
+        AdesUser user = userService.resolveUser(jwt);
+        requireEmisor(user);
+        verificarAccesoAlumno(user, estudianteDeCertificado(certId));
         return emitirUseCase.firmar(certId, authHeader);
     }
 

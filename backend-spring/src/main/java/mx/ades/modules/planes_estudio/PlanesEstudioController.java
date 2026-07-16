@@ -9,6 +9,7 @@ import mx.ades.security.AdesUserService;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -38,6 +39,7 @@ public class PlanesEstudioController {
     private final PlanAltQueryService planAltQueryService;
     private final PlanAltWriteService planAltWriteService;
     private final AdesUserService userService;
+    private final JdbcTemplate jdbc;
 
     private static final int NIVEL_ADMIN_PLANTEL = 2;
     private static final int NIVEL_COORD_ACADEMICO = 3;
@@ -46,6 +48,51 @@ public class PlanesEstudioController {
         if (user.getNivelAcceso() != null && user.getNivelAcceso() > maxNivel) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Nivel de acceso insuficiente para esta operación");
         }
+    }
+
+    /**
+     * BOLA fix (2026-07-16): las mutaciones de plan de estudio (materia×grado×ciclo)
+     * solo verificaban nivelAcceso — sin esto, Admin_Plantel (nivel &le;2) de un plantel
+     * podía crear/editar/publicar/archivar/eliminar el plan de estudio de un grado de
+     * CUALQUIER plantel. Solo nivelAcceso 0 mantiene alcance libre.
+     */
+    private void verificarAccesoGrado(AdesUser user, UUID gradoId) {
+        List<UUID> rows = jdbc.queryForList(
+                "SELECT plantel_id FROM ades_grados WHERE id = ?", UUID.class, gradoId);
+        if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Grado no encontrado");
+        userService.verificarPlantel(user, rows.get(0), "El grado no pertenece a su plantel");
+    }
+
+    private UUID gradoDePlan(UUID planId) {
+        List<UUID> rows = jdbc.queryForList(
+                "SELECT grado_id FROM ades_materias_plan WHERE id = ?", UUID.class, planId);
+        if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Plan no encontrado");
+        return rows.get(0);
+    }
+
+    private void verificarAccesoEstudiante(AdesUser user, UUID estudianteId) {
+        List<UUID> rows = jdbc.queryForList(
+                "SELECT plantel_id FROM ades_estudiantes WHERE id = ?", UUID.class, estudianteId);
+        if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Alumno no encontrado");
+        userService.verificarPlantel(user, rows.get(0), "El alumno no pertenece a su plantel");
+    }
+
+    private void verificarAccesoGrupo(AdesUser user, UUID grupoId) {
+        List<UUID> rows = jdbc.queryForList(
+                "SELECT gr.plantel_id FROM ades_grupos g JOIN ades_grados gr ON gr.id = g.grado_id WHERE g.id = ?",
+                UUID.class, grupoId);
+        if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Grupo no encontrado");
+        userService.verificarPlantel(user, rows.get(0), "El grupo no pertenece a su plantel");
+    }
+
+    private void verificarAccesoPlanAlt(AdesUser user, UUID planAltId) {
+        List<Map<String, Object>> rows = jdbc.queryForList(
+                "SELECT estudiante_id, grupo_id FROM ades_planes_estudio_alt WHERE id = ?", planAltId);
+        if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Plan alternativo no encontrado");
+        UUID estudianteId = (UUID) rows.get(0).get("estudiante_id");
+        UUID grupoId = (UUID) rows.get(0).get("grupo_id");
+        if (estudianteId != null) verificarAccesoEstudiante(user, estudianteId);
+        else if (grupoId != null) verificarAccesoGrupo(user, grupoId);
     }
 
     @GetMapping
@@ -59,11 +106,13 @@ public class PlanesEstudioController {
     @PostMapping
     @CacheEvict(value = "catalogos", allEntries = true)
     public ResponseEntity<Map<String, Object>> create(@RequestBody Map<String, Object> body, @AuthenticationPrincipal Jwt jwt) {
-        requireNivel(userService.resolveUser(jwt), NIVEL_ADMIN_PLANTEL);
+        AdesUser user = userService.resolveUser(jwt);
+        requireNivel(user, NIVEL_ADMIN_PLANTEL);
         try {
             UUID materiaId = UUID.fromString((String) body.get("materia_id"));
             UUID gradoId = UUID.fromString((String) body.get("grado_id"));
             UUID cicloId = UUID.fromString((String) body.get("ciclo_escolar_id"));
+            verificarAccesoGrado(user, gradoId);
             Number horasSemana = body.get("horas_semana") instanceof Number ? (Number) body.get("horas_semana") : 0;
             Boolean esObligatoria = body.get("es_obligatoria") instanceof Boolean ? (Boolean) body.get("es_obligatoria") : true;
 
@@ -84,7 +133,9 @@ public class PlanesEstudioController {
             @PathVariable("id") UUID id,
             @RequestBody Map<String, Object> body,
             @AuthenticationPrincipal Jwt jwt) {
-        requireNivel(userService.resolveUser(jwt), NIVEL_ADMIN_PLANTEL);
+        AdesUser user = userService.resolveUser(jwt);
+        requireNivel(user, NIVEL_ADMIN_PLANTEL);
+        verificarAccesoGrado(user, gradoDePlan(id));
         planEstudioService.patch(id, body);
         return ResponseEntity.ok(Map.of("id", id.toString(), "updated", true));
     }
@@ -93,7 +144,9 @@ public class PlanesEstudioController {
     @PatchMapping("/{id}/publicar")
     @CacheEvict(value = "catalogos", allEntries = true)
     public ResponseEntity<Map<String, Object>> publicar(@PathVariable("id") UUID id, @AuthenticationPrincipal Jwt jwt) {
-        requireNivel(userService.resolveUser(jwt), NIVEL_ADMIN_PLANTEL);
+        AdesUser user = userService.resolveUser(jwt);
+        requireNivel(user, NIVEL_ADMIN_PLANTEL);
+        verificarAccesoGrado(user, gradoDePlan(id));
         planEstudioService.publicar(id);
         return ResponseEntity.ok(Map.of("id", id.toString(), "estado_publicacion", "PUBLICADO"));
     }
@@ -102,7 +155,9 @@ public class PlanesEstudioController {
     @PatchMapping("/{id}/archivar")
     @CacheEvict(value = "catalogos", allEntries = true)
     public ResponseEntity<Map<String, Object>> archivar(@PathVariable("id") UUID id, @AuthenticationPrincipal Jwt jwt) {
-        requireNivel(userService.resolveUser(jwt), NIVEL_ADMIN_PLANTEL);
+        AdesUser user = userService.resolveUser(jwt);
+        requireNivel(user, NIVEL_ADMIN_PLANTEL);
+        verificarAccesoGrado(user, gradoDePlan(id));
         planEstudioService.archivar(id);
         return ResponseEntity.ok(Map.of("id", id.toString(), "estado_publicacion", "ARCHIVADO"));
     }
@@ -110,7 +165,9 @@ public class PlanesEstudioController {
     @DeleteMapping("/{id}")
     @CacheEvict(value = "catalogos", allEntries = true)
     public ResponseEntity<Void> delete(@PathVariable("id") UUID id, @AuthenticationPrincipal Jwt jwt) {
-        requireNivel(userService.resolveUser(jwt), NIVEL_ADMIN_PLANTEL);
+        AdesUser user = userService.resolveUser(jwt);
+        requireNivel(user, NIVEL_ADMIN_PLANTEL);
+        verificarAccesoGrado(user, gradoDePlan(id));
         try {
             planEstudioService.eliminar(id);
         } catch (IllegalStateException e) {
@@ -140,23 +197,33 @@ public class PlanesEstudioController {
             @RequestParam(name = "estudiante_id", required = false) UUID estudianteId,
             @RequestParam(name = "grupo_id", required = false) UUID grupoId,
             @AuthenticationPrincipal Jwt jwt) {
-        requireStaff(userService.resolveUser(jwt));
-        if (estudianteId != null) return ResponseEntity.ok(planAltQueryService.listarPorEstudiante(estudianteId));
-        if (grupoId != null) return ResponseEntity.ok(planAltQueryService.listarPorGrupo(grupoId));
+        AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
+        if (estudianteId != null) {
+            verificarAccesoEstudiante(user, estudianteId);
+            return ResponseEntity.ok(planAltQueryService.listarPorEstudiante(estudianteId));
+        }
+        if (grupoId != null) {
+            verificarAccesoGrupo(user, grupoId);
+            return ResponseEntity.ok(planAltQueryService.listarPorGrupo(grupoId));
+        }
         throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Se requiere estudiante_id o grupo_id");
     }
 
     @GetMapping("/alternativos/{id}/materias")
     public ResponseEntity<List<Map<String, Object>>> materiasAlternativo(
             @PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
-        requireStaff(userService.resolveUser(jwt));
+        AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
+        verificarAccesoPlanAlt(user, id);
         return ResponseEntity.ok(planAltQueryService.materias(id));
     }
 
     @PostMapping("/alternativos")
     @SuppressWarnings("unchecked")
     public ResponseEntity<Map<String, Object>> crearAlternativo(@RequestBody Map<String, Object> body, @AuthenticationPrincipal Jwt jwt) {
-        requireNivel(userService.resolveUser(jwt), NIVEL_COORD_ACADEMICO);
+        AdesUser user = userService.resolveUser(jwt);
+        requireNivel(user, NIVEL_COORD_ACADEMICO);
 
         UUID estudianteId = body.get("estudiante_id") != null ? UUID.fromString((String) body.get("estudiante_id")) : null;
         UUID grupoId = body.get("grupo_id") != null ? UUID.fromString((String) body.get("grupo_id")) : null;
@@ -168,6 +235,8 @@ public class PlanesEstudioController {
         if ((estudianteId == null) == (grupoId == null))
             throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
                     "Debe especificar exactamente uno: estudiante_id o grupo_id");
+        if (estudianteId != null) verificarAccesoEstudiante(user, estudianteId);
+        else verificarAccesoGrupo(user, grupoId);
 
         UUID id = planAltWriteService.crear(estudianteId, grupoId, motivo, materias);
         return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("id", id.toString()));
@@ -175,7 +244,9 @@ public class PlanesEstudioController {
 
     @DeleteMapping("/alternativos/{id}")
     public ResponseEntity<Void> eliminarAlternativo(@PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
-        requireNivel(userService.resolveUser(jwt), NIVEL_COORD_ACADEMICO);
+        AdesUser user = userService.resolveUser(jwt);
+        requireNivel(user, NIVEL_COORD_ACADEMICO);
+        verificarAccesoPlanAlt(user, id);
         planAltWriteService.eliminar(id);
         return ResponseEntity.noContent().build();
     }

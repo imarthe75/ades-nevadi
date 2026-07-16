@@ -25,4 +25,6 @@ public interface EvalDocenteRepositoryPort {
     int enviar(UUID evalId, String usuario);
     List<Map<String, Object>> listarCriterios();
     Map<String, Object> resumenProfesor(UUID profesorId, UUID cicloId);
+    UUID plantelDeProfesor(UUID profesorId);
+    UUID evaluacionIdDePlanMejora(UUID planMejoraId);
 }

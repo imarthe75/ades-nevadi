@@ -103,7 +103,19 @@ public class PlaneacionController {
      */
     private void requireAccesoGrupoPlaneacion(AdesUser user, UUID grupoId) {
         requireStaff(user);
-        if (user.getNivelAcceso() <= 3) return; // admin/director/coordinador: alcance institucional
+        if (user.getNivelAcceso() <= 3) {
+            // BOLA fix (2026-07-16): "alcance institucional" nunca verificaba el plantel
+            // del grupo — mismo hallazgo replicado en ActividadesController/
+            // EntregasController/EvaluacionController/GradebookController/TareaController/
+            // CalificacionesController. Solo nivelAcceso 0 mantiene alcance libre.
+            List<UUID> plantelRows = jdbc.queryForList(
+                    "SELECT gr.plantel_id FROM ades_grupos g " +
+                    "JOIN ades_grados gr ON gr.id = g.grado_id " +
+                    "WHERE g.id = ?", UUID.class, grupoId);
+            if (plantelRows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Grupo no encontrado");
+            userService.verificarPlantel(user, plantelRows.get(0), "El grupo no pertenece a su plantel");
+            return;
+        }
         Long count = jdbc.queryForObject(
                 "SELECT COUNT(*) FROM ades_asignaciones_docentes ad " +
                 "JOIN ades_profesores p ON p.id = ad.profesor_id " +

@@ -14,6 +14,71 @@ Este documento es el diario de vida y bitácora del agente. Debe ser leído en e
 
 ## 📅 Bitácora
 
+## Sesión 2026-07-16 — Plan de remediación BOLA/BFLA de `2026-07-16_reporte_fiabilidad_3dias_y_plan.md` (Día 1-5) ✅
+
+Ejecutado el plan completo del reporte de fiabilidad de 3 días: cierre de la cola larga de huecos
+BOLA/BFLA de scoping por plantel identificados con evidencia (grep sistemático + verificación en
+vivo), no solo los 4 "confirmados" — el barrido de variantes (Día 3) encontró **el mismo bug
+replicado en 7 archivos adicionales** que el grep original no había capturado.
+
+### 🛠️ Controllers corregidos (15 con hueco real, patrón `userService.verificarPlantel`):
+- **Confirmados en el reporte (Día 1-2):** `SaludAvanzadaController`, `ExpedienteLaboralController`,
+  `DisponibilidadDocenteController` (endpoints de lectura/escritura, no solo el piso de staff que
+  ya tenía), `EvalDocenteController` (incluye plan de mejora).
+- **Verificación puntual confirmada como hueco real (Día 2-3):** `BibliotecaController` (umbral
+  `nivel(u) > 2` → `> 0`, variable local que el grep de ayer no capturó), `ContactosController`
+  (contactos + expediente médico + expediente-docs), `CertificadosController`, `AsistenciaController`
+  (`requireAccesoClase`), `AsistenciaPersonalController`, `TareaEntregaController`,
+  `ActividadesController`, `PadresController` (calificaciones), `PlanesEstudioController` (incluye
+  planes NEE alternativos), `JustificacionController`.
+- **Barrido de variantes (Día 3) — mismo patrón `if (nivel <= 3) return;` sin chequeo de plantel,
+  encontrado en 7 archivos que el grep de ayer no había tocado:** `EntregasController` (el
+  "canónico" del que los demás copiaron el método), `CalificacionesController`,
+  `PlaneacionController`, `GradebookController`, `TareaController`, `EvaluacionController`.
+
+Patrón central: `AdesUserService#verificarPlantel(user, plantelEntidadId, mensaje)` — solo
+nivelAcceso 0 (ADMIN_GLOBAL) mantiene alcance institucional libre, decisión "Opción A" ya aplicada
+ayer. Para endpoints de listado sin ID de entidad se usa `getEffectivePlantelId(user, null)` como
+filtro. 5 puertos de persistencia ganaron un parámetro `plantelId`/`plantelDePersona`/
+`plantelDeProfesor` (`ExpedienteLaboralRepositoryPort`, `DisponibilidadRepositoryPort`,
+`EvalDocenteRepositoryPort`, `AsistenciaPersonalRepositoryPort`, `JustificacionRepositoryPort`,
+`CertificadoQueryService`) para poder filtrar el `list()` cuando no viene un ID específico en la
+request.
+
+### 🔍 Hallazgos colaterales encontrados y corregidos durante la verificación en vivo:
+- **HikariCP con `maximum-pool-size: 10`** se saturaba bajo carga concurrente real (confirmado en
+  logs: `HikariPool-1 - Connection is not available` con 18 requests en espera durante la corrida
+  E2E). Ampliado a 25 (`minimum-idle: 8`) — decisión del usuario explícita considerando cientos de
+  usuarios concurrentes en producción. El BFF conecta directo a `ades-postgres` (bypass de
+  pgbouncer, ver comentario ya existente en `docker-compose.yml`), así que este valor sí consume
+  cupo real de `max_connections` de Postgres (default 100).
+- **`GlobalExceptionHandler` no manejaba `NoResourceFoundException`** — una ruta inexistente (ej.
+  typo de endpoint) caía en el catch-all de `Exception` y respondía 500 en vez de 404. Encontrado
+  por el spec `10-rbac.spec.ts` (RBAC-13 probaba un endpoint `/api/v1/alumnos/{id}/calificaciones`
+  que no existe en las rutas reales). Agregado handler dedicado.
+
+### ✅ Verificación:
+- `mvn test`: **555/555 en verde**, sin regresiones.
+- `ades-bff` reconstruido y redesplegado en el servidor único (con confirmación explícita del
+  usuario antes de reiniciar el contenedor de producción).
+- E2E: `10-rbac.spec.ts` corrido primero de forma aislada — 15/17 en verde; los 2 fallos fueron
+  atribuidos correctamente a causas de infraestructura (pool agotado, bug de ruta del propio test)
+  y no a regresión de los fixes, confirmado con logs del contenedor antes de escalar a la corrida
+  completa.
+- `10-rbac.spec.ts` agregado a `e2e-tests.yml` (antes solo corrían 5 de 21 specs en CI).
+- Corrida completa de los 21 specs E2E contra el stack real tras ampliar el pool — ver resultado
+  al pie de este archivo / `docs/hallazgos/` de esta fecha.
+
+### 🚀 Próximos Pasos (Siguiente Sesión):
+- [ ] Accesibilidad (35-40%, sin ninguna ronda de auditoría dedicada) y cobertura de tests medida
+  (JaCoCo backend / coverage frontend) — próximo foco natural una vez autorización esté
+  verdaderamente cerrado.
+- [ ] `audit_aiud` (180 tablas en `PENDIENTE_AIUD`) y prueba de restore de backup — diferidos a
+  go-live por decisión del usuario, no antes.
+- [ ] Revisar si el patrón `requireAccesoGrupo`/`requireAccesoClase` (ahora corregido en 7+
+  archivos) debería extraerse a un helper compartido en `AdesUserService` para que el próximo
+  módulo nuevo no reintroduzca el mismo bug por copy-paste.
+
 ## Sesión 2026-07-15 — Remediaciones de Auditoría de Seguridad (Fases R-1 a R-17) ✅
 
 Se ejecutaron múltiples remediaciones críticas identificadas en el plan de remediación de seguridad de ADES:

@@ -50,9 +50,19 @@ public class BibliotecaController {
         return u.getNivelAcceso() != null ? u.getNivelAcceso() : 5;
     }
 
-    /** No-admins (nivel > 2) quedan acotados a su propio plantel. */
+    /**
+     * Solo nivelAcceso 0 (ADMIN_GLOBAL) mantiene alcance institucional libre — el resto
+     * de roles queda acotado a su propio plantel.
+     * <p>
+     * (Corregido 2026-07-16 — decisión explícita del usuario, Opción A: el umbral
+     * original {@code > 2} eximía también a nivel 1 (ADMIN_PLANTEL) y nivel 2 (DIRECTOR),
+     * dejándolos sin restricción cross-plantel en alta/baja de libros, préstamos y
+     * devoluciones — mismo patrón corregido en {@code AdesUserService#verificarPlantel}
+     * y ~24 sitios adicionales. No coincidió con el grep original de esa pasada por usar
+     * variable local {@code nivel(u)} en vez de {@code user.getNivelAcceso()}.)
+     */
     private UUID scopePlantel(AdesUser u, UUID solicitado) {
-        if (nivel(u) > 2 && u.getPlantelId() != null) {
+        if (nivel(u) > 0 && u.getPlantelId() != null) {
             return u.getPlantelId();
         }
         return solicitado;
@@ -161,7 +171,7 @@ public class BibliotecaController {
         AdesUser user = userService.resolveUser(jwt);
         requireStaff(user);
         BibliotecaLibro libro = query.findLibro(id);
-        if (nivel(user) > 2 && user.getPlantelId() != null && !libro.getPlantelId().equals(user.getPlantelId())) {
+        if (nivel(user) > 0 && user.getPlantelId() != null && !libro.getPlantelId().equals(user.getPlantelId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No puede modificar un libro de otro plantel");
         }
         var cmd = new ActualizarLibroUseCase.Command(
@@ -186,7 +196,7 @@ public class BibliotecaController {
         AdesUser user = userService.resolveUser(jwt);
         requireStaff(user);
         BibliotecaLibro libro = query.findLibro(id);
-        if (nivel(user) > 2 && user.getPlantelId() != null && !libro.getPlantelId().equals(user.getPlantelId())) {
+        if (nivel(user) > 0 && user.getPlantelId() != null && !libro.getPlantelId().equals(user.getPlantelId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No puede eliminar un libro de otro plantel");
         }
         eliminarLibro.eliminar(id, nivel(user));
@@ -233,7 +243,7 @@ public class BibliotecaController {
         AdesUser user = userService.resolveUser(jwt);
         requireStaff(user);
         BibliotecaLibro libro = query.findLibro(body.libroId());
-        if (nivel(user) > 2 && user.getPlantelId() != null && !libro.getPlantelId().equals(user.getPlantelId())) {
+        if (nivel(user) > 0 && user.getPlantelId() != null && !libro.getPlantelId().equals(user.getPlantelId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No puede prestar un libro de otro plantel");
         }
         var cmd = new RegistrarPrestamoUseCase.Command(
@@ -259,7 +269,7 @@ public class BibliotecaController {
         AdesUser user = userService.resolveUser(jwt);
         requireStaff(user);
         BibliotecaPrestamo prestamo = query.findPrestamoAbierto(id);
-        if (nivel(user) > 2 && user.getPlantelId() != null && !prestamo.getPlantelId().equals(user.getPlantelId())) {
+        if (nivel(user) > 0 && user.getPlantelId() != null && !prestamo.getPlantelId().equals(user.getPlantelId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No puede registrar la devolución de un préstamo de otro plantel");
         }
         String est = (body != null && body.estatusFinal() != null) ? body.estatusFinal() : "DEVUELTO";

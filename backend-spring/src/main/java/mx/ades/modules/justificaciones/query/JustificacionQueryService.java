@@ -23,13 +23,21 @@ public class JustificacionQueryService {
 
     private final JustificacionRepositoryPort repo;
 
-    public List<Map<String, Object>> list(UUID estudianteId, String estado, UUID grupoId, int pagina, int porPagina) {
-        return repo.list(estudianteId, estado, grupoId, pagina, porPagina);
+    public List<Map<String, Object>> list(UUID estudianteId, String estado, UUID grupoId, int pagina, int porPagina, UUID plantelId) {
+        return repo.list(estudianteId, estado, grupoId, pagina, porPagina, plantelId);
     }
 
     public Map<String, Object> findById(UUID id) {
         return repo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Justificación no encontrada"));
+    }
+
+    public UUID estudianteDeAsistencia(UUID asistenciaId) {
+        return repo.estudianteDeAsistencia(asistenciaId);
+    }
+
+    public UUID asistenciaDeJustificacion(UUID justificacionId) {
+        return repo.asistenciaDeJustificacion(justificacionId);
     }
 }

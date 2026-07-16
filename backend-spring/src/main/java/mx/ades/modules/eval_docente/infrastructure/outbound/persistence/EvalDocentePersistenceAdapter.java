@@ -149,4 +149,18 @@ public class EvalDocentePersistenceAdapter implements EvalDocenteRepositoryPort 
         res.put("promedio_global", promedioGlobal);
         return res;
     }
+
+    @Override
+    public UUID plantelDeProfesor(UUID profesorId) {
+        List<UUID> rows = jdbc.queryForList(
+            "SELECT plantel_id FROM ades_profesores WHERE id = ?", UUID.class, profesorId);
+        return rows.isEmpty() ? null : rows.get(0);
+    }
+
+    @Override
+    public UUID evaluacionIdDePlanMejora(UUID planMejoraId) {
+        List<UUID> rows = jdbc.queryForList(
+            "SELECT evaluacion_id FROM ades_planes_mejora_docente WHERE id = ?", UUID.class, planMejoraId);
+        return rows.isEmpty() ? null : rows.get(0);
+    }
 }

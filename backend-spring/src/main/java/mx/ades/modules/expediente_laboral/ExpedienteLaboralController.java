@@ -101,7 +101,15 @@ public class ExpedienteLaboralController {
         // datos de personal altamente sensibles (CURP, RFC, salario, IMSS, INFONAVIT) de
         // CUALQUIER empleado a cualquier cuenta autenticada, sin restricción alguna.
         requireRH(user);
-        return ResponseEntity.ok(queryService.listar(personaId, tipoContrato, q));
+        // BOLA fix (2026-07-16): sin esto, RH/Dirección de un plantel veía el expediente
+        // laboral (CURP/RFC/salario/IMSS) de personal de CUALQUIER plantel.
+        if (personaId != null) {
+            userService.verificarPlantel(user, queryService.plantelDePersona(personaId),
+                    "El empleado no pertenece a su plantel");
+            return ResponseEntity.ok(queryService.listar(personaId, tipoContrato, q, null));
+        }
+        UUID plantelId = userService.getEffectivePlantelId(user, null);
+        return ResponseEntity.ok(queryService.listar(null, tipoContrato, q, plantelId));
     }
 
     @PostMapping
@@ -109,6 +117,11 @@ public class ExpedienteLaboralController {
             @RequestBody ExpedienteCreate body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        requireRH(user);
+        if (body.getPersonaId() != null) {
+            userService.verificarPlantel(user, queryService.plantelDePersona(body.getPersonaId()),
+                    "El empleado no pertenece a su plantel");
+        }
 
         if (body.getCurp() != null) { try { ValidationUtils.validarCURP(body.getCurp()); } catch (Exception e) { throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage()); } }
         if (body.getRfc() != null) { try { ValidationUtils.validarRFC(body.getRfc()); } catch (Exception e) { throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage()); } }
@@ -140,7 +153,9 @@ public class ExpedienteLaboralController {
         // exponía CURP/RFC/salario/IMSS/INFONAVIT de un empleado por solo conocer el id.
         requireRH(user);
         try {
-            return ResponseEntity.ok(queryService.detalle(id));
+            Map<String, Object> expediente = queryService.detalle(id);
+            verificarAccesoExpediente(user, expediente);
+            return ResponseEntity.ok(expediente);
         } catch (IllegalArgumentException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }
@@ -152,6 +167,8 @@ public class ExpedienteLaboralController {
             @RequestBody ExpedientePatch body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        requireRH(user);
+        verificarAccesoExpediente(user, id);
 
         if (body.getCurp() != null) { try { ValidationUtils.validarCURP(body.getCurp()); } catch (Exception e) { throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage()); } }
         if (body.getRfc() != null) { try { ValidationUtils.validarRFC(body.getRfc()); } catch (Exception e) { throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage()); } }
@@ -187,6 +204,7 @@ public class ExpedienteLaboralController {
         // BFLA fix (asimetría): mismo hallazgo que listarExpedientes() — adjuntar documentos
         // a un expediente laboral ajeno no tenía ninguna restricción de nivel de acceso.
         requireRH(user);
+        verificarAccesoExpediente(user, id);
 
         AgregarDocumentoLaboralUseCase.Command cmd;
         try {
@@ -207,6 +225,7 @@ public class ExpedienteLaboralController {
             @PathVariable("id") UUID id,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        verificarAccesoExpediente(user, id);
         try {
             expedienteService.eliminar(id, user.getNivelAcceso(), user.getId().toString());
         } catch (IllegalArgumentException e) {
@@ -225,6 +244,25 @@ public class ExpedienteLaboralController {
     private void requireRH(AdesUser user) {
         if (user.getNivelAcceso() == null || user.getNivelAcceso() > 2) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo RH o Dirección puede acceder a expedientes laborales");
+        }
+    }
+
+    /**
+     * BOLA fix (2026-07-16): resuelve el plantel real del empleado dueño del
+     * expediente (docente/administrativo/salud) y lo compara contra el del usuario
+     * autenticado vía {@code AdesUserService#verificarPlantel}.
+     */
+    private void verificarAccesoExpediente(AdesUser user, Map<String, Object> expediente) {
+        UUID personaId = (UUID) expediente.get("persona_id");
+        userService.verificarPlantel(user, queryService.plantelDePersona(personaId),
+                "El empleado no pertenece a su plantel");
+    }
+
+    private void verificarAccesoExpediente(AdesUser user, UUID expedienteId) {
+        try {
+            verificarAccesoExpediente(user, queryService.detalle(expedienteId));
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }
     }
 }

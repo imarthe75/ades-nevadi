@@ -84,8 +84,12 @@ public class JustificacionPersistenceAdapter implements JustificacionRepositoryP
         return estado.name();
     }
 
+    /**
+     * BOLA fix (2026-07-16): {@code plantelId} filtra por {@code e.plantel_id} — null
+     * solo para nivelAcceso 0 (ver {@code AdesUserService#getEffectivePlantelId}).
+     */
     @Override
-    public List<Map<String, Object>> list(UUID estudianteId, String estado, UUID grupoId, int pagina, int porPagina) {
+    public List<Map<String, Object>> list(UUID estudianteId, String estado, UUID grupoId, int pagina, int porPagina, UUID plantelId) {
         StringBuilder q = new StringBuilder(
                 "SELECT j.id, j.asistencia_id, j.tipo_justificacion, j.motivo, " +
                 "j.documento_url, j.estado, j.motivo_rechazo, j.fecha_resolucion, " +
@@ -105,10 +109,25 @@ public class JustificacionPersistenceAdapter implements JustificacionRepositoryP
         if (estudianteId != null) { q.append("AND a.estudiante_id = ? "); params.add(estudianteId); }
         if (estado != null && !estado.isBlank()) { q.append("AND j.estado = ? "); params.add(estado.toUpperCase()); }
         if (grupoId != null) { q.append("AND cl.grupo_id = ? "); params.add(grupoId); }
+        if (plantelId != null) { q.append("AND e.plantel_id = ? "); params.add(plantelId); }
         q.append("ORDER BY j.fecha_creacion DESC LIMIT ? OFFSET ?");
         params.add(porPagina);
         params.add((pagina - 1) * porPagina);
 
         return jdbc.queryForList(q.toString(), params.toArray());
+    }
+
+    @Override
+    public UUID estudianteDeAsistencia(UUID asistenciaId) {
+        List<UUID> rows = jdbc.queryForList(
+                "SELECT estudiante_id FROM ades_asistencias WHERE id = ?", UUID.class, asistenciaId);
+        return rows.isEmpty() ? null : rows.get(0);
+    }
+
+    @Override
+    public UUID asistenciaDeJustificacion(UUID justificacionId) {
+        List<UUID> rows = jdbc.queryForList(
+                "SELECT asistencia_id FROM ades_justificaciones_falta WHERE id = ?", UUID.class, justificacionId);
+        return rows.isEmpty() ? null : rows.get(0);
     }
 }

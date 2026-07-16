@@ -162,6 +162,12 @@ jobs:
           npx playwright test e2e/tests/02-alumnos.spec.ts e2e/tests/03-asistencias.spec.ts e2e/tests/04-calificaciones.spec.ts e2e/tests/05-certificados.spec.ts --reporter=json > crud-results.json
         continue-on-error: true
 
+      - name: Run RBAC E2E tests
+        run: |
+          cd frontend
+          npx playwright test e2e/tests/10-rbac.spec.ts --reporter=json > rbac-results.json
+        continue-on-error: true
+
       - name: Parse test results
         run: |
           cd frontend
@@ -169,16 +175,20 @@ jobs:
           const fs = require('fs');
           const authResults = JSON.parse(fs.readFileSync('auth-results.json', 'utf8'));
           const crudResults = JSON.parse(fs.readFileSync('crud-results.json', 'utf8'));
+          const rbacResults = JSON.parse(fs.readFileSync('rbac-results.json', 'utf8'));
 
           const authPassed = authResults.stats?.expected || 0;
           const authTotal = authResults.stats?.total || 0;
           const crudPassed = crudResults.stats?.expected || 0;
           const crudTotal = crudResults.stats?.total || 0;
+          const rbacPassed = rbacResults.stats?.expected || 0;
+          const rbacTotal = rbacResults.stats?.total || 0;
 
           console.log(`::notice title=Auth Tests::${authPassed}/${authTotal} passed`);
           console.log(`::notice title=CRUD Tests::${crudPassed}/${crudTotal} passed`);
+          console.log(`::notice title=RBAC Tests::${rbacPassed}/${rbacTotal} passed`);
 
-          if (authPassed + crudPassed >= 35) {
+          if (authPassed + crudPassed + rbacPassed >= 35) {
             console.log(`::notice title=✅ Target Reached::35+ specs passing`);
           }
           EOF
@@ -201,6 +211,6 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: '### E2E Test Results\n\n✅ Auth: 15+ specs\n✅ CRUD: 20+ specs\n\nSee artifacts for details.'
+              body: '### E2E Test Results\n\n✅ Auth: 15+ specs\n✅ CRUD: 20+ specs\n✅ RBAC: cross-plantel + scoping\n\nSee artifacts for details.'
             })
         continue-on-error: true

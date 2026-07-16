@@ -7,6 +7,7 @@ import mx.ades.modules.medico.application.service.SaludAvanzadaApplicationServic
 import mx.ades.modules.medico.domain.port.in.*;
 import mx.ades.modules.medico.query.SaludQueryService;
 import org.springframework.http.*;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -47,6 +48,7 @@ public class SaludAvanzadaController {
     private final AdesUserService userService;
     private final SaludQueryService queryService;
     private final SaludAvanzadaApplicationService saludAvanzadaService;
+    private final JdbcTemplate jdbc;
     private final RestClient restClient = RestClient.builder().build();
 
     private static final String API_BASE_URL = "http://ades-api:8000/api/v1/salud-avanzada";
@@ -113,6 +115,7 @@ public class SaludAvanzadaController {
         if (user.getNivelAcceso() == null || user.getNivelAcceso() > 3) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado");
         }
+        verificarAccesoAlumno(user, alumnoId);
         return ResponseEntity.ok(queryService.medicamentos(alumnoId, soloVigentes));
     }
 
@@ -122,6 +125,7 @@ public class SaludAvanzadaController {
             @RequestBody MedicamentoPayload data,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        verificarAccesoAlumno(user, alumnoId);
         try {
             UUID id = saludAvanzadaService.registrar(new RegistrarMedicamentoUseCase.Command(
                 alumnoId, data.getNombreMedicamento(), data.getDosis(), data.getFrecuencia(),
@@ -139,6 +143,7 @@ public class SaludAvanzadaController {
             @PathVariable("medicamento_id") UUID medicamentoId,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        verificarAccesoAlumno(user, alumnoDeMedicamento(medicamentoId));
         try {
             saludAvanzadaService.suspender(new SuspenderMedicamentoUseCase.Command(
                 medicamentoId, user.getNivelAcceso(), user.getUsername()));
@@ -157,6 +162,7 @@ public class SaludAvanzadaController {
             @RequestBody ActaIncidentePayload data,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        verificarAccesoAlumno(user, alumnoDeIncidente(incidenteId));
         try {
             UUID id = saludAvanzadaService.generar(new GenerarActaIncidenteUseCase.Command(
                 incidenteId, data.getDescripcionDetallada(), data.getTestigos(), data.getMedidasTomadas(),
@@ -183,6 +189,7 @@ public class SaludAvanzadaController {
         if (user.getNivelAcceso() == null || user.getNivelAcceso() > 3) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado");
         }
+        verificarAccesoAlumno(user, alumnoId);
         skip = Math.max(skip, 0);
         limit = Math.min(Math.max(limit, 1), 200);
         return ResponseEntity.ok(queryService.psicosocial(alumnoId, skip, limit));
@@ -194,6 +201,7 @@ public class SaludAvanzadaController {
             @RequestBody PsicosocialPayload data,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        verificarAccesoAlumno(user, alumnoId);
         try {
             UUID id = saludAvanzadaService.registrar(new RegistrarPsicosocialUseCase.Command(
                 alumnoId, data.getTipoAtencion(), data.getMotivo(), data.getObservaciones(),
@@ -219,7 +227,12 @@ public class SaludAvanzadaController {
         if (user.getNivelAcceso() == null || user.getNivelAcceso() > 3) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado");
         }
-        return ResponseEntity.ok(queryService.tutorias(alumnoId, tipoTutoria, skip, limit));
+        if (alumnoId != null) {
+            verificarAccesoAlumno(user, alumnoId);
+            return ResponseEntity.ok(queryService.tutorias(alumnoId, tipoTutoria, null, skip, limit));
+        }
+        UUID plantelId = userService.getEffectivePlantelId(user, null);
+        return ResponseEntity.ok(queryService.tutorias(null, tipoTutoria, plantelId, skip, limit));
     }
 
     @PostMapping("/tutorias")
@@ -227,6 +240,7 @@ public class SaludAvanzadaController {
             @RequestBody TutoriaPayload data,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        if (data.getAlumnoId() != null) verificarAccesoAlumno(user, data.getAlumnoId());
         try {
             UUID id = saludAvanzadaService.registrar(new RegistrarTutoriaUseCase.Command(
                 data.getAlumnoId(), data.getTipoTutoria(), data.getTema(), data.getDescripcion(),
@@ -249,7 +263,9 @@ public class SaludAvanzadaController {
         // El acta de incidente médico es un documento de salud sensible (solo se
         // consume desde el módulo de personal médico/coordinación, ver medico.component.ts);
         // faltaba el mismo nivelAcceso <=3 que exige generarActaIncidente().
-        requireStaffMedico(userService.resolveUser(jwt));
+        AdesUser user = userService.resolveUser(jwt);
+        requireStaffMedico(user);
+        verificarAccesoAlumno(user, alumnoDeIncidente(incidenteId));
         return proxyToPdf(API_BASE_URL + "/incidentes/" + incidenteId + "/acta-pdf", authHeader);
     }
 
@@ -261,7 +277,9 @@ public class SaludAvanzadaController {
         // Igual que descargarActaIncidente: sin este chequeo, cualquier cuenta
         // autenticada podía descargar el certificado deportivo (datos de salud) de
         // cualquier alumno solo conociendo su UUID.
-        requireStaffMedico(userService.resolveUser(jwt));
+        AdesUser user = userService.resolveUser(jwt);
+        requireStaffMedico(user);
+        verificarAccesoAlumno(user, alumnoId);
         return proxyToPdf(API_BASE_URL + "/certificado-deportivo/" + alumnoId, authHeader);
     }
 
@@ -274,6 +292,35 @@ public class SaludAvanzadaController {
         if (user.getNivelAcceso() == null || user.getNivelAcceso() > 3) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado");
         }
+    }
+
+    /**
+     * BOLA fix (2026-07-16): este módulo solo verificaba nivelAcceso — sin ningún
+     * chequeo de plantel, personal médico/coordinación de un plantel podía leer o
+     * escribir medicamentos, incidentes, seguimiento psicosocial y tutorías de
+     * CUALQUIER plantel (mismo patrón ya confirmado real en CondicionCronicaController).
+     * Resuelve el plantel del alumno y delega en el umbral central de
+     * {@code AdesUserService#verificarPlantel} (solo nivelAcceso 0 = alcance libre).
+     */
+    private void verificarAccesoAlumno(AdesUser user, UUID alumnoId) {
+        List<UUID> plantelRows = jdbc.queryForList(
+                "SELECT plantel_id FROM ades_estudiantes WHERE id = ?", UUID.class, alumnoId);
+        if (plantelRows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Alumno no encontrado");
+        userService.verificarPlantel(user, plantelRows.get(0), "El alumno no pertenece a su plantel");
+    }
+
+    private UUID alumnoDeMedicamento(UUID medicamentoId) {
+        List<UUID> rows = jdbc.queryForList(
+                "SELECT alumno_id FROM ades_medicamentos_alumno WHERE id = ?", UUID.class, medicamentoId);
+        if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Medicamento no encontrado");
+        return rows.get(0);
+    }
+
+    private UUID alumnoDeIncidente(UUID incidenteId) {
+        List<UUID> rows = jdbc.queryForList(
+                "SELECT estudiante_id FROM ades_incidentes_medicos WHERE id = ?", UUID.class, incidenteId);
+        if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Incidente médico no encontrado");
+        return rows.get(0);
     }
 
     private ResponseEntity<byte[]> proxyToPdf(String url, String authHeader) {

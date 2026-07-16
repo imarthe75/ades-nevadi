@@ -25,8 +25,12 @@ public class DisponibilidadPersistenceAdapter implements DisponibilidadRepositor
     private final DisponibilidadDocenteRepository jpa;
     private final JdbcTemplate jdbc;
 
+    /**
+     * BOLA fix (2026-07-16): {@code plantelId} filtra por {@code pr.plantel_id} —
+     * null solo para nivelAcceso 0 (ver {@code AdesUserService#getEffectivePlantelId}).
+     */
     @Override
-    public List<Map<String, Object>> list(UUID profesorId, UUID cicloEscolarId, String q) {
+    public List<Map<String, Object>> list(UUID profesorId, UUID cicloEscolarId, String q, UUID plantelId) {
         StringBuilder sq = new StringBuilder(
                 "SELECT dd.*, " +
                 "  CONCAT(pe.nombre, ' ', pe.apellido_paterno, " +
@@ -46,8 +50,16 @@ public class DisponibilidadPersistenceAdapter implements DisponibilidadRepositor
             params.add(like); params.add(like); params.add(like);
         }
         if (cicloEscolarId != null) { sq.append("AND dd.ciclo_escolar_id = ? "); params.add(cicloEscolarId); }
+        if (plantelId != null) { sq.append("AND pr.plantel_id = ? "); params.add(plantelId); }
         sq.append("ORDER BY dd.dia_semana, dd.hora_inicio");
         return jdbc.queryForList(sq.toString(), params.toArray());
+    }
+
+    @Override
+    public UUID plantelDeProfesor(UUID profesorId) {
+        List<UUID> rows = jdbc.queryForList(
+                "SELECT plantel_id FROM ades_profesores WHERE id = ?", UUID.class, profesorId);
+        return rows.isEmpty() ? null : rows.get(0);
     }
 
     @Override
@@ -119,16 +131,19 @@ public class DisponibilidadPersistenceAdapter implements DisponibilidadRepositor
     }
 
     @Override
-    public List<Map<String, Object>> cobertura(UUID cicloId) {
-        return jdbc.queryForList(
+    public List<Map<String, Object>> cobertura(UUID cicloId, UUID plantelId) {
+        StringBuilder sq = new StringBuilder(
                 "SELECT p.id, per.nombre, per.apellido_paterno, COUNT(dd.id) AS slots_registrados " +
                 "FROM ades_profesores p " +
                 "JOIN ades_personas per ON per.id = p.persona_id " +
                 "LEFT JOIN ades_disponibilidad_docente dd ON dd.profesor_id = p.id " +
                 "AND dd.ciclo_escolar_id = ? AND dd.is_active = TRUE " +
-                "WHERE p.is_active = TRUE " +
-                "GROUP BY p.id, per.nombre, per.apellido_paterno " +
-                "ORDER BY per.apellido_paterno, per.nombre",
-                cicloId);
+                "WHERE p.is_active = TRUE ");
+        List<Object> params = new ArrayList<>();
+        params.add(cicloId);
+        if (plantelId != null) { sq.append("AND p.plantel_id = ? "); params.add(plantelId); }
+        sq.append("GROUP BY p.id, per.nombre, per.apellido_paterno " +
+                "ORDER BY per.apellido_paterno, per.nombre");
+        return jdbc.queryForList(sq.toString(), params.toArray());
     }
 }

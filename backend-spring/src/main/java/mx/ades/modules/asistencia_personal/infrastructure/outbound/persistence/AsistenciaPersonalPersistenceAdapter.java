@@ -26,9 +26,15 @@ public class AsistenciaPersonalPersistenceAdapter implements AsistenciaPersonalR
 
     private final JdbcTemplate jdbc;
 
+    /**
+     * BOLA fix (2026-07-16): {@code plantelId} filtra por el plantel resuelto vía
+     * COALESCE entre las 3 tablas que pueden vincular una persona a un plantel
+     * (docente, personal administrativo, personal de salud) — null solo para
+     * nivelAcceso 0 (ver {@code AdesUserService#getEffectivePlantelId}).
+     */
     @Override
     public List<Map<String, Object>> list(UUID personaId, LocalDate fechaInicio, LocalDate fechaFin,
-                                          String tipoJornada, String q, int pagina, int porPagina) {
+                                          String tipoJornada, String q, int pagina, int porPagina, UUID plantelId) {
         StringBuilder sql = new StringBuilder(
             "SELECT ap.*, " +
             "  CONCAT(pe.nombre, ' ', pe.apellido_paterno, CASE WHEN pe.apellido_materno IS NOT NULL " +
@@ -61,10 +67,29 @@ public class AsistenciaPersonalPersistenceAdapter implements AsistenciaPersonalR
             sql.append("AND ap.tipo_jornada = ? ");
             params.add(tipoJornada);
         }
+        if (plantelId != null) {
+            sql.append("AND COALESCE(" +
+                "(SELECT plantel_id FROM ades_profesores WHERE persona_id = ap.persona_id), " +
+                "(SELECT plantel_id FROM ades_personal_administrativo WHERE persona_id = ap.persona_id), " +
+                "(SELECT plantel_id FROM ades_personal_salud WHERE persona_id = ap.persona_id)" +
+                ") = ? ");
+            params.add(plantelId);
+        }
         sql.append("ORDER BY ap.fecha DESC, pe.apellido_paterno, pe.nombre LIMIT ? OFFSET ?");
         params.add(porPagina);
         params.add((pagina - 1) * porPagina);
         return jdbc.queryForList(sql.toString(), params.toArray());
+    }
+
+    @Override
+    public UUID plantelDePersona(UUID personaId) {
+        List<UUID> rows = jdbc.queryForList(
+            "SELECT COALESCE(" +
+            "(SELECT plantel_id FROM ades_profesores WHERE persona_id = ?), " +
+            "(SELECT plantel_id FROM ades_personal_administrativo WHERE persona_id = ?), " +
+            "(SELECT plantel_id FROM ades_personal_salud WHERE persona_id = ?)" +
+            ")", UUID.class, personaId, personaId, personaId);
+        return rows.isEmpty() ? null : rows.get(0);
     }
 
     @Override

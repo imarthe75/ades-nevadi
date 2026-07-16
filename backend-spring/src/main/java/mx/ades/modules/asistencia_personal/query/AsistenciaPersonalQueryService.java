@@ -23,13 +23,17 @@ public class AsistenciaPersonalQueryService {
     private final AsistenciaPersonalRepositoryPort repository;
 
     public List<Map<String, Object>> listar(UUID personaId, LocalDate fechaInicio, LocalDate fechaFin,
-                                             String tipoJornada, String q, int pagina, int porPagina) {
-        return repository.list(personaId, fechaInicio, fechaFin, tipoJornada, q, pagina, porPagina);
+                                             String tipoJornada, String q, int pagina, int porPagina, UUID plantelId) {
+        return repository.list(personaId, fechaInicio, fechaFin, tipoJornada, q, pagina, porPagina, plantelId);
     }
 
     public Map<String, Object> detalle(UUID id) {
         return repository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Registro de asistencia no encontrado: " + id));
+    }
+
+    public UUID plantelDePersona(UUID personaId) {
+        return repository.plantelDePersona(personaId);
     }
 
     public Map<String, Object> reporte(UUID personaId, int mes, int anio) {

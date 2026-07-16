@@ -66,7 +66,15 @@ public class DisponibilidadDocenteController {
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         requireStaff(user);
-        return ResponseEntity.ok(query.listar(profesorId, cicloEscolarId, q));
+        // BOLA fix (2026-07-16): sin esto, coordinación/dirección de un plantel veía la
+        // disponibilidad horaria de docentes de CUALQUIER plantel (nunca tuvo scoping).
+        if (profesorId != null) {
+            userService.verificarPlantel(user, query.plantelDeProfesor(profesorId),
+                    "El docente no pertenece a su plantel");
+            return ResponseEntity.ok(query.listar(profesorId, cicloEscolarId, q, null));
+        }
+        UUID plantelId = userService.getEffectivePlantelId(user, null);
+        return ResponseEntity.ok(query.listar(null, cicloEscolarId, q, plantelId));
     }
 
     @PutMapping("/docente/{profesorId}")
@@ -85,6 +93,10 @@ public class DisponibilidadDocenteController {
             throw new org.springframework.web.server.ResponseStatusException(
                     HttpStatus.FORBIDDEN, "Solo puede editar su propia disponibilidad");
         }
+        // BOLA fix (2026-07-16): coordinación/dirección (nivel<=3) tenía alcance
+        // institucional libre — nunca verificaba que el docente perteneciera a su plantel.
+        userService.verificarPlantel(user, query.plantelDeProfesor(profesorId),
+                "El docente no pertenece a su plantel");
         List<GuardarDisponibilidadUseCase.Slot> slots = data.getSlots().stream()
                 .map(s -> new GuardarDisponibilidadUseCase.Slot(
                         s.getDiaSemana(), s.getHoraInicio(), s.getHoraFin(),
@@ -104,6 +116,8 @@ public class DisponibilidadDocenteController {
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         requireStaff(user);
+        userService.verificarPlantel(user, query.plantelDeProfesor(profesorId),
+                "El docente no pertenece a su plantel");
         return ResponseEntity.ok(query.resumen(profesorId, cicloEscolarId));
     }
 
@@ -113,7 +127,8 @@ public class DisponibilidadDocenteController {
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         requireStaff(user);
-        return ResponseEntity.ok(query.cobertura(cicloId));
+        UUID plantelId = userService.getEffectivePlantelId(user, null);
+        return ResponseEntity.ok(query.cobertura(cicloId, plantelId));
     }
 
     @DeleteMapping("/{id}")
@@ -126,12 +141,17 @@ public class DisponibilidadDocenteController {
         // verificaba el profesor_id dueño del slot — cualquier Docente podía borrar
         // el slot de disponibilidad de OTRO profesor conociendo su UUID (BOLA/BFLA,
         // OWASP API1/API5).
+        UUID profesorDueno = eliminarSlot.obtenerProfesorId(id);
         if (user.getNivelAcceso() != null && user.getNivelAcceso() == 4) {
-            UUID profesorDueno = eliminarSlot.obtenerProfesorId(id);
             if (!profesorDueno.equals(user.getProfesorId())) {
                 throw new org.springframework.web.server.ResponseStatusException(
                         HttpStatus.FORBIDDEN, "Solo puede eliminar slots de su propia disponibilidad");
             }
+        } else {
+            // BOLA fix (2026-07-16): coordinación/dirección (nivel<=3) podía eliminar el
+            // slot de disponibilidad de un docente de CUALQUIER plantel.
+            userService.verificarPlantel(user, query.plantelDeProfesor(profesorDueno),
+                    "El docente no pertenece a su plantel");
         }
         eliminarSlot.eliminar(id);
     }

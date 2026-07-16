@@ -21,12 +21,16 @@ public class ExpedienteLaboralQueryService {
 
     private final ExpedienteLaboralRepositoryPort repository;
 
-    public List<Map<String, Object>> listar(UUID personaId, String tipoContrato, String q) {
-        return repository.list(personaId, tipoContrato, q);
+    public List<Map<String, Object>> listar(UUID personaId, String tipoContrato, String q, UUID plantelId) {
+        return repository.list(personaId, tipoContrato, q, plantelId);
     }
 
     public Map<String, Object> detalle(UUID id) {
         return repository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Expediente laboral no encontrado: " + id));
+    }
+
+    public UUID plantelDePersona(UUID personaId) {
+        return repository.plantelDePersona(personaId);
     }
 }

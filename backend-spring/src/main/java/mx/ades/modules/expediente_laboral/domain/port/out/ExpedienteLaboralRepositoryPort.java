@@ -15,7 +15,8 @@ import java.util.UUID;
  * @since 2026
  */
 public interface ExpedienteLaboralRepositoryPort {
-    List<Map<String, Object>> list(UUID personaId, String tipoContrato, String q);
+    List<Map<String, Object>> list(UUID personaId, String tipoContrato, String q, UUID plantelId);
+    UUID plantelDePersona(UUID personaId);
     UUID insert(CrearExpedienteLaboralUseCase.Command cmd);
     Optional<Map<String, Object>> findById(UUID id);
     Map<String, Object> patch(UUID id, ActualizarExpedienteLaboralUseCase.Patch p, String usuarioId);

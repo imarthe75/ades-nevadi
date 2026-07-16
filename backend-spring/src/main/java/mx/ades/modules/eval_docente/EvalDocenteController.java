@@ -84,6 +84,11 @@ public class EvalDocenteController {
         if (user.getNivelAcceso() == 4 && !profesorId.equals(user.getProfesorId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo puede consultar su propio resumen");
         }
+        // BOLA fix (2026-07-16): nivelAcceso 1-3 (Admin_Plantel/Director/Coordinador)
+        // tenía alcance institucional libre — nunca verificaba que el docente
+        // perteneciera a su propio plantel (mismo hallazgo que DisponibilidadDocenteController).
+        userService.verificarPlantel(user, repo.plantelDeProfesor(profesorId),
+                "El docente no pertenece a su plantel");
         return ResponseEntity.ok(queryService.resumenProfesor(profesorId, cicloId));
     }
 
@@ -98,6 +103,8 @@ public class EvalDocenteController {
         if (user.getNivelAcceso() == 4 && !data.getEvaluadorId().equals(user.getId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo puede crear evaluaciones donde usted sea el evaluador");
         }
+        userService.verificarPlantel(user, repo.plantelDeProfesor(data.getProfesorId()),
+                "El docente no pertenece a su plantel");
 
         CrearEvaluacionUseCase.Command cmd;
         try {
@@ -126,6 +133,10 @@ public class EvalDocenteController {
             if (evaluadorId != null && !evaluadorId.equals(user.getId())) {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo puede modificar sus propias evaluaciones");
             }
+        }
+        if (eval != null) {
+            userService.verificarPlantel(user, repo.plantelDeProfesor((UUID) eval.get("profesor_id")),
+                    "El docente no pertenece a su plantel");
         }
 
         List<GuardarCriteriosUseCase.CriterioCalificacion> domainCriterios = criterios.stream()
@@ -164,6 +175,10 @@ public class EvalDocenteController {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo puede enviar sus propias evaluaciones");
             }
         }
+        if (eval != null) {
+            userService.verificarPlantel(user, repo.plantelDeProfesor((UUID) eval.get("profesor_id")),
+                    "El docente no pertenece a su plantel");
+        }
 
         try {
             return ResponseEntity.ok(enviarEvaluacionUseCase.enviar(
@@ -184,11 +199,26 @@ public class EvalDocenteController {
         }
     }
 
+    /**
+     * BOLA fix (2026-07-16): plan de mejora, igual que el resto del módulo, nunca
+     * verificaba el plantel del docente evaluado — Coordinador/Director/Admin_Plantel
+     * tenía alcance institucional libre sobre planes de mejora de CUALQUIER plantel.
+     */
+    private void verificarAccesoEvaluacion(AdesUser user, UUID evalId) {
+        Map<String, Object> eval = repo.fetchEvaluacion(evalId);
+        if (eval != null) {
+            userService.verificarPlantel(user, repo.plantelDeProfesor((UUID) eval.get("profesor_id")),
+                    "El docente no pertenece a su plantel");
+        }
+    }
+
     @PostMapping("/{evalId}/plan-mejora")
     public ResponseEntity<List<Map<String, Object>>> generarPlanMejora(
             @PathVariable("evalId") UUID evalId,
             @AuthenticationPrincipal Jwt jwt) {
-        requireCoordAcademico(userService.resolveUser(jwt));
+        AdesUser user = userService.resolveUser(jwt);
+        requireCoordAcademico(user);
+        verificarAccesoEvaluacion(user, evalId);
         return ResponseEntity.ok(planMejoraService.generar(evalId));
     }
 
@@ -196,7 +226,9 @@ public class EvalDocenteController {
     public ResponseEntity<List<Map<String, Object>>> obtenerPlanMejora(
             @PathVariable("evalId") UUID evalId,
             @AuthenticationPrincipal Jwt jwt) {
-        requireCoordAcademico(userService.resolveUser(jwt));
+        AdesUser user = userService.resolveUser(jwt);
+        requireCoordAcademico(user);
+        verificarAccesoEvaluacion(user, evalId);
         return ResponseEntity.ok(planMejoraService.listar(evalId));
     }
 
@@ -205,7 +237,10 @@ public class EvalDocenteController {
             @PathVariable("id") UUID id,
             @RequestBody Map<String, String> body,
             @AuthenticationPrincipal Jwt jwt) {
-        requireCoordAcademico(userService.resolveUser(jwt));
+        AdesUser user = userService.resolveUser(jwt);
+        requireCoordAcademico(user);
+        UUID evalId = repo.evaluacionIdDePlanMejora(id);
+        if (evalId != null) verificarAccesoEvaluacion(user, evalId);
         planMejoraService.actualizarEstado(id, body.get("estado"));
         return ResponseEntity.ok(Map.of("id", id.toString(), "estado", body.get("estado")));
     }

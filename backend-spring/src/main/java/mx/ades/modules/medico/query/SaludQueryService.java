@@ -38,7 +38,13 @@ public class SaludQueryService {
                 alumnoId, limit, skip);
     }
 
-    public List<Map<String, Object>> tutorias(UUID alumnoId, String tipoTutoria, int skip, int limit) {
+    /**
+     * BOLA fix (2026-07-16): sin {@code alumno_id}, este listado devolvía las tutorías
+     * de TODOS los alumnos del sistema a cualquier cuenta con nivelAcceso &le;3, sin
+     * distinción de plantel. {@code plantelId} debe ser el plantel efectivo resuelto por
+     * {@code AdesUserService#getEffectivePlantelId} (null solo para nivelAcceso 0).
+     */
+    public List<Map<String, Object>> tutorias(UUID alumnoId, String tipoTutoria, UUID plantelId, int skip, int limit) {
         StringBuilder sql = new StringBuilder(
                 "SELECT t.id, t.tipo_tutoria, t.tema, t.descripcion, t.duracion_minutos, " +
                 "t.acuerdos, t.proxima_sesion, t.requiere_seguimiento, " +
@@ -51,6 +57,7 @@ public class SaludQueryService {
 
         if (alumnoId != null) { sql.append(" AND t.alumno_id = ?"); params.add(alumnoId); }
         if (tipoTutoria != null && !tipoTutoria.isBlank()) { sql.append(" AND t.tipo_tutoria = ?"); params.add(tipoTutoria); }
+        if (plantelId != null) { sql.append(" AND e.plantel_id = ?"); params.add(plantelId); }
         sql.append(" ORDER BY t.fecha_creacion DESC LIMIT ? OFFSET ?");
         params.add(limit);
         params.add(skip);

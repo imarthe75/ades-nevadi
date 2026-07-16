@@ -26,7 +26,11 @@ public class CertificadoQueryService {
         this.jdbc = jdbc;
     }
 
-    public List<Map<String, Object>> listar(UUID estudianteId, String tipoCertificado, int limit) {
+    /**
+     * BOLA fix (2026-07-16): {@code plantelId} filtra por {@code est.plantel_id} —
+     * null solo para nivelAcceso 0 (ver {@code AdesUserService#getEffectivePlantelId}).
+     */
+    public List<Map<String, Object>> listar(UUID estudianteId, String tipoCertificado, int limit, UUID plantelId) {
         StringBuilder sql = new StringBuilder(
             "SELECT c.id, c.folio, c.tipo_certificado, c.nivel_educativo, " +
             "c.grado_completado, c.promedio_final, " +
@@ -49,6 +53,10 @@ public class CertificadoQueryService {
         if (tipoCertificado != null && !tipoCertificado.isBlank()) {
             sql.append("AND c.tipo_certificado = ? ");
             params.add(tipoCertificado);
+        }
+        if (plantelId != null) {
+            sql.append("AND est.plantel_id = ? ");
+            params.add(plantelId);
         }
         sql.append("ORDER BY c.fecha_emision DESC LIMIT ?");
         params.add(limit);

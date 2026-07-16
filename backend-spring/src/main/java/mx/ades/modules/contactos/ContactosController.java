@@ -12,6 +12,7 @@ import mx.ades.modules.contactos.domain.port.in.RegistrarContactoUseCase;
 import mx.ades.modules.contactos.query.ContactosQueryService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -45,6 +46,7 @@ public class ContactosController {
     private final ActualizarContactoUseCase actualizarContactoUseCase;
     private final ContactosApplicationService contactosService;
     private final ContactosQueryService queryService;
+    private final JdbcTemplate jdbc;
 
     /**
      * Contactos familiares (tutela legal, autorización de recogida) y expediente médico
@@ -60,6 +62,26 @@ public class ContactosController {
         if (nivelAcceso == null || nivelAcceso > 4) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Nivel de acceso insuficiente para esta operación");
         }
+    }
+
+    /**
+     * BOLA fix (2026-07-16): este módulo solo verificaba nivelAcceso (requireStaff) —
+     * sin ningún chequeo de plantel, personal escolar de un plantel podía leer/editar
+     * contactos familiares, expediente médico y expediente-docs de un alumno de
+     * CUALQUIER plantel (mismo patrón ya confirmado real en CondicionCronicaController).
+     */
+    private void verificarAccesoAlumno(AdesUser user, UUID estudianteId) {
+        List<UUID> rows = jdbc.queryForList(
+                "SELECT plantel_id FROM ades_estudiantes WHERE id = ?", UUID.class, estudianteId);
+        if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Alumno no encontrado");
+        userService.verificarPlantel(user, rows.get(0), "El alumno no pertenece a su plantel");
+    }
+
+    private UUID estudianteDeContacto(UUID contactoId) {
+        List<UUID> rows = jdbc.queryForList(
+                "SELECT estudiante_id FROM ades_contactos_familiares WHERE id = ?", UUID.class, contactoId);
+        if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Contacto no encontrado");
+        return rows.get(0);
     }
 
     @Data
@@ -112,7 +134,9 @@ public class ContactosController {
         // (teléfono, email, tutela legal, flag puedeRecoger) de CUALQUIER estudiante
         // (BOLA, OWASP API1 — asimetría con crearContacto()/actualizarContacto()/
         // eliminarContacto(), que sí exigen requireStaff()).
-        requireStaff(userService.resolveUser(jwt));
+        AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
+        verificarAccesoAlumno(user, estudianteId);
         return ResponseEntity.ok(queryService.listarContactos(estudianteId));
     }
 
@@ -127,6 +151,7 @@ public class ContactosController {
         if (estId == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "estudianteId es obligatorio");
         }
+        verificarAccesoAlumno(user, estId);
 
         ValidationUtils.validarNombrePersona(body.getNombreCompleto(), "El nombre del contacto");
         ValidationUtils.validarTelefono(body.getTelefonoPrincipal());
@@ -160,6 +185,7 @@ public class ContactosController {
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         requireStaff(user);
+        verificarAccesoAlumno(user, estudianteDeContacto(contactoId));
 
         ValidationUtils.validarNombrePersona(body.getNombreCompleto(), "El nombre del contacto");
         ValidationUtils.validarTelefono(body.getTelefonoPrincipal());
@@ -197,7 +223,9 @@ public class ContactosController {
     public void eliminarContacto(
             @PathVariable("contacto_id") UUID contactoId,
             @AuthenticationPrincipal Jwt jwt) {
-        requireStaff(userService.resolveUser(jwt));
+        AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
+        verificarAccesoAlumno(user, estudianteDeContacto(contactoId));
         try {
             contactosService.eliminar(contactoId);
         } catch (IllegalStateException e) {
@@ -209,7 +237,9 @@ public class ContactosController {
     public ResponseEntity<Map<String, Object>> obtenerExpedienteMedico(
             @PathVariable("estudiante_id") UUID estudianteId,
             @AuthenticationPrincipal Jwt jwt) {
-        requireStaff(userService.resolveUser(jwt));
+        AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
+        verificarAccesoAlumno(user, estudianteId);
         return ResponseEntity.ok(contactosService.expedienteMedico(estudianteId));
     }
 
@@ -220,6 +250,7 @@ public class ContactosController {
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         requireStaff(user);
+        verificarAccesoAlumno(user, estudianteId);
         ValidationUtils.validarNSS(body.getNss());
         Map<String, Object> fields = new HashMap<>();
         fields.put("tipo_sangre", body.getTipoSangre());
@@ -246,7 +277,9 @@ public class ContactosController {
         // autenticada podía leer el estatus de entrega de documentos (y observaciones)
         // del expediente escolar de CUALQUIER estudiante (BOLA, OWASP API1 — asimetría
         // con actualizarDocEstatus(), que sí exige requireStaff()).
-        requireStaff(userService.resolveUser(jwt));
+        AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
+        verificarAccesoAlumno(user, estudianteId);
         return ResponseEntity.ok(queryService.listarExpedienteDocs(estudianteId, cicloId));
     }
 
@@ -260,6 +293,7 @@ public class ContactosController {
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         requireStaff(user);
+        verificarAccesoAlumno(user, estudianteId);
         if (!Arrays.asList("PENDIENTE", "ENTREGADO", "INCOMPLETO", "RECHAZADO", "EXENTO").contains(estatus)) {
             throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Estatus inválido");
         }

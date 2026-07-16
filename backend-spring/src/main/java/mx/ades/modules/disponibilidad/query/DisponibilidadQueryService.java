@@ -22,8 +22,8 @@ public class DisponibilidadQueryService {
 
     private final DisponibilidadRepositoryPort repo;
 
-    public List<Map<String, Object>> listar(UUID profesorId, UUID cicloEscolarId, String q) {
-        List<Map<String, Object>> rows = repo.list(profesorId, cicloEscolarId, q);
+    public List<Map<String, Object>> listar(UUID profesorId, UUID cicloEscolarId, String q, UUID plantelId) {
+        List<Map<String, Object>> rows = repo.list(profesorId, cicloEscolarId, q, plantelId);
         List<Map<String, Object>> result = new ArrayList<>();
         for (Map<String, Object> r : rows) {
             Map<String, Object> d = new HashMap<>(r);
@@ -34,6 +34,10 @@ public class DisponibilidadQueryService {
             result.add(d);
         }
         return result;
+    }
+
+    public UUID plantelDeProfesor(UUID profesorId) {
+        return repo.plantelDeProfesor(profesorId);
     }
 
     public Map<String, Object> resumen(UUID profesorId, UUID cicloEscolarId) {
@@ -70,8 +74,8 @@ public class DisponibilidadQueryService {
         return response;
     }
 
-    public List<Map<String, Object>> cobertura(UUID cicloId) {
-        List<Map<String, Object>> rows = repo.cobertura(cicloId);
+    public List<Map<String, Object>> cobertura(UUID cicloId, UUID plantelId) {
+        List<Map<String, Object>> rows = repo.cobertura(cicloId, plantelId);
         List<Map<String, Object>> result = new ArrayList<>();
         for (Map<String, Object> r : rows) {
             long slots = ((Number) r.get("slots_registrados")).longValue();

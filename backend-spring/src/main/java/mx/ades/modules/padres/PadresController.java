@@ -6,6 +6,7 @@ import mx.ades.security.AdesUser;
 import mx.ades.security.AdesUserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -32,6 +33,7 @@ public class PadresController {
 
     private final AdesUserService userService;
     private final PadresQueryService queryService;
+    private final JdbcTemplate jdbc;
 
     @GetMapping("/mis-alumnos")
     public ResponseEntity<List<Map<String, Object>>> misAlumnos(
@@ -46,7 +48,16 @@ public class PadresController {
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
 
-        if (user.getPersonaId() != null && user.getNivelAcceso() > 3) {
+        // BOLA fix (2026-07-16): para nivelAcceso 1-3 (Admin_Plantel/Director/
+        // Coordinador, "personal escolar con alcance institucional") no había NINGÚN
+        // chequeo — cross-plantel libre sobre calificaciones de cualquier alumno. Solo
+        // nivelAcceso 0 mantiene alcance libre.
+        if (user.getNivelAcceso() != null && user.getNivelAcceso() > 0 && user.getNivelAcceso() <= 3) {
+            List<UUID> plantelRows = jdbc.queryForList(
+                    "SELECT plantel_id FROM ades_estudiantes WHERE id = ?", UUID.class, estudianteId);
+            if (plantelRows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Alumno no encontrado");
+            userService.verificarPlantel(user, plantelRows.get(0), "El alumno no pertenece a su plantel");
+        } else if (user.getPersonaId() != null && user.getNivelAcceso() != null && user.getNivelAcceso() > 3) {
             if (!queryService.esContactoDeAlumno(user.getPersonaId(), estudianteId)) {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Sin acceso a este alumno");
             }

@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.time.Instant;
 import java.util.LinkedHashMap;
@@ -100,6 +101,19 @@ public class GlobalExceptionHandler {
         log.warn("Violación de integridad de datos: {}", ex.getMessage());
         return body(HttpStatus.CONFLICT,
                 "La operación viola una restricción de datos (duplicado o referencia inválida)");
+    }
+
+    /**
+     * Una URL sin handler mapeado (ruta inexistente, ej. typo de endpoint en el
+     * frontend/test) caía en el catch-all de {@code Exception} de abajo y respondía
+     * 500 en vez de 404 — hallazgo real (2026-07-16, RBAC-13 en 10-rbac.spec.ts): un
+     * cliente que prueba un endpoint que no existe recibía "Error interno" en vez de
+     * "No encontrado", lo cual además rompe cualquier chequeo defensivo de
+     * autorización que espere 401/403/404 en vez de 500.
+     */
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleNoResource(NoResourceFoundException ex) {
+        return body(HttpStatus.NOT_FOUND, "Recurso no encontrado");
     }
 
     @ExceptionHandler(BadSqlGrammarException.class)
