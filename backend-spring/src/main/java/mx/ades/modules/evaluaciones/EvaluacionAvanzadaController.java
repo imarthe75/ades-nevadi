@@ -277,9 +277,13 @@ public class EvaluacionAvanzadaController {
             @RequestParam(value = "aula_id", required = false) UUID aulaId,
             @RequestParam(value = "fecha", required = false) String fechaStr,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        AdesUser user = userService.resolveUser(jwt);
         LocalDate fecha = fechaStr != null && !fechaStr.isBlank() ? LocalDate.parse(fechaStr) : null;
-        return ResponseEntity.ok(queryService.listarAsignacionesAula(aulaId, fecha));
+        // BOLA fix (asimetría): mismo criterio que listarNee() — no-admins (nivelAcceso > 2)
+        // quedan acotados a su propio plantel.
+        UUID plantel = (user.getNivelAcceso() != null && user.getNivelAcceso() > 2 && user.getPlantelId() != null)
+                ? user.getPlantelId() : null;
+        return ResponseEntity.ok(queryService.listarAsignacionesAula(aulaId, fecha, plantel));
     }
 
     // ── Private helper ────────────────────────────────────────────────────────

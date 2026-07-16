@@ -183,6 +183,22 @@ public class KardexQueryService {
                 p);
     }
 
+    /** BOLA fix: resuelve el plantel real de un grupo, para verificar scoping en el controller. */
+    public UUID plantelIdDeGrupo(UUID grupoId) {
+        List<UUID> rows = jdbc.queryForList(
+                "SELECT plantel_id FROM ades_grupos WHERE id = :grupo",
+                new MapSqlParameterSource().addValue("grupo", grupoId.toString()), UUID.class);
+        return rows.isEmpty() ? null : rows.get(0);
+    }
+
+    /** BOLA fix: resuelve el plantel real de un estudiante, para verificar scoping en el controller. */
+    public UUID plantelIdDeEstudiante(UUID estudianteId) {
+        List<UUID> rows = jdbc.queryForList(
+                "SELECT plantel_id FROM ades_estudiantes WHERE id = :est",
+                new MapSqlParameterSource().addValue("est", estudianteId.toString()), UUID.class);
+        return rows.isEmpty() ? null : rows.get(0);
+    }
+
     private BigDecimal toBd(Object v) {
         if (v == null) return null;
         if (v instanceof BigDecimal b) return b;

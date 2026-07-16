@@ -17,6 +17,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Map;
@@ -69,7 +70,12 @@ public class JustificacionController {
             @RequestParam(value = "pagina", defaultValue = "1") int pagina,
             @RequestParam(value = "por_pagina", defaultValue = "30") int porPagina,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        // BFLA fix (asimetría): resolverJustificacion() ya exige nivelAcceso<=3 (COORDINADOR+)
+        // y el módulo completo está detrás de roleGuard(3) en el frontend (app.routes.ts); esta
+        // lectura no verificaba nada — cualquier usuario autenticado (incl. padres/alumnos)
+        // podía listar justificaciones (motivo, documentoUrl de tipo médico) de CUALQUIER
+        // alumno del sistema, sin scoping alguno.
+        requireCoordAcademico(userService.resolveUser(jwt));
         pagina = Math.max(pagina, 1);
         porPagina = Math.min(Math.max(porPagina, 1), 200);
         return ResponseEntity.ok(query.list(estudianteId, estado, grupoId, pagina, porPagina));
@@ -80,6 +86,10 @@ public class JustificacionController {
             @RequestBody @Valid JustificacionCreate body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        // BFLA fix (asimetría): mismo hallazgo que listarJustificaciones() — sin esto,
+        // cualquier usuario autenticado podía registrar una justificación (con documento y
+        // motivo médico/familiar) sobre la asistencia de CUALQUIER alumno.
+        requireCoordAcademico(user);
         var cmd = new RegistrarJustificacionUseCase.Command(
                 body.getAsistenciaId(),
                 TipoJustificacion.of(body.getTipoJustificacion()),
@@ -112,7 +122,22 @@ public class JustificacionController {
     public ResponseEntity<Map<String, Object>> obtenerJustificacion(
             @PathVariable("justificacionId") UUID justificacionId,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        // BFLA fix (asimetría): mismo hallazgo que listarJustificaciones().
+        requireCoordAcademico(userService.resolveUser(jwt));
         return ResponseEntity.ok(query.findById(justificacionId));
+    }
+
+    /**
+     * Todo el módulo de justificaciones está detrás de roleGuard(3) en el frontend
+     * (app.routes.ts) y resolverJustificacion() ya exige este mismo umbral
+     * (nivelAcceso &le; 3, COORDINADOR_ACADEMICO o superior) — se replica aquí para que
+     * lectura y creación no dependan únicamente del guard de cliente (que no es una
+     * frontera de seguridad real).
+     */
+    private void requireCoordAcademico(AdesUser user) {
+        if (user.getNivelAcceso() == null || user.getNivelAcceso() > 3) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Sin permisos para justificaciones (requiere COORDINADOR+)");
+        }
     }
 }

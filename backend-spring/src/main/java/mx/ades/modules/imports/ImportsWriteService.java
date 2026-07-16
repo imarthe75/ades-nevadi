@@ -60,6 +60,19 @@ public class ImportsWriteService {
         return map;
     }
 
+    /**
+     * Resuelve el plantel_id de un grado (ades_grados.plantel_id es NOT NULL). Usado por
+     * ImportsController#importarGrupos para aplicar el mismo scoping por plantel
+     * (plantelPermitido) que ya aplican alumnos/profesores/aulas/preinscritos-sep — sin esto
+     * un Director de plantel podía importar grupos anclados a un grado de OTRO plantel.
+     */
+    public UUID plantelDeGrado(UUID gradoId) {
+        List<UUID> rows = jdbc.query(
+                "SELECT plantel_id FROM ades_grados WHERE id = ?",
+                (rs, i) -> (UUID) rs.getObject("plantel_id"), gradoId);
+        return rows.isEmpty() ? null : rows.get(0);
+    }
+
     public Map<String, UUID> loadCiclos() {
         Map<String, UUID> map = new HashMap<>();
         jdbc.query("SELECT id, nombre_ciclo FROM ades_ciclos_escolares", rs -> {

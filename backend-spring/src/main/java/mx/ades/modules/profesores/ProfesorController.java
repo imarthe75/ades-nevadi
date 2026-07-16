@@ -87,7 +87,13 @@ public class ProfesorController {
             @PathVariable UUID id,
             @RequestBody Map<String, Object> body,
             @AuthenticationPrincipal Jwt jwt) {
-        requireStaff(userService.resolveUser(jwt));
+        AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
+        // BOLA fix: get() ya verifica que el profesor pertenezca al plantel del usuario
+        // (auditoría 2026-07-15) pero patch() (misma PII: CURP/RFC/teléfono/email) no
+        // tenía ese chequeo — un Director/Coordinador de un plantel podía editar el
+        // expediente de un profesor de OTRO plantel con solo el UUID.
+        requireMismoPlantel(user, id);
         @SuppressWarnings("unchecked")
         Map<String, Object> per = (Map<String, Object>) body.get("persona");
         @SuppressWarnings("unchecked")
@@ -101,7 +107,12 @@ public class ProfesorController {
             @PathVariable UUID id,
             @RequestBody Profesor update,
             @AuthenticationPrincipal Jwt jwt) {
-        requireStaff(userService.resolveUser(jwt));
+        AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
+        // BOLA fix: mismo hallazgo que patch() — sin este chequeo un Director/Coordinador
+        // podía reemplazar por completo el registro (incluido reasignar plantelId) de un
+        // profesor de otro plantel.
+        requireMismoPlantel(user, id);
         Profesor prof = repositoryPort.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Profesor no encontrado"));
         prof.setNumeroEmpleado(update.getNumeroEmpleado());
@@ -111,6 +122,27 @@ public class ProfesorController {
         prof.setTipoContrato(update.getTipoContrato());
         prof.setIsActive(update.getIsActive());
         return ResponseEntity.ok(repositoryPort.save(prof));
+    }
+
+    /**
+     * BOLA fix: helper compartido por patch()/update() con el mismo criterio que get() —
+     * Director/Coordinador (nivelAcceso &gt;1) solo puede mutar profesores de su propio
+     * plantel; superadmin (nivelAcceso 1) sin restricción.
+     */
+    private void requireMismoPlantel(AdesUser user, UUID id) {
+        if (user.getNivelAcceso() == null || user.getNivelAcceso() <= 1 || user.getPlantelId() == null) {
+            return;
+        }
+        Map<String, Object> profesor;
+        try {
+            profesor = query.obtener(id);
+        } catch (RuntimeException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Profesor no encontrado");
+        }
+        Object plantelId = profesor.get("plantel_id");
+        if (plantelId != null && !plantelId.equals(user.getPlantelId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No puede modificar un profesor de otro plantel");
+        }
     }
 
     /**

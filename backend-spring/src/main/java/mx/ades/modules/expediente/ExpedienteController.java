@@ -282,6 +282,10 @@ public class ExpedienteController {
             @RequestParam(value = "ciclo_id", required = false) UUID cicloId,
             @AuthenticationPrincipal Jwt jwt) throws Exception {
         AdesUser user = userService.resolveUser(jwt);
+        // BOLA fix (asimetría): mismo hallazgo que obtenerExpediente() — sin scoping por
+        // plantel/tutoría, cualquier cuenta autenticada podía subir documentos al expediente
+        // de un alumno ajeno.
+        verificarAccesoAlumno(user, estudianteId);
 
         mx.ades.modules.expediente.domain.model.TipoDocumentoExpediente.validarArchivo(
                 archivo.getContentType(), archivo.getSize());
@@ -320,7 +324,14 @@ public class ExpedienteController {
             @PathVariable("estudiante_id") UUID estudianteId,
             @PathVariable("doc_id") UUID docId,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        AdesUser user = userService.resolveUser(jwt);
+        // BOLA fix (asimetría): mismo hallazgo que obtenerExpediente() — el segmento
+        // {estudiante_id} de esta ruta NO se usaba en la lógica (viola la regla "path params
+        // usados realmente"); además el frontend (expediente-doc.component.ts) en realidad
+        // envía ahí el expediente_id, no el estudiante_id, así que no es confiable para
+        // autorización. Se deriva el estudiante dueño real a partir del doc_id (join
+        // documentos → expediente) y se valida contra ese valor.
+        verificarAccesoAlumno(user, estudianteIdDeDocumento(docId));
 
         Map<String, Object> doc = queryService.documentoById(docId);
         Integer paperlessDocId = (Integer) doc.get("paperless_doc_id");
@@ -347,7 +358,11 @@ public class ExpedienteController {
             @PathVariable("expediente_id") UUID expedienteId,
             @PathVariable("doc_id") UUID docId,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        AdesUser user = userService.resolveUser(jwt);
+        // BOLA fix (asimetría): mismo hallazgo que obtenerExpediente() — se podía borrar
+        // cualquier documento de expediente conociendo expediente_id/doc_id, sin scoping por
+        // plantel/tutoría.
+        verificarAccesoAlumno(user, estudianteIdDeExpediente(expedienteId));
 
         List<Map<String, Object>> rows = queryService.fetchDocForDelete(docId, expedienteId);
         if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Documento no encontrado.");
@@ -421,7 +436,11 @@ public class ExpedienteController {
             @PathVariable("estudiante_id") UUID estudianteId,
             @RequestParam(value = "ciclo_id", required = false) UUID cicloId,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        AdesUser user = userService.resolveUser(jwt);
+        // BOLA fix (asimetría): mismo hallazgo que obtenerExpediente() — este endpoint expone
+        // PII (CURP, matrícula) y extractos OCR del expediente vía prompt a NVIDIA NIM, y
+        // persiste observaciones en el expediente, sin scoping por plantel/tutoría.
+        verificarAccesoAlumno(user, estudianteId);
 
         UUID cicloRef = cicloId != null ? cicloId : queryService.cicloActivoId();
         Map<String, Object> alumno = queryService.alumnoParaAnalisis(estudianteId);
@@ -510,5 +529,72 @@ public class ExpedienteController {
         resp.put("recomendaciones", recomendaciones);
         resp.put("alertas", alertas);
         return ResponseEntity.ok(resp);
+    }
+
+    private void verificarAccesoAlumno(AdesUser user, UUID estudianteId) {
+        Integer nivelAcceso = user.getNivelAcceso();
+        if (nivelAcceso != null && nivelAcceso <= 4) {
+            return;
+        }
+        Integer count = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM ades_estudiantes e WHERE e.id = ? AND (" +
+                "  e.persona_id = ? OR EXISTS (" +
+                "    SELECT 1 FROM ades_tutores_alumnos ta JOIN ades_personas p ON p.id = ta.persona_id " +
+                "    WHERE ta.alumno_id = e.id AND ta.is_active = TRUE AND p.email_personal = ?" +
+                "  )" +
+                ")", Integer.class, estudianteId, user.getPersonaId(), user.getEmail());
+        if (count == null || count == 0) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "No tienes permiso para ver el expediente de este estudiante");
+        }
+    }
+
+    private UUID estudianteIdDeExtraordinario(UUID extraId) {
+        try {
+            return jdbc.queryForObject(
+                    "SELECT estudiante_id FROM ades_extraordinarias WHERE id = ? AND is_active = TRUE",
+                    UUID.class, extraId);
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Extraordinario no encontrado");
+        }
+    }
+
+    private UUID estudianteIdDeConstancia(UUID constanciaId) {
+        try {
+            return jdbc.queryForObject(
+                    "SELECT estudiante_id FROM ades_constancias WHERE id = ? AND is_active = TRUE",
+                    UUID.class, constanciaId);
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Constancia no encontrada");
+        }
+    }
+
+    /** Resuelve el estudiante dueño de un expediente (ades_expedientes_alumno). */
+    private UUID estudianteIdDeExpediente(UUID expedienteId) {
+        try {
+            return jdbc.queryForObject(
+                    "SELECT estudiante_id FROM ades_expedientes_alumno WHERE id = ?",
+                    UUID.class, expedienteId);
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Expediente no encontrado");
+        }
+    }
+
+    /**
+     * Resuelve el estudiante dueño de un documento de expediente, haciendo join contra
+     * ades_expedientes_alumno. No confiar en el path param {@code estudiante_id} de rutas
+     * como preview/eliminar: el frontend (expediente-doc.component.ts) coloca ahí el
+     * expediente_id en algún flujo, no el estudiante_id, así que se deriva del doc_id.
+     */
+    private UUID estudianteIdDeDocumento(UUID docId) {
+        try {
+            return jdbc.queryForObject(
+                    "SELECT ea.estudiante_id FROM ades_expediente_documentos d " +
+                    "JOIN ades_expedientes_alumno ea ON ea.id = d.expediente_id " +
+                    "WHERE d.id = ? AND d.is_active = TRUE",
+                    UUID.class, docId);
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Documento no encontrado");
+        }
     }
 }

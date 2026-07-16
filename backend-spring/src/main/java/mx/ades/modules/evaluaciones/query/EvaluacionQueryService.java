@@ -100,7 +100,7 @@ public class EvaluacionQueryService {
         return jdbc.queryForList(sql.toString(), params.toArray());
     }
 
-    public List<Map<String, Object>> listarAsignacionesAula(UUID aulaId, LocalDate fecha) {
+    public List<Map<String, Object>> listarAsignacionesAula(UUID aulaId, LocalDate fecha, UUID plantelId) {
         StringBuilder sql = new StringBuilder(
             "SELECT aa.id, aa.fecha, aa.hora_inicio, aa.hora_fin, aa.observaciones, " +
             "a.nombre_aula, a.clave_aula, " +
@@ -112,6 +112,11 @@ public class EvaluacionQueryService {
         List<Object> params = new ArrayList<>();
         if (aulaId != null) { sql.append(" AND aa.aula_id = ?"); params.add(aulaId); }
         if (fecha != null) { sql.append(" AND aa.fecha = ?"); params.add(fecha); }
+        // BOLA fix (asimetría): la mutación (asignarAulaHora) exige Coordinador+ y opera sobre
+        // un aula/clase de un plantel específico; esta lectura no tenía ningún scoping y
+        // permitía a cualquier cuenta autenticada (incl. padres/alumnos) ver asignaciones de
+        // aula de TODOS los planteles. Mismo criterio que EV-024 (NEE) en este mismo módulo.
+        if (plantelId != null) { sql.append(" AND a.plantel_id = ?"); params.add(plantelId); }
         sql.append(" ORDER BY aa.fecha, aa.hora_inicio");
         return jdbc.queryForList(sql.toString(), params.toArray());
     }

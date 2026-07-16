@@ -547,6 +547,14 @@ public class ImportsController {
                     continue;
                 }
             }
+            // BOLA fix (asimetría): mismo criterio que alumnos/profesores/aulas/preinscritos-sep
+            // (plantelPermitido) — sin esto un Director de plantel podía importar grupos
+            // anclados a un grado de OTRO plantel.
+            UUID plantelDelGrado = importWrite.plantelDeGrado(gradoId);
+            if (!plantelPermitido(user, plantelDelGrado)) {
+                errores.add(new ErrorFila(rowNum, nombreGrupo, "No tiene permisos para importar grupos en el plantel del grado '" + nombreGrado + "'"));
+                continue;
+            }
 
             String nombreCiclo = ImportadorUtil.getCol(row, parsed.getHeaders(), "nombre_ciclo", "ciclo", "ciclo_escolar");
             UUID cicloId = ciclos.get(nombreCiclo.toLowerCase());

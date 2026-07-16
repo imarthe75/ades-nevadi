@@ -120,6 +120,20 @@ brands = api("GET", "/core/brands/")
 if brands["results"]:
     brand = brands["results"][0]
     uid   = brand.get("brand_uuid") or brand.get("pk")
+    custom_css = (
+        ".pf-c-background-image{--pf-c-background-image--BackgroundImage:none !important;"
+        "background:linear-gradient(160deg,#141929 0%,#1E2940 50%,#161E30 100%) !important;}"
+        ".pf-c-background-image__filter{display:none !important;}"
+        ".pf-c-login__main-header-desc,[class*=\"main-header-desc\"],.ak-login-subtitle{display:none !important;}"
+        "label[for=\"id_value\"] .pf-c-form__label-text,label[for=\"id_login\"] .pf-c-form__label-text,"
+        "label[for=\"uid\"] .pf-c-form__label-text{font-size:0 !important;}"
+        "label[for=\"id_value\"] .pf-c-form__label-text::before,label[for=\"id_login\"] .pf-c-form__label-text::before,"
+        "label[for=\"uid\"] .pf-c-form__label-text::before{content:\"Usuario o correo electrónico\" !important;font-size:14px !important;}"
+        "label[for=\"id_password\"] .pf-c-form__label-text,label[for=\"password\"] .pf-c-form__label-text{font-size:0 !important;}"
+        "label[for=\"id_password\"] .pf-c-form__label-text::before,label[for=\"password\"] .pf-c-form__label-text::before{content:\"Contraseña\" !important;font-size:14px !important;}"
+        ".pf-c-login__main-body::after{content:\"¿Olvidaste tu contraseña? Escribe a admin@setag.mx\" !important;"
+        "display:block !important;text-align:center !important;margin-top:25px !important;font-size:13px !important;color:#0066cc !important;}"
+    )
     api("PATCH", f"/core/brands/{uid}/", {
         "domain":          "auth.ades.setag.mx",
         "branding_title":  "ADES — Instituto Nevadi",
@@ -135,9 +149,29 @@ if brands["results"]:
         # subtítulo "Inicia sesión para continuar a ADES"). Authentik lo
         # deriva de attributes.settings.locale, no de un campo propio.
         "attributes":      {"settings": {"locale": "es"}},
+        "branding_custom_css": custom_css,
         "default":         True,
     })
     print(f"  actualizado ({uid})")
+
+    # ── 1.1 Configurar Etapa de Identificación ──────────────────────────────
+    print("\n[1.1] Identification Stage")
+    try:
+        stages = api("GET", "/stages/identification/?name=default-authentication-identification")
+        if stages["results"]:
+            stage_pk = stages["results"][0]["pk"]
+            pw_stages = api("GET", "/stages/password/?name=default-authentication-password")
+            if pw_stages["results"]:
+                pw_stage_pk = pw_stages["results"][0]["pk"]
+                api("PATCH", f"/stages/identification/{stage_pk}/", {
+                    "password_stage": pw_stage_pk,
+                    "user_fields": ["email", "username"]
+                })
+                print("  etapa de identificación vinculada con etapa de contraseña")
+        else:
+            print("  etapa de identificación no encontrada por nombre")
+    except Exception as e:
+        print(f"  [!] error configurando etapa de identificación: {e}")
 
     # Títulos de flows en español + fondo navy del flow de login. Los títulos
     # son texto guardado (no se traducen con el locale). El fondo se referencia

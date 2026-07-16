@@ -79,6 +79,20 @@ public class PlaneacionController {
     }
 
     /**
+     * Resuelve el grupo_id de una planeación de clase (ades_planeacion_clases) — usado
+     * para aplicar requireAccesoGrupoPlaneacion() en mutaciones que solo reciben el
+     * planeacion_id (completar, eliminar, reprogramar, actualizar semanal).
+     */
+    private UUID grupoIdDePlaneacion(UUID planeacionId) {
+        if (planeacionId == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "planeacion_id es requerido");
+        List<UUID> rows = jdbc.queryForList(
+                "SELECT grupo_id FROM ades_planeacion_clases WHERE id = ?::uuid AND is_active = TRUE",
+                UUID.class, planeacionId.toString());
+        if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Planeación no encontrada");
+        return rows.get(0);
+    }
+
+    /**
      * Guardar calificaciones (tarea/evaluación, individual o batch) es operación de
      * personal escolar (nivelAcceso &le;4). Admin/Director/Coordinador (nivelAcceso
      * &le;3) tienen alcance institucional; un Docente (nivelAcceso 4) solo puede
@@ -146,7 +160,11 @@ public class PlaneacionController {
     public ResponseEntity<Map<String, Object>> crearPlaneacion(
             @RequestBody PlaneacionCreateRequest body,
             @AuthenticationPrincipal Jwt jwt) {
-        requireStaff(userService.resolveUser(jwt));
+        // BOLA/BFLA fix (asimetría): a diferencia de temasConEstado/coberturaGrupo/
+        // listarPlaneacion (mismo recurso, lecturas), esta escritura solo exigía
+        // requireStaff() sin verificar asignación docente↔grupo — un docente (nivelAcceso
+        // 4) podía crear planeaciones para CUALQUIER grupo del sistema, no solo los suyos.
+        requireAccesoGrupoPlaneacion(userService.resolveUser(jwt), body.grupo_id());
         return ResponseEntity.status(HttpStatus.CREATED).body(
                 commands.crearPlaneacion(body.grupo_id(), body.tema_id(),
                         body.fecha_planeada(), body.descripcion_actividades(),
@@ -168,7 +186,9 @@ public class PlaneacionController {
             @PathVariable("planeacion_id") UUID planeacionId,
             @RequestBody CompletarAvanceRequest body,
             @AuthenticationPrincipal Jwt jwt) {
-        requireStaff(userService.resolveUser(jwt));
+        // BOLA/BFLA fix (asimetría): mismo hallazgo que crearPlaneacion — un docente podía
+        // marcar como completado el tema de cualquier grupo del sistema.
+        requireAccesoGrupoPlaneacion(userService.resolveUser(jwt), grupoIdDePlaneacion(planeacionId));
         return ResponseEntity.ok(commands.completarTema(
                 planeacionId, body.clase_id(), body.fecha_ejecucion(),
                 body.comentarios_profesor()));
@@ -179,7 +199,9 @@ public class PlaneacionController {
     public void eliminarPlaneacion(
             @PathVariable("planeacion_id") UUID planeacionId,
             @AuthenticationPrincipal Jwt jwt) {
-        requireStaff(userService.resolveUser(jwt));
+        // BOLA/BFLA fix (asimetría): mismo hallazgo que crearPlaneacion — un docente podía
+        // eliminar la planeación de cualquier grupo del sistema.
+        requireAccesoGrupoPlaneacion(userService.resolveUser(jwt), grupoIdDePlaneacion(planeacionId));
         commands.eliminarPlaneacion(planeacionId);
     }
 
@@ -234,7 +256,9 @@ public class PlaneacionController {
             @PathVariable("planeacion_id") UUID planeacionId,
             @RequestBody ReprogramarRequest body,
             @AuthenticationPrincipal Jwt jwt) {
-        requireStaff(userService.resolveUser(jwt));
+        // BOLA/BFLA fix (asimetría): mismo hallazgo que crearPlaneacion — un docente podía
+        // reprogramar la clase de cualquier grupo del sistema.
+        requireAccesoGrupoPlaneacion(userService.resolveUser(jwt), grupoIdDePlaneacion(planeacionId));
         commands.reprogramar(planeacionId, body.nueva_fecha());
         return ResponseEntity.ok(Map.of("id", planeacionId.toString(), "fecha_planeada", body.nueva_fecha().toString()));
     }
@@ -296,7 +320,9 @@ public class PlaneacionController {
     public ResponseEntity<Map<String, Object>> crearPlaneacionSemanal(
             @RequestBody PlaneacionSemanalCreateRequest body,
             @AuthenticationPrincipal Jwt jwt) {
-        requireStaff(userService.resolveUser(jwt));
+        // BOLA/BFLA fix (asimetría): mismo hallazgo que crearPlaneacion (/clases) — un
+        // docente podía crear planeación semanal para cualquier grupo del sistema.
+        requireAccesoGrupoPlaneacion(userService.resolveUser(jwt), body.grupo_id());
         return ResponseEntity.status(HttpStatus.CREATED).body(
                 commands.crearPlaneacionSemanal(
                         body.grupo_id(), body.tema_id(), body.competencia_id(),
@@ -323,7 +349,9 @@ public class PlaneacionController {
             @PathVariable("planeacion_id") UUID planeacionId,
             @RequestBody PlaneacionSemanalUpdateRequest body,
             @AuthenticationPrincipal Jwt jwt) {
-        requireStaff(userService.resolveUser(jwt));
+        // BOLA/BFLA fix (asimetría): mismo hallazgo que crearPlaneacion — un docente podía
+        // actualizar la planeación semanal de cualquier grupo del sistema.
+        requireAccesoGrupoPlaneacion(userService.resolveUser(jwt), grupoIdDePlaneacion(planeacionId));
         return ResponseEntity.ok(commands.actualizarPlaneacionSemanal(
                 planeacionId,
                 body.numero_trimestre(), body.numero_semana(), body.modalidad(),
@@ -390,7 +418,9 @@ public class PlaneacionController {
     public ResponseEntity<Map<String, Object>> crearPlaneacionSemanalIntegral(
             @RequestBody CrearPlaneacionSemanalIntegralRequest body,
             @AuthenticationPrincipal Jwt jwt) {
-        requireStaff(userService.resolveUser(jwt));
+        // BOLA/BFLA fix (asimetría): mismo hallazgo que crearPlaneacion — un docente podía
+        // crear planeación semanal integral para cualquier grupo del sistema.
+        requireAccesoGrupoPlaneacion(userService.resolveUser(jwt), body.grupo_id());
         return ResponseEntity.status(HttpStatus.CREATED).body(
                 commands.crearPlaneacionSemanal(
                         body.grupo_id(),
@@ -473,7 +503,9 @@ public class PlaneacionController {
     public ResponseEntity<Map<String, Object>> crearTareaDesdeplanneacion(
             @RequestBody CrearTareaDesdeplanneacionRequest body,
             @AuthenticationPrincipal Jwt jwt) {
-        requireStaff(userService.resolveUser(jwt));
+        // BOLA/BFLA fix (asimetría): mismo hallazgo que crearPlaneacion — un docente podía
+        // crear una tarea vinculada a la planeación de cualquier grupo del sistema.
+        requireAccesoGrupoPlaneacion(userService.resolveUser(jwt), grupoIdDePlaneacion(body.planeacion_clase_id()));
         return ResponseEntity.status(HttpStatus.CREATED).body(
                 commands.crearTareaDesdeplanneacion(
                         body.planeacion_clase_id(),
@@ -512,7 +544,9 @@ public class PlaneacionController {
     public ResponseEntity<Map<String, Object>> crearExamenDesdeplanneacion(
             @RequestBody CrearExamenDesdeplanneacionRequest body,
             @AuthenticationPrincipal Jwt jwt) {
-        requireStaff(userService.resolveUser(jwt));
+        // BOLA/BFLA fix (asimetría): mismo hallazgo que crearPlaneacion — un docente podía
+        // crear un examen vinculado a la planeación de cualquier grupo del sistema.
+        requireAccesoGrupoPlaneacion(userService.resolveUser(jwt), grupoIdDePlaneacion(body.planeacion_clase_id()));
         return ResponseEntity.status(HttpStatus.CREATED).body(
                 commands.crearExamenDesdeplanneacion(
                         body.planeacion_clase_id(),

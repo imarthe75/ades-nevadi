@@ -51,6 +51,10 @@ public class KardexController {
         if (user.getNivelAcceso() != null && user.getNivelAcceso() > 3) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado");
         }
+        // BOLA fix: grupos() ya scopea por plantel, pero este endpoint no verificaba que el
+        // grupo_id perteneciera al plantel del usuario — un Coordinador podía ver el roster
+        // de un grupo de OTRO plantel con solo el UUID.
+        verificarPlantelDeGrupo(user, grupoId);
         return ResponseEntity.ok(query.alumnosGrupo(grupoId));
     }
 
@@ -64,11 +68,36 @@ public class KardexController {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "Solo coordinación/dirección puede consultar el kardex");
         }
+        // BOLA fix: mismo criterio que alumnosGrupo — sin esto, un Coordinador podía consultar
+        // el kardex (historial académico completo) de un alumno de OTRO plantel por UUID.
+        verificarPlantelDeEstudiante(user, estudianteId);
         Map<String, Object> kardex = query.kardex(estudianteId, cicloId);
         if (kardex.get("alumno") == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND,
                     "Sin kardex UAEMEX para el estudiante/ciclo indicado");
         }
         return ResponseEntity.ok(kardex);
+    }
+
+    private void verificarPlantelDeGrupo(AdesUser user, UUID grupoId) {
+        if (user.getNivelAcceso() == null || user.getNivelAcceso() <= 1 || user.getPlantelId() == null) {
+            return;
+        }
+        UUID plantelGrupo = query.plantelIdDeGrupo(grupoId);
+        if (plantelGrupo == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Grupo no encontrado");
+        if (!user.getPlantelId().equals(plantelGrupo)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "El grupo no pertenece a su plantel");
+        }
+    }
+
+    private void verificarPlantelDeEstudiante(AdesUser user, UUID estudianteId) {
+        if (user.getNivelAcceso() == null || user.getNivelAcceso() <= 1 || user.getPlantelId() == null) {
+            return;
+        }
+        UUID plantelEstudiante = query.plantelIdDeEstudiante(estudianteId);
+        if (plantelEstudiante == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Alumno no encontrado");
+        if (!user.getPlantelId().equals(plantelEstudiante)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "El alumno no pertenece a su plantel");
+        }
     }
 }

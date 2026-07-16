@@ -95,7 +95,12 @@ public class ExpedienteLaboralController {
             @RequestParam(value = "tipo_contrato", required = false) String tipoContrato,
             @RequestParam(value = "q", required = false) String q,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        AdesUser user = userService.resolveUser(jwt);
+        // BFLA fix (asimetría): crear/editar/eliminar expedientes laborales ya exigen
+        // nivelAcceso<=2 (RH/Dirección) en el use case ("Solo RH..."); esta lectura exponía
+        // datos de personal altamente sensibles (CURP, RFC, salario, IMSS, INFONAVIT) de
+        // CUALQUIER empleado a cualquier cuenta autenticada, sin restricción alguna.
+        requireRH(user);
         return ResponseEntity.ok(queryService.listar(personaId, tipoContrato, q));
     }
 
@@ -130,7 +135,10 @@ public class ExpedienteLaboralController {
     public ResponseEntity<Map<String, Object>> detalleExpediente(
             @PathVariable("id") UUID id,
             @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
+        AdesUser user = userService.resolveUser(jwt);
+        // BFLA fix (asimetría): mismo hallazgo que listarExpedientes() — sin restricción,
+        // exponía CURP/RFC/salario/IMSS/INFONAVIT de un empleado por solo conocer el id.
+        requireRH(user);
         try {
             return ResponseEntity.ok(queryService.detalle(id));
         } catch (IllegalArgumentException e) {
@@ -176,6 +184,9 @@ public class ExpedienteLaboralController {
             @RequestBody DocumentoIn body,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        // BFLA fix (asimetría): mismo hallazgo que listarExpedientes() — adjuntar documentos
+        // a un expediente laboral ajeno no tenía ninguna restricción de nivel de acceso.
+        requireRH(user);
 
         AgregarDocumentoLaboralUseCase.Command cmd;
         try {
@@ -204,5 +215,16 @@ public class ExpedienteLaboralController {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, msg);
         }
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Datos de expediente laboral (CURP, RFC, salario, IMSS, INFONAVIT) son de personal,
+     * altamente sensibles. Mismo umbral (nivelAcceso &le; 2, RH/Dirección) que ya exigen
+     * los use cases de creación/actualización ("Solo RH...").
+     */
+    private void requireRH(AdesUser user) {
+        if (user.getNivelAcceso() == null || user.getNivelAcceso() > 2) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo RH o Dirección puede acceder a expedientes laborales");
+        }
     }
 }

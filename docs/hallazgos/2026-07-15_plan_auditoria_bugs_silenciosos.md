@@ -149,3 +149,57 @@ Igual que hoy: cualquier hallazgo se considera cerrado solo cuando (a) el fix co
 sin crash-loop, y (d) para hallazgos de datos/auditoría, una prueba empírica real (INSERT/UPDATE
 con `ROLLBACK`, o llamada API real) confirma el comportamiento — no basta con que el código "se
 vea correcto".
+
+---
+
+## Resultados — ejecutado 2026-07-15/16
+
+Las 4 fases se lanzaron en paralelo (Fase 2 y 3 divididas en 3 lotes por dominio cada una).
+Dos rondas de agentes se cortaron por límite de sesión de la API a mitad de trabajo y se
+retomaron con contexto de dónde quedaron.
+
+- **Fase 1 (drift entidad-JPA vs esquema):** 62 entidades revisadas. **0 casos críticos nuevos**
+  (ningún otro caso tipo Suplencia). 3 candidatos 🟡 documentados (columnas gestionadas por
+  trigger, verificadas seguras hoy pero a vigilar si el trigger correspondiente se quita alguna
+  vez): `CicloEscolar.sistema_educativo`, `Badge/BadgeOtorgado/EncuestaRespuesta.createdAt` (no
+  extienden `AdesBaseEntity`), `CalificacionEntity.esAcreditado`.
+- **Fase 2 (simetría endpoints, 82 controllers):** ~15 asimetrías reales corregidas, incluyendo
+  `ContactosController`, `ExpedienteController`/`ExpedienteLaboralController` (CURP/RFC/salario
+  sin protección en lectura), `EvaluacionAvanzadaController`, `ForoController` (anuncios sin JWT),
+  `AsignacionDocenteController`, `ImportsController`, `JustificacionController`,
+  `AulaController.eliminarFranja`, `DisponibilidadDocenteController` (escrituras sin ningún
+  control), `ProcesosEscolaresController.crearSolicitud` (alta de admisión sin rol).
+- **Fase 3 (frontend Angular, 59 módulos):** mayoría de casos ya defendidos correctamente por el
+  backend (frontend solo oculta UI, backend valida real). Fixes reales: manejo de error silencioso
+  en `gradebook.component.ts`/`encuestas.component.ts`. Un agente se desvió de frontend a backend
+  (corrigió `PortalController`/`MovilidadController`/`PersonalAdminController`/
+  `ProfesorController`/`PlaneacionController` — hallazgos legítimos, especialmente
+  `PortalController` dejando a padres ver alumnos ajenos del mismo plantel, y `PlaneacionController`
+  con 9 endpoints de escritura sin validar asignación docente↔grupo). `licencias` quedó reportado
+  sin scoping de plantel, no corregido (requiere resolver plantel desde 3 tablas de origen distintas).
+- **Fase 4 (mecanismos a medias + FastAPI):** confirmado que el único caso de este patrón era el
+  ya corregido (`AuditSessionInterceptor`/`fn_auditoria_biu`). Verificado en vivo: `AuditHttpFilter`,
+  `RateLimitingFilter` (429 real al 6º intento), `CacheConfig` (8 cachés sin mismatch),
+  `VaultInitializer` (sí contacta Vault y carga secretos como fallback). Adaptadores
+  `BoletaFastApiAdapter`/`CertificadoFastApiAdapter`: contrato correcto, conectividad y RBAC
+  verificados en vivo contra `ades-api`.
+- **Seguimiento post-auditoría:** `KardexController` tenía el mismo patrón (listado escopa por
+  plantel, detalle por id no) — corregido. XSS reportado en `expediente-doc.component.ts`
+  (`[innerHTML]`) verificado **no explotable** (Angular sanitiza por defecto, sin bypass) — no
+  se tocó.
+- **Verificación de un reporte externo** ("Auditoría Integral de Consultas y Mapeos", aportado
+  por el usuario, origen fuera de esta sesión): su afirmación de "0 Cartesian products" se
+  verificó de forma **independiente** con script propio (no el suyo, que no estaba disponible) —
+  603 JOINs escaneados mecánicamente (2 pasadas: text-blocks + concatenación clásica), **0
+  confirmados**; 2 candidatos iniciales descartados tras revisión manual (catálogo Postgres sin
+  alias, mal parseado por el script; `CROSS JOIN` a subconsulta con `LIMIT 1`, acotado por diseño).
+  Corrobora la conclusión del reporte externo con metodología propia y transparente.
+- **Nota de proceso:** se detectaron 4 commits reales hechos por un agente sin autorización
+  explícita del usuario durante esta sesión (contenido legítimo, sin secretos, pero violación del
+  principio "solo comitear cuando se pide"). Corregido: Regla Mandatoria #21 agregada a
+  `CLAUDE.md` prohibiendo `git commit`/`git push` a agentes salvo instrucción explícita.
+- **Reglas nuevas agregadas a CLAUDE.md** (#19-21): JOINs correlacionados por FK real +
+  revisión de fan-out en agregaciones; contrato documentado para métodos que devuelven
+  `Map<String,Object>`; prohibición explícita de `git commit` a agentes.
+- **Verificación final:** `BUILD SUCCESS`, **555/555 tests**, `ng build --configuration
+  production` exitoso, `ades-bff` estable (RestartCount=0) tras redeploy.

@@ -40,14 +40,38 @@ public class PortalController {
      * cuenta autenticada (docente/padre/alumno de OTRO plantel) podía consultar el
      * expediente académico de cualquier alumno del sistema. Mismo patrón que
      * {@code LearningPathsController#verificarAccesoEstudiante}.
+     *
+     * <p>BOLA fix (auditoría fbatch_02): el chequeo original solo acotaba por
+     * plantel_id para CUALQUIER nivelAcceso &gt;1 — es decir, un padre o alumno
+     * (nivelAcceso &ge;5) podía ver el resumen/calificaciones/asistencias/tareas de
+     * CUALQUIER OTRO alumno de su mismo plantel, no solo de sus propios hijos, ya
+     * que nunca se verificaba la relación de tutoría (tabla
+     * {@code ades_tutores_alumnos}). Se aplica ahora el mismo criterio dual que
+     * {@code PortalFamiliasController#verificarAccesoAlumno}/
+     * {@code EntregasController#requireAccesoAlumno}: personal escolar (nivelAcceso
+     * &le;4) acotado por plantel; padres/alumnos (nivelAcceso &ge;5) solo si son
+     * tutor activo del alumno.
      */
     private void verificarAccesoEstudiante(AdesUser user, UUID estudianteId) {
-        if (user.getNivelAcceso() == null || user.getNivelAcceso() <= 1) return;
-        Long count = jdbc.queryForObject(
-                "SELECT COUNT(*) FROM ades_estudiantes WHERE id = ? AND plantel_id = ?",
-                Long.class, estudianteId, user.getPlantelId());
+        Integer nivelAcceso = user.getNivelAcceso();
+        if (nivelAcceso == null || nivelAcceso <= 1) return;
+        if (nivelAcceso <= 4) {
+            Long count = jdbc.queryForObject(
+                    "SELECT COUNT(*) FROM ades_estudiantes WHERE id = ? AND plantel_id = ?",
+                    Long.class, estudianteId, user.getPlantelId());
+            if (count == null || count == 0) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "El estudiante no pertenece a su plantel");
+            }
+            return;
+        }
+        String email = user.getEmail();
+        Integer count = email == null ? 0 : jdbc.queryForObject(
+                "SELECT COUNT(*) FROM ades_tutores_alumnos ta " +
+                "JOIN ades_personas p ON p.id = ta.persona_id " +
+                "WHERE p.email_personal = ? AND ta.alumno_id = ? AND ta.is_active = TRUE",
+                Integer.class, email, estudianteId);
         if (count == null || count == 0) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "El estudiante no pertenece a su plantel");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No tienes acceso a este alumno");
         }
     }
 
@@ -58,6 +82,15 @@ public class PortalController {
             @RequestParam(value = "ciclo_id", required = false) UUID cicloId,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
+        // BOLA fix (auditoría fbatch_02): este buscador de alumnos (nombre, matrícula,
+        // grupo, plantel) es un typeahead de uso exclusivamente de personal escolar
+        // (movilidad, optativas, padres-admin, y la vista de simulación de admin en
+        // padres.component) — un padre/alumno real (nivelAcceso &ge;5) no tiene ningún
+        // flujo legítimo que lo requiera y podía usarlo para enumerar el nombre y
+        // matrícula de CUALQUIER OTRO alumno de su plantel, no solo de sus propios hijos.
+        if (user.getNivelAcceso() == null || user.getNivelAcceso() > 4) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Nivel de acceso insuficiente para esta operación");
+        }
         if (q == null || q.length() < 2) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El parámetro 'q' debe tener al menos 2 caracteres");
         }

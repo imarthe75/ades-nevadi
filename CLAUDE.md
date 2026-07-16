@@ -185,6 +185,9 @@ celery -A app.worker.celery_app worker --loglevel=info
 16. **Análisis Exploratorios**: Realizar análisis exploratorios profundos antes y durante cualquier diseño o implementación de cambios o nuevos componentes para detectar fallas e inconsistencias proactivamente.
 17. **Documentación Completa del Código**: Documentar plenamente todo el código desarrollado o modificado (comentarios en funciones críticas, clases, modelos, parámetros y cabeceras), asegurando su legibilidad y mantenibilidad.
 18. **Organización de Documentación**: TODO archivo `.md` generado (reportes, auditorías, análisis, guías) DEBE ir en `docs/` — NUNCA en raíz. Solo `CLAUDE.md` y `README.md` quedan en raíz. `.gitignore` ignora .md en raíz (excepto los 2 permitidos).
+19. **JOINs correlacionados (anti Cartesian product):** todo `JOIN`/`LEFT JOIN` en un `*QueryService`/`*PersistenceAdapter` debe correlacionar por FK real en la cláusula `ON` (nunca un `JOIN` sin condición, ni una condición que no referencie ninguna columna del alias unido). Toda consulta con `SUM`/`COUNT`/`AVG` sobre un `JOIN` uno-a-muchos debe revisarse explícitamente por fan-out (inflar el agregado al multiplicar filas) — bug real encontrado y corregido en `CierreQueryService.java` (2026-07-15): un `JOIN` a `ades_calificaciones_periodo`/`ades_bajas` sin correlacionar por `estudiante_id` inflaba `matricula_total`/`promedio_general`.
+20. **Contrato de claves en mapas dinámicos (`Map<String,Object>`):** todo método de un `*QueryService` que devuelva `Map<String,Object>`/`List<Map<String,Object>>` vía `JdbcTemplate` debe documentar sus claves (alias SQL) en un comentario Javadoc, y el componente Angular que lo consume debe revisarse en el mismo PR — no asumir el nombre de la propiedad. Bug real: `ReinscripcionQueryService` devolvía `nombre_estudiante` cuando el frontend esperaba `alumno` (2026-07-15).
+21. **Prohibido `git commit`/`git push` a agentes/sub-agentes** salvo instrucción explícita y textual del usuario en ese mismo prompt — un agente que "corrige un hallazgo" NO debe comitear su propio trabajo por iniciativa propia. Cualquier prompt que delegue trabajo de código a un agente debe declarar esto explícitamente en sus reglas de alcance.
 
 ### Esquema de auditoría ADES (v2 en 038_auditoria_v2.sql, endurecido 2026-07-15 en mig. 137-145)
 
@@ -454,9 +457,10 @@ lessons = db_mem.search_lessons(query_embedding, limit=3)
 | `memory/long_term_memory.py` | API persistencia PostgreSQL |
 | `memory/semantic_cache.py` | API caché Valkey |
 | `docker-compose.yml` | Stack dockerizado |
-| `db/migrations/` | DDL versionado (3 díg. hasta 082 + date-based) |
+| `db/migrations/` | DDL versionado, 3 dígitos secuenciales hasta 147 (sin nomenclatura por fecha — normalizado 2026-07-15) |
 | `backend-spring/` | BFF principal Spring Boot 3 / Java 21 (hexagonal) |
 | `db/seeds/` | Datos iniciales 2026-2027 |
+| `scripts/check-api-contracts.js` | Guardarraíl: compara `this.api.post/patch/put(...)` de Angular contra los campos del DTO Java — detecta mismatches de nombre de campo. Pendiente extender a alias SQL de `*QueryService` vs. interfaces TypeScript (Regla #20) |
 
 ---
 

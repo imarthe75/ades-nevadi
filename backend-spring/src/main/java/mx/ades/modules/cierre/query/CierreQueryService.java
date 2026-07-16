@@ -64,9 +64,8 @@ public class CierreQueryService {
             LEFT JOIN ades_estudiantes    e  ON e.id = i.estudiante_id
             LEFT JOIN ades_asignaciones_docentes ad ON ad.grupo_id = g.id AND ad.is_active = true
             LEFT JOIN ades_periodos_evaluacion   pe ON pe.ciclo_escolar_id = c.id
-            LEFT JOIN ades_calificaciones_periodo cp ON cp.periodo_evaluacion_id = pe.id
-            LEFT JOIN ades_bajas          b  ON b.is_active = true
-                AND b.estudiante_id IN (SELECT i2.estudiante_id FROM ades_inscripciones i2 WHERE i2.ciclo_escolar_id = c.id)
+            LEFT JOIN ades_calificaciones_periodo cp ON cp.periodo_evaluacion_id = pe.id AND cp.estudiante_id = i.estudiante_id
+            LEFT JOIN ades_bajas          b  ON b.is_active = true AND b.estudiante_id = i.estudiante_id
             WHERE c.id = ?
               AND gr.plantel_id = ?
             GROUP BY c.id, c.nombre_ciclo, c.nivel_educativo_id, n.nombre_nivel, c.fecha_inicio, c.fecha_fin, c.estado

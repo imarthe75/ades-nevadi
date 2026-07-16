@@ -262,6 +262,20 @@ public class MovilidadController {
         // el resto de las lecturas de movilidad (listarBajas) para prevenir BOLA/BFLA.
         AdesUser user = userService.resolveUser(jwt);
         requireAcceso(user, TipoMovilidad.BAJA_TEMPORAL);
+        // BOLA fix: aunque requireAcceso exige nivelAcceso <=3 (personal escolar), un
+        // coordinador de un plantel podía consultar el historial de movilidad (bajas,
+        // traslados, cambios de grupo) de un alumno de OTRO plantel con solo conocer su
+        // UUID — sin este chequeo no había scoping por plantelId, a diferencia de
+        // listarBajas/listarCambiosGrupo (mismo criterio de este controller).
+        if (user.getNivelAcceso() != null && user.getNivelAcceso() > 1 && user.getPlantelId() != null) {
+            UUID plantelAlumno = queryService.plantelDeEstudiante(estudianteId);
+            if (plantelAlumno == null) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Alumno no encontrado");
+            }
+            if (!user.getPlantelId().equals(plantelAlumno)) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "El alumno no pertenece a su plantel");
+            }
+        }
         return ResponseEntity.ok(queryService.historial(estudianteId));
     }
 
@@ -275,7 +289,13 @@ public class MovilidadController {
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         requireAcceso(user, TipoMovilidad.BAJA_TEMPORAL);
-        return ResponseEntity.ok(queryService.listarBajas(plantelId, tipoBaja, soloActivas, skip, limit));
+        // BOLA fix: a diferencia de listarCambiosGrupo (mismo controller), este endpoint
+        // no forzaba el plantelId del usuario para no-admins — un coordinador podía omitir
+        // plantel_id (o pasar el de otro plantel) y ver bajas/traslados de TODOS los
+        // planteles (nombre del alumno, matrícula, grupo, plantel). Mismo criterio que
+        // AdesUserService#getEffectivePlantelId, ya usado en StatsController.
+        UUID plantelEfectivo = userService.getEffectivePlantelId(user, plantelId);
+        return ResponseEntity.ok(queryService.listarBajas(plantelEfectivo, tipoBaja, soloActivas, skip, limit));
     }
 
     @GetMapping("/cambios-grupo")

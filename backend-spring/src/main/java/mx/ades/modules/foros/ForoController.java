@@ -192,7 +192,13 @@ public class ForoController {
     public ResponseEntity<List<Map<String, Object>>> listarAnuncios(
             @RequestParam(value = "plantel_id", required = false) UUID plantelId,
             @RequestParam(value = "nivel_educativo", required = false) String nivelEducativo,
-            @RequestParam(value = "solo_vigentes", defaultValue = "true") boolean soloVigentes) {
+            @RequestParam(value = "solo_vigentes", defaultValue = "true") boolean soloVigentes,
+            @AuthenticationPrincipal Jwt jwt) {
+        // Auth fix (asimetría): a diferencia de publicarAnuncio() (resolveUser + nivel<=3),
+        // esta lectura no llamaba resolveUser() — quedaba accesible sin JWT alguno (el filtro
+        // Spring Security de este BFF es permitAll a nivel HTTP; la autenticación real la
+        // exige cada controller). Viola la regla "resolveUser(jwt) llamado — nunca anonimato".
+        userService.resolveUser(jwt);
         return ResponseEntity.ok(queryService.listarAnuncios(plantelId, nivelEducativo, soloVigentes));
     }
 

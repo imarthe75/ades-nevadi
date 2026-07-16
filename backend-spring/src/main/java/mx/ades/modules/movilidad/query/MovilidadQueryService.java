@@ -14,6 +14,13 @@ public class MovilidadQueryService {
         this.jdbc = jdbc;
     }
 
+    /** Resuelve el plantel_id de un estudiante — usado para scoping BOLA en historial(). */
+    public UUID plantelDeEstudiante(UUID estudianteId) {
+        List<UUID> rows = jdbc.queryForList(
+                "SELECT plantel_id FROM ades_estudiantes WHERE id = ?", UUID.class, estudianteId);
+        return rows.isEmpty() ? null : rows.get(0);
+    }
+
     public Map<String, Object> historial(UUID estudianteId) {
         List<Map<String, Object>> cambios = jdbc.queryForList(
                 "SELECT cg.fecha_cambio, cg.motivo, go.nombre_grupo AS grupo_origen, " +

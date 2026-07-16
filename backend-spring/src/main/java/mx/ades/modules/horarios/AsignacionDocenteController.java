@@ -6,6 +6,7 @@ import mx.ades.security.AdesUser;
 import mx.ades.security.AdesUserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -31,6 +32,7 @@ public class AsignacionDocenteController {
 
     private final AdesUserService userService;
     private final AsignacionDocenteRepository repository;
+    private final JdbcTemplate jdbc;
 
     @GetMapping
     public ResponseEntity<List<AsignacionDocente>> listar(
@@ -49,12 +51,17 @@ public class AsignacionDocenteController {
     public ResponseEntity<AsignacionDocente> crear(
             @RequestBody AsignacionPayload body,
             @AuthenticationPrincipal Jwt jwt) {
-        requireStaff(userService.resolveUser(jwt));
+        AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
         if (body.getGrupoId() == null || body.getMateriaId() == null
                 || body.getProfesorId() == null || body.getCicloEscolarId() == null) {
             throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
                     "grupoId, materiaId, profesorId y cicloEscolarId son requeridos");
         }
+        // BOLA fix (asimetría): listar() ya acota por plantel vía getEffectivePlantelId(); esta
+        // creación no verificaba que el grupo indicado perteneciera al plantel del usuario —
+        // un Coordinador podía crear asignaciones docente↔grupo para OTRO plantel.
+        verificarPlantelDeGrupo(user, body.getGrupoId());
         repository.findByGrupoIdAndMateriaIdAndCicloEscolarIdAndIsActiveTrue(
                 body.getGrupoId(), body.getMateriaId(), body.getCicloEscolarId())
             .ifPresent(existing -> {
@@ -75,9 +82,13 @@ public class AsignacionDocenteController {
             @PathVariable UUID id,
             @RequestBody AsignacionPayload body,
             @AuthenticationPrincipal Jwt jwt) {
-        requireStaff(userService.resolveUser(jwt));
+        AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
         AsignacionDocente entity = repository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Asignación no encontrada"));
+        // BOLA fix (asimetría): mismo hallazgo que crear() — sin esto un Coordinador podía
+        // editar la asignación docente↔grupo de OTRO plantel por solo conocer el id.
+        verificarPlantelDeGrupo(user, entity.getGrupoId());
         if (body.getProfesorId() != null) entity.setProfesorId(body.getProfesorId());
         if (body.getIsActive() != null) entity.setIsActive(body.getIsActive());
         return ResponseEntity.ok(repository.save(entity));
@@ -86,9 +97,12 @@ public class AsignacionDocenteController {
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void eliminar(@PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
-        requireStaff(userService.resolveUser(jwt));
+        AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
         AsignacionDocente entity = repository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Asignación no encontrada"));
+        // BOLA fix (asimetría): mismo hallazgo que crear()/actualizar().
+        verificarPlantelDeGrupo(user, entity.getGrupoId());
         entity.setIsActive(false);
         repository.save(entity);
     }
@@ -98,6 +112,28 @@ public class AsignacionDocenteController {
         Integer nivelAcceso = user.getNivelAcceso();
         if (nivelAcceso == null || nivelAcceso > 3) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Nivel de acceso insuficiente para esta operación");
+        }
+    }
+
+    /**
+     * Mismo criterio de scoping que {@code AdesUserService#getEffectivePlantelId} (usado en
+     * listar()): usuarios con nivelAcceso &gt; 1 quedan acotados a su propio plantel.
+     */
+    private void verificarPlantelDeGrupo(AdesUser user, UUID grupoId) {
+        if (user.getNivelAcceso() == null || user.getNivelAcceso() <= 1 || user.getPlantelId() == null) {
+            return;
+        }
+        UUID plantelDeGrupo;
+        try {
+            plantelDeGrupo = jdbc.queryForObject(
+                    "SELECT gr.plantel_id FROM ades_grupos g JOIN ades_grados gr ON gr.id = g.grado_id " +
+                    "WHERE g.id = ?",
+                    UUID.class, grupoId);
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Grupo no encontrado");
+        }
+        if (plantelDeGrupo == null || !plantelDeGrupo.equals(user.getPlantelId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "El grupo no pertenece a su plantel");
         }
     }
 

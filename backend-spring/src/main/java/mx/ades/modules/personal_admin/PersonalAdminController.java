@@ -109,6 +109,7 @@ public class PersonalAdminController {
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         requireStaff(user);
+        requireMismoPlantel(user, id);
 
         @SuppressWarnings("unchecked")
         Map<String, Object> per = (Map<String, Object>) body.get("persona");
@@ -127,7 +128,9 @@ public class PersonalAdminController {
     public void deactivate(
             @PathVariable("id") UUID id,
             @AuthenticationPrincipal Jwt jwt) {
-        requireStaff(userService.resolveUser(jwt));
+        AdesUser user = userService.resolveUser(jwt);
+        requireStaff(user);
+        requireMismoPlantel(user, id);
         try {
             personalAdminService.desactivar(id);
         } catch (IllegalArgumentException e) {
@@ -145,6 +148,29 @@ public class PersonalAdminController {
         Integer nivelAcceso = user.getNivelAcceso();
         if (nivelAcceso == null || nivelAcceso > 4) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Nivel de acceso insuficiente para esta operación");
+        }
+    }
+
+    /**
+     * BOLA fix: get() ya verifica que el detalle de un empleado pertenezca al plantel
+     * del usuario (para nivelAcceso &gt;2), pero patch()/deactivate() (misma entidad,
+     * misma sensibilidad) no tenían ese chequeo — un Director/Coordinador de un plantel
+     * podía editar o dar de baja personal administrativo de OTRO plantel con solo el
+     * UUID. Aplica el mismo criterio que get() a las mutaciones.
+     */
+    private void requireMismoPlantel(AdesUser user, UUID id) {
+        if (user.getNivelAcceso() == null || user.getNivelAcceso() <= 2 || user.getPlantelId() == null) {
+            return;
+        }
+        Map<String, Object> row;
+        try {
+            row = queryService.detalle(id);
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+        }
+        Object plantelRow = row.get("plantel_id");
+        if (plantelRow != null && !user.getPlantelId().equals(plantelRow)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No pertenece a su plantel");
         }
     }
 }

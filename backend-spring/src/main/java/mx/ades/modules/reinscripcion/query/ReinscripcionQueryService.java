@@ -30,7 +30,7 @@ public class ReinscripcionQueryService {
         StringBuilder sql = new StringBuilder(
             "SELECT rc.id, rc.estudiante_id, rc.estado, rc.ciclo_origen_id, rc.ciclo_destino_id, " +
             "       rc.aprobado_por, rc.razon_rechazo, rc.fecha_aprobacion, " +
-            "       CONCAT(p.nombre,' ',p.apellido_paterno) AS nombre_estudiante, " +
+            "       CONCAT(p.nombre,' ',p.apellido_paterno) AS alumno, " +
             "       p.curp, e.matricula, pl.nombre_plantel " +
             "FROM ades_reinscripcion_ciclo rc " +
             "JOIN ades_inscripciones i ON i.estudiante_id = rc.estudiante_id AND i.ciclo_escolar_id = rc.ciclo_origen_id AND i.is_active = TRUE " +
