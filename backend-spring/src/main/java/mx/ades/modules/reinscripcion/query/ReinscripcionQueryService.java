@@ -191,8 +191,8 @@ public class ReinscripcionQueryService {
                 return;
             }
 
-            sql = "SELECT SUM(capacidad_maxima - (SELECT COUNT(*) FROM ades_alumnos e " +
-                    "WHERE e.grupo_id = g.id AND e.ciclo_escolar_id = g.ciclo_escolar_id)) as total_capacidad " +
+            sql = "SELECT SUM(capacidad_maxima - (SELECT COUNT(*) FROM ades_inscripciones i " +
+                    "WHERE i.grupo_id = g.id AND i.ciclo_escolar_id = g.ciclo_escolar_id AND i.is_active = TRUE)) as total_capacidad " +
                     "FROM ades_grupos g WHERE g.ciclo_escolar_id = ? AND g.is_active = TRUE";
             Integer capacidadDisponible = jdbc.queryForObject(sql, Integer.class, cicloDestinoId);
 
