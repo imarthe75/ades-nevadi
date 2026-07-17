@@ -74,7 +74,7 @@ interface ReportePersonal {
         <h2 class="apex-title">Control de Asistencia del Personal</h2>
         <div class="apex-toolbar-actions">
           <input pInputText [(ngModel)]="filtroNombre" (input)="onFiltroNombre()"
-            placeholder="Buscar por nombre…" style="width:220px" />
+            placeholder="Buscar por nombre…" style="width:220px" aria-label="Buscar por nombre"/>
           <p-datepicker [(ngModel)]="filtroFechaInicio" dateFormat="yy-mm-dd" placeholder="Desde" [showIcon]="true" style="width:150px" />
           <p-datepicker [(ngModel)]="filtroFechaFin"    dateFormat="yy-mm-dd" placeholder="Hasta" [showIcon]="true" style="width:150px" />
           <p-button label="Registrar" icon="pi pi-plus" size="small" (onClick)="abrirNuevo()" />
@@ -124,17 +124,16 @@ interface ReportePersonal {
               [forceSelection]="true"
               [delay]="300"
               placeholder="Escriba nombre del empleado…"
-              style="width:100%"
-            />
+              style="width:100%" ariaLabel="Personal"/>
           </div>
           <div class="flex flex-col gap-1">
             <label class="text-sm font-medium">Fecha <span class="text-red-500">*</span></label>
-            <p-datepicker [(ngModel)]="form.fecha" dateFormat="yy-mm-dd" [showIcon]="true" />
+            <p-datepicker [(ngModel)]="form.fecha" dateFormat="yy-mm-dd" [showIcon]="true" ariaLabel="Fecha"/>
           </div>
         }
         <div class="flex flex-col gap-1">
           <label class="text-sm font-medium">Tipo Jornada</label>
-          <p-select [options]="jornadaOpts" [(ngModel)]="form.tipo_jornada" />
+          <p-select [options]="jornadaOpts" [(ngModel)]="form.tipo_jornada" ariaLabel="Tipo Jornada"/>
         </div>
         <div class="flex flex-col gap-1">
           <label class="text-sm font-medium">Hora Entrada</label>
@@ -145,7 +144,7 @@ interface ReportePersonal {
           <input pInputText [(ngModel)]="form.hora_salida" placeholder="14:30" />
         </div>
         <div class="flex items-center gap-2 mt-4">
-          <p-checkbox [(ngModel)]="form.es_retardo" [binary]="true" inputId="retardo" />
+          <p-checkbox [(ngModel)]="form.es_retardo" [binary]="true" inputId="retardo"/>
           <label for="retardo" class="text-sm">Retardo</label>
         </div>
         @if (form.es_retardo) {
@@ -155,7 +154,7 @@ interface ReportePersonal {
           </div>
         }
         <div class="flex items-center gap-2">
-          <p-checkbox [(ngModel)]="form.justificado" [binary]="true" inputId="justif" />
+          <p-checkbox [(ngModel)]="form.justificado" [binary]="true" inputId="justif"/>
           <label for="justif" class="text-sm">Justificado</label>
         </div>
         @if (form.justificado) {
@@ -171,7 +170,7 @@ interface ReportePersonal {
       </div>
       <ng-template pTemplate="footer">
         <p-button label="Cancelar" [text]="true" (onClick)="dialogForm=false" />
-        <p-button [label]="editandoId ? 'Guardar' : 'Registrar'" icon="pi pi-save"
+        <p-button [label]="editandoId ? 'Guardar' : 'Registrar'" icon="pi pi-save" ariaLabel="Guardar"
           [loading]="guardando()" (onClick)="guardar()" />
       </ng-template>
     </p-dialog>
@@ -190,12 +189,11 @@ interface ReportePersonal {
             [forceSelection]="true"
             [delay]="300"
             placeholder="Buscar empleado…"
-            style="width:100%"
-          />
+            style="width:100%" ariaLabel="Personal"/>
         </div>
         <div class="flex flex-col gap-1">
           <label class="text-sm font-medium">Mes</label>
-          <p-select [options]="mesOpts" [(ngModel)]="reporteMes" />
+          <p-select [options]="mesOpts" [(ngModel)]="reporteMes" ariaLabel="Mes"/>
         </div>
         <div class="flex flex-col gap-1">
           <label class="text-sm font-medium">Año</label>

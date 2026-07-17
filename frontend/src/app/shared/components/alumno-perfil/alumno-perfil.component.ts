@@ -142,7 +142,7 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
                 <div class="form-row">
                   <label>Género (legal)</label>
                   <p-select [options]="generosLegales" [(ngModel)]="form.genero"
-                    optionLabel="l" optionValue="v" [showClear]="true" placeholder="Seleccionar…" />
+                    optionLabel="l" optionValue="v" [showClear]="true" placeholder="Seleccionar…" ariaLabel="Género (legal)"/>
                 </div>
                 <div class="form-row" style="flex-direction:column;align-items:flex-start;gap:.35rem">
                   <label style="font-weight:500">Nombre social
@@ -155,7 +155,7 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
                 <div class="form-row">
                   <label>Género autopercibido</label>
                   <p-select [options]="generosAutopercibidos" [(ngModel)]="form.genero_autopercibido"
-                    optionLabel="l" optionValue="v" [showClear]="true" placeholder="Seleccionar…" />
+                    optionLabel="l" optionValue="v" [showClear]="true" placeholder="Seleccionar…" ariaLabel="Género autopercibido"/>
                 </div>
                 <div class="form-row">
                   <label>Pronombres</label>
@@ -164,11 +164,11 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
                 </div>
                 <div class="form-row">
                   <label>Fecha nacimiento</label>
-                  <p-datepicker [(ngModel)]="form.fecha_nacimiento" dateFormat="dd/mm/yy" />
+                  <p-datepicker [(ngModel)]="form.fecha_nacimiento" dateFormat="dd/mm/yy" ariaLabel="Fecha nacimiento"/>
                 </div>
                 <div class="form-row">
                   <label>Estado civil</label>
-                  <p-select [options]="estadosCivil" [(ngModel)]="form.estado_civil" [showClear]="true" />
+                  <p-select [options]="estadosCivil" [(ngModel)]="form.estado_civil" [showClear]="true" ariaLabel="Estado civil"/>
                 </div>
                 <div class="form-row">
                   <label>Nacionalidad</label>
@@ -179,7 +179,7 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
                     filterPlaceholder="Buscar..."
                     [showClear]="true"
                     placeholder="Seleccionar..."
-                    style="width:100%" />
+                    style="width:100%" ariaLabel="Nacionalidad"/>
                 </div>
               </div>
 
@@ -192,7 +192,7 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
                     optionLabel="nombre_pais" optionValue="id"
                     [filter]="true" filterBy="nombre_pais"
                     [showClear]="true" placeholder="Seleccionar país…"
-                    style="width:100%" />
+                    style="width:100%" ariaLabel="País"/>
                 </div>
                 @if (esMexicano()) {
                   <div class="form-row">
@@ -203,7 +203,7 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
                       [filter]="true" filterBy="nombre_estado"
                       [showClear]="true" placeholder="Seleccionar estado…"
                       (onChange)="onEstadoNacChange($event.value)"
-                      style="width:100%" />
+                      style="width:100%" ariaLabel="Estado"/>
                   </div>
                   <div class="form-row">
                     <label>Municipio</label>
@@ -214,7 +214,7 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
                       [showClear]="true" placeholder="Seleccionar municipio…"
                       [disabled]="!estadoNacId"
                       (onChange)="onMunicipioNacChange($event.value)"
-                      style="width:100%" />
+                      style="width:100%" ariaLabel="Municipio"/>
                   </div>
                 } @else {
                   <div class="form-row">
@@ -264,7 +264,7 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
                 <h4 class="sec-title">Beca</h4>
                 <div class="form-row">
                   <label>Tipo de beca</label>
-                  <p-select [options]="becas" [(ngModel)]="form.beca_tipo" [showClear]="true" />
+                  <p-select [options]="becas" [(ngModel)]="form.beca_tipo" [showClear]="true" ariaLabel="Tipo de beca"/>
                 </div>
                 <div class="form-row">
                   <label>Monto mensual</label>
@@ -277,7 +277,7 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
                 <h4 class="sec-title">Datos socioeconómicos</h4>
                 <div class="form-row">
                   <label>Nivel socieconómico</label>
-                  <p-select [options]="nivelesSocio" [(ngModel)]="form.nivel_socioeconomico" [showClear]="true" />
+                  <p-select [options]="nivelesSocio" [(ngModel)]="form.nivel_socioeconomico" [showClear]="true" ariaLabel="Nivel socieconómico"/>
                 </div>
                 <div class="form-row">
                   <label>Etnia / Autoidentificación</label>
@@ -288,14 +288,14 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
                   <p-select [options]="lenguasIndigenas()" [(ngModel)]="form.lengua_indigena_id"
                     optionLabel="label" optionValue="value"
                     [showClear]="true" [filter]="true" filterBy="label"
-                    placeholder="Seleccionar agrupación lingüística…" />
+                    placeholder="Seleccionar agrupación lingüística…" ariaLabel="Lengua indígena (INALI)"/>
                 </div>
                 <div class="form-row">
                   <label>Nivel de inglés (CEFR)</label>
                   <p-select [options]="nivelesIngles()" [(ngModel)]="form.nivel_ingles_id"
                     optionLabel="label" optionValue="value"
                     [showClear]="true"
-                    placeholder="Seleccionar nivel…" />
+                    placeholder="Seleccionar nivel…" ariaLabel="Nivel de inglés (CEFR)"/>
                 </div>
               </div>
 
@@ -330,12 +330,12 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
                 </div>
                 <div class="form-row">
                   <label>Tipo de sangre</label>
-                  <p-select [options]="tiposSangre" [(ngModel)]="medForm.tipo_sangre" [showClear]="true" />
+                  <p-select [options]="tiposSangre" [(ngModel)]="medForm.tipo_sangre" [showClear]="true" ariaLabel="Tipo de sangre"/>
                 </div>
                 <div class="form-row">
                   <label>Seguro médico</label>
                   <p-select [options]="['IMSS','ISSSTE','PRIVADO','NINGUNO']"
-                    [(ngModel)]="medForm.seguro_medico_tipo" [showClear]="true" />
+                    [(ngModel)]="medForm.seguro_medico_tipo" [showClear]="true" ariaLabel="Seguro médico"/>
                 </div>
                 <div class="form-row">
                   <label>Núm. póliza/afiliación</label>
@@ -412,9 +412,9 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
                     <div class="contacto-badges">
                       @if (c.es_tutor_legal) { <p-tag value="Tutor Legal" severity="success" /> }
                       @if (c.es_contacto_emergencia) { <p-tag value="Principal" severity="info" /> }
-                      <p-button icon="pi pi-pencil" [text]="true" [rounded]="true" size="small"
+                      <p-button icon="pi pi-pencil" ariaLabel="Editar contacto" [text]="true" [rounded]="true" size="small"
                         (onClick)="editarContacto(c)" />
-                      <p-button icon="pi pi-trash" [text]="true" [rounded]="true" size="small"
+                      <p-button icon="pi pi-trash" ariaLabel="Eliminar contacto" [text]="true" [rounded]="true" size="small"
                         severity="danger" (onClick)="eliminarContacto(c.id)" />
                     </div>
                   </div>
@@ -435,7 +435,7 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
                   </div>
                   <div class="form-row">
                     <label>Parentesco</label>
-                    <p-select [options]="parentescos" [(ngModel)]="contactoEdit.parentesco" [showClear]="true" />
+                    <p-select [options]="parentescos" [(ngModel)]="contactoEdit.parentesco" [showClear]="true" ariaLabel="Parentesco"/>
                   </div>
                   <div class="form-row">
                     <label>Teléfono</label>
@@ -458,7 +458,7 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
                   </div>
                   <div class="form-row">
                     <label>Nivel estudios</label>
-                    <p-select [options]="nivelesEst" [(ngModel)]="contactoEdit.nivel_estudios" [showClear]="true" />
+                    <p-select [options]="nivelesEst" [(ngModel)]="contactoEdit.nivel_estudios" [showClear]="true" ariaLabel="Nivel estudios"/>
                   </div>
                   <div class="form-row">
                     <label>RFC</label>
@@ -473,7 +473,7 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
                       filterPlaceholder="Buscar..."
                       [showClear]="true"
                       placeholder="Seleccionar..."
-                      style="width:100%" />
+                      style="width:100%" ariaLabel="Nacionalidad"/>
                   </div>
                   <div class="form-row">
                     <label>¿Tutor legal?</label>
@@ -500,11 +500,11 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
                   <h4 class="sec-title">Registrar Baja del Alumno</h4>
                   <div class="form-row">
                     <label>Tipo de baja *</label>
-                    <p-select [options]="['TEMPORAL', 'DEFINITIVA', 'TRASLADO', 'DESERCION']" [(ngModel)]="bajaForm.tipo_baja" />
+                    <p-select [options]="['TEMPORAL', 'DEFINITIVA', 'TRASLADO', 'DESERCION']" [(ngModel)]="bajaForm.tipo_baja" ariaLabel="Tipo de baja"/>
                   </div>
                   <div class="form-row">
                     <label>Fecha efectiva *</label>
-                    <p-datepicker [(ngModel)]="bajaForm.fecha_efectiva" dateFormat="dd/mm/yy" />
+                    <p-datepicker [(ngModel)]="bajaForm.fecha_efectiva" dateFormat="dd/mm/yy" ariaLabel="Fecha efectiva"/>
                   </div>
                   <div class="form-row aligns-start">
                     <label>Motivo</label>

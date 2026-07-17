@@ -208,7 +208,7 @@ const TIPO_ICON: Record<string, string> = {
               styleClass="w-auto"
             
 
-            [filter]="true" filterPlaceholder="Buscar..."/>
+            [filter]="true" filterPlaceholder="Buscar..." ariaLabel="Estatus" />
             <p-button icon="pi pi-refresh" [text]="true" size="small"
               ariaLabel="Actualizar asignaciones" pTooltip="Actualizar" (onClick)="cargarAsignaciones()" />
             <p-button icon="pi pi-file" label="Exportar CSV" [text]="true" size="small"
@@ -285,7 +285,7 @@ const TIPO_ICON: Record<string, string> = {
           optionLabel="label" optionValue="value"
         
 
-        [filter]="true" filterPlaceholder="Buscar..."/>
+        [filter]="true" filterPlaceholder="Buscar..." ariaLabel="Criterio de activación" />
 
         @if (form.criterio_activacion !== 'MANUAL') {
           <label>Umbral</label>
@@ -389,7 +389,7 @@ const TIPO_ICON: Record<string, string> = {
           optionLabel="label" optionValue="value"
         
 
-        [filter]="true" filterPlaceholder="Buscar..."/>
+        [filter]="true" filterPlaceholder="Buscar..." ariaLabel="Motivo" />
       </div>
       <ng-template pTemplate="footer">
         <p-button label="Cancelar" [text]="true" (onClick)="showAsignar = false" />

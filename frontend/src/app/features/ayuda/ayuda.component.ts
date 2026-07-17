@@ -325,7 +325,7 @@ const GUIAS_ROL = [
         <p class="subtitle">Instituto Nevadi · Documentación completa del sistema</p>
       </div>
       <input pInputText [(ngModel)]="busqueda" placeholder="Buscar en el manual..."
-        style="width:220px" (input)="onBusqueda()" />
+        style="width:220px" (input)="onBusqueda()" aria-label="Buscar en el manual"/>
     </div>
 
     @if (busqueda.trim()) {

@@ -216,10 +216,10 @@ function enrichRows(rows: EmpleadoRow[]): EmpleadoRow[] {
         <div class="dlg-row">
           <div><label class="dlg-lbl">Género</label>
             <p-select [options]="generoOpts" [formControl]="fcGenero"
-              optionLabel="label" optionValue="value" style="width:100%" [showClear]="true" placeholder="Género…" /></div>
+              optionLabel="label" optionValue="value" style="width:100%" [showClear]="true" placeholder="Género…" ariaLabel="Género"/></div>
           <div><label class="dlg-lbl">Fecha de nacimiento</label>
             <p-datepicker [formControl]="fcFechaNacimiento" dateFormat="dd/mm/yy" [showIcon]="true"
-                          placeholder="DD/MM/AAAA" [style]="{width:'100%'}" [inputStyle]="{width:'100%'}" /></div>
+                          placeholder="DD/MM/AAAA" [style]="{width:'100%'}" [inputStyle]="{width:'100%'}" ariaLabel="Fecha de nacimiento"/></div>
         </div>
         <p style="font-size:.78rem;color:var(--text-secondary);margin:0 0 .5rem">
           Teléfono y email se agregan desde el perfil en la sección <em>Domicilio y Contactos</em>.
@@ -230,7 +230,7 @@ function enrichRows(rows: EmpleadoRow[]): EmpleadoRow[] {
           <div class="dlg-row">
             <div><label class="dlg-lbl">Tipo de rol *</label>
               <p-select [options]="rolesOpts" [formControl]="fcTipoRol"
-                optionLabel="label" optionValue="value" style="width:100%" placeholder="Seleccionar rol…" /></div>
+                optionLabel="label" optionValue="value" style="width:100%" placeholder="Seleccionar rol…" ariaLabel="Tipo de rol"/></div>
             <div>
               <app-form-field
                 [control]="fcArea"
@@ -272,15 +272,15 @@ function enrichRows(rows: EmpleadoRow[]): EmpleadoRow[] {
           </div>
           <div><label class="dlg-lbl">Tipo contrato</label>
             <p-select [options]="contratoOpts" [formControl]="fcTipoContrato"
-              optionLabel="label" optionValue="value" style="width:100%" [showClear]="true" placeholder="Tipo…" /></div>
+              optionLabel="label" optionValue="value" style="width:100%" [showClear]="true" placeholder="Tipo…" ariaLabel="Tipo contrato"/></div>
         </div>
         <div class="dlg-row">
           <div><label class="dlg-lbl">Turno</label>
             <p-select [options]="turnoOpts" [formControl]="fcTurno"
-              optionLabel="label" optionValue="value" style="width:100%" [showClear]="true" placeholder="Turno…" /></div>
+              optionLabel="label" optionValue="value" style="width:100%" [showClear]="true" placeholder="Turno…" ariaLabel="Turno"/></div>
           <div><label class="dlg-lbl">Fecha de ingreso</label>
             <p-datepicker [formControl]="fcFechaIngreso" dateFormat="dd/mm/yy" [showIcon]="true"
-                          placeholder="DD/MM/AAAA" [style]="{width:'100%'}" [inputStyle]="{width:'100%'}" /></div>
+                          placeholder="DD/MM/AAAA" [style]="{width:'100%'}" [inputStyle]="{width:'100%'}" ariaLabel="Fecha de ingreso"/></div>
         </div>
         <div class="dlg-row">
           <div>

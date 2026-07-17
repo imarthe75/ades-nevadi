@@ -102,15 +102,15 @@ const BANCOS          = ['BBVA','SANTANDER','BANAMEX','BANORTE','HSBC','SCOTIABA
                   <label>Género</label>
                   <p-select [options]="[{l:'Masculino',v:'M'},{l:'Femenino',v:'F'}]"
                     [(ngModel)]="form.genero" optionLabel="l" optionValue="v" 
- [filter]="true" filterPlaceholder="Buscar..."/>
+ [filter]="true" filterPlaceholder="Buscar..." ariaLabel="Género" />
                 </div>
                 <div class="form-row">
                   <label>Fecha nacimiento</label>
-                  <p-datepicker [(ngModel)]="form.fecha_nacimiento" dateFormat="dd/mm/yy" />
+                  <p-datepicker [(ngModel)]="form.fecha_nacimiento" dateFormat="dd/mm/yy" ariaLabel="Fecha nacimiento"/>
                 </div>
                 <div class="form-row">
                   <label>Estado civil</label>
-                  <p-select [options]="estadosCivil" [(ngModel)]="form.estado_civil" [showClear]="true" />
+                  <p-select [options]="estadosCivil" [(ngModel)]="form.estado_civil" [showClear]="true" ariaLabel="Estado civil"/>
                 </div>
                 <div class="form-row">
                   <label>Nacionalidad</label>
@@ -121,7 +121,7 @@ const BANCOS          = ['BBVA','SANTANDER','BANAMEX','BANORTE','HSBC','SCOTIABA
                     filterPlaceholder="Buscar..."
                     [showClear]="true"
                     placeholder="Seleccionar..."
-                    style="width:100%" />
+                    style="width:100%" ariaLabel="Nacionalidad"/>
                 </div>
               </div>
               <div class="form-section">
@@ -133,7 +133,7 @@ const BANCOS          = ['BBVA','SANTANDER','BANAMEX','BANORTE','HSBC','SCOTIABA
                     optionLabel="nombre_pais" optionValue="id"
                     [filter]="true" filterBy="nombre_pais"
                     [showClear]="true" placeholder="Seleccionar país…"
-                    style="width:100%" />
+                    style="width:100%" ariaLabel="País nacimiento"/>
                 </div>
                 @if (esMexicano()) {
                   <div class="form-row">
@@ -144,7 +144,7 @@ const BANCOS          = ['BBVA','SANTANDER','BANAMEX','BANORTE','HSBC','SCOTIABA
                       [filter]="true" filterBy="nombre_estado"
                       [showClear]="true" placeholder="Seleccionar estado…"
                       (onChange)="onEstadoNacChange($event.value)"
-                      style="width:100%" />
+                      style="width:100%" ariaLabel="Estado nacimiento"/>
                   </div>
                   <div class="form-row">
                     <label>Municipio nacimiento</label>
@@ -155,7 +155,7 @@ const BANCOS          = ['BBVA','SANTANDER','BANAMEX','BANORTE','HSBC','SCOTIABA
                       [showClear]="true" placeholder="Seleccionar municipio…"
                       [disabled]="!estadoNacId"
                       (onChange)="onMunicipioNacChange($event.value)"
-                      style="width:100%" />
+                      style="width:100%" ariaLabel="Municipio nacimiento"/>
                   </div>
                 } @else {
                   <div class="form-row">
@@ -183,22 +183,22 @@ const BANCOS          = ['BBVA','SANTANDER','BANAMEX','BANORTE','HSBC','SCOTIABA
                 <h4 class="sec-title">Contratación</h4>
                 <div class="form-row">
                   <label>Tipo contrato</label>
-                  <p-select [options]="tiposContrato" [(ngModel)]="form.tipo_contrato" />
+                  <p-select [options]="tiposContrato" [(ngModel)]="form.tipo_contrato" ariaLabel="Tipo contrato"/>
                 </div>
                 <div class="form-row">
                   <label>Turno</label>
-                  <p-select [options]="turnos" [(ngModel)]="form.turno" [showClear]="true" />
+                  <p-select [options]="turnos" [(ngModel)]="form.turno" [showClear]="true" ariaLabel="Turno"/>
                 </div>
                 <div class="form-row">
                   <label>Fecha ingreso inst.</label>
-                  <p-datepicker [(ngModel)]="form.fecha_ingreso_inst" dateFormat="dd/mm/yy" />
+                  <p-datepicker [(ngModel)]="form.fecha_ingreso_inst" dateFormat="dd/mm/yy" ariaLabel="Fecha ingreso inst."/>
                 </div>
               </div>
               <div class="form-section">
                 <h4 class="sec-title">Escolaridad y especialidad</h4>
                 <div class="form-row">
                   <label>Nivel estudios</label>
-                  <p-select [options]="nivelesEst" [(ngModel)]="form.nivel_estudios" [showClear]="true" />
+                  <p-select [options]="nivelesEst" [(ngModel)]="form.nivel_estudios" [showClear]="true" ariaLabel="Nivel estudios"/>
                 </div>
                 <div class="form-row">
                   <label>Especialidad / área</label>
@@ -221,7 +221,7 @@ const BANCOS          = ['BBVA','SANTANDER','BANAMEX','BANORTE','HSBC','SCOTIABA
                 </p>
                 <div class="form-row">
                   <label>Banco</label>
-                  <p-select [options]="bancos" [(ngModel)]="form.banco" [showClear]="true" />
+                  <p-select [options]="bancos" [(ngModel)]="form.banco" [showClear]="true" ariaLabel="Banco"/>
                 </div>
                 <div class="form-row">
                   <label>CLABE interbancaria</label>

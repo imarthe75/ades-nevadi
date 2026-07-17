@@ -29,7 +29,7 @@ import { AdesFormatDirective } from '../../directives/ades-format.directive';
         <div style="display:flex;gap:.5rem">
           <input pInputText [(ngModel)]="cpBusqueda" placeholder="Ej: 50100" maxlength="5"
                  style="width:100px" (keyup.enter)="buscarPorCP()" />
-          <p-button icon="pi pi-search" [text]="true" (onClick)="buscarPorCP()"
+          <p-button icon="pi pi-search" ariaLabel="Autocompletar por CP" [text]="true" (onClick)="buscarPorCP()"
                     pTooltip="Autocompletar por CP" />
         </div>
       </div>
@@ -44,7 +44,7 @@ import { AdesFormatDirective } from '../../directives/ades-format.directive';
           placeholder="Seleccionar estado"
           (onChange)="onEstadoChange()"
           [filter]="true" filterBy="nombre"
-          styleClass="w-full" />
+          styleClass="w-full" ariaLabel="Estado"/>
       </div>
 
       <!-- Municipio -->
@@ -58,7 +58,7 @@ import { AdesFormatDirective } from '../../directives/ades-format.directive';
           [disabled]="!estadoSeleccionado"
           (onChange)="onMunicipioChange()"
           [filter]="true" filterBy="nombre"
-          styleClass="w-full" />
+          styleClass="w-full" ariaLabel="Municipio"/>
       </div>
 
       <!-- Colonia -->
@@ -72,7 +72,7 @@ import { AdesFormatDirective } from '../../directives/ades-format.directive';
           [disabled]="!municipioSeleccionado"
           (onChange)="onColoniaChange()"
           [filter]="true" filterBy="colonia"
-          styleClass="w-full" />
+          styleClass="w-full" ariaLabel="Colonia"/>
       </div>
     </div>
   `,

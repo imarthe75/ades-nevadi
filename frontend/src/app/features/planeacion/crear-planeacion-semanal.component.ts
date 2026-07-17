@@ -64,7 +64,7 @@ import { AdesFormatDirective } from '../../shared/directives/ades-format.directi
                      optionLabel="label" optionValue="value"
                      placeholder="Seleccionar grupo..."
                      (onChange)="onGrupoChange()"
-                     [filter]="true" filterPlaceholder="Buscar..."/>
+                     [filter]="true" filterPlaceholder="Buscar..." ariaLabel="Grupo" />
           </div>
 
           <div class="field">
@@ -73,13 +73,13 @@ import { AdesFormatDirective } from '../../shared/directives/ades-format.directi
                      optionLabel="label" optionValue="value"
                      placeholder="Seleccionar materia..."
                      (onChange)="onMateriaChange()"
-                     [filter]="true" filterPlaceholder="Buscar..."/>
+                     [filter]="true" filterPlaceholder="Buscar..." ariaLabel="Materia" />
           </div>
 
           <div class="field">
             <label>Trimestre*</label>
             <p-select [options]="trimestres" formControlName="trimestre"
-                     placeholder="Seleccionar trimestre..."/>
+                     placeholder="Seleccionar trimestre..." ariaLabel="Trimestre" />
           </div>
 
           <div class="field">
@@ -91,17 +91,17 @@ import { AdesFormatDirective } from '../../shared/directives/ades-format.directi
           <div class="field">
             <label>Modalidad*</label>
             <p-select [options]="modalidades" formControlName="modalidad"
-                     placeholder="Seleccionar modalidad..."/>
+                     placeholder="Seleccionar modalidad..." ariaLabel="Modalidad" />
           </div>
 
           <div class="field">
             <label>Fecha Inicio*</label>
-            <p-datepicker formControlName="fechaInicio" dateFormat="dd/mm/yy" [showIcon]="true"/>
+            <p-datepicker formControlName="fechaInicio" dateFormat="dd/mm/yy" [showIcon]="true" ariaLabel="Fecha Inicio" />
           </div>
 
           <div class="field">
             <label>Fecha Fin*</label>
-            <p-datepicker formControlName="fechaFin" dateFormat="dd/mm/yy" [showIcon]="true"/>
+            <p-datepicker formControlName="fechaFin" dateFormat="dd/mm/yy" [showIcon]="true" ariaLabel="Fecha Fin" />
           </div>
         </div>
 
@@ -125,6 +125,7 @@ import { AdesFormatDirective } from '../../shared/directives/ades-format.directi
               <div class="tema-card">
                 <div class="tema-header">
                   <input type="checkbox" [value]="tema.tema_id"
+                         [attr.aria-label]="'Seleccionar tema ' + tema.nombre_tema"
                          (change)="onTemaToggle($event, tema)"/>
                   <strong>{{tema.nombre_tema}}</strong>
                   <span class="tema-orden">{{tema.orden}}</span>
@@ -139,6 +140,7 @@ import { AdesFormatDirective } from '../../shared/directives/ades-format.directi
                     @for (ae of getAprendizajesForTema(tema); track ae.aprendizaje_id) {
                       <div class="aprendizaje-item">
                         <input type="checkbox" [value]="ae.aprendizaje_id"
+                               [attr.aria-label]="'Seleccionar aprendizaje ' + ae.codigo"
                                (change)="onAprendizajeToggle($event, tema.tema_id, ae)"/>
                         <span>
                           <strong>{{ae.codigo}}</strong> — {{ae.descripcion}}

@@ -109,7 +109,7 @@ interface Medicamento {
         [showClear]="true"
         [disabled]="!ctx.grupo()?.id"
         [filter]="true" filterPlaceholder="Buscar..."
-        styleClass="filter-select" />
+        styleClass="filter-select" ariaLabel="Alumno" />
     </div>
 
     <!-- Expediente del alumno seleccionado -->
@@ -137,7 +137,7 @@ interface Medicamento {
                     [(ngModel)]="expediente()!.tipo_sangre"
                     [showClear]="true"
                     placeholder="—"
-                    styleClass="tipo-sangre-select" />
+                    styleClass="tipo-sangre-select" ariaLabel="Tipo de sangre"/>
                 </div>
                 <div class="field" style="flex:1">
                   <label>NSS (IMSS/ISSSTE)</label>
@@ -151,7 +151,7 @@ interface Medicamento {
                     [options]="tiposSeguro"
                     [(ngModel)]="expediente()!.seguro_medico_tipo"
                     [showClear]="true"
-                    placeholder="—" />
+                    placeholder="—" ariaLabel="Seguro médico"/>
                 </div>
                 <div class="field" style="flex:1">
                   <label>Núm. póliza/afiliación</label>
@@ -290,7 +290,7 @@ interface Medicamento {
           </div>
           <div class="field" style="flex:1">
             <label>Vía *</label>
-            <p-select [options]="vias" [(ngModel)]="medForm.via_administracion" />
+            <p-select [options]="vias" [(ngModel)]="medForm.via_administracion" ariaLabel="Vía"/>
           </div>
         </div>
         <div class="field">

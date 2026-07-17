@@ -69,9 +69,9 @@ const ESTADOS_OPT = [
       <div class="apex-toolbar">
         <h2 class="apex-title">Justificaciones de Faltas</h2>
         <div class="apex-toolbar-actions">
-          <input pInputText [(ngModel)]="filtroEstudianteId" placeholder="UUID estudiante…" style="width:230px" />
+          <input pInputText [(ngModel)]="filtroEstudianteId" placeholder="UUID estudiante…" style="width:230px" aria-label="UUID estudiante"/>
           <p-select [options]="estadosOpt" optionLabel="label" optionValue="value"
-            [(ngModel)]="filtroEstado" placeholder="Estado…" [style]="{width:'130px'}" />
+            [(ngModel)]="filtroEstado" placeholder="Estado…" [style]="{width:'130px'}" ariaLabel="Estado" />
           <p-button label="Filtrar" icon="pi pi-filter" size="small" (onClick)="cargar()" />
           <p-button label="Nueva justificación" icon="pi pi-plus" size="small" (onClick)="abrirNueva()" />
         </div>
@@ -105,7 +105,7 @@ const ESTADOS_OPT = [
         <div class="flex flex-col gap-1">
           <label class="text-sm font-medium">Tipo de Justificación *</label>
           <p-select [options]="tiposJust" optionLabel="label" optionValue="value"
-            [(ngModel)]="nuevaForm.tipo_justificacion" placeholder="Seleccionar…" />
+            [(ngModel)]="nuevaForm.tipo_justificacion" placeholder="Seleccionar…" ariaLabel="Tipo de Justificación"/>
         </div>
         <div class="flex flex-col gap-1">
           <label class="text-sm font-medium">Motivo *</label>

@@ -104,10 +104,10 @@ interface Compromiso {
     <div class="filter-bar">
       <p-select [options]="tiposFalta" [(ngModel)]="filtroTipo" optionLabel="label" optionValue="value"
                 placeholder="Tipo de falta" [showClear]="true" (onChange)="cargar()" [filter]="true"
-                styleClass="filter-select" />
+                styleClass="filter-select" ariaLabel="Tipo de falta" />
       <p-select [options]="seguimientoOpts" [(ngModel)]="filtroSeguimiento" optionLabel="label" optionValue="value"
                 placeholder="Estado seguimiento" [showClear]="true" (onChange)="cargar()" [filter]="true"
-                styleClass="filter-select" />
+                styleClass="filter-select" ariaLabel="Estado seguimiento" />
     </div>
 
     <!-- Búsqueda rápida -->
@@ -118,8 +118,7 @@ interface Compromiso {
           type="text"
           placeholder="Buscar por alumno o descripción..."
           [(ngModel)]="busqueda"
-          style="width:100%"
-        />
+          style="width:100%" aria-label="Buscar por alumno o descripción"/>
       </div>
     </div>
 
@@ -147,12 +146,12 @@ interface Compromiso {
           <label>Grupo *</label>
           <p-select [options]="gruposOpts()" [(ngModel)]="form._grupoObj" optionLabel="_label"
             placeholder="Seleccionar grupo" [showClear]="true" styleClass="w-full"
-            (onChange)="onGrupoSelect($event.value)" [filter]="true" />
+            (onChange)="onGrupoSelect($event.value)" [filter]="true" ariaLabel="Grupo"/>
         </div>
         <div class="field">
           <label>Tipo de falta</label>
           <p-select [options]="tiposFalta" [(ngModel)]="form.tipo_falta" optionLabel="label"
-            optionValue="value" style="width:100%" [filter]="true" />
+            optionValue="value" style="width:100%" [filter]="true" ariaLabel="Tipo de falta"/>
         </div>
         <div class="field">
           <label>Descripción del incidente</label>
@@ -270,7 +269,7 @@ interface Compromiso {
                   <div class="field-row">
                     <label>Estado</label>
                     <p-select [options]="estadosSancion" [(ngModel)]="sancionUpdate.estado"
-                              optionLabel="label" optionValue="value" style="width:200px" />
+                              optionLabel="label" optionValue="value" style="width:200px" ariaLabel="Estado"/>
                   </div>
                   <div class="field-row">
                     <label>Notificado a padres</label>
@@ -280,7 +279,7 @@ interface Compromiso {
                     <div class="field-row">
                       <label>Medio de notificación</label>
                       <p-select [options]="medioNotifOpts" [(ngModel)]="sancionUpdate.medio_notificacion"
-                                optionLabel="label" optionValue="value" style="width:200px" />
+                                optionLabel="label" optionValue="value" style="width:200px" ariaLabel="Medio de notificación"/>
                     </div>
                   }
                   <p-button label="Actualizar sanción" icon="pi pi-check" [loading]="savingSancion()"
@@ -295,7 +294,7 @@ interface Compromiso {
                     <div class="field">
                       <label>Tipo de sanción *</label>
                       <p-select [options]="sancionOpts" [(ngModel)]="sancionForm.tipo_sancion"
-                                optionLabel="label" optionValue="value" style="width:100%" />
+                                optionLabel="label" optionValue="value" style="width:100%" ariaLabel="Tipo de sanción"/>
                     </div>
                     <div class="field">
                       <label>Justificación * (mín. 20 caracteres)</label>
@@ -305,7 +304,7 @@ interface Compromiso {
                     <div class="field-row">
                       <label>Fecha de sanción</label>
                       <p-datepicker [(ngModel)]="sancionForm.fecha_sancion" dateFormat="yy-mm-dd"
-                                    [showIcon]="true" style="width:200px" />
+                                    [showIcon]="true" style="width:200px" ariaLabel="Fecha de sanción"/>
                     </div>
                     <div class="field-row">
                       <label>Notificar a padres</label>
@@ -354,17 +353,17 @@ interface Compromiso {
                 <div style="display:flex;flex-direction:column;gap:0.75rem">
                   <h3 style="margin:0;font-size:0.9rem;color:var(--text-secondary)">Actualizar plan</h3>
                   <div class="firmas-row">
-                    <label><p-checkbox [(ngModel)]="planUpdate.firmado_alumno" [binary]="true" />
+                    <label><p-checkbox [(ngModel)]="planUpdate.firmado_alumno" [binary]="true" ariaLabel="Firmado por alumno"/>
                       Firmado por alumno</label>
-                    <label><p-checkbox [(ngModel)]="planUpdate.firmado_padre" [binary]="true" />
+                    <label><p-checkbox [(ngModel)]="planUpdate.firmado_padre" [binary]="true" ariaLabel="Firmado por padre"/>
                       Firmado por padre</label>
-                    <label><p-checkbox [(ngModel)]="planUpdate.firmado_director" [binary]="true" />
+                    <label><p-checkbox [(ngModel)]="planUpdate.firmado_director" [binary]="true" ariaLabel="Firmado por director"/>
                       Firmado por director</label>
                   </div>
                   <div class="field-row">
                     <label>Estado</label>
                     <p-select [options]="estadoPlanOpts" [(ngModel)]="planUpdate.estado"
-                              optionLabel="label" optionValue="value" style="width:200px" />
+                              optionLabel="label" optionValue="value" style="width:200px" ariaLabel="Estado"/>
                   </div>
                   <p-button label="Actualizar plan" icon="pi pi-check" [loading]="savingPlan()"
                             (onClick)="actualizarPlan()" [style]="{ 'align-self': 'flex-start' }" />
@@ -381,8 +380,8 @@ interface Compromiso {
                     </div>
                     <p-divider align="left"><span style="font-size:0.8rem;font-weight:600">Compromisos del alumno</span></p-divider>
                     <div *ngFor="let c of planForm.compromisos_alumno; let i = index" class="compromiso-row">
-                      <input pInputText [(ngModel)]="c.texto" placeholder="Compromiso..." style="flex:1" />
-                      <input pInputText [(ngModel)]="c.plazo_dias" type="number" placeholder="Días" style="width:70px" />
+                      <input pInputText [(ngModel)]="c.texto" placeholder="Compromiso..." style="flex:1" aria-label="Compromiso"/>
+                      <input pInputText [(ngModel)]="c.plazo_dias" type="number" placeholder="Días" style="width:70px" aria-label="Días"/>
                       <p-button icon="pi pi-trash" severity="danger" [text]="true" ariaLabel="Eliminar compromiso del alumno" (onClick)="eliminarCompromiso('alumno', i)" />
                     </div>
                     <p-button icon="pi pi-plus" label="Agregar compromiso alumno" severity="secondary" [text]="true"
@@ -390,7 +389,7 @@ interface Compromiso {
 
                     <p-divider align="left"><span style="font-size:0.8rem;font-weight:600">Compromisos del padre</span></p-divider>
                     <div *ngFor="let c of planForm.compromisos_padre; let i = index" class="compromiso-row">
-                      <input pInputText [(ngModel)]="c.texto" placeholder="Compromiso..." style="flex:1" />
+                      <input pInputText [(ngModel)]="c.texto" placeholder="Compromiso..." style="flex:1" aria-label="Compromiso"/>
                       <p-button icon="pi pi-trash" severity="danger" [text]="true" ariaLabel="Eliminar compromiso del padre" (onClick)="eliminarCompromiso('padre', i)" />
                     </div>
                     <p-button icon="pi pi-plus" label="Agregar compromiso padre" severity="secondary" [text]="true"
@@ -398,7 +397,7 @@ interface Compromiso {
 
                     <p-divider align="left"><span style="font-size:0.8rem;font-weight:600">Compromisos de la escuela</span></p-divider>
                     <div *ngFor="let c of planForm.compromisos_escuela; let i = index" class="compromiso-row">
-                      <input pInputText [(ngModel)]="c.texto" placeholder="Compromiso..." style="flex:1" />
+                      <input pInputText [(ngModel)]="c.texto" placeholder="Compromiso..." style="flex:1" aria-label="Compromiso"/>
                       <p-button icon="pi pi-trash" severity="danger" [text]="true" ariaLabel="Eliminar compromiso de la escuela" (onClick)="eliminarCompromiso('escuela', i)" />
                     </div>
                     <p-button icon="pi pi-plus" label="Agregar compromiso escuela" severity="secondary" [text]="true"
@@ -407,7 +406,7 @@ interface Compromiso {
                     <div class="field-row">
                       <label>Primer seguimiento</label>
                       <p-datepicker [(ngModel)]="planForm.fecha_primer_seguimiento" dateFormat="yy-mm-dd"
-                                    [showIcon]="true" style="width:200px" />
+                                    [showIcon]="true" style="width:200px" ariaLabel="Primer seguimiento"/>
                     </div>
                     <p-button label="Crear plan de mejora" icon="pi pi-file-plus" [loading]="savingPlan()"
                               (onClick)="crearPlan()" [style]="{ 'align-self': 'flex-start' }" />
@@ -440,12 +439,12 @@ interface Compromiso {
                   <div class="field-row">
                     <label>Fecha</label>
                     <p-datepicker [(ngModel)]="segForm.fecha_seguimiento" dateFormat="yy-mm-dd"
-                                  [showIcon]="true" style="width:200px" />
+                                  [showIcon]="true" style="width:200px" ariaLabel="Fecha"/>
                   </div>
                   <div class="field-row">
                     <label>Avance</label>
                     <p-select [options]="avanceOpts" [(ngModel)]="segForm.avance"
-                              optionLabel="label" optionValue="value" style="width:200px" />
+                              optionLabel="label" optionValue="value" style="width:200px" ariaLabel="Avance"/>
                   </div>
                   <div class="field">
                     <label>Descripción * (mín. 20 caracteres)</label>
@@ -456,7 +455,7 @@ interface Compromiso {
                     <label>Nuevo estado del plan</label>
                     <p-select [options]="estadoPlanOpts" [(ngModel)]="segForm.nuevo_estado_plan"
                               optionLabel="label" optionValue="value" style="width:200px"
-                              [showClear]="true" placeholder="Sin cambio" />
+                              [showClear]="true" placeholder="Sin cambio" ariaLabel="Nuevo estado del plan"/>
                   </div>
                   <p-button label="Registrar seguimiento" icon="pi pi-plus-circle" [loading]="savingSeg()"
                             (onClick)="agregarSeguimiento()" [style]="{ 'align-self': 'flex-start' }" />

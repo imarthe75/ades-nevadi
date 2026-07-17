@@ -83,7 +83,7 @@ const NIVELES = [
         <h2 class="apex-title">Admisión de Alumnos</h2>
         <div class="apex-toolbar-actions">
           <p-select [options]="estados" optionLabel="label" optionValue="value"
-            [(ngModel)]="filtroEstado" placeholder="Estado…" [style]="{width:'150px'}" />
+            [(ngModel)]="filtroEstado" placeholder="Estado…" [style]="{width:'150px'}" ariaLabel="Estado" />
           <p-button label="Filtrar" icon="pi pi-filter" size="small" (onClick)="cargar()" />
           <app-import-button entidad="preinscritos-sep" [onSuccess]="cargar.bind(this)" />
           <p-button label="Nueva Solicitud" icon="pi pi-plus" size="small" (onClick)="abrirNueva()" />
@@ -137,7 +137,7 @@ const NIVELES = [
           <div class="flex flex-col gap-2">
             <h3 class="font-semibold text-primary m-0">Carta de Aceptación / Rechazo</h3>
             <div class="flex items-center gap-2">
-              <input pInputText [(ngModel)]="cartaTemplateId" placeholder="ID Plantilla Carbone" class="w-full text-sm" />
+              <input pInputText [(ngModel)]="cartaTemplateId" placeholder="ID Plantilla Carbone" class="w-full text-sm" aria-label="ID Plantilla Carbone"/>
               <p-button label="Descargar PDF" icon="pi pi-file-pdf" severity="danger" size="small" (onClick)="descargarCarta()" />
             </div>
           </div>
@@ -181,7 +181,7 @@ const NIVELES = [
               <label style="font-size:.82rem;color:var(--text-secondary)">Grupo destino (requerido)</label>
               <p-select [options]="gruposDisponibles()" [(ngModel)]="inscribirForm.grupoId"
                 optionLabel="etiqueta" optionValue="id" placeholder="Selecciona el grupo"
-                [filter]="true" filterBy="etiqueta" [style]="{width:'100%'}" />
+                [filter]="true" filterBy="etiqueta" [style]="{width:'100%'}" ariaLabel="Grupo destino (requerido)"/>
             </div>
             <div style="display:flex;flex-direction:column;gap:.25rem">
               <label style="font-size:.82rem;color:var(--text-secondary)">Motivo / notas (opcional)</label>
@@ -220,12 +220,12 @@ const NIVELES = [
         <div class="flex flex-col gap-1">
           <label class="text-sm font-medium">Fecha de Nacimiento *</label>
           <p-datepicker [(ngModel)]="form.fechaNacimiento" dateFormat="dd/mm/yy" [showIcon]="true"
-                        placeholder="DD/MM/AAAA" [style]="{width:'100%'}" [inputStyle]="{width:'100%'}" />
+                        placeholder="DD/MM/AAAA" [style]="{width:'100%'}" [inputStyle]="{width:'100%'}" ariaLabel="Fecha de Nacimiento"/>
         </div>
         <div class="flex flex-col gap-1">
           <label class="text-sm font-medium">Nivel Solicitado *</label>
           <p-select [options]="niveles" optionLabel="label" optionValue="value"
-            [(ngModel)]="form.nivel" placeholder="Seleccionar…" />
+            [(ngModel)]="form.nivel" placeholder="Seleccionar…" ariaLabel="Nivel Solicitado"/>
         </div>
         <div class="flex flex-col gap-1">
           <label class="text-sm font-medium">Grado *</label>

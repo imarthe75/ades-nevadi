@@ -126,9 +126,9 @@ const ESTADO_SEVERITY: Record<string, TagSeverity> = {
     <!-- Filtros -->
     <div class="filter-bar">
       <p-select [options]="tipoAulaOpts" [(ngModel)]="filtroTipo" optionLabel="label" optionValue="value"
-                placeholder="Tipo de aula" [showClear]="true" (onChange)="cargar()" />
+                placeholder="Tipo de aula" [showClear]="true" (onChange)="cargar()" ariaLabel="Tipo de aula" />
       <p-select [options]="estadoOpts" [(ngModel)]="filtroEstado" optionLabel="label" optionValue="value"
-                placeholder="Estado" [showClear]="true" (onChange)="cargar()" />
+                placeholder="Estado" [showClear]="true" (onChange)="cargar()" ariaLabel="Estado" />
       <div style="display:flex;align-items:center;gap:0.4rem">
         <p-toggleSwitch [(ngModel)]="filtroProyector" (onChange)="cargar()" />
         <span style="font-size:0.82rem">Con proyector</span>
@@ -174,7 +174,7 @@ const ESTADO_SEVERITY: Record<string, TagSeverity> = {
                 <label>Plantel *</label>
                 <p-select [options]="plantelesOpts()" [(ngModel)]="form.plantel_id"
                           optionLabel="nombre_plantel" optionValue="id"
-                          placeholder="Seleccionar plantel" style="width:100%" [filter]="true" />
+                          placeholder="Seleccionar plantel" style="width:100%" [filter]="true" ariaLabel="Plantel"/>
               </div>
               <div class="field">
                 <label>Nombre del aula *</label>
@@ -187,24 +187,24 @@ const ESTADO_SEVERITY: Record<string, TagSeverity> = {
               <div class="field">
                 <label>Tipo de espacio</label>
                 <p-select [options]="tipoAulaOpts" [(ngModel)]="form.tipo_aula"
-                          optionLabel="label" optionValue="value" style="width:100%" />
+                          optionLabel="label" optionValue="value" style="width:100%" ariaLabel="Tipo de espacio"/>
               </div>
               <div class="field">
                 <label>Estado</label>
                 <p-select [options]="estadoOpts" [(ngModel)]="form.estado_aula"
-                          optionLabel="label" optionValue="value" style="width:100%" />
+                          optionLabel="label" optionValue="value" style="width:100%" ariaLabel="Estado"/>
               </div>
               <div class="field">
                 <label>Piso</label>
                 <p-select [options]="pisosOpts()" [(ngModel)]="form.piso"
                           optionLabel="label" optionValue="value"
-                          placeholder="Seleccionar piso" style="width:100%" />
+                          placeholder="Seleccionar piso" style="width:100%" ariaLabel="Piso"/>
               </div>
               <div class="field">
                 <label>Edificio / Bloque</label>
                 <p-select [options]="edificiosOpts()" [(ngModel)]="form.edificio"
                           optionLabel="valor" optionValue="valor"
-                          placeholder="Seleccionar edificio" style="width:100%" [filter]="true" />
+                          placeholder="Seleccionar edificio" style="width:100%" [filter]="true" ariaLabel="Edificio / Bloque"/>
               </div>
               <div class="field">
                 <label>Capacidad alumnos</label>
@@ -275,7 +275,7 @@ const ESTADO_SEVERITY: Record<string, TagSeverity> = {
               <div class="field">
                 <label>Día</label>
                 <p-select [options]="diasOpts" [(ngModel)]="franjaForm.dia_semana"
-                          optionLabel="label" optionValue="value" style="width:100%" />
+                          optionLabel="label" optionValue="value" style="width:100%" ariaLabel="Día"/>
               </div>
               <div class="field">
                 <label>Hora inicio (HH:MM)</label>
@@ -312,7 +312,7 @@ const ESTADO_SEVERITY: Record<string, TagSeverity> = {
         <p-button label="Cancelar" severity="secondary" [text]="true" (onClick)="showDialog = false" />
         @if (dialogTab !== '2') {
           <p-button [label]="editandoId() ? 'Guardar cambios' : 'Crear aula'"
-                    icon="pi pi-save" [loading]="saving()" (onClick)="guardar()" />
+                    icon="pi pi-save" ariaLabel="Guardar" [loading]="saving()" (onClick)="guardar()" />
         }
       </ng-template>
     </p-dialog>

@@ -69,7 +69,7 @@ interface AlumnoResumen {
     <p-select [options]="ciclos()" optionLabel="nombre" optionValue="id"
               [(ngModel)]="cicloSeleccionado" placeholder="Ciclo escolar"
               (onChange)="recargar()" 
- [filter]="true" filterPlaceholder="Buscar..."/>
+ [filter]="true" filterPlaceholder="Buscar..." ariaLabel="Ciclo escolar" />
   }
 </div>
 

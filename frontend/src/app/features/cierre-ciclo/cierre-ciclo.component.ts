@@ -101,7 +101,7 @@ interface PlantelOpt {
               [ngModel]="plantelId()"
               placeholder="Seleccionar plantel"
               styleClass="w-14rem"
-              (ngModelChange)="setPlantel($event)" />
+              (ngModelChange)="setPlantel($event)" ariaLabel="Plantel" />
           }
         </div>
 
@@ -190,7 +190,7 @@ interface PlantelOpt {
           </label>
           <p-select id="cicloDestino" [options]="ciclosDisponibles()" optionLabel="_label" optionValue="id"
                     [(ngModel)]="cicloDestinoId" placeholder="Seleccionar ciclo de destino (Opcional)"
-                    styleClass="w-full" [showClear]="true" />
+                    styleClass="w-full" [showClear]="true" ariaLabel="Ciclo de Destino (Promoción)"/>
         </div>
       </div>
 

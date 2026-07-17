@@ -63,11 +63,11 @@ interface Licencia {
         <h2 class="apex-title">Licencias y Permisos de Personal</h2>
         <div class="apex-toolbar-actions">
           <input pInputText [(ngModel)]="filtroNombre" (input)="onFiltroNombre()"
-            placeholder="Buscar por nombre…" style="min-width:200px" />
+            placeholder="Buscar por nombre…" style="min-width:200px" aria-label="Buscar por nombre"/>
           <p-select [options]="estadoOpts" [(ngModel)]="filtroEstado" placeholder="Todos los estados"
-            [showClear]="true" (onChange)="cargar()" style="min-width:160px" />
+            [showClear]="true" (onChange)="cargar()" style="min-width:160px" ariaLabel="Estados" />
           <p-select [options]="tipoOpts" [(ngModel)]="filtroTipo" placeholder="Todos los tipos"
-            [showClear]="true" (onChange)="cargar()" style="min-width:160px" />
+            [showClear]="true" (onChange)="cargar()" style="min-width:160px" ariaLabel="Tipos" />
           <p-button label="Nueva Licencia" icon="pi pi-plus" size="small" (onClick)="abrirNueva()" />
         </div>
       </div>
@@ -97,31 +97,30 @@ interface Licencia {
             placeholder="Escriba nombre del empleado…"
             [forceSelection]="true"
             [delay]="300"
-            style="width:100%"
-          />
+            style="width:100%" ariaLabel="Personal"/>
         </div>
 
         <div class="flex flex-col gap-1">
           <label class="text-sm font-medium">Tipo de Licencia <span class="text-red-500">*</span></label>
-          <p-select [options]="tipoOpts" [(ngModel)]="form.tipo_licencia" placeholder="Selecciona…" />
+          <p-select [options]="tipoOpts" [(ngModel)]="form.tipo_licencia" placeholder="Selecciona…" ariaLabel="Tipo de Licencia"/>
         </div>
 
         <div class="flex flex-col gap-1">
           <label class="text-sm font-medium">Goce de Sueldo</label>
           <div class="flex items-center gap-2 mt-2">
-            <p-checkbox [(ngModel)]="form.con_goce_sueldo" [binary]="true" inputId="goce" />
+            <p-checkbox [(ngModel)]="form.con_goce_sueldo" [binary]="true" inputId="goce"/>
             <label for="goce" class="text-sm">Con goce de sueldo</label>
           </div>
         </div>
 
         <div class="flex flex-col gap-1">
           <label class="text-sm font-medium">Fecha Inicio <span class="text-red-500">*</span></label>
-          <p-datepicker [(ngModel)]="form.fecha_inicio" dateFormat="yy-mm-dd" [showIcon]="true" />
+          <p-datepicker [(ngModel)]="form.fecha_inicio" dateFormat="yy-mm-dd" [showIcon]="true" ariaLabel="Fecha Inicio"/>
         </div>
 
         <div class="flex flex-col gap-1">
           <label class="text-sm font-medium">Fecha Fin <span class="text-red-500">*</span></label>
-          <p-datepicker [(ngModel)]="form.fecha_fin" dateFormat="yy-mm-dd" [showIcon]="true" />
+          <p-datepicker [(ngModel)]="form.fecha_fin" dateFormat="yy-mm-dd" [showIcon]="true" ariaLabel="Fecha Fin"/>
         </div>
 
         <div class="col-span-2 flex flex-col gap-1">

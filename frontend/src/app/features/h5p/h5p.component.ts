@@ -111,7 +111,7 @@ type TabKey = 'biblioteca' | 'mis-resultados';
         <span class="apex-toolbar-spacer"></span>
         <p-select [options]="tipos()" [(ngModel)]="filtroTipo"
                   optionLabel="nombre" optionValue="id" placeholder="Filtrar por tipo"
-                  [showClear]="true" (onChange)="cargarContenidos()" style="min-width:200px" />
+                  [showClear]="true" (onChange)="cargarContenidos()" style="min-width:200px" ariaLabel="Tipo" />
       </div>
 
       <p-table [value]="contenidos()" [loading]="cargando()" stripedRows
@@ -233,7 +233,7 @@ type TabKey = 'biblioteca' | 'mis-resultados';
       <label class="apex-label">Tipo de contenido</label>
       <p-select [options]="tipos()" [(ngModel)]="subirForm.tipo_id"
                 optionLabel="nombre" optionValue="id" placeholder="Seleccionar tipo"
-                [showClear]="true" class="w-full" />
+                [showClear]="true" class="w-full" ariaLabel="Tipo de contenido"/>
     </div>
     <div>
       <label class="apex-label">Archivo .h5p *</label>
@@ -258,18 +258,18 @@ type TabKey = 'biblioteca' | 'mis-resultados';
       <label class="apex-label">Grupo</label>
       <p-select [options]="grupos()" [(ngModel)]="asignarForm.grupo_id"
                 optionLabel="_label" optionValue="id" placeholder="Seleccionar grupo"
-                class="w-full" />
+                class="w-full" ariaLabel="Grupo"/>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
       <div>
         <label class="apex-label">Fecha desde</label>
         <p-datepicker [(ngModel)]="asignarForm.fecha_desde" dateFormat="dd/mm/yy" [showIcon]="true"
-                      placeholder="DD/MM/AAAA" [style]="{width:'100%'}" [inputStyle]="{width:'100%'}" />
+                      placeholder="DD/MM/AAAA" [style]="{width:'100%'}" [inputStyle]="{width:'100%'}" ariaLabel="Fecha desde"/>
       </div>
       <div>
         <label class="apex-label">Fecha hasta</label>
         <p-datepicker [(ngModel)]="asignarForm.fecha_hasta" dateFormat="dd/mm/yy" [showIcon]="true"
-                      placeholder="DD/MM/AAAA" [style]="{width:'100%'}" [inputStyle]="{width:'100%'}" />
+                      placeholder="DD/MM/AAAA" [style]="{width:'100%'}" [inputStyle]="{width:'100%'}" ariaLabel="Fecha hasta"/>
       </div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">

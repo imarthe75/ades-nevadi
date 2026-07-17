@@ -127,9 +127,9 @@ interface PersonaContacto {
             </div>
             <div class="contacto-actions">
               @if (c.es_principal) { <p-tag value="Principal" severity="success" /> }
-              <p-button icon="pi pi-pencil" [text]="true" [rounded]="true" size="small"
+              <p-button icon="pi pi-pencil" ariaLabel="Editar contacto" [text]="true" [rounded]="true" size="small"
                 (onClick)="editarContacto(c)" />
-              <p-button icon="pi pi-trash" [text]="true" [rounded]="true" size="small"
+              <p-button icon="pi pi-trash" ariaLabel="Eliminar contacto" [text]="true" [rounded]="true" size="small"
                 severity="danger" (onClick)="eliminarContacto(c.id)" />
             </div>
           </div>
@@ -144,12 +144,12 @@ interface PersonaContacto {
             <div class="form-row">
               <label>Medio *</label>
               <p-select [options]="mediosOpts" [(ngModel)]="contactoEdit.medio"
-                optionLabel="label" optionValue="value" />
+                optionLabel="label" optionValue="value" ariaLabel="Medio"/>
             </div>
             <div class="form-row">
               <label>Tipo</label>
               <p-select [options]="tiposContOpts" [(ngModel)]="contactoEdit.tipo"
-                optionLabel="label" optionValue="value" />
+                optionLabel="label" optionValue="value" ariaLabel="Tipo"/>
             </div>
             <div class="form-row full">
               <label>{{ contactoEdit.medio === 'EMAIL' ? 'Correo electrónico *' : 'Número *' }}</label>
@@ -209,9 +209,9 @@ interface PersonaContacto {
                   <p-button label="Marcar principal" [text]="true" size="small"
                     (onClick)="setPrincipal(d.id)" />
                 }
-                <p-button icon="pi pi-pencil" [text]="true" [rounded]="true" size="small"
+                <p-button icon="pi pi-pencil" ariaLabel="Editar dirección" [text]="true" [rounded]="true" size="small"
                   (onClick)="editarDireccion(d)" />
-                <p-button icon="pi pi-trash" [text]="true" [rounded]="true" size="small"
+                <p-button icon="pi pi-trash" ariaLabel="Eliminar dirección" [text]="true" [rounded]="true" size="small"
                   severity="danger" (onClick)="eliminarDireccion(d.id)" />
               </div>
             </div>
@@ -260,7 +260,7 @@ interface PersonaContacto {
                   <i class="pi pi-spin pi-spinner" style="margin-left:.5rem"></i>
                 }
                 @if (cpSelId()) {
-                  <p-button icon="pi pi-times-circle" [text]="true" size="small"
+                  <p-button icon="pi pi-times-circle" ariaLabel="Limpiar para captura manual" [text]="true" size="small"
                     severity="secondary" pTooltip="Limpiar para captura manual"
                     (onClick)="limpiarSeleccionCp()" styleClass="ml-1" />
                 }
@@ -279,7 +279,7 @@ interface PersonaContacto {
                   [filter]="true" filterPlaceholder="Buscar colonia…"
                   placeholder="Seleccionar asentamiento…"
                   (onChange)="onAsentamientoSelect($event)"
-                  style="width:100%" />
+                  style="width:100%" ariaLabel="Colonia / Asentamiento"/>
               </div>
             } @else if (cpBusqueda.length === 5 && !buscandoCp()) {
               <p class="sepomex-nota">
@@ -347,7 +347,7 @@ interface PersonaContacto {
             <div class="form-row">
               <label>Tipo de vía</label>
               <p-select [options]="tiposViaOpts" [(ngModel)]="dirEdit.tipo_via"
-                optionLabel="label" optionValue="value" [showClear]="true" />
+                optionLabel="label" optionValue="value" [showClear]="true" ariaLabel="Tipo de vía"/>
             </div>
             <div class="form-row">
               <label>Nombre de calle</label>
@@ -379,7 +379,7 @@ interface PersonaContacto {
             <div class="form-row">
               <label>Tipo dirección</label>
               <p-select [options]="tiposDirOpts" [(ngModel)]="dirEdit.tipo_direccion"
-                optionLabel="label" optionValue="value" />
+                optionLabel="label" optionValue="value" ariaLabel="Tipo dirección"/>
             </div>
             <div class="form-row">
               <label>¿Principal?</label>

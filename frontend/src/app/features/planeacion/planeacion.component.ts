@@ -84,14 +84,14 @@ const ESTADO_SEV: Record<string, TagSeverity> = {
                 placeholder="Seleccionar grupo..."
                 styleClass="filter-select"
                 (onChange)="onGrupoChange()" 
- [filter]="true" filterPlaceholder="Buscar..."/>
+ [filter]="true" filterPlaceholder="Buscar..." ariaLabel="Grupo" />
       <p-select [options]="materiasGrupo()" [(ngModel)]="selMateriaId"
                 optionLabel="label" optionValue="value"
                 placeholder="Todas las materias"
                 [showClear]="true"
                 styleClass="filter-select"
                 (onChange)="cargarTemas()" 
- [filter]="true" filterPlaceholder="Buscar..."/>
+ [filter]="true" filterPlaceholder="Buscar..." ariaLabel="Materias" />
       <p-button icon="pi pi-chart-bar" label="Ver cobertura" severity="secondary"
                 [text]="true" (onClick)="vistaCobertura = !vistaCobertura" />
     </div>
@@ -203,7 +203,7 @@ const ESTADO_SEV: Record<string, TagSeverity> = {
           <div class="form-field full">
             <label>Fecha planeada *</label>
             <p-datepicker [(ngModel)]="planForm.fecha_planeada" dateFormat="dd/mm/yy" [showIcon]="true"
-                          placeholder="DD/MM/AAAA" [style]="{width:'100%'}" [inputStyle]="{width:'100%'}" />
+                          placeholder="DD/MM/AAAA" [style]="{width:'100%'}" [inputStyle]="{width:'100%'}" ariaLabel="Fecha planeada"/>
           </div>
           <div class="form-field full">
             <label>Descripción de actividades</label>

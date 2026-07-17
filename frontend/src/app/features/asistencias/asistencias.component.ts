@@ -56,8 +56,7 @@ interface AsistenciaLocal {
           [filter]="true"
           filterPlaceholder="Buscar..."
           [disabled]="!ctx.grupo()?.id"
-          styleClass="w-full"
-        />
+          styleClass="w-full" ariaLabel="Clase" />
       </div>
       @if (asistencias().length > 0) {
         <div style="flex:1; min-width:250px">
@@ -66,8 +65,7 @@ interface AsistenciaLocal {
             type="text"
             placeholder="Buscar alumno..."
             [(ngModel)]="busqueda"
-            style="width:100%"
-          />
+            style="width:100%" aria-label="Buscar alumno"/>
         </div>
       }
     </div>

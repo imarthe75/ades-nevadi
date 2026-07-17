@@ -140,17 +140,17 @@ interface AlumnoOpt { id: string; label: string; }
             }
           </td>
           <td class="acciones-cell">
-            <p-button icon="pi pi-file-pdf" [text]="true" severity="secondary" size="small"
+            <p-button icon="pi pi-file-pdf" ariaLabel="Descargar PDF" [text]="true" severity="secondary" size="small"
               pTooltip="Descargar PDF"
               data-testid="btn-descargar-pdf"
               [loading]="descargando() === c.id"
               (onClick)="descargarPdf(c)" />
             @if (c.verificable_url) {
-              <p-button icon="pi pi-external-link" [text]="true" severity="info" size="small"
+              <p-button icon="pi pi-external-link" ariaLabel="Verificar en línea" [text]="true" severity="info" size="small"
                 pTooltip="Verificar en línea" (onClick)="abrirVerificar(c.folio)" />
             }
             @if (esAdmin() && c.estado_firma === 'PENDIENTE') {
-              <p-button icon="pi pi-sign-in" [text]="true" severity="success" size="small"
+              <p-button icon="pi pi-sign-in" ariaLabel="Firmar ahora" [text]="true" severity="success" size="small"
                 pTooltip="Firmar ahora"
                 [loading]="firmando() === c.id"
                 (onClick)="firmarCertificado(c)" />
@@ -187,7 +187,7 @@ interface AlumnoOpt { id: string; label: string; }
           <p-select [(ngModel)]="emitirForm.tipo_certificado"
             [options]="tiposOpts" optionLabel="label" optionValue="value"
             (onChange)="onTipoChange()"
-            styleClass="w-full" />
+            styleClass="w-full" ariaLabel="Tipo"/>
         </div>
         <div class="form-row" [apexDATarget]="'grado-row'">
           <label>Grado completado</label>

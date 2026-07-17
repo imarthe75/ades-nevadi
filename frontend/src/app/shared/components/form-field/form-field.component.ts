@@ -22,14 +22,16 @@ import { InputFormattersService } from '../../services/input-formatters.service'
   template: `
     <div class="form-field-wrapper" [class.has-error]="control.invalid && control.touched">
       <!-- Label with required indicator -->
-      <label class="field-label">
+      <label class="field-label" [for]="inputId">
         {{ label }}
-        <span class="required-indicator" *ngIf="required">*</span>
+        <span class="required-indicator" *ngIf="required" aria-hidden="true">*</span>
+        <span class="sr-only" *ngIf="required">(requerido)</span>
       </label>
 
       <!-- Input field with formatter -->
       <input
         pInputText
+        [id]="inputId"
         [formControl]="control"
         [type]="type"
         [placeholder]="placeholder"
@@ -37,20 +39,23 @@ import { InputFormattersService } from '../../services/input-formatters.service'
         (input)="onInput($event)"
         [class.field-input-error]="control.invalid && control.touched"
         class="field-input"
+        [attr.aria-required]="required || null"
+        [attr.aria-invalid]="control.invalid && control.touched ? true : null"
+        [attr.aria-describedby]="describedBy || null"
       />
 
       <!-- Help text -->
-      <small class="help-text" *ngIf="helpText">
+      <small class="help-text" *ngIf="helpText" [id]="helpId">
         ℹ️ {{ helpText }}
       </small>
 
       <!-- Character counter -->
-      <small class="char-count" *ngIf="maxLength">
+      <small class="char-count" *ngIf="maxLength" [id]="counterId">
         {{ (control.value || '').length }} / {{ maxLength }} caracteres
       </small>
 
       <!-- Error messages -->
-      <small class="error-message" *ngIf="control.invalid && control.touched">
+      <small class="error-message" *ngIf="control.invalid && control.touched" [id]="errorId" role="alert">
         {{ getErrorMessage() }}
       </small>
     </div>
@@ -140,6 +145,19 @@ import { InputFormattersService } from '../../services/input-formatters.service'
       outline: 2px solid #3498db;
       outline-offset: 2px;
     }
+
+    /* Visually hidden but readable by lectores de pantalla */
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
   `]
 })
 export class FormFieldComponent implements OnInit, OnDestroy {
@@ -155,6 +173,20 @@ export class FormFieldComponent implements OnInit, OnDestroy {
   @Output() valueChange = new EventEmitter<string>();
 
   private readonly destroy$ = new Subject<void>();
+
+  private static nextId = 0;
+  /** IDs únicos por instancia — enlazan label/input/ayuda/error para lectores de pantalla */
+  readonly inputId = `form-field-${FormFieldComponent.nextId++}`;
+  readonly helpId = `${this.inputId}-help`;
+  readonly counterId = `${this.inputId}-counter`;
+  readonly errorId = `${this.inputId}-error`;
+
+  get describedBy(): string {
+    const ids: string[] = [];
+    if (this.helpText) ids.push(this.helpId);
+    if (this.control?.invalid && this.control?.touched) ids.push(this.errorId);
+    return ids.join(' ');
+  }
 
   constructor(private inputFormatters: InputFormattersService, private cdr: ChangeDetectorRef) {}
 

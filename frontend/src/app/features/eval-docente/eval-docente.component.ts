@@ -107,7 +107,7 @@ const TIPO_LABELS: Record<string, string> = {
             [loading]="loadingProfesores()"
             (onChange)="cargarResumen()"
             styleClass="select-docente"
-            [filter]="true" filterPlaceholder="Buscar..."/>
+            [filter]="true" filterPlaceholder="Buscar..." ariaLabel="Docente" />
           <p-button label="CSV" icon="pi pi-file" severity="secondary" [text]="true"
             (onClick)="exportCSV()" [disabled]="!resumen().length" pTooltip="Exportar CSV" />
           <p-button label="Excel" icon="pi pi-file-excel" severity="secondary" [text]="true"
@@ -169,7 +169,7 @@ const TIPO_LABELS: Record<string, string> = {
                 placeholder="Seleccionar docente..."
                 styleClass="w-full"
                 [loading]="loadingProfesores()"
-                [filter]="true" filterPlaceholder="Buscar..."/>
+                [filter]="true" filterPlaceholder="Buscar..." ariaLabel="Docente a evaluar" />
             </div>
             <div class="field">
               <label>Tipo de evaluador *</label>
@@ -182,7 +182,7 @@ const TIPO_LABELS: Record<string, string> = {
                 styleClass="w-full"
               
 
-              [filter]="true" filterPlaceholder="Buscar..."/>
+              [filter]="true" filterPlaceholder="Buscar..." ariaLabel="Tipo de evaluador" />
             </div>
           </div>
 
@@ -231,6 +231,7 @@ const TIPO_LABELS: Record<string, string> = {
                   pTextarea
                   [(ngModel)]="item.observacion"
                   [placeholder]="'Observación sobre ' + item.criterio.nombre_criterio + '...'"
+                  [attr.aria-label]="'Observación sobre ' + item.criterio.nombre_criterio"
                   rows="1"
                   style="width:100%;margin-top:0.4rem;font-size:0.8rem"
                 ></textarea>

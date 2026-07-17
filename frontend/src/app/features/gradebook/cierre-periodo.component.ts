@@ -203,7 +203,7 @@ interface ValidacionResult {
       <div class="confirm-box mt-3">
         <p>Para confirmar, escribe <strong>CERRAR</strong> en el campo:</p>
         <input class="confirm-input" [(ngModel)]="confirmText"
-               placeholder="Escribe CERRAR" autocomplete="off" />
+               placeholder="Escribe CERRAR" autocomplete="off" aria-label="Escribe CERRAR"/>
       </div>
     </div>
     <ng-template pTemplate="footer">

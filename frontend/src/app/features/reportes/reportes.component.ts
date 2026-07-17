@@ -109,7 +109,7 @@ const TIPOS_DOC = [
                   optionValue="id"
                   placeholder="Buscar alumno..."
                   style="width:320px"
-                  (onChange)="onAlumnoChange($event.value)" />
+                  (onChange)="onAlumnoChange($event.value)" ariaLabel="Alumno"/>
               </div>
 
               <div class="form-row">
@@ -121,7 +121,7 @@ const TIPOS_DOC = [
                   optionValue="id"
                   placeholder="Seleccionar plantilla..."
                   style="width:320px"
- [filter]="true" filterPlaceholder="Buscar..."/>
+ [filter]="true" filterPlaceholder="Buscar..." ariaLabel="Plantilla" />
               </div>
 
               <div class="form-row">
@@ -132,7 +132,7 @@ const TIPOS_DOC = [
                   optionLabel="label"
                   optionValue="value"
                   style="width:220px"
- [filter]="true" filterPlaceholder="Buscar..."/>
+ [filter]="true" filterPlaceholder="Buscar..." ariaLabel="Tipo de documento" />
               </div>
 
               <!-- [hidden] en vez de @if: crear el p-select junto con sus hermanos en el
@@ -146,7 +146,7 @@ const TIPOS_DOC = [
                   optionLabel="label"
                   optionValue="value"
                   style="width:200px"
- [filter]="true" filterPlaceholder="Buscar..."/>
+ [filter]="true" filterPlaceholder="Buscar..." ariaLabel="Periodo" />
               </div>
 
               <div class="form-row">
@@ -179,7 +179,7 @@ const TIPOS_DOC = [
                   optionLabel="label" optionValue="id"
                   [filter]="true" filterBy="label"
                   placeholder="Seleccionar grupo..."
-                  style="width:320px" />
+                  style="width:320px" ariaLabel="Grupo"/>
               </div>
 
               <div class="form-row">
@@ -189,7 +189,7 @@ const TIPOS_DOC = [
                   optionLabel="nombre" optionValue="id"
                   placeholder="Plantilla de tipo BOLETA..."
                   style="width:320px"
- [filter]="true" filterPlaceholder="Buscar..."/>
+ [filter]="true" filterPlaceholder="Buscar..." ariaLabel="Plantilla boleta" />
               </div>
 
               <div class="form-row">
@@ -199,12 +199,12 @@ const TIPOS_DOC = [
                   [(ngModel)]="periodoGrupoSel"
                   optionLabel="label" optionValue="value"
                   style="width:180px"
- [filter]="true" filterPlaceholder="Buscar..."/>
+ [filter]="true" filterPlaceholder="Buscar..." ariaLabel="Periodo" />
               </div>
 
               <div class="form-row">
                 <label>Marca de agua</label>
-                <p-toggleswitch [(ngModel)]="marcaAgua" />
+                <p-toggleswitch [(ngModel)]="marcaAgua" ariaLabel="Marca de agua"/>
                 <span style="font-size:.78rem;color:var(--text-muted);margin-left:.5rem">Añadir "INSTITUTO NEVADI" como marca de agua</span>
               </div>
 
@@ -244,7 +244,7 @@ const TIPOS_DOC = [
                 <label>Tipo de documento</label>
                 <p-select [options]="tiposDoc" [(ngModel)]="nuevaPlantillaTipo"
                   optionLabel="label" optionValue="value" style="width:100%" 
- [filter]="true" filterPlaceholder="Buscar..."/>
+ [filter]="true" filterPlaceholder="Buscar..." ariaLabel="Tipo de documento" />
                 <label>Descripción</label>
                 <input pInputText [(ngModel)]="nuevaPlantillaDesc" placeholder="Descripción opcional" />
               </div>

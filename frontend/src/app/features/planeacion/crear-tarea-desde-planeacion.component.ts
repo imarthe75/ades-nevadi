@@ -66,7 +66,7 @@ import { AdesFormatDirective } from '../../shared/directives/ades-format.directi
                      optionLabel="label" optionValue="value"
                      placeholder="Seleccionar grupo..."
                      (onChange)="onGrupoChange()"
-                     [filter]="true" filterPlaceholder="Buscar..."/>
+                     [filter]="true" filterPlaceholder="Buscar..." ariaLabel="Grupo" />
           </div>
         </div>
 
@@ -94,6 +94,7 @@ import { AdesFormatDirective } from '../../shared/directives/ades-format.directi
                     <td>
                       <input type="radio" [value]="planeacion.planeacion_id"
                              [(ngModel)]="planeacionSeleccionada"
+                             [attr.aria-label]="'Seleccionar planeación ' + planeacion.nombre_tema"
                              (change)="onPlaneacionSelect(planeacion)"/>
                     </td>
                     <td><strong>{{planeacion.nombre_tema}}</strong></td>
@@ -182,7 +183,7 @@ import { AdesFormatDirective } from '../../shared/directives/ades-format.directi
 
             <div class="field">
               <label>Fecha de Entrega*</label>
-              <p-datepicker formControlName="fechaEntrega" dateFormat="dd/mm/yy" [showIcon]="true"/>
+              <p-datepicker formControlName="fechaEntrega" dateFormat="dd/mm/yy" [showIcon]="true" ariaLabel="Fecha de Entrega" />
             </div>
 
             <div class="field">

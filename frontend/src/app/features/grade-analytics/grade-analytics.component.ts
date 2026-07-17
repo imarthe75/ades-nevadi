@@ -89,7 +89,7 @@ const RIESGO_SEV: Record<string, TagSeverity> = { ALTO: 'danger', MEDIO: 'warn',
         (onChange)="onGrupoChange()"
       
 
-      [filter]="true" filterPlaceholder="Buscar..."/>
+      [filter]="true" filterPlaceholder="Buscar..." ariaLabel="Grupo" />
       <p-select
         [options]="nivelesRiesgo"
         [(ngModel)]="filtroRiesgo"
@@ -99,7 +99,7 @@ const RIESGO_SEV: Record<string, TagSeverity> = { ALTO: 'danger', MEDIO: 'warn',
         (onChange)="cargarRiesgo()"
       
 
-      [filter]="true" filterPlaceholder="Buscar..."/>
+      [filter]="true" filterPlaceholder="Buscar..." ariaLabel="Nivel de riesgo" />
     </div>
 
     <!-- ── KPI cards ─────────────────────────────────────────────────── -->

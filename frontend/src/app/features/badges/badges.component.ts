@@ -187,7 +187,7 @@ interface AlumnoSugerencia {
                           (onClick)="otorgarManual(b)" />
               }
               @if (b.otorgado_id) {
-                <p-button icon="pi pi-times" [text]="true" severity="danger" size="small"
+                <p-button icon="pi pi-times" ariaLabel="Revocar" [text]="true" severity="danger" size="small"
                           pTooltip="Revocar" (onClick)="revocar(b)" />
               }
             </div>
@@ -211,7 +211,7 @@ interface AlumnoSugerencia {
       <div class="auto-eval-form">
         <p-select [options]="ciclos()" optionLabel="nombre" optionValue="id"
                   [(ngModel)]="cicloAutoEval" placeholder="Seleccionar ciclo escolar" 
- [filter]="true" filterPlaceholder="Buscar..."/>
+ [filter]="true" filterPlaceholder="Buscar..." ariaLabel="Ciclo escolar" />
         <p-button label="Ejecutar Auto-Evaluación" icon="pi pi-play"
                   [loading]="autoEvaluando()" [disabled]="!cicloAutoEval"
                   (onClick)="autoEvaluar()" />
@@ -246,20 +246,20 @@ interface AlumnoSugerencia {
       <label>Tipo *</label>
       <p-select [options]="tiposOpt" [(ngModel)]="form.tipo"
                 optionLabel="label" optionValue="value" placeholder="Tipo" 
- [filter]="true" filterPlaceholder="Buscar..."/>
+ [filter]="true" filterPlaceholder="Buscar..." ariaLabel="Tipo" />
     </div>
     <div class="field">
       <label>Criterio</label>
       <p-select [options]="criterioOpt" [(ngModel)]="form.criterio_tipo"
                 optionLabel="label" optionValue="value" 
- [filter]="true" filterPlaceholder="Buscar..."/>
+ [filter]="true" filterPlaceholder="Buscar..." ariaLabel="Criterio" />
     </div>
     <div class="field">
       <label>Ícono</label>
       <div style="display:flex;gap:.5rem;align-items:center">
         <p-select [options]="iconsOpt" [(ngModel)]="form.icono"
                   optionLabel="label" optionValue="value" placeholder="Seleccionar ícono" 
-                  [filter]="true" filterPlaceholder="Buscar..." style="flex:1">
+                  [filter]="true" filterPlaceholder="Buscar..." style="flex:1" ariaLabel="Ícono" >
           <ng-template pTemplate="selectedItem" let-selectedOption>
             @if (selectedOption) {
               <div style="display:flex;align-items:center;gap:.5rem">
@@ -289,7 +289,7 @@ interface AlumnoSugerencia {
         <label>Métrica</label>
         <p-select [options]="metricasOpt" [(ngModel)]="form.criterio_metrica"
                   optionLabel="label" optionValue="value" placeholder="Métrica" 
- [filter]="true" filterPlaceholder="Buscar..."/>
+ [filter]="true" filterPlaceholder="Buscar..." ariaLabel="Métrica" />
       </div>
       <div class="field">
         <label>Valor umbral</label>
@@ -326,7 +326,7 @@ interface AlumnoSugerencia {
       <label>Ciclo escolar</label>
       <p-select [options]="ciclos()" optionLabel="nombre" optionValue="id"
                 [(ngModel)]="cicloOtorgar" placeholder="Ciclo" 
- [filter]="true" filterPlaceholder="Buscar..."/>
+ [filter]="true" filterPlaceholder="Buscar..." ariaLabel="Ciclo escolar" />
     </div>
   </div>
   <ng-template pTemplate="footer">

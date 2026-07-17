@@ -174,7 +174,7 @@ interface CambioGrupo {
         <div class="field">
           <label>Fecha Efectiva *</label>
           <p-datepicker [(ngModel)]="bajaTemporalForm.fechaEfectiva" [showIcon]="true" dateFormat="dd/mm/yy" [style]="{width:'100%'}"
-            [class.p-invalid]="btIntento() && !bajaTemporalForm.fechaEfectiva" />
+            [class.p-invalid]="btIntento() && !bajaTemporalForm.fechaEfectiva" ariaLabel="Fecha Efectiva"/>
           @if (btIntento() && !bajaTemporalForm.fechaEfectiva) {
             <small class="field-error">La fecha efectiva es obligatoria</small>
           }
@@ -182,7 +182,7 @@ interface CambioGrupo {
         <div class="field">
           <label>Fecha Estimada de Reingreso</label>
           <p-datepicker [(ngModel)]="bajaTemporalForm.fechaReingreso" [showIcon]="true" dateFormat="dd/mm/yy" [style]="{width:'100%'}"
-            [class.p-invalid]="reingresoAnteriorAEfectiva" />
+            [class.p-invalid]="reingresoAnteriorAEfectiva" ariaLabel="Fecha Estimada de Reingreso"/>
           @if (reingresoAnteriorAEfectiva) {
             <small class="field-error">Debe ser igual o posterior a la fecha efectiva</small>
           }
@@ -224,7 +224,7 @@ interface CambioGrupo {
         </div>
         <div class="field">
           <label>Fecha Efectiva *</label>
-          <p-datepicker [(ngModel)]="bajaDefinitivaForm.fechaEfectiva" [showIcon]="true" dateFormat="dd/mm/yy" [style]="{width:'100%'}" />
+          <p-datepicker [(ngModel)]="bajaDefinitivaForm.fechaEfectiva" [showIcon]="true" dateFormat="dd/mm/yy" [style]="{width:'100%'}" ariaLabel="Fecha Efectiva"/>
         </div>
         <div class="field">
           <label>Plantel Destino</label>
@@ -265,7 +265,7 @@ interface CambioGrupo {
           <label>Grupo Destino *</label>
           <p-select [options]="gruposLov()" optionLabel="label" optionValue="value"
             [(ngModel)]="cambioGrupoForm.grupoDestinoId" [filter]="true" filterBy="label"
-            placeholder="Seleccionar grupo..." [style]="{width:'100%'}" />
+            placeholder="Seleccionar grupo..." [style]="{width:'100%'}" ariaLabel="Grupo Destino"/>
         </div>
         <div class="field">
           <label>Motivo</label>
@@ -325,7 +325,7 @@ interface CambioGrupo {
           <label>Grupo de Reingreso *</label>
           <p-select [options]="gruposLov()" optionLabel="label" optionValue="value"
             [(ngModel)]="reactivarForm.grupoId" [filter]="true" filterBy="label"
-            placeholder="Seleccionar grupo..." [style]="{width:'100%'}" />
+            placeholder="Seleccionar grupo..." [style]="{width:'100%'}" ariaLabel="Grupo de Reingreso"/>
         </div>
         <div class="field">
           <label>Observaciones</label>

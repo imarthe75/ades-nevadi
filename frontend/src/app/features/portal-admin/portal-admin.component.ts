@@ -101,10 +101,10 @@ interface Catalogo {
 <div class="filter-bar">
   <p-select [options]="opcionesTipo()" [(ngModel)]="filtroTipo" placeholder="Tipo"
     optionLabel="label" optionValue="value" [showClear]="true"
-    (onChange)="cargar()" style="min-width:180px" />
+    (onChange)="cargar()" style="min-width:180px" ariaLabel="Tipo" />
   <p-select [options]="opcionesEstado" [(ngModel)]="filtroPublicado" placeholder="Estado"
     optionLabel="label" optionValue="value" [showClear]="true"
-    (onChange)="cargar()" style="min-width:160px" />
+    (onChange)="cargar()" style="min-width:160px" ariaLabel="Estado" />
   <p-button icon="pi pi-refresh" severity="secondary" [text]="true" ariaLabel="Actualizar lista" (onClick)="cargar()" pTooltip="Actualizar" />
 </div>
 
@@ -131,12 +131,12 @@ interface Catalogo {
       <div class="field">
         <label>Tipo *</label>
         <p-select [options]="opcionesTipoForm" [(ngModel)]="form().tipo"
-          optionLabel="label" optionValue="value" placeholder="Selecciona tipo" />
+          optionLabel="label" optionValue="value" placeholder="Selecciona tipo" ariaLabel="Tipo"/>
       </div>
       <div class="field">
         <label>Plantel</label>
         <p-select [options]="opcionesPlantel()" [(ngModel)]="form().plantelId"
-          optionLabel="label" optionValue="value" placeholder="Todos los planteles" [showClear]="true" />
+          optionLabel="label" optionValue="value" placeholder="Todos los planteles" [showClear]="true" ariaLabel="Plantel"/>
       </div>
       <div class="field-row">
         <div class="field">
@@ -179,7 +179,7 @@ interface Catalogo {
           <input #fileInput type="file" accept="image/jpeg,image/png,image/webp" style="display:none"
             (change)="onImagenSeleccionada($event)" />
           <p-button [label]="editando()?.id ? 'Cambiar imagen' : 'Subir imagen'"
-            icon="pi pi-image" severity="secondary" size="small"
+            icon="pi pi-image" ariaLabel="Subir imagen" severity="secondary" size="small"
             (onClick)="fileInput.click()" />
           <span class="field-hint">JPG, PNG o WebP · máx 5 MB</span>
         </div>
@@ -192,7 +192,7 @@ interface Catalogo {
   <div class="requisitos-list">
     <div class="requisito-row" *ngFor="let r of form().requisitos; let i = index">
       <span class="req-num">{{ i + 1 }}</span>
-      <input pInputText [(ngModel)]="r.nombre" placeholder="Nombre del documento" style="flex:1" />
+      <input pInputText [(ngModel)]="r.nombre" placeholder="Nombre del documento" style="flex:1" aria-label="Nombre del documento"/>
       <p-checkbox [(ngModel)]="r.esObligatorio" [binary]="true" label="Obligatorio" />
       <p-button icon="pi pi-trash" severity="danger" [text]="true" size="small" ariaLabel="Eliminar requisito" (onClick)="eliminarRequisito(i)" />
     </div>
@@ -203,7 +203,7 @@ interface Catalogo {
   <ng-template pTemplate="footer">
     <p-button label="Cancelar" severity="secondary" [text]="true" (onClick)="cerrarDialog()" />
     <p-button [label]="guardando() ? 'Guardando...' : 'Guardar'"
-      icon="pi pi-check" [loading]="guardando()" (onClick)="guardar()" />
+      icon="pi pi-check" ariaLabel="Guardar" [loading]="guardando()" (onClick)="guardar()" />
   </ng-template>
 </p-dialog>
 

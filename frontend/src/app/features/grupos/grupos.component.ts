@@ -75,15 +75,15 @@ import { AdesFormatDirective } from '../../shared/directives/ades-format.directi
           <label>Capacidad *</label>
           <input pInputText type="number" [(ngModel)]="grupoEdit.capacidad_maxima" min="1" max="60" />
           <label>Turno *</label>
-          <p-select [options]="['MATUTINO','VESPERTINO','NOCTURNO']" [(ngModel)]="grupoEdit.turno" />
+          <p-select [options]="['MATUTINO','VESPERTINO','NOCTURNO']" [(ngModel)]="grupoEdit.turno" ariaLabel="Turno"/>
           
           <label>Nivel / Grado *</label>
           <p-select [options]="grados()" [(ngModel)]="grupoEdit.grado_id" optionLabel="label" optionValue="id" placeholder="Seleccionar grado"
-            [filter]="true" filterPlaceholder="Buscar..."/>
+            [filter]="true" filterPlaceholder="Buscar..." ariaLabel="Nivel / Grado" />
           
           @if (grupoEdit.id) {
             <label>Estado</label>
-            <p-toggleswitch [(ngModel)]="grupoEdit.is_active" />
+            <p-toggleswitch [(ngModel)]="grupoEdit.is_active" ariaLabel="Estado"/>
           }
         </div>
       }

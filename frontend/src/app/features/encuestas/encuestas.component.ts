@@ -377,7 +377,7 @@ const TIPOS_PREG = [
                       <textarea class="texto-input"
                                 [(ngModel)]="respForm[p.id].texto"
                                 rows="3"
-                                placeholder="Escribe tu respuesta..."></textarea>
+                                placeholder="Escribe tu respuesta..." aria-label="Escribe tu respuesta"></textarea>
                     }
                   </div>
                 }
@@ -409,26 +409,26 @@ const TIPOS_PREG = [
           <label>Tipo</label>
           <p-select [options]="tipos" [(ngModel)]="formNueva.tipo"
                     optionLabel="label" optionValue="value" styleClass="w-full" 
- [filter]="true" filterPlaceholder="Buscar..."/>
+ [filter]="true" filterPlaceholder="Buscar..." ariaLabel="Tipo" />
         </div>
         <div class="form-field">
           <label>Audiencia</label>
           <p-select [options]="audiencias" [(ngModel)]="formNueva.audiencia"
                     optionLabel="label" optionValue="value" styleClass="w-full" 
- [filter]="true" filterPlaceholder="Buscar..."/>
+ [filter]="true" filterPlaceholder="Buscar..." ariaLabel="Audiencia" />
         </div>
         <div class="form-field">
           <label>Fecha inicio</label>
           <p-datepicker [(ngModel)]="formNueva.fecha_inicio" dateFormat="dd/mm/yy" [showIcon]="true"
-                        placeholder="DD/MM/AAAA" [style]="{width:'100%'}" [inputStyle]="{width:'100%'}" />
+                        placeholder="DD/MM/AAAA" [style]="{width:'100%'}" [inputStyle]="{width:'100%'}" ariaLabel="Fecha inicio"/>
         </div>
         <div class="form-field">
           <label>Fecha fin</label>
           <p-datepicker [(ngModel)]="formNueva.fecha_fin" dateFormat="dd/mm/yy" [showIcon]="true"
-                        placeholder="DD/MM/AAAA" [style]="{width:'100%'}" [inputStyle]="{width:'100%'}" />
+                        placeholder="DD/MM/AAAA" [style]="{width:'100%'}" [inputStyle]="{width:'100%'}" ariaLabel="Fecha fin"/>
         </div>
         <div class="form-field full" style="display:flex; align-items:center; gap:.6rem;">
-          <p-checkbox [(ngModel)]="formNueva.anonima" [binary]="true" inputId="anon" />
+          <p-checkbox [(ngModel)]="formNueva.anonima" [binary]="true" inputId="anon"/>
           <label for="anon">Encuesta anónima (no se registra quién responde)</label>
         </div>
       </div>
@@ -453,7 +453,7 @@ const TIPOS_PREG = [
           <p-select [options]="tiposPreg" [(ngModel)]="formPreg.tipo_pregunta"
                     optionLabel="label" optionValue="value" styleClass="w-full"
                     (onChange)="onTipoPregChange()" 
- [filter]="true" filterPlaceholder="Buscar..."/>
+ [filter]="true" filterPlaceholder="Buscar..." ariaLabel="Tipo de respuesta" />
         </div>
         <div class="form-field">
           <label>Orden</label>
@@ -468,7 +468,7 @@ const TIPOS_PREG = [
           </div>
         }
         <div class="form-field full" style="display:flex; align-items:center; gap:.6rem;">
-          <p-checkbox [(ngModel)]="formPreg.obligatoria" [binary]="true" inputId="oblig2" />
+          <p-checkbox [(ngModel)]="formPreg.obligatoria" [binary]="true" inputId="oblig2"/>
           <label for="oblig2">Obligatoria</label>
         </div>
       </div>

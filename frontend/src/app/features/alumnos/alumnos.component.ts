@@ -144,7 +144,7 @@ import { AdesFormatDirective } from '../../shared/directives/ades-format.directi
           label="Crear alumno"
           (onClick)="crearAlumno()"
           [loading]="loading()"
-          [disabled]="loading() || crearAlumnoForm.invalid"
+          [disabled]="loading()"
         />
       </ng-template>
     </apex-modal-dialog>
@@ -166,7 +166,7 @@ import { AdesFormatDirective } from '../../shared/directives/ades-format.directi
             display="chip"
             filter="true"
             placeholder="Selecciona uno o más alumnos"
-            style="width:100%" />
+            style="width:100%" ariaLabel="Alumnos a mover"/>
         </div>
         <div>
           <label class="dlg-lbl">Grupo destino *</label>
@@ -176,7 +176,7 @@ import { AdesFormatDirective } from '../../shared/directives/ades-format.directi
             optionLabel="label"
             optionValue="value"
             placeholder="Selecciona el grupo destino"
-            style="width:100%" />
+            style="width:100%" ariaLabel="Grupo destino"/>
         </div>
         <div>
           <label class="dlg-lbl">Motivo *</label>
@@ -488,10 +488,13 @@ export class AlumnosComponent implements OnInit, OnDestroy {
     // This must happen synchronously before any async operations
     this.loading.set(true);
 
-    // Validación adicional de formulario (redundante pero segura)
+    // El botón ya no se deshabilita por formulario inválido (decisión de producto
+    // 2026-07-17): se permite el clic siempre y aquí se avisa con un toast +
+    // se marcan los campos como touched para que app-form-field muestre el error inline.
     if (this.crearAlumnoForm.invalid) {
       this.loading.set(false);
-      this.notify.error('Validación', 'Por favor completa todos los campos correctamente');
+      this.crearAlumnoForm.markAllAsTouched();
+      this.notify.warning('Validación', 'Por favor completa todos los campos correctamente');
       return;
     }
 

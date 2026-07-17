@@ -70,7 +70,7 @@ import { AdesFormatDirective } from '../../shared/directives/ades-format.directi
         (onChange)="loadLibreta()"
         [showClear]="true"
         [disabled]="!selectedGrupo"
-        [filter]="true" filterPlaceholder="Buscar..."/>
+        [filter]="true" filterPlaceholder="Buscar..." ariaLabel="Materia" />
     </div>
 
     <!-- ── Libreta — Editable Interactive Report ── -->
@@ -133,8 +133,7 @@ import { AdesFormatDirective } from '../../shared/directives/ades-format.directi
               type="text"
               placeholder="Buscar alumno..."
               (input)="dt.filterGlobal($any($event.target).value, 'contains')"
-              class="search-input"
-            />
+              class="search-input" aria-label="Buscar alumno"/>
           </div>
         </ng-template>
 
@@ -179,8 +178,7 @@ import { AdesFormatDirective } from '../../shared/directives/ades-format.directi
                         [(ngModel)]="row.niveles_logro[col]"
                         placeholder="—"
                         [style]="{width:'110px'}"
-                        (onChange)="onLogrolChange(row, col, $event.value)"
-                      />
+                        (onChange)="onLogrolChange(row, col, $event.value)" ariaLabel="—" />
                     </ng-template>
                     <ng-template pTemplate="output">
                       @if (row.niveles_logro?.[col]) {

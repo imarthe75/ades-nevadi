@@ -95,13 +95,13 @@ interface CapacitacionForm {
         <h2 class="apex-title">Capacitaciones y Certificaciones Docentes</h2>
         <div class="apex-toolbar-actions">
           <input pInputText [(ngModel)]="filtroNombre" (input)="onFiltroNombre()"
-            placeholder="Buscar por docente…" style="min-width:200px" />
+            placeholder="Buscar por docente…" style="min-width:200px" aria-label="Buscar por docente"/>
           <p-select [options]="tipoOpts" [(ngModel)]="filtroTipo" placeholder="Todos los tipos"
-            [showClear]="true" (onChange)="cargar()" style="min-width:150px" />
+            [showClear]="true" (onChange)="cargar()" style="min-width:150px" ariaLabel="Tipos" />
           <p-select [options]="modalidadOpts" [(ngModel)]="filtroModalidad" placeholder="Modalidad"
-            [showClear]="true" (onChange)="cargar()" style="min-width:130px" />
+            [showClear]="true" (onChange)="cargar()" style="min-width:130px" ariaLabel="Modalidad" />
           <p-select [options]="validadoOpts" [(ngModel)]="filtroValidado" placeholder="Validación"
-            [showClear]="true" (onChange)="cargar()" style="min-width:120px" />
+            [showClear]="true" (onChange)="cargar()" style="min-width:120px" ariaLabel="Validación" />
           <p-button label="Registrar Capacitación" icon="pi pi-plus" size="small" (onClick)="abrirNueva()" />
         </div>
       </div>
@@ -154,8 +154,7 @@ interface CapacitacionForm {
             [forceSelection]="true"
             [delay]="300"
             placeholder="Escriba nombre del docente…"
-            style="width:100%"
-          />
+            style="width:100%" ariaLabel="Docente"/>
         </div>
 
         <div class="col-span-2 flex flex-col gap-1">
@@ -170,27 +169,27 @@ interface CapacitacionForm {
 
         <div class="flex flex-col gap-1">
           <label class="text-sm font-medium">Tipo <span class="text-red-500">*</span></label>
-          <p-select [options]="tipoOpts" [(ngModel)]="form.tipo_certificacion" placeholder="Selecciona…" />
+          <p-select [options]="tipoOpts" [(ngModel)]="form.tipo_certificacion" placeholder="Selecciona…" ariaLabel="Tipo"/>
         </div>
 
         <div class="flex flex-col gap-1">
           <label class="text-sm font-medium">Modalidad <span class="text-red-500">*</span></label>
-          <p-select [options]="modalidadOpts" [(ngModel)]="form.modalidad" placeholder="Selecciona…" />
+          <p-select [options]="modalidadOpts" [(ngModel)]="form.modalidad" placeholder="Selecciona…" ariaLabel="Modalidad"/>
         </div>
 
         <div class="flex flex-col gap-1">
           <label class="text-sm font-medium">Área de Formación</label>
-          <p-select [options]="areaOpts" [(ngModel)]="form.area_formacion" placeholder="Ninguna" [showClear]="true" />
+          <p-select [options]="areaOpts" [(ngModel)]="form.area_formacion" placeholder="Ninguna" [showClear]="true" ariaLabel="Área de Formación"/>
         </div>
 
         <div class="flex flex-col gap-1">
           <label class="text-sm font-medium">Fecha Inicio <span class="text-red-500">*</span></label>
-          <p-datepicker [(ngModel)]="form.fecha_inicio" dateFormat="yy-mm-dd" [showIcon]="true" />
+          <p-datepicker [(ngModel)]="form.fecha_inicio" dateFormat="yy-mm-dd" [showIcon]="true" ariaLabel="Fecha Inicio"/>
         </div>
 
         <div class="flex flex-col gap-1">
           <label class="text-sm font-medium">Fecha Fin <span class="text-red-500">*</span></label>
-          <p-datepicker [(ngModel)]="form.fecha_fin" dateFormat="yy-mm-dd" [showIcon]="true" />
+          <p-datepicker [(ngModel)]="form.fecha_fin" dateFormat="yy-mm-dd" [showIcon]="true" ariaLabel="Fecha Fin"/>
         </div>
 
         <div class="flex flex-col gap-1">

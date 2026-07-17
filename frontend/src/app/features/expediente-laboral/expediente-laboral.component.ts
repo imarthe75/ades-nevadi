@@ -62,7 +62,7 @@ interface ExpedienteLab {
         <h2 class="apex-title">Expediente Laboral Digital</h2>
         <div class="apex-toolbar-actions">
           <input pInputText [(ngModel)]="busquedaNombre" (input)="onBusquedaNombre()"
-            placeholder="Buscar por nombre de persona…" style="width:280px" />
+            placeholder="Buscar por nombre de persona…" style="width:280px" aria-label="Buscar por nombre de persona"/>
           <p-button label="Nuevo Expediente" icon="pi pi-plus" size="small" (onClick)="abrirNuevo()" />
         </div>
       </div>
@@ -99,9 +99,9 @@ interface ExpedienteLab {
             </td>
             <td>
               <div class="flex gap-1">
-                <p-button icon="pi pi-eye"    size="small" [text]="true" severity="info"     (onClick)="ver(exp)"     pTooltip="Ver detalle" />
-                <p-button icon="pi pi-file"   size="small" [text]="true" severity="secondary"(onClick)="verDocs(exp)" pTooltip="Documentos" />
-                <p-button icon="pi pi-pencil" size="small" [text]="true"                     (onClick)="editar(exp)"  pTooltip="Editar" />
+                <p-button icon="pi pi-eye" ariaLabel="Ver detalle"    size="small" [text]="true" severity="info"     (onClick)="ver(exp)"     pTooltip="Ver detalle" />
+                <p-button icon="pi pi-file" ariaLabel="Documentos"   size="small" [text]="true" severity="secondary"(onClick)="verDocs(exp)" pTooltip="Documentos" />
+                <p-button icon="pi pi-pencil" ariaLabel="Editar" size="small" [text]="true"                     (onClick)="editar(exp)"  pTooltip="Editar" />
               </div>
             </td>
           </tr>
@@ -127,21 +127,20 @@ interface ExpedienteLab {
               [forceSelection]="true"
               [delay]="300"
               placeholder="Escriba nombre del empleado…"
-              style="width:100%"
-            />
+              style="width:100%" ariaLabel="Personal"/>
           </div>
         }
         <div class="flex flex-col gap-1">
           <label class="text-sm font-medium">Tipo Contrato</label>
-          <p-select [options]="contratoOpts" [(ngModel)]="form.tipo_contrato" />
+          <p-select [options]="contratoOpts" [(ngModel)]="form.tipo_contrato" ariaLabel="Tipo Contrato"/>
         </div>
         <div class="flex flex-col gap-1">
           <label class="text-sm font-medium">F. Contratación <span class="text-red-500">*</span></label>
-          <p-datepicker [(ngModel)]="form.fecha_contratacion" dateFormat="yy-mm-dd" [showIcon]="true" />
+          <p-datepicker [(ngModel)]="form.fecha_contratacion" dateFormat="yy-mm-dd" [showIcon]="true" ariaLabel="F. Contratación"/>
         </div>
         <div class="flex flex-col gap-1">
           <label class="text-sm font-medium">F. Fin Contrato</label>
-          <p-datepicker [(ngModel)]="form.fecha_fin_contrato" dateFormat="yy-mm-dd" [showIcon]="true" [showClear]="true" />
+          <p-datepicker [(ngModel)]="form.fecha_fin_contrato" dateFormat="yy-mm-dd" [showIcon]="true" [showClear]="true" ariaLabel="F. Fin Contrato"/>
         </div>
         <div class="flex flex-col gap-1">
           <label class="text-sm font-medium">Salario Mensual</label>
@@ -169,7 +168,7 @@ interface ExpedienteLab {
         </div>
         <div class="flex flex-col gap-1">
           <label class="text-sm font-medium">Nivel de Estudios</label>
-          <p-select [options]="estudiosOpts" [(ngModel)]="form.nivel_estudios" [showClear]="true" />
+          <p-select [options]="estudiosOpts" [(ngModel)]="form.nivel_estudios" [showClear]="true" ariaLabel="Nivel de Estudios"/>
         </div>
         <div class="flex flex-col gap-1">
           <label class="text-sm font-medium">Especialidad</label>
@@ -190,7 +189,7 @@ interface ExpedienteLab {
       </div>
       <ng-template pTemplate="footer">
         <p-button label="Cancelar" [text]="true" (onClick)="dialogForm=false" />
-        <p-button [label]="editandoId ? 'Guardar cambios' : 'Crear expediente'" icon="pi pi-save"
+        <p-button [label]="editandoId ? 'Guardar cambios' : 'Crear expediente'" icon="pi pi-save" ariaLabel="Guardar"
           [loading]="guardando()" (onClick)="guardar()" />
       </ng-template>
     </p-dialog>
@@ -210,9 +209,9 @@ interface ExpedienteLab {
             <p class="text-gray-500 text-sm text-center py-4">Sin documentos registrados.</p>
           }
           <div class="mt-4 border-t pt-3 flex gap-2">
-            <p-select [options]="docTipoOpts" [(ngModel)]="nuevoDocTipo" placeholder="Tipo doc." style="flex:1" />
-            <input pInputText [(ngModel)]="nuevoDocUrl" placeholder="URL en MinIO…" style="flex:2" />
-            <p-button icon="pi pi-plus" size="small" (onClick)="agregarDoc()" />
+            <p-select [options]="docTipoOpts" [(ngModel)]="nuevoDocTipo" placeholder="Tipo doc." style="flex:1" ariaLabel="Tipo doc" />
+            <input pInputText [(ngModel)]="nuevoDocUrl" placeholder="URL en MinIO…" style="flex:2" aria-label="URL en MinIO"/>
+            <p-button icon="pi pi-plus" ariaLabel="Agregar documento" size="small" (onClick)="agregarDoc()" />
           </div>
         </div>
       }

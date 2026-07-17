@@ -100,10 +100,10 @@ const CATEGORIAS = [
           <p-tabpanel value="acervo">
             <div class="apex-toolbar-actions">
               <input pInputText [(ngModel)]="busqueda" placeholder="Título, autor o ISBN…"
-                style="width:260px" (keyup.enter)="cargarLibros()" />
+                style="width:260px" (keyup.enter)="cargarLibros()" aria-label="Título, autor o ISBN"/>
               <p-select [options]="categorias" optionLabel="label" optionValue="value"
                 [(ngModel)]="filtroCategoria" placeholder="Categoría" [showClear]="true"
-                (onChange)="cargarLibros()" style="width:170px" />
+                (onChange)="cargarLibros()" style="width:170px" ariaLabel="Categoría" />
               <p-button label="Buscar" icon="pi pi-search" size="small" (onClick)="cargarLibros()" />
               <p-button label="Nuevo libro" icon="pi pi-plus" size="small" (onClick)="abrirNuevoLibro()" />
             </div>
@@ -123,9 +123,9 @@ const CATEGORIAS = [
             <div class="apex-toolbar-actions">
               <p-select [options]="estatusFiltro" optionLabel="label" optionValue="value"
                 [(ngModel)]="filtroEstatus" placeholder="Estatus" [showClear]="true"
-                (onChange)="cargarPrestamos()" style="width:170px" />
+                (onChange)="cargarPrestamos()" style="width:170px" ariaLabel="Estatus" />
               <input pInputText [(ngModel)]="filtroPersonaId" placeholder="UUID persona…"
-                style="width:240px" (keyup.enter)="cargarPrestamos()" />
+                style="width:240px" (keyup.enter)="cargarPrestamos()" aria-label="UUID persona"/>
               <p-button label="Buscar" icon="pi pi-search" size="small" (onClick)="cargarPrestamos()" />
               <p-button label="Nuevo préstamo" icon="pi pi-book" size="small" (onClick)="abrirNuevoPrestamo()" />
             </div>
@@ -156,7 +156,7 @@ const CATEGORIAS = [
         <div class="flex flex-col gap-1">
           <label class="text-sm font-medium">Categoría *</label>
           <p-select [options]="categorias" optionLabel="label" optionValue="value"
-            [(ngModel)]="formLibro.categoria" placeholder="Seleccionar…" />
+            [(ngModel)]="formLibro.categoria" placeholder="Seleccionar…" ariaLabel="Categoría"/>
         </div>
         <div class="flex flex-col gap-1">
           <label class="text-sm font-medium">ISBN</label>
@@ -183,7 +183,7 @@ const CATEGORIAS = [
       <ng-template pTemplate="footer">
         <p-button label="Cancelar" [text]="true" (onClick)="dialogLibro=false" />
         <p-button [label]="editandoLibroId ? 'Guardar cambios' : 'Registrar libro'"
-          icon="pi pi-save" [loading]="guardando()" (onClick)="guardarLibro()" />
+          icon="pi pi-save" ariaLabel="Guardar libro" [loading]="guardando()" (onClick)="guardarLibro()" />
       </ng-template>
     </p-dialog>
 
@@ -194,7 +194,7 @@ const CATEGORIAS = [
         <div class="col-span-2 flex flex-col gap-1">
           <label class="text-sm font-medium">Libro *</label>
           <p-select [options]="librosDisponibles()" optionLabel="label" optionValue="value"
-            [(ngModel)]="formPrestamo.libro_id" [filter]="true" placeholder="Seleccionar libro disponible…" />
+            [(ngModel)]="formPrestamo.libro_id" [filter]="true" placeholder="Seleccionar libro disponible…" ariaLabel="Libro"/>
         </div>
         <div class="col-span-2 flex flex-col gap-1">
           <label class="text-sm font-medium">UUID Persona (alumno o personal) *</label>
@@ -203,7 +203,7 @@ const CATEGORIAS = [
         <div class="col-span-2 flex flex-col gap-1">
           <label class="text-sm font-medium">Fecha devolución esperada *</label>
           <p-datepicker [(ngModel)]="formPrestamo.fecha_devolucion_esperada" dateFormat="dd/mm/yy"
-                        [showIcon]="true" placeholder="DD/MM/AAAA" [style]="{width:'100%'}" [inputStyle]="{width:'100%'}" />
+                        [showIcon]="true" placeholder="DD/MM/AAAA" [style]="{width:'100%'}" [inputStyle]="{width:'100%'}" ariaLabel="Fecha devolución esperada"/>
         </div>
         <div class="col-span-2 flex flex-col gap-1">
           <label class="text-sm font-medium">Observaciones</label>
@@ -232,7 +232,7 @@ const CATEGORIAS = [
             <div class="flex flex-col gap-1 mt-2">
               <label class="text-sm font-medium">Cierre</label>
               <p-select [options]="cierreOpts" optionLabel="label" optionValue="value"
-                [(ngModel)]="cierreEstatus" />
+                [(ngModel)]="cierreEstatus" ariaLabel="Cierre"/>
             </div>
           } @else {
             <div class="text-gray-500 mt-2">Este préstamo ya está cerrado.</div>

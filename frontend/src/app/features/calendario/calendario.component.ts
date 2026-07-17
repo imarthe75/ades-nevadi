@@ -60,10 +60,10 @@ interface EventoForm {
 <div class="filter-bar">
   <p-select [options]="ciclos()" optionLabel="nombre_ciclo" optionValue="id"
             placeholder="Ciclo escolar" [(ngModel)]="cicloId"
-            (onChange)="cargar()" [filter]="true" filterPlaceholder="Buscar..." styleClass="w-220" />
+            (onChange)="cargar()" [filter]="true" filterPlaceholder="Buscar..." styleClass="w-220" ariaLabel="Ciclo escolar" />
   <p-select [options]="tipoOpts" optionLabel="label" optionValue="value"
             placeholder="Todos los tipos" [(ngModel)]="tipoFiltro"
-            (onChange)="cargar()" [showClear]="true" styleClass="w-200" />
+            (onChange)="cargar()" [showClear]="true" styleClass="w-200" ariaLabel="Tipos" />
 </div>
 
 <!-- Resumen por tipo -->
@@ -93,17 +93,17 @@ interface EventoForm {
       <label for="ciclo-ev">Ciclo escolar *</label>
       <p-select id="ciclo-ev" [options]="ciclos()" optionLabel="nombre_ciclo" optionValue="id"
                 [(ngModel)]="form.ciclo_escolar_id" styleClass="w-full"
-                [filter]="true" filterPlaceholder="Buscar..." />
+                [filter]="true" filterPlaceholder="Buscar..." ariaLabel="Ciclo escolar"/>
     </div>
     <div class="field">
       <label for="tipo-ev">Tipo *</label>
       <p-select id="tipo-ev" [options]="tipoOpts" optionLabel="label" optionValue="value"
-                [(ngModel)]="form.tipo_evento" styleClass="w-full" />
+                [(ngModel)]="form.tipo_evento" styleClass="w-full" ariaLabel="Tipo"/>
     </div>
     <div class="field">
       <label for="fecha-ev">Fecha *</label>
       <p-datepicker inputId="fecha-ev" [(ngModel)]="form.fecha_evento" dateFormat="dd/mm/yy" [showIcon]="true"
-                    placeholder="DD/MM/AAAA" styleClass="w-full" [inputStyle]="{width:'100%'}" />
+ placeholder="DD/MM/AAAA" styleClass="w-full" [inputStyle]="{width:'100%'}"/>
     </div>
     <div class="field col-span-2">
       <label for="nombre-ev">Nombre del evento *</label>
@@ -121,7 +121,7 @@ interface EventoForm {
         <label for="plantel-ev">Plantel específico</label>
         <p-select id="plantel-ev" [options]="planteles()" optionLabel="nombre_plantel" optionValue="id"
                   [(ngModel)]="form.plantel_id" styleClass="w-full"
-                  [filter]="true" filterPlaceholder="Buscar..." />
+                  [filter]="true" filterPlaceholder="Buscar..." ariaLabel="Plantel específico"/>
       </div>
     }
   </div>

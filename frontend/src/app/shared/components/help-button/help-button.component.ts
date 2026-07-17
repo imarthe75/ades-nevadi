@@ -103,7 +103,7 @@ const AYUDA: Record<string, HelpContent> = {
   imports: [CommonModule, RouterLink, ButtonModule, PopoverModule],
   template: `
     <p-button
-      icon="pi pi-question-circle"
+      icon="pi pi-question-circle" ariaLabel="Ayuda"
       [rounded]="true"
       [text]="true"
       severity="secondary"

@@ -50,7 +50,7 @@ import { AdesFormatDirective } from '../../shared/directives/ades-format.directi
         optionLabel="nombre_materia" optionValue="id" placeholder="Materia"
         (onChange)="loadTareas()"
         [showClear]="true" [disabled]="!selectedGrupoId"
-        [filter]="true" filterPlaceholder="Buscar..." styleClass="filter-select" />
+        [filter]="true" filterPlaceholder="Buscar..." styleClass="filter-select" ariaLabel="Materia" />
     </div>
 
     @if (!selectedGrupoId || !selectedMateriaId) {
@@ -221,7 +221,7 @@ import { AdesFormatDirective } from '../../shared/directives/ades-format.directi
           <p-datepicker [(ngModel)]="form.fecha_entrega" dateFormat="dd/mm/yy"
                         [showIcon]="true" [minDate]="hoy" placeholder="DD/MM/AAAA"
                         [style]="{width:'100%'}" [inputStyle]="{width:'100%'}"
-                        pTooltip="La fecha de entrega no puede ser anterior a hoy" tooltipPosition="top" />
+                        pTooltip="La fecha de entrega no puede ser anterior a hoy" tooltipPosition="top" ariaLabel="Fecha de Entrega"/>
         </div>
         <div>
           <label class="dlg-lbl">Puntaje Máximo *</label>

@@ -122,8 +122,7 @@ interface Notif { id: string; titulo: string; cuerpo: string; tipo: string; leid
             optionLabel="nombre_plantel"
             placeholder="Plantel..."
             styleClass="ctx-selector"
-            (onChange)="catalog.onPlantelChange($event.value)"
-          />
+            (onChange)="catalog.onPlantelChange($event.value)" ariaLabel="Plantel" />
         }
 
         <span class="ctx-sep">/</span>
@@ -139,8 +138,7 @@ interface Notif { id: string; titulo: string; cuerpo: string; tipo: string; leid
             optionLabel="nombre_nivel"
             placeholder="Nivel..."
             styleClass="ctx-selector ctx-selector-sm"
-            (onChange)="catalog.onNivelChange($event.value)"
-          />
+            (onChange)="catalog.onNivelChange($event.value)" ariaLabel="Nivel" />
         }
 
         <span class="ctx-sep">/</span>
@@ -153,8 +151,7 @@ interface Notif { id: string; titulo: string; cuerpo: string; tipo: string; leid
           optionLabel="_label"
           placeholder="Ciclo..."
           styleClass="ctx-selector ctx-selector-sm"
-          (onChange)="catalog.onCicloChange($event.value)"
-        />
+          (onChange)="catalog.onCicloChange($event.value)" ariaLabel="Ciclo" />
 
         <span class="ctx-sep">/</span>
 
@@ -169,8 +166,7 @@ interface Notif { id: string; titulo: string; cuerpo: string; tipo: string; leid
             optionLabel="nombre_grado"
             placeholder="Grado..."
             styleClass="ctx-selector ctx-selector-sm"
-            (onChange)="catalog.onGradoChange($event.value)"
-          />
+            (onChange)="catalog.onGradoChange($event.value)" ariaLabel="Grado" />
         }
 
         <span class="ctx-sep">/</span>
@@ -186,8 +182,7 @@ interface Notif { id: string; titulo: string; cuerpo: string; tipo: string; leid
             optionLabel="_label"
             placeholder="Grupo..."
             styleClass="ctx-selector ctx-selector-sm"
-            (onChange)="catalog.onGrupoChange($event.value)"
-          />
+            (onChange)="catalog.onGrupoChange($event.value)" ariaLabel="Grupo" />
         }
       </ng-template>
 

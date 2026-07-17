@@ -118,7 +118,7 @@ const NIVEL_ORDER = ['PRIMARIA', 'SECUNDARIA', 'PREPARATORIA'];
         <p-select [options]="ciclos()" [(ngModel)]="selectedCicloId"
           optionLabel="nombre_ciclo" optionValue="id"
           placeholder="Ciclo..." styleClass="ctx-selector"
-          (onChange)="onCicloChange()" />
+          (onChange)="onCicloChange()" ariaLabel="Ciclo" />
       </div>
     </div>
 
@@ -192,6 +192,7 @@ const NIVEL_ORDER = ['PRIMARIA', 'SECUNDARIA', 'PREPARATORIA'];
                           <input class="horas-input"
                             type="number" min="1" max="20"
                             [value]="p.horas_semana ?? 0"
+                            [attr.aria-label]="'Horas semana de ' + m.nombre_materia + ' en ' + g.nombre_grado"
                             (blur)="guardarHoras($event, p.id)"
                             (keyup.enter)="guardarHoras($event, p.id)"
                             (keyup.escape)="editCellKey.set('')"
@@ -259,17 +260,17 @@ const NIVEL_ORDER = ['PRIMARIA', 'SECUNDARIA', 'PREPARATORIA'];
         <p-tabpanel value="catalogo">
           <div class="cat-toolbar">
             <input pInputText placeholder="Buscar materia..." [(ngModel)]="busquedaCat"
-              style="width:260px" (input)="filtrarMaterias()" />
+              style="width:260px" (input)="filtrarMaterias()" aria-label="Buscar materia"/>
             <p-select [options]="niveles()" [(ngModel)]="filtroNivelId"
               optionLabel="nombre_nivel" optionValue="id"
               placeholder="Todos los niveles" [showClear]="true"
               (onChange)="onFiltroNivelChange()" style="width:180px"
-              [filter]="true" filterPlaceholder="Buscar..."/>
+              [filter]="true" filterPlaceholder="Buscar..." ariaLabel="Niveles" />
             <p-select [options]="gradosFiltradosPorNivel()" [(ngModel)]="filtroGradoId"
               optionLabel="nombre_grado" optionValue="id"
               placeholder="Todos los grados" [showClear]="true"
               (onChange)="filtrarMaterias()" style="width:180px"
-              [filter]="true" filterPlaceholder="Buscar..."/>
+              [filter]="true" filterPlaceholder="Buscar..." ariaLabel="Grados" />
             @if (esAdmin()) {
               <app-import-button entidad="materias" [onSuccess]="cargarMaterias.bind(this)" />
               <p-button label="Nueva materia" icon="pi pi-plus" size="small"
@@ -310,7 +311,7 @@ const NIVEL_ORDER = ['PRIMARIA', 'SECUNDARIA', 'PREPARATORIA'];
                   </div>
                 </div>
                 @if (esAdmin()) {
-                  <p-button icon="pi pi-trash" [text]="true" severity="danger" size="small"
+                  <p-button icon="pi pi-trash" ariaLabel="Eliminar plan NEE" [text]="true" severity="danger" size="small"
                     (onClick)="eliminarPlanNee(pn.id)" />
                 }
               </div>
@@ -325,16 +326,16 @@ const NIVEL_ORDER = ['PRIMARIA', 'SECUNDARIA', 'PREPARATORIA'];
               optionLabel="nombre_nivel" optionValue="id"
               placeholder="Nivel..." style="width:180px"
               (onChange)="onTemarioNivelChange()"
-              [filter]="true" filterPlaceholder="Buscar..."/>
+              [filter]="true" filterPlaceholder="Buscar..." ariaLabel="Nivel" />
             <p-select [options]="gradosParaTemario()" [(ngModel)]="temarioGradoId"
               optionLabel="nombre_grado" optionValue="id"
               placeholder="Grado..." style="width:160px"
               (onChange)="onTemarioGradoChange()"
-              [filter]="true" filterPlaceholder="Buscar..."/>
+              [filter]="true" filterPlaceholder="Buscar..." ariaLabel="Grado" />
             <p-select [options]="materiasParaTemario()" [(ngModel)]="temarioMateriaId"
               optionLabel="nombre_materia" optionValue="id"
               placeholder="Materia..." style="width:260px" [filter]="true"
-              (onChange)="onTemarioMateriaChange()" />
+              (onChange)="onTemarioMateriaChange()" ariaLabel="Materia" />
           </div>
 
           @if (temarioPlanId()) {
@@ -373,17 +374,17 @@ const NIVEL_ORDER = ['PRIMARIA', 'SECUNDARIA', 'PREPARATORIA'];
           <label>Nivel *</label>
           <p-select [options]="niveles()" [(ngModel)]="materiaEdit.nivel_educativo_id"
             optionLabel="nombre_nivel" optionValue="id"
- [filter]="true" filterPlaceholder="Buscar..."/>
+ [filter]="true" filterPlaceholder="Buscar..." ariaLabel="Nivel" />
           <label>Tipo *</label>
           <p-select [options]="tiposMateria" [(ngModel)]="materiaEdit.tipo_materia"
-            optionLabel="label" optionValue="value" placeholder="Selecciona tipo..." />
+            optionLabel="label" optionValue="value" placeholder="Selecciona tipo..." ariaLabel="Tipo"/>
           <label>Campo formativo</label>
           <p-select [options]="camposFormativos" [(ngModel)]="materiaEdit.campo_formativo"
-            optionLabel="label" optionValue="value" placeholder="(solo NEM primaria)" [showClear]="true" />
+            optionLabel="label" optionValue="value" placeholder="(solo NEM primaria)" [showClear]="true" ariaLabel="Campo formativo"/>
           <label>Horas/semana</label>
           <p-inputnumber [(ngModel)]="materiaEdit.horas_semana" [min]="1" [max]="30" />
           <label>Activa</label>
-          <p-toggleswitch [(ngModel)]="materiaEdit.is_active" />
+          <p-toggleswitch [(ngModel)]="materiaEdit.is_active" ariaLabel="Activa"/>
         </div>
         <ng-template pTemplate="footer">
           <p-button label="Cancelar" severity="secondary" [text]="true" (onClick)="dlgMateria=false" />
@@ -423,7 +424,7 @@ const NIVEL_ORDER = ['PRIMARIA', 'SECUNDARIA', 'PREPARATORIA'];
         <label>Materias del plan alternativo *</label>
         <p-multiselect [options]="materiasNivelActual()" [(ngModel)]="planNeeForm.materiaIds"
           optionLabel="nombre_materia" optionValue="id" display="chip"
-          placeholder="Selecciona las materias que sí aplican" style="width:100%" />
+          placeholder="Selecciona las materias que sí aplican" style="width:100%" ariaLabel="Materias del plan alternativo"/>
       </div>
       <ng-template pTemplate="footer">
         <p-button label="Cancelar" severity="secondary" [text]="true" (onClick)="dlgPlanNee=false" />

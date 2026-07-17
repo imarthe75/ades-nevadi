@@ -87,7 +87,7 @@ const TIPOS = [
         <h2 class="apex-title">Condiciones Crónicas de Alumnos</h2>
         <div class="apex-toolbar-actions">
           <input pInputText [(ngModel)]="busquedaAlumnoId" placeholder="UUID del alumno…" style="width:260px"
-            (keyup.enter)="cargar()" />
+            (keyup.enter)="cargar()" aria-label="UUID del alumno"/>
           <p-button label="Buscar" icon="pi pi-search" size="small" (onClick)="cargar()" />
           <p-button label="Ver alerta" icon="pi pi-bell" size="small" severity="warn"
             (onClick)="verAlerta()" [disabled]="!busquedaAlumnoId" pTooltip="Pantalla de emergencia" />
@@ -117,11 +117,11 @@ const TIPOS = [
         <div class="flex flex-col gap-1">
           <label class="text-sm font-medium">Tipo de Condición *</label>
           <p-select [options]="tipos" optionLabel="label" optionValue="value"
-            [(ngModel)]="form.tipo_condicion" placeholder="Seleccionar…" />
+            [(ngModel)]="form.tipo_condicion" placeholder="Seleccionar…" ariaLabel="Tipo de Condición"/>
         </div>
         <div class="flex flex-col gap-1 items-center justify-end">
           <label class="text-sm font-medium">¿Activa?</label>
-          <p-checkbox [(ngModel)]="form.activa" [binary]="true" />
+          <p-checkbox [(ngModel)]="form.activa" [binary]="true" ariaLabel="¿Activa?"/>
         </div>
         <div class="col-span-2 flex flex-col gap-1">
           <label class="text-sm font-medium">Descripción *</label>
@@ -155,7 +155,7 @@ const TIPOS = [
       <ng-template pTemplate="footer">
         <p-button label="Cancelar" [text]="true" (onClick)="dialogForm=false" />
         <p-button [label]="editandoId ? 'Guardar cambios' : 'Registrar condición'"
-          icon="pi pi-save" [loading]="guardando()" (onClick)="guardar()" />
+          icon="pi pi-save" ariaLabel="Guardar" [loading]="guardando()" (onClick)="guardar()" />
       </ng-template>
     </p-dialog>
 

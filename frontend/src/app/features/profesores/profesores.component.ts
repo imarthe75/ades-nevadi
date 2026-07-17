@@ -64,8 +64,7 @@ import { AdesFormatDirective } from '../../shared/directives/ades-format.directi
           type="text"
           placeholder="Buscar profesor..."
           [(ngModel)]="busqueda"
-          style="width:100%"
-        />
+          style="width:100%" aria-label="Buscar profesor"/>
       </div>
     </div>
 

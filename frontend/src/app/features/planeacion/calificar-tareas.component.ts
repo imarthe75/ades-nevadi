@@ -57,7 +57,7 @@ import { ApiService } from '../../core/services/api.service';
                    optionLabel="label" optionValue="value"
                    placeholder="Seleccionar grupo..."
                    (onChange)="onGrupoChange()"
-                   [filter]="true" filterPlaceholder="Buscar..."/>
+                   [filter]="true" filterPlaceholder="Buscar..." ariaLabel="Grupo" />
         </div>
       </form>
     </div>
@@ -87,6 +87,7 @@ import { ApiService } from '../../core/services/api.service';
                 <td>
                   <input type="radio" [value]="tarea.tarea_id"
                          [(ngModel)]="tareaSeleccionada"
+                         [attr.aria-label]="'Seleccionar tarea ' + tarea.nombre_tarea"
                          (change)="onTareaSelect(tarea)"/>
                 </td>
                 <td><strong>{{tarea.nombre_tarea}}</strong></td>
@@ -170,12 +171,12 @@ import { ApiService } from '../../core/services/api.service';
                 <input pInputNumber type="number" [(ngModel)]="entrega.calificacion"
                        min="0" max="10" [step]="0.5"
                        [disabled]="entrega.calificacion_id !== null && !editando(entrega.entrega_id)"
-                       placeholder="0-10" class="w-100"/>
+                       placeholder="0-10" class="w-100" [attr.aria-label]="'Calificación de ' + entrega.nombre_alumno"/>
               </td>
               <td>
                 <textarea pTextarea [(ngModel)]="entrega.comentarios"
                          [disabled]="entrega.calificacion_id !== null && !editando(entrega.entrega_id)"
-                         rows="2" class="w-100" placeholder="Comentarios (opcional)"></textarea>
+                         rows="2" class="w-100" placeholder="Comentarios (opcional)" aria-label="Comentarios (opcional)"></textarea>
               </td>
               <td>
                 <p-tag [value]="entrega.calificacion_id ? '✓ Calificado' : '⏳ Pendiente'"

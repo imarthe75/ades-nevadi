@@ -144,6 +144,7 @@ const TIPO_SEV: Record<string, TagSeverity> = {
                   <td><strong>{{ a.nombre_alumno }}</strong></td>
                   <td>
                     <input type="number" [(ngModel)]="a.calificacion"
+                      [attr.aria-label]="'Calificación de ' + a.nombre_alumno"
                       [min]="0" [max]="selEval.puntaje_maximo" step="0.1"
                       (ngModelChange)="onCalifChange(a)"
                       class="cal-input" />
@@ -159,7 +160,7 @@ const TIPO_SEV: Record<string, TagSeverity> = {
                     <input type="text" [(ngModel)]="a.comentarios"
                       placeholder="Opcional..."
                       (input)="a._editada = true"
-                      class="comentarios-input" />
+                      class="comentarios-input" [attr.aria-label]="'Comentarios de ' + a.nombre_alumno"/>
                   </td>
                 </tr>
               }
@@ -182,7 +183,7 @@ const TIPO_SEV: Record<string, TagSeverity> = {
           <p-select [options]="nivelesOpts()" [(ngModel)]="form._nivelId"
                     optionLabel="nombre_nivel" optionValue="id"
                     placeholder="Nivel…" styleClass="w-full"
-                    (onChange)="onNivelChange()" />
+                    (onChange)="onNivelChange()" ariaLabel="Nivel"/>
         </div>
         <div class="form-field">
           <label>Grado *</label>
@@ -190,7 +191,7 @@ const TIPO_SEV: Record<string, TagSeverity> = {
                     optionLabel="nombre_grado" optionValue="id"
                     placeholder="Grado…" styleClass="w-full"
                     [disabled]="!form._nivelId"
-                    (onChange)="onGradoChange()" />
+                    (onChange)="onGradoChange()" ariaLabel="Grado"/>
         </div>
         <div class="form-field">
           <label>Grupo *</label>
@@ -199,32 +200,32 @@ const TIPO_SEV: Record<string, TagSeverity> = {
                     placeholder="Seleccionar..." styleClass="w-full"
                     [disabled]="!form._gradoId"
                     (onChange)="onGrupoChange()"
- [filter]="true" filterPlaceholder="Buscar..."/>
+ [filter]="true" filterPlaceholder="Buscar..." ariaLabel="Grupo" />
         </div>
         <div class="form-field">
           <label>Materia *</label>
           <p-select [options]="materias()" [(ngModel)]="form.materia_id"
                     optionLabel="label" optionValue="value"
                     placeholder="Seleccionar..." styleClass="w-full" 
- [filter]="true" filterPlaceholder="Buscar..."/>
+ [filter]="true" filterPlaceholder="Buscar..." ariaLabel="Materia" />
         </div>
         <div class="form-field">
           <label>Periodo *</label>
           <p-select [options]="periodos()" [(ngModel)]="form.periodo_evaluacion_id"
                     optionLabel="label" optionValue="value"
                     placeholder="Seleccionar..." styleClass="w-full" 
- [filter]="true" filterPlaceholder="Buscar..."/>
+ [filter]="true" filterPlaceholder="Buscar..." ariaLabel="Periodo" />
         </div>
         <div class="form-field">
           <label>Tipo</label>
           <p-select [options]="types" [(ngModel)]="form.tipo_evaluacion"
                     optionLabel="label" optionValue="value" styleClass="w-full" 
- [filter]="true" filterPlaceholder="Buscar..."/>
+ [filter]="true" filterPlaceholder="Buscar..." ariaLabel="Tipo" />
         </div>
         <div class="form-field">
           <label>Fecha *</label>
           <p-datepicker [(ngModel)]="form.fecha_evaluacion" dateFormat="dd/mm/yy" [showIcon]="true"
-                        placeholder="DD/MM/AAAA" [style]="{width:'100%'}" [inputStyle]="{width:'100%'}" />
+                        placeholder="DD/MM/AAAA" [style]="{width:'100%'}" [inputStyle]="{width:'100%'}" ariaLabel="Fecha"/>
         </div>
         <div class="form-field">
           <label>Puntaje máximo</label>

@@ -56,25 +56,25 @@ interface Acta {
           <!-- Plantel -->
           <p-select [options]="plantelesOpts()" optionLabel="label" optionValue="value"
             placeholder="Plantel…" [(ngModel)]="plantelSel"
-            (ngModelChange)="onPlantelChange()" style="min-width:170px" />
+            (ngModelChange)="onPlantelChange()" style="min-width:170px" ariaLabel="Plantel" />
 
           <!-- Semestre -->
           <p-select [options]="semestresOpts()" optionLabel="label" optionValue="value"
             placeholder="Semestre…" [(ngModel)]="semestreSel"
             (ngModelChange)="onSemestreChange()"
-            [disabled]="!plantelSel" style="min-width:170px" />
+            [disabled]="!plantelSel" style="min-width:170px" ariaLabel="Semestre" />
 
           <!-- Grupo -->
           <p-select [options]="gruposOpts()" optionLabel="label" optionValue="value"
             placeholder="Grupo…" [(ngModel)]="grupoSel"
             (ngModelChange)="onGrupoChange($event)"
-            [disabled]="!semestreSel" style="min-width:110px" />
+            [disabled]="!semestreSel" style="min-width:110px" ariaLabel="Grupo" />
 
           <!-- Materia -->
           <p-select [options]="materiaOpts()" optionLabel="label" optionValue="value"
             placeholder="Materia…" [(ngModel)]="materiaSel"
             [filter]="true" filterBy="label"
-            [disabled]="!grupoSel" style="min-width:220px" />
+            [disabled]="!grupoSel" style="min-width:220px" ariaLabel="Materia" />
 
           <p-button label="Generar" icon="pi pi-file" size="small"
             [loading]="cargando()" [disabled]="!grupoSel || !materiaSel"

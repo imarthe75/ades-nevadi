@@ -64,7 +64,7 @@ const BUCKETS: Record<string, { base: number; tope: number }> = {
       <div class="apex-toolbar">
         <h2 class="apex-title">Formato 911 — Inicio de cursos (SEP)</h2>
         <div class="apex-toolbar-actions">
-          <input pInputText [(ngModel)]="cicloId" placeholder="UUID ciclo (opcional)…" style="width:260px" />
+          <input pInputText [(ngModel)]="cicloId" placeholder="UUID ciclo (opcional)…" style="width:260px" aria-label="UUID ciclo (opcional)"/>
           <p-button label="Generar" icon="pi pi-refresh" size="small" (onClick)="cargar()" [loading]="cargando()" />
         </div>
       </div>

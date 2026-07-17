@@ -124,11 +124,11 @@ interface Insights {
   <p-select [options]="materias()" optionLabel="nombre_materia" optionValue="id"
             placeholder="Materia" [(ngModel)]="materiaSel"
             (onChange)="cargarActividades()" [disabled]="!grupoSel"
- [filter]="true" filterPlaceholder="Buscar..."/>
+ [filter]="true" filterPlaceholder="Buscar..." ariaLabel="Materia" />
   <p-select [options]="periodos()" optionLabel="nombre_periodo" optionValue="id"
             placeholder="Período" [(ngModel)]="periodoSel"
             (onChange)="cargarConcentrado()" [disabled]="!grupoSel"
- [filter]="true" filterPlaceholder="Buscar..."/>
+ [filter]="true" filterPlaceholder="Buscar..." ariaLabel="Período" />
 </div>
 
 @if (!grupoSel) {
@@ -148,8 +148,7 @@ interface Insights {
         type="text"
         placeholder="Buscar alumno, actividad o materia..."
         [(ngModel)]="busqueda"
-        style="width:100%"
-      />
+        style="width:100%" aria-label="Buscar alumno, actividad o materia"/>
     </div>
   </div>
 
@@ -368,7 +367,7 @@ interface Insights {
       <label>Tipo</label>
       <p-select [options]="tiposItem" optionLabel="label" optionValue="value"
                 [(ngModel)]="nuevaAct.tipo_item" styleClass="w-full"
- [filter]="true" filterPlaceholder="Buscar..."/>
+ [filter]="true" filterPlaceholder="Buscar..." ariaLabel="Tipo" />
     </div>
     <div class="field">
       <label>Puntaje máximo</label>
@@ -380,14 +379,14 @@ interface Insights {
       <label>Fecha asignación</label>
       <p-datepicker [(ngModel)]="nuevaAct.fecha_asignacion" dateFormat="dd/mm/yy"
                     [showIcon]="true" placeholder="DD/MM/AAAA"
-                    [style]="{width:'100%'}" [inputStyle]="{width:'100%'}" />
+                    [style]="{width:'100%'}" [inputStyle]="{width:'100%'}" ariaLabel="Fecha asignación"/>
     </div>
     <div class="field">
       <label>Fecha entrega *</label>
       <p-datepicker [(ngModel)]="nuevaAct.fecha_entrega" dateFormat="dd/mm/yy"
                     [showIcon]="true" [minDate]="nuevaAct.fecha_asignacion" placeholder="DD/MM/AAAA"
                     [style]="{width:'100%'}" [inputStyle]="{width:'100%'}"
-                    pTooltip="No puede ser anterior a la fecha de asignación" tooltipPosition="top" />
+                    pTooltip="No puede ser anterior a la fecha de asignación" tooltipPosition="top" ariaLabel="Fecha entrega"/>
     </div>
     <div class="field col-span-2">
       <label>Descripción</label>

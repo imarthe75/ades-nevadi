@@ -46,13 +46,13 @@ interface CicloOpt   { id: string; nombre_ciclo: string; es_vigente: boolean; }
 <div class="filter-bar">
   <p-select [options]="ciclos()" optionLabel="nombre_ciclo" optionValue="id"
             placeholder="Ciclo origen (actual)" [(ngModel)]="cicloOrigenId"
-            (onChange)="onCicloChange()" styleClass="w-200" [filter]="true" filterPlaceholder="Buscar..." />
+            (onChange)="onCicloChange()" styleClass="w-200" [filter]="true" filterPlaceholder="Buscar..." ariaLabel="Ciclo origen (actual)" />
   <p-select [options]="ciclos()" optionLabel="nombre_ciclo" optionValue="id"
             placeholder="Ciclo destino (nuevo)" [(ngModel)]="cicloDestinoId"
-            (onChange)="onCicloChange()" styleClass="w-200" [filter]="true" filterPlaceholder="Buscar..." />
+            (onChange)="onCicloChange()" styleClass="w-200" [filter]="true" filterPlaceholder="Buscar..." ariaLabel="Ciclo destino (nuevo)" />
   <p-select [options]="estadoOpts" optionLabel="label" optionValue="value"
             placeholder="Todos los estados" [(ngModel)]="estadoFiltro"
-            (onChange)="cargarEstado()" [showClear]="true" styleClass="w-180" />
+            (onChange)="cargarEstado()" [showClear]="true" styleClass="w-180" ariaLabel="Estados" />
 </div>
 
 <!-- KPIs -->

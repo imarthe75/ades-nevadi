@@ -132,10 +132,10 @@ const ESTADO_SEV: Record<string, string> = {
         <span class="apex-toolbar-spacer"></span>
         <p-select [options]="tiposReunion" [(ngModel)]="filtroTipo"
                   optionLabel="label" optionValue="value" placeholder="Filtrar por tipo"
-                  [showClear]="true" (onChange)="cargarReuniones()" style="min-width:180px" />
+                  [showClear]="true" (onChange)="cargarReuniones()" style="min-width:180px" ariaLabel="Tipo" />
         <p-select [options]="estadosOpt" [(ngModel)]="filtroEstado"
                   optionLabel="label" optionValue="value" placeholder="Estado"
-                  [showClear]="true" (onChange)="cargarReuniones()" style="min-width:140px" />
+                  [showClear]="true" (onChange)="cargarReuniones()" style="min-width:140px" ariaLabel="Estado" />
       </div>
 
       <p-table [value]="reuniones()" [loading]="cargando()" stripedRows
@@ -211,14 +211,14 @@ const ESTADO_SEV: Record<string, string> = {
     <div>
       <label class="apex-label">Tipo *</label>
       <p-select [options]="tiposReunion" [(ngModel)]="crearForm.tipo"
-                optionLabel="label" optionValue="value" class="w-full" />
+                optionLabel="label" optionValue="value" class="w-full" ariaLabel="Tipo"/>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
       <div>
         <label class="apex-label">Grupo (opcional)</label>
         <p-select [options]="grupos()" [(ngModel)]="crearForm.grupo_id"
                   optionLabel="_label" optionValue="id" placeholder="Seleccionar grupo"
-                  [showClear]="true" class="w-full" />
+                  [showClear]="true" class="w-full" ariaLabel="Grupo (opcional)"/>
       </div>
       <div>
         <label class="apex-label">Duración máx. (min)</label>
@@ -241,7 +241,7 @@ const ESTADO_SEV: Record<string, string> = {
                 placeholder="Mensaje que verán los participantes al entrar"></textarea>
     </div>
     <div style="display:flex;align-items:center;gap:.75rem">
-      <p-toggleswitch [(ngModel)]="crearForm.grabar" />
+      <p-toggleswitch [(ngModel)]="crearForm.grabar" ariaLabel="Grabar la sesión"/>
       <label>Grabar la sesión</label>
     </div>
   </div>
@@ -274,7 +274,7 @@ const ESTADO_SEV: Record<string, string> = {
           <td>
             @if (g.url_playback) {
               <a [href]="g.url_playback" target="_blank" rel="noopener">
-                <p-button icon="pi pi-external-link" [text]="true" size="small" pTooltip="Abrir grabación" />
+                <p-button icon="pi pi-external-link" ariaLabel="Abrir grabación" [text]="true" size="small" pTooltip="Abrir grabación" />
               </a>
             }
           </td>

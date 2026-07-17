@@ -150,8 +150,7 @@ const RIESGO_SEVERITY: Record<string, AlertaSeverity> = {
               placeholder="Escribe tu pregunta o petición..."
               (keyup.enter)="enviar()"
               [disabled]="cargando()"
-              class="chat-input"
-            />
+              class="chat-input" aria-label="Escribe tu pregunta o petición"/>
             <p-button
               icon="pi pi-send"
               [loading]="cargando()"
@@ -183,7 +182,7 @@ const RIESGO_SEVERITY: Record<string, AlertaSeverity> = {
             [showClear]="true"
           
 
-          [filter]="true" filterPlaceholder="Buscar..."/>
+          [filter]="true" filterPlaceholder="Buscar..." ariaLabel="Grupo" />
           <p-button
             label="Escanear grupo"
             icon="pi pi-search"
@@ -226,7 +225,7 @@ const RIESGO_SEVERITY: Record<string, AlertaSeverity> = {
               placeholder="¿Cuántos alumnos reprobaron matemáticas este bimestre?"
               (keyup.enter)="consultarDatos()"
               [disabled]="cargandoDatos()"
-              style="flex:1" />
+              style="flex:1" aria-label="¿Cuántos alumnos reprobaron matemáticas este bimestre?"/>
             <p-button icon="pi pi-search" label="Consultar"
               [loading]="cargandoDatos()" (onClick)="consultarDatos()"
               [disabled]="!inputDatos.trim()" />

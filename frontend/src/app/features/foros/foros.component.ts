@@ -216,7 +216,7 @@ interface Anuncio {
       </div>
       <ng-template pTemplate="footer">
         <div style="display:flex;gap:.5rem;width:100%">
-          <input pInputText [(ngModel)]="nuevoMsgAsunto" placeholder="Asunto…" style="flex:1" />
+          <input pInputText [(ngModel)]="nuevoMsgAsunto" placeholder="Asunto…" style="flex:1" aria-label="Asunto"/>
           <p-button icon="pi pi-plus" label="Nuevo mensaje" size="small" (onClick)="dlgNuevoMensaje=true" />
         </div>
       </ng-template>
@@ -240,7 +240,7 @@ interface Anuncio {
         }
       </div>
       <div class="respuesta-composer">
-        <textarea pTextarea [(ngModel)]="nuevaRespuestaTexto" placeholder="Escribe tu respuesta..." rows="2" style="width:100%"></textarea>
+        <textarea pTextarea [(ngModel)]="nuevaRespuestaTexto" placeholder="Escribe tu respuesta..." rows="2" style="width:100%" aria-label="Escribe tu respuesta"></textarea>
         <div style="text-align: right; margin-top: 0.5rem;">
           <p-button label="Responder" icon="pi pi-send" size="small" [loading]="guardando()" (onClick)="enviarRespuesta()" />
         </div>
@@ -280,12 +280,12 @@ interface Anuncio {
         </div>
         <div class="flex flex-col gap-1">
           <label class="text-sm font-medium">Tipo *</label>
-          <p-select [options]="tiposForo" [(ngModel)]="foroForm.tipo" placeholder="Selecciona tipo..." />
+          <p-select [options]="tiposForo" [(ngModel)]="foroForm.tipo" placeholder="Selecciona tipo..." ariaLabel="Tipo"/>
         </div>
         
         <div class="flex flex-col gap-1" *ngIf="foroForm.tipo === 'MATERIA'">
           <label class="text-sm font-medium">Materia *</label>
-          <p-select [options]="materias()" optionLabel="nombre_materia" optionValue="id" [(ngModel)]="foroForm.materia_id" placeholder="Selecciona materia..." />
+          <p-select [options]="materias()" optionLabel="nombre_materia" optionValue="id" [(ngModel)]="foroForm.materia_id" placeholder="Selecciona materia..." ariaLabel="Materia"/>
         </div>
 
         <div class="flex items-center gap-2">
@@ -314,7 +314,7 @@ interface Anuncio {
         <div class="flex flex-col gap-2">
           <label class="text-sm font-medium">Fecha Inicio *</label>
           <p-datepicker [(ngModel)]="anuncioForm.fechaInicio" dateFormat="dd/mm/yy" [showIcon]="true"
-                        placeholder="DD/MM/AAAA" [style]="{width:'100%'}" [inputStyle]="{width:'100%'}" />
+                        placeholder="DD/MM/AAAA" [style]="{width:'100%'}" [inputStyle]="{width:'100%'}" ariaLabel="Fecha Inicio"/>
         </div>
         <div class="flex items-center gap-2">
           <input type="checkbox" [(ngModel)]="anuncioForm.esUrgente" id="urgente" />

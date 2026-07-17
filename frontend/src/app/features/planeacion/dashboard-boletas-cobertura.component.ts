@@ -53,7 +53,7 @@ import { ApiService } from '../../core/services/api.service';
                    optionLabel="label" optionValue="value"
                    placeholder="Seleccionar grupo..."
                    (onChange)="onGrupoChange()"
-                   [filter]="true" filterPlaceholder="Buscar..."/>
+                   [filter]="true" filterPlaceholder="Buscar..." ariaLabel="Grupo" />
         </div>
 
         <div class="field">
@@ -61,13 +61,13 @@ import { ApiService } from '../../core/services/api.service';
           <p-select [options]="alumnos()" [(ngModel)]="selAlumnoId"
                    optionLabel="label" optionValue="value"
                    placeholder="Seleccionar alumno..."
-                   [filter]="true" filterPlaceholder="Buscar..."/>
+                   [filter]="true" filterPlaceholder="Buscar..." ariaLabel="Alumno" />
         </div>
 
         <div class="field">
           <label>Trimestre*</label>
           <p-select [options]="trimestres" [(ngModel)]="selTrimestre"
-                   placeholder="Seleccionar trimestre..."/>
+                   placeholder="Seleccionar trimestre..." ariaLabel="Trimestre" />
         </div>
 
         <div class="field">
@@ -130,14 +130,14 @@ import { ApiService } from '../../core/services/api.service';
                    optionLabel="label" optionValue="value"
                    placeholder="Seleccionar grupo..."
                    (onChange)="onGrupoCoberturaChange()"
-                   [filter]="true" filterPlaceholder="Buscar..."/>
+                   [filter]="true" filterPlaceholder="Buscar..." ariaLabel="Grupo" />
         </div>
 
         <div class="field">
           <label>Trimestre*</label>
           <p-select [options]="trimestres" [(ngModel)]="selTrimestreCobertura"
                    placeholder="Seleccionar trimestre..."
-                   (onChange)="cargarCobertura()"/>
+                   (onChange)="cargarCobertura()" ariaLabel="Trimestre" />
         </div>
 
         <div class="field">

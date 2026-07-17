@@ -52,7 +52,7 @@ interface ItemRow    { tipo_item: string; nombre_personalizado: string | null; p
   <p-select [options]="niveles()" optionLabel="nombre_nivel" optionValue="id"
             placeholder="Filtrar por nivel" [(ngModel)]="nivelFiltro"
             (onChange)="cargarEsquemas()" [showClear]="true" 
- [filter]="true" filterPlaceholder="Buscar..."/>
+ [filter]="true" filterPlaceholder="Buscar..." ariaLabel="Nivel" />
 </div>
 
 <app-interactive-grid
@@ -69,7 +69,7 @@ interface ItemRow    { tipo_item: string; nombre_personalizado: string | null; p
   <div class="items-panel" style="margin-top:1rem; background:#f9fafb; border:1px solid var(--surface-200); border-radius:8px; padding:12px 16px;">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
       <strong>Ítems de ponderación — {{ esquemaSeleccionado()!.nombre }}</strong>
-      <button pButton icon="pi pi-times" text size="small" (click)="esquemaSeleccionado.set(null)"></button>
+      <button pButton icon="pi pi-times" ariaLabel="Cerrar panel de ítems" text size="small" (click)="esquemaSeleccionado.set(null)"></button>
     </div>
     <div class="items-grid">
       @for (it of esquemaSeleccionado()!.items; track it.tipo_item) {
@@ -101,12 +101,12 @@ interface ItemRow    { tipo_item: string; nombre_personalizado: string | null; p
       <label>Nivel educativo *</label>
       <p-select [options]="niveles()" optionLabel="nombre_nivel" optionValue="id"
                 [(ngModel)]="form.nivel_educativo_id" styleClass="w-full" 
- [filter]="true" filterPlaceholder="Buscar..."/>
+ [filter]="true" filterPlaceholder="Buscar..." ariaLabel="Nivel educativo" />
     </div>
     <div class="field">
       <label>Vigente desde</label>
       <p-datepicker [(ngModel)]="form.vigente_desde" dateFormat="dd/mm/yy" [showIcon]="true"
-                    placeholder="DD/MM/AAAA" styleClass="w-full" [inputStyle]="{width:'100%'}" />
+                    placeholder="DD/MM/AAAA" styleClass="w-full" [inputStyle]="{width:'100%'}" ariaLabel="Vigente desde"/>
     </div>
     <div class="field col-span-2 flex items-center gap-2 mt-2">
       <input type="checkbox" id="es_nee" [(ngModel)]="form.es_nee" style="width: 20px; height: 20px; cursor: pointer;" />
@@ -125,13 +125,13 @@ interface ItemRow    { tipo_item: string; nombre_personalizado: string | null; p
     @for (item of form.items; track $index; let i = $index) {
       <div class="item-row flex gap-2 mb-2 items-center">
         <p-select [options]="tiposItem" optionLabel="label" optionValue="value"
-                  [(ngModel)]="item.tipo_item" styleClass="flex-1" 
+                  [(ngModel)]="item.tipo_item" styleClass="flex-1" ariaLabel="Tipo de ítem"
  [filter]="true" filterPlaceholder="Buscar..."/>
         <input pInputText [(ngModel)]="item.nombre_personalizado" placeholder="Nombre personalizado"
-               style="flex:1;max-width:160px" />
+               style="flex:1;max-width:160px" aria-label="Nombre personalizado"/>
         <p-inputNumber [(ngModel)]="item.peso_porcentaje" suffix="%" [min]="1" [max]="100"
                        [useGrouping]="false" inputStyleClass="w-16" />
-        <button pButton icon="pi pi-trash" text severity="danger" size="small"
+        <button pButton icon="pi pi-trash" ariaLabel="Eliminar ítem" text severity="danger" size="small"
                 (click)="quitarItem(i)" [disabled]="form.items.length <= 1"></button>
       </div>
     }

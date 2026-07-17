@@ -153,12 +153,12 @@ const TIPOS = [
           <label>Tipo</label>
           <p-select [options]="tipos" [(ngModel)]="form.tipo_comunicado"
                     optionLabel="label" optionValue="value" styleClass="w-full" 
- [filter]="true" filterPlaceholder="Buscar..."/>
+ [filter]="true" filterPlaceholder="Buscar..." ariaLabel="Tipo" />
         </div>
         <div class="form-field">
           <label>Fecha vencimiento</label>
           <p-datepicker [(ngModel)]="form.fecha_vencimiento" dateFormat="dd/mm/yy" [showIcon]="true"
-                        placeholder="DD/MM/AAAA" [style]="{width:'100%'}" [inputStyle]="{width:'100%'}" />
+                        placeholder="DD/MM/AAAA" [style]="{width:'100%'}" [inputStyle]="{width:'100%'}" ariaLabel="Fecha vencimiento"/>
         </div>
         <div class="form-field full">
           <label>Contenido *</label>

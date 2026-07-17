@@ -75,8 +75,7 @@ interface ResumenDisponibilidad {
             [forceSelection]="true"
             [delay]="300"
             placeholder="Buscar docente por nombre…"
-            style="width:280px"
-          />
+            style="width:280px" ariaLabel="Buscar docente por nombre" />
           <p-button label="Configurar disponibilidad" icon="pi pi-calendar-plus" size="small"
             (onClick)="abrirConfigurar()" [disabled]="!profesorId" />
         </div>
@@ -158,9 +157,9 @@ interface ResumenDisponibilidad {
               <h3 class="dia-titulo">{{ dia.nombre }}</h3>
               @for (slot of nuevosSlotsForDia(dia.num); track slot._idx) {
                 <div class="slot-row">
-                  <input pInputText [(ngModel)]="slot.hora_inicio" placeholder="08:00" class="hora-input" />
+                  <input pInputText [(ngModel)]="slot.hora_inicio" placeholder="08:00" class="hora-input" aria-label="Hora de inicio"/>
                   <span class="sep">–</span>
-                  <input pInputText [(ngModel)]="slot.hora_fin" placeholder="09:00" class="hora-input" />
+                  <input pInputText [(ngModel)]="slot.hora_fin" placeholder="09:00" class="hora-input" aria-label="Hora de fin"/>
                   <p-checkbox [(ngModel)]="slot.disponible" [binary]="true" pTooltip="Disponible" />
                   <p-button icon="pi pi-times" size="small" [text]="true" severity="danger"
                     ariaLabel="Eliminar este horario de disponibilidad" (onClick)="removeSlot(dia.num, slot._idx)" />

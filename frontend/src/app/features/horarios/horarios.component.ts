@@ -157,25 +157,25 @@ const HORARIO_GOLDEN_REQUERIDO: Record<string, Record<string, number>> = {
           <div>
             <label class="dlg-lbl">Día *</label>
             <p-select [options]="diasOpts" [(ngModel)]="form.dia_semana"
-              optionLabel="label" optionValue="value" style="width:100%" placeholder="Día…" />
+              optionLabel="label" optionValue="value" style="width:100%" placeholder="Día…" ariaLabel="Día"/>
           </div>
           <div>
             <label class="dlg-lbl">Hora inicio *</label>
             <p-select [options]="horasOpts" [(ngModel)]="form.hora_inicio"
-              style="width:100%" placeholder="HH:MM" />
+              style="width:100%" placeholder="HH:MM" ariaLabel="Hora inicio"/>
           </div>
         </div>
         <div class="dlg-row">
           <div>
             <label class="dlg-lbl">Duración *</label>
             <p-select [options]="duracionOpts" [(ngModel)]="form.duracion"
-              optionLabel="label" optionValue="value" style="width:100%" placeholder="Duración…" />
+              optionLabel="label" optionValue="value" style="width:100%" placeholder="Duración…" ariaLabel="Duración"/>
           </div>
           <div>
             <label class="dlg-lbl">Materia *</label>
             <p-select [options]="materias()" [(ngModel)]="form.materia_id"
               optionLabel="nombre_materia" optionValue="id"
-              style="width:100%" [filter]="true" filterPlaceholder="Buscar…" placeholder="Materia…" />
+              style="width:100%" [filter]="true" filterPlaceholder="Buscar…" placeholder="Materia…" ariaLabel="Materia"/>
           </div>
         </div>
         <div class="dlg-row">
@@ -184,21 +184,21 @@ const HORARIO_GOLDEN_REQUERIDO: Record<string, Record<string, number>> = {
               <label class="dlg-lbl">Docente *</label>
               <p-select [options]="profesores()" [(ngModel)]="form.profesor_id"
                 optionLabel="_label" optionValue="id"
-                style="width:100%" [filter]="true" filterPlaceholder="Buscar…" placeholder="Docente…" [showClear]="true" />
+                style="width:100%" [filter]="true" filterPlaceholder="Buscar…" placeholder="Docente…" [showClear]="true" ariaLabel="Docente"/>
             </div>
           } @else {
             <div>
               <label class="dlg-lbl">Grupo *</label>
               <p-select [options]="gruposOpts()" [(ngModel)]="form.grupo_id"
                 optionLabel="_label" optionValue="id"
-                style="width:100%" [filter]="true" filterPlaceholder="Buscar…" placeholder="Grupo…" [showClear]="true" />
+                style="width:100%" [filter]="true" filterPlaceholder="Buscar…" placeholder="Grupo…" [showClear]="true" ariaLabel="Grupo"/>
             </div>
           }
           <div>
             <label class="dlg-lbl">Aula</label>
             <p-select [options]="aulas()" [(ngModel)]="form.aula_id"
               optionLabel="_label" optionValue="id"
-              style="width:100%" [filter]="true" filterPlaceholder="Buscar…" placeholder="Aula…" [showClear]="true" />
+              style="width:100%" [filter]="true" filterPlaceholder="Buscar…" placeholder="Aula…" [showClear]="true" ariaLabel="Aula"/>
           </div>
         </div>
         <div class="dlg-row">
@@ -219,7 +219,7 @@ const HORARIO_GOLDEN_REQUERIDO: Record<string, Record<string, number>> = {
         <p-button label="Cancelar" severity="secondary" [text]="true"
           (onClick)="showDialog.set(false)" />
         <p-button [label]="editEntry ? 'Guardar cambios' : 'Agregar al horario'"
-          icon="pi pi-check" (onClick)="guardar()" [loading]="guardando()" />
+          icon="pi pi-check" ariaLabel="Guardar" (onClick)="guardar()" [loading]="guardando()" />
       </ng-template>
     </p-dialog>
 
@@ -232,7 +232,7 @@ const HORARIO_GOLDEN_REQUERIDO: Record<string, Record<string, number>> = {
       [modal]="true" [style]="{width:'600px'}" [draggable]="false">
       <div style="display:flex; flex-direction:column; gap: 1rem; margin-top: 1rem;">
         <p>Escribe la regla en lenguaje natural y la IA se encargará de traducirla.</p>
-        <textarea pTextarea [(ngModel)]="reglaFraseIA" rows="3" placeholder="Ej: Educación Física no se imparte los viernes para el grupo 2B" style="width:100%"></textarea>
+        <textarea pTextarea [(ngModel)]="reglaFraseIA" rows="3" placeholder="Ej: Educación Física no se imparte los viernes para el grupo 2B" aria-label="Regla en lenguaje natural" style="width:100%"></textarea>
         <div style="display:flex; justify-content:flex-end;">
           <p-button label="Interpretar regla" icon="pi pi-sparkles" (onClick)="parsearReglaIA()" [loading]="parseandoRegla()" [disabled]="!reglaFraseIA()"></p-button>
         </div>
@@ -422,7 +422,7 @@ const HORARIO_GOLDEN_REQUERIDO: Record<string, Record<string, number>> = {
                     }
                   </div>
                 } @else {
-                  <textarea pTextarea rows="8" readonly [ngModel]="corridaAnalysisText()"></textarea>
+                  <textarea pTextarea rows="8" readonly [ngModel]="corridaAnalysisText()" aria-label="Resultado del análisis de la corrida"></textarea>
                 }
               </div>
 
@@ -448,6 +448,7 @@ const HORARIO_GOLDEN_REQUERIDO: Record<string, Record<string, number>> = {
                               type="checkbox"
                               [checked]="esHorarioSeleccionado(row.id) || !!row.fijado"
                               [disabled]="!!row.fijado"
+                              [attr.aria-label]="'Seleccionar horario de ' + row.nombre_grupo + ' - ' + row.nombre_materia"
                               (change)="alternarHorarioSeleccionado(row.id, $any($event.target).checked)"
                             />
                           </td>
@@ -544,7 +545,7 @@ const HORARIO_GOLDEN_REQUERIDO: Record<string, Record<string, number>> = {
           placeholder="Seleccionar docente..."
           (onChange)="cargar()"
           [showClear]="true"
-          [filter]="true" filterPlaceholder="Buscar..."/>
+          [filter]="true" filterPlaceholder="Buscar..." ariaLabel="Docente" />
       }
       @if (modo === 'profesor' && esDocenteSelf()) {
         <span class="mi-horario-badge"><i class="pi pi-user"></i> Mi Horario</span>

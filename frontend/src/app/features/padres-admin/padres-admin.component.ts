@@ -210,12 +210,12 @@ const NIVELES_ACCESO_PORTAL = [
                 <div class="field">
                   <label>Ocupación</label>
                   <p-select formControlName="ocupacion" [options]="ocupacionesOpts()" optionLabel="valor" optionValue="valor"
-                    placeholder="Seleccionar ocupación..." [filter]="true" [style]="{width:'100%'}" />
+                    placeholder="Seleccionar ocupación..." [filter]="true" [style]="{width:'100%'}" ariaLabel="Ocupación"/>
                 </div>
                 <div class="field">
                   <label>Nivel de Estudios</label>
                   <p-select formControlName="nivel_estudios" [options]="nivelesEstudios" optionLabel="label" optionValue="value"
-                    placeholder="Seleccionar..." [style]="{width:'100%'}" />
+                    placeholder="Seleccionar..." [style]="{width:'100%'}" ariaLabel="Nivel de Estudios"/>
                 </div>
               </div>
             </form>
@@ -237,7 +237,7 @@ const NIVELES_ACCESO_PORTAL = [
                 <div class="field">
                   <label>Parentesco *</label>
                   <p-select formControlName="parentesco" [options]="parentescos()" optionLabel="label" optionValue="value"
-                    placeholder="Seleccionar parentesco..." [filter]="true" [style]="{width:'100%'}" />
+                    placeholder="Seleccionar parentesco..." [filter]="true" [style]="{width:'100%'}" ariaLabel="Parentesco"/>
                 </div>
                 
                 <div class="field">
@@ -276,7 +276,7 @@ const NIVELES_ACCESO_PORTAL = [
                 <div class="field">
                   <label>Grado de Responsabilidad</label>
                   <p-select formControlName="grado_responsabilidad" [options]="gradosResponsabilidad"
-                    optionLabel="label" optionValue="value" [style]="{width:'100%'}" />
+                    optionLabel="label" optionValue="value" [style]="{width:'100%'}" ariaLabel="Grado de Responsabilidad"/>
                 </div>
               </div>
             </form>
@@ -317,12 +317,12 @@ const NIVELES_ACCESO_PORTAL = [
           <label>Contacto Familiar *</label>
           <p-select [options]="contactosLov()" optionLabel="label" optionValue="value"
             [(ngModel)]="agregarTutorForm.personaId" [filter]="true" filterBy="label"
-            placeholder="Seleccionar contacto..." [style]="{width:'100%'}" />
+            placeholder="Seleccionar contacto..." [style]="{width:'100%'}" ariaLabel="Contacto Familiar"/>
         </div>
         <div class="field">
           <label>Relación</label>
           <p-select [options]="relacionesTutor" optionLabel="label" optionValue="value"
-            [(ngModel)]="agregarTutorForm.relacion" [style]="{width:'100%'}" />
+            [(ngModel)]="agregarTutorForm.relacion" [style]="{width:'100%'}" ariaLabel="Relación"/>
         </div>
         <div class="field">
           <label>Prioridad</label>
@@ -331,7 +331,7 @@ const NIVELES_ACCESO_PORTAL = [
         <div class="field">
           <label>Nivel de Acceso al Portal</label>
           <p-select [options]="nivelesAccesoPortal" optionLabel="label" optionValue="value"
-            [(ngModel)]="agregarTutorForm.nivelAccesoPortal" [style]="{width:'100%'}" />
+            [(ngModel)]="agregarTutorForm.nivelAccesoPortal" [style]="{width:'100%'}" ariaLabel="Nivel de Acceso al Portal"/>
         </div>
         <div class="field-toggle">
           <label>Responsable Económico</label>

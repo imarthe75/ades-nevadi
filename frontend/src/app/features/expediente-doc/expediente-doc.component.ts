@@ -153,7 +153,7 @@ const TIPOS_DOCUMENTO = [
         <div style="display:flex;gap:.75rem;align-items:center">
           <i class="pi pi-search" style="color:var(--primary-color)"></i>
           <input pInputText [(ngModel)]="queryOcr" placeholder="Buscar en documentos OCR..."
-            style="flex:1" (keydown.enter)="buscarOcr()" />
+            style="flex:1" (keydown.enter)="buscarOcr()" aria-label="Buscar en documentos OCR"/>
           <p-button label="Buscar" icon="pi pi-search" size="small"
             [loading]="buscandoOcr()" (onClick)="buscarOcr()" />
           @if (resultadosOcr().length > 0) {
@@ -299,7 +299,7 @@ const TIPOS_DOCUMENTO = [
           <label style="display:block;margin-bottom:.35rem;font-weight:500">Tipo de documento *</label>
           <p-select [(ngModel)]="tipoDocumentoNuevo" [options]="tiposDocumento"
             optionLabel="label" optionValue="value"
-            placeholder="Seleccionar tipo..." [style]="{'width':'100%'}" />
+            placeholder="Seleccionar tipo..." [style]="{'width':'100%'}" ariaLabel="Tipo de documento"/>
         </div>
         <div>
           <label style="display:block;margin-bottom:.35rem;font-weight:500">Archivo (PDF, JPEG, PNG)</label>

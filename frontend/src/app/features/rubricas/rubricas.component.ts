@@ -88,7 +88,7 @@ const NIVEL_COLORS = ['var(--red-400)', 'var(--yellow-400)', 'var(--teal-400)', 
                     placeholder="Filtrar por materia..."
                     [showClear]="true" styleClass="w-full"
                     (onChange)="cargar()" 
- [filter]="true" filterPlaceholder="Buscar..."/>
+ [filter]="true" filterPlaceholder="Buscar..." ariaLabel="Materia" />
         </div>
 
         @if (rubricas().length === 0) {
@@ -194,14 +194,14 @@ const NIVEL_COLORS = ['var(--red-400)', 'var(--yellow-400)', 'var(--teal-400)', 
           <p-select [options]="materias()" [(ngModel)]="formNueva.materia_id"
                     optionLabel="label" optionValue="value"
                     placeholder="Opcional..." [showClear]="true" styleClass="w-full" 
- [filter]="true" filterPlaceholder="Buscar..."/>
+ [filter]="true" filterPlaceholder="Buscar..." ariaLabel="Materia" />
         </div>
         <div class="form-field">
           <label>Nivel educativo</label>
           <p-select [options]="niveles()" [(ngModel)]="formNueva.nivel_educativo_id"
                     optionLabel="label" optionValue="value"
                     placeholder="Opcional..." [showClear]="true" styleClass="w-full" 
- [filter]="true" filterPlaceholder="Buscar..."/>
+ [filter]="true" filterPlaceholder="Buscar..." ariaLabel="Nivel educativo" />
         </div>
       </div>
       <ng-template pTemplate="footer">
@@ -240,9 +240,9 @@ const NIVEL_COLORS = ['var(--red-400)', 'var(--yellow-400)', 'var(--teal-400)', 
           <div class="nivel-form-row">
             <div class="nivel-num" [style.background]="nivelColor(n.nivel)">{{ n.nivel }}</div>
             <input pInputText [(ngModel)]="n.etiqueta" placeholder="Etiqueta (ej. Destacado)"
-                   style="width:110px; font-size:.82rem" />
+                   style="width:110px; font-size:.82rem" aria-label="Etiqueta (ej. Destacado)"/>
             <input pInputText [(ngModel)]="n.descripcion" placeholder="Descripción del nivel"
-                   style="flex:1; font-size:.82rem" />
+                   style="flex:1; font-size:.82rem" aria-label="Descripción del nivel"/>
           </div>
         }
       </div>

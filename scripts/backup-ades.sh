@@ -180,8 +180,16 @@ fi
 
 # ============================================================================
 # 8. Sincronización externa (Oracle Object Storage / S3-compatible)
+#    Política 2026-07-17 (decisión del usuario): el bucket solo conserva la ÚLTIMA
+#    versión del respaldo, para no acumular almacenamiento/costo. Por eso YA NO se
+#    hace `s3 sync --delete` del directorio completo (que reflejaría la ventana de
+#    7 días local) sino: (a) subir SOLO los artefactos de esta corrida ($TIMESTAMP),
+#    y (b) solo si esa subida se confirma exitosa, borrar el resto de objetos del
+#    bucket. El orden importa: si la subida falla a medias, `set -e` dentro del
+#    script del contenedor corta antes de llegar al borrado, así nunca nos quedamos
+#    sin ningún respaldo utilizable en la nube.
 # ============================================================================
-echo "[$(date +'%Y-%m-%d %H:%M:%S')] ☁️  Sincronización externa..." | tee -a "$LOG_FILE"
+echo "[$(date +'%Y-%m-%d %H:%M:%S')] ☁️  Sincronización externa (Oracle Object Storage)..." | tee -a "$LOG_FILE"
 
 if [ -n "$MINIO_ACCESS_KEY" ] && [ -n "$MINIO_SECRET_KEY" ] && [ -n "$MINIO_ENDPOINT" ] && [ -n "$MINIO_BUCKET" ]; then
   sudo docker run --rm \
@@ -191,10 +199,39 @@ if [ -n "$MINIO_ACCESS_KEY" ] && [ -n "$MINIO_SECRET_KEY" ] && [ -n "$MINIO_ENDP
     -e AWS_REQUEST_CHECKSUM_CALCULATION="when_required" \
     -e AWS_RESPONSE_CHECKSUM_VALIDATION="when_required" \
     -v "$BACKUP_DIR:/backups:ro" \
-    amazon/aws-cli \
-    s3 sync /backups s3://"$MINIO_BUCKET"/backups --endpoint-url "https://$MINIO_ENDPOINT" --delete 2>> "$LOG_FILE" \
-    && echo "  ✅ Sincronización externa: OK" | tee -a "$LOG_FILE" \
-    || echo "  ⚠️  Falló la sincronización a Oracle Object Storage" | tee -a "$LOG_FILE"
+    --entrypoint /bin/sh \
+    amazon/aws-cli -c '
+      set -e
+      ENDPOINT="https://'"$MINIO_ENDPOINT"'"
+      BUCKET="'"$MINIO_BUCKET"'"
+      TS="'"$TIMESTAMP"'"
+
+      # (a) Subir únicamente los artefactos de esta corrida (dump, rdb, config,
+      # manifest, volúmenes) — nunca el histórico local completo.
+      for f in /backups/*"${TS}"*; do
+        [ -f "$f" ] || continue
+        aws s3 cp "$f" "s3://${BUCKET}/backups/$(basename "$f")" --endpoint-url "$ENDPOINT"
+      done
+      # Respaldo plano semanal (lunes) usa solo fecha, no timestamp completo — incluirlo si existe hoy.
+      PLAIN="/backups/ades-plain-$(date +%Y%m%d).sql"
+      if [ -f "$PLAIN" ]; then
+        aws s3 cp "$PLAIN" "s3://${BUCKET}/backups/$(basename "$PLAIN")" --endpoint-url "$ENDPOINT"
+      fi
+
+      # (b) Solo si lo anterior no abortó por `set -e`: borrar todo lo demás del
+      # bucket, dejando exclusivamente la versión recién subida. Se filtra en shell
+      # (no en JMESPath) para no depender de escapes de comillas en --query.
+      ALL_KEYS=$(aws s3api list-objects-v2 --bucket "$BUCKET" --prefix "backups/" \
+        --endpoint-url "$ENDPOINT" --query "Contents[].Key" --output text 2>/dev/null || true)
+      for key in $ALL_KEYS; do
+        [ -z "$key" ] && continue
+        [ "$key" = "None" ] && continue
+        case "$key" in *"$TS"*) continue ;; esac
+        aws s3 rm "s3://${BUCKET}/${key}" --endpoint-url "$ENDPOINT"
+      done
+    ' 2>> "$LOG_FILE" \
+    && echo "  ✅ Sincronización externa: OK — el bucket ahora conserva solo el respaldo $TIMESTAMP" | tee -a "$LOG_FILE" \
+    || echo "  ⚠️  Falló la sincronización a Oracle Object Storage — el respaldo anterior en el bucket NO se tocó (la subida abortó antes del borrado)" | tee -a "$LOG_FILE"
 else
   echo "  ⚠️  Variables S3/MinIO incompletas en .env; omitiendo sincronización" | tee -a "$LOG_FILE"
 fi

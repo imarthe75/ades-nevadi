@@ -89,7 +89,7 @@ const NIVEL_ICON: Record<string, string> = {
     <div class="dashboard">
       <!-- Barra de control de personalización -->
       <div class="dashboard-custom-header">
-        <p-button icon="pi pi-cog" [rounded]="true" [text]="true" severity="secondary"
+        <p-button icon="pi pi-cog" ariaLabel="Personalizar Dashboard" [rounded]="true" [text]="true" severity="secondary"
           pTooltip="Personalizar Dashboard" (onClick)="dlgPersonalizar = true" />
       </div>
 
@@ -235,7 +235,7 @@ const NIVEL_ICON: Record<string, string> = {
           <div class="search-filter-wrap">
             <span class="p-input-icon-left">
               <i class="pi pi-search" style="left: 0.75rem;"></i>
-              <input pInputText type="text" [(ngModel)]="filtroPlanteles" placeholder="Buscar plantel..." size="small" class="filtro-input" />
+              <input pInputText type="text" [(ngModel)]="filtroPlanteles" placeholder="Buscar plantel..." size="small" class="filtro-input" aria-label="Buscar plantel"/>
             </span>
           </div>
         </div>
@@ -294,7 +294,7 @@ const NIVEL_ICON: Record<string, string> = {
                   <p-button label="Seleccionar" icon="pi pi-check" severity="primary" size="small"
                     [text]="true" (onClick)="seleccionar(p)" />
                   @if (isAdmin()) {
-                    <p-button icon="pi pi-pencil" severity="warn" size="small"
+                    <p-button icon="pi pi-pencil" ariaLabel="Editar plantel" severity="warn" size="small"
                       [text]="true" pTooltip="Editar plantel" (onClick)="abrirEditar(p)" />
                   }
                 </div>

@@ -58,25 +58,25 @@ interface Kardex {
           <p-select [options]="plantelesOpts()" optionLabel="label" optionValue="value"
             placeholder="Plantel…" [(ngModel)]="plantelSel"
             [disabled]="isPlantelDisabled()"
-            (ngModelChange)="onPlantelChange()" style="min-width:160px" />
+            (ngModelChange)="onPlantelChange()" style="min-width:160px" ariaLabel="Plantel" />
 
           <!-- Semestre -->
           <p-select [options]="semestresOpts()" optionLabel="label" optionValue="value"
             placeholder="Semestre…" [(ngModel)]="semestreSel"
             (ngModelChange)="onSemestreChange()"
-            [disabled]="!plantelSel" style="min-width:140px" />
+            [disabled]="!plantelSel" style="min-width:140px" ariaLabel="Semestre" />
 
           <!-- Grupo -->
           <p-select [options]="gruposOpts()" optionLabel="label" optionValue="value"
             placeholder="Grupo…" [(ngModel)]="grupoSel"
             (ngModelChange)="onGrupoChange($event)"
-            [disabled]="!semestreSel" style="min-width:110px" />
+            [disabled]="!semestreSel" style="min-width:110px" ariaLabel="Grupo" />
 
           <!-- Alumno -->
           <p-select [options]="alumnosOpts()" optionLabel="label" optionValue="value"
             placeholder="Alumno…" [(ngModel)]="alumnoSel"
             [disabled]="!grupoSel" [filter]="true" filterBy="label"
-            style="min-width:240px" />
+            style="min-width:240px" ariaLabel="Alumno" />
 
           <p-button label="Consultar" icon="pi pi-search" size="small" (onClick)="cargar()"
             [loading]="cargando()" [disabled]="!alumnoSel" />

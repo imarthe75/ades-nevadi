@@ -184,7 +184,7 @@ interface Catalogo {
                   <label class="dlg-lbl">Nivel de acceso</label>
                   <p-select [(ngModel)]="rolEditForm.nivel_acceso"
                     [options]="nivelesAccesoOpts"
-                    optionLabel="label" optionValue="value" />
+                    optionLabel="label" optionValue="value" ariaLabel="Nivel de acceso"/>
                 </div>
                 <div style="background:var(--surface-50);border-radius:6px;padding:.6rem .8rem;font-size:.75rem">
                   <strong style="display:block;margin-bottom:.3rem;color:var(--text-color-secondary)">Referencia de niveles</strong>
@@ -246,7 +246,7 @@ interface Catalogo {
                   <small>0 = todos · 5 = solo Padres/Alumnos</small>
                 </div>
                 <div class="field" style="display:flex;align-items:center;gap:.5rem">
-                  <p-toggleswitch [(ngModel)]="menuEditForm.activo" inputId="menu-activo" />
+                  <p-toggleswitch [(ngModel)]="menuEditForm.activo" inputId="menu-activo"/>
                   <label for="menu-activo">Menú activo (visible en sidebar)</label>
                 </div>
               </div>
@@ -268,7 +268,7 @@ interface Catalogo {
                 optionLabel="nombre_rol" optionValue="id"
                 placeholder="Todos los roles" [showClear]="true"
                 (onChange)="cargarPermisos()"
-                style="min-width:200px" />
+                style="min-width:200px" ariaLabel="Filtrar por rol"/>
             </div>
           </div>
 
@@ -312,7 +312,7 @@ interface Catalogo {
                     <td class="pm-check">
                       <p-toggleswitch [(ngModel)]="p.puede_eliminar" (onChange)="guardarPermiso(p)" />
                     </td>
-                    <td><p-button icon="pi pi-save" size="small" [text]="true"
+                    <td><p-button icon="pi pi-save" ariaLabel="Guardar permiso" size="small" [text]="true"
                       [loading]="p._saving" (onClick)="guardarPermiso(p)" /></td>
                   </tr>
                 }
@@ -334,20 +334,20 @@ interface Catalogo {
                 <label class="dlg-lbl">Módulo (clave del menú)</label>
                 <p-select [options]="menus()" [(ngModel)]="nuevoPrmForm.menu_clave"
                   optionLabel="clave" optionValue="clave"
-                  [filter]="true" filterPlaceholder="Buscar módulo..." appendTo="body"/>
+                  [filter]="true" filterPlaceholder="Buscar módulo..." appendTo="body" ariaLabel="Módulo (clave del menú)" />
               </div>
               <div style="display:flex;gap:1rem;flex-wrap:wrap">
                 <label style="display:flex;align-items:center;gap:.4rem">
-                  <p-toggleswitch [(ngModel)]="nuevoPrmForm.puede_ver" /> Ver
+                  <p-toggleswitch [(ngModel)]="nuevoPrmForm.puede_ver" ariaLabel="Ver"/> Ver
                 </label>
                 <label style="display:flex;align-items:center;gap:.4rem">
-                  <p-toggleswitch [(ngModel)]="nuevoPrmForm.puede_editar" /> Editar
+                  <p-toggleswitch [(ngModel)]="nuevoPrmForm.puede_editar" ariaLabel="Editar"/> Editar
                 </label>
                 <label style="display:flex;align-items:center;gap:.4rem">
-                  <p-toggleswitch [(ngModel)]="nuevoPrmForm.puede_crear" /> Crear
+                  <p-toggleswitch [(ngModel)]="nuevoPrmForm.puede_crear" ariaLabel="Crear"/> Crear
                 </label>
                 <label style="display:flex;align-items:center;gap:.4rem">
-                  <p-toggleswitch [(ngModel)]="nuevoPrmForm.puede_eliminar" /> Eliminar
+                  <p-toggleswitch [(ngModel)]="nuevoPrmForm.puede_eliminar" ariaLabel="Eliminar"/> Eliminar
                 </label>
               </div>
             </div>
@@ -475,7 +475,7 @@ interface Catalogo {
               optionLabel="nombre_ciclo" optionValue="id"
               placeholder="Filtrar por ciclo" [showClear]="true"
               [filter]="true" filterPlaceholder="Buscar..."
-              (onChange)="cargarGrupos()" styleClass="ctx-selector" />
+              (onChange)="cargarGrupos()" styleClass="ctx-selector" ariaLabel="Ciclo" />
             <p-button label="Nuevo grupo" icon="pi pi-plus"
               severity="primary" (onClick)="abrirNuevoGrupo()"
               data-testid="btn-nuevo-grupo" />
@@ -498,7 +498,7 @@ interface Catalogo {
               [showClear]="true"
               [filter]="true" filterPlaceholder="Buscar grupo..."
               (onChange)="cargarVariables()"
-              styleClass="ctx-selector" />
+              styleClass="ctx-selector" ariaLabel="Grupos" />
             <p-button label="Nueva variable" icon="pi pi-plus" size="small"
               (onClick)="abrirNuevaVariable()" />
           </div>
@@ -673,11 +673,11 @@ interface Catalogo {
                     </div>
                     <div class="regla-field regla-field--toggle">
                       <label>Permite recursamiento</label>
-                      <p-toggleswitch [(ngModel)]="nivel.permite_recursamiento" />
+                      <p-toggleswitch [(ngModel)]="nivel.permite_recursamiento" ariaLabel="Permite recursamiento"/>
                     </div>
                     <div class="regla-field regla-field--toggle">
                       <label>Tiene examen extraordinario</label>
-                      <p-toggleswitch [(ngModel)]="nivel.tiene_examen_extra" />
+                      <p-toggleswitch [(ngModel)]="nivel.tiene_examen_extra" ariaLabel="Tiene examen extraordinario"/>
                     </div>
                   </div>
 
@@ -729,8 +729,8 @@ interface Catalogo {
                   <p-tag [severity]="f.is_active ? 'success' : 'danger'" [value]="f.is_active ? 'SÍ' : 'NO'"></p-tag>
                 </td>
                 <td>
-                  <p-button icon="pi pi-pencil" [text]="true" (onClick)="abrirFranjaDialog(f)" />
-                  <p-button icon="pi pi-trash" [text]="true" severity="danger" (onClick)="eliminarFranja(f)" />
+                  <p-button icon="pi pi-pencil" ariaLabel="Editar franja" [text]="true" (onClick)="abrirFranjaDialog(f)" />
+                  <p-button icon="pi pi-trash" ariaLabel="Eliminar franja" [text]="true" severity="danger" (onClick)="eliminarFranja(f)" />
                 </td>
               </tr>
             </ng-template>
@@ -749,7 +749,7 @@ interface Catalogo {
               <div class="field">
                 <label>Día de la semana (1-7)</label>
                 <p-select [options]="[{l:'Lunes',v:1},{l:'Martes',v:2},{l:'Miércoles',v:3},{l:'Jueves',v:4},{l:'Viernes',v:5}]" 
-                  optionLabel="l" optionValue="v" [(ngModel)]="franjaForm.dia_semana" appendTo="body" styleClass="w-full"></p-select>
+                  optionLabel="l" optionValue="v" [(ngModel)]="franjaForm.dia_semana" appendTo="body" styleClass="w-full" ariaLabel="Día de la semana (1-7)" ></p-select>
               </div>
               <div class="field" style="display:flex; gap:1rem">
                 <div style="flex:1">
@@ -769,7 +769,7 @@ interface Catalogo {
                 <label>Nivel Educativo</label>
                 <p-select [options]="niveles()" optionLabel="nombre_nivel" optionValue="id"
                   [(ngModel)]="franjaForm.nivel_educativo_id" appendTo="body" styleClass="w-full"
-                  [showClear]="true" placeholder="Todos los niveles"></p-select>
+                  [showClear]="true" placeholder="Todos los niveles" ariaLabel="Nivel Educativo" ></p-select>
               </div>
               <div class="field" style="display:flex; align-items:center; gap:0.5rem; margin-top:0.5rem">
                 <p-toggleswitch [(ngModel)]="franjaForm.is_active" inputId="fAct"></p-toggleswitch>
@@ -864,7 +864,7 @@ interface Catalogo {
                         <td [pEditableColumn]="d.label" pEditableColumnField="label">
                           <p-cellEditor>
                             <ng-template pTemplate="input">
-                              <input pInputText [(ngModel)]="d.label" style="width:100%"
+                              <input pInputText [(ngModel)]="d.label" style="width:100%" aria-label="Etiqueta de la escala"
                                 (blur)="marcarEscalaCambio(escala)" />
                             </ng-template>
                             <ng-template pTemplate="output">{{ d.label }}</ng-template>
@@ -873,7 +873,7 @@ interface Catalogo {
                         <td [pEditableColumn]="d.descripcion" pEditableColumnField="descripcion">
                           <p-cellEditor>
                             <ng-template pTemplate="input">
-                              <input pInputText [(ngModel)]="d.descripcion" style="width:100%"
+                              <input pInputText [(ngModel)]="d.descripcion" style="width:100%" aria-label="Descripción de la escala"
                                 (blur)="marcarEscalaCambio(escala)" />
                             </ng-template>
                             <ng-template pTemplate="output">
@@ -948,11 +948,11 @@ interface Catalogo {
 
           @switch (variableEdit.tipo_valor) {
             @case ('TEXTO') {
-              <input pInputText [(ngModel)]="variableEdit._valorEdit" style="width:100%" />
+              <input pInputText [(ngModel)]="variableEdit._valorEdit" style="width:100%" aria-label="Valor de la variable" />
             }
             @case ('PASSWORD') {
               <input type="password" pInputText [(ngModel)]="variableEdit._valorEdit"
-                placeholder="Ingrese nuevo valor secreto" style="width:100%" />
+                placeholder="Ingrese nuevo valor secreto" style="width:100%" aria-label="Ingrese nuevo valor secreto"/>
               <small style="color:var(--text-secondary)">El valor actual está enmascarado por seguridad.</small>
             }
             @case ('BOOLEANO') {
@@ -972,6 +972,7 @@ interface Catalogo {
             @case ('JSON') {
               <textarea pInputText [(ngModel)]="variableEdit._valorEdit"
                 rows="8" style="width:100%;font-family:monospace;font-size:.8rem"
+                aria-label="Valor JSON de la variable"
                 placeholder='{"clave": "valor"}'></textarea>
               <small [style.color]="esJsonValido(variableEdit._valorEdit ?? '') ? 'var(--green-600)' : 'var(--red-600)'">
                 {{ esJsonValido(variableEdit._valorEdit ?? '') ? '✓ JSON válido' : '✗ JSON inválido' }}
@@ -1045,14 +1046,14 @@ interface Catalogo {
         </div>
         @if (itemEdit) {
           <div style="display:flex;align-items:center;gap:.75rem">
-            <p-toggleswitch [(ngModel)]="itemForm.is_active" />
+            <p-toggleswitch [(ngModel)]="itemForm.is_active" ariaLabel="Ítem activo"/>
             <span>{{ itemForm.is_active ? 'Activo' : 'Inactivo' }}</span>
           </div>
         }
         <div style="display:flex;gap:.5rem;justify-content:flex-end">
           <p-button label="Cancelar" severity="secondary" [text]="true"
             (onClick)="itemDlgVisible.set(false)" />
-          <p-button [label]="itemEdit ? 'Guardar' : 'Agregar'" icon="pi pi-check"
+          <p-button [label]="itemEdit ? 'Guardar' : 'Agregar'" icon="pi pi-check" ariaLabel="Guardar"
             (onClick)="guardarItem()" />
         </div>
       </div>
@@ -1075,13 +1076,13 @@ interface Catalogo {
             <label class="dlg-lbl">Rol</label>
             <p-select [options]="roles()" [(ngModel)]="usuarioEditForm.rol_id"
                       optionLabel="nombre_rol" optionValue="id" placeholder="Seleccionar Rol"
-                      [filter]="true" filterPlaceholder="Buscar..." appendTo="body"/>
+                      [filter]="true" filterPlaceholder="Buscar..." appendTo="body" ariaLabel="Rol" />
           </div>
           <div class="field" style="display:flex; flex-direction:column; gap:.35rem">
             <label class="dlg-lbl">Plantel (Alcance)</label>
             <p-select [options]="planteles()" [(ngModel)]="usuarioEditForm.plantel_id"
                       optionLabel="nombre_plantel" optionValue="id" placeholder="Global"
-                      [showClear]="true" [filter]="true" filterPlaceholder="Buscar..." appendTo="body"/>
+                      [showClear]="true" [filter]="true" filterPlaceholder="Buscar..." appendTo="body" ariaLabel="Plantel (Alcance)" />
           </div>
           <div class="field" style="display:flex; flex-direction:column; gap:.35rem">
             <label class="dlg-lbl">Estado</label>
@@ -1128,25 +1129,25 @@ interface Catalogo {
           <div class="field" style="display:flex;flex-direction:column;gap:.35rem">
             <label class="dlg-lbl">Género</label>
             <p-select [options]="[{l:'Hombre',v:'M'},{l:'Mujer',v:'F'},{l:'No especificado',v:'NB'}]"
-              [(ngModel)]="nuevoUsrForm.genero" optionLabel="l" optionValue="v" appendTo="body"/>
+              [(ngModel)]="nuevoUsrForm.genero" optionLabel="l" optionValue="v" appendTo="body" ariaLabel="Género" />
           </div>
           <div class="field" style="display:flex;flex-direction:column;gap:.35rem">
             <label class="dlg-lbl">Fecha de nacimiento</label>
             <p-datepicker [(ngModel)]="nuevoUsrForm.fecha_nacimiento" dateFormat="dd/mm/yy" [showIcon]="true"
-                          placeholder="DD/MM/AAAA" [style]="{width:'100%'}" [inputStyle]="{width:'100%'}" />
+                          placeholder="DD/MM/AAAA" [style]="{width:'100%'}" [inputStyle]="{width:'100%'}" ariaLabel="Fecha de nacimiento"/>
           </div>
         </div>
         <div class="field" style="display:flex;flex-direction:column;gap:.35rem">
           <label class="dlg-lbl">Rol *</label>
           <p-select [options]="roles()" [(ngModel)]="nuevoUsrForm.rol_id"
             optionLabel="nombre_rol" optionValue="id" placeholder="Seleccionar Rol"
-            [filter]="true" filterPlaceholder="Buscar..." appendTo="body"/>
+            [filter]="true" filterPlaceholder="Buscar..." appendTo="body" ariaLabel="Rol" />
         </div>
         <div class="field" style="display:flex;flex-direction:column;gap:.35rem">
           <label class="dlg-lbl">Plantel (alcance)</label>
           <p-select [options]="planteles()" [(ngModel)]="nuevoUsrForm.plantel_id"
             optionLabel="nombre_plantel" optionValue="id" placeholder="Global (sin plantel fijo)"
-            [showClear]="true" [filter]="true" filterPlaceholder="Buscar..." appendTo="body"/>
+            [showClear]="true" [filter]="true" filterPlaceholder="Buscar..." appendTo="body" ariaLabel="Plantel (alcance)" />
         </div>
         <p-message severity="info" icon="pi pi-info-circle"
           text="El usuario se creará en ADES. Para que pueda iniciar sesión también necesita cuenta en Authentik (SSO)." />
@@ -1171,25 +1172,25 @@ interface Catalogo {
             <label class="dlg-lbl">Nivel educativo *</label>
             <p-select [options]="niveles()" [(ngModel)]="cicloEdit()!.nivel_educativo_id"
               optionLabel="nombre_nivel" optionValue="id" placeholder="Seleccionar nivel"
-              [filter]="true" filterPlaceholder="Buscar..." appendTo="body"/>
+              [filter]="true" filterPlaceholder="Buscar..." appendTo="body" ariaLabel="Nivel educativo" />
           </div>
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:.75rem">
             <div style="display:flex; flex-direction:column; gap:.35rem">
               <label class="dlg-lbl">Fecha inicio *</label>
               <p-datepicker [(ngModel)]="cicloEdit()!.fecha_inicio" dateFormat="dd/mm/yy" [showIcon]="true"
-                            placeholder="DD/MM/AAAA" [style]="{width:'100%'}" [inputStyle]="{width:'100%'}" />
+                            placeholder="DD/MM/AAAA" [style]="{width:'100%'}" [inputStyle]="{width:'100%'}" ariaLabel="Fecha inicio"/>
             </div>
             <div style="display:flex; flex-direction:column; gap:.35rem">
               <label class="dlg-lbl">Fecha fin *</label>
               <p-datepicker [(ngModel)]="cicloEdit()!.fecha_fin" dateFormat="dd/mm/yy" [showIcon]="true"
-                            placeholder="DD/MM/AAAA" [style]="{width:'100%'}" [inputStyle]="{width:'100%'}" />
+                            placeholder="DD/MM/AAAA" [style]="{width:'100%'}" [inputStyle]="{width:'100%'}" ariaLabel="Fecha fin"/>
             </div>
           </div>
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:.75rem">
             <div style="display:flex; flex-direction:column; gap:.35rem">
               <label class="dlg-lbl">Tipo de ciclo</label>
               <p-select [options]="['ANUAL','SEMESTRAL','CUATRIMESTRAL','TRIMESTRAL']"
-                [(ngModel)]="cicloEdit()!.tipo_ciclo" />
+                [(ngModel)]="cicloEdit()!.tipo_ciclo" ariaLabel="Tipo de ciclo"/>
             </div>
             <div style="display:flex; flex-direction:column; gap:.35rem; justify-content:flex-end">
               <div style="display:flex; gap:.5rem; align-items:center">
@@ -1230,8 +1231,8 @@ interface Catalogo {
             @for (c of clavesPlantel(); track c.id) {
               <div style="display:flex; gap:.5rem; align-items:center; margin-bottom:.4rem">
                 <span style="font-size:.78rem; width:110px; color:var(--text-color-secondary)">{{ c.nombre_nivel }}</span>
-                <input pInputText [(ngModel)]="c.clave" [placeholder]="c.tipo_clave === 'CCT_SEP' ? 'Ej. 15PPR0000X' : 'Clave incorporación UAEMEX'" style="flex:1" />
-                <p-button icon="pi pi-save" [text]="true" size="small" (onClick)="guardarClavePlantel(c)" />
+                <input pInputText [(ngModel)]="c.clave" [placeholder]="c.tipo_clave === 'CCT_SEP' ? 'Ej. 15PPR0000X' : 'Clave incorporación UAEMEX'" [attr.aria-label]="'Clave de ' + c.nombre_nivel" style="flex:1" />
+                <p-button icon="pi pi-save" ariaLabel="Guardar clave" [text]="true" size="small" (onClick)="guardarClavePlantel(c)" />
               </div>
             } @empty {
               <p class="dlg-note">Sin claves registradas para este plantel.</p>
@@ -1267,7 +1268,7 @@ interface Catalogo {
           <div style="display:flex; flex-direction:column; gap:.35rem">
             <label class="dlg-lbl">Turno *</label>
             <p-select [options]="['MATUTINO','VESPERTINO','NOCTURNO']" [(ngModel)]="grupoAdminEdit()!.turno"
-              data-testid="select-turno" />
+              data-testid="select-turno" ariaLabel="Turno"/>
           </div>
           @if (!grupoAdminEdit()!.id) {
             <div style="display:flex; flex-direction:column; gap:.35rem">
@@ -1275,14 +1276,14 @@ interface Catalogo {
               <p-select [options]="ciclos()" [(ngModel)]="grupoAdminEdit()!.ciclo_escolar_id"
                 optionLabel="nombre_ciclo" optionValue="id" placeholder="Seleccionar ciclo"
                 [filter]="true" filterPlaceholder="Buscar..."
-                data-testid="select-ciclo" />
+                data-testid="select-ciclo" ariaLabel="Ciclo Escolar"/>
             </div>
             <div style="display:flex; flex-direction:column; gap:.35rem">
               <label class="dlg-lbl">Grado *</label>
               <p-select [options]="gradosFiltrados()" [(ngModel)]="grupoAdminEdit()!.grado_id"
                 optionLabel="label" optionValue="id" placeholder="Seleccionar grado"
                 [filter]="true" filterPlaceholder="Buscar..."
-                data-testid="select-grado" />
+                data-testid="select-grado" ariaLabel="Grado"/>
             </div>
           }
           @if (grupoAdminEdit()!.id) {

@@ -1,12 +1,22 @@
 # ADES — Claude Code Guidelines
-# Versión: 2.11 | Actualizado: 2026-07-16 (los 25 hallazgos de
-# docs/hallazgos/2026-07-16_auditoria_gaps_no_revisados.md CORREGIDOS y verificados —
-# 14 controllers Spring + 4 endpoints FastAPI + Grafana + JWT aud + xlsx CVE + JaCoCo/
-# vitest coverage + 2 imágenes pineadas + migración 150 + gate npm audit real en CI +
-# E2E B1/B2/B3 con auth real. `mvn test` 555+/555+ verde, `mvn package` y `ng build
-# --configuration production` verdes. **Código corregido y verificado localmente —
-# AÚN NO desplegado al servidor único de producción** (requiere confirmación explícita
-# antes de reconstruir/reiniciar ades-bff, ades-api, nginx, ades-frontend). Ver bitácora
+# Versión: 2.12 | Actualizado: 2026-07-17 (los 25 hallazgos de
+# docs/hallazgos/2026-07-16_auditoria_gaps_no_revisados.md CORREGIDOS, verificados y
+# **DESPLEGADOS** en el servidor único — 14 controllers Spring + 4 endpoints FastAPI +
+# Grafana + JWT aud + xlsx CVE + JaCoCo/vitest coverage + 2 imágenes pineadas + migración
+# 150 + gate npm audit real en CI + E2E B1/B2/B3 con auth real. Sesión 2026-07-17 además:
+# 2,197 filas huérfanas eliminadas (13 tablas, censo exhaustivo de FKs) + 13 materias
+# remapeadas (verificadas contra plan NEM oficial SEP) + `quill` eliminado (CVE, dependencia
+# huérfana sin uso real) + backup a Oracle Object Storage con política "solo última versión"
+# + prueba de restauración real verificada + accesibilidad ARIA 1.3%→86% (68/79 componentes,
+# con auto-corrección de errores propios detectados vía auditoría cruzada campo↔etiqueta) +
+# fix de UX en alta de alumno (CURP inválido ya no bloquea el clic, muestra advertencia).
+# `mvn test` 566/566 verde, `ng build --configuration production` verde, E2E dirigido
+# (ALU-02/03/11/12) verde contra el servidor real. **`ades-frontend` reconstruido y
+# desplegado — todo lo anterior ya está en vivo en https://ades.setag.mx.** `ades-bff` no
+# requirió rebuild esta sesión (sin cambios de código funcional, solo un test nuevo).
+# **Pendiente de higiene:** ~70 archivos modificados sin commit en el working tree — el
+# proyecto solo commitea con instrucción explícita del usuario (Regla Mandatoria #21), así
+# que este trabajo vive únicamente en disco hasta que se pida el commit. Ver bitácora
 # completa en `.agent/STATE.md`.
 # **NOTA:** Los 3 puntos críticos de Fase 1 (@EntityGraph, OnDestroy, SQL prepared statements)
 # verificados en vivo y en verde el 2026-07-12 — ver sección "OPTIMIZACIÓN AL 100%" abajo.
