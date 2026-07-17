@@ -14,6 +14,79 @@ Este documento es el diario de vida y bitácora del agente. Debe ser leído en e
 
 ## 📅 Bitácora
 
+## Sesión 2026-07-17 (cont.) — Heurísticas cognitivas R-18→R-26 + reporte completo post-migración ✅
+
+Continuación directa de la sesión de abajo (mismo día). Encargo: seguir el plan de
+`docs/hallazgos/2026-07-16_plan_revision_heuristicas_cognitivas.md` (R-18 en adelante), y al
+final compilar un reporte completo de todo lo hecho desde la migración (07-10) a hoy. Detalle
+completo del reporte: `docs/hallazgos/2026-07-17_reporte_completo_migracion_a_hoy.md`.
+
+**R-19** (feedback visual en mutaciones): 24 componentes corregidos — signal de loading
+dedicado por acción, wireado al `[loading]` real del botón (verificado mapeando método↔botón
+con un script, no con grep de conteo — grep de conteo sobreestima). Metodología reutilizable
+en `.agent/skills/frontend-heuristicas-audit/SKILL.md`.
+
+**R-20** (validación estructural en datos sensibles): `AdesValidators` extendido con variantes
+imperativas (`curpValido`/`rfcValido`/`nssValido`/`telefonoValido`) para formularios
+template-driven — pasó de usarse en 1/79 a 9/79 componentes. Bug real de paso: `alumno-perfil`
+dejaba editar el CURP en el formulario pero nunca lo enviaba al guardar (se descartaba en
+silencio, con "Guardado" igual mostrado al usuario).
+
+**R-22**: `bbb.component.ts::terminarReunion()` con `window.confirm()` residual →
+`ConfirmationService`. `capacitaciones.component.ts::validar()` investigado a fondo (no se
+eliminó a ciegas pese a parecer código muerto) — resultó ser una función de RH completa en
+backend (`ValidarCapacitacionUseCase`, nivelAcceso ≤ 3) sin botón en el frontend; conectada.
+
+**R-21**: muestreo real con Playwright (JWT real de Authentik reusando `e2e/global-setup.ts`,
+12 páginas navegadas contra el mismo build de producción, capturas con PII revisadas y
+eliminadas de inmediato tras el análisis). Corrigió una imprecisión del propio método de
+auditoría: el grep de "breadcrumb" (2.5%) no veía que el componente vive en el shell
+compartido — evidencia real: 12/12 páginas con breadcrumb funcional. 4 hallazgos reales
+(R-23/24/25 + la corrección de método).
+
+**R-23**: `horarios.component.ts` exponía "Timefold Solver"/"Análisis del Motor (Timefold)"
+(nombre de la librería interna) al usuario final — reemplazado por lenguaje de dominio.
+
+**R-24**: bug de raíz en `interactive-grid.component.ts` — `ColumnConfig.type: 'date'` estaba
+declarado pero nunca implementado en el `<td>` (todas las fechas se mostraban como timestamp
+ISO crudo). Corregido en el componente compartido + barrido confirmado de los 23 componentes
+candidatos (9 con bug real corregidos, 14 ya estaban bien).
+
+**R-25**: `/calificaciones` y `/gradebook` compartían el mismo breadcrumb ("Calificaciones"),
+indistinguibles — corregido en `shell.component.ts`.
+
+**R-26** (encontrado al investigar R-24): `ColumnConfig.template` tampoco estaba implementado
+— la columna "Acciones" completa de `portal-admin.component.ts` (editar/publicar/ver
+postulaciones/archivar convocatorias) era invisible. Al conectarlo apareció un segundo bug
+independiente: `(rowSelect)` en vez de `(rowSelected)` — typo aislado (27/28 consumidores
+correctos) que dejaba **todo el módulo de convocatorias sin reaccionar a clics**, sin error
+visible. Ambos corregidos. **Lección de verificación importante:** `tsc --noEmit` no detecta
+errores de binding de plantilla Angular (como este typo) — se verificó con
+`ng build --configuration production` real, documentado en el skill para no repetir el error
+de confiar solo en `tsc`.
+
+**Verificación en vivo para el reporte final** (no solo lectura de docs viejos):
+`auditoria.reporte_cobertura()` confirmó que `ades_log_autenticacion` ya tiene `audit_biu`
+(hueco de `2026-07-15_validacion_remediacion.md` cerrado vía migración 150, confirmado real);
+`docker-compose.yml` tiene 12 imágenes pineadas por digest (más de las "2" que mencionaba el
+header de `CLAUDE.md`, que se refería solo a lo pineado esa sesión puntual) — `ades-h5p:latest`
+sigue siendo el único caso real sin pinear.
+
+**Estado de despliegue al cierre:** R-19/R-20/R-22 (+ accesibilidad) fueron commiteados por el
+usuario a mitad de sesión (`b5a5d84`, `46883ca`). R-21/23/24/25/26 (16 archivos) **quedan sin
+commitear** — no se comitea sin instrucción explícita (Regla #21). `ades-frontend` no se ha
+reconstruido con este último bloque — el fix de R-26 (módulo de convocatorias muerto) no está
+en vivo todavía.
+
+### 🚀 Próximos pasos (ver reporte completo §4 para la lista categorizada completa):
+- [ ] Decisión del usuario: commitear R-21/23/24/25/26 y reconstruir `ades-frontend`.
+- [ ] Extraer `requireAccesoGrupo`/`requireAccesoClase` a helper compartido en `AdesUserService`.
+- [ ] Conectar suites E2E `06-edge-cases.spec.ts`/`paginacion-tareas.spec.ts` a OIDC real.
+- [ ] Pendientes de negocio (no código): horas de Preparatoria Metepec, nómina real, ciclo
+  2027-2028 para reinscripción masiva, revisión legal del Aviso de Privacidad.
+
+---
+
 ## Sesión 2026-07-17 — Limpieza de datos huérfanos + quill + ARIA a fondo + despliegue ✅
 
 Continuación directa de la sesión 07-16 (25 hallazgos, ya desplegada). Encargo del usuario en

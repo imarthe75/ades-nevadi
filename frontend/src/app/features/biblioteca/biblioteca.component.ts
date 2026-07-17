@@ -223,8 +223,8 @@ const CATEGORIAS = [
         <div class="p-3 flex flex-col gap-2">
           <div><strong>Libro:</strong> {{ prestamoSel.libro_titulo }}</div>
           <div><strong>Persona:</strong> {{ prestamoSel.persona_nombre }}</div>
-          <div><strong>Prestado:</strong> {{ prestamoSel.fecha_prestamo }} ·
-            <strong>Devolver:</strong> {{ prestamoSel.fecha_devolucion_esperada }}</div>
+          <div><strong>Prestado:</strong> {{ prestamoSel.fecha_prestamo | date:'dd/MM/yyyy' }} ·
+            <strong>Devolver:</strong> {{ prestamoSel.fecha_devolucion_esperada | date:'dd/MM/yyyy' }}</div>
           <div><strong>Estatus:</strong> {{ prestamoSel.estatus }}
             @if (prestamoSel.vencido) { <span style="color:var(--red-600)">(VENCIDO)</span> }
           </div>
@@ -280,7 +280,7 @@ export class BibliotecaComponent implements OnInit, OnDestroy {
   readonly prestamosColumns: ColumnConfig[] = [
     { field: 'libro_titulo',   header: 'Libro' },
     { field: 'persona_str',    header: 'Persona',     width: '200px' },
-    { field: 'fecha_prestamo', header: 'Prestado',    width: '110px' },
+    { field: 'fecha_prestamo', header: 'Prestado',    width: '110px', type: 'date' },
     { field: 'fecha_esp_str',  header: 'Devolver',    width: '130px' },
     { field: 'estatus_str',    header: 'Estatus',     width: '120px' },
   ];

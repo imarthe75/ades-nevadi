@@ -311,7 +311,7 @@ export class EvaluacionesComponent implements OnInit, OnDestroy {
 
   // Spec: spec/modules/fase-24-interactive-grid/specification.md § Pre-configured Schemas
   columnasAgenda: ColumnConfig[] = [
-    { field: 'fecha_evaluacion', header: 'Fecha', sortable: true, filterable: false, width: '110px' },
+    { field: 'fecha_evaluacion', header: 'Fecha', sortable: true, filterable: false, width: '110px', type: 'date' },
     { field: 'tipo_evaluacion', header: 'Tipo', sortable: true, filterable: true, width: '120px' },
     { field: 'nombre_evaluacion', header: 'Evaluación', sortable: true, filterable: true, width: '220px' },
     { field: 'nombre_grupo', header: 'Grupo', sortable: true, filterable: true, width: '100px' },

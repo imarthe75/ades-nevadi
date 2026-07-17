@@ -297,7 +297,7 @@ const HORARIO_GOLDEN_REQUERIDO: Record<string, Record<string, number>> = {
     <div class="solver-panel">
       <div class="solver-head">
         <div>
-          <h3>Timefold Solver</h3>
+          <h3>Generador Automático de Horarios</h3>
           <p>
             Corridas del optimizador para el plantel y ciclo actual. Desde aquí puedes lanzar una corrida,
             ver corridas recientes y revisar score, análisis y horarios generados.
@@ -473,7 +473,7 @@ const HORARIO_GOLDEN_REQUERIDO: Record<string, Record<string, number>> = {
     <div class="solver-panel">
       <div class="solver-head">
         <div>
-          <h3>Análisis del Motor (Timefold)</h3>
+          <h3>Análisis de Restricciones del Horario</h3>
           <p>
             Calcula las infracciones a las reglas del motor basándose en el horario actualmente activo.
           </p>
@@ -490,7 +490,7 @@ const HORARIO_GOLDEN_REQUERIDO: Record<string, Record<string, number>> = {
       </div>
 
       @if (!reporteVerificacion()) {
-        <div class="solver-empty">Pulsa "Verificar Reglas" para analizar el horario actual con Timefold.</div>
+        <div class="solver-empty">Pulsa "Verificar Reglas" para analizar el horario actual.</div>
       } @else {
         <div class="reporte-grid">
           <section class="solver-card" style="grid-column: 1 / -1">
@@ -919,7 +919,7 @@ export class HorariosComponent implements OnInit, OnDestroy {
           },
           error: (err) => {
             this.cargandoReporte.set(false);
-            this.notify.error('Verificación', err?.error?.detail || 'No se pudo verificar el horario con Timefold.');
+            this.notify.error('Verificación', err?.error?.detail || 'No se pudo verificar el horario.');
           }
         });
       },

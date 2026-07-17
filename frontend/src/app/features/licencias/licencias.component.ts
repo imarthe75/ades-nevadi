@@ -145,8 +145,8 @@ interface Licencia {
           <div><span class="font-medium">Estado:</span>
             <p-tag [value]="seleccionada()!.estado" [severity]="estadoSeverity(seleccionada()!.estado)" class="ml-1" />
           </div>
-          <div><span class="font-medium">Inicio:</span> {{ seleccionada()!.fecha_inicio }}</div>
-          <div><span class="font-medium">Fin:</span> {{ seleccionada()!.fecha_fin }}</div>
+          <div><span class="font-medium">Inicio:</span> {{ seleccionada()!.fecha_inicio | date:'dd/MM/yyyy' }}</div>
+          <div><span class="font-medium">Fin:</span> {{ seleccionada()!.fecha_fin | date:'dd/MM/yyyy' }}</div>
           <div><span class="font-medium">Días hábiles:</span> {{ seleccionada()!.dias_habiles }}</div>
           <div><span class="font-medium">Goce sueldo:</span> {{ seleccionada()!.con_goce_sueldo ? 'Sí' : 'No' }}</div>
           @if (seleccionada()!.motivo) {
@@ -195,8 +195,8 @@ export class LicenciasComponent implements OnInit, OnDestroy {
   readonly licenciaColumns: ColumnConfig[] = [
     { field: 'nombrePersonal',  header: 'Personal',     sortable: true, filterable: true },
     { field: 'tipoLabel',       header: 'Tipo',         sortable: true, filterable: true,  width: '140px' },
-    { field: 'fecha_inicio',    header: 'Fecha Inicio', sortable: true, filterable: false, width: '110px' },
-    { field: 'fecha_fin',       header: 'Fecha Fin',    sortable: true, filterable: false, width: '110px' },
+    { field: 'fecha_inicio',    header: 'Fecha Inicio', sortable: true, filterable: false, width: '110px', type: 'date' },
+    { field: 'fecha_fin',       header: 'Fecha Fin',    sortable: true, filterable: false, width: '110px', type: 'date' },
     { field: 'dias_habiles',    header: 'Días',         sortable: true, filterable: false, width: '80px' },
     { field: 'goceLabel',       header: 'Goce',         sortable: true, filterable: true,  width: '90px' },
     { field: 'estado',          header: 'Estado',       sortable: true, filterable: true,  width: '120px' },

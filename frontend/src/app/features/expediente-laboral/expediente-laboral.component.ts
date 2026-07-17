@@ -87,8 +87,8 @@ interface ExpedienteLab {
           <tr>
             <td class="font-medium">{{ exp.nombre_completo || exp.persona_id }}</td>
             <td><p-tag [value]="exp.tipo_contrato" [severity]="contratoSev(exp.tipo_contrato)" /></td>
-            <td>{{ exp.fecha_contratacion }}</td>
-            <td>{{ exp.fecha_fin_contrato ?? '—' }}</td>
+            <td>{{ exp.fecha_contratacion ? (exp.fecha_contratacion | date:'dd/MM/yyyy') : '—' }}</td>
+            <td>{{ exp.fecha_fin_contrato ? (exp.fecha_fin_contrato | date:'dd/MM/yyyy') : '—' }}</td>
             <td class="font-semibold">$ {{ exp.salario_mensual | number:'1.0-0' }}</td>
             <td class="text-sm font-mono">{{ exp.rfc ?? '—' }}</td>
             <td class="text-sm">

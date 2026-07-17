@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
 import { ApiService } from '../../core/services/api.service';
+import { ContextService } from '../../core/services/context.service';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
@@ -233,12 +234,17 @@ interface CapacitacionForm {
           <div><span class="font-medium">Tipo:</span> {{ tipoLabel(seleccionada()!.tipo_certificacion) }}</div>
           <div><span class="font-medium">Modalidad:</span> {{ seleccionada()!.modalidad }}</div>
           <div><span class="font-medium">Área:</span> {{ seleccionada()!.area_formacion ?? '—' }}</div>
-          <div><span class="font-medium">Inicio:</span> {{ seleccionada()!.fecha_inicio }}</div>
-          <div><span class="font-medium">Fin:</span> {{ seleccionada()!.fecha_fin }}</div>
+          <div><span class="font-medium">Inicio:</span> {{ seleccionada()!.fecha_inicio | date:'dd/MM/yyyy' }}</div>
+          <div><span class="font-medium">Fin:</span> {{ seleccionada()!.fecha_fin | date:'dd/MM/yyyy' }}</div>
           <div><span class="font-medium">Horas:</span> {{ seleccionada()!.duracion_hrs }}</div>
           <div><span class="font-medium">Validado RH:</span>
             <p-tag [value]="seleccionada()!.validado_rh ? 'Sí' : 'No'"
               [severity]="seleccionada()!.validado_rh ? 'success' : 'warn'" class="ml-1" />
+            @if (!seleccionada()!.validado_rh && esRH()) {
+              <p-button label="Marcar como validado" icon="pi pi-check" size="small" severity="success"
+                [text]="true" [loading]="validando()" styleClass="ml-2"
+                (onClick)="validar(seleccionada()!)" />
+            }
           </div>
           @if (seleccionada()!.folio_certificado) {
             <div class="col-span-2"><span class="font-medium">Folio:</span> {{ seleccionada()!.folio_certificado }}</div>
@@ -273,8 +279,10 @@ export class CapacitacionesComponent implements OnInit, OnDestroy {
   private api = inject(ApiService);
   private notify = inject(ApexNotificationService);
   private readonly confirm = inject(ConfirmationService);
+  private readonly ctx = inject(ContextService);
 
   capacitaciones = signal<Capacitacion[]>([]);
+  validando = signal(false);
 
   readonly capacitacionColumns: ColumnConfig[] = [
     { field: 'nombre_docente', header: 'Docente',      sortable: true, filterable: true,  width: '180px' },
@@ -282,7 +290,7 @@ export class CapacitacionesComponent implements OnInit, OnDestroy {
     { field: 'institucion',    header: 'Institución',  sortable: true, filterable: true,  width: '160px' },
     { field: 'tipoLabel',      header: 'Tipo',         sortable: true, filterable: true,  width: '110px' },
     { field: 'modalidad',      header: 'Modalidad',    sortable: true, filterable: true,  width: '100px' },
-    { field: 'fecha_inicio',   header: 'Inicio',       sortable: true, filterable: false, width: '100px' },
+    { field: 'fecha_inicio',   header: 'Inicio',       sortable: true, filterable: false, width: '100px', type: 'date' },
     { field: 'duracion_hrs',   header: 'Hrs',          sortable: true, filterable: false, width: '70px' },
     { field: 'validadoLabel',  header: 'Validado',     sortable: true, filterable: true,  width: '90px' },
   ];
@@ -424,10 +432,21 @@ export class CapacitacionesComponent implements OnInit, OnDestroy {
     this.dialogDetalle = true;
   }
 
+  esRH(): boolean {
+    const acc = this.ctx.nivelAcceso();
+    return acc !== null && acc <= 3;
+  }
+
   validar(cap: Capacitacion) {
+    this.validando.set(true);
     this.api.post<Capacitacion>(`/capacitaciones/${cap.id}/validar`, null).pipe(takeUntil(this.destroy$)).subscribe({
-      next: () => { this.notify.success('Capacitación validada'); this.cargar(); },
-      error: (e: any) => this.notify.error(e.error?.detail ?? 'Error al validar'),
+      next: () => {
+        this.validando.set(false);
+        this.notify.success('Capacitación validada');
+        this.seleccionada.update(s => s ? { ...s, validado_rh: true } : s);
+        this.cargar();
+      },
+      error: (e: any) => { this.validando.set(false); this.notify.error(e.error?.detail ?? 'Error al validar'); },
     });
   }
 

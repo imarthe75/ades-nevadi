@@ -413,11 +413,17 @@ export class BbbComponent implements OnInit, OnDestroy {
   }
 
   terminarReunion(r: BbbReunion) {
-    if (!confirm(`¿Terminar la reunión "${r.nombre}"?`)) return;
-    this.terminandoId.set(r.id);
-    this.api.post(`/bbb/reuniones/${r.id}/terminar`, {}).pipe(takeUntil(this.destroy$)).subscribe({
-      next: () => { this.terminandoId.set(null); this.notify.success('Reunión terminada'); this.cargarReuniones(); },
-      error: () => { this.terminandoId.set(null); this.notify.error('Error al terminar la reunión'); },
+    this.confirm.confirm({
+      message: `¿Terminar la reunión "${r.nombre}"?`,
+      header: 'Confirmar acción',
+      icon: 'pi pi-exclamation-triangle',
+      accept: () => {
+        this.terminandoId.set(r.id);
+        this.api.post(`/bbb/reuniones/${r.id}/terminar`, {}).pipe(takeUntil(this.destroy$)).subscribe({
+          next: () => { this.terminandoId.set(null); this.notify.success('Reunión terminada'); this.cargarReuniones(); },
+          error: () => { this.terminandoId.set(null); this.notify.error('Error al terminar la reunión'); },
+        });
+      },
     });
   }
 

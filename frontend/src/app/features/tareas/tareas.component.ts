@@ -384,7 +384,7 @@ export class TareasComponent implements OnInit, OnDestroy {
   // ── Columns ────────────────────────────────────────────────────────────────
   readonly tareasColumns: ColumnConfig[] = [
     { field: 'titulo',         header: 'Tarea' },
-    { field: 'fecha_entrega',  header: 'Entrega',      width: '120px' },
+    { field: 'fecha_entrega',  header: 'Entrega',      width: '120px', type: 'date' },
     { field: 'puntaje_maximo', header: 'Puntaje Máx.', width: '110px', type: 'number' },
     { field: 'origen',         header: 'Origen',       width: '90px' },
   ];

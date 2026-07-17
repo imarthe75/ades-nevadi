@@ -30,6 +30,14 @@ export interface ColumnConfig {
   align?: 'left' | 'center' | 'right';
   type?: 'text' | 'number' | 'date' | 'boolean' | 'select';
   selectOptions?: Array<{ label: string; value: any }>;
+  /**
+   * HTML custom por celda, renderizado vía [innerHTML] (pasa por el
+   * DomSanitizer de Angular — tags de script, atributos "on-evento" y
+   * enlaces peligrosos se eliminan automáticamente). Aun así, no interpolar
+   * texto libre de usuario sin escapar manualmente; usar solo con datos de
+   * negocio controlados (enums, fechas, IDs, conteos) como en
+   * portal-admin.component.ts.
+   */
   template?: (row: any) => string;
 }
 
@@ -118,7 +126,11 @@ export interface ColumnConfig {
         <ng-template pTemplate="body" let-rowData let-columns="columns">
           <tr class="data-row" (click)="rowSelected.emit(rowData)" title="Clic para ver/editar">
             @for (col of columns; track col.field) {
-              <td>{{ rowData[col.field] }}</td>
+              @if (col.template) {
+                <td [innerHTML]="col.template(rowData)"></td>
+              } @else {
+                <td>{{ col.type === 'date' && rowData[col.field] ? (rowData[col.field] | date:'dd/MM/yyyy') : rowData[col.field] }}</td>
+              }
             }
             <td class="acciones-cell" (click)="$event.stopPropagation()">
               <p-button icon="pi pi-pencil" severity="secondary" [text]="true" size="small"

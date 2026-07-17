@@ -189,7 +189,7 @@ export class CalendarioComponent implements OnInit, OnDestroy {
   ];
 
   readonly columnas: ColumnConfig[] = [
-    { field: 'fecha_evento',   header: 'Fecha',       sortable: true,  filterable: false, width: '110px' },
+    { field: 'fecha_evento',   header: 'Fecha',       sortable: true,  filterable: false, width: '110px', type: 'date' },
     { field: 'nombre_evento',  header: 'Evento',      sortable: true,  filterable: true  },
     { field: 'tipo_str',       header: 'Tipo',        sortable: true,  filterable: true,  width: '150px' },
     { field: 'alcance_str',    header: 'Alcance',     sortable: true,  filterable: true,  width: '160px' },

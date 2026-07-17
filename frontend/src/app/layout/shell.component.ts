@@ -33,7 +33,7 @@ const ROUTE_TITLES: Record<string, string> = {
   'dashboard': 'Dashboard',
   'alumnos': 'Alumnos',
   'grupos': 'Grupos',
-  'gradebook': 'Calificaciones',
+  'gradebook': 'Gradebook',
   'asistencias': 'Asistencias',
   'horarios': 'Horarios',
   'tareas': 'Tareas',

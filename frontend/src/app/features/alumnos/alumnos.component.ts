@@ -282,7 +282,7 @@ export class AlumnosComponent implements OnInit, OnDestroy {
     { field: 'nivel', header: 'Nivel', sortable: true, filterable: true, width: '120px' },
     { field: 'grado', header: 'Grado', sortable: true, filterable: true, width: '80px' },
     { field: 'grupo', header: 'Grupo', sortable: true, filterable: true, width: '80px' },
-    { field: 'fecha_ingreso', header: 'Ingreso', sortable: true, filterable: false, width: '110px' },
+    { field: 'fecha_ingreso', header: 'Ingreso', sortable: true, filterable: false, width: '110px', type: 'date' },
   ];
 
   private readonly exportCols = [

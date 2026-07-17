@@ -186,6 +186,28 @@ en el PATCH, así que el gap era 100% frontend. `tsc --noEmit` limpio.
 los flujos tocados — la compilación limpia confirma que el código es
 correcto de tipos, no que el comportamiento visual sea el esperado.
 
+### R-22 — ✅ COMPLETADO 2026-07-17 (hallazgos colaterales de R-19)
+
+**`bbb.component.ts::terminarReunion()`:** convertido de `window.confirm()`
+nativo al mismo patrón `ConfirmationService`/`<p-confirmDialog />` que ya usa
+`cancelarReunion()` en el mismo archivo — consistencia visual, sin cambio de
+comportamiento funcional.
+
+**`capacitaciones.component.ts::validar()`:** investigado antes de tocar
+(instrucción explícita del usuario) — **no era código muerto a eliminar**,
+sino una función a medio terminar. El backend tiene un caso de uso completo
+y deliberado (`ValidarCapacitacionUseCase`, Javadoc: *"Puerto de entrada:
+define el contrato para que el área de RH valide una capacitación docente...
+Requiere nivelAcceso <= 3"*), el endpoint `POST /{id}/validar` existe y
+funciona, el frontend ya tenía el método `validar()` y el diálogo de detalle
+ya mostraba el tag "Validado RH: Sí/No" — solo faltaba el botón. Se conectó:
+botón "Marcar como validado" visible solo para `nivelAcceso <= 3` (mismo
+criterio `esRH()` que el patrón `esCoordinador()` ya usado en
+`foros.component.ts`), con signal `validando()` wireado a `[loading]` (R-19)
+y actualización optimista de `seleccionada()` tras validar (antes el diálogo
+de detalle no reflejaba el cambio hasta cerrarlo y reabrirlo). `tsc --noEmit`
+limpio.
+
 ### Fase 3 (esfuerzo bajo, ya se decidió hacer accesibilidad por separado — R-14)
 `aria-*` (1.3%) y `breadcrumb` (2.5%) quedan bajo R-14 del plan de remediación existente — no
 duplicar aquí, solo referenciar.
@@ -211,6 +233,93 @@ densidad de dashboard. Propuesta concreta para no dejarlo como deuda indefinida:
 4. Esto es trabajo nuevo de exploración (no un fix), separado de las Fases 1-3 que sí son
    accionables hoy con grep.
 
+### R-21 — ✅ EJECUTADO 2026-07-17 (muestreo real con navegador)
+
+**Método real usado:** contenedor `mcr.microsoft.com/playwright:v1.61.1-noble`
+(versión pineada exacta a `@playwright/test` de `package.json`) contra el
+servidor real (`localhost:4200`, mismo build que sirve `ades.setag.mx`),
+inyectando un JWT real de Authentik (reusando `e2e/.auth/token.txt` +
+`user.json` del flujo `global-setup.ts` existente, perfil `ADMIN_GLOBAL`
+nivel_acceso 0) — mismo mecanismo que ya usa la suite `e2e/tests/`, sin
+formulario de login. Se navegaron las 12 rutas de la muestra propuesta
+(sustituyendo "dashboard docente", que no existe como ruta separada, por
+`/gradebook`), full-page screenshot de cada una + extracción de texto visible
+(headings, botones, `aria-label`, `placeholder`, conteo de `kbd`/hints de
+atajo). **Las capturas (contenían PII real: nombres de alumnos, CURPs,
+salarios de personal) se revisaron y se eliminaron inmediatamente después del
+análisis — no se publicaron ni se dejaron en disco**, conforme al principio
+de minimización de PII (LFPDPPP, `CLAUDE.md` §ESTÁNDARES).
+
+**Corrección importante al método original de este documento (§2):** la
+señal grep de "breadcrumb" (`2/79 componentes, 2.5%`) estaba mal planteada —
+el breadcrumb de ADES es un componente de **shell/layout** (`apex-breadcrumb`
+en `layout/shell.component.ts`, construido dinámicamente desde el árbol de
+rutas), no algo que cada componente de feature declare en su propio
+`.ts`. Por eso el grep por archivo casi no lo encontraba. **Evidencia real de
+navegador: el breadcrumb aparece y funciona en las 12/12 páginas
+muestreadas** (`Home > NombreDePágina`, consistente). La heurística #6 está,
+en este aspecto puntual, mucho mejor cubierta de lo que el grep sugería —
+lección para el skill: una señal ausente en grep por-componente no prueba
+ausencia si la funcionalidad puede vivir en el shell compartido.
+
+**Rúbrica aplicada (0=ausente, 4=ejemplar), sobre las 12 páginas muestreadas:**
+
+| Heurística | Puntaje | Evidencia |
+|---|---|---|
+| #2 Terminología real | 3/4 | SEP/dominio correcto en general (Matrícula, CURP, Plantel, Nivel, Grado, Grupo, Pase de Lista, Acervo/Préstamos) — **2 violaciones reales encontradas** (ver abajo) |
+| #4 Consistencia | 3/4 | Topbar/sidebar/breadcrumb idénticos en las 12 páginas — **2 inconsistencias reales encontradas** (ver abajo) |
+| #6 Reconocimiento vs recuerdo | 3/4 | Breadcrumb universal (corrección de arriba) + un patrón de empty-state ejemplar no replicado en el resto (ver abajo) |
+| #7 Flexibilidad/atajos | 1/4 | **0/12 páginas** con cualquier hint de atajo de teclado (`kbd`, indicador visual) — confirma con evidencia real lo que el plan ya sospechaba sin poder probarlo por grep |
+| #8 Diseño minimalista | 4/4 | Ninguna página sobrecargada; dashboards y grids limpios, sin violaciones encontradas en la muestra |
+
+**Hallazgos concretos (con evidencia, no solo puntaje):**
+
+1. **[#2, real] `horarios.component.ts` expone el nombre del motor interno al
+   usuario final:** los encabezados visibles dicen literalmente **"Timefold
+   Solver"** y **"Análisis del Motor (Timefold)"** — Timefold es la librería
+   Java de constraint-solving usada internamente (detalle de implementación),
+   no un término que un coordinador académico reconozca. Debería ser algo
+   como "Generador automático de horarios" / "Motor de horarios" sin exponer
+   el nombre de marca de la dependencia.
+2. **[#2/#4, real] Formato de fecha inconsistente entre grids:** en
+   `alumnos` (columna "Ingreso") y `expediente-laboral` (columnas
+   "F. Contratación"/"F. Fin") las fechas se muestran como timestamp ISO
+   crudo (`2026-08-24T00:00:00.000Z`) — dato técnico sin formatear — mientras
+   que en `admision` (columna "Fecha") el mismo tipo de dato sí se muestra
+   formateado (`13/7/2026`). Mismo sistema, dos comportamientos distintos
+   para el mismo tipo de campo — candidato real para una regla mandatoria
+   tipo "usar `AdesFormatDirective`/pipe de fecha en toda columna de tipo
+   fecha de un grid", análogo a las Reglas #24/#25 ya agregadas esta sesión.
+3. **[#2/#4/#6, real] Dos módulos de calificaciones indistinguibles por
+   nombre:** `/calificaciones` (libreta simple) y `/gradebook` (vista con
+   recalcular/cerrar período/actividades) — **ambos** aparecen en breadcrumb
+   y resaltado de menú lateral como **"Calificaciones"**, sin ninguna
+   distinción visible salvo el encabezado interno de `/gradebook` que dice
+   "Gradebook — Calificaciones" (mezclando una palabra en inglés en una UI
+   por lo demás 100% en español). Un usuario no podría saber por el menú o
+   el breadcrumb cuál de los dos está usando.
+4. **[#6, patrón positivo a replicar] `medico.component.ts` tiene el mejor
+   empty-state guiado de la muestra:** "⬆ Selecciona **Plantel → Nivel →
+   Ciclo → Grado → Grupo** en la barra superior para buscar un alumno" — con
+   flecha apuntando literalmente hacia los selectores de contexto. Los
+   equivalentes en `calificaciones`/`gradebook`/`asistencias` solo dicen
+   "Selecciona un grupo (y una materia)" sin indicar **dónde** — peor para
+   un usuario nuevo. Vale la pena estandarizar el patrón de `medico` en los
+   demás módulos que dependen del contexto superior.
+5. **[dato colateral, no es UX]** en `admision` se ven registros de prueba
+   QA visibles ("PRUEBA QA Dos AprobarInscribir", tutor "Tutor QA
+   Verificacion...") — higiene de datos, no heurística, pero visible en
+   producción; queda anotado para quien decida limpiar datos de prueba.
+
+**Limitación reconocida:** la muestra se navegó sin completar la cascada de
+selectores de contexto (Plantel→Nivel→Ciclo→Grado→Grupo) en cada página, así
+que varias mostraron su *empty state* en vez de la vista con datos completa
+(p. ej. `calificaciones`, `gradebook`, `asistencias`, `horarios`,
+`conducta` parcialmente). Los empty states sí son evidencia válida para #6
+(mensaje de orientación) pero no permiten evaluar #4/#8 sobre la vista
+"llena" de esas 5 páginas — quedaría como trabajo adicional si se quiere
+cobertura completa de la rúbrica en esas vistas.
+
 ---
 
 ## 6. Actualización a la tabla maestra (`docs/hallazgos/2026-07-15_plan_remediacion.md`)
@@ -222,8 +331,27 @@ Agregar como nueva fila:
 | R-18 | Confirmación antes de acciones destructivas (31/35 componentes sin ella, §3 de este doc) | ✅ **COMPLETADO 2026-07-16** — 21 huecos reales corregidos, 5 falsos positivos descartados por lectura de código, `tsc --noEmit` limpio (§4) | Bajo por archivo | Pendiente: QA manual en navegador antes de dar por cerrado el comportamiento (no solo la compilación) |
 | R-19 | Feedback visible en mutaciones sin indicador de carga/guardado (§4 Fase 2) | ✅ **COMPLETADO 2026-07-17** — 24 componentes corregidos, script de verificación en `.agent/skills/frontend-heuristicas-audit/SKILL.md`, `tsc --noEmit` limpio | Medio | Pendiente: QA manual en navegador antes de dar por cerrado el comportamiento |
 | R-20 | Validación real (no solo `required`) en formularios de datos sensibles | ✅ **COMPLETADO 2026-07-17** — `AdesValidators` extendido + 9 componentes corregidos + rango de calificaciones + 1 bug de persistencia real (CURP en `alumno-perfil.component.ts`) | Medio | Pendiente: QA manual en navegador antes de dar por cerrado el comportamiento |
-| R-21 | Muestreo manual heurísticas 2/4/6/7/8 vía Playwright (§5) | 🟢 Pendiente | Alto | Deuda de usabilidad sin cuantificar más allá de este documento |
-| R-22 | `bbb.component.ts::terminarReunion()` con `window.confirm()` residual (se le pasó por alto a R-18 — su grep no cubría el verbo "terminar") + limpiar método muerto `capacitaciones.component.ts::validar()` | 🟡 Pendiente | Bajo | Inconsistencia visual menor + código muerto, sin riesgo funcional |
+| R-21 | Muestreo manual heurísticas 2/4/6/7/8 vía Playwright (§5) | ✅ **EJECUTADO 2026-07-17** — 12/12 páginas navegadas con JWT real, rúbrica aplicada, 4 hallazgos concretos + 1 corrección al método de medición del propio plan (breadcrumb) | Alto | Pendiente: decidir si los 3 hallazgos accionables (Timefold expuesto, fechas ISO sin formatear, `/calificaciones` vs `/gradebook` indistinguibles) se corrigen ahora o quedan como R-23/24/25 |
+| R-22 | `bbb.component.ts::terminarReunion()` con `window.confirm()` residual + `capacitaciones.component.ts::validar()` sin wireo a UI | ✅ **COMPLETADO 2026-07-17** — ver detalle abajo | Bajo | Cerrado |
+| R-23 | `horarios.component.ts` expone "Timefold Solver"/"Análisis del Motor (Timefold)" — jerga de implementación en UI de usuario final (hallazgo R-21 #1) | ✅ **COMPLETADO 2026-07-17** — 4 menciones reemplazadas por lenguaje de dominio ("Generador Automático de Horarios", "Análisis de Restricciones del Horario") | Bajo | Cerrado |
+| R-24 | Formato de fecha inconsistente entre grids — ISO crudo en `alumnos`/`expediente-laboral` vs. formateado en `admision` (hallazgo R-21 #2) | ✅ **COMPLETADO 2026-07-17** — causa raíz corregida en `interactive-grid.component.ts` (`type: 'date'` estaba declarado en `ColumnConfig` pero nunca implementado en el `<td>`) + barrido completo de los 23 candidatos, ver detalle abajo | Bajo-Medio | Cerrado |
+| R-25 | `/calificaciones` y `/gradebook` indistinguibles en breadcrumb/menú (ambos "Calificaciones") + "Gradebook" en inglés dentro de UI en español (hallazgo R-21 #3) | ✅ **COMPLETADO 2026-07-17** — `ROUTE_TITLES['gradebook']` en `shell.component.ts` corregido de `'Calificaciones'` a `'Gradebook'`, alineado con el label ya usado en el sidebar y en `ayuda.component.ts` (que documenta "Gradebook" como nombre establecido del módulo — no se tocó ese naming pervasivo, solo se eliminó la colisión del breadcrumb) | Bajo | Cerrado |
+| R-26 | `ColumnConfig.template` (HTML custom por celda) declarado en la interfaz pero nunca leído por el `<td>` del grid — encontrado al investigar R-24. `portal-admin.component.ts` (columna "Acciones" completa: editar/publicar/ver postulaciones/archivar) invisible en pantalla; además tenía `(rowSelect)="seleccionar($event)"` — el `@Output()` real se llama `rowSelected`, típo aislado (27/28 consumidores usan el nombre correcto) que dejaba el módulo completo sin reaccionar a clics, sin error visible | ✅ **COMPLETADO 2026-07-17** — `template` implementado vía `[innerHTML]` (sanitizado por `DomSanitizer` de Angular por defecto) + typo de `rowSelect`→`rowSelected` corregido. Verificado con `ng build --configuration production` real (no solo `tsc`, que no detecta bindings de plantilla — ver skill §5) | Medio (2 bugs combinados dejaban un módulo admin completo no funcional) | Cerrado |
+
+**Barrido completo de R-24 (los 23 candidatos con `app-interactive-grid` + campo `fecha_*`):**
+confirmados y corregidos con `type: 'date'` (campo crudo sin formatear, verificado contra el
+tipo de dato y el origen): `alumnos`, `usuarios-list` (ya declaraba `type:'date'` sin efecto —
+mismo bug de raíz), `capacitaciones`, `conducta`, `tareas`, `licencias` (2 campos),
+`calendario`, `biblioteca`, `evaluaciones`. Más `expediente-laboral` (usa `p-table` propio, no
+el grid compartido) y detalles de diálogo en `capacitaciones`/`licencias`/`biblioteca`
+corregidos con pipe `date` directo en el template. `portal-admin` ya tenía `template` con
+formato correcto — funciona ahora gracias al fix de R-26. Confirmados **sin cambio necesario**
+(ya usaban un campo `_str`/camelCase pre-formateado con `toLocaleDateString('es-MX')`, mismo
+patrón que `admision`): `eval-docente`, `badges`, `padres`, `comunicados`, `admin`, `portal`,
+`reinscripcion`, `ia`, `movilidad`, `mi-progreso`, `justificaciones`, `gradebook`,
+`learning-paths`, `optativas`. `profesores` — los campos `fecha_*` encontrados pertenecían a
+`exportCols: ExportColumn[]` (exportación CSV/Excel, interfaz distinta sin el bug), no a la
+grilla en pantalla — sin cambio.
 
 Corrección a la nota existente de CLAUDE.md: `ChangeDetectionStrategy.OnPush` está en
 **79/79 (100%)**, no "sin auditar" — actualizar el estado de Fase 2 en la sección

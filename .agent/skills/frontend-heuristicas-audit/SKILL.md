@@ -200,6 +200,70 @@ sin catálogo grep dedicado aún — inspección manual por dominio):
   "Guardado" igual. Validar un campo que no se persiste es trabajo
   desperdiciado; siempre confirmar el payload primero.
 
+### 2.4 — Muestreo real con navegador (R-21, "las que no se pueden gregar")
+
+Ejecutado por primera vez 2026-07-17 — método reproducible:
+
+1. **Reusar la infraestructura E2E existente, no inventar una nueva.**
+   `frontend/e2e/global-setup.ts` ya sabe generar un JWT real de Authentik
+   (`docker compose exec authentik-server ak shell`) y cachearlo en
+   `e2e/.auth/token.txt` + `user.json`. Un script standalone puede inyectar
+   ese mismo token en `sessionStorage` (`ades_token`/`ades_usuario`) sin
+   pasar por el flujo OIDC completo — mismo patrón que
+   `e2e/page-objects/login-page.ts::login()`.
+2. **Contenedor Playwright pineado a la versión exacta del proyecto**
+   (`mcr.microsoft.com/playwright:v1.X.Y-noble`, leer la versión de
+   `@playwright/test` en `package.json` — no asumir `latest`), con
+   `--network host` para llegar a `localhost:4200` (el mismo build que sirve
+   `ades.setag.mx`, sin necesidad de tocar producción externa).
+3. **`waitUntil: 'networkidle'` falla en páginas con polling/SSE activo**
+   (notificaciones, iframes de BBB/Grafana, etc.) — usar `'domcontentloaded'`
+   + `waitForTimeout` fijo (~3s) en su lugar para las páginas que dan timeout.
+4. **Screenshots + extracción de texto (headings, botones, `aria-label`,
+   `placeholder`, conteo de `kbd`), no solo captura visual** — permite
+   analizar #2/#7 por texto además de #4/#6/#8 por percepción visual.
+5. **⚠️ Las capturas de pantalla de datos reales contienen PII** (nombres,
+   CURPs, salarios — este es un sistema con datos reales cargados, no hay
+   entorno de prueba separado). Revisar y **eliminar las capturas
+   inmediatamente después del análisis** — no dejarlas en disco, no
+   publicarlas como artifact. Extraer del análisis solo lo necesario para el
+   reporte (nunca copiar el PII visto al reporte final).
+
+**Lección de método (corrige §1 de este documento):** el grep de
+"breadcrumb" contaba **2/79 (2.5%)** porque busca la palabra en cada
+`*.component.ts` — pero el breadcrumb de ADES vive en el **shell compartido**
+(`layout/shell.component.ts`, construido dinámicamente desde el árbol de
+rutas), no en cada componente de feature. Evidencia real de navegador:
+**12/12 páginas muestreadas tienen breadcrumb funcional.** Regla general:
+antes de reportar una heurística como "sin cobertura" por ausencia de grep,
+confirmar si la funcionalidad podría vivir en un componente de shell/layout
+compartido en vez de por-feature — un grep por-archivo no lo verá nunca.
+
+**Hallazgo de arquitectura encontrado en el camino (no es heurística, es un
+bug de implementación):** `ColumnConfig` (`shared/components/interactive-grid/interactive-grid.component.ts`)
+declara los campos `type: 'date' | 'boolean' | 'select' | ...` y `template`
+en su interfaz, pero el `<td>` del grid (antes de la corrección R-24)
+**nunca los leía** — renderizaba `{{ rowData[col.field] }}` a secas sin
+importar qué tipo declarara la columna. Resultado: cualquier componente que
+confiara en `type: 'date'` (2 casos reales: `alumnos`, `usuarios-list`) o en
+`template` (`portal-admin.component.ts`, columna "Acciones" completa con
+botones custom) mostraba datos crudos/rotos silenciosamente — sin error de
+compilación, sin excepción en runtime, solo mal renderizado. Lección: cuando
+una interfaz compartida declara un campo opcional, **verificar que el
+componente que la consume realmente lo lea**, no asumir que "está en el
+tipo" significa "está implementado". **Actualización 2026-07-17 (R-26):**
+`type: 'date'` y `template` ya están implementados (`type` con el pipe
+`date` de Angular; `template` vía `[innerHTML]`, que pasa por el
+`DomSanitizer` — script/atributos `on*`/enlaces peligrosos se eliminan
+automáticamente, seguro por defecto siempre que el `template` no interpole
+texto libre de usuario sin escapar). El fix de `template` reveló un segundo
+bug independiente en el único consumidor real (`portal-admin.component.ts`):
+`(rowSelect)="seleccionar($event)"` — el `@Output()` real se llama
+`rowSelected` (typo aislado, 27/28 consumidores correctos), que dejaba el
+módulo de convocatorias sin reaccionar a ningún clic. Ambos corregidos y
+verificados con `ng build --configuration production` real (ver nota de
+§5 sobre por qué `tsc --noEmit` no basta para bindings de plantilla).
+
 ---
 
 ## 3. Heurísticas sin operacionalizar por grep (requieren muestreo manual)
@@ -248,6 +312,29 @@ Mismo estándar que el resto del proyecto (ver `2026-07-16_reporte_fiabilidad_3d
 - `git status --short` — verificar que no quedaron artefactos generados
   (`test-results/`, `playwright-report/`, etc. — Regla Mandatoria #22 de
   `CLAUDE.md`).
+
+**⚠️ `tsc --noEmit` NO detecta errores de binding de template Angular**
+(nombres de `@Output()`/`@Input()` mal escritos, propiedades inexistentes en
+`(evento)="..."`, etc.) — solo type-checka el cuerpo `.ts` de la clase, no el
+`template:` inline ni sus bindings, porque no invoca el compilador de
+Angular (`ngtsc`) con chequeo de plantillas. Hallazgo real 2026-07-17: al
+implementar soporte para `ColumnConfig.template` en
+`interactive-grid.component.ts`, un `git grep` de auditoría encontró
+`portal-admin.component.ts` con `(rowSelect)="seleccionar($event)"` — el
+`@Output()` real se llama `rowSelected` (confirmado: 27/28 consumidores del
+grid usan el nombre correcto, solo este archivo tenía el typo). El binding
+al nombre equivocado no falla en tsc ni en runtime — Angular simplemente
+intenta escuchar un evento DOM nativo inexistente llamado "rowSelect" y
+nunca dispara, dejando el módulo completo (editar/publicar/archivar
+convocatorias) sin reaccionar a clics, en silencio, sin ningún error visible
+en consola. **Verificar bindings de `@Output()`/`@Input()` con
+`ng build --configuration production` (compilador real de Angular, mismo
+contenedor `node:22-alpine` que ya se usa para `tsc`) después de tocar
+cualquier componente compartido (`shared/components/`) — no basta con
+`tsc --noEmit` cuando el cambio afecta un contrato de plantilla usado por
+múltiples consumidores.** Grep complementario para encontrar typos de este
+tipo en otros outputs compartidos: `grep -rn "(rowSelect)="` (nombre
+incorrecto) vs `grep -rln "(rowSelected)="` (nombre real) — comparar conteos.
 
 ---
 

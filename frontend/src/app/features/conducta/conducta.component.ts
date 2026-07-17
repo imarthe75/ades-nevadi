@@ -522,7 +522,7 @@ export class ConductaComponent implements OnInit, OnDestroy {
   filtroSeguimiento: boolean | null = null;
 
   readonly columnasReportes: ColumnConfig[] = [
-    { field: 'fecha_reporte',   header: 'Fecha',           sortable: true,  filterable: false, width: '110px' },
+    { field: 'fecha_reporte',   header: 'Fecha',           sortable: true,  filterable: false, width: '110px', type: 'date' },
     { field: 'tipo_falta',      header: 'Tipo',            sortable: true,  filterable: true,  width: '120px' },
     { field: 'descripcion',     header: 'Descripción',     sortable: false, filterable: false },
     { field: 'medida_aplicada', header: 'Medida aplicada', sortable: false, filterable: false, width: '160px' },

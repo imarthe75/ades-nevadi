@@ -115,7 +115,7 @@ interface Catalogo {
   [loading]="cargando()"
   [searchable]="true"
   searchPlaceholder="Buscar convocatoria..."
-  (rowSelect)="seleccionar($event)" />
+  (rowSelected)="seleccionar($event)" />
 
 <!-- ── Dialog crear/editar ──────────────────────────────────────────────── -->
 <p-dialog [(visible)]="dialogVisible" [header]="editando()?.id ? 'Editar convocatoria' : 'Nueva convocatoria'"
