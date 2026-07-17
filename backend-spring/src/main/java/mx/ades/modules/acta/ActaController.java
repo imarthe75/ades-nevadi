@@ -36,7 +36,7 @@ public class ActaController {
      * un grupo de OTRO plantel simplemente adivinando/conociendo su UUID (BOLA, OWASP API1).
      */
     private void verificarPlantelDelGrupo(AdesUser user, UUID grupoId) {
-        userService.verificarPlantel(user, query.plantelDeGrupo(grupoId), "No puede consultar un grupo de otro plantel");
+        userService.verificarAccesoGrupo(user, grupoId, "No puede consultar un grupo de otro plantel");
     }
 
     /** Grupos UAEMEX vigentes para el selector. */

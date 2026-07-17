@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.security import get_ades_user, AdesUser
 from app.core.optimistic_locking import check_row_version, RowVersionConflict
+from app.core.ssrf_guard import validar_url_publica, UrlNoPermitidaError
 
 router = APIRouter(prefix="/webhooks", tags=["webhooks"])
 
@@ -54,6 +55,11 @@ async def crear_webhook(
     if user.nivel_acceso > _NIVEL_ADMIN:
         raise HTTPException(status_code=403, detail="Solo administradores pueden gestionar webhooks")
 
+    try:
+        validar_url_publica(data.url)
+    except UrlNoPermitidaError as exc:
+        raise HTTPException(status_code=422, detail=f"URL no permitida: {exc}")
+
     r = await db.execute(text("""
         INSERT INTO public.ades_webhooks (url, event_type, secret_token, is_active, usuario_creacion, usuario_modificacion)
         VALUES (:url, :event_type, :secret, :active, :user, :user)
@@ -85,6 +91,12 @@ async def actualizar_webhook(
         raise HTTPException(status_code=404, detail="Webhook no encontrado")
     if data.row_version is not None and row.row_version != data.row_version:
         raise HTTPException(status_code=409, detail=f"Conflicto: versión enviada={data.row_version}, actual={row.row_version}. Recarga y reintenta.")
+
+    if data.url is not None:
+        try:
+            validar_url_publica(data.url)
+        except UrlNoPermitidaError as exc:
+            raise HTTPException(status_code=422, detail=f"URL no permitida: {exc}")
 
     updates = []
     params = {"id": str(webhook_id), "user": user.id}

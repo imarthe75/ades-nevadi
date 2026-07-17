@@ -96,6 +96,11 @@ hay que probar (**no flip a ciegas**):
   para inventariar los efectos exactos.
 - **Cómo:** cambiar el valor, `docker compose up -d` de los servicios afectados, y probar en
   vivo: login OIDC, un guardado de calificación, un endpoint con rate limit. Con backup previo.
+- **Añadido 2026-07-17 (hallazgo API9 OWASP, ver `2026-07-17_owasp_api6_7_9_10.md`):** al hacer
+  este flip, condicionar también `docs_url`/`redoc_url`/`openapi_url` (FastAPI, `main.py`) y las
+  2 rutas `permitAll()` de Swagger (`/swagger-ui/**`, `/v3/api-docs/**` en `SecurityConfig.java`)
+  a `ENVIRONMENT != "production"` — hoy quedan públicos deliberadamente porque el equipo los usa
+  para probar contra el servidor único sin ambiente de staging separado.
 
 ### R-3 — Backup fuera del servidor + prueba de restore
 Los backups funcionan pero **viven en el mismo disco del único servidor** — si el disco/host

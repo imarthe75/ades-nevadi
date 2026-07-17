@@ -17,9 +17,18 @@ import java.util.regex.Pattern;
  * Se aplica a todas las requests entrantes
  *
  * Limites:
- * - /api/v1/auth/** → 5 req/min/IP
- * - /api/v1/** → 100 req/min/IP
+ * - /api/v1/auth/** y /api/portal/auth/** → 5 req/min/IP
+ * - /api/v1/** y /api/portal/** → 100 req/min/IP
  * - Excluye: /actuator, /swagger, /v3/api-docs
+ *
+ * Hallazgo real 2026-07-17 (evaluación OWASP API6 — Business Flows, nunca
+ * evaluado antes): PortalPublicoController vive en /api/portal/** (fuera de
+ * /api/v1/**, ver su propio Javadoc: "no pasa por Spring Security OAuth2")
+ * y por eso quedaba TOTALMENTE fuera del alcance de los patrones de este
+ * filtro — /api/portal/auth/recuperar (envía email de recuperación a
+ * cualquier dirección, siempre con la misma respuesta genérica) y
+ * /api/portal/arco (envía acuse LFPDPPP) no tenían ningún límite de tasa,
+ * clásico vector de email-bombing.
  */
 @Slf4j
 @Component
@@ -28,8 +37,8 @@ public class RateLimitingFilter extends OncePerRequestFilter {
     private final RateLimitingConfig.RateLimiter authRateLimiter;
     private final RateLimitingConfig.RateLimiter apiRateLimiter;
 
-    private static final Pattern AUTH_PATTERN = Pattern.compile("^/api/v1/auth/.*");
-    private static final Pattern API_PATTERN = Pattern.compile("^/api/v1/.*");
+    private static final Pattern AUTH_PATTERN = Pattern.compile("^/api/(v1|portal)/auth/.*");
+    private static final Pattern API_PATTERN = Pattern.compile("^/api/(v1|portal)/.*");
 
     public RateLimitingFilter(
             @Qualifier("authRateLimiter") RateLimitingConfig.RateLimiter authRateLimiter,

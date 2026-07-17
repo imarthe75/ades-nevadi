@@ -28,13 +28,13 @@ import uuid
 from typing import Any
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 
 from app.core.config import settings
-from app.core.database import get_db
+from app.core.chatbot_db import chatbot_readonly_session
+from app.core.ratelimit import limiter, LIMITS
 from app.core.security import AdesUser, get_ades_user
 from app.schemas.base import AdesSchema
 from app.services.llm_service import LLMService, get_llm_service
@@ -207,11 +207,18 @@ async def _flowise_chat(pregunta: str, sesion_id: str, override_config: dict) ->
 #   2. `SET TRANSACTION READ ONLY` antes de ejecutar — Postgres rechaza CUALQUIER
 #      escritura a nivel de motor, sin importar cómo esté disfrazada en el SQL. Esta
 #      es la garantía real; la capa 1 solo reduce ruido/costo de intentos obvios.
-# Pendiente (fuera de alcance de este fix puntual): el filtro POR_PLANTEL/POR_ALUMNO
-# sigue siendo un hint de prompt, no una política RLS de Postgres real — la
-# corrección definitiva es habilitar Row-Level Security nativo de Postgres
-# (ENABLE ROW LEVEL SECURITY + CREATE POLICY) sobre las tablas expuestas aquí,
-# keyed por el mismo GUC app.current_user que ya usa AuditSessionInterceptor.
+# RESUELTO 2026-07-17 (mig. 154 + app/core/chatbot_db.py): el filtro
+# POR_PLANTEL ya no es solo un hint de prompt — _vanna_sql ejecuta el SQL
+# generado en una sesión dedicada conectada como ades_app (no superusuario,
+# a diferencia de ades_admin) con Row Level Security real habilitado en las
+# 15 tablas de este esquema, keyed por los GUC app.rls_bypass/app.rls_plantel_id
+# fijados con SET LOCAL antes de ejecutar. Un LLM que ignore hint_sql, o un
+# intento de prompt injection en la pregunta del usuario, ya no puede leer
+# filas de otro plantel — Postgres las descarta a nivel de motor, no de texto
+# sugerido. POR_PROFESOR/POR_ALUMNO (aislamiento por persona específica,
+# más granular que por plantel) queda deliberadamente fuera de esta pasada —
+# ver docs/hallazgos/2026-07-16_auditoria_gaps_no_revisados.md y el
+# comentario de cabecera de db/migrations/154_chatbot_rls.sql.
 _SQL_PALABRAS_PROHIBIDAS = re.compile(
     r"\b(INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|TRUNCATE|GRANT|REVOKE|CALL|COPY|"
     r"EXECUTE|MERGE|VACUUM|REINDEX|INTO|LISTEN|NOTIFY|LOCK|SET|RESET|DO)\b",
@@ -233,18 +240,20 @@ def _validar_sql_generado(sql: str) -> None:
         )
 
 
-async def _vanna_sql(pregunta: str, rls_ctx: dict, db: AsyncSession, llm: LLMService) -> tuple[str, list[dict]]:
+async def _vanna_sql(pregunta: str, rls_ctx: dict, user: AdesUser, llm: LLMService) -> tuple[str, list[dict]]:
     """Genera una consulta SQL a partir de lenguaje natural usando el LLM y la ejecuta aplicando RLS.
 
     Consiste en:
     1. Construir un prompt del sistema que describe las tablas y las reglas RLS del usuario.
     2. Invocar al LLM para obtener la consulta SELECT SQL exclusiva.
-    3. Validar y ejecutar la consulta en la base de datos limitando a un máximo de 200 filas.
+    3. Validar y ejecutar la consulta en la base de datos limitando a un máximo de 200 filas,
+       en una sesión dedicada de solo-lectura (rol ades_app) con RLS real por
+       plantel (mig. 154) — no la sesión ades_admin compartida del resto de la app.
 
     Args:
         pregunta: Pregunta en lenguaje natural del usuario.
-        rls_ctx: Contexto de seguridad de fila construido para el usuario.
-        db: Sesión asíncrona de base de datos.
+        rls_ctx: Contexto de seguridad de fila construido para el usuario (para el prompt del LLM).
+        user: Usuario autenticado — determina el aislamiento RLS real aplicado a la ejecución.
         llm: Servicio del Large Language Model.
 
     Returns:
@@ -278,14 +287,17 @@ async def _vanna_sql(pregunta: str, rls_ctx: dict, db: AsyncSession, llm: LLMSer
         )
     _validar_sql_generado(sql)
 
-    # Ejecutar con límite de filas. SET TRANSACTION READ ONLY debe ser el primer
-    # comando de la transacción (session fresca por request vía get_db) — es la
-    # garantía real que impide cualquier escritura, no la validación de arriba.
+    # Ejecutar con límite de filas en la sesión dedicada ades_app (mig. 154):
+    # SET TRANSACTION READ ONLY sigue siendo la garantía real contra escritura
+    # (sin importar cómo esté disfrazada en el SQL), y ahora además la sesión
+    # trae los GUC de RLS ya fijados (chatbot_readonly_session) — Postgres
+    # descarta filas de otro plantel en las 15 tablas de la mig. 154 aunque el
+    # LLM haya ignorado el hint_sql o el usuario haya intentado prompt injection.
     try:
-        await db.execute(text("SET TRANSACTION READ ONLY"))
-        result = await db.execute(text(sql + " LIMIT 200"))
-        cols = list(result.keys())
-        rows = [dict(zip(cols, row)) for row in result.fetchall()]
+        async with chatbot_readonly_session(user) as db:
+            result = await db.execute(text(sql + " LIMIT 200"))
+            cols = list(result.keys())
+            rows = [dict(zip(cols, row)) for row in result.fetchall()]
         # Convertir tipos no serializables
         for row in rows:
             for k, v in row.items():
@@ -397,9 +409,10 @@ async def _generar_resumen(pregunta: str, sql: str, filas: list[dict], llm: LLMS
 # ── Endpoints ─────────────────────────────────────────────────────────────────
 
 @router.post("/mensaje", response_model=MensajeOut)
+@limiter.limit(LIMITS["ai"])
 async def enviar_mensaje(
+    request: Request,
     body: MensajeIn,
-    db: AsyncSession = Depends(get_db),
     ades_user: AdesUser = Depends(get_ades_user),
     llm: LLMService = Depends(get_llm_service),
 ) -> MensajeOut:
@@ -407,7 +420,6 @@ async def enviar_mensaje(
 
     Args:
         body: Datos del mensaje y del identificador de sesión.
-        db: Sesión asíncrona de base de datos.
         ades_user: Usuario actual autenticado en ADES.
         llm: Servicio de Large Language Model.
 
@@ -440,7 +452,7 @@ async def enviar_mensaje(
 
     # Modo directo: NL→SQL + resumen NVIDIA NIM
     try:
-        sql, filas = await _vanna_sql(body.pregunta, rls_ctx, db, llm)
+        sql, filas = await _vanna_sql(body.pregunta, rls_ctx, ades_user, llm)
         resumen = await _generar_resumen(body.pregunta, sql, filas, llm)
         return MensajeOut(
             respuesta=resumen,
@@ -460,9 +472,10 @@ async def enviar_mensaje(
 
 
 @router.post("/sql")
+@limiter.limit(LIMITS["ai"])
 async def ejecutar_sql_natural(
+    request: Request,
     body: SqlQueryIn,
-    db: AsyncSession = Depends(get_db),
     ades_user: AdesUser = Depends(get_ades_user),
     llm: LLMService = Depends(get_llm_service),
 ) -> dict:
@@ -472,7 +485,6 @@ async def ejecutar_sql_natural(
 
     Args:
         body: Estructura de entrada con la consulta de lenguaje natural y scopes.
-        db: Sesión asíncrona de base de datos.
         ades_user: Usuario actual autenticado en ADES.
         llm: Servicio de Large Language Model.
 
@@ -480,7 +492,7 @@ async def ejecutar_sql_natural(
         dict: Datos de respuesta incluyendo el SQL generado, registros obtenidos y resumen.
     """
     rls_ctx = _build_rls_context(ades_user)
-    sql, filas = await _vanna_sql(body.pregunta, rls_ctx, db, llm)
+    sql, filas = await _vanna_sql(body.pregunta, rls_ctx, ades_user, llm)
     resumen = await _generar_resumen(body.pregunta, sql, filas, llm)
     return {
         "pregunta":    body.pregunta,

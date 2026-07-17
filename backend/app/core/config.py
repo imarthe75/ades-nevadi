@@ -58,6 +58,12 @@ class Settings(BaseSettings):
     # Base de datos
     DATABASE_URL: str
     DATABASE_URL_SYNC: str = ""
+    # Conexión dedicada de solo-lectura para /chatbot/sql (mig. 154, RLS real
+    # por plantel) — rol ades_app, no superusuario, a diferencia de
+    # DATABASE_URL. Si no está definida, chatbot_session.py cae de vuelta a
+    # DATABASE_URL (mismo comportamiento que antes de esta migración, sin RLS
+    # real — ver advertencia de log en ese módulo).
+    CHATBOT_DB_URL: str = ""
 
     # Valkey / Celery
     VALKEY_URL: str

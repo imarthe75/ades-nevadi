@@ -101,15 +101,6 @@ public class LearningPathsController {
         userService.verificarPlantel(user, rows.get(0), "El estudiante no pertenece a su plantel");
     }
 
-    private void verificarAccesoGrupo(AdesUser user, UUID grupoId) {
-        UUID plantelGrupo = jdbc.queryForObject("""
-                SELECT gr.plantel_id FROM ades_grupos g
-                JOIN ades_grados gr ON gr.id = g.grado_id
-                WHERE g.id = ?
-                """, UUID.class, grupoId);
-        userService.verificarPlantel(user, plantelGrupo, "El grupo no pertenece a su plantel");
-    }
-
     private void verificarAccesoAsignacion(AdesUser user, UUID asignacionId) {
         UUID estudianteId = jdbc.queryForObject(
                 "SELECT estudiante_id FROM ades_lp_asignaciones WHERE id = ?", UUID.class, asignacionId);
@@ -243,7 +234,7 @@ public class LearningPathsController {
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         requireStaff(user);
-        verificarAccesoGrupo(user, grupoId);
+        userService.verificarAccesoGrupo(user, grupoId);
         int asignadas = learningPathService.asignarAutomatico(grupoId, user.getId());
         if (asignadas == 0) {
             return ResponseEntity.ok(Map.of("asignadas", 0, "mensaje", "Sin alertas activas en el grupo"));

@@ -77,14 +77,6 @@ public class PlanesEstudioController {
         userService.verificarPlantel(user, rows.get(0), "El alumno no pertenece a su plantel");
     }
 
-    private void verificarAccesoGrupo(AdesUser user, UUID grupoId) {
-        List<UUID> rows = jdbc.queryForList(
-                "SELECT gr.plantel_id FROM ades_grupos g JOIN ades_grados gr ON gr.id = g.grado_id WHERE g.id = ?",
-                UUID.class, grupoId);
-        if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Grupo no encontrado");
-        userService.verificarPlantel(user, rows.get(0), "El grupo no pertenece a su plantel");
-    }
-
     private void verificarAccesoPlanAlt(AdesUser user, UUID planAltId) {
         List<Map<String, Object>> rows = jdbc.queryForList(
                 "SELECT estudiante_id, grupo_id FROM ades_planes_estudio_alt WHERE id = ?", planAltId);
@@ -92,7 +84,7 @@ public class PlanesEstudioController {
         UUID estudianteId = (UUID) rows.get(0).get("estudiante_id");
         UUID grupoId = (UUID) rows.get(0).get("grupo_id");
         if (estudianteId != null) verificarAccesoEstudiante(user, estudianteId);
-        else if (grupoId != null) verificarAccesoGrupo(user, grupoId);
+        else if (grupoId != null) userService.verificarAccesoGrupo(user, grupoId);
     }
 
     @GetMapping
@@ -204,7 +196,7 @@ public class PlanesEstudioController {
             return ResponseEntity.ok(planAltQueryService.listarPorEstudiante(estudianteId));
         }
         if (grupoId != null) {
-            verificarAccesoGrupo(user, grupoId);
+            userService.verificarAccesoGrupo(user, grupoId);
             return ResponseEntity.ok(planAltQueryService.listarPorGrupo(grupoId));
         }
         throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Se requiere estudiante_id o grupo_id");
@@ -236,7 +228,7 @@ public class PlanesEstudioController {
             throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
                     "Debe especificar exactamente uno: estudiante_id o grupo_id");
         if (estudianteId != null) verificarAccesoEstudiante(user, estudianteId);
-        else verificarAccesoGrupo(user, grupoId);
+        else userService.verificarAccesoGrupo(user, grupoId);
 
         UUID id = planAltWriteService.crear(estudianteId, grupoId, motivo, materias);
         return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("id", id.toString()));

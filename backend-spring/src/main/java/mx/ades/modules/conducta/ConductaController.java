@@ -455,15 +455,6 @@ public class ConductaController {
         userService.verificarPlantel(user, plantelRows.get(0), "El alumno no pertenece a su plantel");
     }
 
-    private void verificarAccesoGrupo(AdesUser user, UUID grupoId) {
-        List<UUID> plantelRows = jdbc.queryForList(
-                "SELECT gr.plantel_id FROM ades_grupos g " +
-                "JOIN ades_grados gr ON gr.id = g.grado_id " +
-                "WHERE g.id = ?", UUID.class, grupoId);
-        if (plantelRows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Grupo no encontrado");
-        userService.verificarPlantel(user, plantelRows.get(0), "El grupo no pertenece a su plantel");
-    }
-
     private void verificarAccesoReporte(AdesUser user, UUID reporteId) {
         verificarAccesoEstudiante(user, resolveEstudianteId(reporteId));
     }
@@ -524,7 +515,7 @@ public class ConductaController {
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         requireNivel(user, 3);
-        verificarAccesoGrupo(user, grupoId);
+        userService.verificarAccesoGrupo(user, grupoId);
         return ResponseEntity.ok(riesgoConductualService.recalcularGrupo(grupoId));
     }
 

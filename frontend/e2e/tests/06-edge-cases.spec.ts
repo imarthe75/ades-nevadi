@@ -1,5 +1,6 @@
 import { test, expect, Browser, BrowserContext, Page } from '@playwright/test';
 import { getRealToken, CUENTAS_REALES } from '../fixtures/real-tokens';
+import { LoginPage } from '../page-objects/login-page';
 
 // IDs reales de BD (2026-07-16) para las pruebas B1/B3 de aislamiento cross-plantel:
 // alumno y grupo de Tenancingo, distinto del plantel de DOCENTE_METEPEC/COORDINADOR_METEPEC.
@@ -17,14 +18,25 @@ test.describe('06-edge-cases — Concurrent, RBAC, Network, Timeouts', () => {
   let context: BrowserContext;
   let token: string;
 
+  // Auth OIDC real (2026-07-17, docs/hallazgos/2026-07-16_auditoria_gaps_no_revisados.md
+  // #4 cola pendiente): antes se inyectaba un JWT literal falso
+  // ('eyJhbGciOiJIUzI1NiJ9...', ni siquiera decodificable) y la mayoría de los tests
+  // de abajo usaban 'test-token' — ninguno ejercitaba sesión real, así que las
+  // navegaciones a rutas protegidas (page.goto('/alumnos'), etc.) en realidad
+  // redirigían siempre a /login sin que el test lo notara. Se usa el mismo
+  // LoginPage/getRealToken que ya usa el resto de la suite (02-alumnos.spec.ts, etc.)
+  // y B1/B2/B3 de este mismo archivo.
   test.beforeAll(async ({ browser }) => {
     context = await browser.newContext();
     page = await context.newPage();
 
-    // Setup: Inject token
-    await page.addInitScript(() => {
-      sessionStorage.setItem('ades_token', 'eyJhbGciOiJIUzI1NiJ9...');
-    });
+    token = getRealToken(CUENTAS_REALES.ADMIN_GLOBAL);
+    if (!token) {
+      throw new Error('No se pudo obtener token real de Authentik para ADMIN_GLOBAL — revisar que authentik-server esté corriendo.');
+    }
+
+    const lp = new LoginPage(page);
+    await lp.login();
   });
 
   test.afterAll(async () => {
@@ -37,7 +49,6 @@ test.describe('06-edge-cases — Concurrent, RBAC, Network, Timeouts', () => {
 
   test('A1: Concurrent edit — second PATCH returns 409', async ({ request, context }) => {
     const alumnoId = '550e8400-e29b-41d4-a716-446655440000';
-    const token = 'test-token';
 
     // Tab 1: Fetch alumno (row_version=100)
     const resp1 = await request.get(`/api/v1/alumnos/${alumnoId}`, {
@@ -64,7 +75,7 @@ test.describe('06-edge-cases — Concurrent, RBAC, Network, Timeouts', () => {
     for (let i = 0; i < 10; i++) {
       uploadPromises.push(
         request.post(`/api/v1/expediente/upload`, {
-          headers: { 'Authorization': `Bearer test-token` },
+          headers: { 'Authorization': `Bearer ${token}` },
           multipart: {
             file: {
               name: `test-file-${i}.pdf`,
@@ -94,7 +105,7 @@ test.describe('06-edge-cases — Concurrent, RBAC, Network, Timeouts', () => {
     const savePromises = updates.map((update, idx) =>
       request.patch(`/api/v1/calificaciones/${grupoId}/alumno/${update.alumno_id}`, {
         data: update,
-        headers: { 'Authorization': `Bearer test-token` }
+        headers: { 'Authorization': `Bearer ${token}` }
       })
     );
 
@@ -247,7 +258,7 @@ test.describe('06-edge-cases — Concurrent, RBAC, Network, Timeouts', () => {
   test('C4: Request timeout (>30s)', async ({ request }) => {
     // Simulate timeout with custom headers
     const response = await request.get(`/api/v1/alumnos/slow`, {
-      headers: { 'Authorization': `Bearer test-token` },
+      headers: { 'Authorization': `Bearer ${token}` },
       timeout: 5000  // 5s timeout
     });
 

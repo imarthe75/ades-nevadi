@@ -4,7 +4,6 @@ import lombok.RequiredArgsConstructor;
 import mx.ades.modules.grade_analytics.query.GradeAnalyticsQueryService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -33,7 +32,6 @@ public class GradeAnalyticsController {
 
     private final AdesUserService userService;
     private final GradeAnalyticsQueryService queryService;
-    private final JdbcTemplate jdbc;
 
     /**
      * BOLA/BFLA fix (2026-07-16, docs/hallazgos/2026-07-16_auditoria_gaps_no_revisados.md
@@ -51,21 +49,12 @@ public class GradeAnalyticsController {
         return user;
     }
 
-    private void verificarAccesoGrupo(AdesUser user, UUID grupoId) {
-        List<UUID> plantelRows = jdbc.queryForList(
-                "SELECT gr.plantel_id FROM ades_grupos g " +
-                "JOIN ades_grados gr ON gr.id = g.grado_id " +
-                "WHERE g.id = ?", UUID.class, grupoId);
-        if (plantelRows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Grupo no encontrado");
-        userService.verificarPlantel(user, plantelRows.get(0), "El grupo no pertenece a su plantel");
-    }
-
     @GetMapping("/tendencias/{grupo_id}")
     public ResponseEntity<List<Map<String, Object>>> tendenciasGrupo(
             @PathVariable("grupo_id") UUID grupoId,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = requireCoordinadorOSuperior(jwt);
-        verificarAccesoGrupo(user, grupoId);
+        userService.verificarAccesoGrupo(user, grupoId);
         return ResponseEntity.ok(queryService.tendenciasGrupo(grupoId));
     }
 
@@ -75,7 +64,7 @@ public class GradeAnalyticsController {
             @RequestParam(value = "numero_periodo", required = false) Integer numeroPeriodo,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = requireCoordinadorOSuperior(jwt);
-        verificarAccesoGrupo(user, grupoId);
+        userService.verificarAccesoGrupo(user, grupoId);
         return ResponseEntity.ok(queryService.distribucion(grupoId, numeroPeriodo));
     }
 
@@ -87,7 +76,7 @@ public class GradeAnalyticsController {
             @RequestParam(value = "limit", defaultValue = "50") int limit,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = requireCoordinadorOSuperior(jwt);
-        if (grupoId != null) verificarAccesoGrupo(user, grupoId);
+        if (grupoId != null) userService.verificarAccesoGrupo(user, grupoId);
         UUID plantelFiltro = userService.getEffectivePlantelId(user, plantelId);
         return ResponseEntity.ok(queryService.alumnosEnRiesgo(plantelFiltro, grupoId, nivelRiesgo, limit));
     }
@@ -107,7 +96,7 @@ public class GradeAnalyticsController {
             @RequestParam(value = "grupo_id", required = false) UUID grupoId,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = requireCoordinadorOSuperior(jwt);
-        if (grupoId != null) verificarAccesoGrupo(user, grupoId);
+        if (grupoId != null) userService.verificarAccesoGrupo(user, grupoId);
         UUID plantelFiltro = userService.getEffectivePlantelId(user, plantelId);
         return ResponseEntity.ok(queryService.coberturaCurricular(plantelFiltro, grupoId));
     }
@@ -120,7 +109,7 @@ public class GradeAnalyticsController {
             @RequestParam(value = "limit", defaultValue = "100") int limit,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = requireCoordinadorOSuperior(jwt);
-        if (grupoId != null) verificarAccesoGrupo(user, grupoId);
+        if (grupoId != null) userService.verificarAccesoGrupo(user, grupoId);
         UUID plantelFiltro = userService.getEffectivePlantelId(user, plantelId);
         return ResponseEntity.ok(queryService.alertasUmbral(umbral, plantelFiltro, grupoId, limit));
     }

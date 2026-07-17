@@ -25,4 +25,11 @@ LIMITS = {
     "upload": "10/minute",      # File uploads: 10 por minuto
     "export": "20/hour",        # Exports: 20 por hora
     "public": "100/day",        # Public endpoints (sin auth): 100 por día
+    # Hallazgo real 2026-07-17 (evaluación OWASP API6 — Business Flows, nunca
+    # evaluado antes): /chatbot/mensaje y /chatbot/sql disparan una llamada
+    # real al LLM (costo por token) sin ningún límite — cualquier usuario
+    # autenticado, incluido nivel_acceso 5 (alumno/padre), podía llamarlos en
+    # loop. Más estricto que "write" porque el costo por llamada es real
+    # dinero, no solo carga del servidor.
+    "ai": "15/minute",
 }

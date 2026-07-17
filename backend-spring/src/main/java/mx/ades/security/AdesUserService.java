@@ -123,6 +123,40 @@ public class AdesUserService {
         }
     }
 
+    /**
+     * BOLA fix compartido (2026-07-17): extraído tras encontrar el mismo patrón
+     * copiado a mano en 6 controllers ({@code ConductaController},
+     * {@code GradeAnalyticsController}, {@code ActaController} (vía
+     * {@code ActaQueryService.plantelDeGrupo}), {@code LearningPathsController},
+     * {@code PlanesEstudioController}, {@code AsignacionDocenteController}) — cada
+     * uno con su propia copia de {@code SELECT gr.plantel_id FROM ades_grupos g
+     * JOIN ades_grados gr ON gr.id = g.grado_id WHERE g.id = ?} + chequeo de
+     * {@link #verificarPlantel}. Centralizar aquí evita que el próximo endpoint
+     * que necesite "verificar que este grupo es de mi plantel" reintroduzca el
+     * mismo bug BOLA por copy-paste que ya pasó una vez en esta cola (ver
+     * {@code docs/hallazgos/2026-07-16_auditoria_gaps_no_revisados.md}).
+     *
+     * @param user         usuario autenticado
+     * @param grupoId      id del grupo a verificar
+     * @param mensajeError mensaje del 403 si el grupo no pertenece a su plantel
+     * @throws ResponseStatusException 404 si el grupo no existe, 403 si es de otro plantel
+     */
+    public void verificarAccesoGrupo(AdesUser user, UUID grupoId, String mensajeError) {
+        List<UUID> plantelRows = jdbc.queryForList(
+                "SELECT gr.plantel_id FROM ades_grupos g " +
+                "JOIN ades_grados gr ON gr.id = g.grado_id " +
+                "WHERE g.id = ?", UUID.class, grupoId);
+        if (plantelRows.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Grupo no encontrado");
+        }
+        verificarPlantel(user, plantelRows.get(0), mensajeError);
+    }
+
+    /** Variante con mensaje de error por defecto de {@link #verificarAccesoGrupo(AdesUser, UUID, String)}. */
+    public void verificarAccesoGrupo(AdesUser user, UUID grupoId) {
+        verificarAccesoGrupo(user, grupoId, "El grupo no pertenece a su plantel");
+    }
+
     private AdesUser buildAdesUser(Usuario usuario) {
         List<String> roles = jdbc.queryForList(
                 "SELECT r.nombre_rol FROM ades_roles r " +

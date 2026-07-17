@@ -357,6 +357,11 @@ services:
       # PgBouncer — asyncpg deshabilita prepared statements vía connect_args en database.py
       # Puerto 5432 = puerto interno del contenedor pgbouncer (el 6432 es solo el mapeo del host)
       DATABASE_URL:        postgresql+asyncpg://${POSTGRES_USER:-ades_admin}:${POSTGRES_PASSWORD}@ades-pgbouncer:5432/ades
+      # Conexión dedicada de solo-lectura para /chatbot/sql (mig. 154) — rol NO
+      # superusuario ades_app (a diferencia de DATABASE_URL/ades_admin de arriba),
+      # sujeto a las políticas RLS reales que aíslan por plantel. Ver
+      # backend/app/db/chatbot_session.py.
+      CHATBOT_DB_URL:      postgresql+asyncpg://ades_app:${ADES_APP_DB_PASSWORD}@ades-pgbouncer:5432/ades
     volumes:
       - ./backend:/app:cached     # hot-reload en desarrollo
       - vault-init:/vault/init:ro

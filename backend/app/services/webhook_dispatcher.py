@@ -9,6 +9,8 @@ import httpx
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.ssrf_guard import validar_url_publica, UrlNoPermitidaError
+
 log = logging.getLogger("ades.webhooks")
 
 async def dispatch_webhook(event_type: str, data: Dict[str, Any], db: AsyncSession) -> None:
@@ -81,13 +83,23 @@ async def _send_webhook_request(
     status_code = None
     response_body = None
     exitoso = False
-    
+
+    # Revalidar en el momento del despacho (no solo al registrar el webhook)
+    # — la resolución DNS del host pudo cambiar desde el registro (DNS
+    # rebinding), y esta es la única validación que realmente importa: es la
+    # que corre justo antes del request real.
     try:
+        validar_url_publica(url)
         async with httpx.AsyncClient(timeout=10.0) as client:
             resp = await client.post(url, headers=headers, content=body_str)
             status_code = resp.status_code
             response_body = resp.text[:1000]  # Truncar si es muy larga
             exitoso = (200 <= status_code < 300)
+    except UrlNoPermitidaError as e:
+        response_body = f"URL bloqueada (SSRF guard): {str(e)}"
+        status_code = 0
+        exitoso = False
+        log.warning("Webhook %s bloqueado por ssrf_guard: %s", webhook_id, str(e))
     except Exception as e:
         response_body = f"Connection Error: {str(e)}"
         status_code = 0

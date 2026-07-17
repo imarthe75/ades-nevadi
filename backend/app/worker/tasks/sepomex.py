@@ -36,7 +36,7 @@ def sync_sepomex_weekly() -> dict:
     # 1. Fetch ASP.NET view state variables using regex
     try:
         session = requests.Session()
-        r_get = session.get(url, headers=headers, verify=False, timeout=30)
+        r_get = session.get(url, headers=headers, timeout=30)
         r_get.raise_for_status()
         
         # Regex search for ASP.NET fields
@@ -71,7 +71,7 @@ def sync_sepomex_weekly() -> dict:
         }
         
         log.info("Submitting POST request to download SEPOMEX ZIP...")
-        r_post = session.post(url, data=payload, headers=headers, verify=False, timeout=60)
+        r_post = session.post(url, data=payload, headers=headers, timeout=60)
         r_post.raise_for_status()
         
         if "CPdescargatxt" not in r_post.headers.get('Content-Disposition', ''):

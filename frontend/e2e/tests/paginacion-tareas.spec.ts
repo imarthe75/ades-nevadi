@@ -15,6 +15,13 @@ test.describe('Paginación — Tareas API', () => {
 
   test.beforeAll(async () => {
     authToken = getRealToken(CUENTAS_REALES.ADMIN_GLOBAL);
+    // Endurecimiento 2026-07-17: sin este guard, un fallo de getRealToken() (p.ej.
+    // authentik-server caído) mandaba 'Authorization: Bearer ' vacío en cada
+    // request — los tests fallaban en 401 con un mensaje de aserción confuso en
+    // vez de señalar la causa real. Mismo patrón que B1/B2/B3 de 06-edge-cases.spec.ts.
+    if (!authToken) {
+      throw new Error('No se pudo obtener token real de Authentik para ADMIN_GLOBAL — revisar que authentik-server esté corriendo.');
+    }
   });
 
   test('GET /api/v1/tareas retorna Page<Map<>> con paginación', async ({ request }) => {
@@ -36,20 +43,24 @@ test.describe('Paginación — Tareas API', () => {
 
     const body = await response.json();
 
-    // Validar estructura Page<T>
+    // Validar estructura Page<T> — la serialización real del BFF usa snake_case
+    // (Jackson SNAKE_CASE naming strategy) en todos los campos, no camelCase.
+    // Corregido 2026-07-17: estas aserciones nunca se habían ejecutado de verdad
+    // (el test fallaba antes en 401 por el authToken sin asignar, ver comentario
+    // de cabecera) así que este mismatch camelCase/snake_case quedó sin detectar.
     expect(body).toHaveProperty('content');
-    expect(body).toHaveProperty('totalElements');
-    expect(body).toHaveProperty('totalPages');
+    expect(body).toHaveProperty('total_elements');
+    expect(body).toHaveProperty('total_pages');
     expect(body).toHaveProperty('number');
     expect(body).toHaveProperty('size');
-    expect(body).toHaveProperty('numberOfElements');
+    expect(body).toHaveProperty('number_of_elements');
     expect(body).toHaveProperty('empty');
     expect(body).toHaveProperty('first');
     expect(body).toHaveProperty('last');
 
     // Validar tipos
     expect(Array.isArray(body.content)).toBeTruthy();
-    expect(typeof body.totalElements).toBe('number');
+    expect(typeof body.total_elements).toBe('number');
     expect(typeof body.number).toBe('number');
     expect(typeof body.size).toBe('number');
 
@@ -76,10 +87,10 @@ test.describe('Paginación — Tareas API', () => {
 
     const body = await response.json();
 
-    // Validar estructura Page<T>
+    // Validar estructura Page<T> (snake_case, ver nota arriba)
     expect(body).toHaveProperty('content');
-    expect(body).toHaveProperty('totalElements');
-    expect(body).toHaveProperty('totalPages');
+    expect(body).toHaveProperty('total_elements');
+    expect(body).toHaveProperty('total_pages');
 
     // Validar que es array
     expect(Array.isArray(body.content)).toBeTruthy();

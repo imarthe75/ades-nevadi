@@ -15,13 +15,14 @@ import asyncio
 from datetime import date
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from fastapi.responses import Response as FastResponse
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session
 
 from app.core.security import get_ades_user
 from app.core.config import settings
+from app.core.ratelimit import limiter, LIMITS
 
 router = APIRouter(prefix="/boletas", tags=["boletas"])
 TEMPLATES_DIR = Path(__file__).parent.parent.parent / "templates" / "boletas"
@@ -42,7 +43,9 @@ def _sync_db_session() -> Session:
 # ── NEM individual ─────────────────────────────────────────────────────────
 
 @router.get("/{estudiante_id}")
+@limiter.limit(LIMITS["export"])
 async def boleta_nem(
+    request: Request,
     estudiante_id: uuid.UUID,
     ciclo_id: uuid.UUID | None = None,
     _user=Depends(get_ades_user),
@@ -82,7 +85,9 @@ async def boleta_nem(
 # ── UAEMEX constancia ───────────────────────────────────────────────────────
 
 @router.get("/uaemex/{estudiante_id}")
+@limiter.limit(LIMITS["export"])
 async def boleta_uaemex(
+    request: Request,
     estudiante_id: uuid.UUID,
     ciclo_id: uuid.UUID | None = None,
     _user=Depends(get_ades_user),
@@ -251,7 +256,9 @@ def _generar_pdf_uaemex(estudiante_id: uuid.UUID, ciclo_id: uuid.UUID | None) ->
 # ── Celery batch ────────────────────────────────────────────────────────────
 
 @router.post("/grupo/{grupo_id}/batch")
+@limiter.limit(LIMITS["export"])
 async def encolar_boletas_grupo(
+    request: Request,
     grupo_id: uuid.UUID,
     ciclo_id: uuid.UUID | None = None,
     _user=Depends(get_ades_user),
