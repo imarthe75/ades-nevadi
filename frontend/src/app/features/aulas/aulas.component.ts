@@ -177,12 +177,12 @@ const ESTADO_SEVERITY: Record<string, TagSeverity> = {
                           placeholder="Seleccionar plantel" style="width:100%" [filter]="true" ariaLabel="Plantel"/>
               </div>
               <div class="field">
-                <label>Nombre del aula *</label>
-                <input pInputText [(ngModel)]="form.nombre_aula" style="width:100%" placeholder="Ej: Salón 1A" />
+                <label for="aula-nombre">Nombre del aula *</label>
+                <input pInputText id="aula-nombre" [(ngModel)]="form.nombre_aula" style="width:100%" placeholder="Ej: Salón 1A"/>
               </div>
               <div class="field">
-                <label>Clave corta</label>
-                <input pInputText [(ngModel)]="form.clave_aula" style="width:100%" placeholder="Ej: A-101" />
+                <label for="aula-clave">Clave corta</label>
+                <input pInputText id="aula-clave" [(ngModel)]="form.clave_aula" style="width:100%" placeholder="Ej: A-101"/>
               </div>
               <div class="field">
                 <label>Tipo de espacio</label>
@@ -215,8 +215,8 @@ const ESTADO_SEVERITY: Record<string, TagSeverity> = {
                 <p-inputnumber [(ngModel)]="form.capacidad_maxima" [min]="1" [max]="500" style="width:100%" />
               </div>
               <div class="field full-width">
-                <label>Observaciones</label>
-                <input pInputText [(ngModel)]="form.observaciones" style="width:100%" placeholder="Notas adicionales..." />
+                <label for="aula-obs">Observaciones</label>
+                <input pInputText id="aula-obs" [(ngModel)]="form.observaciones" style="width:100%" placeholder="Notas adicionales..."/>
               </div>
             </div>
           </p-tabpanel>
@@ -278,16 +278,16 @@ const ESTADO_SEVERITY: Record<string, TagSeverity> = {
                           optionLabel="label" optionValue="value" style="width:100%" ariaLabel="Día"/>
               </div>
               <div class="field">
-                <label>Hora inicio (HH:MM)</label>
-                <input pInputText [(ngModel)]="franjaForm.hora_inicio" placeholder="07:00" style="width:100%" />
+                <label for="aula-hora-inicio">Hora inicio (HH:MM)</label>
+                <input pInputText id="aula-hora-inicio" [(ngModel)]="franjaForm.hora_inicio" placeholder="07:00" style="width:100%"/>
               </div>
               <div class="field">
-                <label>Hora fin (HH:MM)</label>
-                <input pInputText [(ngModel)]="franjaForm.hora_fin" placeholder="13:00" style="width:100%" />
+                <label for="aula-hora-fin">Hora fin (HH:MM)</label>
+                <input pInputText id="aula-hora-fin" [(ngModel)]="franjaForm.hora_fin" placeholder="13:00" style="width:100%"/>
               </div>
               <div class="field full-width">
-                <label>Motivo / descripción</label>
-                <input pInputText [(ngModel)]="franjaForm.motivo_bloqueo" style="width:100%" placeholder="Ej: Clase de Matemáticas 2A" />
+                <label for="aula-motivo">Motivo / descripción</label>
+                <input pInputText id="aula-motivo" [(ngModel)]="franjaForm.motivo_bloqueo" style="width:100%" placeholder="Ej: Clase de Matemáticas 2A"/>
               </div>
             </div>
             <div style="display:flex;gap:0.75rem;align-items:center;margin-top:0.5rem">

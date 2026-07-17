@@ -139,15 +139,52 @@ confirmar que el diálogo aparece y el flujo de aceptar/cancelar funciona en el 
 `tsc` limpio confirma que el código compila, no que el comportamiento en UI es correcto. No se
 hizo commit — queda pendiente de decisión del usuario.
 
-### Fase 2 (esfuerzo medio)
-- **Visibilidad de estado (#1):** de los 56 componentes sin señal de loading/feedback
-  detectada, priorizar los que disparan un POST/PUT/DELETE (mutación real) sin indicador —
-  el usuario no debe quedar sin saber si su acción se guardó. Requiere cruzar contra llamadas
-  `this.api.post/put/delete` por componente (script similar a `check-api-contracts.js`).
-- **Prevención de errores (#5):** de los componentes con formularios de captura de datos
-  sensibles (salud, RFC/CURP, calificaciones), confirmar que tienen validación real más allá de
-  `required` (rango, formato, longitud máxima) — hoy solo 7/79 usan `Validators.*` explícito,
-  cifra baja frente a la cantidad de formularios de captura en el sistema.
+### Fase 2 — ✅ COMPLETADO 2026-07-17 (misma sesión, R-19 + R-20)
+
+**R-19 — Visibilidad de estado (#1), feedback de loading en mutaciones:**
+la medición ingenua por conteo de `[loading]` en el archivo sobreestimaba
+cobertura real (el signal puede existir sin estar wireado al botón que
+dispara la mutación). Método real: script que mapea cada método con
+`this.api.post/put/patch/delete(...)` contra los `(onClick)`/`(click)` del
+template que lo invoca, y verifica `[loading]` en las 4 líneas previas —
+plantilla completa en `.agent/skills/frontend-heuristicas-audit/SKILL.md`
+§2.2/§6. Resultado: **24 componentes con hueco real, todos corregidos**
+(rubricas, planeacion, badges, ponderacion-config, bbb, calendario,
+condiciones-cronicas, optativas, capacitaciones, comunicados, admin,
+admision, certificados, encuestas, foros, h5p, ia, learning-paths,
+planes-estudio, reinscripcion, alumno-perfil, domicilio, expediente-doc,
+gradebook). Re-corrida del script tras los fixes: 0 gaps reales (2 residuales
+son falsos positivos ya catalogados — `shell.component.ts` idempotente y
+`planes-estudio.component.ts` con patrón `[disabled]`+glifo equivalente a
+`[loading]` que el script no reconoce). Hallazgos colaterales: método
+`validar()` muerto en `capacitaciones.component.ts` (nunca invocado desde
+template) y `bbb.component.ts::terminarReunion()` con `window.confirm()`
+residual que se le pasó por alto a R-18 (su grep original no cubría el verbo
+"terminar"). `tsc --noEmit` limpio sobre el árbol completo.
+
+**R-20 — Prevención de errores (#5), validación estructural en datos
+sensibles:** `AdesValidators` (`frontend/src/app/shared/validators/ades-validators.ts`)
+ya tenía validadores reales de CURP/RFC/NSS/teléfono/CP, pero se usaba en
+**1/79 componentes** (`personal-admin.component.ts`, el único con reactive
+forms). Se extendió con variantes booleanas imperativas
+(`curpValido`/`rfcValido`/`nssValido`/`telefonoValido`/`cpValido`, mismo
+regex que las `ValidatorFn` — sin duplicar lógica) para los formularios
+template-driven que predominan en el proyecto. **9 componentes corregidos**
+(medico, expediente-laboral, profesores, profesor-perfil, alumno-perfil,
+admision, admin, condiciones-cronicas, licencias) más rango de calificación
+en `evaluaciones.component.ts::guardarCalificaciones()` (el `<input
+type="number" [min] [max]>` nativo no bloquea el submit si se escribe un
+valor fuera de rango directamente — solo limita las flechitas del spinner).
+**Bug de persistencia real encontrado de paso:** `alumno-perfil.component.ts`
+dejaba editar el CURP en el formulario (con contador "18/18" visible) pero
+el payload de `guardar()` nunca lo incluía — el cambio se descartaba en
+silencio y el usuario recibía "Guardado" de todos modos; confirmado con
+`PersonaUpdateHelper.java` (backend) que el campo `curp` ya estaba soportado
+en el PATCH, así que el gap era 100% frontend. `tsc --noEmit` limpio.
+
+**Qué falta de Fase 2:** igual que Fase 1, QA manual/E2E en navegador real de
+los flujos tocados — la compilación limpia confirma que el código es
+correcto de tipos, no que el comportamiento visual sea el esperado.
 
 ### Fase 3 (esfuerzo bajo, ya se decidió hacer accesibilidad por separado — R-14)
 `aria-*` (1.3%) y `breadcrumb` (2.5%) quedan bajo R-14 del plan de remediación existente — no
@@ -183,9 +220,10 @@ Agregar como nueva fila:
 | Ítem | Descripción | Estado | Esfuerzo | Riesgo si no se hace |
 |---|---|---|---|---|
 | R-18 | Confirmación antes de acciones destructivas (31/35 componentes sin ella, §3 de este doc) | ✅ **COMPLETADO 2026-07-16** — 21 huecos reales corregidos, 5 falsos positivos descartados por lectura de código, `tsc --noEmit` limpio (§4) | Bajo por archivo | Pendiente: QA manual en navegador antes de dar por cerrado el comportamiento (no solo la compilación) |
-| R-19 | Feedback visible en mutaciones sin indicador de carga/guardado (§4 Fase 2) | 🟡 Pendiente | Medio | Usuario reintenta/duplica acción por falta de confirmación visual |
-| R-20 | Validación real (no solo `required`) en formularios de datos sensibles | 🟡 Pendiente | Medio | Datos mal formados en salud/RH/calificaciones |
+| R-19 | Feedback visible en mutaciones sin indicador de carga/guardado (§4 Fase 2) | ✅ **COMPLETADO 2026-07-17** — 24 componentes corregidos, script de verificación en `.agent/skills/frontend-heuristicas-audit/SKILL.md`, `tsc --noEmit` limpio | Medio | Pendiente: QA manual en navegador antes de dar por cerrado el comportamiento |
+| R-20 | Validación real (no solo `required`) en formularios de datos sensibles | ✅ **COMPLETADO 2026-07-17** — `AdesValidators` extendido + 9 componentes corregidos + rango de calificaciones + 1 bug de persistencia real (CURP en `alumno-perfil.component.ts`) | Medio | Pendiente: QA manual en navegador antes de dar por cerrado el comportamiento |
 | R-21 | Muestreo manual heurísticas 2/4/6/7/8 vía Playwright (§5) | 🟢 Pendiente | Alto | Deuda de usabilidad sin cuantificar más allá de este documento |
+| R-22 | `bbb.component.ts::terminarReunion()` con `window.confirm()` residual (se le pasó por alto a R-18 — su grep no cubría el verbo "terminar") + limpiar método muerto `capacitaciones.component.ts::validar()` | 🟡 Pendiente | Bajo | Inconsistencia visual menor + código muerto, sin riesgo funcional |
 
 Corrección a la nota existente de CLAUDE.md: `ChangeDetectionStrategy.OnPush` está en
 **79/79 (100%)**, no "sin auditar" — actualizar el estado de Fase 2 en la sección

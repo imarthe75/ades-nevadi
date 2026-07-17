@@ -211,14 +211,14 @@ const NIVEL_ORDER = ['PRIMARIA', 'SECUNDARIA', 'PREPARATORIA'];
                         }
                         @if (esAdmin()) {
                           @if (p.estado_publicacion === 'ARCHIVADO') {
-                            <button class="cell-del" pTooltip="Publicar de nuevo"
-                              (click)="publicarPlan(p.id)">↺</button>
+                            <button class="cell-del" pTooltip="Publicar de nuevo" [disabled]="procesandoPlanId() === p.id"
+                              (click)="publicarPlan(p.id)">{{ procesandoPlanId() === p.id ? '⏳' : '↺' }}</button>
                           } @else {
-                            <button class="cell-del" pTooltip="Archivar (histórico)"
-                              (click)="archivarPlan(p.id)">🗄</button>
+                            <button class="cell-del" pTooltip="Archivar (histórico)" [disabled]="procesandoPlanId() === p.id"
+                              (click)="archivarPlan(p.id)">{{ procesandoPlanId() === p.id ? '⏳' : '🗄' }}</button>
                           }
-                          <button class="cell-del" pTooltip="Quitar asignación"
-                            (click)="quitarAsignacion(p.id, m.id, g.id)">×</button>
+                          <button class="cell-del" pTooltip="Quitar asignación" [disabled]="procesandoPlanId() === p.id"
+                            (click)="quitarAsignacion(p.id, m.id, g.id)">{{ procesandoPlanId() === p.id ? '⏳' : '×' }}</button>
                         }
                       } @else {
                         <!-- Celda sin asignación -->
@@ -312,7 +312,7 @@ const NIVEL_ORDER = ['PRIMARIA', 'SECUNDARIA', 'PREPARATORIA'];
                 </div>
                 @if (esAdmin()) {
                   <p-button icon="pi pi-trash" ariaLabel="Eliminar plan NEE" [text]="true" severity="danger" size="small"
-                    (onClick)="eliminarPlanNee(pn.id)" />
+                    [loading]="eliminandoPlanNeeId() === pn.id" (onClick)="eliminarPlanNee(pn.id)" />
                 }
               </div>
             }
@@ -366,11 +366,11 @@ const NIVEL_ORDER = ['PRIMARIA', 'SECUNDARIA', 'PREPARATORIA'];
       [modal]="true" [style]="{width:'440px'}">
       @if (materiaEdit) {
         <div class="form-grid">
-          <label>Nombre *</label>
-          <input pInputText [(ngModel)]="materiaEdit.nombre_materia" placeholder="Nombre de la materia" />
-          <label>Clave</label>
-          <input pInputText [(ngModel)]="materiaEdit.clave_materia"
-            style="font-family:monospace;text-transform:uppercase" placeholder="CBU-MAT-01" />
+          <label for="pe-mat-nombre">Nombre *</label>
+          <input pInputText id="pe-mat-nombre" [(ngModel)]="materiaEdit.nombre_materia" placeholder="Nombre de la materia"/>
+          <label for="pe-mat-clave">Clave</label>
+          <input pInputText id="pe-mat-clave" [(ngModel)]="materiaEdit.clave_materia"
+            style="font-family:monospace;text-transform:uppercase" placeholder="CBU-MAT-01"/>
           <label>Nivel *</label>
           <p-select [options]="niveles()" [(ngModel)]="materiaEdit.nivel_educativo_id"
             optionLabel="nombre_nivel" optionValue="id"
@@ -400,10 +400,10 @@ const NIVEL_ORDER = ['PRIMARIA', 'SECUNDARIA', 'PREPARATORIA'];
         <div class="form-grid">
           <label>Orden</label>
           <p-inputnumber [(ngModel)]="temaEdit.orden" [min]="1" [max]="99" />
-          <label>Nombre del tema *</label>
-          <input pInputText [(ngModel)]="temaEdit.nombre_tema" placeholder="Ej. Números naturales" />
-          <label>Descripción</label>
-          <input pInputText [(ngModel)]="temaEdit.descripcion" placeholder="Resumen breve" />
+          <label for="pe-tema-nombre">Nombre del tema *</label>
+          <input pInputText id="pe-tema-nombre" [(ngModel)]="temaEdit.nombre_tema" placeholder="Ej. Números naturales"/>
+          <label for="pe-tema-desc">Descripción</label>
+          <input pInputText id="pe-tema-desc" [(ngModel)]="temaEdit.descripcion" placeholder="Resumen breve"/>
           <label>Periodo sugerido</label>
           <p-inputnumber [(ngModel)]="temaEdit.periodo_sugerido" [min]="1" [max]="6" placeholder="1-6" />
         </div>
@@ -418,8 +418,8 @@ const NIVEL_ORDER = ['PRIMARIA', 'SECUNDARIA', 'PREPARATORIA'];
     <p-dialog [(visible)]="dlgPlanNee" header="Nuevo plan alternativo/reducido (NEE)"
       [modal]="true" [style]="{width:'480px'}">
       <div class="form-grid">
-        <label>Motivo *</label>
-        <textarea pTextarea [(ngModel)]="planNeeForm.motivo" rows="3"
+        <label for="pe-nee-motivo">Motivo *</label>
+        <textarea pTextarea id="pe-nee-motivo" [(ngModel)]="planNeeForm.motivo" rows="3"
           placeholder="Ej. Alumno con discapacidad intelectual, plan reducido de 6 materias"></textarea>
         <label>Materias del plan alternativo *</label>
         <p-multiselect [options]="materiasNivelActual()" [(ngModel)]="planNeeForm.materiaIds"
@@ -626,6 +626,8 @@ export class PlanesEstudioComponent implements OnInit, OnDestroy {
   planesNee       = signal<any[]>([]);
   dlgPlanNee      = false;
   savingPlanNee   = signal(false);
+  procesandoPlanId = signal<string | null>(null);
+  eliminandoPlanNeeId = signal<string | null>(null);
   planNeeForm: { motivo: string; materiaIds: string[] } = { motivo: '', materiaIds: [] };
 
   // ── Temario selectors (backing signals + getter/setter for [(ngModel)]) ─────
@@ -845,9 +847,10 @@ export class PlanesEstudioComponent implements OnInit, OnDestroy {
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
         const grupoId = this.ctx.grupo()?.id;
+        this.eliminandoPlanNeeId.set(id);
         this.api.delete(`/planes-estudio/alternativos/${id}`).pipe(takeUntil(this.destroy$)).subscribe({
-          next: () => { if (grupoId) this.cargarPlanesNee(grupoId); },
-          error: e => this.notify.error('Error', e.error?.detail),
+          next: () => { this.eliminandoPlanNeeId.set(null); if (grupoId) this.cargarPlanesNee(grupoId); },
+          error: e => { this.eliminandoPlanNeeId.set(null); this.notify.error('Error', e.error?.detail); },
         });
       },
     });
@@ -981,9 +984,10 @@ export class PlanesEstudioComponent implements OnInit, OnDestroy {
       header: 'Confirmar eliminación',
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
+        this.procesandoPlanId.set(planId);
         this.api.delete(`/planes-estudio/${planId}`).pipe(takeUntil(this.destroy$)).subscribe({
-          next: () => this.plan.update(l => l.filter(p => p.id !== planId)),
-          error: e => this.notify.error('Error', e.error?.detail),
+          next: () => { this.procesandoPlanId.set(null); this.plan.update(l => l.filter(p => p.id !== planId)); },
+          error: e => { this.procesandoPlanId.set(null); this.notify.error('Error', e.error?.detail); },
         });
       },
     });
@@ -991,22 +995,26 @@ export class PlanesEstudioComponent implements OnInit, OnDestroy {
 
   /** AC-015: publicar/archivar una versión del plan de estudio (materia+grado+ciclo). */
   publicarPlan(planId: string): void {
+    this.procesandoPlanId.set(planId);
     this.api.patch(`/planes-estudio/${planId}/publicar`, {}).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
+        this.procesandoPlanId.set(null);
         this.plan.update(l => l.map(p => p.id === planId ? { ...p, estado_publicacion: 'PUBLICADO' } : p));
         this.notify.success('Plan publicado');
       },
-      error: e => this.notify.error('Error', e.error?.detail),
+      error: e => { this.procesandoPlanId.set(null); this.notify.error('Error', e.error?.detail); },
     });
   }
 
   archivarPlan(planId: string): void {
+    this.procesandoPlanId.set(planId);
     this.api.patch(`/planes-estudio/${planId}/archivar`, {}).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
+        this.procesandoPlanId.set(null);
         this.plan.update(l => l.map(p => p.id === planId ? { ...p, estado_publicacion: 'ARCHIVADO' } : p));
         this.notify.success('Plan archivado');
       },
-      error: e => this.notify.error('Error', e.error?.detail),
+      error: e => { this.procesandoPlanId.set(null); this.notify.error('Error', e.error?.detail); },
     });
   }
 

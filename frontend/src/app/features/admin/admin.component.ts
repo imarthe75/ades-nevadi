@@ -34,6 +34,7 @@ import { ApexNotificationService } from 'apex-component-library';
 import { SkeletonModule } from 'primeng/skeleton';
 import { MessageModule } from 'primeng/message';
 import { AdesFormatDirective } from '../../shared/directives/ades-format.directive';
+import { AdesValidators } from '../../shared/validators/ades-validators';
 
 interface UsuarioAdmin {
   id: string; nombre_usuario: string; email_institucional: string;
@@ -198,8 +199,8 @@ interface Catalogo {
                   </div>
                 </div>
                 <div class="field" style="display:flex;flex-direction:column;gap:.35rem">
-                  <label class="dlg-lbl">Descripción</label>
-                  <textarea pInputTextarea [(ngModel)]="rolEditForm.descripcion" rows="3"
+                  <label class="dlg-lbl" for="adm-rol-desc">Descripción</label>
+                  <textarea pInputTextarea id="adm-rol-desc" [(ngModel)]="rolEditForm.descripcion" rows="3"
                     style="width:100%;resize:vertical"></textarea>
                 </div>
               </div>
@@ -232,8 +233,8 @@ interface Catalogo {
                 <div class="field"><span class="dlg-lbl">Clave</span>
                   <code>{{ menuEdit()!.clave }}</code></div>
                 <div class="field" style="display:flex;flex-direction:column;gap:.35rem">
-                  <label class="dlg-lbl">Etiqueta</label>
-                  <input pInputText [(ngModel)]="menuEditForm.label" />
+                  <label class="dlg-lbl" for="adm-menu-label">Etiqueta</label>
+                  <input pInputText id="adm-menu-label" [(ngModel)]="menuEditForm.label"/>
                 </div>
                 <div class="field" style="display:flex;flex-direction:column;gap:.35rem">
                   <label class="dlg-lbl">Nivel máximo (0–99)</label>
@@ -598,26 +599,26 @@ interface Catalogo {
             } @else {
               <div class="form-grid1" style="display:flex; flex-direction:column; gap:1rem">
                 <div class="field" style="display:flex; flex-direction:column; gap:.35rem">
-                  <label class="dlg-lbl">Nombre de la Institución</label>
-                  <input pInputText [(ngModel)]="marcaForm.NOMBRE_INSTITUCION" placeholder="Ej. Instituto Nevadi" />
+                  <label class="dlg-lbl" for="adm-marca-nombre">Nombre de la Institución</label>
+                  <input pInputText id="adm-marca-nombre" [(ngModel)]="marcaForm.NOMBRE_INSTITUCION" placeholder="Ej. Instituto Nevadi"/>
                 </div>
                 <div class="field" style="display:flex; flex-direction:column; gap:.35rem">
-                  <label class="dlg-lbl">Eslogan / Slogan</label>
-                  <input pInputText [(ngModel)]="marcaForm.ESLOGAN" placeholder="Ej. Calidad y Futuro" />
+                  <label class="dlg-lbl" for="adm-marca-eslogan">Eslogan / Slogan</label>
+                  <input pInputText id="adm-marca-eslogan" [(ngModel)]="marcaForm.ESLOGAN" placeholder="Ej. Calidad y Futuro"/>
                 </div>
                 <div class="field" style="display:flex; flex-direction:column; gap:.35rem">
-                  <label class="dlg-lbl">URL del Logotipo</label>
-                  <input pInputText [(ngModel)]="marcaForm.LOGO_URL" placeholder="https://..." />
+                  <label class="dlg-lbl" for="adm-marca-logo">URL del Logotipo</label>
+                  <input pInputText id="adm-marca-logo" [(ngModel)]="marcaForm.LOGO_URL" placeholder="https://..."/>
                 </div>
                 <div class="field" style="display:flex; flex-direction:column; gap:.35rem">
-                  <label class="dlg-lbl">URL del Favicon</label>
-                  <input pInputText [(ngModel)]="marcaForm.FAVICON_URL" placeholder="https://..." />
+                  <label class="dlg-lbl" for="adm-marca-favicon">URL del Favicon</label>
+                  <input pInputText id="adm-marca-favicon" [(ngModel)]="marcaForm.FAVICON_URL" placeholder="https://..."/>
                 </div>
                 <div class="field" style="display:flex; flex-direction:column; gap:.35rem">
-                  <label class="dlg-lbl">Color Primario (Hex)</label>
+                  <label class="dlg-lbl" for="adm-marca-color">Color Primario (Hex)</label>
                   <div style="display:flex; gap:.5rem; align-items:center">
-                    <input type="color" [(ngModel)]="marcaForm.COLOR_PRIMARIO" style="width:42px; height:42px; padding:0; border-radius:6px; border:1px solid #ddd; cursor:pointer" />
-                    <input pInputText [(ngModel)]="marcaForm.COLOR_PRIMARIO" placeholder="var(--nevadi-red)" style="flex:1" />
+                    <input type="color" [(ngModel)]="marcaForm.COLOR_PRIMARIO" aria-label="Selector visual de color primario" style="width:42px; height:42px; padding:0; border-radius:6px; border:1px solid #ddd; cursor:pointer"/>
+                    <input pInputText id="adm-marca-color" [(ngModel)]="marcaForm.COLOR_PRIMARIO" placeholder="var(--nevadi-red)" style="flex:1" />
                   </div>
                 </div>
               </div>
@@ -652,24 +653,24 @@ interface Catalogo {
 
                   <div class="regla-fields">
                     <div class="regla-field">
-                      <label>Calificación mínima aprobatoria</label>
-                      <input pInputText type="number" step="0.5" min="0" [max]="nivel.escala_maxima"
-                        [(ngModel)]="nivel.minimo_aprobatorio" style="width:100px" />
+                      <label [attr.for]="'regla-min-aprob-' + nivel.id">Calificación mínima aprobatoria</label>
+                      <input pInputText [id]="'regla-min-aprob-' + nivel.id" type="number" step="0.5" min="0" [max]="nivel.escala_maxima"
+                        [(ngModel)]="nivel.minimo_aprobatorio" style="width:100px"/>
                     </div>
                     <div class="regla-field">
-                      <label>Máx. materias reprobadas</label>
-                      <input pInputText type="number" step="1" min="0" max="10"
-                        [(ngModel)]="nivel.max_materias_reprobadas" style="width:80px" />
+                      <label [attr.for]="'regla-max-mat-' + nivel.id">Máx. materias reprobadas</label>
+                      <input pInputText [id]="'regla-max-mat-' + nivel.id" type="number" step="1" min="0" max="10"
+                        [(ngModel)]="nivel.max_materias_reprobadas" style="width:80px"/>
                     </div>
                     <div class="regla-field">
-                      <label>Asistencia mínima requerida (%)</label>
-                      <input pInputText type="number" step="1" min="0" max="100"
-                        [(ngModel)]="nivel.min_asistencia_pct" style="width:90px" />
+                      <label [attr.for]="'regla-asist-' + nivel.id">Asistencia mínima requerida (%)</label>
+                      <input pInputText [id]="'regla-asist-' + nivel.id" type="number" step="1" min="0" max="100"
+                        [(ngModel)]="nivel.min_asistencia_pct" style="width:90px"/>
                     </div>
                     <div class="regla-field">
-                      <label>Máx. años de recursamiento</label>
-                      <input pInputText type="number" step="1" min="0" max="5"
-                        [(ngModel)]="nivel.max_anios_reprobados" style="width:80px" />
+                      <label [attr.for]="'regla-anios-' + nivel.id">Máx. años de recursamiento</label>
+                      <input pInputText [id]="'regla-anios-' + nivel.id" type="number" step="1" min="0" max="5"
+                        [(ngModel)]="nivel.max_anios_reprobados" style="width:80px"/>
                     </div>
                     <div class="regla-field regla-field--toggle">
                       <label>Permite recursamiento</label>
@@ -730,7 +731,7 @@ interface Catalogo {
                 </td>
                 <td>
                   <p-button icon="pi pi-pencil" ariaLabel="Editar franja" [text]="true" (onClick)="abrirFranjaDialog(f)" />
-                  <p-button icon="pi pi-trash" ariaLabel="Eliminar franja" [text]="true" severity="danger" (onClick)="eliminarFranja(f)" />
+                  <p-button icon="pi pi-trash" ariaLabel="Eliminar franja" [text]="true" severity="danger" [loading]="eliminandoFranjaId() === f.id" (onClick)="eliminarFranja(f)" />
                 </td>
               </tr>
             </ng-template>
@@ -753,17 +754,17 @@ interface Catalogo {
               </div>
               <div class="field" style="display:flex; gap:1rem">
                 <div style="flex:1">
-                  <label>Hora Inicio</label>
-                  <input pInputText type="time" [(ngModel)]="franjaForm.hora_inicio" class="w-full" />
+                  <label for="adm-franja-inicio">Hora Inicio</label>
+                  <input pInputText id="adm-franja-inicio" type="time" [(ngModel)]="franjaForm.hora_inicio" class="w-full"/>
                 </div>
                 <div style="flex:1">
-                  <label>Hora Fin</label>
-                  <input pInputText type="time" [(ngModel)]="franjaForm.hora_fin" class="w-full" />
+                  <label for="adm-franja-fin">Hora Fin</label>
+                  <input pInputText id="adm-franja-fin" type="time" [(ngModel)]="franjaForm.hora_fin" class="w-full"/>
                 </div>
               </div>
               <div class="field">
-                <label>Turno</label>
-                <input pInputText type="text" [(ngModel)]="franjaForm.turno" class="w-full" />
+                <label for="adm-franja-turno">Turno</label>
+                <input pInputText id="adm-franja-turno" type="text" [(ngModel)]="franjaForm.turno" class="w-full"/>
               </div>
               <div class="field">
                 <label>Nivel Educativo</label>
@@ -800,13 +801,15 @@ interface Catalogo {
               <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem">
 
                 <div class="cual-config-card">
-                  <label class="cual-config-label">Grados con evaluación cualitativa</label>
+                  <label class="cual-config-label" for="adm-cual-grados">Grados con evaluación cualitativa</label>
                   <small class="cual-config-hint">Grados de primaria (números separados por coma)</small>
                   <input pInputText
+                    id="adm-cual-grados"
                     [(ngModel)]="cualGradosStr"
                     placeholder="ej: 1, 2"
-                    style="margin-top:.5rem;width:100%" />
+                    style="margin-top:.5rem;width:100%"/>
                   <p-button label="Guardar" size="small" styleClass="mt-2"
+                    [loading]="guardandoConfigCual()"
                     (onClick)="guardarConfigCual('EVAL_CUAL_GRADOS_PRIMARIA', parseCualGrados())" />
                 </div>
 
@@ -814,7 +817,7 @@ interface Catalogo {
                   <label class="cual-config-label">Mostrar equivalencia numérica</label>
                   <small class="cual-config-hint">Muestra el número equivalente junto al descriptor en libreta y boleta</small>
                   <div style="margin-top:.75rem;display:flex;align-items:center;gap:.5rem">
-                    <p-toggleSwitch [(ngModel)]="cualMostrarEquiv"
+                    <p-toggleSwitch [(ngModel)]="cualMostrarEquiv" [disabled]="guardandoConfigCual()"
                       (onChange)="guardarConfigCual('EVAL_CUAL_MOSTRAR_EQUIVALENCIA', cualMostrarEquiv)" />
                     <span>{{ cualMostrarEquiv ? 'Sí' : 'No' }}</span>
                   </div>
@@ -824,7 +827,7 @@ interface Catalogo {
                   <label class="cual-config-label">Aplicar a todas las materias</label>
                   <small class="cual-config-hint">Si está desactivado, solo aplica a materias con campo formativo configurado</small>
                   <div style="margin-top:.75rem;display:flex;align-items:center;gap:.5rem">
-                    <p-toggleSwitch [(ngModel)]="cualTodasMaterias"
+                    <p-toggleSwitch [(ngModel)]="cualTodasMaterias" [disabled]="guardandoConfigCual()"
                       (onChange)="guardarConfigCual('EVAL_CUAL_APLICAR_TODAS_MATERIAS', cualTodasMaterias)" />
                     <span>{{ cualTodasMaterias ? 'Sí' : 'No' }}</span>
                   </div>
@@ -1007,17 +1010,17 @@ interface Catalogo {
       [modal]="true" [style]="{width:'420px'}">
       <div style="display:flex;flex-direction:column;gap:1rem">
         <div>
-          <label class="dlg-lbl">Código único *</label>
-          <input pInputText [(ngModel)]="catalogoForm.codigo"
-            placeholder="CAT_NOMBRE_EN_MAYUSCULAS" style="width:100%" />
+          <label class="dlg-lbl" for="adm-cat-codigo">Código único *</label>
+          <input pInputText id="adm-cat-codigo" [(ngModel)]="catalogoForm.codigo"
+            placeholder="CAT_NOMBRE_EN_MAYUSCULAS" style="width:100%"/>
         </div>
         <div>
-          <label class="dlg-lbl">Nombre legible *</label>
-          <input pInputText [(ngModel)]="catalogoForm.nombre" style="width:100%" />
+          <label class="dlg-lbl" for="adm-cat-nombre">Nombre legible *</label>
+          <input pInputText id="adm-cat-nombre" [(ngModel)]="catalogoForm.nombre" style="width:100%"/>
         </div>
         <div>
-          <label class="dlg-lbl">Descripción</label>
-          <input pInputText [(ngModel)]="catalogoForm.descripcion" style="width:100%" />
+          <label class="dlg-lbl" for="adm-cat-desc">Descripción</label>
+          <input pInputText id="adm-cat-desc" [(ngModel)]="catalogoForm.descripcion" style="width:100%"/>
         </div>
         <div style="display:flex;gap:.5rem;justify-content:flex-end">
           <p-button label="Cancelar" severity="secondary" [text]="true"
@@ -1033,12 +1036,12 @@ interface Catalogo {
       [modal]="true" [style]="{width:'420px'}">
       <div style="display:flex;flex-direction:column;gap:1rem">
         <div>
-          <label class="dlg-lbl">Valor *</label>
-          <input pInputText [(ngModel)]="itemForm.valor" style="width:100%" />
+          <label class="dlg-lbl" for="adm-item-valor">Valor *</label>
+          <input pInputText id="adm-item-valor" [(ngModel)]="itemForm.valor" style="width:100%"/>
         </div>
         <div>
-          <label class="dlg-lbl">Descripción</label>
-          <input pInputText [(ngModel)]="itemForm.descripcion" style="width:100%" />
+          <label class="dlg-lbl" for="adm-item-desc">Descripción</label>
+          <input pInputText id="adm-item-desc" [(ngModel)]="itemForm.descripcion" style="width:100%"/>
         </div>
         <div>
           <label class="dlg-lbl">Orden</label>
@@ -1054,7 +1057,7 @@ interface Catalogo {
           <p-button label="Cancelar" severity="secondary" [text]="true"
             (onClick)="itemDlgVisible.set(false)" />
           <p-button [label]="itemEdit ? 'Guardar' : 'Agregar'" icon="pi pi-check" ariaLabel="Guardar"
-            (onClick)="guardarItem()" />
+            [loading]="guardandoItem()" (onClick)="guardarItem()" />
         </div>
       </div>
     </p-dialog>
@@ -1105,26 +1108,26 @@ interface Catalogo {
       <div style="display:flex;flex-direction:column;gap:.75rem">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem">
           <div class="field" style="display:flex;flex-direction:column;gap:.35rem">
-            <label class="dlg-lbl">Nombre(s) *</label>
-            <input pInputText [(ngModel)]="nuevoUsrForm.nombre" placeholder="Ej. María" />
+            <label class="dlg-lbl" for="adm-usr-nombre">Nombre(s) *</label>
+            <input pInputText id="adm-usr-nombre" [(ngModel)]="nuevoUsrForm.nombre" placeholder="Ej. María"/>
           </div>
           <div class="field" style="display:flex;flex-direction:column;gap:.35rem">
-            <label class="dlg-lbl">Apellido paterno *</label>
-            <input pInputText [(ngModel)]="nuevoUsrForm.apellido_paterno" />
+            <label class="dlg-lbl" for="adm-usr-ap">Apellido paterno *</label>
+            <input pInputText id="adm-usr-ap" [(ngModel)]="nuevoUsrForm.apellido_paterno"/>
           </div>
           <div class="field" style="display:flex;flex-direction:column;gap:.35rem">
-            <label class="dlg-lbl">Apellido materno</label>
-            <input pInputText [(ngModel)]="nuevoUsrForm.apellido_materno" />
+            <label class="dlg-lbl" for="adm-usr-am">Apellido materno</label>
+            <input pInputText id="adm-usr-am" [(ngModel)]="nuevoUsrForm.apellido_materno"/>
           </div>
           <div class="field" style="display:flex;flex-direction:column;gap:.35rem">
-            <label class="dlg-lbl">CURP *</label>
-            <input pInputText [(ngModel)]="nuevoUsrForm.curp" maxlength="18"
-              style="text-transform:uppercase" placeholder="18 caracteres" />
+            <label class="dlg-lbl" for="adm-usr-curp">CURP *</label>
+            <input pInputText id="adm-usr-curp" [(ngModel)]="nuevoUsrForm.curp" maxlength="18"
+              style="text-transform:uppercase" placeholder="18 caracteres"/>
           </div>
           <div class="field" style="display:flex;flex-direction:column;gap:.35rem">
-            <label class="dlg-lbl">Email institucional</label>
-            <input pInputText [(ngModel)]="nuevoUsrForm.email_institucional" type="email"
-              placeholder="opcional — se genera automático" />
+            <label class="dlg-lbl" for="adm-usr-email">Email institucional</label>
+            <input pInputText id="adm-usr-email" [(ngModel)]="nuevoUsrForm.email_institucional" type="email"
+              placeholder="opcional — se genera automático"/>
           </div>
           <div class="field" style="display:flex;flex-direction:column;gap:.35rem">
             <label class="dlg-lbl">Género</label>
@@ -1165,8 +1168,8 @@ interface Catalogo {
       @if (cicloEdit()) {
         <div style="display:flex; flex-direction:column; gap:.75rem; padding:.25rem 0">
           <div style="display:flex; flex-direction:column; gap:.35rem">
-            <label class="dlg-lbl">Nombre del ciclo *</label>
-            <input pInputText [(ngModel)]="cicloEdit()!.nombre_ciclo" placeholder="Ej. 2026-2027" />
+            <label class="dlg-lbl" for="adm-ciclo-nombre">Nombre del ciclo *</label>
+            <input pInputText id="adm-ciclo-nombre" [(ngModel)]="cicloEdit()!.nombre_ciclo" placeholder="Ej. 2026-2027"/>
           </div>
           <div style="display:flex; flex-direction:column; gap:.35rem">
             <label class="dlg-lbl">Nivel educativo *</label>
@@ -1213,12 +1216,12 @@ interface Catalogo {
       @if (plantelEdit()) {
         <div style="display:flex; flex-direction:column; gap:.75rem; padding:.25rem 0">
           <div style="display:flex; flex-direction:column; gap:.35rem">
-            <label class="dlg-lbl">Nombre del plantel *</label>
-            <input pInputText [(ngModel)]="plantelEdit()!.nombre_plantel" />
+            <label class="dlg-lbl" for="adm-plt-nombre">Nombre del plantel *</label>
+            <input pInputText id="adm-plt-nombre" [(ngModel)]="plantelEdit()!.nombre_plantel"/>
           </div>
           <div style="display:flex; flex-direction:column; gap:.35rem">
-            <label class="dlg-lbl">Clave CT</label>
-            <input pInputText [(ngModel)]="plantelEdit()!.clave_ct" placeholder="Ej. 15EBH0001R" />
+            <label class="dlg-lbl" for="adm-plt-clave">Clave CT</label>
+            <input pInputText id="adm-plt-clave" [(ngModel)]="plantelEdit()!.clave_ct" placeholder="Ej. 15EBH0001R"/>
           </div>
           <div style="display:flex; gap:.5rem; align-items:center">
             <input type="checkbox" [(ngModel)]="plantelEdit()!.is_active" id="plt-active" />
@@ -1232,7 +1235,7 @@ interface Catalogo {
               <div style="display:flex; gap:.5rem; align-items:center; margin-bottom:.4rem">
                 <span style="font-size:.78rem; width:110px; color:var(--text-color-secondary)">{{ c.nombre_nivel }}</span>
                 <input pInputText [(ngModel)]="c.clave" [placeholder]="c.tipo_clave === 'CCT_SEP' ? 'Ej. 15PPR0000X' : 'Clave incorporación UAEMEX'" [attr.aria-label]="'Clave de ' + c.nombre_nivel" style="flex:1" />
-                <p-button icon="pi pi-save" ariaLabel="Guardar clave" [text]="true" size="small" (onClick)="guardarClavePlantel(c)" />
+                <p-button icon="pi pi-save" ariaLabel="Guardar clave" [text]="true" size="small" [loading]="guardandoClaveNivelId() === c.nivel_educativo_id" (onClick)="guardarClavePlantel(c)" />
               </div>
             } @empty {
               <p class="dlg-note">Sin claves registradas para este plantel.</p>
@@ -1255,14 +1258,14 @@ interface Catalogo {
         <div style="display:flex; flex-direction:column; gap:.75rem; padding:.25rem 0" data-testid="grupo-form">
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:.75rem">
             <div style="display:flex; flex-direction:column; gap:.35rem">
-              <label class="dlg-lbl">Nombre del grupo *</label>
-              <input pInputText [(ngModel)]="grupoAdminEdit()!.nombre_grupo" maxlength="10" placeholder="A"
-                data-testid="input-nombre-grupo" />
+              <label class="dlg-lbl" for="adm-grupo-nombre">Nombre del grupo *</label>
+              <input pInputText id="adm-grupo-nombre" [(ngModel)]="grupoAdminEdit()!.nombre_grupo" maxlength="10" placeholder="A"
+                data-testid="input-nombre-grupo"/>
             </div>
             <div style="display:flex; flex-direction:column; gap:.35rem">
-              <label class="dlg-lbl">Capacidad *</label>
-              <input pInputText type="number" [(ngModel)]="grupoAdminEdit()!.capacidad_maxima" min="1" max="60"
-                data-testid="input-capacidad" />
+              <label class="dlg-lbl" for="adm-grupo-capacidad">Capacidad *</label>
+              <input pInputText id="adm-grupo-capacidad" type="number" [(ngModel)]="grupoAdminEdit()!.capacidad_maxima" min="1" max="60"
+                data-testid="input-capacidad"/>
             </div>
           </div>
           <div style="display:flex; flex-direction:column; gap:.35rem">
@@ -1426,6 +1429,10 @@ export class AdminComponent implements OnInit, OnDestroy {
   loadingFranjas = signal(false);
   showFranjaDialog = signal(false);
   guardandoFranja = signal(false);
+  eliminandoFranjaId = signal<string | null>(null);
+  guardandoConfigCual = signal(false);
+  guardandoItem = signal(false);
+  guardandoClaveNivelId = signal<string | null>(null);
   editFranjaEntry = signal<any>(null);
   franjaForm: any = {};
   nivelesMap = computed(() => {
@@ -1653,9 +1660,10 @@ export class AdminComponent implements OnInit, OnDestroy {
   }
 
   guardarConfigCual(clave: string, valor: any): void {
+    this.guardandoConfigCual.set(true);
     this.api.patch(`/admin/config/${clave}`, { valor }).pipe(takeUntil(this.destroy$)).subscribe({
-      next: () => this.notify.success('Guardado', `${clave} actualizado`),
-      error: (e) => this.notify.error('Error', e.error?.message ?? 'No se pudo guardar'),
+      next: () => { this.guardandoConfigCual.set(false); this.notify.success('Guardado', `${clave} actualizado`); },
+      error: (e) => { this.guardandoConfigCual.set(false); this.notify.error('Error', e.error?.message ?? 'No se pudo guardar'); },
     });
   }
 
@@ -1997,24 +2005,27 @@ export class AdminComponent implements OnInit, OnDestroy {
       this.notify.warning('Valor requerido');
       return;
     }
+    this.guardandoItem.set(true);
     if (this.itemEdit) {
       const payload = { ...this.itemForm, row_version: this.itemEdit.row_version };
       this.api.patch(`/catalogos/items/${this.itemEdit.id}`, payload).pipe(takeUntil(this.destroy$)).subscribe({
         next: () => {
+          this.guardandoItem.set(false);
           this.itemDlgVisible.set(false);
           this.notify.success('Item actualizado');
           this.recargarCatSeleccionado(cat.id);
         },
-        error: (e) => this.notify.error('Error', e.error?.detail),
+        error: (e) => { this.guardandoItem.set(false); this.notify.error('Error', e.error?.detail); },
       });
     } else {
       this.api.post<CatalogoItem>(`/catalogos/${cat.id}/items`, this.itemForm).pipe(takeUntil(this.destroy$)).subscribe({
         next: () => {
+          this.guardandoItem.set(false);
           this.itemDlgVisible.set(false);
           this.notify.success('Item agregado');
           this.recargarCatSeleccionado(cat.id);
         },
-        error: (e) => this.notify.error('Error', e.error?.detail),
+        error: (e) => { this.guardandoItem.set(false); this.notify.error('Error', e.error?.detail); },
       });
     }
   }
@@ -2092,11 +2103,12 @@ export class AdminComponent implements OnInit, OnDestroy {
   guardarClavePlantel(c: any): void {
     const p = this.plantelEdit();
     if (!p?.id) return;
+    this.guardandoClaveNivelId.set(c.nivel_educativo_id);
     this.api.patch(`/planteles/${p.id}/claves/${c.nivel_educativo_id}`, {
       tipo_clave: c.tipo_clave, clave: c.clave, observaciones: c.observaciones,
     }).pipe(takeUntil(this.destroy$)).subscribe({
-      next: () => this.notify.success('Clave actualizada', c.nombre_nivel),
-      error: e => this.notify.error('Error', e.error?.detail ?? 'No se pudo guardar la clave'),
+      next: () => { this.guardandoClaveNivelId.set(null); this.notify.success('Clave actualizada', c.nombre_nivel); },
+      error: e => { this.guardandoClaveNivelId.set(null); this.notify.error('Error', e.error?.detail ?? 'No se pudo guardar la clave'); },
     });
   }
 
@@ -2178,8 +2190,8 @@ export class AdminComponent implements OnInit, OnDestroy {
       this.notify.warning('Datos incompletos', 'Nombre, apellido paterno, CURP y Rol son requeridos');
       return;
     }
-    if (f.curp.length !== 18) {
-      this.notify.warning('CURP inválida', 'La CURP debe tener 18 caracteres');
+    if (!AdesValidators.curpValido(f.curp)) {
+      this.notify.warning('CURP inválida', 'Formato esperado: AAAA000000HAAAAA00');
       return;
     }
     this.guardandoNuevoUsr.set(true);
@@ -2630,11 +2642,17 @@ export class AdminComponent implements OnInit, OnDestroy {
 
   eliminarFranja(f: any): void {
     if (!confirm('¿Eliminar esta franja?')) return;
+    this.eliminandoFranjaId.set(f.id);
     this.api.delete(`/horario-franjas/${f.id}`).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
+        this.eliminandoFranjaId.set(null);
         this.notify.success('Franja eliminada.');
         this.cargarFranjas();
-      }
+      },
+      error: () => {
+        this.eliminandoFranjaId.set(null);
+        this.notify.error('Error', 'No se pudo eliminar la franja.');
+      },
     });
   }
 

@@ -111,6 +111,7 @@ const RIESGO_SEVERITY: Record<string, AlertaSeverity> = {
                     ariaLabel="Cargar esta conversación" pTooltip="Cargar esta conversación"
                     (onClick)="cargarSesion(ses.sesion_id)" />
                   <p-button icon="pi pi-trash" size="small" [text]="true" severity="danger"
+                    [loading]="eliminandoSesionId() === ses.sesion_id"
                     ariaLabel="Eliminar conversación" pTooltip="Eliminar" (onClick)="eliminarSesion(ses.sesion_id)" />
                 </div>
               }
@@ -376,6 +377,7 @@ export class IaComponent implements OnInit, OnDestroy {
 
   mensajes          = signal<Mensaje[]>([]);
   cargando          = signal(false);
+  eliminandoSesionId = signal<string | null>(null);
   sesionesGuardadas = signal<any[]>([]);
   showSesiones      = signal(false);
   inputMensaje = '';
@@ -465,13 +467,15 @@ export class IaComponent implements OnInit, OnDestroy {
       header: 'Confirmar eliminación',
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
+        this.eliminandoSesionId.set(sesionId);
         this.api.delete(`/ai/sesion/${sesionId}`).pipe(takeUntil(this.destroy$)).subscribe({
           next: () => {
+            this.eliminandoSesionId.set(null);
             this.sesionesGuardadas.update(s => s.filter(x => x.sesion_id !== sesionId));
             if (this.sesionId === sesionId) this.limpiarChat();
             this.notify.success('Conversación eliminada');
           },
-          error: () => this.notify.error('Error al eliminar conversación'),
+          error: () => { this.eliminandoSesionId.set(null); this.notify.error('Error al eliminar conversación'); },
         });
       },
     });

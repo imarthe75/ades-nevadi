@@ -1,5 +1,5 @@
 # ADES — Claude Code Guidelines
-# Versión: 2.12 | Actualizado: 2026-07-17 (los 25 hallazgos de
+# Versión: 2.13 | Actualizado: 2026-07-17 (los 25 hallazgos de
 # docs/hallazgos/2026-07-16_auditoria_gaps_no_revisados.md CORREGIDOS, verificados y
 # **DESPLEGADOS** en el servidor único — 14 controllers Spring + 4 endpoints FastAPI +
 # Grafana + JWT aud + xlsx CVE + JaCoCo/vitest coverage + 2 imágenes pineadas + migración
@@ -10,6 +10,13 @@
 # + prueba de restauración real verificada + accesibilidad ARIA 1.3%→86% (68/79 componentes,
 # con auto-corrección de errores propios detectados vía auditoría cruzada campo↔etiqueta) +
 # fix de UX en alta de alumno (CURP inválido ya no bloquea el clic, muestra advertencia).
+# Sesión 2026-07-17 (continuación) — auditoría de heurísticas cognitivas Fase 2 completa
+# (R-19 + R-20 de docs/hallazgos/2026-07-16_plan_revision_heuristicas_cognitivas.md):
+# feedback de loading wireado en 24 componentes + validación estructural CURP/RFC/NSS
+# (`AdesValidators`) en 9 componentes + bug real de persistencia de CURP corregido en
+# alumno-perfil. Reglas Mandatorias #24/#25 nuevas + skill reproducible
+# `.agent/skills/frontend-heuristicas-audit/SKILL.md`. `tsc --noEmit` limpio; sin commit
+# (Regla #21) ni rebuild de imagen — trabajo vive en disco.
 # `mvn test` 566/566 verde, `ng build --configuration production` verde, E2E dirigido
 # (ALU-02/03/11/12) verde contra el servidor real. **`ades-frontend` reconstruido y
 # desplegado — todo lo anterior ya está en vivo en https://ades.setag.mx.** `ades-bff` no
@@ -206,6 +213,10 @@ celery -A app.worker.celery_app worker --loglevel=info
 19. **JOINs correlacionados (anti Cartesian product):** todo `JOIN`/`LEFT JOIN` en un `*QueryService`/`*PersistenceAdapter` debe correlacionar por FK real en la cláusula `ON` (nunca un `JOIN` sin condición, ni una condición que no referencie ninguna columna del alias unido). Toda consulta con `SUM`/`COUNT`/`AVG` sobre un `JOIN` uno-a-muchos debe revisarse explícitamente por fan-out (inflar el agregado al multiplicar filas) — bug real encontrado y corregido en `CierreQueryService.java` (2026-07-15): un `JOIN` a `ades_calificaciones_periodo`/`ades_bajas` sin correlacionar por `estudiante_id` inflaba `matricula_total`/`promedio_general`.
 20. **Contrato de claves en mapas dinámicos (`Map<String,Object>`):** todo método de un `*QueryService` que devuelva `Map<String,Object>`/`List<Map<String,Object>>` vía `JdbcTemplate` debe documentar sus claves (alias SQL) en un comentario Javadoc, y el componente Angular que lo consume debe revisarse en el mismo PR — no asumir el nombre de la propiedad. Bug real: `ReinscripcionQueryService` devolvía `nombre_estudiante` cuando el frontend esperaba `alumno` (2026-07-15).
 21. **Prohibido `git commit`/`git push` a agentes/sub-agentes** salvo instrucción explícita y textual del usuario en ese mismo prompt — un agente que "corrige un hallazgo" NO debe comitear su propio trabajo por iniciativa propia. Cualquier prompt que delegue trabajo de código a un agente debe declarar esto explícitamente en sus reglas de alcance.
+22. **Repo siempre limpio de artefactos generados:** ningún directorio que se regenere solo con correr una herramienta (`frontend/test-results/`, `frontend/playwright-report/`, `frontend/blob-report/`, reportes de cobertura, capturas de Playwright, etc.) debe quedar trackeado en git — va en `.gitignore`, nunca comiteado. Antes de dar por cerrada cualquier tarea que haya corrido tests/build, verificar `git status --short` y limpiar (`.gitignore` + `git rm --cached` si ya estaba trackeado) cualquier artefacto de este tipo que haya quedado como ruido. Hallazgo real 2026-07-17: `frontend/test-results/`/`playwright-report/` llevaban trackeados en git — cada corrida de E2E generaba ~100 archivos de diff sin valor real.
+23. **Soberanía absoluta sobre los datos** (`.agent/AGENT.md` regla de oro #1): prohibido usar bases de datos vectoriales en la nube u otros servicios SaaS externos de memoria que expongan datos de ADES fuera del host. Toda memoria persistente vive en montajes Docker locales relativos a `./data` (PostgreSQL+pgvector, Valkey) — nunca en un servicio gestionado de terceros.
+24. **Feedback visual obligatorio en mutaciones (loading state):** todo botón que dispare un `POST`/`PUT`/`PATCH`/`DELETE` debe tener un signal dedicado (`guardando`/`eliminandoXId`/etc.), `.set(true)` antes de la llamada y `.set(false)` tanto en `next` como en `error`, wireado al `[loading]` real del `p-button`/`button[pButton]` (o `[disabled]` + indicador visual si es un `<button>` plano sin soporte `[loading]`, patrón usado en `planes-estudio.component.ts`). Verificar mapeando cada método que hace `this.api.post/put/patch/delete(...)` contra el `(onClick)`/`(click)` del template que lo invoca — grep de conteo de `[loading]` en el archivo sobreestima cobertura (el signal puede existir sin estar wireado al botón real). Metodología completa y falsos positivos ya descartados: `.agent/skills/frontend-heuristicas-audit/SKILL.md` §2.2. Hallazgo real 2026-07-17 (R-19): 24 componentes con este hueco, corregidos.
+25. **Validación estructural real (no solo `required`/`maxlength`) en campos oficiales/sensibles:** CURP, RFC, NSS, teléfono y CP deben validarse con `AdesValidators` (`frontend/src/app/shared/validators/ades-validators.ts`) — variantes `ValidatorFn` para reactive forms, variantes booleanas imperativas (`curpValido`/`rfcValido`/`nssValido`/`telefonoValido`/`cpValido`) para los formularios template-driven (`[(ngModel)]`, la mayoría del proyecto) verificadas en `guardar()` antes de la llamada HTTP. `AdesFormatDirective` (`adesFormat="curp|rfc|..."`) solo sanea el juego de caracteres mientras se escribe — **no** valida la forma estructural completa; ambas capas son complementarias, no sustitutas. Al agregar validación a un campo, confirmar primero que el campo realmente se envía en el payload de `guardar()` (ver hallazgo de persistencia abajo). Metodología completa: `.agent/skills/frontend-heuristicas-audit/SKILL.md` §2.3. Hallazgo real 2026-07-17 (R-20): `AdesValidators` existía pero se usaba en 1/79 componentes; 9 formularios de salud/RH corregidos, más un bug de persistencia real encontrado de paso — `alumno-perfil.component.ts` dejaba editar el CURP (con contador "18/18" visible) pero nunca lo incluía en el payload de `guardar()`, así que el cambio se descartaba en silencio y el usuario igual recibía "Guardado".
 
 ### Esquema de auditoría ADES (v2 en 038_auditoria_v2.sql, endurecido 2026-07-15 en mig. 137-145)
 
@@ -469,9 +480,13 @@ lessons = db_mem.search_lessons(query_embedding, limit=3)
 | Archivo | Propósito |
 |---|---|
 | `.agent/CONTEXT.md` | Especificación completa del sistema |
-| `.agent/STATE.md` | Estado actual de desarrollo |
+| `.agent/STATE.md` | Estado actual de desarrollo (bitácora, más reciente arriba) |
 | `.agent/MAP.md` | Mapa de módulos y rutas API |
-| `DECISIONS/` | ADRs arquitectónicas |
+| `.agent/AGENT.md` | Leyes operativas del agente residente (triple capa de memoria, ritos de inicio/cierre, mandato UI APEX) — leído en cada Rito de Inicio |
+| `.agent/RULES.md` | Reglas de workflow del agente + espejo resumido de las 25 Reglas Mandatorias de este archivo (para que un bootstrap que solo lea `.agent/` no las pase por alto) |
+| `.agent/HEURISTICS.md` | Heurísticas de *comportamiento del agente* (loop prevention a 3 intentos, ahorro de contexto, criterios de ADR) — complementa, no reemplaza, la tabla "HEURÍSTICAS COGNITIVAS" de este archivo (esa es sobre usabilidad del *producto* ADES) |
+| `.agent/skills/frontend-heuristicas-audit/SKILL.md` | Metodología reproducible de auditoría de las 10 heurísticas cognitivas de abajo — señales grep/script objetivas, catálogo de falsos positivos ya descartados, patrón de corrección para cada hallazgo (confirmación de bajas, feedback de loading, validación estructural con `AdesValidators`) |
+| `DECISIONS/` | ADRs arquitectónicas — crear una cuando: se introduce una dependencia/librería nueva, se altera puerto/volumen en `docker-compose.yml`, o se modifica una regla de `.agent/AGENT.md`/`.agent/RULES.md`/este archivo (criterio de `.agent/HEURISTICS.md` §4) |
 | `memory/long_term_memory.py` | API persistencia PostgreSQL |
 | `memory/semantic_cache.py` | API caché Valkey |
 | `docker-compose.yml` | Stack dockerizado |
@@ -525,3 +540,14 @@ ENVIRONMENT=development   # ⚠️ host único = PRODUCCIÓN (2026-07-15). Aún 
 | 8 | Diseño minimalista | Dashboards limpios, pocos widgets |
 | 9 | Recuperación de errores | Mensajes amigables, fallback local |
 | 10 | Ayuda integrada | Tooltips, docs, mensajes de error explicativos |
+
+**Auditoría real sobre frontend (`frontend/src/app`, 79 componentes)** — no solo
+la tabla de arriba (que describe la aspiración de diseño): plan y método en
+`docs/hallazgos/2026-07-16_plan_revision_heuristicas_cognitivas.md`, skill
+reproducible en `.agent/skills/frontend-heuristicas-audit/SKILL.md`. Estado:
+Fase 1 (#3, confirmación en bajas) y Fase 2 (#1 feedback de loading en
+mutaciones, #5 validación estructural CURP/RFC/NSS) **completadas
+2026-07-16/17** (Reglas Mandatorias #24 y #25 arriba documentan el patrón).
+Heurísticas #2/#4(parcial)/#6(parcial)/#7/#8 quedan pendientes de muestreo
+manual con Playwright (`R-21` del plan) — no confiar en cifras estimadas para
+esas hasta que ese muestreo se ejecute.

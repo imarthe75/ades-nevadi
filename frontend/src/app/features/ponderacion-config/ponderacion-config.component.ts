@@ -94,8 +94,8 @@ interface ItemRow    { tipo_item: string; nombre_personalizado: string | null; p
           [modal]="true" [style]="{width:'600px'}">
   <div class="grid grid-cols-2 gap-3">
     <div class="field col-span-2">
-      <label>Nombre *</label>
-      <input pInputText [(ngModel)]="form.nombre" class="w-full" />
+      <label for="pc-nombre">Nombre *</label>
+      <input pInputText id="pc-nombre" [(ngModel)]="form.nombre" class="w-full"/>
     </div>
     <div class="field">
       <label>Nivel educativo *</label>
@@ -142,6 +142,7 @@ interface ItemRow    { tipo_item: string; nombre_personalizado: string | null; p
   <ng-template pTemplate="footer">
     <button pButton label="Cancelar" severity="secondary" (click)="dialogVisible = false"></button>
     <button pButton [label]="editandoId ? 'Guardar cambios' : 'Crear esquema'"
+            [loading]="guardando()"
             (click)="guardar()" [disabled]="sumaForm() !== 100"></button>
   </ng-template>
 </p-dialog>
@@ -168,6 +169,7 @@ export class PonderacionConfigComponent implements OnInit, OnDestroy {
   niveles  = signal<NivelOpt[]>([]);
   esquemas = signal<EsquemaRow[]>([]);
   cargando = signal(false);
+  guardando = signal(false);
   nivelFiltro: string | null = null;
   dialogVisible = false;
   editandoId: string | null = null;
@@ -272,13 +274,15 @@ export class PonderacionConfigComponent implements OnInit, OnDestroy {
     const obs = this.editandoId
       ? this.api.put(`/esquemas-ponderacion/${this.editandoId}`, payload)
       : this.api.post('/esquemas-ponderacion', payload);
+    this.guardando.set(true);
     obs.pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
+        this.guardando.set(false);
         this.notify.success('Guardado');
         this.dialogVisible = false;
         this.cargarEsquemas();
       },
-      error: (e: any) => this.notify.error('Error', e?.error?.detail ?? 'No se pudo guardar el esquema de ponderación'),
+      error: (e: any) => { this.guardando.set(false); this.notify.error('Error', e?.error?.detail ?? 'No se pudo guardar el esquema de ponderación'); },
     });
   }
 
@@ -289,12 +293,13 @@ export class PonderacionConfigComponent implements OnInit, OnDestroy {
       header: 'Confirmar eliminación',
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
+        this.cargando.set(true);
         this.api.delete(`/esquemas-ponderacion/${id}`).pipe(takeUntil(this.destroy$)).subscribe({
           next: () => {
             this.notify.info('Desactivado');
             this.cargarEsquemas();
           },
-          error: (e: any) => this.notify.error('Error', e?.error?.detail ?? 'No se pudo desactivar el esquema'),
+          error: (e: any) => { this.cargando.set(false); this.notify.error('Error', e?.error?.detail ?? 'No se pudo desactivar el esquema'); },
         });
       },
     });

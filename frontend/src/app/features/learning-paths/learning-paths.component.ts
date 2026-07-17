@@ -272,11 +272,11 @@ const TIPO_ICON: Record<string, string> = {
       [modal]="true" [style]="{width: '520px'}"
     >
       <div class="form-grid">
-        <label>Nombre *</label>
-        <input pInputText [(ngModel)]="form.nombre" placeholder="Ej. Refuerzo matemáticas" />
+        <label for="lp-nombre">Nombre *</label>
+        <input pInputText id="lp-nombre" [(ngModel)]="form.nombre" placeholder="Ej. Refuerzo matemáticas"/>
 
-        <label>Descripción</label>
-        <textarea pTextarea [(ngModel)]="form.descripcion" rows="3" placeholder="Objetivo y contenido..."></textarea>
+        <label for="lp-desc">Descripción</label>
+        <textarea pTextarea id="lp-desc" [(ngModel)]="form.descripcion" rows="3" placeholder="Objetivo y contenido..."></textarea>
 
         <label>Criterio de activación</label>
         <p-select
@@ -288,14 +288,14 @@ const TIPO_ICON: Record<string, string> = {
         [filter]="true" filterPlaceholder="Buscar..." ariaLabel="Criterio de activación" />
 
         @if (form.criterio_activacion !== 'MANUAL') {
-          <label>Umbral</label>
-          <input pInputText type="number" [(ngModel)]="form.umbral_activacion"
-            placeholder="{{ form.criterio_activacion === 'REPROBACION' ? 'Ej: 6.0' : 'Ej: 80' }}" />
+          <label for="lp-umbral">Umbral</label>
+          <input pInputText id="lp-umbral" type="number" [(ngModel)]="form.umbral_activacion"
+            placeholder="{{ form.criterio_activacion === 'REPROBACION' ? 'Ej: 6.0' : 'Ej: 80' }}"/>
         }
       </div>
       <ng-template pTemplate="footer">
         <p-button label="Cancelar" [text]="true" (onClick)="showNuevePath = false" />
-        <p-button label="Crear ruta" icon="pi pi-check" (onClick)="crearPath()" [disabled]="!form.nombre" />
+        <p-button label="Crear ruta" icon="pi pi-check" [loading]="creandoPath()" (onClick)="crearPath()" [disabled]="!form.nombre" />
       </ng-template>
     </p-dialog>
 
@@ -393,7 +393,7 @@ const TIPO_ICON: Record<string, string> = {
       </div>
       <ng-template pTemplate="footer">
         <p-button label="Cancelar" [text]="true" (onClick)="showAsignar = false" />
-        <p-button label="Asignar" icon="pi pi-user-plus" (onClick)="confirmarAsignar()"
+        <p-button label="Asignar" icon="pi pi-user-plus" [loading]="asignando()" (onClick)="confirmarAsignar()"
           [disabled]="!formAsig.estudiante_id" />
       </ng-template>
     </p-dialog>
@@ -498,6 +498,8 @@ export class LearningPathsComponent implements OnInit, OnDestroy {
   recursos     = signal<Recurso[]>([]);
   alertas      = signal<AlertaResumen[]>([]);
   cargandoAsig = signal(false);
+  asignando = signal(false);
+  creandoPath = signal(false);
 
   pathSeleccionado  = signal<LearningPath | null>(null);
   pathAsignar       = signal<LearningPath | null>(null);
@@ -638,9 +640,14 @@ export class LearningPathsComponent implements OnInit, OnDestroy {
     const path = this.pathAsignar();
     if (!path || !this.formAsig.estudiante_id) return;
     const { _alumnoObj, ...payload } = this.formAsig;
-    this.api.post(`/learning-paths/${path.id}/asignar`, payload).pipe(takeUntil(this.destroy$)).subscribe(() => {
-      this.showAsignar = false;
-      this.cargarAsignaciones();
+    this.asignando.set(true);
+    this.api.post(`/learning-paths/${path.id}/asignar`, payload).pipe(takeUntil(this.destroy$)).subscribe({
+      next: () => {
+        this.asignando.set(false);
+        this.showAsignar = false;
+        this.cargarAsignaciones();
+      },
+      error: () => this.asignando.set(false),
     });
   }
 
@@ -650,9 +657,14 @@ export class LearningPathsComponent implements OnInit, OnDestroy {
   }
 
   crearPath(): void {
-    this.api.post('/learning-paths', this.form).pipe(takeUntil(this.destroy$)).subscribe(() => {
-      this.showNuevePath = false;
-      this.cargarPaths();
+    this.creandoPath.set(true);
+    this.api.post('/learning-paths', this.form).pipe(takeUntil(this.destroy$)).subscribe({
+      next: () => {
+        this.creandoPath.set(false);
+        this.showNuevePath = false;
+        this.cargarPaths();
+      },
+      error: () => this.creandoPath.set(false),
     });
   }
 

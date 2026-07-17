@@ -166,6 +166,7 @@ const TIPOS_PREG = [
                 <span style="font-size:.8rem; color:var(--text-color-secondary)">Activa</span>
                 <p-toggleswitch [(ngModel)]="selEncuesta.activa" (onChange)="toggleActiva()" />
                 <p-button icon="pi pi-trash" severity="danger" [text]="true" size="small"
+                          [loading]="eliminandoEncuesta()"
                           ariaLabel="Eliminar encuesta" pTooltip="Eliminar encuesta" (onClick)="eliminarEncuesta()" />
               </div>
             </div>
@@ -206,6 +207,7 @@ const TIPOS_PREG = [
                     </div>
                   </div>
                   <p-button icon="pi pi-trash" size="small" severity="danger" [text]="true"
+                            [loading]="eliminandoPreguntaId() === p.id"
                             ariaLabel="Eliminar pregunta" (onClick)="eliminarPregunta(p)" />
                 </div>
               }
@@ -396,13 +398,13 @@ const TIPOS_PREG = [
               [style]="{width:'520px'}">
       <div class="form-grid">
         <div class="form-field full">
-          <label>Título *</label>
-          <input pInputText [(ngModel)]="formNueva.titulo" style="width:100%"
-                 placeholder="Ej. Encuesta de satisfacción 2026-II" />
+          <label for="enc-titulo">Título *</label>
+          <input pInputText id="enc-titulo" [(ngModel)]="formNueva.titulo" style="width:100%"
+                 placeholder="Ej. Encuesta de satisfacción 2026-II"/>
         </div>
         <div class="form-field full">
-          <label>Descripción</label>
-          <textarea pTextarea [(ngModel)]="formNueva.descripcion"
+          <label for="enc-desc">Descripción</label>
+          <textarea pTextarea id="enc-desc" [(ngModel)]="formNueva.descripcion"
                     rows="2" style="width:100%"></textarea>
         </div>
         <div class="form-field">
@@ -443,8 +445,8 @@ const TIPOS_PREG = [
               [style]="{width:'500px'}">
       <div class="form-grid">
         <div class="form-field full">
-          <label>Texto de la pregunta *</label>
-          <textarea pTextarea [(ngModel)]="formPreg.texto"
+          <label for="enc-preg-texto">Texto de la pregunta *</label>
+          <textarea pTextarea id="enc-preg-texto" [(ngModel)]="formPreg.texto"
                     rows="2" style="width:100%"
                     placeholder="¿Cómo calificarías...?"></textarea>
         </div>
@@ -461,8 +463,8 @@ const TIPOS_PREG = [
         </div>
         @if (formPreg.tipo_pregunta === 'OPCION_MULTIPLE') {
           <div class="form-field full">
-            <label>Opciones (una por línea)</label>
-            <textarea pTextarea [(ngModel)]="formPreg.opcionesTexto"
+            <label for="enc-preg-opciones">Opciones (una por línea)</label>
+            <textarea pTextarea id="enc-preg-opciones" [(ngModel)]="formPreg.opcionesTexto"
                       rows="4" style="width:100%"
                       placeholder="Muy satisfecho&#10;Satisfecho&#10;Regular&#10;Insatisfecho"></textarea>
           </div>
@@ -654,6 +656,8 @@ export class EncuestasComponent implements OnInit, OnDestroy {
   loading           = signal(false);
   loadingResultados = signal(false);
   saving            = signal(false);
+  eliminandoEncuesta = signal(false);
+  eliminandoPreguntaId = signal<string | null>(null);
   respuestaEnviada  = signal(false);
 
   selEncuesta: Encuesta | null = null;
@@ -764,13 +768,15 @@ export class EncuestasComponent implements OnInit, OnDestroy {
       header: 'Confirmar eliminación',
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
+        this.eliminandoEncuesta.set(true);
         this.api.delete(`/encuestas/${encuesta.id}`).pipe(takeUntil(this.destroy$)).subscribe({
           next: () => {
+            this.eliminandoEncuesta.set(false);
             this.selEncuesta = null;
             this.preguntas.set([]);
             this.cargar();
           },
-          error: (e: any) => this.notify.error('Error al eliminar encuesta', e?.error?.detail ?? e?.message ?? ''),
+          error: (e: any) => { this.eliminandoEncuesta.set(false); this.notify.error('Error al eliminar encuesta', e?.error?.detail ?? e?.message ?? ''); },
         });
       },
     });
@@ -819,9 +825,10 @@ export class EncuestasComponent implements OnInit, OnDestroy {
       header: 'Confirmar eliminación',
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
+        this.eliminandoPreguntaId.set(p.id);
         this.api.delete(`/encuestas/${encuestaId}/preguntas/${p.id}`).pipe(takeUntil(this.destroy$)).subscribe({
-          next: () => this.cargarPreguntas(),
-          error: (e: any) => this.notify.error('Error al eliminar pregunta', e?.error?.detail ?? e?.message ?? ''),
+          next: () => { this.eliminandoPreguntaId.set(null); this.cargarPreguntas(); },
+          error: (e: any) => { this.eliminandoPreguntaId.set(null); this.notify.error('Error al eliminar pregunta', e?.error?.detail ?? e?.message ?? ''); },
         });
       },
     });

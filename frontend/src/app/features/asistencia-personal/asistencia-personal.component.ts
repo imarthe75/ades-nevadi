@@ -136,12 +136,12 @@ interface ReportePersonal {
           <p-select [options]="jornadaOpts" [(ngModel)]="form.tipo_jornada" ariaLabel="Tipo Jornada"/>
         </div>
         <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium">Hora Entrada</label>
-          <input pInputText [(ngModel)]="form.hora_entrada" placeholder="08:00" />
+          <label class="text-sm font-medium" for="ap-hora-entrada">Hora Entrada</label>
+          <input pInputText id="ap-hora-entrada" [(ngModel)]="form.hora_entrada" placeholder="08:00"/>
         </div>
         <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium">Hora Salida</label>
-          <input pInputText [(ngModel)]="form.hora_salida" placeholder="14:30" />
+          <label class="text-sm font-medium" for="ap-hora-salida">Hora Salida</label>
+          <input pInputText id="ap-hora-salida" [(ngModel)]="form.hora_salida" placeholder="14:30"/>
         </div>
         <div class="flex items-center gap-2 mt-4">
           <p-checkbox [(ngModel)]="form.es_retardo" [binary]="true" inputId="retardo"/>
@@ -159,13 +159,13 @@ interface ReportePersonal {
         </div>
         @if (form.justificado) {
           <div class="col-span-2 flex flex-col gap-1">
-            <label class="text-sm font-medium">Justificación</label>
-            <input pInputText [(ngModel)]="form.justificacion" placeholder="Motivo de la falta justificada…" />
+            <label class="text-sm font-medium" for="ap-justificacion">Justificación</label>
+            <input pInputText id="ap-justificacion" [(ngModel)]="form.justificacion" placeholder="Motivo de la falta justificada…"/>
           </div>
         }
         <div class="col-span-2 flex flex-col gap-1">
-          <label class="text-sm font-medium">Observaciones</label>
-          <input pInputText [(ngModel)]="form.observaciones" />
+          <label class="text-sm font-medium" for="ap-obs">Observaciones</label>
+          <input pInputText id="ap-obs" [(ngModel)]="form.observaciones"/>
         </div>
       </div>
       <ng-template pTemplate="footer">

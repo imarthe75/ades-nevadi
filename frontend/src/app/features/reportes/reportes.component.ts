@@ -239,14 +239,14 @@ const TIPOS_DOC = [
           @if (ctx.nivelAcceso() <= 1) {
             <div class="upload-form">
               <div class="form-grid">
-                <label>Nombre de la plantilla</label>
-                <input pInputText [(ngModel)]="nuevaPlantillaNombre" placeholder="ej. Boleta Primaria 2026" />
+                <label for="rep-plantilla-nombre">Nombre de la plantilla</label>
+                <input pInputText id="rep-plantilla-nombre" [(ngModel)]="nuevaPlantillaNombre" placeholder="ej. Boleta Primaria 2026"/>
                 <label>Tipo de documento</label>
                 <p-select [options]="tiposDoc" [(ngModel)]="nuevaPlantillaTipo"
-                  optionLabel="label" optionValue="value" style="width:100%" 
+                  optionLabel="label" optionValue="value" style="width:100%"
  [filter]="true" filterPlaceholder="Buscar..." ariaLabel="Tipo de documento" />
-                <label>Descripción</label>
-                <input pInputText [(ngModel)]="nuevaPlantillaDesc" placeholder="Descripción opcional" />
+                <label for="rep-plantilla-desc">Descripción</label>
+                <input pInputText id="rep-plantilla-desc" [(ngModel)]="nuevaPlantillaDesc" placeholder="Descripción opcional"/>
               </div>
 
               <div style="margin-top:1.5rem">

@@ -146,14 +146,14 @@ import { AdesFormatDirective } from '../../shared/directives/ades-format.directi
         <form [formGroup]="examenForm">
           <div class="field-grid">
             <div class="field">
-              <label>Nombre del Examen*</label>
-              <input pInputText formControlName="nombreEvaluacion"
+              <label for="cep-nombre">Nombre del Examen*</label>
+              <input pInputText id="cep-nombre" formControlName="nombreEvaluacion"
                      placeholder="Ej: Examen Período 1 - Tema 1-5"/>
             </div>
 
             <div class="field">
-              <label>Descripción*</label>
-              <textarea pTextarea formControlName="descripcion"
+              <label for="cep-desc">Descripción*</label>
+              <textarea pTextarea id="cep-desc" formControlName="descripcion"
                        placeholder="Describe el tipo de examen y criterios de evaluación"
                        rows="3"></textarea>
             </div>
@@ -164,8 +164,8 @@ import { AdesFormatDirective } from '../../shared/directives/ades-format.directi
             </div>
 
             <div class="field">
-              <label>Puntaje Máximo</label>
-              <input pInputText type="number" formControlName="puntajeMaximo"
+              <label for="cep-puntaje">Puntaje Máximo</label>
+              <input pInputText id="cep-puntaje" type="number" formControlName="puntajeMaximo"
                      min="0" step="0.5" placeholder="10"/>
             </div>
           </div>

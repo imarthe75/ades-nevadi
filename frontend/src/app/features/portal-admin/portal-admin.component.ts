@@ -125,8 +125,8 @@ interface Catalogo {
     <!-- Col 1 -->
     <div class="form-col">
       <div class="field">
-        <label>Título *</label>
-        <input pInputText [(ngModel)]="form().titulo" placeholder="Ej. Convocatoria de Inscripción 2026-2027" />
+        <label for="pa-conv-titulo">Título *</label>
+        <input pInputText id="pa-conv-titulo" [(ngModel)]="form().titulo" placeholder="Ej. Convocatoria de Inscripción 2026-2027"/>
       </div>
       <div class="field">
         <label>Tipo *</label>
@@ -140,17 +140,17 @@ interface Catalogo {
       </div>
       <div class="field-row">
         <div class="field">
-          <label>Inicio postulaciones</label>
-          <input pInputText type="datetime-local" [(ngModel)]="form().fechaInicio" />
+          <label for="pa-conv-fecha-inicio">Inicio postulaciones</label>
+          <input pInputText id="pa-conv-fecha-inicio" type="datetime-local" [(ngModel)]="form().fechaInicio"/>
         </div>
         <div class="field">
-          <label>Cierre postulaciones</label>
-          <input pInputText type="datetime-local" [(ngModel)]="form().fechaCierre" />
+          <label for="pa-conv-fecha-cierre">Cierre postulaciones</label>
+          <input pInputText id="pa-conv-fecha-cierre" type="datetime-local" [(ngModel)]="form().fechaCierre"/>
         </div>
       </div>
       <div class="field">
-        <label>Cupo máximo</label>
-        <input pInputText type="number" [(ngModel)]="form().cupoMaximo" placeholder="Sin límite" />
+        <label for="pa-conv-cupo">Cupo máximo</label>
+        <input pInputText id="pa-conv-cupo" type="number" [(ngModel)]="form().cupoMaximo" placeholder="Sin límite"/>
       </div>
     </div>
 

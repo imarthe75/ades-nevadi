@@ -22,6 +22,7 @@ import { ExportService, ExportColumn } from '../../core/services/export.service'
 import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
 import { grupoLabel } from '../../core/models';
 import { AdesFormatDirective } from '../../shared/directives/ades-format.directive';
+import { ApexNotificationService } from 'apex-component-library';
 
 type TagSeverity = 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' | undefined;
 
@@ -174,9 +175,9 @@ const TIPO_SEV: Record<string, TagSeverity> = {
     <p-dialog header="Nueva evaluación" [visible]="showDialog()" (visibleChange)="showDialog.set($event)" [modal]="true" [style]="{width:'520px'}">
       <div class="form-grid">
         <div class="form-field full">
-          <label>Nombre *</label>
-          <input pInputText [(ngModel)]="form.nombre_evaluacion"
-                 placeholder="Ej. Examen Bimestral 1" style="width:100%" />
+          <label for="ev-nombre">Nombre *</label>
+          <input pInputText id="ev-nombre" [(ngModel)]="form.nombre_evaluacion"
+                 placeholder="Ej. Examen Bimestral 1" style="width:100%"/>
         </div>
         <div class="form-field">
           <label>Nivel *</label>
@@ -282,6 +283,7 @@ export class EvaluacionesComponent implements OnInit, OnDestroy {
   private readonly api      = inject(ApiService);
   readonly ctx              = inject(ContextService);
   private readonly exporter = inject(ExportService);
+  private readonly notify   = inject(ApexNotificationService);
 
   // ── Cascada Nivel → Grado → Grupo (en el diálogo de nueva evaluación) ──
   nivelesOpts = signal<any[]>([]);
@@ -437,6 +439,14 @@ export class EvaluacionesComponent implements OnInit, OnDestroy {
     const editadas = this.alumnos().filter(a => a._editada && a.calificacion != null);
     if (!editadas.length) return;
 
+    const puntajeMax = this.selEval.puntaje_maximo;
+    const fueraDeRango = editadas.find(a => a.calificacion! < 0 || a.calificacion! > puntajeMax);
+    if (fueraDeRango) {
+      this.notify.warning('Calificación fuera de rango',
+        `${fueraDeRango.nombre_alumno}: la calificación debe estar entre 0 y ${puntajeMax}`);
+      return;
+    }
+
     this.saving.set(true);
     const ciclo = this.ctx.ciclo();
     const payload: any = {
@@ -455,7 +465,7 @@ export class EvaluacionesComponent implements OnInit, OnDestroy {
         this.saving.set(false);
         this.alumnos.update(list => list.map(a => ({ ...a, _editada: false })));
       },
-      error: () => this.saving.set(false),
+      error: (e: any) => { this.saving.set(false); this.notify.error('Error', e?.error?.detail ?? 'No se pudieron guardar las calificaciones'); },
     });
   }
 

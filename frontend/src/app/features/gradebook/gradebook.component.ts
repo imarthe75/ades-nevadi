@@ -107,6 +107,7 @@ interface Insights {
   </div>
   <div class="page-actions">
     <button pButton icon="pi pi-refresh" label="Recalcular" severity="secondary"
+            [loading]="recalculando()"
             (click)="recalcularPeriodo()" [disabled]="!periodoSel"></button>
     <button pButton icon="pi pi-file-excel" label="Excel" severity="success"
             (click)="exportarExcel()"></button>
@@ -322,6 +323,7 @@ interface Insights {
       </p-table>
       <div class="mt-3 flex gap-2 justify-end">
         <button pButton label="Guardar calificaciones" icon="pi pi-save"
+                [loading]="guardandoCalifMasiva()"
                 (click)="guardarCalificacionMasiva()"></button>
       </div>
     </div>
@@ -340,8 +342,8 @@ interface Insights {
                        [step]="0.1" [useGrouping]="false" styleClass="w-full" />
       </div>
       <div class="field mt-2">
-        <label>Justificación (mín. 20 caracteres)</label>
-        <textarea pInputText [(ngModel)]="ajusteJustificacion" rows="3"
+        <label for="gb-ajuste-just">Justificación (mín. 20 caracteres)</label>
+        <textarea pInputText id="gb-ajuste-just" [(ngModel)]="ajusteJustificacion" rows="3"
                   class="w-full" style="width:100%;resize:vertical;padding:6px;border:1px solid #ccc;border-radius:4px"></textarea>
         <small class="text-muted">{{ ajusteJustificacion.length }} caracteres</small>
       </div>
@@ -349,7 +351,7 @@ interface Insights {
   }
   <ng-template pTemplate="footer">
     <button pButton label="Cancelar" severity="secondary" (click)="dialogAjusteVisible = false"></button>
-    <button pButton label="Aplicar ajuste" (click)="aplicarAjuste()"></button>
+    <button pButton label="Aplicar ajuste" [loading]="aplicandoAjuste()" (click)="aplicarAjuste()"></button>
   </ng-template>
 </p-dialog>
 
@@ -358,10 +360,10 @@ interface Insights {
           [modal]="true" [style]="{width:'560px'}">
   <div class="grid grid-cols-2 gap-3">
     <div class="field col-span-2">
-      <label>Título *</label>
-      <input pInputText [(ngModel)]="nuevaAct.titulo" class="w-full"
+      <label for="gb-act-titulo">Título *</label>
+      <input pInputText id="gb-act-titulo" [(ngModel)]="nuevaAct.titulo" class="w-full"
              placeholder="Ej. Examen del bloque 2"
-             pTooltip="Nombre breve y descriptivo de la actividad" tooltipPosition="top" />
+             pTooltip="Nombre breve y descriptivo de la actividad" tooltipPosition="top"/>
     </div>
     <div class="field">
       <label>Tipo</label>
@@ -389,15 +391,15 @@ interface Insights {
                     pTooltip="No puede ser anterior a la fecha de asignación" tooltipPosition="top" ariaLabel="Fecha entrega"/>
     </div>
     <div class="field col-span-2">
-      <label>Descripción</label>
-      <textarea pInputText [(ngModel)]="nuevaAct.descripcion" rows="2"
+      <label for="gb-act-desc">Descripción</label>
+      <textarea pInputText id="gb-act-desc" [(ngModel)]="nuevaAct.descripcion" rows="2"
                 placeholder="Instrucciones para el alumno (opcional)"
                 class="w-full" style="width:100%;padding:6px;border:1px solid #ccc;border-radius:4px"></textarea>
     </div>
   </div>
   <ng-template pTemplate="footer">
     <button pButton label="Cancelar" severity="secondary" (click)="mostrarNuevaActividad = false"></button>
-    <button pButton label="Crear y generar slots" icon="pi pi-plus" (click)="crearActividad()"></button>
+    <button pButton label="Crear y generar slots" icon="pi pi-plus" [loading]="creandoActividad()" (click)="crearActividad()"></button>
   </ng-template>
 </p-dialog>
 <!-- ── Wizard: Cierre de Período ── -->
@@ -482,6 +484,10 @@ export class GradebookComponent implements OnInit, OnDestroy {
   cargandoConc = signal(false);
   cargandoEntregas = signal(false);
   cargandoInsights = signal(false);
+  guardandoCalifMasiva = signal(false);
+  aplicandoAjuste = signal(false);
+  recalculando = signal(false);
+  creandoActividad = signal(false);
 
   grupoSel: string | null = null;
   materiaSel: string | null = null;
@@ -680,14 +686,17 @@ export class GradebookComponent implements OnInit, OnDestroy {
       .filter(e => e._cal !== null && e._cal !== undefined)
       .map(e => ({ alumnoId: e.estudiante_id, calificacion: e._cal!, comentario: e.comentario_profesor }));
     if (!items.length) return;
+    this.guardandoCalifMasiva.set(true);
     this.api.patch(`/actividades/${act.id}/calificar-masivo`, items).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
+        this.guardandoCalifMasiva.set(false);
         this.notify.success('Guardado', `${items.length} calificaciones guardadas`);
         this.drawerCalifVisible = false;
         this.cargarActividades();
         this.cargarConcentrado();
       },
       error: (err: any) => {
+        this.guardandoCalifMasiva.set(false);
         this.notify.error('Error', err?.error?.message ?? err?.error?.detail ?? 'No se pudieron guardar las calificaciones');
       },
     });
@@ -707,16 +716,19 @@ export class GradebookComponent implements OnInit, OnDestroy {
       this.notify.warning('Justificación corta', 'Mínimo 20 caracteres');
       return;
     }
+    this.aplicandoAjuste.set(true);
     this.api.post(`/gradebook/${row.cal_periodo_id}/ajuste-manual`, {
       ajuste_manual: this.ajusteValor,
       justificacion_ajuste: this.ajusteJustificacion,
     }).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
+        this.aplicandoAjuste.set(false);
         this.notify.success('Ajuste aplicado', 'Calificación actualizada');
         this.dialogAjusteVisible = false;
         this.cargarConcentrado();
       },
       error: (err: any) => {
+        this.aplicandoAjuste.set(false);
         this.notify.error('Error', err?.error?.message ?? err?.error?.detail ?? 'No se pudo aplicar el ajuste manual');
       },
     });
@@ -726,13 +738,16 @@ export class GradebookComponent implements OnInit, OnDestroy {
     if (!this.grupoSel || !this.periodoSel) return;
     // recalcularPeriodo() del backend recibe grupo_id/materia_id como query param, no como body
     // (no tiene @RequestBody) — enviarlo en el body se ignoraba silenciosamente y recalculaba TODO el período.
+    this.recalculando.set(true);
     this.api.post(`/gradebook/periodo/${this.periodoSel}/recalcular-todo?grupo_id=${encodeURIComponent(this.grupoSel)}`,
       {}).pipe(takeUntil(this.destroy$)).subscribe({
       next: (r: any) => {
+        this.recalculando.set(false);
         this.notify.info('Recalculado', `${r.recalculados} registros actualizados`);
         this.cargarConcentrado();
       },
       error: (err: any) => {
+        this.recalculando.set(false);
         this.notify.error('Error', err?.error?.message ?? err?.error?.detail ?? 'No se pudo recalcular el período');
       },
     });
@@ -753,6 +768,7 @@ export class GradebookComponent implements OnInit, OnDestroy {
       return;
     }
     // ActividadesController.ActividadIn espera camelCase estricto (clase @Data sin @JsonProperty).
+    this.creandoActividad.set(true);
     this.api.post('/actividades', {
       titulo: this.nuevaAct.titulo,
       descripcion: this.nuevaAct.descripcion,
@@ -765,12 +781,14 @@ export class GradebookComponent implements OnInit, OnDestroy {
       periodoEvaluacionId: this.periodoSel,
     }).pipe(takeUntil(this.destroy$)).subscribe({
       next: (r: any) => {
+        this.creandoActividad.set(false);
         this.notify.success('Creada', `${r.slots_creados} slots generados`);
         this.mostrarNuevaActividad = false;
         this.nuevaAct = { titulo: '', descripcion: '', tipo_item: 'tarea', fecha_asignacion: new Date(), fecha_entrega: null, puntaje_maximo: 10 };
         this.cargarActividades();
       },
       error: (err: any) => {
+        this.creandoActividad.set(false);
         this.notify.error('Error', err?.error?.message ?? 'No se pudo crear la actividad');
       },
     });

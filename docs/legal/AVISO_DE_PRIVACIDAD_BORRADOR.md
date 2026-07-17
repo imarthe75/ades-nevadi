@@ -12,25 +12,50 @@
 > Particulares (LFPDPPP) y su Reglamento — México. Aplica porque el Instituto
 > Nevadi es una institución privada ("particular"), no un ente de gobierno (que
 > se regiría por la ley de datos en posesión de sujetos obligados, distinta).
+>
+> **⚠️ Actualización 2026-07-17 — hallazgo que requiere decisión legal, no
+> resuelto aquí:** se cotejó este borrador contra el aviso de privacidad
+> **ya publicado** por el Instituto en
+> `https://institutonevadi.edu.mx/aviso_de_privacidad.html`. Ese aviso público
+> declara textualmente **"no recabamos datos personales sensibles"** — pero el
+> sistema ADES sí captura datos de salud (alergias, condiciones crónicas, tipo
+> de sangre, discapacidad) e identidad de género, que la propia LFPDPPP (Art. 3
+> fr. VI) clasifica como sensibles. Esto es una discrepancia real entre lo que
+> el Instituto declara públicamente y lo que el sistema efectivamente recaba —
+> **no es algo que un borrador técnico pueda resolver por sí solo**: hace falta
+> que quien tenga autoridad legal decida si (a) se actualiza el aviso público
+> para reconocer estos datos sensibles, o (b) existe/debe crearse un
+> consentimiento específico y separado para ellos (p. ej. en el expediente
+> médico de inscripción) que no sustituye la actualización del aviso general.
+> Ver sección 10 para el resto de discrepancias encontradas.
 
 ---
 
 ## Aviso de Privacidad Integral
 
-**Responsable:** `[COMPLETAR: razón social/nombre legal del Instituto Nevadi]`,
-con domicilio en `[COMPLETAR: domicilio fiscal/físico]`, es responsable del
+**Responsable:** **Educación para Ser, Toluca, A.C.** (razón social real,
+tomada del aviso de privacidad publicado en
+`https://institutonevadi.edu.mx/aviso_de_privacidad.html` el 2026-07-17 —
+**no coincide** con "Instituto Nevadi, A.C.", nombre que usaba hasta hoy el
+borrador del portal de admisiones, ver nota de discrepancia en la sección 10),
+con domicilio en Campos Elíseos #400, piso 10, Colonia Polanco IV Sección,
+Delegación Miguel Hidalgo, Ciudad de México, C.P. 11000, es responsable del
 tratamiento de los datos personales que usted nos proporcione, en términos de
 la Ley Federal de Protección de Datos Personales en Posesión de los
 Particulares (LFPDPPP).
 
 ### 1. ¿Quién es el Responsable y cómo contactarlo?
 
-`[COMPLETAR: nombre y correo de la persona designada como "Responsable" o
-encargada de atender solicitudes de derechos ARCO — Art. 3 fr. XIV LFPDPPP.
-Debe ser una persona/área con autoridad real, no un buzón genérico.]`
+`[COMPLETAR: el aviso público solo da un correo genérico de administración
+(ver abajo), no el nombre de una persona designada como "Responsable" —
+Art. 3 fr. XIV LFPDPPP exige que exista alguien con autoridad real, no
+solo un buzón. Falta designar/documentar quién es esa persona en el
+Instituto.]`
 
 Correo para ejercer derechos ARCO (Acceso, Rectificación, Cancelación,
-Oposición): `[COMPLETAR]`
+Oposición): **administracion@institutonevadi.org.mx** (tomado del aviso
+público real; plazo de respuesta ahí declarado: 15 días hábiles — más corto
+que el estándar LFPDPPP de 20 días, verificar que sea intencional).
 
 ### 2. ¿Qué datos personales recabamos?
 
@@ -136,7 +161,10 @@ Usted (o el padre/tutor de un alumno menor de edad) puede en cualquier
 momento **Acceder** a sus datos, **Rectificarlos** si son inexactos,
 **Cancelarlos** cuando considere que no se requieren para las finalidades
 señaladas, u **Oponerse** a su tratamiento para fines secundarios, enviando
-una solicitud a `[COMPLETAR: correo/proceso]` con: nombre completo,
+una solicitud a **administracion@institutonevadi.org.mx** (correo real del
+aviso público — `[COMPLETAR: confirmar si este buzón realmente se monitorea
+y quién lo atiende; el aviso público no designa una persona/área específica]`)
+con: nombre completo,
 documento que acredite identidad (o representación legal del menor),
 descripción clara de los datos y la solicitud, y cualquier documento que
 facilite la localización de los datos.
@@ -160,7 +188,51 @@ Cualquier modificación a este aviso de privacidad se hará del conocimiento de
 los titulares a través de `[COMPLETAR: medio — p. ej. portal del Instituto,
 comunicado a padres]`.
 
-**Última actualización:** `[COMPLETAR fecha de publicación real]`
+**Última actualización:** `[COMPLETAR fecha de publicación real]` — el aviso
+público consultado el 2026-07-17 tampoco declara su propia fecha de última
+actualización (hallazgo, no es solo un vacío de este borrador).
+
+### 10. Discrepancias encontradas al cotejar contra el aviso público real (2026-07-17)
+
+Se comparó este borrador contra `https://institutonevadi.edu.mx/aviso_de_privacidad.html`
+(el aviso que el Instituto ya tiene publicado). Hallazgos, de mayor a menor
+severidad:
+
+1. **Datos sensibles (ver banner al inicio del documento) — el más grave.**
+   El aviso público dice "no recabamos datos sensibles"; ADES sí recaba salud
+   e identidad de género. Requiere decisión legal explícita, no un ajuste de
+   texto.
+2. **Razón social distinta a la que usa el sistema hoy.** El aviso público usa
+   **"Educación para Ser, Toluca, A.C."** como responsable legal. El
+   componente `frontend-portal/src/app/features/aviso-privacidad/aviso-privacidad.component.ts`
+   (aviso del portal de admisiones, ya en producción) decía **"Instituto
+   Nevadi, A.C."** — nombre distinto. Corregido en esa misma sesión para que
+   coincida con el aviso público real (ver commit/diff de
+   `aviso-privacidad.component.ts`), pero **confirmar con el Instituto cuál
+   de los dos nombres es el correcto/vigente** — "Instituto Nevadi" podría ser
+   el nombre comercial y "Educación para Ser, Toluca, A.C." la razón social
+   legal (común en México), en cuyo caso ambos textos son coherentes; o podría
+   ser un error real en uno de los dos avisos.
+3. **Domicilio distinto.** El aviso público ubica al responsable en
+   Polanco, Ciudad de México. El componente del portal decía "Estado de
+   México" — corregido también, mismo comentario que el punto 2 sobre
+   confirmar cuál es el domicilio fiscal real vs. el domicilio operativo del
+   plantel.
+4. **Correo de contacto ARCO distinto.** El portal usaba
+   `privacidad@nevadi.edu.mx` (dominio `.edu.mx`); el aviso público real usa
+   `administracion@institutonevadi.org.mx` (dominio `.org.mx`, buzón de
+   administración general, no uno dedicado a privacidad). Corregido en el
+   componente para usar el correo real — pero un buzón de "administración"
+   genérico no cumple del todo el espíritu del Art. 3 fr. XIV LFPDPPP (persona
+   designada); queda como el mismo pendiente ya señalado en la sección 1.
+5. **Plazo de respuesta ARCO:** el aviso público declara 15 días hábiles (más
+   estricto que el default LFPDPPP de 20) — mantenido tal cual en este
+   borrador por ser lo realmente publicado, no un error a corregir.
+6. **El aviso público no cubre, ni tiene por qué cubrir**, todo lo que ADES
+   recaba (calificaciones, conducta, nómina, expediente laboral) — es un aviso
+   más acotado, aparentemente pensado para el sitio institucional/portal de
+   admisiones. Este borrador integral sigue siendo necesario como pieza
+   separada y más amplia para el sistema completo, no un reemplazo 1:1.
 
 ---
 

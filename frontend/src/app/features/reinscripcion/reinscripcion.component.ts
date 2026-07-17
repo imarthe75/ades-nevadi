@@ -148,6 +148,7 @@ interface CicloOpt   { id: string; nombre_ciclo: string; es_vigente: boolean; }
         <label style="font-weight:600;display:block;margin-bottom:4px">Acción manual</label>
         <div class="acciones-ind">
           <button pButton label="Aprobar" icon="pi pi-check" severity="success"
+                  [loading]="procesandoIndividual()"
                   (click)="accionIndividual('APROBAR')"></button>
           <button pButton label="Rechazar" icon="pi pi-times" severity="danger"
                   data-testid="btn-rechazar"
@@ -155,12 +156,12 @@ interface CicloOpt   { id: string; nombre_ciclo: string; es_vigente: boolean; }
         </div>
         @if (mostrarRazonRechazo) {
           <div class="mt-2">
-            <label>Razón de rechazo *</label>
-            <textarea pTextarea [(ngModel)]="razonRechazo" rows="2"
+            <label for="reinsc-razon">Razón de rechazo *</label>
+            <textarea pTextarea id="reinsc-razon" [(ngModel)]="razonRechazo" rows="2"
                       placeholder="Ej: Adeudo de cuotas pendiente de regularizar"
                       style="width:100%;resize:vertical;margin-top:4px"></textarea>
             <button pButton label="Confirmar rechazo" severity="danger" icon="pi pi-times"
-                    class="mt-2" [disabled]="!razonRechazo"
+                    class="mt-2" [disabled]="!razonRechazo" [loading]="procesandoIndividual()"
                     data-testid="btn-confirmar-rechazo"
                     (click)="accionIndividual('RECHAZAR')"></button>
           </div>
@@ -233,6 +234,7 @@ export class ReinscripcionComponent implements OnInit, OnDestroy {
   cargando  = signal(false);
   validando = signal(false);
   aprobando = signal(false);
+  procesandoIndividual = signal(false);
 
   cicloOrigenId:  string | null = null;
   cicloDestinoId: string | null = null;
@@ -381,11 +383,13 @@ export class ReinscripcionComponent implements OnInit, OnDestroy {
     const reg = this.seleccionado();
     if (!reg) return;
     if (accion === 'RECHAZAR' && !this.razonRechazo.trim()) return;
+    this.procesandoIndividual.set(true);
     this.api.patch(`/reinscripcion/${reg.id}`, {
       accion,
       razon_rechazo: accion === 'RECHAZAR' ? this.razonRechazo : null,
     }).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
+        this.procesandoIndividual.set(false);
         this.notify.success(
           accion === 'APROBAR' ? 'Alumno aprobado' : 'Alumno rechazado',
           reg.alumno
@@ -394,7 +398,7 @@ export class ReinscripcionComponent implements OnInit, OnDestroy {
         this.cargarEstado();
         this.cargarReporte();
       },
-      error: () => this.notify.error('Error', 'No se pudo procesar la acción'),
+      error: () => { this.procesandoIndividual.set(false); this.notify.error('Error', 'No se pudo procesar la acción'); },
     });
   }
 

@@ -271,6 +271,7 @@ const TIPOS_DOCUMENTO = [
                 </span>
               </div>
               <p-button icon="pi pi-trash" severity="danger" [outlined]="true" size="small"
+                [loading]="eliminandoDoc()"
                 ariaLabel="Eliminar documento" pTooltip="Eliminar documento"
                 (onClick)="eliminarDoc(docSeleccionado()!)" />
             </div>
@@ -387,6 +388,7 @@ export class ExpedienteDocComponent implements OnInit, OnDestroy {
   subiendoDoc = signal(false);
   buscandoOcr = signal(false);
   showSubir = signal(false);
+  eliminandoDoc = signal(false);
   showAnalisis = signal(false);
 
   alumnoSeleccionado: AlumnoOpt | null = null;
@@ -524,14 +526,16 @@ export class ExpedienteDocComponent implements OnInit, OnDestroy {
       header: 'Confirmar eliminación',
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
+        this.eliminandoDoc.set(true);
         this.api.delete(`/expediente/${exp.id}/documentos/${doc.id}`)
           .pipe(takeUntil(this.destroy$)).subscribe({
             next: () => {
+              this.eliminandoDoc.set(false);
               this.notify.success('Documento eliminado');
               this.docSeleccionado.set(null);
               if (this.alumnoSeleccionado) this.cargarExpediente(this.alumnoSeleccionado.id);
             },
-            error: (e) => this.notify.error('Error', e.error?.detail || e.message),
+            error: (e) => { this.eliminandoDoc.set(false); this.notify.error('Error', e.error?.detail || e.message); },
           });
       },
     });

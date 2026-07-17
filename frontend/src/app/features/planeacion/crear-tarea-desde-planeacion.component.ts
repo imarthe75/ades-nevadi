@@ -169,14 +169,14 @@ import { AdesFormatDirective } from '../../shared/directives/ades-format.directi
         <form [formGroup]="tareaForm">
           <div class="field-grid">
             <div class="field">
-              <label>Título*</label>
-              <input pInputText formControlName="titulo"
+              <label for="ctp-titulo">Título*</label>
+              <input pInputText id="ctp-titulo" formControlName="titulo"
                      placeholder="Ej: Ejercicios de suma y resta"/>
             </div>
 
             <div class="field">
-              <label>Descripción*</label>
-              <textarea pTextarea formControlName="descripcion"
+              <label for="ctp-desc">Descripción*</label>
+              <textarea pTextarea id="ctp-desc" formControlName="descripcion"
                        placeholder="Detalles de la tarea"
                        rows="3"></textarea>
             </div>
@@ -187,8 +187,8 @@ import { AdesFormatDirective } from '../../shared/directives/ades-format.directi
             </div>
 
             <div class="field">
-              <label>Puntaje Máximo</label>
-              <input pInputText type="number" formControlName="puntajeMaximo"
+              <label for="ctp-puntaje">Puntaje Máximo</label>
+              <input pInputText id="ctp-puntaje" type="number" formControlName="puntajeMaximo"
                      min="0" step="0.5" placeholder="10"/>
             </div>
 
@@ -200,8 +200,8 @@ import { AdesFormatDirective } from '../../shared/directives/ades-format.directi
             </div>
 
             <div class="field">
-              <label>URL Instrucciones (opcional)</label>
-              <input pInputText formControlName="instruccionesUrl"
+              <label for="ctp-url">URL Instrucciones (opcional)</label>
+              <input pInputText id="ctp-url" formControlName="instruccionesUrl"
                      placeholder="http://..."/>
             </div>
           </div>

@@ -22,6 +22,7 @@ import { ImportButtonComponent } from '../../shared/components/import-button/imp
 import { Profesor } from '../../core/models';
 import { ApexNotificationService } from 'apex-component-library';
 import { AdesFormatDirective } from '../../shared/directives/ades-format.directive';
+import { AdesValidators } from '../../shared/validators/ades-validators';
 
 @Component({
   selector: 'app-profesores',
@@ -84,28 +85,28 @@ import { AdesFormatDirective } from '../../shared/directives/ades-format.directi
     <p-dialog [visible]="showDialog()" (visibleChange)="showDialog.set($event)" header="Nuevo Profesor" [modal]="true" [style]="{width:'400px'}">
       <div style="display:flex;flex-direction:column;gap:1rem">
         <div>
-          <label class="dlg-lbl">Nombre(s) *</label>
-          <input pInputText [(ngModel)]="form.nombre" style="width:100%" />
+          <label class="dlg-lbl" for="prof-nombre">Nombre(s) *</label>
+          <input pInputText id="prof-nombre" [(ngModel)]="form.nombre" style="width:100%"/>
         </div>
         <div>
-          <label class="dlg-lbl">Apellido paterno *</label>
-          <input pInputText [(ngModel)]="form.apellido_paterno" style="width:100%" />
+          <label class="dlg-lbl" for="prof-ap">Apellido paterno *</label>
+          <input pInputText id="prof-ap" [(ngModel)]="form.apellido_paterno" style="width:100%"/>
         </div>
         <div>
-          <label class="dlg-lbl">Apellido materno</label>
-          <input pInputText [(ngModel)]="form.apellido_materno" style="width:100%" />
+          <label class="dlg-lbl" for="prof-am">Apellido materno</label>
+          <input pInputText id="prof-am" [(ngModel)]="form.apellido_materno" style="width:100%"/>
         </div>
         <div>
-          <label class="dlg-lbl">Número de empleado *</label>
-          <input pInputText [(ngModel)]="form.numero_empleado" style="width:100%" />
+          <label class="dlg-lbl" for="prof-num-empleado">Número de empleado *</label>
+          <input pInputText id="prof-num-empleado" [(ngModel)]="form.numero_empleado" style="width:100%"/>
         </div>
         <div>
-          <label class="dlg-lbl">CURP (18 caracteres) *</label>
-          <input pInputText [(ngModel)]="form.curp" style="width:100%;text-transform:uppercase;font-family:monospace" maxlength="18" />
+          <label class="dlg-lbl" for="prof-curp">CURP (18 caracteres) *</label>
+          <input pInputText id="prof-curp" [(ngModel)]="form.curp" style="width:100%;text-transform:uppercase;font-family:monospace" maxlength="18"/>
         </div>
         <div>
-          <label class="dlg-lbl">Tipo de contrato</label>
-          <input pInputText [(ngModel)]="form.tipo_contrato" placeholder="Ej: TIEMPO_COMPLETO" style="width:100%" />
+          <label class="dlg-lbl" for="prof-contrato">Tipo de contrato</label>
+          <input pInputText id="prof-contrato" [(ngModel)]="form.tipo_contrato" placeholder="Ej: TIEMPO_COMPLETO" style="width:100%"/>
         </div>
         <p-button label="Crear profesor" (onClick)="crearProfesor()" [loading]="loading()" />
       </div>
@@ -255,6 +256,10 @@ export class ProfesoresComponent implements OnInit, OnDestroy {
   crearProfesor(): void {
     if (!this.form.nombre || !this.form.apellido_paterno || !this.form.numero_empleado || !this.form.curp) {
       this.notify.warning('Campos requeridos', 'Nombre, apellido paterno, número de empleado y CURP son obligatorios');
+      return;
+    }
+    if (!AdesValidators.curpValido(this.form.curp)) {
+      this.notify.warning('CURP inválido', 'Formato esperado: AAAA000000HAAAAA00');
       return;
     }
     this.loading.set(true);

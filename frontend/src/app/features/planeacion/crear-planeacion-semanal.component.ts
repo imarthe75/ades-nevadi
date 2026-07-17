@@ -83,8 +83,8 @@ import { AdesFormatDirective } from '../../shared/directives/ades-format.directi
           </div>
 
           <div class="field">
-            <label>Semana*</label>
-            <input pInputText type="number" formControlName="semana"
+            <label for="cps-semana">Semana*</label>
+            <input pInputText id="cps-semana" type="number" formControlName="semana"
                    min="1" max="40" placeholder="1-40"/>
           </div>
 

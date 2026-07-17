@@ -381,8 +381,8 @@ const NIVEL_ICON: Record<string, string> = {
           Filtros de visualización por cantidad de alumnos:
         </p>
         <div class="form-grid-custom" style="display: flex; flex-direction: column; gap: 0.35rem;">
-          <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);">Valor Mínimo Alumnos en KPIs:</label>
-          <input pInputText type="number" [ngModel]="minAlumnosKpi()" (ngModelChange)="minAlumnosKpi.set($event)" min="0" class="w-full" style="padding: 0.5rem;" />
+          <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);" for="dash-min-alumnos">Valor Mínimo Alumnos en KPIs:</label>
+          <input pInputText id="dash-min-alumnos" type="number" [ngModel]="minAlumnosKpi()" (ngModelChange)="minAlumnosKpi.set($event)" min="0" class="w-full" style="padding: 0.5rem;"/>
         </div>
       </div>
       <ng-template pTemplate="footer">
@@ -396,10 +396,10 @@ const NIVEL_ICON: Record<string, string> = {
       [modal]="true" [draggable]="false" [style]="{width:'380px'}">
       @if (plantelEdit) {
         <div class="form-grid">
-          <label>Nombre *</label>
-          <input pInputText [(ngModel)]="plantelEdit.nombre_plantel" />
-          <label>Clave CT</label>
-          <input pInputText [(ngModel)]="plantelEdit.clave_ct" placeholder="CCT12345" />
+          <label for="dash-plt-nombre">Nombre *</label>
+          <input pInputText id="dash-plt-nombre" [(ngModel)]="plantelEdit.nombre_plantel"/>
+          <label for="dash-plt-clave">Clave CT</label>
+          <input pInputText id="dash-plt-clave" [(ngModel)]="plantelEdit.clave_ct" placeholder="CCT12345"/>
         </div>
         <ng-template pTemplate="footer">
           <p-button label="Cancelar" severity="secondary" [text]="true" (onClick)="dlgPlantel=false" />

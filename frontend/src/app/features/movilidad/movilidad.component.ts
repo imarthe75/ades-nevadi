@@ -164,8 +164,8 @@ interface CambioGrupo {
             [style]="{ width: '100%' }" />
         </div>
         <div class="field">
-          <label>Motivo *</label>
-          <textarea pTextarea [(ngModel)]="bajaTemporalForm.motivo" rows="3" style="width:100%"
+          <label for="mov-bt-motivo">Motivo *</label>
+          <textarea pTextarea id="mov-bt-motivo" [(ngModel)]="bajaTemporalForm.motivo" rows="3" style="width:100%"
             [class.p-invalid]="btIntento() && !bajaTemporalForm.motivo.trim()"></textarea>
           @if (btIntento() && !bajaTemporalForm.motivo.trim()) {
             <small class="field-error">El motivo es obligatorio</small>
@@ -188,8 +188,8 @@ interface CambioGrupo {
           }
         </div>
         <div class="field">
-          <label>Observaciones</label>
-          <textarea pTextarea [(ngModel)]="bajaTemporalForm.observaciones" rows="2" style="width:100%"></textarea>
+          <label for="mov-bt-obs">Observaciones</label>
+          <textarea pTextarea id="mov-bt-obs" [(ngModel)]="bajaTemporalForm.observaciones" rows="2" style="width:100%"></textarea>
         </div>
       </div>
       <ng-template pTemplate="footer">
@@ -219,20 +219,20 @@ interface CambioGrupo {
             [style]="{ width: '100%' }" />
         </div>
         <div class="field">
-          <label>Motivo *</label>
-          <textarea pTextarea [(ngModel)]="bajaDefinitivaForm.motivo" rows="3" style="width:100%"></textarea>
+          <label for="mov-bd-motivo">Motivo *</label>
+          <textarea pTextarea id="mov-bd-motivo" [(ngModel)]="bajaDefinitivaForm.motivo" rows="3" style="width:100%"></textarea>
         </div>
         <div class="field">
           <label>Fecha Efectiva *</label>
           <p-datepicker [(ngModel)]="bajaDefinitivaForm.fechaEfectiva" [showIcon]="true" dateFormat="dd/mm/yy" [style]="{width:'100%'}" ariaLabel="Fecha Efectiva"/>
         </div>
         <div class="field">
-          <label>Plantel Destino</label>
-          <input pInputText [(ngModel)]="bajaDefinitivaForm.plantelDestino" placeholder="Nombre del plantel destino" style="width:100%" />
+          <label for="mov-bd-plantel">Plantel Destino</label>
+          <input pInputText id="mov-bd-plantel" [(ngModel)]="bajaDefinitivaForm.plantelDestino" placeholder="Nombre del plantel destino" style="width:100%"/>
         </div>
         <div class="field">
-          <label>Observaciones</label>
-          <textarea pTextarea [(ngModel)]="bajaDefinitivaForm.observaciones" rows="2" style="width:100%"></textarea>
+          <label for="mov-bd-obs">Observaciones</label>
+          <textarea pTextarea id="mov-bd-obs" [(ngModel)]="bajaDefinitivaForm.observaciones" rows="2" style="width:100%"></textarea>
         </div>
       </div>
       <ng-template pTemplate="footer">
@@ -268,8 +268,8 @@ interface CambioGrupo {
             placeholder="Seleccionar grupo..." [style]="{width:'100%'}" ariaLabel="Grupo Destino"/>
         </div>
         <div class="field">
-          <label>Motivo</label>
-          <textarea pTextarea [(ngModel)]="cambioGrupoForm.motivo" rows="2" style="width:100%"></textarea>
+          <label for="mov-cg-motivo">Motivo</label>
+          <textarea pTextarea id="mov-cg-motivo" [(ngModel)]="cambioGrupoForm.motivo" rows="2" style="width:100%"></textarea>
         </div>
       </div>
       <ng-template pTemplate="footer">
@@ -299,12 +299,12 @@ interface CambioGrupo {
             [style]="{ width: '100%' }" />
         </div>
         <div class="field">
-          <label>Plantel Destino *</label>
-          <input pInputText [(ngModel)]="trasladoForm.plantelDestinoNombre" placeholder="Nombre del plantel destino" style="width:100%" />
+          <label for="mov-tr-plantel">Plantel Destino *</label>
+          <input pInputText id="mov-tr-plantel" [(ngModel)]="trasladoForm.plantelDestinoNombre" placeholder="Nombre del plantel destino" style="width:100%"/>
         </div>
         <div class="field">
-          <label>Motivo *</label>
-          <textarea pTextarea [(ngModel)]="trasladoForm.motivo" rows="2" style="width:100%"></textarea>
+          <label for="mov-tr-motivo">Motivo *</label>
+          <textarea pTextarea id="mov-tr-motivo" [(ngModel)]="trasladoForm.motivo" rows="2" style="width:100%"></textarea>
         </div>
       </div>
       <ng-template pTemplate="footer">
@@ -328,8 +328,8 @@ interface CambioGrupo {
             placeholder="Seleccionar grupo..." [style]="{width:'100%'}" ariaLabel="Grupo de Reingreso"/>
         </div>
         <div class="field">
-          <label>Observaciones</label>
-          <textarea pTextarea [(ngModel)]="reactivarForm.observaciones" rows="2" style="width:100%"></textarea>
+          <label for="mov-react-obs">Observaciones</label>
+          <textarea pTextarea id="mov-react-obs" [(ngModel)]="reactivarForm.observaciones" rows="2" style="width:100%"></textarea>
         </div>
       </div>
       <ng-template pTemplate="footer">

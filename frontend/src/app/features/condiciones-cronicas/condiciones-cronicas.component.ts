@@ -15,6 +15,7 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ApexNotificationService } from 'apex-component-library';
 import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
 import { AdesFormatDirective } from '../../shared/directives/ades-format.directive';
+import { AdesValidators } from '../../shared/validators/ades-validators';
 
 interface Condicion {
   id: string;
@@ -110,9 +111,9 @@ const TIPOS = [
       [(visible)]="dialogForm" [modal]="true" [style]="{width:'580px'}" [draggable]="false">
       <div class="grid grid-cols-2 gap-3 p-3">
         <div class="col-span-2 flex flex-col gap-1">
-          <label class="text-sm font-medium">UUID del Alumno *</label>
-          <input pInputText [(ngModel)]="form.alumno_id" [disabled]="!!editandoId"
-            placeholder="uuid del alumno" />
+          <label class="text-sm font-medium" for="cc-alumno-id">UUID del Alumno *</label>
+          <input pInputText id="cc-alumno-id" [(ngModel)]="form.alumno_id" [disabled]="!!editandoId"
+            placeholder="uuid del alumno"/>
         </div>
         <div class="flex flex-col gap-1">
           <label class="text-sm font-medium">Tipo de Condición *</label>
@@ -124,32 +125,32 @@ const TIPOS = [
           <p-checkbox [(ngModel)]="form.activa" [binary]="true" ariaLabel="¿Activa?"/>
         </div>
         <div class="col-span-2 flex flex-col gap-1">
-          <label class="text-sm font-medium">Descripción *</label>
-          <input pInputText [(ngModel)]="form.descripcion" placeholder="Descripción clínica…" />
+          <label class="text-sm font-medium" for="cc-descripcion">Descripción *</label>
+          <input pInputText id="cc-descripcion" [(ngModel)]="form.descripcion" placeholder="Descripción clínica…"/>
         </div>
         <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium">Medicación</label>
-          <input pInputText [(ngModel)]="form.medicacion_nombre" placeholder="Nombre del medicamento" />
+          <label class="text-sm font-medium" for="cc-medicacion">Medicación</label>
+          <input pInputText id="cc-medicacion" [(ngModel)]="form.medicacion_nombre" placeholder="Nombre del medicamento"/>
         </div>
         <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium">Dosis</label>
-          <input pInputText [(ngModel)]="form.dosis" placeholder="Ej: 10mg" />
+          <label class="text-sm font-medium" for="cc-dosis">Dosis</label>
+          <input pInputText id="cc-dosis" [(ngModel)]="form.dosis" placeholder="Ej: 10mg"/>
         </div>
         <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium">Frecuencia</label>
-          <input pInputText [(ngModel)]="form.frecuencia" placeholder="Ej: Cada 8 horas" />
+          <label class="text-sm font-medium" for="cc-frecuencia">Frecuencia</label>
+          <input pInputText id="cc-frecuencia" [(ngModel)]="form.frecuencia" placeholder="Ej: Cada 8 horas"/>
         </div>
         <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium">Alergias</label>
-          <input pInputText [(ngModel)]="form.alergias" placeholder="Alergias conocidas" />
+          <label class="text-sm font-medium" for="cc-alergias">Alergias</label>
+          <input pInputText id="cc-alergias" [(ngModel)]="form.alergias" placeholder="Alergias conocidas"/>
         </div>
         <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium">Médico Responsable</label>
-          <input pInputText [(ngModel)]="form.medico_responsable" placeholder="Dr. Nombre Apellido" />
+          <label class="text-sm font-medium" for="cc-medico">Médico Responsable</label>
+          <input pInputText id="cc-medico" [(ngModel)]="form.medico_responsable" placeholder="Dr. Nombre Apellido"/>
         </div>
         <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium">Teléfono Médico</label>
-          <input pInputText [(ngModel)]="form.telefono_medico" placeholder="722-000-0000" />
+          <label class="text-sm font-medium" for="cc-tel-medico">Teléfono Médico</label>
+          <input pInputText id="cc-tel-medico" [(ngModel)]="form.telefono_medico" placeholder="722-000-0000"/>
         </div>
       </div>
       <ng-template pTemplate="footer">
@@ -291,6 +292,10 @@ export class CondicionesCronicasComponent implements OnInit, OnDestroy {
       this.notify.warning('Alumno, tipo y descripción son obligatorios');
       return;
     }
+    if (this.form.telefono_medico && !AdesValidators.telefonoValido(this.form.telefono_medico)) {
+      this.notify.warning('Teléfono inválido', 'El teléfono del médico debe tener exactamente 10 dígitos');
+      return;
+    }
     this.guardando.set(true);
     const req$ = this.editandoId
       ? this.api.patch(`/condiciones-cronicas/${this.editandoId}`, this.form)
@@ -307,9 +312,10 @@ export class CondicionesCronicasComponent implements OnInit, OnDestroy {
       header: 'Confirmar eliminación',
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
+        this.cargando.set(true);
         this.api.delete(`/condiciones-cronicas/${c.id}`).pipe(takeUntil(this.destroy$)).subscribe({
           next: () => { this.notify.success('Condición eliminada'); this.cargar(); },
-          error: e => this.notify.error(e.error?.detail ?? 'Error'),
+          error: e => { this.cargando.set(false); this.notify.error(e.error?.detail ?? 'Error'); },
         });
       },
     });

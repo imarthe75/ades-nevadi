@@ -190,14 +190,14 @@ interface AlumnoOpt { id: string; label: string; }
             styleClass="w-full" ariaLabel="Tipo"/>
         </div>
         <div class="form-row" [apexDATarget]="'grado-row'">
-          <label>Grado completado</label>
-          <input pInputText [(ngModel)]="emitirForm.grado_completado"
-            placeholder="ej. 6° Primaria" class="w-full" />
+          <label for="cert-grado">Grado completado</label>
+          <input pInputText id="cert-grado" [(ngModel)]="emitirForm.grado_completado"
+            placeholder="ej. 6° Primaria" class="w-full"/>
         </div>
         <div class="form-row" [apexDATarget]="'promedio-row'">
-          <label>Promedio final</label>
-          <input pInputText type="number" [(ngModel)]="emitirForm.promedio_final"
-            placeholder="ej. 9.2" class="w-full" />
+          <label for="cert-promedio">Promedio final</label>
+          <input pInputText id="cert-promedio" type="number" [(ngModel)]="emitirForm.promedio_final"
+            placeholder="ej. 9.2" class="w-full"/>
         </div>
       </div>
       <div class="form-note">
@@ -270,7 +270,7 @@ interface AlumnoOpt { id: string; label: string; }
               <code>{{ nuevaLlave()!.publica_b64 }}</code>
             </div>
             <p-button label="Registrar esta llave pública" icon="pi pi-save"
-              (onClick)="registrarLlave()" />
+              [loading]="registrandoLlave()" (onClick)="registrarLlave()" />
           </div>
         }
       </div>
@@ -343,6 +343,7 @@ export class CertificadosComponent implements OnInit, OnDestroy {
   firmando     = signal<string | null>(null);
   descargando  = signal<string | null>(null);
   generandoLlave = signal(false);
+  registrandoLlave = signal(false);
   llaveActiva  = signal<any>(null);
   nuevaLlave   = signal<any>(null);
   alumnoOpts   = signal<AlumnoOpt[]>([]);
@@ -545,16 +546,18 @@ export class CertificadosComponent implements OnInit, OnDestroy {
   registrarLlave(): void {
     const llave = this.nuevaLlave();
     if (!llave) return;
+    this.registrandoLlave.set(true);
     this.api.post('/certificados/llave/registrar', {
       nombre: `Llave Instituto Nevadi ${new Date().getFullYear()}`,
       clave_publica_b64: llave.publica_b64,
     }).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
+        this.registrandoLlave.set(false);
         this.notify.success('Llave registrada', 'La llave pública queda activa en la BD');
         this.nuevaLlave.set(null);
         this.cargarLlaveActiva();
       },
-      error: (e) => this.notify.error('Error', e.error?.detail ?? 'Error al registrar llave'),
+      error: (e) => { this.registrandoLlave.set(false); this.notify.error('Error', e.error?.detail ?? 'Error al registrar llave'); },
     });
   }
 

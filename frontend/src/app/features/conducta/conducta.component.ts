@@ -154,13 +154,13 @@ interface Compromiso {
             optionValue="value" style="width:100%" [filter]="true" ariaLabel="Tipo de falta"/>
         </div>
         <div class="field">
-          <label>Descripción del incidente</label>
-          <textarea pTextarea [(ngModel)]="form.descripcion" rows="3" style="width:100%"
+          <label for="cond-desc-incidente">Descripción del incidente</label>
+          <textarea pTextarea id="cond-desc-incidente" [(ngModel)]="form.descripcion" rows="3" style="width:100%"
             placeholder="Describe el incidente..."></textarea>
         </div>
         <div class="field">
-          <label>Medida aplicada</label>
-          <input pInputText [(ngModel)]="form.medida_aplicada" style="width:100%" />
+          <label for="cond-medida">Medida aplicada</label>
+          <input pInputText id="cond-medida" [(ngModel)]="form.medida_aplicada" style="width:100%"/>
         </div>
         <div class="field-inline">
           <p-toggleSwitch [(ngModel)]="form.requiere_seguimiento" />
@@ -297,8 +297,8 @@ interface Compromiso {
                                 optionLabel="label" optionValue="value" style="width:100%" ariaLabel="Tipo de sanción"/>
                     </div>
                     <div class="field">
-                      <label>Justificación * (mín. 20 caracteres)</label>
-                      <textarea pTextarea [(ngModel)]="sancionForm.justificacion" rows="3"
+                      <label for="cond-justificacion">Justificación * (mín. 20 caracteres)</label>
+                      <textarea pTextarea id="cond-justificacion" [(ngModel)]="sancionForm.justificacion" rows="3"
                                 style="width:100%" placeholder="Justificación detallada..."></textarea>
                     </div>
                     <div class="field-row">
@@ -374,8 +374,8 @@ interface Compromiso {
                   <div style="display:flex;flex-direction:column;gap:0.75rem">
                     <h3 style="margin:0;font-size:0.9rem">Crear Plan de Mejora Conductual</h3>
                     <div class="field">
-                      <label>Objetivo general * (mín. 20 caracteres)</label>
-                      <textarea pTextarea [(ngModel)]="planForm.objetivo_general" rows="3"
+                      <label for="cond-objetivo">Objetivo general * (mín. 20 caracteres)</label>
+                      <textarea pTextarea id="cond-objetivo" [(ngModel)]="planForm.objetivo_general" rows="3"
                                 style="width:100%" placeholder="Describe el objetivo del plan..."></textarea>
                     </div>
                     <p-divider align="left"><span style="font-size:0.8rem;font-weight:600">Compromisos del alumno</span></p-divider>
@@ -447,8 +447,8 @@ interface Compromiso {
                               optionLabel="label" optionValue="value" style="width:200px" ariaLabel="Avance"/>
                   </div>
                   <div class="field">
-                    <label>Descripción * (mín. 20 caracteres)</label>
-                    <textarea pTextarea [(ngModel)]="segForm.descripcion" rows="3" style="width:100%"
+                    <label for="cond-seg-desc">Descripción * (mín. 20 caracteres)</label>
+                    <textarea pTextarea id="cond-seg-desc" [(ngModel)]="segForm.descripcion" rows="3" style="width:100%"
                               placeholder="Describe el avance observado..."></textarea>
                   </div>
                   <div class="field-row">

@@ -99,8 +99,8 @@ const ESTADOS_OPT = [
       [modal]="true" [style]="{width:'520px'}" [draggable]="false">
       <div class="grid grid-cols-1 gap-3 p-3">
         <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium">UUID de la Asistencia *</label>
-          <input pInputText [(ngModel)]="nuevaForm.asistencia_id" placeholder="id de la asistencia" />
+          <label class="text-sm font-medium" for="just-asist-id">UUID de la Asistencia *</label>
+          <input pInputText id="just-asist-id" [(ngModel)]="nuevaForm.asistencia_id" placeholder="id de la asistencia"/>
         </div>
         <div class="flex flex-col gap-1">
           <label class="text-sm font-medium">Tipo de Justificación *</label>
@@ -108,8 +108,8 @@ const ESTADOS_OPT = [
             [(ngModel)]="nuevaForm.tipo_justificacion" placeholder="Seleccionar…" ariaLabel="Tipo de Justificación"/>
         </div>
         <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium">Motivo *</label>
-          <textarea pTextarea [(ngModel)]="nuevaForm.motivo" rows="3"
+          <label class="text-sm font-medium" for="just-motivo">Motivo *</label>
+          <textarea pTextarea id="just-motivo" [(ngModel)]="nuevaForm.motivo" rows="3"
             placeholder="Descripción del motivo…" style="width:100%"
             [class.p-invalid]="jIntento && !nuevaForm.motivo.trim()"></textarea>
           @if (jIntento && !nuevaForm.motivo.trim()) {
@@ -117,8 +117,8 @@ const ESTADOS_OPT = [
           }
         </div>
         <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium">URL del Documento de Soporte</label>
-          <input pInputText [(ngModel)]="nuevaForm.documento_url" placeholder="https://…" />
+          <label class="text-sm font-medium" for="just-doc-url">URL del Documento de Soporte</label>
+          <input pInputText id="just-doc-url" [(ngModel)]="nuevaForm.documento_url" placeholder="https://…"/>
         </div>
       </div>
       <ng-template pTemplate="footer">
@@ -132,8 +132,8 @@ const ESTADOS_OPT = [
     <p-dialog header="Rechazar Justificación" [(visible)]="dialogRechazo"
       [modal]="true" [style]="{width:'440px'}" [draggable]="false">
       <div class="p-3">
-        <label class="text-sm font-medium block mb-1">Motivo del rechazo *</label>
-        <textarea pTextarea [(ngModel)]="motivoRechazo" rows="4"
+        <label class="text-sm font-medium block mb-1" for="just-motivo-rechazo">Motivo del rechazo *</label>
+        <textarea pTextarea id="just-motivo-rechazo" [(ngModel)]="motivoRechazo" rows="4"
           placeholder="Explique el motivo del rechazo…" style="width:100%"></textarea>
       </div>
       <ng-template pTemplate="footer">

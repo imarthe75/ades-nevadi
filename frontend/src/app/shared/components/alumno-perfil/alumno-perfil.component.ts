@@ -23,6 +23,7 @@ import { MessageService, ConfirmationService } from 'primeng/api';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ApiService } from '../../../core/services/api.service';
 import { AdesFormatDirective } from '../../directives/ades-format.directive';
+import { AdesValidators } from '../../validators/ades-validators';
 import { DomicilioComponent } from '../domicilio/domicilio.component';
 import type { Estudiante, ContactoEmergencia } from '../../../core/models';
 
@@ -111,32 +112,32 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
               <div class="form-section">
                 <h4 class="sec-title">Identificación legal</h4>
                 <div class="form-row">
-                  <label style="font-weight:500">Nombre(s)
+                  <label style="font-weight:500" for="alp-nombre">Nombre(s)
                     <i class="pi pi-info-circle" style="font-size:.8rem;color:var(--text-secondary);margin-left:.3rem"
                       pTooltip="Nombres oficiales del alumno tal como aparecen en su acta de nacimiento."></i>
                   </label>
-                  <input pInputText [(ngModel)]="form.nombre" adesFormat="nombre" />
+                  <input pInputText id="alp-nombre" [(ngModel)]="form.nombre" adesFormat="nombre"/>
                 </div>
                 <div class="form-row">
-                  <label style="font-weight:500">Apellido paterno
+                  <label style="font-weight:500" for="alp-ap-paterno">Apellido paterno
                     <i class="pi pi-info-circle" style="font-size:.8rem;color:var(--text-secondary);margin-left:.3rem"
                       pTooltip="Primer apellido legal del alumno según acta de nacimiento."></i>
                   </label>
-                  <input pInputText [(ngModel)]="form.apellido_paterno" adesFormat="nombre" />
+                  <input pInputText id="alp-ap-paterno" [(ngModel)]="form.apellido_paterno" adesFormat="nombre"/>
                 </div>
                 <div class="form-row">
-                  <label style="font-weight:500">Apellido materno
+                  <label style="font-weight:500" for="alp-ap-materno">Apellido materno
                     <i class="pi pi-info-circle" style="font-size:.8rem;color:var(--text-secondary);margin-left:.3rem"
                       pTooltip="Segundo apellido legal del alumno (dejar vacío si no cuenta con él)."></i>
                   </label>
-                  <input pInputText [(ngModel)]="form.apellido_materno" adesFormat="nombre" />
+                  <input pInputText id="alp-ap-materno" [(ngModel)]="form.apellido_materno" adesFormat="nombre"/>
                 </div>
                 <div class="form-row" style="flex-direction:column;align-items:flex-start;gap:.35rem">
-                  <label style="font-weight:500">CURP
+                  <label style="font-weight:500" for="alp-curp">CURP
                     <i class="pi pi-info-circle" style="font-size:.8rem;color:var(--text-secondary);margin-left:.3rem"
                       pTooltip="Clave Única de Registro de Población oficial (18 caracteres con homoclave). Debe validarse con RENAPO."></i>
                   </label>
-                  <input pInputText [(ngModel)]="form.curp" adesFormat="curp" placeholder="AAAA000000HXXXXXX00" style="width:100%;font-family:monospace;text-transform:uppercase" />
+                  <input pInputText id="alp-curp" [(ngModel)]="form.curp" adesFormat="curp" placeholder="AAAA000000HXXXXXX00" style="width:100%;font-family:monospace;text-transform:uppercase"/>
                   <small style="color:var(--text-secondary);font-size:.78rem">18 caracteres · formato oficial (solo A-Z y 0-9) · {{ (form.curp || '').length }}/18</small>
                 </div>
                 <div class="form-row">
@@ -145,12 +146,12 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
                     optionLabel="l" optionValue="v" [showClear]="true" placeholder="Seleccionar…" ariaLabel="Género (legal)"/>
                 </div>
                 <div class="form-row" style="flex-direction:column;align-items:flex-start;gap:.35rem">
-                  <label style="font-weight:500">Nombre social
+                  <label style="font-weight:500" for="alp-nombre-social">Nombre social
                     <i class="pi pi-info-circle" style="font-size:.8rem;color:var(--text-secondary);margin-left:.3rem"
                       pTooltip="Nombre con el que el alumno prefiere ser llamado en el aula. Se usa en listas de asistencia. Dejar vacío si coincide con el nombre legal."></i>
                   </label>
-                  <input pInputText [(ngModel)]="form.nombre_social" style="width:100%"
-                    placeholder="Opcional — solo si difiere del nombre legal" />
+                  <input pInputText id="alp-nombre-social" [(ngModel)]="form.nombre_social" style="width:100%"
+                    placeholder="Opcional — solo si difiere del nombre legal"/>
                 </div>
                 <div class="form-row">
                   <label>Género autopercibido</label>
@@ -158,9 +159,9 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
                     optionLabel="l" optionValue="v" [showClear]="true" placeholder="Seleccionar…" ariaLabel="Género autopercibido"/>
                 </div>
                 <div class="form-row">
-                  <label>Pronombres</label>
-                  <input pInputText [(ngModel)]="form.pronombres" adesFormat="texto" [adesMax]="40" style="width:100%"
-                    placeholder="Ej: él/sus, ella/sus, elle/sus" />
+                  <label for="alp-pronombres">Pronombres</label>
+                  <input pInputText id="alp-pronombres" [(ngModel)]="form.pronombres" adesFormat="texto" [adesMax]="40" style="width:100%"
+                    placeholder="Ej: él/sus, ella/sus, elle/sus"/>
                 </div>
                 <div class="form-row">
                   <label>Fecha nacimiento</label>
@@ -218,14 +219,14 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
                   </div>
                 } @else {
                   <div class="form-row">
-                    <label>Estado / Provincia</label>
-                    <input pInputText [(ngModel)]="form.estado_nacimiento"
-                      placeholder="Estado, provincia o región" />
+                    <label for="alp-estado-nac">Estado / Provincia</label>
+                    <input pInputText id="alp-estado-nac" [(ngModel)]="form.estado_nacimiento"
+                      placeholder="Estado, provincia o región"/>
                   </div>
                   <div class="form-row">
-                    <label>Ciudad / Municipio</label>
-                    <input pInputText [(ngModel)]="form.municipio_nacimiento"
-                      placeholder="Ciudad o municipio" />
+                    <label for="alp-municipio-nac">Ciudad / Municipio</label>
+                    <input pInputText id="alp-municipio-nac" [(ngModel)]="form.municipio_nacimiento"
+                      placeholder="Ciudad o municipio"/>
                   </div>
                 }
               </div>
@@ -243,15 +244,15 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
               <div class="form-section">
                 <h4 class="sec-title">Escuela de procedencia</h4>
                 <div class="form-row">
-                  <label>Nombre escuela</label>
-                  <input pInputText [(ngModel)]="form.escuela_procedencia" />
+                  <label for="alp-escuela-proc">Nombre escuela</label>
+                  <input pInputText id="alp-escuela-proc" [(ngModel)]="form.escuela_procedencia"/>
                 </div>
                 <div class="form-row">
-                  <label style="font-weight:500">Clave CT
+                  <label style="font-weight:500" for="alp-clave-ct-proc">Clave CT
                     <i class="pi pi-info-circle" style="font-size:.8rem;color:var(--text-secondary);margin-left:.3rem"
                       pTooltip="Clave de Centro de Trabajo (CCT) de la escuela de procedencia. Ej. 15EES0123X"></i>
                   </label>
-                  <input pInputText [(ngModel)]="form.clave_ct_procedencia" adesFormat="alfanumerico" [adesMax]="20" />
+                  <input pInputText id="alp-clave-ct-proc" [(ngModel)]="form.clave_ct_procedencia" adesFormat="alfanumerico" [adesMax]="20"/>
                 </div>
                 <div class="form-row">
                   <label>Promedio ingreso</label>
@@ -280,8 +281,8 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
                   <p-select [options]="nivelesSocio" [(ngModel)]="form.nivel_socioeconomico" [showClear]="true" ariaLabel="Nivel socieconómico"/>
                 </div>
                 <div class="form-row">
-                  <label>Etnia / Autoidentificación</label>
-                  <input pInputText [(ngModel)]="form.etnia" adesFormat="nombre" placeholder="Ej. Náhuatl, Otomí, Mestizo…" />
+                  <label for="alp-etnia">Etnia / Autoidentificación</label>
+                  <input pInputText id="alp-etnia" [(ngModel)]="form.etnia" adesFormat="nombre" placeholder="Ej. Náhuatl, Otomí, Mestizo…"/>
                 </div>
                 <div class="form-row">
                   <label>Lengua indígena (INALI)</label>
@@ -321,12 +322,12 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
               <div class="form-section">
                 <h4 class="sec-title">Identificación médica</h4>
                 <div class="form-row">
-                  <label style="font-weight:500">NSS (IMSS/ISSSTE)
+                  <label style="font-weight:500" for="alp-nss">NSS (IMSS/ISSSTE)
                     <i class="pi pi-info-circle" style="font-size:.8rem;color:var(--text-secondary);margin-left:.3rem"
                       pTooltip="Número de Seguridad Social oficial del alumno (11 dígitos)."></i>
                   </label>
-                  <input pInputText [(ngModel)]="medForm.nss" adesFormat="numerico" [adesMax]="11"
-                    style="font-family:monospace" placeholder="11 dígitos" />
+                  <input pInputText id="alp-nss" [(ngModel)]="medForm.nss" adesFormat="numerico" [adesMax]="11"
+                    style="font-family:monospace" placeholder="11 dígitos"/>
                 </div>
                 <div class="form-row">
                   <label>Tipo de sangre</label>
@@ -338,35 +339,35 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
                     [(ngModel)]="medForm.seguro_medico_tipo" [showClear]="true" ariaLabel="Seguro médico"/>
                 </div>
                 <div class="form-row">
-                  <label>Núm. póliza/afiliación</label>
-                  <input pInputText [(ngModel)]="medForm.seguro_medico_numero" />
+                  <label for="alp-poliza">Núm. póliza/afiliación</label>
+                  <input pInputText id="alp-poliza" [(ngModel)]="medForm.seguro_medico_numero"/>
                 </div>
               </div>
               <div class="form-section">
                 <h4 class="sec-title">Condiciones</h4>
                 <div class="form-row aligns-start">
-                  <label>Alergias</label>
-                  <textarea pTextarea [(ngModel)]="medForm.alergias" [rows]="3"
+                  <label for="alp-alergias">Alergias</label>
+                  <textarea pTextarea id="alp-alergias" [(ngModel)]="medForm.alergias" [rows]="3"
                     placeholder="Alergias conocidas..." style="width:100%"></textarea>
                 </div>
                 <div class="form-row aligns-start">
-                  <label>Condiciones crónicas</label>
-                  <textarea pTextarea [(ngModel)]="medForm.condiciones_cronicas" [rows]="2"
+                  <label for="alp-cronicas">Condiciones crónicas</label>
+                  <textarea pTextarea id="alp-cronicas" [(ngModel)]="medForm.condiciones_cronicas" [rows]="2"
                     placeholder="Diabetes, asma, epilepsia..." style="width:100%"></textarea>
                 </div>
                 <div class="form-row aligns-start">
-                  <label>Discapacidad / NEE</label>
-                  <textarea pTextarea [(ngModel)]="medForm.discapacidad" [rows]="2"
+                  <label for="alp-discapacidad">Discapacidad / NEE</label>
+                  <textarea pTextarea id="alp-discapacidad" [(ngModel)]="medForm.discapacidad" [rows]="2"
                     placeholder="Necesidades educativas especiales..." style="width:100%"></textarea>
                 </div>
                 <div class="form-row aligns-start">
-                  <label>Medicamentos autorizados</label>
-                  <textarea pTextarea [(ngModel)]="medForm.medicamentos_autorizados" [rows]="2"
+                  <label for="alp-medicamentos">Medicamentos autorizados</label>
+                  <textarea pTextarea id="alp-medicamentos" [(ngModel)]="medForm.medicamentos_autorizados" [rows]="2"
                     placeholder="Medicamentos que puede tomar en la escuela..." style="width:100%"></textarea>
                 </div>
                 <div class="form-row aligns-start">
-                  <label>Observaciones</label>
-                  <textarea pTextarea [(ngModel)]="medForm.observaciones_generales" [rows]="2"
+                  <label for="alp-obs-medicas">Observaciones</label>
+                  <textarea pTextarea id="alp-obs-medicas" [(ngModel)]="medForm.observaciones_generales" [rows]="2"
                     style="width:100%"></textarea>
                 </div>
               </div>
@@ -415,6 +416,7 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
                       <p-button icon="pi pi-pencil" ariaLabel="Editar contacto" [text]="true" [rounded]="true" size="small"
                         (onClick)="editarContacto(c)" />
                       <p-button icon="pi pi-trash" ariaLabel="Eliminar contacto" [text]="true" [rounded]="true" size="small"
+                        [loading]="eliminandoContactoId() === c.id"
                         severity="danger" (onClick)="eliminarContacto(c.id)" />
                     </div>
                   </div>
@@ -430,39 +432,39 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
                 <div class="contacto-form">
                   <h4>{{ contactoEdit.id ? 'Editar' : 'Nuevo' }} contacto</h4>
                   <div class="form-row">
-                    <label>Nombre completo *</label>
-                    <input pInputText [(ngModel)]="contactoEdit.nombre_completo" adesFormat="nombre" />
+                    <label for="alp-cont-nombre">Nombre completo *</label>
+                    <input pInputText id="alp-cont-nombre" [(ngModel)]="contactoEdit.nombre_completo" adesFormat="nombre"/>
                   </div>
                   <div class="form-row">
                     <label>Parentesco</label>
                     <p-select [options]="parentescos" [(ngModel)]="contactoEdit.parentesco" [showClear]="true" ariaLabel="Parentesco"/>
                   </div>
                   <div class="form-row">
-                    <label>Teléfono</label>
-                    <input pInputText [(ngModel)]="contactoEdit.telefono_principal" adesFormat="telefono"
-                      placeholder="10 dígitos" type="tel" />
+                    <label for="alp-cont-tel">Teléfono</label>
+                    <input pInputText id="alp-cont-tel" [(ngModel)]="contactoEdit.telefono_principal" adesFormat="telefono"
+                      placeholder="10 dígitos" type="tel"/>
                   </div>
                   <div class="form-row">
-                    <label>Teléfono alt.</label>
-                    <input pInputText [(ngModel)]="contactoEdit.telefono_alt" adesFormat="telefono"
-                      placeholder="10 dígitos" type="tel" />
+                    <label for="alp-cont-tel-alt">Teléfono alt.</label>
+                    <input pInputText id="alp-cont-tel-alt" [(ngModel)]="contactoEdit.telefono_alt" adesFormat="telefono"
+                      placeholder="10 dígitos" type="tel"/>
                   </div>
                   <div class="form-row">
-                    <label>Email</label>
-                    <input pInputText [(ngModel)]="contactoEdit.email" adesFormat="email" type="email"
-                      placeholder="usuario@dominio.com" />
+                    <label for="alp-cont-email">Email</label>
+                    <input pInputText id="alp-cont-email" [(ngModel)]="contactoEdit.email" adesFormat="email" type="email"
+                      placeholder="usuario@dominio.com"/>
                   </div>
                   <div class="form-row">
-                    <label>Ocupación</label>
-                    <input pInputText [(ngModel)]="contactoEdit.ocupacion" />
+                    <label for="alp-cont-ocupacion">Ocupación</label>
+                    <input pInputText id="alp-cont-ocupacion" [(ngModel)]="contactoEdit.ocupacion"/>
                   </div>
                   <div class="form-row">
                     <label>Nivel estudios</label>
                     <p-select [options]="nivelesEst" [(ngModel)]="contactoEdit.nivel_estudios" [showClear]="true" ariaLabel="Nivel estudios"/>
                   </div>
                   <div class="form-row">
-                    <label>RFC</label>
-                    <input pInputText [(ngModel)]="contactoEdit.rfc" adesFormat="rfc" style="font-family:monospace;text-transform:uppercase" />
+                    <label for="alp-cont-rfc">RFC</label>
+                    <input pInputText id="alp-cont-rfc" [(ngModel)]="contactoEdit.rfc" adesFormat="rfc" style="font-family:monospace;text-transform:uppercase"/>
                   </div>
                   <div class="form-row">
                     <label>Nacionalidad</label>
@@ -476,12 +478,12 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
                       style="width:100%" ariaLabel="Nacionalidad"/>
                   </div>
                   <div class="form-row">
-                    <label>¿Tutor legal?</label>
-                    <input type="checkbox" [(ngModel)]="contactoEdit.es_tutor_legal" />
+                    <label for="alp-cont-tutor">¿Tutor legal?</label>
+                    <input type="checkbox" id="alp-cont-tutor" [(ngModel)]="contactoEdit.es_tutor_legal"/>
                   </div>
                   <div class="form-row">
-                    <label>¿Contacto principal?</label>
-                    <input type="checkbox" [(ngModel)]="contactoEdit.es_contacto_emergencia" />
+                    <label for="alp-cont-principal">¿Contacto principal?</label>
+                    <input type="checkbox" id="alp-cont-principal" [(ngModel)]="contactoEdit.es_contacto_emergencia"/>
                   </div>
                   <div class="form-btns">
                     <p-button label="Cancelar" severity="secondary" [text]="true" size="small"
@@ -507,15 +509,15 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
                     <p-datepicker [(ngModel)]="bajaForm.fecha_efectiva" dateFormat="dd/mm/yy" ariaLabel="Fecha efectiva"/>
                   </div>
                   <div class="form-row aligns-start">
-                    <label>Motivo</label>
-                    <textarea pTextarea [(ngModel)]="bajaForm.motivo" rows="2" style="width:100%"></textarea>
+                    <label for="alp-baja-motivo">Motivo</label>
+                    <textarea pTextarea id="alp-baja-motivo" [(ngModel)]="bajaForm.motivo" rows="2" style="width:100%"></textarea>
                   </div>
                   <div class="form-row aligns-start">
-                    <label>Observaciones</label>
-                    <textarea pTextarea [(ngModel)]="bajaForm.observaciones" rows="2" style="width:100%"></textarea>
+                    <label for="alp-baja-obs">Observaciones</label>
+                    <textarea pTextarea id="alp-baja-obs" [(ngModel)]="bajaForm.observaciones" rows="2" style="width:100%"></textarea>
                   </div>
                   <div style="display:flex;justify-content:flex-end;margin-top:1rem">
-                    <p-button label="Registrar Baja" icon="pi pi-user-minus" severity="danger" (onClick)="ejecutarBaja()" />
+                    <p-button label="Registrar Baja" icon="pi pi-user-minus" severity="danger" [loading]="ejecutandoBaja()" (onClick)="ejecutarBaja()" />
                   </div>
                 } @else {
                   <h4 class="sec-title">Reactivación de Alumno</h4>
@@ -530,7 +532,7 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
                   }
                   
                   <div style="display:flex;justify-content:flex-end">
-                    <p-button label="Reactivar Alumno" icon="pi pi-user-plus" severity="success" (onClick)="ejecutarReactivacion()" />
+                    <p-button label="Reactivar Alumno" icon="pi pi-user-plus" severity="success" [loading]="ejecutandoReactivacion()" (onClick)="ejecutarReactivacion()" />
                   </div>
                 }
               </div>
@@ -601,6 +603,9 @@ export class AlumnoPerfilComponent implements OnInit, OnChanges, OnDestroy {
   saving           = signal(false);
   savingContacto   = signal(false);
   savingMedico     = signal(false);
+  ejecutandoBaja       = signal(false);
+  ejecutandoReactivacion = signal(false);
+  eliminandoContactoId = signal<string | null>(null);
   editandoContacto = signal(false);
   contactoEdit: any = {};
   medForm: any = {};
@@ -876,10 +881,12 @@ export class AlumnoPerfilComponent implements OnInit, OnChanges, OnDestroy {
       fecha_efectiva: this.formatDate(this.bajaForm.fecha_efectiva),
       observaciones: this.bajaForm.observaciones || null
     };
+    this.ejecutandoBaja.set(true);
     this.api.post('/procesos/bajas', payload)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (r: any) => {
+          this.ejecutandoBaja.set(false);
           this.msg.add({ severity: 'success', summary: 'Baja registrada', detail: r.message });
           this.alumno!.is_active = false;
           this.cargarUltimaBaja();
@@ -887,6 +894,7 @@ export class AlumnoPerfilComponent implements OnInit, OnChanges, OnDestroy {
           this.cdr.markForCheck();
         },
         error: e => {
+          this.ejecutandoBaja.set(false);
           this.msg.add({ severity: 'error', summary: 'Error', detail: e.error?.detail ?? 'Error' });
         }
       });
@@ -898,10 +906,12 @@ export class AlumnoPerfilComponent implements OnInit, OnChanges, OnDestroy {
       this.msg.add({ severity: 'warn', summary: 'No se puede reactivar', detail: 'No hay registro de baja activo' });
       return;
     }
+    this.ejecutandoReactivacion.set(true);
     this.api.post(`/procesos/bajas/${baja.id}/reactivar`, {})
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (r: any) => {
+          this.ejecutandoReactivacion.set(false);
           this.msg.add({ severity: 'success', summary: 'Reactivado', detail: r.message });
           this.alumno!.is_active = true;
           this.ultimaBaja.set(null);
@@ -909,6 +919,7 @@ export class AlumnoPerfilComponent implements OnInit, OnChanges, OnDestroy {
           this.cdr.markForCheck();
         },
         error: e => {
+          this.ejecutandoReactivacion.set(false);
           this.msg.add({ severity: 'error', summary: 'Error', detail: e.error?.detail ?? 'Error' });
         }
       });
@@ -916,6 +927,10 @@ export class AlumnoPerfilComponent implements OnInit, OnChanges, OnDestroy {
 
   guardarExpedienteMedico(): void {
     if (!this.alumno?.id) return;
+    if (this.medForm.nss && !AdesValidators.nssValido(this.medForm.nss)) {
+      this.msg.add({ severity: 'warn', summary: 'NSS inválido', detail: 'El NSS debe tener exactamente 11 dígitos' });
+      return;
+    }
     this.savingMedico.set(true);
     this.api.put(`/expediente-medico/${this.alumno.id}`, this.medForm)
       .pipe(takeUntil(this.destroy$))
@@ -955,6 +970,10 @@ export class AlumnoPerfilComponent implements OnInit, OnChanges, OnDestroy {
 
   guardar(): void {
     if (!this.alumno) return;
+    if (this.form.curp && !AdesValidators.curpValido(this.form.curp)) {
+      this.msg.add({ severity: 'warn', summary: 'CURP inválido', detail: 'Formato esperado: AAAA000000HAAAAA00' });
+      return;
+    }
     this.saving.set(true);
 
     const payload = {
@@ -962,6 +981,7 @@ export class AlumnoPerfilComponent implements OnInit, OnChanges, OnDestroy {
         nombre: this.form.nombre,
         apellido_paterno: this.form.apellido_paterno,
         apellido_materno: this.form.apellido_materno || null,
+        curp: this.form.curp || null,
         genero: this.form.genero,
         nombre_social: this.form.nombre_social || null,
         genero_autopercibido: this.form.genero_autopercibido || null,
@@ -1050,6 +1070,11 @@ export class AlumnoPerfilComponent implements OnInit, OnChanges, OnDestroy {
     }
     if (telAlt) this.contactoEdit.telefono_alt = telAlt;
 
+    if (this.contactoEdit.rfc && !AdesValidators.rfcValido(this.contactoEdit.rfc)) {
+      this.msg.add({ severity: 'warn', summary: 'RFC inválido', detail: 'Formato esperado: AAAA000000AAA' });
+      return;
+    }
+
     this.savingContacto.set(true);
 
     // ContactoPayload espera `estudianteId` (FK real de ades_contactos_familiares
@@ -1083,9 +1108,16 @@ export class AlumnoPerfilComponent implements OnInit, OnChanges, OnDestroy {
       header: 'Confirmar eliminación',
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
+        this.eliminandoContactoId.set(id);
         this.api.delete(`/contactos/${id}`)
           .pipe(takeUntil(this.destroy$))
-          .subscribe(() => this.cargarContactos());
+          .subscribe({
+            next: () => { this.eliminandoContactoId.set(null); this.cargarContactos(); },
+            error: e => {
+              this.eliminandoContactoId.set(null);
+              this.msg.add({ severity: 'error', summary: 'Error', detail: e.error?.detail ?? 'Error' });
+            },
+          });
       },
     });
   }

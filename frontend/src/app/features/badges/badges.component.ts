@@ -119,6 +119,7 @@ interface AlumnoSugerencia {
                         ariaLabel="Ver alumnos con este badge" pTooltip="Ver alumnos"
                         (onClick)="verBadge(b)" />
               <p-button icon="pi pi-trash" [text]="true" size="small" severity="danger"
+                        [loading]="eliminandoId() === b.id"
                         ariaLabel="Eliminar badge" pTooltip="Eliminar" (onClick)="eliminar(b)" />
             </div>
           </div>
@@ -188,6 +189,7 @@ interface AlumnoSugerencia {
               }
               @if (b.otorgado_id) {
                 <p-button icon="pi pi-times" ariaLabel="Revocar" [text]="true" severity="danger" size="small"
+                          [loading]="revocandoId() === b.id"
                           pTooltip="Revocar" (onClick)="revocar(b)" />
               }
             </div>
@@ -234,12 +236,12 @@ interface AlumnoSugerencia {
 <p-dialog [(visible)]="showDialog" [style]="{width:'520px'}" header="Nueva Insignia" [modal]="true">
   <div class="form-grid2">
     <div class="field full">
-      <label>Nombre *</label>
-      <input pInputText [(ngModel)]="form.nombre" placeholder="Nombre de la insignia" />
+      <label for="badge-nombre">Nombre *</label>
+      <input pInputText id="badge-nombre" [(ngModel)]="form.nombre" placeholder="Nombre de la insignia"/>
     </div>
     <div class="field full">
-      <label>Descripción</label>
-      <textarea pTextarea [(ngModel)]="form.descripcion" rows="2"
+      <label for="badge-desc">Descripción</label>
+      <textarea pTextarea id="badge-desc" [(ngModel)]="form.descripcion" rows="2"
                 placeholder="Descripción breve..."></textarea>
     </div>
     <div class="field">
@@ -281,8 +283,8 @@ interface AlumnoSugerencia {
       </div>
     </div>
     <div class="field">
-      <label>Color</label>
-      <input pInputText [(ngModel)]="form.color" placeholder="var(--nevadi-red)" />
+      <label for="badge-color">Color</label>
+      <input pInputText id="badge-color" [(ngModel)]="form.color" placeholder="var(--nevadi-red)"/>
     </div>
     @if (form.criterio_tipo === 'AUTOMATICO') {
       <div class="field">
@@ -299,7 +301,7 @@ interface AlumnoSugerencia {
   </div>
   <ng-template pTemplate="footer">
     <p-button label="Cancelar" severity="secondary" (onClick)="showDialog = false" />
-    <p-button label="Guardar" icon="pi pi-check" (onClick)="guardar()" />
+    <p-button label="Guardar" icon="pi pi-check" [loading]="guardando()" (onClick)="guardar()" />
   </ng-template>
 </p-dialog>
 
@@ -319,8 +321,8 @@ interface AlumnoSugerencia {
 <p-dialog [(visible)]="showOtorgar" [style]="{width:'400px'}" header="Otorgar Insignia" [modal]="true">
   <div class="form-grid1">
     <div class="field">
-      <label>Motivo (opcional)</label>
-      <textarea pTextarea [(ngModel)]="motivoOtorgar" rows="3" placeholder="Motivo del reconocimiento..."></textarea>
+      <label for="badge-motivo-otorgar">Motivo (opcional)</label>
+      <textarea pTextarea id="badge-motivo-otorgar" [(ngModel)]="motivoOtorgar" rows="3" placeholder="Motivo del reconocimiento..."></textarea>
     </div>
     <div class="field">
       <label>Ciclo escolar</label>
@@ -331,7 +333,7 @@ interface AlumnoSugerencia {
   </div>
   <ng-template pTemplate="footer">
     <p-button label="Cancelar" severity="secondary" (onClick)="showOtorgar = false" />
-    <p-button label="Otorgar" icon="pi pi-check" (onClick)="confirmarOtorgar()" />
+    <p-button label="Otorgar" icon="pi pi-check" [loading]="otorgando()" (onClick)="confirmarOtorgar()" />
   </ng-template>
 </p-dialog>
   `,
@@ -420,6 +422,10 @@ export class BadgesComponent implements OnInit, OnDestroy {
   alumnoSeleccionado = signal<AlumnoSugerencia | null>(null);
   autoEvaluando     = signal(false);
   resultadoAutoEval  = signal<{ total_otorgados: number; badges_evaluados: number } | null>(null);
+  guardando         = signal(false);
+  eliminandoId      = signal<string | null>(null);
+  otorgando         = signal(false);
+  revocandoId       = signal<string | null>(null);
 
   tabActivo    = 'catalogo';
   alumnoQuery  = '';
@@ -514,9 +520,14 @@ export class BadgesComponent implements OnInit, OnDestroy {
   abrirNuevo() { this.form = this.defaultForm(); this.showDialog = true; }
 
   async guardar() {
-    await this.api.post('/badges', this.form).toPromise();
-    this.showDialog = false;
-    this.cargarBadges();
+    this.guardando.set(true);
+    try {
+      await this.api.post('/badges', this.form).toPromise();
+      this.showDialog = false;
+      this.cargarBadges();
+    } finally {
+      this.guardando.set(false);
+    }
   }
 
   eliminar(b: Badge) {
@@ -525,8 +536,13 @@ export class BadgesComponent implements OnInit, OnDestroy {
       header: 'Confirmar eliminación',
       icon: 'pi pi-exclamation-triangle',
       accept: async () => {
-        await this.api.delete(`/badges/${b.id}`).toPromise();
-        this.cargarBadges();
+        this.eliminandoId.set(b.id);
+        try {
+          await this.api.delete(`/badges/${b.id}`).toPromise();
+          this.cargarBadges();
+        } finally {
+          this.eliminandoId.set(null);
+        }
       },
     });
   }
@@ -548,13 +564,18 @@ export class BadgesComponent implements OnInit, OnDestroy {
   async confirmarOtorgar() {
     const al = this.alumnoSeleccionado();
     if (!this.badgeParaOtorgar || !al) return;
-    await this.api.post(`/badges/${this.badgeParaOtorgar.id}/otorgar`, {
-      estudiante_id: al.id,
-      ciclo_id:      this.cicloOtorgar,
-      motivo:        this.motivoOtorgar || null,
-    }).toPromise();
-    this.showOtorgar = false;
-    await this.seleccionarAlumno({ value: al });
+    this.otorgando.set(true);
+    try {
+      await this.api.post(`/badges/${this.badgeParaOtorgar.id}/otorgar`, {
+        estudiante_id: al.id,
+        ciclo_id:      this.cicloOtorgar,
+        motivo:        this.motivoOtorgar || null,
+      }).toPromise();
+      this.showOtorgar = false;
+      await this.seleccionarAlumno({ value: al });
+    } finally {
+      this.otorgando.set(false);
+    }
   }
 
   revocar(b: BadgeAlumno) {
@@ -565,8 +586,13 @@ export class BadgesComponent implements OnInit, OnDestroy {
       header: 'Confirmar eliminación',
       icon: 'pi pi-exclamation-triangle',
       accept: async () => {
-        await this.api.delete(`/badges/${b.id}/otorgados/${al.id}`).toPromise();
-        await this.seleccionarAlumno({ value: al });
+        this.revocandoId.set(b.id);
+        try {
+          await this.api.delete(`/badges/${b.id}/otorgados/${al.id}`).toPromise();
+          await this.seleccionarAlumno({ value: al });
+        } finally {
+          this.revocandoId.set(null);
+        }
       },
     });
   }

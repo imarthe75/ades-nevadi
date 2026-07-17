@@ -128,7 +128,7 @@ const TIPO_LABELS: Record<string, string> = {
         <app-interactive-grid
           [data]="disponiblesFlat()"
           [columns]="catalogoColumns"
-          [loading]="cargandoCatalogo()"
+          [loading]="cargandoCatalogo() || guardando()"
           [showDelete]="false"
           (rowSelected)="inscribir($event)"
         />
@@ -318,12 +318,14 @@ export class OptativasComponent implements OnInit, OnDestroy {
       header: 'Confirmar eliminación',
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
+        this.cargandoInscritas.set(true);
         this.api.delete(`/procesos/optativas/${row.id}`).pipe(takeUntil(this.destroy$)).subscribe({
           next: () => {
             this.notify.success('Baja registrada', `${row.nombre_materia} eliminada de las optativas`);
             this.cargarInscritas();
           },
           error: (e: any) => {
+            this.cargandoInscritas.set(false);
             this.notify.error('Error', e?.error?.message ?? 'No se pudo dar de baja la optativa');
           },
         });

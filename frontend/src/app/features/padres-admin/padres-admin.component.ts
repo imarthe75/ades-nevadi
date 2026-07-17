@@ -200,12 +200,12 @@ const NIVELES_ACCESO_PORTAL = [
             <form [formGroup]="form">
               <div style="display:flex; flex-direction:column; gap:1rem; margin-top:1rem;">
                 <div class="field">
-                  <label>Nombre Completo *</label>
-                  <input pInputText formControlName="nombre_completo" adesFormat="nombre" placeholder="Ej: Juan García Pérez" style="width:100%" />
+                  <label for="pa-nombre">Nombre Completo *</label>
+                  <input pInputText id="pa-nombre" formControlName="nombre_completo" adesFormat="nombre" placeholder="Ej: Juan García Pérez" style="width:100%"/>
                 </div>
                 <div class="field">
-                  <label>RFC</label>
-                  <input pInputText formControlName="rfc" adesFormat="rfc" placeholder="Ej: XXXX000000YYY" style="width:100%" />
+                  <label for="pa-rfc">RFC</label>
+                  <input pInputText id="pa-rfc" formControlName="rfc" adesFormat="rfc" placeholder="Ej: XXXX000000YYY" style="width:100%"/>
                 </div>
                 <div class="field">
                   <label>Ocupación</label>
@@ -241,12 +241,12 @@ const NIVELES_ACCESO_PORTAL = [
                 </div>
                 
                 <div class="field">
-                  <label>Email</label>
-                  <input pInputText type="email" formControlName="email" adesFormat="email" placeholder="contacto@example.com" style="width:100%" />
+                  <label for="pa-email">Email</label>
+                  <input pInputText id="pa-email" type="email" formControlName="email" adesFormat="email" placeholder="contacto@example.com" style="width:100%"/>
                 </div>
                 <div class="field">
-                  <label>Teléfono Principal *</label>
-                  <input pInputText formControlName="telefono_principal" adesFormat="telefono" placeholder="Ej: 5551234567" style="width:100%" />
+                  <label for="pa-tel">Teléfono Principal *</label>
+                  <input pInputText id="pa-tel" formControlName="telefono_principal" adesFormat="telefono" placeholder="Ej: 5551234567" style="width:100%"/>
                 </div>
 
                 <div class="field-toggle">
@@ -363,13 +363,13 @@ const NIVELES_ACCESO_PORTAL = [
           acceda al portal con email y contraseña temporal.
         </p>
         <div class="field">
-          <label>Email de acceso *</label>
-          <input pInputText [(ngModel)]="crearCuentaForm.email" adesFormat="email" type="email"
-            placeholder="email@example.com" style="width:100%" />
+          <label for="pa-cuenta-email">Email de acceso *</label>
+          <input pInputText id="pa-cuenta-email" [(ngModel)]="crearCuentaForm.email" adesFormat="email" type="email"
+            placeholder="email@example.com" style="width:100%"/>
         </div>
         <div class="field">
-          <label>Nombre completo (para el portal)</label>
-          <input pInputText [(ngModel)]="crearCuentaForm.nombreCompleto" adesFormat="nombre" style="width:100%" />
+          <label for="pa-cuenta-nombre">Nombre completo (para el portal)</label>
+          <input pInputText id="pa-cuenta-nombre" [(ngModel)]="crearCuentaForm.nombreCompleto" adesFormat="nombre" style="width:100%"/>
         </div>
       </div>
       <ng-template pTemplate="footer">
@@ -413,9 +413,9 @@ const NIVELES_ACCESO_PORTAL = [
           <p-toggleSwitch [(ngModel)]="accesoForm.puedeComunicarseDocentes" />
         </div>
         <div class="field">
-          <label>Razón de restricción (si aplica)</label>
-          <input pInputText [(ngModel)]="accesoForm.razonRestriccion"
-            placeholder="Ej: Orden judicial, custodia parcial..." style="width:100%" />
+          <label for="pa-restriccion">Razón de restricción (si aplica)</label>
+          <input pInputText id="pa-restriccion" [(ngModel)]="accesoForm.razonRestriccion"
+            placeholder="Ej: Orden judicial, custodia parcial..." style="width:100%"/>
         </div>
       </div>
       <ng-template pTemplate="footer">

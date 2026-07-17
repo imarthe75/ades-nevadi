@@ -20,6 +20,7 @@ import { ImportButtonComponent } from '../../shared/components/import-button/imp
 import { ContextService } from '../../core/services/context.service';
 import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
 import { AdesFormatDirective } from '../../shared/directives/ades-format.directive';
+import { AdesValidators } from '../../shared/validators/ades-validators';
 
 type TagSev = 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast';
 
@@ -126,11 +127,11 @@ const NIVELES = [
               <p-inputnumber [(ngModel)]="evalScore" [min]="0" [max]="100" [showButtons]="true" [style]="{width: '120px'}" />
             </div>
             <div class="flex flex-col gap-1">
-              <label class="text-sm font-medium">Observaciones:</label>
-              <textarea pTextarea [(ngModel)]="evalObs" rows="3" placeholder="Comentarios del evaluador..."></textarea>
+              <label class="text-sm font-medium" for="adm-eval-obs">Observaciones:</label>
+              <textarea pTextarea id="adm-eval-obs" [(ngModel)]="evalObs" rows="3" placeholder="Comentarios del evaluador..."></textarea>
             </div>
             <div class="flex justify-end mt-2">
-              <p-button label="Guardar Evaluación" icon="pi pi-save" severity="primary" size="small" (onClick)="guardarEvaluacion()" />
+              <p-button label="Guardar Evaluación" icon="pi pi-save" severity="primary" size="small" [loading]="guardandoEval()" (onClick)="guardarEvaluacion()" />
             </div>
           </div>
 
@@ -184,8 +185,8 @@ const NIVELES = [
                 [filter]="true" filterBy="etiqueta" [style]="{width:'100%'}" ariaLabel="Grupo destino (requerido)"/>
             </div>
             <div style="display:flex;flex-direction:column;gap:.25rem">
-              <label style="font-size:.82rem;color:var(--text-secondary)">Motivo / notas (opcional)</label>
-              <input pInputText [(ngModel)]="inscribirForm.motivoDecision" placeholder="Notas de la decisión" />
+              <label style="font-size:.82rem;color:var(--text-secondary)" for="adm-inscr-motivo">Motivo / notas (opcional)</label>
+              <input pInputText id="adm-inscr-motivo" [(ngModel)]="inscribirForm.motivoDecision" placeholder="Notas de la decisión"/>
             </div>
           </div>
         </div>
@@ -202,20 +203,20 @@ const NIVELES = [
       [modal]="true" [style]="{width:'640px'}" [draggable]="false">
       <div class="grid grid-cols-2 gap-3 p-3">
         <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium">Nombre *</label>
-          <input pInputText [(ngModel)]="form.nombre" />
+          <label class="text-sm font-medium" for="adm-sol-nombre">Nombre *</label>
+          <input pInputText id="adm-sol-nombre" [(ngModel)]="form.nombre"/>
         </div>
         <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium">Apellido Paterno *</label>
-          <input pInputText [(ngModel)]="form.apellidoPaterno" />
+          <label class="text-sm font-medium" for="adm-sol-ap">Apellido Paterno *</label>
+          <input pInputText id="adm-sol-ap" [(ngModel)]="form.apellidoPaterno"/>
         </div>
         <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium">Apellido Materno</label>
-          <input pInputText [(ngModel)]="form.apellidoMaterno" />
+          <label class="text-sm font-medium" for="adm-sol-am">Apellido Materno</label>
+          <input pInputText id="adm-sol-am" [(ngModel)]="form.apellidoMaterno"/>
         </div>
         <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium">CURP *</label>
-          <input pInputText [(ngModel)]="form.curp" maxlength="18" style="text-transform:uppercase" />
+          <label class="text-sm font-medium" for="adm-sol-curp">CURP *</label>
+          <input pInputText id="adm-sol-curp" [(ngModel)]="form.curp" maxlength="18" style="text-transform:uppercase"/>
         </div>
         <div class="flex flex-col gap-1">
           <label class="text-sm font-medium">Fecha de Nacimiento *</label>
@@ -236,23 +237,23 @@ const NIVELES = [
           <p-inputnumber [(ngModel)]="form.promedio" [minFractionDigits]="1" [maxFractionDigits]="2" />
         </div>
         <div class="flex flex-col gap-1 col-span-2">
-          <label class="text-sm font-medium">Escuela de Procedencia</label>
-          <input pInputText [(ngModel)]="form.escuela" />
+          <label class="text-sm font-medium" for="adm-sol-escuela">Escuela de Procedencia</label>
+          <input pInputText id="adm-sol-escuela" [(ngModel)]="form.escuela"/>
         </div>
         <div class="flex flex-col gap-1 col-span-2 border-t pt-3">
           <label class="text-sm font-semibold">Datos del Tutor</label>
         </div>
         <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium">Nombre del Tutor *</label>
-          <input pInputText [(ngModel)]="form.tutorNombre" />
+          <label class="text-sm font-medium" for="adm-sol-tutor-nombre">Nombre del Tutor *</label>
+          <input pInputText id="adm-sol-tutor-nombre" [(ngModel)]="form.tutorNombre"/>
         </div>
         <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium">Teléfono del Tutor *</label>
-          <input pInputText [(ngModel)]="form.tutorTelefono" />
+          <label class="text-sm font-medium" for="adm-sol-tutor-tel">Teléfono del Tutor *</label>
+          <input pInputText id="adm-sol-tutor-tel" [(ngModel)]="form.tutorTelefono"/>
         </div>
         <div class="flex flex-col gap-1 col-span-2">
-          <label class="text-sm font-medium">Email del Tutor</label>
-          <input pInputText [(ngModel)]="form.tutorEmail" type="email" />
+          <label class="text-sm font-medium" for="adm-sol-tutor-email">Email del Tutor</label>
+          <input pInputText id="adm-sol-tutor-email" [(ngModel)]="form.tutorEmail" type="email"/>
         </div>
       </div>
       <ng-template pTemplate="footer">
@@ -309,6 +310,7 @@ export class AdmisionComponent implements OnInit, OnDestroy {
   );
   cargando = signal(false);
   guardando = signal(false);
+  guardandoEval = signal(false);
 
   filtroEstado = '';
   dlgNueva = false;
@@ -352,6 +354,14 @@ export class AdmisionComponent implements OnInit, OnDestroy {
   guardar() {
     if (!this.form.nombre || !this.form.apellidoPaterno || !this.form.curp || !this.form.fechaNacimiento || !this.form.tutorNombre || !this.form.tutorTelefono) {
       this.notify.warning('Validación', 'Complete los campos obligatorios');
+      return;
+    }
+    if (!AdesValidators.curpValido(this.form.curp)) {
+      this.notify.warning('CURP inválido', 'Formato esperado: AAAA000000HAAAAA00');
+      return;
+    }
+    if (!AdesValidators.telefonoValido(this.form.tutorTelefono)) {
+      this.notify.warning('Teléfono inválido', 'El teléfono del tutor debe tener exactamente 10 dígitos');
       return;
     }
     const plantelId = this.ctx.plantel()?.id;
@@ -412,16 +422,18 @@ export class AdmisionComponent implements OnInit, OnDestroy {
   guardarEvaluacion() {
     const s = this.solicitudSeleccionada();
     if (!s) return;
+    this.guardandoEval.set(true);
     this.api.patch(`/procesos/admision/${s.id}/evaluacion`, {
       puntuacion_diagnostico: this.evalScore,
       observaciones_diagnostico: this.evalObs
     }).pipe(takeUntil(this.destroy$)).subscribe({
       next: (r: any) => {
+        this.guardandoEval.set(false);
         this.notify.success('Guardado', r.message);
         this.dlgDetalle = false;
         this.cargar();
       },
-      error: (e) => this.notify.error('Error', e.error?.detail ?? 'Error al registrar evaluación')
+      error: (e) => { this.guardandoEval.set(false); this.notify.error('Error', e.error?.detail ?? 'Error al registrar evaluación'); }
     });
   }
 

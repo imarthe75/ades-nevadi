@@ -179,11 +179,13 @@ const ESTADO_SEV: Record<string, string> = {
                         pTooltip="Ver grabaciones" (onClick)="verGrabaciones(r)" />
               @if (puedeCrear() && r.estado === 'EN_CURSO') {
                 <p-button icon="pi pi-stop-circle" severity="danger" [text]="true" size="small"
+                          [loading]="terminandoId() === r.id"
                           ariaLabel="Terminar la reunión"
                           pTooltip="Terminar reunión" (onClick)="terminarReunion(r)" />
               }
               @if (esCoordi() && r.estado === 'PROGRAMADA') {
                 <p-button icon="pi pi-ban" severity="danger" [text]="true" size="small"
+                          [loading]="cancelandoId() === r.id"
                           ariaLabel="Cancelar la reunión"
                           pTooltip="Cancelar" (onClick)="cancelarReunion(r)" />
               }
@@ -205,8 +207,8 @@ const ESTADO_SEV: Record<string, string> = {
           [style]="{width:'560px'}">
   <div style="display:flex;flex-direction:column;gap:1rem;padding:.5rem 0">
     <div>
-      <label class="apex-label">Nombre de la reunión *</label>
-      <input pInputText [(ngModel)]="crearForm.nombre" class="w-full" placeholder="Ej: Clase de Matemáticas 3A" />
+      <label class="apex-label" for="bbb-nombre">Nombre de la reunión *</label>
+      <input pInputText id="bbb-nombre" [(ngModel)]="crearForm.nombre" class="w-full" placeholder="Ej: Clase de Matemáticas 3A"/>
     </div>
     <div>
       <label class="apex-label">Tipo *</label>
@@ -221,23 +223,23 @@ const ESTADO_SEV: Record<string, string> = {
                   [showClear]="true" class="w-full" ariaLabel="Grupo (opcional)"/>
       </div>
       <div>
-        <label class="apex-label">Duración máx. (min)</label>
-        <input pInputText type="number" [(ngModel)]="crearForm.duracion_max_min" class="w-full" min="15" max="480" />
+        <label class="apex-label" for="bbb-duracion">Duración máx. (min)</label>
+        <input pInputText id="bbb-duracion" type="number" [(ngModel)]="crearForm.duracion_max_min" class="w-full" min="15" max="480"/>
       </div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
       <div>
-        <label class="apex-label">Fecha y hora *</label>
-        <input pInputText type="datetime-local" [(ngModel)]="crearForm.fecha_programada" class="w-full" />
+        <label class="apex-label" for="bbb-fecha">Fecha y hora *</label>
+        <input pInputText id="bbb-fecha" type="datetime-local" [(ngModel)]="crearForm.fecha_programada" class="w-full"/>
       </div>
       <div>
-        <label class="apex-label">Participantes máx.</label>
-        <input pInputText type="number" [(ngModel)]="crearForm.participantes_max" class="w-full" min="2" max="200" />
+        <label class="apex-label" for="bbb-participantes">Participantes máx.</label>
+        <input pInputText id="bbb-participantes" type="number" [(ngModel)]="crearForm.participantes_max" class="w-full" min="2" max="200"/>
       </div>
     </div>
     <div>
-      <label class="apex-label">Mensaje de bienvenida</label>
-      <textarea pTextarea [(ngModel)]="crearForm.bienvenida_msg" rows="2" class="w-full"
+      <label class="apex-label" for="bbb-bienvenida">Mensaje de bienvenida</label>
+      <textarea pTextarea id="bbb-bienvenida" [(ngModel)]="crearForm.bienvenida_msg" rows="2" class="w-full"
                 placeholder="Mensaje que verán los participantes al entrar"></textarea>
     </div>
     <div style="display:flex;align-items:center;gap:.75rem">
@@ -303,6 +305,8 @@ export class BbbComponent implements OnInit, OnDestroy {
   cargando = signal(false);
   creando = signal(false);
   cargandoGrab = signal(false);
+  terminandoId = signal<string | null>(null);
+  cancelandoId = signal<string | null>(null);
   servidorConfigurado = signal(true);
   filtroTipo: string | null = null;
   filtroEstado: string | null = null;
@@ -410,9 +414,10 @@ export class BbbComponent implements OnInit, OnDestroy {
 
   terminarReunion(r: BbbReunion) {
     if (!confirm(`¿Terminar la reunión "${r.nombre}"?`)) return;
+    this.terminandoId.set(r.id);
     this.api.post(`/bbb/reuniones/${r.id}/terminar`, {}).pipe(takeUntil(this.destroy$)).subscribe({
-      next: () => { this.notify.success('Reunión terminada'); this.cargarReuniones(); },
-      error: () => this.notify.error('Error al terminar la reunión'),
+      next: () => { this.terminandoId.set(null); this.notify.success('Reunión terminada'); this.cargarReuniones(); },
+      error: () => { this.terminandoId.set(null); this.notify.error('Error al terminar la reunión'); },
     });
   }
 
@@ -422,9 +427,10 @@ export class BbbComponent implements OnInit, OnDestroy {
       header: 'Confirmar eliminación',
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
+        this.cancelandoId.set(r.id);
         this.api.delete(`/bbb/reuniones/${r.id}`).pipe(takeUntil(this.destroy$)).subscribe({
-          next: () => { this.notify.success('Reunión cancelada'); this.cargarReuniones(); },
-          error: () => this.notify.error('Error al cancelar la reunión'),
+          next: () => { this.cancelandoId.set(null); this.notify.success('Reunión cancelada'); this.cargarReuniones(); },
+          error: () => { this.cancelandoId.set(null); this.notify.error('Error al cancelar la reunión'); },
         });
       },
     });

@@ -172,6 +172,7 @@ const ESTADO_SEV: Record<string, TagSeverity> = {
                   }
                   @if (t.estado === 'PLANEADO') {
                     <p-button icon="pi pi-check-circle" size="small" severity="success" [text]="true"
+                              [loading]="marcandoImpartidoId() === t.tema_id"
                               ariaLabel="Marcar como impartido" pTooltip="Marcar impartido" (onClick)="marcarImpartido(t)" />
                   }
                   @if (t.estado === 'IMPARTIDO') {
@@ -206,20 +207,20 @@ const ESTADO_SEV: Record<string, TagSeverity> = {
                           placeholder="DD/MM/AAAA" [style]="{width:'100%'}" [inputStyle]="{width:'100%'}" ariaLabel="Fecha planeada"/>
           </div>
           <div class="form-field full">
-            <label>Descripción de actividades</label>
-            <textarea pTextarea [(ngModel)]="planForm.descripcion_actividades"
+            <label for="plan-desc-act">Descripción de actividades</label>
+            <textarea pTextarea id="plan-desc-act" [(ngModel)]="planForm.descripcion_actividades"
                       rows="3" style="width:100%; resize:vertical"></textarea>
           </div>
           <div class="form-field full">
-            <label>Recursos didácticos</label>
-            <input pInputText [(ngModel)]="planForm.recursos_didacticos" style="width:100%"
-                   placeholder="Libro, proyector, guía…" />
+            <label for="plan-recursos">Recursos didácticos</label>
+            <input pInputText id="plan-recursos" [(ngModel)]="planForm.recursos_didacticos" style="width:100%"
+                   placeholder="Libro, proyector, guía…"/>
           </div>
         </div>
       }
       <ng-template pTemplate="footer">
         <p-button label="Cancelar" severity="secondary" [text]="true" (onClick)="showPlanear = false" />
-        <p-button label="Planear" icon="pi pi-calendar-plus" (onClick)="confirmarPlanear()" />
+        <p-button label="Planear" icon="pi pi-calendar-plus" [loading]="savingPlanear()" (onClick)="confirmarPlanear()" />
       </ng-template>
     </p-dialog>
   `,
@@ -312,6 +313,8 @@ export class PlaneacionComponent implements OnInit, OnDestroy {
   loading = signal(false);
   showPlanear = false;
   temaPlanear: Tema | null = null;
+  savingPlanear = signal(false);
+  marcandoImpartidoId = signal<string | null>(null);
   planForm: { fecha_planeada: Date | null; descripcion_actividades: string; recursos_didacticos: string } =
     { fecha_planeada: null, descripcion_actividades: '', recursos_didacticos: '' };
 
@@ -404,24 +407,28 @@ export class PlaneacionComponent implements OnInit, OnDestroy {
       ...this.planForm,
       fecha_planeada: this.planForm.fecha_planeada!.toISOString().substring(0, 10),
     };
+    this.savingPlanear.set(true);
     this.api.post('/planeacion/clases', body).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
+        this.savingPlanear.set(false);
         this.showPlanear = false;
         this.cargarTemas();
       },
-      error: e => this.notify.error('Error', e?.error?.detail ?? 'No se pudo guardar la planeación'),
+      error: e => { this.savingPlanear.set(false); this.notify.error('Error', e?.error?.detail ?? 'No se pudo guardar la planeación'); },
     });
   }
 
   marcarImpartido(t: Tema): void {
     if (!t.planeacion_id) return;
     const body = { fecha_ejecucion: new Date().toISOString().split('T')[0] };
+    this.marcandoImpartidoId.set(t.tema_id);
     this.api.post(`/planeacion/clases/${t.planeacion_id}/completar`, body).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
+        this.marcandoImpartidoId.set(null);
         this.cargarTemas();
         this.cargarCobertura();
       },
-      error: e => this.notify.error('Error', e?.error?.detail ?? 'No se pudo marcar la clase como impartida'),
+      error: e => { this.marcandoImpartidoId.set(null); this.notify.error('Error', e?.error?.detail ?? 'No se pudo marcar la clase como impartida'); },
     });
   }
 

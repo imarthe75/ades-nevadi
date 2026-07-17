@@ -158,13 +158,13 @@ interface CapacitacionForm {
         </div>
 
         <div class="col-span-2 flex flex-col gap-1">
-          <label class="text-sm font-medium">Nombre del evento <span class="text-red-500">*</span></label>
-          <input pInputText [(ngModel)]="form.nombre" placeholder="Ej: Taller de Evaluación Formativa" />
+          <label class="text-sm font-medium" for="cap-nombre">Nombre del evento <span class="text-red-500">*</span></label>
+          <input pInputText id="cap-nombre" [(ngModel)]="form.nombre" placeholder="Ej: Taller de Evaluación Formativa"/>
         </div>
 
         <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium">Institución <span class="text-red-500">*</span></label>
-          <input pInputText [(ngModel)]="form.institucion" placeholder="Ej: SEP, UAEMEX…" />
+          <label class="text-sm font-medium" for="cap-institucion">Institución <span class="text-red-500">*</span></label>
+          <input pInputText id="cap-institucion" [(ngModel)]="form.institucion" placeholder="Ej: SEP, UAEMEX…"/>
         </div>
 
         <div class="flex flex-col gap-1">
@@ -198,18 +198,18 @@ interface CapacitacionForm {
         </div>
 
         <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium">Folio Certificado</label>
-          <input pInputText [(ngModel)]="form.folio_certificado" placeholder="Número de folio…" />
+          <label class="text-sm font-medium" for="cap-folio">Folio Certificado</label>
+          <input pInputText id="cap-folio" [(ngModel)]="form.folio_certificado" placeholder="Número de folio…"/>
         </div>
 
         <div class="col-span-2 flex flex-col gap-1">
-          <label class="text-sm font-medium">URL Certificado (MinIO)</label>
-          <input pInputText [(ngModel)]="form.certificado_url" placeholder="https://…" />
+          <label class="text-sm font-medium" for="cap-url">URL Certificado (MinIO)</label>
+          <input pInputText id="cap-url" [(ngModel)]="form.certificado_url" placeholder="https://…"/>
         </div>
 
         <div class="col-span-2 flex flex-col gap-1">
-          <label class="text-sm font-medium">Descripción</label>
-          <textarea pTextarea [(ngModel)]="form.descripcion" rows="2" placeholder="Descripción breve…"></textarea>
+          <label class="text-sm font-medium" for="cap-desc">Descripción</label>
+          <textarea pTextarea id="cap-desc" [(ngModel)]="form.descripcion" rows="2" placeholder="Descripción breve…"></textarea>
         </div>
       </div>
 
@@ -437,9 +437,10 @@ export class CapacitacionesComponent implements OnInit, OnDestroy {
       header: 'Confirmar eliminación',
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
+        this.cargando.set(true);
         this.api.delete(`/capacitaciones/${cap.id}`).pipe(takeUntil(this.destroy$)).subscribe({
           next: () => { this.notify.success('Capacitación eliminada'); this.cargar(); },
-          error: (e: any) => this.notify.error(e.error?.detail ?? 'Error al eliminar'),
+          error: (e: any) => { this.cargando.set(false); this.notify.error(e.error?.detail ?? 'Error al eliminar'); },
         });
       },
     });

@@ -206,15 +206,15 @@ import { AdesFormatDirective } from '../../shared/directives/ades-format.directi
               [modal]="true" [style]="{width:'450px'}">
       <div style="display:flex;flex-direction:column;gap:1rem">
         <div>
-          <label class="dlg-lbl">Título *</label>
-          <input pInputText [(ngModel)]="form.titulo" style="width:100%"
+          <label class="dlg-lbl" for="tar-titulo">Título *</label>
+          <input pInputText id="tar-titulo" [(ngModel)]="form.titulo" style="width:100%"
                  placeholder="Ej. Resolver ejercicios 1-10 del libro"
-                 pTooltip="Nombre breve y descriptivo de la tarea" tooltipPosition="top" />
+                 pTooltip="Nombre breve y descriptivo de la tarea" tooltipPosition="top"/>
         </div>
         <div>
-          <label class="dlg-lbl">Descripción</label>
-          <input pInputText [(ngModel)]="form.descripcion" style="width:100%"
-                 placeholder="Instrucciones para el alumno (opcional)" />
+          <label class="dlg-lbl" for="tar-desc">Descripción</label>
+          <input pInputText id="tar-desc" [(ngModel)]="form.descripcion" style="width:100%"
+                 placeholder="Instrucciones para el alumno (opcional)"/>
         </div>
         <div>
           <label class="dlg-lbl">Fecha de Entrega *</label>
@@ -248,8 +248,8 @@ import { AdesFormatDirective } from '../../shared/directives/ades-format.directi
                    style="display:block;margin-top:4px;font-size:.9rem" />
           </div>
           <div>
-            <label class="dlg-lbl">Comentario (opcional)</label>
-            <textarea pTextarea [(ngModel)]="uploadComment" rows="3"
+            <label class="dlg-lbl" for="tar-upload-comment">Comentario (opcional)</label>
+            <textarea pTextarea id="tar-upload-comment" [(ngModel)]="uploadComment" rows="3"
                       placeholder="Notas para el docente..."
                       style="width:100%;resize:vertical"></textarea>
           </div>
@@ -281,8 +281,8 @@ import { AdesFormatDirective } from '../../shared/directives/ades-format.directi
                            [pTooltip]="'Escala 0 a ' + tareaMaxPuntaje() + ' (SEP)'" tooltipPosition="top" />
           </div>
           <div>
-            <label class="dlg-lbl">Comentario (opcional)</label>
-            <textarea pTextarea [(ngModel)]="calificarForm.comentario" rows="3"
+            <label class="dlg-lbl" for="tar-calif-comment">Comentario (opcional)</label>
+            <textarea pTextarea id="tar-calif-comment" [(ngModel)]="calificarForm.comentario" rows="3"
                       placeholder="Retroalimentación para el alumno..."
                       maxlength="500"
                       style="width:100%;resize:vertical"></textarea>

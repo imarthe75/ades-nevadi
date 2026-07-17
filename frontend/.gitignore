@@ -39,6 +39,12 @@ testem.log
 /typings
 __screenshots__/
 
+# Artefactos de Playwright E2E — se regeneran en cada corrida, nunca versionables
+/test-results
+/playwright-report
+/blob-report
+/e2e/reports
+
 # System files
 .DS_Store
 Thumbs.db

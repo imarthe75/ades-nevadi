@@ -203,8 +203,10 @@ interface Anuncio {
                 <p-button label="Responder" icon="pi pi-reply" size="small" [text]="true"
                   (onClick)="abrirRespuesta(m)" />
                 <p-button label="Aprobar" icon="pi pi-check" size="small" severity="success" [text]="true"
+                  [loading]="moderandoId() === m.id"
                   *ngIf="esCoordinador() && m.estado === 'PENDIENTE'" (onClick)="moderar(m.id, 'PUBLICADO')" />
                 <p-button label="Ocultar" icon="pi pi-eye-slash" size="small" severity="danger" [text]="true"
+                  [loading]="moderandoId() === m.id"
                   *ngIf="esCoordinador() && m.estado === 'PUBLICADO'" (onClick)="moderar(m.id, 'RECHAZADO')" />
               </div>
             </div>
@@ -252,12 +254,12 @@ interface Anuncio {
       [modal]="true" [style]="{width:'480px'}" [draggable]="false">
       <div class="grid grid-cols-1 gap-3 p-3">
         <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium">Asunto *</label>
-          <input pInputText [(ngModel)]="nuevoMsgAsunto" />
+          <label class="text-sm font-medium" for="foro-msg-asunto">Asunto *</label>
+          <input pInputText id="foro-msg-asunto" [(ngModel)]="nuevoMsgAsunto"/>
         </div>
         <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium">Contenido *</label>
-          <textarea pTextarea [(ngModel)]="nuevoMsgContenido" rows="5" style="width:100%"></textarea>
+          <label class="text-sm font-medium" for="foro-msg-contenido">Contenido *</label>
+          <textarea pTextarea id="foro-msg-contenido" [(ngModel)]="nuevoMsgContenido" rows="5" style="width:100%"></textarea>
         </div>
       </div>
       <ng-template pTemplate="footer">
@@ -271,12 +273,12 @@ interface Anuncio {
       [modal]="true" [style]="{width:'480px'}" [draggable]="false">
       <div class="grid grid-cols-1 gap-3 p-3">
         <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium">Nombre del Foro *</label>
-          <input pInputText [(ngModel)]="foroForm.nombre" />
+          <label class="text-sm font-medium" for="foro-nombre">Nombre del Foro *</label>
+          <input pInputText id="foro-nombre" [(ngModel)]="foroForm.nombre"/>
         </div>
         <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium">Descripción</label>
-          <textarea pTextarea [(ngModel)]="foroForm.descripcion" rows="3" style="width:100%"></textarea>
+          <label class="text-sm font-medium" for="foro-desc">Descripción</label>
+          <textarea pTextarea id="foro-desc" [(ngModel)]="foroForm.descripcion" rows="3" style="width:100%"></textarea>
         </div>
         <div class="flex flex-col gap-1">
           <label class="text-sm font-medium">Tipo *</label>
@@ -304,12 +306,12 @@ interface Anuncio {
       [modal]="true" [style]="{width:'520px'}" [draggable]="false">
       <div class="grid grid-cols-1 gap-3 p-3">
         <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium">Título *</label>
-          <input pInputText [(ngModel)]="anuncioForm.titulo" />
+          <label class="text-sm font-medium" for="foro-anuncio-titulo">Título *</label>
+          <input pInputText id="foro-anuncio-titulo" [(ngModel)]="anuncioForm.titulo"/>
         </div>
         <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium">Contenido *</label>
-          <textarea pTextarea [(ngModel)]="anuncioForm.contenido" rows="4" style="width:100%"></textarea>
+          <label class="text-sm font-medium" for="foro-anuncio-contenido">Contenido *</label>
+          <textarea pTextarea id="foro-anuncio-contenido" [(ngModel)]="anuncioForm.contenido" rows="4" style="width:100%"></textarea>
         </div>
         <div class="flex flex-col gap-2">
           <label class="text-sm font-medium">Fecha Inicio *</label>
@@ -376,6 +378,7 @@ export class ForosComponent implements OnInit, OnDestroy {
   cargandoForos = signal(false);
   cargandoAnuncios = signal(false);
   guardando = signal(false);
+  moderandoId = signal<string | null>(null);
 
   dlgMensajes = false;
   dlgNuevoMensaje = false;
@@ -528,12 +531,14 @@ export class ForosComponent implements OnInit, OnDestroy {
   }
 
   moderar(mensajeId: string, estado: string) {
+    this.moderandoId.set(mensajeId);
     this.http.patch(`/foros/mensajes/${mensajeId}/moderar?estado=${encodeURIComponent(estado)}`, {}).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
+        this.moderandoId.set(null);
         this.notify.success(`Mensaje moderado: ${estado}`);
         if (this.foroActivo()) this.abrirForo(this.foroActivo()!);
       },
-      error: () => this.notify.error('Error al moderar mensaje')
+      error: () => { this.moderandoId.set(null); this.notify.error('Error al moderar mensaje'); }
     });
   }
 

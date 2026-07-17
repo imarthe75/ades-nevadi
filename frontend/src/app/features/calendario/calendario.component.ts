@@ -128,6 +128,7 @@ interface EventoForm {
   <ng-template pTemplate="footer">
     @if (!esNuevo) {
       <button pButton label="Eliminar" severity="danger" icon="pi pi-trash"
+              [loading]="eliminando()"
               class="mr-auto" (click)="eliminar()"></button>
     }
     <button pButton label="Cancelar" severity="secondary" (click)="dialogVisible = false"></button>
@@ -166,6 +167,7 @@ export class CalendarioComponent implements OnInit, OnDestroy {
 
   cargando  = signal(false);
   guardando = signal(false);
+  eliminando = signal(false);
 
   cicloId:     string | null = null;
   tipoFiltro:  string | null = null;
@@ -317,12 +319,15 @@ export class CalendarioComponent implements OnInit, OnDestroy {
       header: 'Confirmar eliminación',
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
+        this.eliminando.set(true);
         this.api.delete(`/calendario/${this.eventoId}`).pipe(takeUntil(this.destroy$)).subscribe({
           next: () => {
+            this.eliminando.set(false);
             this.notify.success('Eliminado', this.form.nombre_evento);
             this.dialogVisible = false;
             this.cargar();
           },
+          error: (e: any) => { this.eliminando.set(false); this.notify.error('Error', e?.error?.detail ?? 'No se pudo eliminar el evento'); },
         });
       },
     });

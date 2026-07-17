@@ -14,12 +14,13 @@ import { RouterLink } from '@angular/router';
 
       <div class="card" style="padding:2rem">
         <h1 style="color:#8B0000;font-size:1.4rem;margin-bottom:.25rem">Aviso de Privacidad</h1>
-        <p style="color:#6c757d;font-size:.85rem;margin-bottom:2rem">Versión 1.0 — Actualizado: junio 2026</p>
+        <p style="color:#6c757d;font-size:.85rem;margin-bottom:2rem">Versión 1.1 — Actualizado: julio 2026</p>
 
         <section>
           <h2>Identidad del Responsable</h2>
-          <p><strong>Instituto Nevadi, A.C.</strong> ("el Instituto"), con domicilio en el Estado de México,
-          es el responsable del tratamiento de sus datos personales conforme a la
+          <p><strong>Educación para Ser, Toluca, A.C.</strong> ("el Instituto"), con domicilio en
+          Campos Elíseos #400, piso 10, Colonia Polanco IV Sección, Delegación Miguel Hidalgo,
+          Ciudad de México, C.P. 11000, es el responsable del tratamiento de sus datos personales conforme a la
           <em>Ley Federal de Protección de Datos Personales en Posesión de los Particulares</em> (LFPDPPP).</p>
         </section>
 
@@ -65,9 +66,9 @@ import { RouterLink } from '@angular/router';
           de sus datos personales en cualquier momento. Para ejercerlos:</p>
           <ul>
             <li>Complete el <a routerLink="/arco">formulario de solicitud ARCO</a> en este portal.</li>
-            <li>Envíe su solicitud a <a href="mailto:privacidad@nevadi.edu.mx">privacidad@nevadi.edu.mx</a>.</li>
+            <li>Envíe su solicitud a <a href="mailto:administracion@institutonevadi.org.mx">administracion@institutonevadi.org.mx</a>.</li>
           </ul>
-          <p>Responderemos en un plazo máximo de <strong>20 días hábiles</strong> contados a partir de la recepción de su solicitud.</p>
+          <p>Responderemos en un plazo máximo de <strong>15 días hábiles</strong> contados a partir de la recepción de su solicitud.</p>
         </section>
 
         <section>
@@ -92,8 +93,8 @@ import { RouterLink } from '@angular/router';
         <section>
           <h2>Contacto</h2>
           <p>Para ejercer sus derechos ARCO o cualquier duda sobre el tratamiento de sus datos:</p>
-          <p>Email: <a href="mailto:privacidad@nevadi.edu.mx">privacidad@nevadi.edu.mx</a></p>
-          <p>Instituto Nevadi, A.C. — Estado de México, México</p>
+          <p>Email: <a href="mailto:administracion@institutonevadi.org.mx">administracion@institutonevadi.org.mx</a></p>
+          <p>Educación para Ser, Toluca, A.C. — Ciudad de México, México</p>
         </section>
       </div>
     </div>

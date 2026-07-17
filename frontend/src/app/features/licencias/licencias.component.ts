@@ -124,8 +124,8 @@ interface Licencia {
         </div>
 
         <div class="col-span-2 flex flex-col gap-1">
-          <label class="text-sm font-medium">Motivo</label>
-          <textarea pTextarea [(ngModel)]="form.motivo" rows="3" placeholder="Descripción del motivo…"></textarea>
+          <label class="text-sm font-medium" for="lic-motivo">Motivo</label>
+          <textarea pTextarea id="lic-motivo" [(ngModel)]="form.motivo" rows="3" placeholder="Descripción del motivo…"></textarea>
         </div>
       </div>
 
@@ -163,8 +163,8 @@ interface Licencia {
     <p-dialog header="Rechazar Licencia" [(visible)]="dialogRechazar"
       [modal]="true" [style]="{width:'420px'}" [draggable]="false">
       <div class="flex flex-col gap-2 p-2">
-        <label class="text-sm font-medium">Motivo de rechazo <span class="text-red-500">*</span></label>
-        <textarea pTextarea [(ngModel)]="motivoRechazo" rows="3" placeholder="Indique el motivo…"></textarea>
+        <label class="text-sm font-medium" for="lic-motivo-rechazo">Motivo de rechazo <span class="text-red-500">*</span></label>
+        <textarea pTextarea id="lic-motivo-rechazo" [(ngModel)]="motivoRechazo" rows="3" placeholder="Indique el motivo…"></textarea>
       </div>
       <ng-template pTemplate="footer">
         <p-button label="Cancelar" [text]="true" (onClick)="dialogRechazar=false" />
@@ -291,6 +291,10 @@ export class LicenciasComponent implements OnInit, OnDestroy {
   guardar() {
     if (!this.personalSeleccionado?.value || !this.form.tipo_licencia || !this.form.fecha_inicio || !this.form.fecha_fin) {
       this.notify.warning('Complete los campos obligatorios');
+      return;
+    }
+    if (this.form.fecha_fin < this.form.fecha_inicio) {
+      this.notify.warning('Fechas inválidas', 'La fecha de fin no puede ser anterior a la fecha de inicio');
       return;
     }
     this.guardando.set(true);

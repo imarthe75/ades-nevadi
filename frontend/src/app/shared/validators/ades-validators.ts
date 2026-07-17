@@ -5,6 +5,9 @@ import { AbstractControl, ValidationErrors, ValidatorFn } from '@angular/forms';
  * Basados en los patrones de ValidationUtils.java del backend
  */
 export class AdesValidators {
+  private static readonly CURP_REGEX = /^[A-Z]{4}\d{6}[HM][A-Z]{5}\d{2}$/;
+  private static readonly RFC_REGEX = /^[A-ZÑÁÉÍÓÚ]{4}\d{6}[A-Z0-9]{3}$/;
+
   /**
    * Valida CURP: AAAA999999HAAAAA01
    * - Exactamente 18 caracteres
@@ -13,9 +16,7 @@ export class AdesValidators {
   static isCURP(): ValidatorFn {
     return (control: AbstractControl): ValidationErrors | null => {
       if (!control.value) return null;
-      const curp = control.value.toUpperCase().trim();
-      const curpRegex = /^[A-Z]{4}\d{6}[HM][A-Z]{5}\d{2}$/;
-      return curpRegex.test(curp) ? null : { isCURP: true };
+      return AdesValidators.curpValido(control.value) ? null : { isCURP: true };
     };
   }
 
@@ -27,9 +28,7 @@ export class AdesValidators {
   static isRFC(): ValidatorFn {
     return (control: AbstractControl): ValidationErrors | null => {
       if (!control.value) return null;
-      const rfc = control.value.toUpperCase().trim();
-      const rfcRegex = /^[A-ZÑÁÉÍÓÚ]{4}\d{6}[A-Z0-9]{3}$/;
-      return rfcRegex.test(rfc) ? null : { isRFC: true };
+      return AdesValidators.rfcValido(control.value) ? null : { isRFC: true };
     };
   }
 
@@ -39,8 +38,7 @@ export class AdesValidators {
   static isMexicanPhoneNumber(): ValidatorFn {
     return (control: AbstractControl): ValidationErrors | null => {
       if (!control.value) return null;
-      const phone = control.value.replace(/\D/g, '');
-      return phone.length === 10 ? null : { isMexicanPhoneNumber: true };
+      return AdesValidators.telefonoValido(control.value) ? null : { isMexicanPhoneNumber: true };
     };
   }
 
@@ -50,9 +48,39 @@ export class AdesValidators {
   static isMexicanZipCode(): ValidatorFn {
     return (control: AbstractControl): ValidationErrors | null => {
       if (!control.value) return null;
-      const zip = control.value.replace(/\D/g, '');
-      return zip.length === 5 ? null : { isMexicanZipCode: true };
+      return AdesValidators.cpValido(control.value) ? null : { isMexicanZipCode: true };
     };
+  }
+
+  // ── Variantes imperativas (boolean) — para validar en el guardar() de los
+  // muchos componentes ADES con formularios template-driven ([(ngModel)]) en
+  // vez de reactive forms, donde un ValidatorFn de AbstractControl no aplica.
+  // Reusan el mismo regex que las variantes ValidatorFn de arriba. ──
+
+  static curpValido(v: string | null | undefined): boolean {
+    if (!v) return false;
+    return AdesValidators.CURP_REGEX.test(v.toUpperCase().trim());
+  }
+
+  static rfcValido(v: string | null | undefined): boolean {
+    if (!v) return false;
+    return AdesValidators.RFC_REGEX.test(v.toUpperCase().trim());
+  }
+
+  static telefonoValido(v: string | null | undefined): boolean {
+    if (!v) return false;
+    return v.replace(/\D/g, '').length === 10;
+  }
+
+  static cpValido(v: string | null | undefined): boolean {
+    if (!v) return false;
+    return v.replace(/\D/g, '').length === 5;
+  }
+
+  /** NSS (IMSS/ISSSTE): exactamente 11 dígitos numéricos. */
+  static nssValido(v: string | null | undefined): boolean {
+    if (!v) return false;
+    return /^\d{11}$/.test(v.trim());
   }
 
   /**

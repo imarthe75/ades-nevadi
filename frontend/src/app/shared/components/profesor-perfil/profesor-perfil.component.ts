@@ -20,6 +20,7 @@ import { DomicilioComponent } from '../domicilio/domicilio.component';
 import { DisponibilidadGridComponent } from '../disponibilidad-grid/disponibilidad-grid.component';
 import type { Profesor } from '../../../core/models';
 import { AdesFormatDirective } from '../../directives/ades-format.directive';
+import { AdesValidators } from '../../validators/ades-validators';
 
 const CONTRATOS       = ['BASE','INTERINO','CONTRATO','HONORARIOS','TIEMPO_COMPLETO','MEDIO_TIEMPO'];
 const TIPOS_CONTRATO  = CONTRATOS;
@@ -71,32 +72,32 @@ const BANCOS          = ['BBVA','SANTANDER','BANAMEX','BANORTE','HSBC','SCOTIABA
               <div class="form-section">
                 <h4 class="sec-title">Identificación</h4>
                 <div class="form-row">
-                  <label>Nombre(s)</label>
-                  <input pInputText [(ngModel)]="form.nombre" adesFormat="nombre" />
+                  <label for="prp-nombre">Nombre(s)</label>
+                  <input pInputText id="prp-nombre" [(ngModel)]="form.nombre" adesFormat="nombre"/>
                 </div>
                 <div class="form-row">
-                  <label>Apellido paterno</label>
-                  <input pInputText [(ngModel)]="form.apellido_paterno" adesFormat="nombre" />
+                  <label for="prp-ap-paterno">Apellido paterno</label>
+                  <input pInputText id="prp-ap-paterno" [(ngModel)]="form.apellido_paterno" adesFormat="nombre"/>
                 </div>
                 <div class="form-row">
-                  <label>Apellido materno</label>
-                  <input pInputText [(ngModel)]="form.apellido_materno" adesFormat="nombre" />
+                  <label for="prp-ap-materno">Apellido materno</label>
+                  <input pInputText id="prp-ap-materno" [(ngModel)]="form.apellido_materno" adesFormat="nombre"/>
                 </div>
                 <div class="form-row">
-                  <label>CURP</label>
-                  <input pInputText [(ngModel)]="form.curp" maxlength="18"
-                    style="font-family:monospace;text-transform:uppercase" readonly />
+                  <label for="prp-curp">CURP</label>
+                  <input pInputText id="prp-curp" [(ngModel)]="form.curp" maxlength="18"
+                    style="font-family:monospace;text-transform:uppercase" readonly/>
                 </div>
                 <div class="form-row">
-                  <label>RFC</label>
-                  <input pInputText [(ngModel)]="form.rfc" adesFormat="rfc"
+                  <label for="prp-rfc">RFC</label>
+                  <input pInputText id="prp-rfc" [(ngModel)]="form.rfc" adesFormat="rfc"
                     placeholder="XXXX000000XXX"
-                    style="font-family:monospace;text-transform:uppercase" />
+                    style="font-family:monospace;text-transform:uppercase"/>
                 </div>
                 <div class="form-row">
-                  <label>NSS (ISSSTE/IMSS)</label>
-                  <input pInputText [(ngModel)]="form.nss" adesFormat="numerico" [adesMax]="11"
-                    style="font-family:monospace" placeholder="11 dígitos" />
+                  <label for="prp-nss">NSS (ISSSTE/IMSS)</label>
+                  <input pInputText id="prp-nss" [(ngModel)]="form.nss" adesFormat="numerico" [adesMax]="11"
+                    style="font-family:monospace" placeholder="11 dígitos"/>
                 </div>
                 <div class="form-row">
                   <label>Género</label>
@@ -159,14 +160,14 @@ const BANCOS          = ['BBVA','SANTANDER','BANAMEX','BANORTE','HSBC','SCOTIABA
                   </div>
                 } @else {
                   <div class="form-row">
-                    <label>Estado / Provincia</label>
-                    <input pInputText [(ngModel)]="form.estado_nacimiento"
-                      placeholder="Estado, provincia o región" />
+                    <label for="prp-estado-nac">Estado / Provincia</label>
+                    <input pInputText id="prp-estado-nac" [(ngModel)]="form.estado_nacimiento"
+                      placeholder="Estado, provincia o región"/>
                   </div>
                   <div class="form-row">
-                    <label>Ciudad / Municipio</label>
-                    <input pInputText [(ngModel)]="form.municipio_nacimiento"
-                      placeholder="Ciudad o municipio" />
+                    <label for="prp-municipio-nac">Ciudad / Municipio</label>
+                    <input pInputText id="prp-municipio-nac" [(ngModel)]="form.municipio_nacimiento"
+                      placeholder="Ciudad o municipio"/>
                   </div>
                 }
               </div>
@@ -201,13 +202,13 @@ const BANCOS          = ['BBVA','SANTANDER','BANAMEX','BANORTE','HSBC','SCOTIABA
                   <p-select [options]="nivelesEst" [(ngModel)]="form.nivel_estudios" [showClear]="true" ariaLabel="Nivel estudios"/>
                 </div>
                 <div class="form-row">
-                  <label>Especialidad / área</label>
-                  <input pInputText [(ngModel)]="form.especialidad" placeholder="Ej: Matemáticas, Historia" />
+                  <label for="prp-especialidad">Especialidad / área</label>
+                  <input pInputText id="prp-especialidad" [(ngModel)]="form.especialidad" placeholder="Ej: Matemáticas, Historia"/>
                 </div>
                 <div class="form-row">
-                  <label>Cédula profesional</label>
-                  <input pInputText [(ngModel)]="form.cedula_profesional" adesFormat="alfanumerico" [adesMax]="20"
-                    style="font-family:monospace" />
+                  <label for="prp-cedula">Cédula profesional</label>
+                  <input pInputText id="prp-cedula" [(ngModel)]="form.cedula_profesional" adesFormat="alfanumerico" [adesMax]="20"
+                    style="font-family:monospace"/>
                 </div>
               </div>
             </p-tabpanel>
@@ -224,14 +225,14 @@ const BANCOS          = ['BBVA','SANTANDER','BANAMEX','BANORTE','HSBC','SCOTIABA
                   <p-select [options]="bancos" [(ngModel)]="form.banco" [showClear]="true" ariaLabel="Banco"/>
                 </div>
                 <div class="form-row">
-                  <label>CLABE interbancaria</label>
-                  <input pInputText [(ngModel)]="form.clabe" adesFormat="numerico" [adesMax]="18"
-                    style="font-family:monospace;letter-spacing:.05em" placeholder="18 dígitos" />
+                  <label for="prp-clabe">CLABE interbancaria</label>
+                  <input pInputText id="prp-clabe" [(ngModel)]="form.clabe" adesFormat="numerico" [adesMax]="18"
+                    style="font-family:monospace;letter-spacing:.05em" placeholder="18 dígitos"/>
                 </div>
                 <div class="form-row">
-                  <label>RFC (para nómina)</label>
-                  <input pInputText [(ngModel)]="form.rfc" adesFormat="rfc"
-                    style="font-family:monospace;text-transform:uppercase" />
+                  <label for="prp-rfc-nomina">RFC (para nómina)</label>
+                  <input pInputText id="prp-rfc-nomina" [(ngModel)]="form.rfc" adesFormat="rfc"
+                    style="font-family:monospace;text-transform:uppercase"/>
                 </div>
               </div>
             </p-tabpanel>
@@ -438,6 +439,14 @@ export class ProfesorPerfilComponent implements OnInit, OnChanges, OnDestroy {
 
   guardar(): void {
     if (!this.profesor) return;
+    if (this.form.rfc && !AdesValidators.rfcValido(this.form.rfc)) {
+      this.msg.add({ severity: 'warn', summary: 'RFC inválido', detail: 'Formato esperado: AAAA000000AAA' });
+      return;
+    }
+    if (this.form.nss && !AdesValidators.nssValido(this.form.nss)) {
+      this.msg.add({ severity: 'warn', summary: 'NSS inválido', detail: 'El NSS debe tener exactamente 11 dígitos' });
+      return;
+    }
     this.saving.set(true);
 
     const payload = {

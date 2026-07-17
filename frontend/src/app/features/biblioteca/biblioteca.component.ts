@@ -146,12 +146,12 @@ const CATEGORIAS = [
       [(visible)]="dialogLibro" [modal]="true" [style]="{width:'620px'}" [draggable]="false">
       <div class="grid grid-cols-2 gap-3 p-3">
         <div class="col-span-2 flex flex-col gap-1">
-          <label class="text-sm font-medium">Título *</label>
-          <input pInputText [(ngModel)]="formLibro.titulo" placeholder="Título del libro" />
+          <label class="text-sm font-medium" for="bib-titulo">Título *</label>
+          <input pInputText id="bib-titulo" [(ngModel)]="formLibro.titulo" placeholder="Título del libro"/>
         </div>
         <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium">Autor</label>
-          <input pInputText [(ngModel)]="formLibro.autor" placeholder="Autor" />
+          <label class="text-sm font-medium" for="bib-autor">Autor</label>
+          <input pInputText id="bib-autor" [(ngModel)]="formLibro.autor" placeholder="Autor"/>
         </div>
         <div class="flex flex-col gap-1">
           <label class="text-sm font-medium">Categoría *</label>
@@ -159,12 +159,12 @@ const CATEGORIAS = [
             [(ngModel)]="formLibro.categoria" placeholder="Seleccionar…" ariaLabel="Categoría"/>
         </div>
         <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium">ISBN</label>
-          <input pInputText [(ngModel)]="formLibro.isbn" placeholder="978-..." />
+          <label class="text-sm font-medium" for="bib-isbn">ISBN</label>
+          <input pInputText id="bib-isbn" [(ngModel)]="formLibro.isbn" placeholder="978-..."/>
         </div>
         <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium">Editorial</label>
-          <input pInputText [(ngModel)]="formLibro.editorial" placeholder="Editorial" />
+          <label class="text-sm font-medium" for="bib-editorial">Editorial</label>
+          <input pInputText id="bib-editorial" [(ngModel)]="formLibro.editorial" placeholder="Editorial"/>
         </div>
         <div class="flex flex-col gap-1">
           <label class="text-sm font-medium">Año</label>
@@ -172,8 +172,8 @@ const CATEGORIAS = [
             placeholder="2024" [min]="1400" [max]="2200" />
         </div>
         <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium">Ubicación (estante)</label>
-          <input pInputText [(ngModel)]="formLibro.ubicacion" placeholder="Ej: Estante A-3" />
+          <label class="text-sm font-medium" for="bib-ubicacion">Ubicación (estante)</label>
+          <input pInputText id="bib-ubicacion" [(ngModel)]="formLibro.ubicacion" placeholder="Ej: Estante A-3"/>
         </div>
         <div class="flex flex-col gap-1">
           <label class="text-sm font-medium">Ejemplares (total)</label>
@@ -197,8 +197,8 @@ const CATEGORIAS = [
             [(ngModel)]="formPrestamo.libro_id" [filter]="true" placeholder="Seleccionar libro disponible…" ariaLabel="Libro"/>
         </div>
         <div class="col-span-2 flex flex-col gap-1">
-          <label class="text-sm font-medium">UUID Persona (alumno o personal) *</label>
-          <input pInputText [(ngModel)]="formPrestamo.persona_id" placeholder="uuid de la persona" />
+          <label class="text-sm font-medium" for="bib-prestamo-persona">UUID Persona (alumno o personal) *</label>
+          <input pInputText id="bib-prestamo-persona" [(ngModel)]="formPrestamo.persona_id" placeholder="uuid de la persona"/>
         </div>
         <div class="col-span-2 flex flex-col gap-1">
           <label class="text-sm font-medium">Fecha devolución esperada *</label>
@@ -206,8 +206,8 @@ const CATEGORIAS = [
                         [showIcon]="true" placeholder="DD/MM/AAAA" [style]="{width:'100%'}" [inputStyle]="{width:'100%'}" ariaLabel="Fecha devolución esperada"/>
         </div>
         <div class="col-span-2 flex flex-col gap-1">
-          <label class="text-sm font-medium">Observaciones</label>
-          <input pInputText [(ngModel)]="formPrestamo.observaciones" placeholder="Opcional" />
+          <label class="text-sm font-medium" for="bib-prestamo-obs">Observaciones</label>
+          <input pInputText id="bib-prestamo-obs" [(ngModel)]="formPrestamo.observaciones" placeholder="Opcional"/>
         </div>
       </div>
       <ng-template pTemplate="footer">

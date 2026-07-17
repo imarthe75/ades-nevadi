@@ -140,6 +140,7 @@ type TabKey = 'biblioteca' | 'mis-resultados';
                           ariaLabel="Asignar este contenido a un grupo de estudiantes"
                           pTooltip="Asignar a grupo" (onClick)="abrirAsignar(c)" />
                 <p-button icon="pi pi-trash" severity="danger" [text]="true" size="small"
+                          [loading]="eliminandoId() === c.id"
                           ariaLabel="Eliminar este contenido H5P"
                           pTooltip="Eliminar" (onClick)="confirmarEliminar(c)" />
               }
@@ -221,12 +222,12 @@ type TabKey = 'biblioteca' | 'mis-resultados';
           [style]="{width:'520px'}">
   <div style="display:flex;flex-direction:column;gap:1rem;padding:.5rem 0">
     <div>
-      <label class="apex-label">Título *</label>
-      <input pInputText [(ngModel)]="subirForm.titulo" class="w-full" placeholder="Nombre del contenido" />
+      <label class="apex-label" for="h5p-titulo">Título *</label>
+      <input pInputText id="h5p-titulo" [(ngModel)]="subirForm.titulo" class="w-full" placeholder="Nombre del contenido"/>
     </div>
     <div>
-      <label class="apex-label">Descripción</label>
-      <textarea pTextarea [(ngModel)]="subirForm.descripcion" rows="2" class="w-full"
+      <label class="apex-label" for="h5p-desc">Descripción</label>
+      <textarea pTextarea id="h5p-desc" [(ngModel)]="subirForm.descripcion" rows="2" class="w-full"
                 placeholder="Descripción breve para los alumnos"></textarea>
     </div>
     <div>
@@ -274,12 +275,12 @@ type TabKey = 'biblioteca' | 'mis-resultados';
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
       <div>
-        <label class="apex-label">Intentos máx.</label>
-        <input pInputText type="number" [(ngModel)]="asignarForm.intentos_max" class="w-full" min="1" max="10" />
+        <label class="apex-label" for="h5p-intentos">Intentos máx.</label>
+        <input pInputText id="h5p-intentos" type="number" [(ngModel)]="asignarForm.intentos_max" class="w-full" min="1" max="10"/>
       </div>
       <div>
-        <label class="apex-label">Puntaje mínimo (%)</label>
-        <input pInputText type="number" [(ngModel)]="asignarForm.puntaje_minimo" class="w-full" min="0" max="100" />
+        <label class="apex-label" for="h5p-puntaje-min">Puntaje mínimo (%)</label>
+        <input pInputText id="h5p-puntaje-min" type="number" [(ngModel)]="asignarForm.puntaje_minimo" class="w-full" min="0" max="100"/>
       </div>
     </div>
   </div>
@@ -308,6 +309,7 @@ export class H5pComponent implements OnInit, OnDestroy {
   cargandoResultados = signal(false);
   subiendo = signal(false);
   asignando = signal(false);
+  eliminandoId = signal<string | null>(null);
   tabActivo = signal<TabKey>('biblioteca');
   filtroTipo: string | null = null;
 
@@ -458,9 +460,10 @@ export class H5pComponent implements OnInit, OnDestroy {
       header: 'Confirmar eliminación',
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
+        this.eliminandoId.set(c.id);
         this.api.delete(`/h5p/contenidos/${c.id}`).pipe(takeUntil(this.destroy$)).subscribe({
-          next: () => { this.notify.success('Contenido eliminado'); this.cargarContenidos(); },
-          error: () => this.notify.error('Error al eliminar'),
+          next: () => { this.eliminandoId.set(null); this.notify.success('Contenido eliminado'); this.cargarContenidos(); },
+          error: () => { this.eliminandoId.set(null); this.notify.error('Error al eliminar'); },
         });
       },
     });

@@ -28,6 +28,7 @@ import type { Estudiante } from '../../core/models';
 import { ApexNotificationService, ApexTimelineComponent } from 'apex-component-library';
 import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
 import { AdesFormatDirective } from '../../shared/directives/ades-format.directive';
+import { AdesValidators } from '../../shared/validators/ades-validators';
 
 interface ExpedienteMedico {
   id: string;
@@ -140,8 +141,8 @@ interface Medicamento {
                     styleClass="tipo-sangre-select" ariaLabel="Tipo de sangre"/>
                 </div>
                 <div class="field" style="flex:1">
-                  <label>NSS (IMSS/ISSSTE)</label>
-                  <input pInputText [(ngModel)]="expediente()!.nss" maxlength="11" placeholder="11 dígitos" />
+                  <label for="med-nss">NSS (IMSS/ISSSTE)</label>
+                  <input pInputText id="med-nss" [(ngModel)]="expediente()!.nss" maxlength="11" placeholder="11 dígitos"/>
                 </div>
               </div>
               <div class="field-row">
@@ -154,32 +155,32 @@ interface Medicamento {
                     placeholder="—" ariaLabel="Seguro médico"/>
                 </div>
                 <div class="field" style="flex:1">
-                  <label>Núm. póliza/afiliación</label>
-                  <input pInputText [(ngModel)]="expediente()!.seguro_medico_numero" />
+                  <label for="med-poliza">Núm. póliza/afiliación</label>
+                  <input pInputText id="med-poliza" [(ngModel)]="expediente()!.seguro_medico_numero"/>
                 </div>
               </div>
 
               <p class="sec-title">Condiciones</p>
               <div class="field">
-                <label>Alergias</label>
-                <textarea pTextarea [(ngModel)]="expediente()!.alergias" rows="2" style="width:100%"></textarea>
+                <label for="med-alergias">Alergias</label>
+                <textarea pTextarea id="med-alergias" [(ngModel)]="expediente()!.alergias" rows="2" style="width:100%"></textarea>
               </div>
               <div class="field">
-                <label>Condiciones crónicas</label>
-                <textarea pTextarea [(ngModel)]="expediente()!.condiciones_cronicas" rows="2" style="width:100%"></textarea>
+                <label for="med-cronicas">Condiciones crónicas</label>
+                <textarea pTextarea id="med-cronicas" [(ngModel)]="expediente()!.condiciones_cronicas" rows="2" style="width:100%"></textarea>
               </div>
               <div class="field">
-                <label>Discapacidad / NEE</label>
-                <textarea pTextarea [(ngModel)]="expediente()!.discapacidad" rows="2" style="width:100%"
+                <label for="med-discapacidad">Discapacidad / NEE</label>
+                <textarea pTextarea id="med-discapacidad" [(ngModel)]="expediente()!.discapacidad" rows="2" style="width:100%"
                   placeholder="Necesidades educativas especiales..."></textarea>
               </div>
               <div class="field">
-                <label>Medicamentos autorizados en escuela</label>
-                <textarea pTextarea [(ngModel)]="expediente()!.medicamentos_autorizados" rows="2" style="width:100%"></textarea>
+                <label for="med-medicamentos-auth">Medicamentos autorizados en escuela</label>
+                <textarea pTextarea id="med-medicamentos-auth" [(ngModel)]="expediente()!.medicamentos_autorizados" rows="2" style="width:100%"></textarea>
               </div>
               <div class="field">
-                <label>Observaciones generales</label>
-                <textarea pTextarea [(ngModel)]="expediente()!.observaciones_generales" rows="2" style="width:100%"></textarea>
+                <label for="med-obs-generales">Observaciones generales</label>
+                <textarea pTextarea id="med-obs-generales" [(ngModel)]="expediente()!.observaciones_generales" rows="2" style="width:100%"></textarea>
               </div>
 
               <p class="sec-title">Estatus</p>
@@ -254,12 +255,12 @@ interface Medicamento {
     <p-dialog [(visible)]="showIncidenteDialog" header="Registrar Incidente Médico" [modal]="true" [style]="{width:'460px'}">
       <div class="form-fields">
         <div class="field">
-          <label>Descripción del incidente</label>
-          <textarea pTextarea [(ngModel)]="incForm.descripcion" rows="3" style="width:100%"></textarea>
+          <label for="inc-descripcion">Descripción del incidente</label>
+          <textarea pTextarea id="inc-descripcion" [(ngModel)]="incForm.descripcion" rows="3" style="width:100%"></textarea>
         </div>
         <div class="field">
-          <label>Tratamiento aplicado / Medidas tomadas</label>
-          <textarea pTextarea [(ngModel)]="incForm.tratamiento_aplicado" rows="2" style="width:100%"></textarea>
+          <label for="inc-tratamiento">Tratamiento aplicado / Medidas tomadas</label>
+          <textarea pTextarea id="inc-tratamiento" [(ngModel)]="incForm.tratamiento_aplicado" rows="2" style="width:100%"></textarea>
         </div>
         <div class="field-inline">
           <p-toggleSwitch [(ngModel)]="incForm.requirio_traslado" />
@@ -280,13 +281,13 @@ interface Medicamento {
     <p-dialog [(visible)]="showMedicamentoDialog" header="Registrar Medicamento Controlado" [modal]="true" [style]="{width:'460px'}">
       <div class="form-fields">
         <div class="field">
-          <label>Nombre del Medicamento *</label>
-          <input pInputText [(ngModel)]="medForm.nombre_medicamento" />
+          <label for="med-nombre">Nombre del Medicamento *</label>
+          <input pInputText id="med-nombre" [(ngModel)]="medForm.nombre_medicamento"/>
         </div>
         <div class="field-row">
           <div class="field" style="flex:1">
-            <label>Dosis *</label>
-            <input pInputText [(ngModel)]="medForm.dosis" placeholder="Ej: 500mg, 1 tableta" />
+            <label for="med-dosis">Dosis *</label>
+            <input pInputText id="med-dosis" [(ngModel)]="medForm.dosis" placeholder="Ej: 500mg, 1 tableta"/>
           </div>
           <div class="field" style="flex:1">
             <label>Vía *</label>
@@ -294,20 +295,20 @@ interface Medicamento {
           </div>
         </div>
         <div class="field">
-          <label>Frecuencia *</label>
-          <input pInputText [(ngModel)]="medForm.frecuencia" placeholder="Ej: Cada 8 horas" />
+          <label for="med-frecuencia">Frecuencia *</label>
+          <input pInputText id="med-frecuencia" [(ngModel)]="medForm.frecuencia" placeholder="Ej: Cada 8 horas"/>
         </div>
         <div class="field">
-          <label>Horario sugerido</label>
-          <input pInputText [(ngModel)]="medForm.horario" placeholder="Ej: 08:00, 16:00, 24:00" />
+          <label for="med-horario">Horario sugerido</label>
+          <input pInputText id="med-horario" [(ngModel)]="medForm.horario" placeholder="Ej: 08:00, 16:00, 24:00"/>
         </div>
         <div class="field">
-          <label>Prescrito por</label>
-          <input pInputText [(ngModel)]="medForm.prescrito_por" placeholder="Nombre del médico" />
+          <label for="med-prescrito">Prescrito por</label>
+          <input pInputText id="med-prescrito" [(ngModel)]="medForm.prescrito_por" placeholder="Nombre del médico"/>
         </div>
         <div class="field">
-          <label>Observaciones o indicaciones adicionales</label>
-          <textarea pTextarea [(ngModel)]="medForm.observaciones" rows="2" style="width:100%"></textarea>
+          <label for="med-obs-medicamento">Observaciones o indicaciones adicionales</label>
+          <textarea pTextarea id="med-obs-medicamento" [(ngModel)]="medForm.observaciones" rows="2" style="width:100%"></textarea>
         </div>
       </div>
       <ng-template pTemplate="footer">
@@ -467,6 +468,10 @@ export class MedicoComponent implements OnInit, OnDestroy {
   guardarExpediente(): void {
     const exp = this.expediente();
     if (!exp) return;
+    if (exp.nss && !AdesValidators.nssValido(exp.nss)) {
+      this.notify.warning('NSS inválido', 'El NSS debe tener exactamente 11 dígitos');
+      return;
+    }
     this.savingExp.set(true);
     const { estudiante_id, ...datos } = exp as any;
     this.api.put(`/expedientes-medicos/${exp.id}`, datos).pipe(takeUntil(this.destroy$)).subscribe({

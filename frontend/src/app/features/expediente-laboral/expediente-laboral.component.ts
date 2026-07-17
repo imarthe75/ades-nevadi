@@ -16,6 +16,7 @@ import { AutoCompleteModule } from 'primeng/autocomplete';
 import { MessageService } from 'primeng/api';
 import { ApexNotificationService } from 'apex-component-library';
 import { AdesFormatDirective } from '../../shared/directives/ades-format.directive';
+import { AdesValidators } from '../../shared/validators/ades-validators';
 
 interface ExpedienteLab {
   id: string;
@@ -147,44 +148,44 @@ interface ExpedienteLab {
           <p-inputNumber [(ngModel)]="form.salario_mensual" mode="currency" currency="MXN" locale="es-MX" />
         </div>
         <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium">No. IMSS</label>
-          <input pInputText [(ngModel)]="form.imss_numero" placeholder="11 dígitos" />
+          <label class="text-sm font-medium" for="el-imss">No. IMSS</label>
+          <input pInputText id="el-imss" [(ngModel)]="form.imss_numero" placeholder="11 dígitos"/>
         </div>
         <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium">No. INFONAVIT</label>
-          <input pInputText [(ngModel)]="form.infonavit_numero" />
+          <label class="text-sm font-medium" for="el-infonavit">No. INFONAVIT</label>
+          <input pInputText id="el-infonavit" [(ngModel)]="form.infonavit_numero"/>
         </div>
         <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium">CURP</label>
-          <input pInputText [(ngModel)]="form.curp" placeholder="18 caracteres" class="uppercase" />
+          <label class="text-sm font-medium" for="el-curp">CURP</label>
+          <input pInputText id="el-curp" [(ngModel)]="form.curp" placeholder="18 caracteres" class="uppercase"/>
         </div>
         <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium">RFC</label>
-          <input pInputText [(ngModel)]="form.rfc" placeholder="13 caracteres" class="uppercase" />
+          <label class="text-sm font-medium" for="el-rfc">RFC</label>
+          <input pInputText id="el-rfc" [(ngModel)]="form.rfc" placeholder="13 caracteres" class="uppercase"/>
         </div>
         <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium">Cédula Profesional</label>
-          <input pInputText [(ngModel)]="form.cedula_profesional" />
+          <label class="text-sm font-medium" for="el-cedula">Cédula Profesional</label>
+          <input pInputText id="el-cedula" [(ngModel)]="form.cedula_profesional"/>
         </div>
         <div class="flex flex-col gap-1">
           <label class="text-sm font-medium">Nivel de Estudios</label>
           <p-select [options]="estudiosOpts" [(ngModel)]="form.nivel_estudios" [showClear]="true" ariaLabel="Nivel de Estudios"/>
         </div>
         <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium">Especialidad</label>
-          <input pInputText [(ngModel)]="form.especialidad" />
+          <label class="text-sm font-medium" for="el-especialidad">Especialidad</label>
+          <input pInputText id="el-especialidad" [(ngModel)]="form.especialidad"/>
         </div>
         <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium">Institución de Formación</label>
-          <input pInputText [(ngModel)]="form.institucion_formacion" placeholder="UNAM, IPN, UAEMEX…" />
+          <label class="text-sm font-medium" for="el-institucion">Institución de Formación</label>
+          <input pInputText id="el-institucion" [(ngModel)]="form.institucion_formacion" placeholder="UNAM, IPN, UAEMEX…"/>
         </div>
         <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium">Clave CT (SEP)</label>
-          <input pInputText [(ngModel)]="form.clave_ct" placeholder="15MEP00…" />
+          <label class="text-sm font-medium" for="el-clave-ct">Clave CT (SEP)</label>
+          <input pInputText id="el-clave-ct" [(ngModel)]="form.clave_ct" placeholder="15MEP00…"/>
         </div>
         <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium">Clave ISSSTE</label>
-          <input pInputText [(ngModel)]="form.clave_issste" />
+          <label class="text-sm font-medium" for="el-clave-issste">Clave ISSSTE</label>
+          <input pInputText id="el-clave-issste" [(ngModel)]="form.clave_issste"/>
         </div>
       </div>
       <ng-template pTemplate="footer">
@@ -324,6 +325,14 @@ export class ExpedienteLaboralComponent implements OnInit, OnDestroy {
   }
 
   guardar() {
+    if (this.form.curp && !AdesValidators.curpValido(this.form.curp)) {
+      this.notify.warning('CURP inválido', 'Formato esperado: AAAA000000HAAAAA00');
+      return;
+    }
+    if (this.form.rfc && !AdesValidators.rfcValido(this.form.rfc)) {
+      this.notify.warning('RFC inválido', 'Formato esperado: AAAA000000AAA');
+      return;
+    }
     this.guardando.set(true);
     let req;
     if (this.editandoId) {

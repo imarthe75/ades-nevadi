@@ -187,14 +187,13 @@ const TIPO_LABELS: Record<string, string> = {
           </div>
 
           <div class="field">
-            <label>Comentarios generales</label>
-            <textarea
-              pTextarea
+            <label for="ed-comentarios">Comentarios generales</label>
+            <textarea pTextarea
+              id="ed-comentarios"
               [(ngModel)]="formComentarios"
               rows="2"
               placeholder="Observaciones generales sobre el desempeño docente..."
-              style="width:100%"
-            ></textarea>
+              style="width:100%"></textarea>
           </div>
         </div>
 

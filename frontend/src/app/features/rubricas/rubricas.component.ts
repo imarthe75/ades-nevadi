@@ -128,7 +128,7 @@ const NIVEL_COLORS = ['var(--red-400)', 'var(--yellow-400)', 'var(--teal-400)', 
               }
             </div>
             <div class="page-actions">
-              <p-button icon="pi pi-trash" severity="danger" [text]="true"
+              <p-button icon="pi pi-trash" severity="danger" [text]="true" [loading]="deletingRubrica()"
                         ariaLabel="Eliminar rúbrica" pTooltip="Eliminar rúbrica" (onClick)="eliminarRubrica()" />
             </div>
           </div>
@@ -148,6 +148,7 @@ const NIVEL_COLORS = ['var(--red-400)', 'var(--yellow-400)', 'var(--teal-400)', 
                   <div class="criterio-meta">
                     <span class="pond-badge">{{ c.ponderacion | number:'1.0-1' }}%</span>
                     <p-button icon="pi pi-trash" size="small" severity="danger" [text]="true"
+                              [loading]="deletingCriterioId() === c.id"
                               ariaLabel="Eliminar criterio" (onClick)="eliminarCriterio(c)" />
                   </div>
                 </div>
@@ -182,12 +183,12 @@ const NIVEL_COLORS = ['var(--red-400)', 'var(--yellow-400)', 'var(--teal-400)', 
               [style]="{width:'460px'}">
       <div class="form-grid">
         <div class="form-field full">
-          <label>Nombre *</label>
-          <input pInputText [(ngModel)]="formNueva.nombre" placeholder="Ej. Rúbrica redacción" style="width:100%" />
+          <label for="rub-nombre">Nombre *</label>
+          <input pInputText id="rub-nombre" [(ngModel)]="formNueva.nombre" placeholder="Ej. Rúbrica redacción" style="width:100%"/>
         </div>
         <div class="form-field full">
-          <label>Descripción</label>
-          <textarea pTextarea [(ngModel)]="formNueva.descripcion" rows="2" style="width:100%"></textarea>
+          <label for="rub-desc">Descripción</label>
+          <textarea pTextarea id="rub-desc" [(ngModel)]="formNueva.descripcion" rows="2" style="width:100%"></textarea>
         </div>
         <div class="form-field">
           <label>Materia</label>
@@ -206,7 +207,7 @@ const NIVEL_COLORS = ['var(--red-400)', 'var(--yellow-400)', 'var(--teal-400)', 
       </div>
       <ng-template pTemplate="footer">
         <p-button label="Cancelar" severity="secondary" [text]="true" (onClick)="showNueva = false" />
-        <p-button label="Crear" icon="pi pi-check" (onClick)="crearRubrica()" />
+        <p-button label="Crear" icon="pi pi-check" [loading]="savingRubrica()" (onClick)="crearRubrica()" />
       </ng-template>
     </p-dialog>
 
@@ -215,12 +216,12 @@ const NIVEL_COLORS = ['var(--red-400)', 'var(--yellow-400)', 'var(--teal-400)', 
               [style]="{width:'560px'}">
       <div class="form-grid">
         <div class="form-field full">
-          <label>Nombre del criterio *</label>
-          <input pInputText [(ngModel)]="formCrit.nombre" style="width:100%" />
+          <label for="rub-crit-nombre">Nombre del criterio *</label>
+          <input pInputText id="rub-crit-nombre" [(ngModel)]="formCrit.nombre" style="width:100%"/>
         </div>
         <div class="form-field">
-          <label>Descripción</label>
-          <input pInputText [(ngModel)]="formCrit.descripcion" style="width:100%" />
+          <label for="rub-crit-desc">Descripción</label>
+          <input pInputText id="rub-crit-desc" [(ngModel)]="formCrit.descripcion" style="width:100%"/>
         </div>
         <div class="form-field">
           <label>Ponderación (%)</label>
@@ -249,7 +250,7 @@ const NIVEL_COLORS = ['var(--red-400)', 'var(--yellow-400)', 'var(--teal-400)', 
 
       <ng-template pTemplate="footer">
         <p-button label="Cancelar" severity="secondary" [text]="true" (onClick)="showCriterio = false" />
-        <p-button label="Agregar" icon="pi pi-plus" (onClick)="guardarCriterio()" />
+        <p-button label="Agregar" icon="pi pi-plus" [loading]="savingCriterio()" (onClick)="guardarCriterio()" />
       </ng-template>
     </p-dialog>
   `,
@@ -347,6 +348,11 @@ export class RubricasComponent implements OnInit, OnDestroy {
   showNueva = false;
   showCriterio = false;
 
+  savingRubrica = signal(false);
+  savingCriterio = signal(false);
+  deletingCriterioId = signal<string | null>(null);
+  deletingRubrica = signal(false);
+
   formNueva = { nombre: '', descripcion: '', materia_id: '', nivel_educativo_id: '' };
   formCrit = this.emptyFormCrit();
 
@@ -411,14 +417,15 @@ export class RubricasComponent implements OnInit, OnDestroy {
 
   crearRubrica(): void {
     if (!this.formNueva.nombre) return;
+    this.savingRubrica.set(true);
     this.api.post('/rubricas', {
       nombre_rubrica: this.formNueva.nombre,
       descripcion: this.formNueva.descripcion || null,
       materia_id: this.formNueva.materia_id || null,
       nivel_educativo_id: this.formNueva.nivel_educativo_id || null,
     }).pipe(takeUntil(this.destroy$)).subscribe({
-      next: () => { this.showNueva = false; this.cargar(); },
-      error: e => this.notify.error('Error', e?.error?.detail ?? 'No se pudo crear la rúbrica'),
+      next: () => { this.savingRubrica.set(false); this.showNueva = false; this.cargar(); },
+      error: e => { this.savingRubrica.set(false); this.notify.error('Error', e?.error?.detail ?? 'No se pudo crear la rúbrica'); },
     });
   }
 
@@ -427,6 +434,7 @@ export class RubricasComponent implements OnInit, OnDestroy {
   guardarCriterio(): void {
     if (!this.selRubrica || !this.formCrit.nombre) return;
     const nivelesValidos = this.formCrit.niveles.filter(n => n.etiqueta.trim());
+    this.savingCriterio.set(true);
     this.api.post(`/rubricas/${this.selRubrica.id}/criterios`, {
       nombre_criterio: this.formCrit.nombre,
       descripcion: this.formCrit.descripcion || null,
@@ -437,8 +445,8 @@ export class RubricasComponent implements OnInit, OnDestroy {
       // (MismatchedInputException: no puede bindear un array a String).
       niveles_logro: nivelesValidos.length ? JSON.stringify(nivelesValidos) : null,
     }).pipe(takeUntil(this.destroy$)).subscribe({
-      next: () => { this.showCriterio = false; this.seleccionar(this.selRubrica!); },
-      error: e => this.notify.error('Error', e?.error?.detail ?? 'No se pudo guardar el criterio'),
+      next: () => { this.savingCriterio.set(false); this.showCriterio = false; this.seleccionar(this.selRubrica!); },
+      error: e => { this.savingCriterio.set(false); this.notify.error('Error', e?.error?.detail ?? 'No se pudo guardar el criterio'); },
     });
   }
 
@@ -449,9 +457,10 @@ export class RubricasComponent implements OnInit, OnDestroy {
       header: 'Confirmar eliminación',
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
+        this.deletingCriterioId.set(c.id);
         this.api.delete(`/rubricas/${this.selRubrica!.id}/criterios/${c.id}`).pipe(takeUntil(this.destroy$)).subscribe({
-          next: () => this.seleccionar(this.selRubrica!),
-          error: e => this.notify.error('Error', e?.error?.detail ?? 'No se pudo eliminar el criterio'),
+          next: () => { this.deletingCriterioId.set(null); this.seleccionar(this.selRubrica!); },
+          error: e => { this.deletingCriterioId.set(null); this.notify.error('Error', e?.error?.detail ?? 'No se pudo eliminar el criterio'); },
         });
       },
     });
@@ -465,13 +474,15 @@ export class RubricasComponent implements OnInit, OnDestroy {
       header: 'Confirmar eliminación',
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
+        this.deletingRubrica.set(true);
         this.api.delete(`/rubricas/${rubrica.id}`).pipe(takeUntil(this.destroy$)).subscribe({
           next: () => {
+            this.deletingRubrica.set(false);
             this.selRubrica = null;
             this.criterios.set([]);
             this.cargar();
           },
-          error: e => this.notify.error('Error', e?.error?.detail ?? 'No se pudo eliminar la rúbrica (verifica que no tenga calificaciones asociadas)'),
+          error: e => { this.deletingRubrica.set(false); this.notify.error('Error', e?.error?.detail ?? 'No se pudo eliminar la rúbrica (verifica que no tenga calificaciones asociadas)'); },
         });
       },
     });

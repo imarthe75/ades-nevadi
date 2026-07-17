@@ -122,8 +122,8 @@ interface EntregaHistorial extends EntregaPendiente {
                class="w-full" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:4px" />
       </div>
       <div class="field mt-2">
-        <label>Comentario (opcional)</label>
-        <textarea [(ngModel)]="comentarioEntrega" rows="3"
+        <label for="mp-comentario">Comentario (opcional)</label>
+        <textarea id="mp-comentario" [(ngModel)]="comentarioEntrega" rows="3"
                   class="w-full" style="width:100%;padding:6px;border:1px solid #ccc;border-radius:4px"></textarea>
       </div>
     </div>

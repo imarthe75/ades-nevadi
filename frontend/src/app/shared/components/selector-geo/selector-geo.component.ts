@@ -25,10 +25,10 @@ import { AdesFormatDirective } from '../../directives/ades-format.directive';
     <div class="geo-grid">
       <!-- Búsqueda rápida por CP -->
       <div class="geo-cp">
-        <label>Código Postal</label>
+        <label for="sg-cp">Código Postal</label>
         <div style="display:flex;gap:.5rem">
-          <input pInputText [(ngModel)]="cpBusqueda" placeholder="Ej: 50100" maxlength="5"
-                 style="width:100px" (keyup.enter)="buscarPorCP()" />
+          <input pInputText id="sg-cp" [(ngModel)]="cpBusqueda" placeholder="Ej: 50100" maxlength="5"
+                 style="width:100px" (keyup.enter)="buscarPorCP()"/>
           <p-button icon="pi pi-search" ariaLabel="Autocompletar por CP" [text]="true" (onClick)="buscarPorCP()"
                     pTooltip="Autocompletar por CP" />
         </div>

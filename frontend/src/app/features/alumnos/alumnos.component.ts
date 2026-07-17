@@ -179,8 +179,8 @@ import { AdesFormatDirective } from '../../shared/directives/ades-format.directi
             style="width:100%" ariaLabel="Grupo destino"/>
         </div>
         <div>
-          <label class="dlg-lbl">Motivo *</label>
-          <input pInputText [(ngModel)]="masivoForm.motivo" style="width:100%" placeholder="Ej. Reorganización de grupos" />
+          <label class="dlg-lbl" for="alu-masivo-motivo">Motivo *</label>
+          <input pInputText id="alu-masivo-motivo" [(ngModel)]="masivoForm.motivo" style="width:100%" placeholder="Ej. Reorganización de grupos"/>
         </div>
         <p class="dlg-note">Cada alumno se registra individualmente en el historial de movilidad; si alguno falla, los demás se procesan igual.</p>
       </div>

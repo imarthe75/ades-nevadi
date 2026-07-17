@@ -70,10 +70,10 @@ import { AdesFormatDirective } from '../../shared/directives/ades-format.directi
               [modal]="true" [style]="{ width: '480px' }" [closable]="true">
       @if (grupoEdit) {
         <div class="form-grid">
-          <label>Nombre del Grupo *</label>
-          <input pInputText [(ngModel)]="grupoEdit.nombre_grupo" maxlength="10" placeholder="A" />
-          <label>Capacidad *</label>
-          <input pInputText type="number" [(ngModel)]="grupoEdit.capacidad_maxima" min="1" max="60" />
+          <label for="grp-nombre">Nombre del Grupo *</label>
+          <input pInputText id="grp-nombre" [(ngModel)]="grupoEdit.nombre_grupo" maxlength="10" placeholder="A"/>
+          <label for="grp-capacidad">Capacidad *</label>
+          <input pInputText id="grp-capacidad" type="number" [(ngModel)]="grupoEdit.capacidad_maxima" min="1" max="60"/>
           <label>Turno *</label>
           <p-select [options]="['MATUTINO','VESPERTINO','NOCTURNO']" [(ngModel)]="grupoEdit.turno" ariaLabel="Turno"/>
           

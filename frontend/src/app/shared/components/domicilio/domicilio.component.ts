@@ -130,6 +130,7 @@ interface PersonaContacto {
               <p-button icon="pi pi-pencil" ariaLabel="Editar contacto" [text]="true" [rounded]="true" size="small"
                 (onClick)="editarContacto(c)" />
               <p-button icon="pi pi-trash" ariaLabel="Eliminar contacto" [text]="true" [rounded]="true" size="small"
+                [loading]="eliminandoContactoId() === c.id"
                 severity="danger" (onClick)="eliminarContacto(c.id)" />
             </div>
           </div>
@@ -152,24 +153,24 @@ interface PersonaContacto {
                 optionLabel="label" optionValue="value" ariaLabel="Tipo"/>
             </div>
             <div class="form-row full">
-              <label>{{ contactoEdit.medio === 'EMAIL' ? 'Correo electrónico *' : 'Número *' }}</label>
-              <input pInputText [(ngModel)]="contactoEdit.valor"
+              <label for="dom-contacto-valor">{{ contactoEdit.medio === 'EMAIL' ? 'Correo electrónico *' : 'Número *' }}</label>
+              <input pInputText id="dom-contacto-valor" [(ngModel)]="contactoEdit.valor"
                 [adesFormat]="contactoEdit.medio === 'EMAIL' ? 'email' : (contactoEdit.medio === 'CELULAR' || contactoEdit.medio === 'FIJO' || contactoEdit.medio === 'WHATSAPP' ? 'telefono' : 'safe')"
                 [type]="contactoEdit.medio === 'EMAIL' ? 'email' : 'tel'"
-                [placeholder]="contactoEdit.medio === 'EMAIL' ? 'usuario@correo.com' : '10 dígitos'" />
+                [placeholder]="contactoEdit.medio === 'EMAIL' ? 'usuario@correo.com' : '10 dígitos'"/>
             </div>
             <div class="form-row full">
-              <label>Etiqueta</label>
-              <input pInputText [(ngModel)]="contactoEdit.etiqueta"
-                placeholder="Ej: Celular mamá, WhatsApp trabajo" maxlength="50" />
+              <label for="dom-contacto-etiqueta">Etiqueta</label>
+              <input pInputText id="dom-contacto-etiqueta" [(ngModel)]="contactoEdit.etiqueta"
+                placeholder="Ej: Celular mamá, WhatsApp trabajo" maxlength="50"/>
             </div>
             <div class="form-row">
-              <label>Notas</label>
-              <input pInputText [(ngModel)]="contactoEdit.notas" maxlength="200" />
+              <label for="dom-contacto-notas">Notas</label>
+              <input pInputText id="dom-contacto-notas" [(ngModel)]="contactoEdit.notas" maxlength="200"/>
             </div>
             <div class="form-row">
-              <label>¿Principal?</label>
-              <input type="checkbox" [(ngModel)]="contactoEdit.es_principal" />
+              <label for="dom-contacto-principal">¿Principal?</label>
+              <input type="checkbox" id="dom-contacto-principal" [(ngModel)]="contactoEdit.es_principal"/>
             </div>
           </div>
           <div class="form-btns">
@@ -207,11 +208,13 @@ interface PersonaContacto {
               <div class="dir-actions">
                 @if (!d.es_principal) {
                   <p-button label="Marcar principal" [text]="true" size="small"
+                    [loading]="estableciendoPrincipalId() === d.id"
                     (onClick)="setPrincipal(d.id)" />
                 }
                 <p-button icon="pi pi-pencil" ariaLabel="Editar dirección" [text]="true" [rounded]="true" size="small"
                   (onClick)="editarDireccion(d)" />
                 <p-button icon="pi pi-trash" ariaLabel="Eliminar dirección" [text]="true" [rounded]="true" size="small"
+                  [loading]="eliminandoDireccionId() === d.id"
                   severity="danger" (onClick)="eliminarDireccion(d.id)" />
               </div>
             </div>
@@ -249,13 +252,13 @@ interface PersonaContacto {
           <div class="sepomex-block">
             <!-- CP input -->
             <div class="form-row">
-              <label>Código Postal *</label>
+              <label for="dom-cp">Código Postal *</label>
               <div class="cp-input-wrap">
-                <input pInputText [(ngModel)]="cpBusqueda"
+                <input pInputText id="dom-cp" [(ngModel)]="cpBusqueda"
                   adesFormat="cp"
                   (ngModelChange)="onCpChange($event)"
                   maxlength="5" placeholder="5 dígitos"
-                  style="font-family:monospace;width:100px" />
+                  style="font-family:monospace;width:100px"/>
                 @if (buscandoCp()) {
                   <i class="pi pi-spin pi-spinner" style="margin-left:.5rem"></i>
                 }
@@ -320,23 +323,23 @@ interface PersonaContacto {
             } @else {
               <!-- Modo manual: editable cuando no hay CP seleccionado -->
               <div class="form-row">
-                <label>Colonia</label>
-                <input pInputText [(ngModel)]="dirEdit.nombre_localidad"
-                  placeholder="Colonia, Fraccionamiento, Ejido…" />
+                <label for="dom-colonia">Colonia</label>
+                <input pInputText id="dom-colonia" [(ngModel)]="dirEdit.nombre_localidad"
+                  placeholder="Colonia, Fraccionamiento, Ejido…"/>
               </div>
               <div class="form-row">
-                <label>Municipio</label>
-                <input pInputText [(ngModel)]="dirEdit.nombre_municipio"
-                  placeholder="Municipio o Alcaldía" />
+                <label for="dom-municipio">Municipio</label>
+                <input pInputText id="dom-municipio" [(ngModel)]="dirEdit.nombre_municipio"
+                  placeholder="Municipio o Alcaldía"/>
               </div>
               <div class="form-row">
-                <label>Estado</label>
-                <input pInputText [(ngModel)]="dirEdit.nombre_estado"
-                  placeholder="Estado o Entidad federativa" />
+                <label for="dom-estado">Estado</label>
+                <input pInputText id="dom-estado" [(ngModel)]="dirEdit.nombre_estado"
+                  placeholder="Estado o Entidad federativa"/>
               </div>
               <div class="form-row">
-                <label>País</label>
-                <input pInputText [(ngModel)]="dirEdit.nombre_pais" />
+                <label for="dom-pais">País</label>
+                <input pInputText id="dom-pais" [(ngModel)]="dirEdit.nombre_pais"/>
               </div>
             }
           </div>
@@ -350,31 +353,31 @@ interface PersonaContacto {
                 optionLabel="label" optionValue="value" [showClear]="true" ariaLabel="Tipo de vía"/>
             </div>
             <div class="form-row">
-              <label>Nombre de calle</label>
-              <input pInputText [(ngModel)]="dirEdit.calle" placeholder="Ej: Morelos" />
+              <label for="dom-calle">Nombre de calle</label>
+              <input pInputText id="dom-calle" [(ngModel)]="dirEdit.calle" placeholder="Ej: Morelos"/>
             </div>
             <div class="form-row">
-              <label>Núm. exterior</label>
-              <input pInputText [(ngModel)]="dirEdit.numero_exterior" maxlength="20"
-                placeholder="Ej: 42-A" />
+              <label for="dom-num-ext">Núm. exterior</label>
+              <input pInputText id="dom-num-ext" [(ngModel)]="dirEdit.numero_exterior" maxlength="20"
+                placeholder="Ej: 42-A"/>
             </div>
             <div class="form-row">
-              <label>Núm. interior</label>
-              <input pInputText [(ngModel)]="dirEdit.numero_interior" maxlength="20"
-                placeholder="Ej: 3-B (opcional)" />
+              <label for="dom-num-int">Núm. interior</label>
+              <input pInputText id="dom-num-int" [(ngModel)]="dirEdit.numero_interior" maxlength="20"
+                placeholder="Ej: 3-B (opcional)"/>
             </div>
             <div class="form-row full">
-              <label>Entre calles</label>
+              <label for="dom-entre-1">Entre calles</label>
               <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:.4rem;align-items:center">
-                <input pInputText [(ngModel)]="dirEdit.entre_calle_1" placeholder="Primera calle" />
+                <input pInputText id="dom-entre-1" [(ngModel)]="dirEdit.entre_calle_1" placeholder="Primera calle"/>
                 <span style="font-size:.75rem;color:var(--text-muted)">y</span>
-                <input pInputText [(ngModel)]="dirEdit.entre_calle_2" placeholder="Segunda calle" />
+                <input pInputText [(ngModel)]="dirEdit.entre_calle_2" placeholder="Segunda calle" aria-label="Segunda calle entre la que se ubica"/>
               </div>
             </div>
             <div class="form-row full">
-              <label>Referencia</label>
-              <input pInputText [(ngModel)]="dirEdit.referencia"
-                maxlength="255" placeholder="Ej: Frente al parque, casa azul" />
+              <label for="dom-referencia">Referencia</label>
+              <input pInputText id="dom-referencia" [(ngModel)]="dirEdit.referencia"
+                maxlength="255" placeholder="Ej: Frente al parque, casa azul"/>
             </div>
             <div class="form-row">
               <label>Tipo dirección</label>
@@ -382,8 +385,8 @@ interface PersonaContacto {
                 optionLabel="label" optionValue="value" ariaLabel="Tipo dirección"/>
             </div>
             <div class="form-row">
-              <label>¿Principal?</label>
-              <input type="checkbox" [(ngModel)]="dirEdit.es_principal" />
+              <label for="dom-dir-principal">¿Principal?</label>
+              <input type="checkbox" id="dom-dir-principal" [(ngModel)]="dirEdit.es_principal"/>
             </div>
           </div>
 
@@ -391,14 +394,14 @@ interface PersonaContacto {
 
           <div class="form-grid">
             <div class="form-row">
-              <label>Latitud</label>
-              <input pInputText [(ngModel)]="dirEdit.latitud" type="number"
-                step="0.000001" placeholder="Ej: 19.432608" />
+              <label for="dom-lat">Latitud</label>
+              <input pInputText id="dom-lat" [(ngModel)]="dirEdit.latitud" type="number"
+                step="0.000001" placeholder="Ej: 19.432608"/>
             </div>
             <div class="form-row">
-              <label>Longitud</label>
-              <input pInputText [(ngModel)]="dirEdit.longitud" type="number"
-                step="0.000001" placeholder="Ej: -99.133209" />
+              <label for="dom-lng">Longitud</label>
+              <input pInputText id="dom-lng" [(ngModel)]="dirEdit.longitud" type="number"
+                step="0.000001" placeholder="Ej: -99.133209"/>
             </div>
             <div class="form-row full" style="justify-content:flex-end;gap:.5rem;display:flex">
               <p-button label="Geocodificar" icon="pi pi-map" size="small" [text]="true"
@@ -526,6 +529,9 @@ export class DomicilioComponent implements OnChanges, OnDestroy {
   editandoDireccion = signal(false);
   editandoContacto  = signal(false);
   savingDir         = signal(false);
+  eliminandoDireccionId = signal<string | null>(null);
+  estableciendoPrincipalId = signal<string | null>(null);
+  eliminandoContactoId = signal<string | null>(null);
   savingContacto    = signal(false);
   buscandoCp        = signal(false);
   geocodificando    = signal(false);
@@ -712,22 +718,24 @@ export class DomicilioComponent implements OnChanges, OnDestroy {
       header: 'Confirmar eliminación',
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
+        this.eliminandoDireccionId.set(id);
         this.api.delete(`/direcciones/${id}`)
           .pipe(takeUntil(this.destroy$))
           .subscribe({
-            next: () => this.cargarDirecciones(),
-            error: () => {},
+            next: () => { this.eliminandoDireccionId.set(null); this.cargarDirecciones(); },
+            error: () => this.eliminandoDireccionId.set(null),
           });
       },
     });
   }
 
   setPrincipal(id: string): void {
+    this.estableciendoPrincipalId.set(id);
     this.api.patch(`/direcciones/${id}/principal`, {})
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: () => this.cargarDirecciones(),
-        error: () => {},
+        next: () => { this.estableciendoPrincipalId.set(null); this.cargarDirecciones(); },
+        error: () => this.estableciendoPrincipalId.set(null),
       });
   }
 
@@ -850,11 +858,12 @@ export class DomicilioComponent implements OnChanges, OnDestroy {
       header: 'Confirmar eliminación',
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
+        this.eliminandoContactoId.set(id);
         this.api.delete(`/persona-contactos/${id}`)
           .pipe(takeUntil(this.destroy$))
           .subscribe({
-            next: () => this.cargarContactos(),
-            error: () => {},
+            next: () => { this.eliminandoContactoId.set(null); this.cargarContactos(); },
+            error: () => this.eliminandoContactoId.set(null),
           });
       },
     });

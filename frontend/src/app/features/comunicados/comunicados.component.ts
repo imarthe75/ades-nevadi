@@ -113,7 +113,7 @@ const TIPOS = [
           <div style="display:flex; gap:.4rem; align-items:center;">
             @if (!comunicadoSeleccionado()!.acusado_por_mi && comunicadoSeleccionado()!.requiere_acuse) {
               <p-button icon="pi pi-check" label="Acusar recibo" size="small" severity="success"
-                (onClick)="acusarRecibo(comunicadoSeleccionado()!)" />
+                [loading]="acusando()" (onClick)="acusarRecibo(comunicadoSeleccionado()!)" />
             }
             <p-button icon="pi pi-times" [text]="true" size="small" severity="secondary"
               ariaLabel="Cerrar comunicado" (onClick)="comunicadoSeleccionado.set(null)" />
@@ -142,9 +142,9 @@ const TIPOS = [
     >
       <div class="form-grid">
         <div class="form-field full">
-          <label>Título *</label>
-          <input pInputText [(ngModel)]="form.titulo" placeholder="Título del comunicado" style="width:100%"
-            [class.p-invalid]="cIntento() && !form.titulo.trim()" />
+          <label for="com-titulo">Título *</label>
+          <input pInputText id="com-titulo" [(ngModel)]="form.titulo" placeholder="Título del comunicado" style="width:100%"
+            [class.p-invalid]="cIntento() && !form.titulo.trim()"/>
           @if (cIntento() && !form.titulo.trim()) {
             <small class="field-error">El título es obligatorio</small>
           }
@@ -161,8 +161,8 @@ const TIPOS = [
                         placeholder="DD/MM/AAAA" [style]="{width:'100%'}" [inputStyle]="{width:'100%'}" ariaLabel="Fecha vencimiento"/>
         </div>
         <div class="form-field full">
-          <label>Contenido *</label>
-          <textarea pTextarea [(ngModel)]="form.contenido"
+          <label for="com-contenido">Contenido *</label>
+          <textarea pTextarea id="com-contenido" [(ngModel)]="form.contenido"
                     rows="6" style="width:100%; resize:vertical"
                     placeholder="Texto del comunicado..."
                     [class.p-invalid]="cIntento() && !form.contenido.trim()"></textarea>
@@ -227,6 +227,7 @@ export class ComunicadosComponent implements OnInit, OnDestroy {
   comunicados = signal<Comunicado[]>([]);
   loading     = signal(false);
   saving      = signal(false);
+  acusando    = signal(false);
   showDialog  = signal(false);
   cIntento    = signal(false);
   comunicadoSeleccionado = signal<Comunicado | null>(null);
@@ -305,8 +306,13 @@ export class ComunicadosComponent implements OnInit, OnDestroy {
   }
 
   acusarRecibo(c: Comunicado): void {
-    this.api.put<{ ok: boolean }>(`/comunicados/${c.id}/acusar`, {}).pipe(takeUntil(this.destroy$)).subscribe(() => {
-      this.comunicados.update(list => list.map(x => x.id === c.id ? { ...x, acusado_por_mi: true } : x));
+    this.acusando.set(true);
+    this.api.put<{ ok: boolean }>(`/comunicados/${c.id}/acusar`, {}).pipe(takeUntil(this.destroy$)).subscribe({
+      next: () => {
+        this.acusando.set(false);
+        this.comunicados.update(list => list.map(x => x.id === c.id ? { ...x, acusado_por_mi: true } : x));
+      },
+      error: () => this.acusando.set(false),
     });
   }
 
