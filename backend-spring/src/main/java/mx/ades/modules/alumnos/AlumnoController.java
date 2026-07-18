@@ -129,8 +129,16 @@ public class AlumnoController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Alumno no encontrado"));
         verificarPlantelDelAlumno(user, current.getPlantelId());
 
-        // Optimistic locking: si el cliente envía rowVersion, verificar antes de modificar
-        Object rv = body.get("rowVersion");
+        // Optimistic locking: si el cliente envía row_version, verificar antes de modificar.
+        // Hallazgo real 2026-07-18: leía "rowVersion" (camelCase) pero GET /{id} (este mismo
+        // controller, vía AlumnoQueryService#obtener) devuelve "row_version" (snake_case, el
+        // nombre real de la columna vía JdbcTemplate) — un cliente que hiciera round-trip
+        // fiel del GET nunca activaba el chequeo. Ningún caller del frontend envía todavía
+        // ninguna de las dos variantes (alumno-perfil.component.ts no incluye row_version en
+        // su payload de guardar()), así que el chequeo sigue siendo dead code en producción
+        // hasta que el frontend lo adopte explícitamente — corregido el nombre de campo para
+        // que esté listo cuando eso se implemente, sin cambiar el comportamiento hoy.
+        Object rv = body.get("row_version");
         if (rv != null) {
             Integer clientVersion = rv instanceof Number n ? n.intValue() : null;
             if (clientVersion != null && !clientVersion.equals(current.getRowVersion())) {

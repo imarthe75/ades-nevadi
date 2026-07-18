@@ -17,7 +17,12 @@ pydantic-settings==2.7.0
 pydantic[email]
 
 # Autenticación OIDC/JWT
-python-jose[cryptography]==3.4.0
+python-jose[cryptography]==3.5.0
+pyasn1==0.6.3           # pin directo: python-jose 3.4.0 exigía <0.5.0 (bloqueaba el fix de
+                         # PYSEC-2026-2263); 3.5.0 relaja a >=0.5.0. ecdsa (transitivo de
+                         # python-jose, PYSEC-2026-1325 sin fix upstream) no se pinea porque
+                         # su ruta vulnerable (firmas ES256/ES384) nunca se ejecuta aquí —
+                         # security.py fija algorithms=["RS256"] (ver hallazgo 2026-07-06).
 httpx==0.28.1          # introspección JWKS de Authentik
 xmltodict>=0.13.0      # parseo XML→dict para API BBB
 

@@ -77,7 +77,11 @@ public class DireccionesController {
                 "LEFT JOIN ades_estudiantes e ON e.persona_id = per.id " +
                 "LEFT JOIN ades_profesores prof ON prof.persona_id = per.id " +
                 "LEFT JOIN ades_personal_administrativo pa ON pa.persona_id = per.id " +
-                "LEFT JOIN ades_contactos_familiares cf ON cf.tutor_persona_id = per.id AND cf.is_active = TRUE " +
+                // Hallazgo real 2026-07-18: cf.tutor_persona_id nunca existió en
+                // ades_contactos_familiares (columna real: persona_id) — este JOIN lanzaba
+                // 500 (PSQLException: column does not exist) en TODA llamada que pasara por
+                // aquí para una persona sin rol propio (solo tutor/contacto), sin excepción.
+                "LEFT JOIN ades_contactos_familiares cf ON cf.persona_id = per.id AND cf.is_active = TRUE " +
                 "LEFT JOIN ades_estudiantes est2 ON est2.id = cf.estudiante_id " +
                 "WHERE per.id = ? LIMIT 1", UUID.class, personaId);
         if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Persona no encontrada");

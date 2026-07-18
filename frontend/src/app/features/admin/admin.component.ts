@@ -46,6 +46,10 @@ interface UsuarioAdmin {
 interface CicloAdmin {
   id: string; nombre_ciclo: string; nivel_educativo_id: string; nombre_nivel?: string | null;
   fecha_inicio: string; fecha_fin: string; tipo_ciclo: string; es_vigente: boolean;
+  /** "{nombre_ciclo} · {nombre_nivel}" — desambigua ciclos de niveles distintos que
+   *  comparten el mismo nombre_ciclo (ej. "2026-2027" en Primaria y Secundaria).
+   *  Calculado en cargarCiclos(), usado como optionLabel del selector de Ciclo. */
+  label_ciclo_nivel?: string;
 }
 /** Modelo del diálogo de edición — mismo shape que CicloAdmin pero con fechas como Date para p-datepicker. */
 interface CicloEditForm extends Omit<CicloAdmin, 'fecha_inicio' | 'fecha_fin'> {
@@ -1276,8 +1280,9 @@ interface Catalogo {
           @if (!grupoAdminEdit()!.id) {
             <div style="display:flex; flex-direction:column; gap:.35rem">
               <label class="dlg-lbl">Ciclo Escolar *</label>
-              <p-select [options]="ciclos()" [(ngModel)]="grupoAdminEdit()!.ciclo_escolar_id"
-                optionLabel="nombre_ciclo" optionValue="id" placeholder="Seleccionar ciclo"
+              <p-select [options]="ciclos()" [ngModel]="grupoAdminEdit()!.ciclo_escolar_id"
+                (ngModelChange)="onCicloGrupoChange($event)"
+                optionLabel="label_ciclo_nivel" optionValue="id" placeholder="Seleccionar ciclo"
                 [filter]="true" filterPlaceholder="Buscar..."
                 data-testid="select-ciclo" ariaLabel="Ciclo Escolar"/>
             </div>
@@ -1297,13 +1302,21 @@ interface Catalogo {
             </div>
           }
         </div>
-        <ng-template pTemplate="footer">
-          <p-button label="Cancelar" severity="secondary" [text]="true" (onClick)="dlgGrupoAdminVisible.set(false)"
-            data-testid="btn-cancelar" />
-          <p-button label="Guardar" icon="pi pi-save" [loading]="guardandoGrupo()" (onClick)="guardarGrupoAdmin()"
-            data-testid="btn-guardar" />
-        </ng-template>
       }
+      <!-- Bug real 2026-07-18 (GRP-CASCADE-05): este footer vivía dentro del @if de
+           arriba. PrimeNG registra los pTemplate como @ContentChildren al inicializar
+           p-dialog; si el ng-template no está presente en el DOM en ese momento (porque
+           grupoAdminEdit() todavía era null), el footer nunca se pintaba — el botón
+           "Guardar" quedaba inexistente en el DOM para siempre, no solo oculto.
+           Confirmado con diagnóstico dedicado (btn-guardar count: 0 con el diálogo ya
+           abierto). Movido fuera del @if para que exista siempre que exista el propio
+           p-dialog; [disabled] cubre el caso defensivo de grupoAdminEdit() aún null. -->
+      <ng-template pTemplate="footer">
+        <p-button label="Cancelar" severity="secondary" [text]="true" (onClick)="dlgGrupoAdminVisible.set(false)"
+          data-testid="btn-cancelar" />
+        <p-button label="Guardar" icon="pi pi-save" [loading]="guardandoGrupo()" [disabled]="!grupoAdminEdit()"
+          (onClick)="guardarGrupoAdmin()" data-testid="btn-guardar" />
+      </ng-template>
     </p-dialog>
   `,
   styles: [`
@@ -1419,6 +1432,18 @@ export class AdminComponent implements OnInit, OnDestroy {
       !g.nivel_id || g.nivel_id === cicloSeleccionado.nivel_educativo_id
     );
   });
+
+  /**
+   * Bug real 2026-07-18 (GRP-CASCADE-04): `[(ngModel)]` directo sobre
+   * `grupoAdminEdit()!.ciclo_escolar_id` mutaba la propiedad del objeto en el sitio sin
+   * llamar a `grupoAdminEdit.set()/.update()` — el signal nunca se marcaba "dirty", así que
+   * el `computed()` `gradosFiltrados` quedaba con su valor memoizado viejo y el dropdown de
+   * Grado seguía mostrando grados del nivel anterior tras cambiar de Ciclo. Además resetea
+   * `grado_id`: el grado previamente elegido puede no pertenecer al nivel del nuevo ciclo.
+   */
+  onCicloGrupoChange(nuevoCicloId: string): void {
+    this.grupoAdminEdit.update(v => v ? { ...v, ciclo_escolar_id: nuevoCicloId, grado_id: '' } : v);
+  }
 
   loadingUsuarios  = signal(false);
   loadingCiclos    = signal(false);
@@ -1778,6 +1803,12 @@ export class AdminComponent implements OnInit, OnDestroy {
           fecha_inicio_str: (x as any).fecha_inicio?.substring(0, 10) ?? '—',
           fecha_fin_str:    (x as any).fecha_fin?.substring(0, 10) ?? '—',
           vigente_str:      (x as any).es_vigente ? 'Vigente' : '—',
+          // Hallazgo 2026-07-17: dos ciclos de niveles distintos pueden compartir el
+          // mismo nombre_ciclo (ej. "2026-2027" para Primaria Y Secundaria) — sin el
+          // nivel en la etiqueta, el selector de Ciclo del diálogo "Nuevo grupo" muestra
+          // entradas idénticas e indistinguibles, rompiendo la cascada Ciclo→Grado por
+          // Nivel (el usuario no puede saber cuál "2026-2027" está eligiendo).
+          label_ciclo_nivel: `${x.nombre_ciclo}${(x as any).nombre_nivel ? ' · ' + (x as any).nombre_nivel : ''}`,
         }));
         this.ciclos.set(flat as any);
         this.ciclosFiltro.set(c);

@@ -45,9 +45,14 @@ test.describe('B. Cascadas Grupos - Ciclo a Grado filtracion por Nivel', () => {
     await nuevoBtn.click();
     await page.waitForTimeout(1_200);
 
-    // Verifica que el dialog está visible por data-testid
-    const dialog = page.locator('[data-testid="dialog-grupo-admin"]');
-    await expect(dialog).toBeVisible({ timeout: 8000 });
+    // NOTA: no se verifica visibilidad del host `[data-testid="dialog-grupo-admin"]`
+    // (el tag <p-dialog> en sí) — PrimeNG portea el contenido visible del modal a otro
+    // punto del DOM (mismo patrón `overlayAppendTo: 'body'` de app.config.ts), así que
+    // el host queda con tamaño/visibilidad "hidden" según el cómputo de Playwright aunque
+    // el modal esté realmente abierto en pantalla (confirmado con captura real 2026-07-18:
+    // el diálogo "Nuevo Grupo" se ve perfecto pese a que este assert reportaba "hidden").
+    // Se verifica el CONTENIDO real en su lugar, igual que ya hace GRP-CASCADE-02.
+    await expect(page.locator('text=Nuevo Grupo').first()).toBeVisible({ timeout: 8000 });
 
     // Verifica que el formulario está visible
     const form = page.locator('[data-testid="grupo-form"]');
@@ -122,7 +127,7 @@ test.describe('B. Cascadas Grupos - Ciclo a Grado filtracion por Nivel', () => {
 
     // Busca opción que contenga "Primaria"
     const primariaCicloOption = page.locator('.p-select-option, [role="option"]')
-      .filter({ hasText: /Primaria/ })
+      .filter({ hasText: /Primaria/i })
       .first();
 
     // Espera a que sea visible
@@ -195,14 +200,14 @@ test.describe('B. Cascadas Grupos - Ciclo a Grado filtracion por Nivel', () => {
     // 1. Selecciona Ciclo Primaria
     await cicloSelect.click();
     await page.waitForTimeout(600);
-    let option = page.locator('.p-select-option, [role="option"]').filter({ hasText: /Primaria/ }).first();
+    let option = page.locator('.p-select-option, [role="option"]').filter({ hasText: /Primaria/i }).first();
     await option.click();
     await page.waitForTimeout(800);
 
     // 2. Selecciona grado de Primaria
     await gradoSelect.click();
     await page.waitForTimeout(600);
-    option = page.locator('.p-select-option, [role="option"]').filter({ hasText: /Primaria/ }).first();
+    option = page.locator('.p-select-option, [role="option"]').filter({ hasText: /Primaria/i }).first();
     if (await option.isVisible()) {
       await option.click();
       await page.waitForTimeout(600);
@@ -211,7 +216,7 @@ test.describe('B. Cascadas Grupos - Ciclo a Grado filtracion por Nivel', () => {
     // 3. Cambia a Ciclo Secundaria
     await cicloSelect.click();
     await page.waitForTimeout(600);
-    option = page.locator('.p-select-option, [role="option"]').filter({ hasText: /Secundaria/ }).first();
+    option = page.locator('.p-select-option, [role="option"]').filter({ hasText: /Secundaria/i }).first();
     await option.click();
     await page.waitForTimeout(800);
 
@@ -289,14 +294,14 @@ test.describe('B. Cascadas Grupos - Ciclo a Grado filtracion por Nivel', () => {
     // Selecciona ciclo Primaria
     await cicloSelect.click();
     await page.waitForTimeout(600);
-    const primariaCiclo = page.locator('.p-select-option, [role="option"]').filter({ hasText: /Primaria/ }).first();
+    const primariaCiclo = page.locator('.p-select-option, [role="option"]').filter({ hasText: /Primaria/i }).first();
     await primariaCiclo.click();
     await page.waitForTimeout(800);
 
     // Selecciona grado Primaria
     await gradoSelect.click();
     await page.waitForTimeout(600);
-    const primarioGrado = page.locator('.p-select-option, [role="option"]').filter({ hasText: /Primaria.*Primer/ }).first();
+    const primarioGrado = page.locator('.p-select-option, [role="option"]').filter({ hasText: /Primaria.*Primer/i }).first();
     if (await primarioGrado.isVisible()) {
       await primarioGrado.click();
       await page.waitForTimeout(600);
@@ -362,13 +367,13 @@ test.describe('B. Cascadas Grupos - Ciclo a Grado filtracion por Nivel', () => {
 
     await cicloSelect.click();
     await page.waitForTimeout(600);
-    const primariaCiclo = page.locator('.p-select-option, [role="option"]').filter({ hasText: /Primaria/ }).first();
+    const primariaCiclo = page.locator('.p-select-option, [role="option"]').filter({ hasText: /Primaria/i }).first();
     await primariaCiclo.click();
     await page.waitForTimeout(800);
 
     await gradoSelect.click();
     await page.waitForTimeout(600);
-    const primarioGrado = page.locator('.p-select-option, [role="option"]').filter({ hasText: /Primaria/ }).first();
+    const primarioGrado = page.locator('.p-select-option, [role="option"]').filter({ hasText: /Primaria/i }).first();
     if (await primarioGrado.isVisible()) {
       await primarioGrado.click();
       await page.waitForTimeout(600);
@@ -386,13 +391,15 @@ test.describe('B. Cascadas Grupos - Ciclo a Grado filtracion por Nivel', () => {
 
 test.describe('C. Validación Cascada — Estado consistente', () => {
 
-  test('GRP-CASCADE-07 | TypeScript compila sin errores @smoke', async ({ page }) => {
-    // Verificación estática: el código compila
+  test('GRP-CASCADE-07 | La app compila y arranca (sin depender de window.ng) @smoke', async ({ page }) => {
+    // `window.ng` no es una señal fiable: su exposición depende de flags de build de
+    // Angular y no está garantizada en `ng build --configuration production`. Señal real
+    // de que la app compiló y arrancó: la navegación llega a /dashboard (no se queda en
+    // una pantalla de error de bootstrap) y renderiza contenido real, no un DOM vacío.
+    await new LoginPage(page).login(USERS.ADMIN_GLOBAL);
     await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
-    const isAngularRunning = await page.evaluate(() => {
-      return (window as any).ng !== undefined;
-    });
-    expect(isAngularRunning).toBeTruthy();
+    await expect(page.locator('app-root')).not.toBeEmpty({ timeout: 8000 });
+    expect(page.url()).toContain('/dashboard');
     console.log('[INFO] GRP-CASCADE-07: Angular inicializado correctamente');
   });
 });
