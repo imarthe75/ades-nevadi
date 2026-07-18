@@ -469,3 +469,136 @@ Con este cierre, no quedan bugs confirmados sin resolver de esta sesión — sol
 decisiones de negocio/producto ya documentadas (umbral de rate limit, mapeo de labels de
 2 enums, salto de versión de starlette/fastapi, `mvn dependency-check` bloqueado por el
 entorno).
+
+## 13. Sexta pasada — umbral de rate limit corregido
+
+**Solicitado explícitamente por el usuario** ("corrige el umbral de rate limit a algo
+que sea útil para el sistema"), cerrando el punto que §12 había dejado deliberadamente
+como decisión de negocio pendiente.
+
+**Causa raíz identificada, no solo "el número era bajo":** `RateLimitingConfig.java`
+usaba `Refill.intervally(100, Duration.ofMinutes(1))` para el limitador `api`. Ese modo
+repone los 100 tokens de golpe en cada frontera exacta de minuto — si una ráfaga
+legítima (una sola carga de pantalla dispara ~15 llamadas en paralelo: menús, catálogos,
+stats, planteles, notificaciones) agota el bucket a los 5 segundos del minuto, el
+cliente queda bloqueado hasta 55 segundos más, sin importar que el promedio de tráfico
+sea razonable. Esto explica por qué los 429 de §10/§12 aparecían en ráfagas
+concentradas, no distribuidos — el patrón exacto que se había reproducido de forma
+controlada.
+
+**Cambio, dos partes, no solo el número:**
+1. Capacidad 100→300 req/min/IP.
+2. `Refill.intervally`→`Refill.greedy` — reposición continua (~5 tokens/s) en vez de
+   lote único cada 60s.
+
+**[Cierto] Verificado con tres patrones de carga distintos contra el sistema real, no
+solo en el código:**
+- 150 peticiones secuenciales a `/api/v1/planteles`: 0×429 (antes: fallaba en la
+  petición 101).
+- 350 peticiones acumuladas (200 adicionales): 0×429 — confirma que `greedy` absorbe
+  tráfico pausado real sin la espera de "hasta el siguiente minuto exacto".
+- Ráfaga verdaderamente concurrente (500 peticiones, `xargs -P 50`, 50 conexiones
+  simultáneas): 131×200 / 369×429 — el límite **sigue rechazando de verdad** una
+  inundación real. No es un limitador aflojado hasta volverse inútil, sigue cortando
+  abuso genuino.
+- `auth` (login, 5/min) sin cambios — nunca se ha visto disparado por uso legítimo.
+
+`mvn test`: 566/566 verde antes del rebuild. `ades-bff` reconstruido y redesplegado —
+el fix ya está en vivo.
+
+## 14. Séptima pasada — auditoría de llaves únicas faltantes (patrón "una activa por X")
+
+**Solicitado explícitamente por el usuario** ("vuelve a revisar si faltan llaves únicas
+en base de datos"), como continuación deliberadamente más amplia de §12 — ahí solo se
+había buscado el patrón específico de `ades_inscripciones` en funciones PL/pgSQL; esta
+pasada revisó estructuralmente **todas** las tablas `ades_*` con columna `is_active`.
+
+**Metodología y su límite real:** un escaneo automatizado (`DO $$` dinámico sobre
+`information_schema`) que agrupara filas `is_active = TRUE` por cada columna `*_id` y
+reportara grupos con más de 1 fila produjo **~150 resultados — casi todos falsos
+positivos**. La razón: "muchas filas activas comparten el mismo valor de una FK" es el
+comportamiento **normal** de casi cualquier relación uno-a-muchos del esquema (muchos
+`ades_tareas` por `grupo_id`, muchos `ades_horarios` por `profesor_id`, etc.) — no es,
+por sí solo, evidencia de una invariante de negocio violada. El caso real de
+`ades_inscripciones` no calificó por tener "muchas filas activas con la misma FK", sino
+por una regla de negocio específica ("un alumno tiene como máximo una inscripción
+activa"), algo que ningún script genérico puede inferir sin conocimiento del dominio.
+**Aprendizaje explícito:** este tipo de auditoría no escala por automatización — exige
+revisión caso por caso con criterio de negocio. Se descartaron manualmente los ~150
+resultados y se investigaron a fondo los 3 candidatos con forma plausible de "una fila
+activa por contexto":
+
+- **`ades_reinscripcion_ciclo` — NO es un hueco.** Ya tiene
+  `UNIQUE(estudiante_id, ciclo_destino_id)`, la llave natural correcta (un registro de
+  reinscripción por alumno por ciclo destino). Los 2,028 "duplicados" que el script
+  reportó sobre `estudiante_id` a secas son alumnos con reinscripciones en múltiples
+  ciclos a lo largo del tiempo — exactamente lo esperado, no un bug.
+
+- **`ades_esquemas_ponderacion` — hueco real, con evidencia de daño ya ocurrido
+  (inofensivo hasta ahora, pero real).** Nada impedía 2+ esquemas de ponderación
+  "activos" y "vigentes" simultáneos para el mismo contexto
+  (`nivel_educativo_id` + `materia_id`/`plantel_id`/`profesor_id` opcionales).
+  **[Cierto]** — se encontraron 3 pares de duplicados EXACTOS reales: "SEP Primaria —
+  Base", "SEP Secundaria — Base" y "UAEMEX Preparatoria — Base", cada uno con 2 filas
+  activas simultáneas, creadas con 35 minutos de diferencia el 2026-07-12
+  (`04:02:42` y `04:37:10`) — el patrón clásico de un seed que corrió dos veces.
+  Verificado que ambas copias de cada par tienen exactamente los mismos pesos
+  (`examen=70, tarea=20, asistencia=10`), así que **hoy no hay ningún cálculo de
+  calificación incorrecto** — pero el riesgo era real: cualquier consulta tipo
+  `WHERE nivel_educativo_id = ? AND activo = TRUE` sin desempate adicional puede, con
+  un futuro esquema que sí difiera en pesos, elegir arbitrariamente cuál aplicar y
+  calcular calificaciones oficiales con el esquema equivocado sin ningún error
+  visible — la misma forma de falla silenciosa que produjo los 1,612 alumnos
+  duplicados de §11, solo que aquí el radio de impacto serían calificaciones, no
+  inscripciones.
+
+- **`ades_licencias_personal` — hueco real, cero daño ocurrido (verificado, no
+  supuesto).** Nada impedía que la misma persona tuviera 2 licencias `APROBADA` con
+  fechas traslapadas (ej. médica y personal al mismo tiempo) — riesgo de doble conteo
+  de días, doble pago si `con_goce_sueldo`, o el mismo sustituto asignado a dos
+  licencias simultáneas sin que el sistema lo note. **[Cierto]** — consulta directa de
+  traslapes reales sobre toda la tabla (`JOIN` de la tabla consigo misma por
+  `personal_id` con condición de traslape de rango): **0 filas**, confirmado antes de
+  escribir la migración. No hubo reparación de datos que hacer, solo cerrar el hueco
+  estructural antes de que ocurra.
+
+**Corregido con migración `157_constraint_esquema_ponderacion_licencia_unicos.sql`:**
+1. `ades_esquemas_ponderacion`: se desactivaron (`is_active = FALSE`) las 3 copias más
+   recientes de los duplicados confirmados — no se pierde información, los
+   `ades_items_ponderacion` asociados permanecen en la tabla, solo dejan de ser la
+   versión "viva". Después: `CREATE UNIQUE INDEX
+   uq_esquema_ponderacion_contexto_activo ON ades_esquemas_ponderacion
+   (nivel_educativo_id, COALESCE(materia_id, <uuid nil>), COALESCE(plantel_id, <uuid
+   nil>), COALESCE(profesor_id, <uuid nil>)) WHERE activo = TRUE AND is_active = TRUE`.
+   El `COALESCE` a un UUID centinela es necesario porque Postgres trata `NULL <> NULL`
+   a efectos de unicidad — un `UNIQUE INDEX` normal sobre columnas nullable **no**
+   habría detectado el duplicado real que se acaba de reparar (los 3 pares tenían
+   `materia_id`/`plantel_id`/`profesor_id` en `NULL` en ambas filas).
+2. `ades_licencias_personal`: se habilitó la extensión `btree_gist` (contrib estándar
+   de Postgres, sin dependencia externa — cumple Regla Mandatoria #23 de soberanía de
+   datos) y se agregó `EXCLUDE USING gist (personal_id WITH =, daterange(fecha_inicio,
+   fecha_fin, '[]') WITH &&) WHERE (estado = 'APROBADA' AND is_active = TRUE)` — la
+   invariante es un traslape de rango de fechas, no una igualdad simple, por lo que un
+   `UNIQUE INDEX` no puede expresarla; se necesita una restricción de exclusión.
+
+**[Cierto] Ambas restricciones verificadas con pruebas directas de rechazo** (no solo
+"se creó sin error"): un `DO $$` block que intenta insertar un segundo esquema activo
+para el mismo `nivel_educativo_id` (materia/plantel/profesor `NULL`, el caso real
+reparado) recibe `unique_violation` de inmediato; un segundo `DO $$` block que intenta
+insertar 2 licencias `APROBADA` con fechas traslapadas para la misma persona recibe
+`exclusion_violation` de inmediato. Ninguna fila de prueba quedó en la base (los
+bloques revierten por la excepción; confirmado con `SELECT count(*)` posterior = 0).
+
+`mvn test`: 566/566 verde tras aplicar la migración (incluye `LicenciasDomainTest` y
+`EsquemasPonderacionDomainTest`, ambos sin cambios de comportamiento — la restricción es
+puramente de base de datos, ningún código Java dependía de poder crear estos
+duplicados). Migración aplicada directamente contra la base real; no requiere rebuild de
+`ades-bff` (sin cambios de entidad JPA ni de columna nueva).
+
+**Alcance de esta pasada, explícito:** se revisaron a fondo los 3 candidatos con forma
+plausible de invariante "una activa por contexto". No se revisó exhaustivamente el resto
+de las ~150 tablas descartadas por juicio de negocio en la primera pasada del script —
+quedan descartadas por inspección de nombre/patrón, no por una prueba de datos real
+tabla por tabla. Si aparece evidencia futura de un problema similar en otra tabla, el
+patrón de esta sección (agrupar por la llave de negocio real, no por cualquier FK, y
+confirmar con datos antes de escribir la migración) es el que hay que repetir.

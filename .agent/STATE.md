@@ -5363,4 +5363,77 @@ No quedan bugs confirmados sin resolver de esta sesión — solo decisiones de n
 producto ya documentadas (umbral de rate limit, mapeo de labels de 2 enums,
 starlette/fastapi, `mvn dependency-check` bloqueado por el entorno).
 
+## Sesión 2026-07-18 (sesión 8, continuación) — umbral de rate limit corregido + auditoría de llaves únicas faltantes
+
+Usuario pidió dos cosas explícitas: (1) corregir el umbral de rate limit a algo útil
+para el sistema (el punto de negocio que la sesión 7 había dejado pendiente), y (2)
+volver a revisar, de forma más amplia, si faltan llaves únicas en la base de datos.
+
+**Rate limit — corregido y verificado, no solo el número.** Causa raíz real:
+`Refill.intervally(100, Duration.ofMinutes(1))` repone los 100 tokens de golpe en cada
+frontera exacta de minuto — una ráfaga legítima de inicio de sesión (~15 llamadas en
+paralelo por carga de pantalla) podía agotar el bucket a los 5s del minuto y dejar al
+cliente bloqueado hasta 55s más, el motivo real por el que los 429 aparecían en ráfagas
+concentradas. `RateLimitingConfig.java`: capacidad 100→300 + `Refill.intervally`→
+`Refill.greedy` (reposición continua). Verificado con 3 escenarios reales: 150 secuenciales
+(0×429), 350 acumuladas (0×429), ráfaga concurrente real de 500 vía 50 conexiones
+paralelas (131×200/369×429 — sigue cortando abuso real). `auth` (login) sin cambios.
+`mvn test` 566/566 verde; `ades-bff` reconstruido y desplegado, fix en vivo.
+
+**Auditoría de llaves únicas — completada, con un giro metodológico importante.** Un
+primer intento de automatizar la búsqueda (escanear todas las tablas `ades_*` con
+`is_active`, agrupar por cualquier columna `*_id`, reportar grupos >1) produjo ~150
+resultados, prácticamente todos falsos positivos: "muchas filas activas comparten una
+FK" es el comportamiento normal de casi cualquier relación uno-a-muchos del esquema, no
+evidencia de una invariante de negocio rota — la única forma de distinguirlos es
+conocimiento de negocio, no un script genérico. Se descartó el atajo y se revisaron a
+mano los 3 candidatos con forma plausible de "una fila activa por contexto":
+
+- `ades_reinscripcion_ciclo` — **no es un hueco**, ya tiene
+  `UNIQUE(estudiante_id, ciclo_destino_id)`, la llave natural correcta.
+- `ades_esquemas_ponderacion` — **hueco real, con evidencia de haber ocurrido ya**
+  (inofensivo por ahora). 3 pares de esquemas "Base" (SEP Primaria, SEP Secundaria,
+  UAEMEX Preparatoria) duplicados exactos, creados con 35 min de diferencia el
+  2026-07-12 — un seed que corrió dos veces. Mismos pesos en ambas copias (sin daño
+  real hoy), pero el riesgo era el mismo patrón que el hallazgo de los 1,612 alumnos:
+  una consulta sin desempate podía, en el futuro, elegir el esquema equivocado y
+  calcular boletas con pesos incorrectos sin ningún error visible.
+- `ades_licencias_personal` — **hueco real, cero daño ocurrido** (verificado con una
+  consulta de traslapes reales sobre toda la tabla: 0 filas). Nada impedía 2 licencias
+  `APROBADA` con fechas encimadas para la misma persona.
+
+**Corregido con migración `157_constraint_esquema_ponderacion_licencia_unicos.sql`:**
+1. `ades_esquemas_ponderacion`: desactivadas las 3 copias duplicadas más recientes +
+   `CREATE UNIQUE INDEX uq_esquema_ponderacion_contexto_activo` sobre
+   `(nivel_educativo_id, COALESCE(materia_id,∅), COALESCE(plantel_id,∅),
+   COALESCE(profesor_id,∅)) WHERE activo AND is_active` — el `COALESCE` a un UUID
+   centinela es necesario porque `NULL <> NULL` en Postgres habría dejado pasar
+   exactamente el mismo duplicado que se acaba de reparar.
+2. `ades_licencias_personal`: extensión `btree_gist` (contrib estándar, sin
+   dependencia externa — Regla #23) + `EXCLUDE USING gist (personal_id WITH =,
+   daterange(fecha_inicio, fecha_fin, '[]') WITH &&) WHERE (estado='APROBADA' AND
+   is_active)` — la invariante es traslape de rango, no igualdad simple, por eso
+   `EXCLUDE` y no `UNIQUE`.
+
+Ambas restricciones verificadas con pruebas directas de rechazo (`DO $$ ...
+EXCEPTION WHEN unique_violation` / `exclusion_violation`), sin dejar filas de prueba.
+`mvn test` 566/566 verde tras aplicar (incluye `EsquemasPonderacionDomainTest` y
+`LicenciasDomainTest`, sin cambios de comportamiento). No requirió rebuild de
+`ades-bff` (solo restricción de BD, sin cambio de entidad JPA).
+
+**Balance de esta sesión:** cierra el único punto de negocio que quedaba abierto
+(rate limit) y extiende la defensa estructural de la sesión 7 (índice único de
+inscripciones) a los otros 2 lugares reales donde el mismo patrón podía repetirse —
+uno con evidencia de haber ocurrido ya (esquemas de ponderación), otro puramente
+preventivo (licencias). Aprendizaje explícito para la próxima vez que se pida este
+tipo de auditoría: no automatizar por "muchas filas activas comparten FK" — genera
+demasiado ruido; hay que agrupar por la llave de negocio real y confirmar con datos
+antes de escribir una migración. Reportes actualizados:
+`docs/hallazgos/2026-07-18_reporte_tecnico_auditorias_profundas.md` (§13-14) y
+`docs/hallazgos/2026-07-18_reporte_ejecutivo_auditorias_profundas.md`. **Sin commit**
+— no hubo instrucción explícita de commit en el mismo prompt (Regla Mandatoria #21);
+migración 157 y los 2 reportes/STATE.md viven en disco, pero la migración SÍ está
+aplicada en la base de datos real y el rebuild de `ades-bff` (rate limit) SÍ está
+desplegado — ambas cosas afectan el sistema en vivo aunque el código fuente no esté
+comiteado todavía.
 

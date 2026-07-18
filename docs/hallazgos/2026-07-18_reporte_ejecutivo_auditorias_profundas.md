@@ -28,14 +28,18 @@ aparecieron porque alguien realmente *usó* la función real — creó un usuari
 navegó a la pantalla real, miró los datos reales. Vale la pena que esto se convierta en una
 práctica regular, no en algo que solo pasa cuando se le pide explícitamente.
 
-Lo tercero más importante: el límite de peticiones por minuto que se agregó ayer (como parte
-de cerrar otro hallazgo de seguridad) es probablemente **demasiado estricto para uso real**:
+Lo tercero más importante: el límite de peticiones por minuto que se había agregado como
+parte de cerrar otro hallazgo de seguridad era **demasiado estricto para uso real** —
 navegar unas pocas pantallas seguidas, algo que cualquier persona del staff haría en cinco
-minutos normales de trabajo, ya alcanza el límite y empieza a recibir errores. Esto no es una
-sospecha — se reprodujo de forma controlada y repetible. No se tocó el número porque cambiarlo
-es una decisión de negocio (qué tanto abuso se tolera a cambio de no molestar a usuarios
-legítimos), no algo que deba decidir unilateralmente quien corrige bugs. Alguien del equipo
-necesita revisar esto con datos reales de tráfico antes de liberar el sistema.
+minutos normales de trabajo, ya alcanzaba el límite y empezaba a recibir errores. No era una
+sospecha: se reprodujo de forma controlada y repetible. **Ya está corregido y verificado.**
+No era solo cuestión de subir el número — la forma en que se reponía el límite tenía un
+defecto de diseño (todo de golpe cada 60 segundos exactos, en vez de continuo), que era la
+causa real de por qué los errores aparecían en ráfagas concentradas. Se corrigieron ambas
+cosas y se probó con tres escenarios distintos: uso normal pausado (sin errores), uso
+intensivo sostenido (sin errores), y una inundación real y deliberada de peticiones
+simultáneas — que sigue siendo bloqueada en su mayoría, confirmando que el límite sigue
+cumpliendo su función de seguridad, solo que ahora calibrado a tráfico real.
 
 El resto de lo que se arregló es, en comparación, buenas noticias.
 
@@ -76,7 +80,6 @@ El resto de lo que se arregló es, en comparación, buenas noticias.
 
 ## Lo que sigue pendiente y por qué
 
-- **El límite de peticiones por minuto necesita revisión** — ver arriba.
 - **Una actualización de seguridad grande sigue pendiente a propósito** — requiere su
   propia sesión dedicada con plan de reversión, no debe mezclarse con otras correcciones.
 - **Un análisis de seguridad de las librerías Java del backend principal sigue sin poder
@@ -133,15 +136,51 @@ había quedado pendiente: un nombre de columna equivocado en el código, del mis
 error que causó el problema de los 1,612 alumnos, pero en un lugar distinto. Ya no quedan
 bugs confirmados sin corregir de todo lo revisado hoy.
 
+## Se pidió también revisar si faltan más reglas de este tipo en el resto de la base de datos
+
+Después de cerrar el caso de los 1,612 alumnos con una regla estructural (arriba), se pidió
+extender la búsqueda a toda la base de datos, no solo a inscripciones: ¿hay otras entidades
+donde "solo debería existir una activa a la vez" y nada lo esté garantizando? Un primer
+intento de automatizar esta búsqueda no funcionó — devolvió cerca de 150 falsos positivos,
+porque "muchas filas activas relacionadas" es completamente normal en la mayoría de las
+tablas (muchas tareas por grupo, muchos horarios por profesor) y no distingue eso de una
+regla de negocio real violada. Se descartó el atajo y se revisó a mano cada candidato con
+forma plausible del mismo problema. Resultado: dos huecos reales, ambos ya cerrados.
+
+- **Los esquemas de calificación (qué porcentaje vale examen, tarea, asistencia) tenían el
+  mismo hueco que causó el problema de los 1,612 alumnos — con evidencia de que ya había
+  ocurrido, aunque sin consecuencia visible hasta ahora.** Se encontraron 3 pares de
+  esquemas "base" (Primaria SEP, Secundaria SEP, Preparatoria UAEMEX) duplicados por
+  completo, creados con 35 minutos de diferencia — todo indica que un script de carga
+  inicial corrió dos veces sin que nadie lo notara. Por suerte, ambas copias de cada par
+  tenían exactamente los mismos porcentajes, así que ninguna calificación se calculó mal.
+  Pero el riesgo era real: si en el futuro alguien hubiera creado una segunda versión con
+  porcentajes distintos, el sistema podía haber elegido cuál usar de forma arbitraria y
+  calcular boletas oficiales con el esquema equivocado, sin ningún aviso de error — el
+  mismo tipo de falla silenciosa que el hallazgo principal de hoy. Ya está corregido: se
+  eliminaron las copias duplicadas y se agregó una regla en la base de datos que hace
+  imposible que vuelva a pasar.
+- **El personal puede solicitar licencias (médica, personal, maternidad, etc.) y nada
+  impedía que a la misma persona se le aprobaran dos licencias con fechas encimadas** —
+  ej. una licencia médica y una personal cubriendo los mismos días, lo que podría llevar a
+  contar mal los días de ausencia o pagar de más. Se revisaron todos los datos reales: no
+  había ningún caso así ocurrido todavía, así que no hubo que corregir nada retroactivo.
+  Se agregó la regla en la base de datos para que sea imposible que ocurra de ahora en
+  adelante.
+
 ## Balance
 
 En el camino de todo el día aparecieron 6 bugs reales de backend — los 6 ya corregidos y
 verificados contra el sistema real, incluyendo la caída total de boletas, los 1,612 alumnos
 con datos duplicados (más el mismo error cerrado en un segundo lugar antes de que causara
-daño), y la falla de subida de documentos. Sigue en pie un solo punto para decidir antes de
-liberar el sistema, y es una decisión de negocio, no un bug: el límite de peticiones que se
-endureció esta misma sesión por motivos de seguridad puede estar, sin querer, poniendo un
-techo demasiado bajo al uso normal del sistema.
+daño), y la falla de subida de documentos. El límite de peticiones por minuto, que había
+quedado como el único punto pendiente de una vuelta anterior de este reporte, ya está
+corregido y probado. La revisión final de reglas de base de datos encontró y cerró dos huecos
+más del mismo tipo (esquemas de calificación duplicados, licencias de personal sin protección
+contra traslape de fechas) — ninguno causó daño real en datos existentes, pero ambos podían
+haberlo hecho en cualquier momento futuro. No queda ningún hallazgo abierto de esta sesión que
+no sea una decisión de negocio ya documentada (actualización mayor de seguridad diferida a
+propósito, dos análisis bloqueados por el entorno sin salida a internet).
 
 Ningún hallazgo de este reporte se da por corregido sin haberlo probado contra el sistema
 real corriendo — incluyendo el descubrimiento, dos veces en el mismo día, de que bloques
@@ -150,6 +189,8 @@ los 1,612 alumnos duplicados, que ninguna prueba automatizada ni revisión de c�
 forma de atrapar porque nadie había mirado la pantalla real después de la reinscripción de
 ayer. Ese último hallazgo ya no puede volver a pasar desapercibido: quedó una regla en la
 base de datos que lo impide estructuralmente, no solo un parche puntual en el código que lo
-causó. El patrón se repite: revisar el sistema real, no solo el código, sigue siendo lo que
-encuentra los problemas que de verdad importan — y cuando se encuentra uno, vale la pena
-preguntar "¿dónde más podría estar pasando esto?" antes de darlo por cerrado.
+causó — y la misma protección se extendió hoy a los dos huecos nuevos que aparecieron al
+buscar el mismo patrón en el resto del sistema. El patrón se repite: revisar el sistema real,
+no solo el código, sigue siendo lo que encuentra los problemas que de verdad importan — y
+cuando se encuentra uno, vale la pena preguntar "¿dónde más podría estar pasando esto?" antes
+de darlo por cerrado.
