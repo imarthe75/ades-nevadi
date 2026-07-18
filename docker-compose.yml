@@ -384,7 +384,14 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256M
+          # 256M→512M (2026-07-18): con 256M, un solo proceso pytest ejecutando
+          # test_rate_limit_expediente_read (101 requests secuenciales dentro del
+          # mismo proceso) moría por OOM del cgroup — confirmado con `docker stats`
+          # (baseline ~126 MiB/256 MiB = 49% ya en reposo). weasyprint (boletas PDF)
+          # y las llamadas al LLM del chatbot también son puntas de memoria reales,
+          # no solo el caso de test. Servidor tiene 11 GB con ~5.8 GB libres — hay
+          # margen de sobra (ver `free -h`).
+          memory: 512M
 
   # ---------------------------------------------------------------------------
   # ADES BFF — Spring Boot backend

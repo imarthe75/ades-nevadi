@@ -16,10 +16,8 @@ cada momento.**
 - ~~`GRP-CASCADE-05` (E2E) sigue fallando.~~ **Corregido, ver §9.**
 - ~~`06-edge-cases.spec.ts`: 18/20 tests siguen fallando.~~ **Reescrito a fondo, 14/23
   verde, ver §9.**
-- **Muestreo manual R-21 (heurísticas cognitivas #2/#4/#6/#7/#8) — sigue sin iniciar.** Un
-  sub-agente dedicado a esto murió por límite de cuota de la API antes de producir ningún
-  hallazgo verificable; no se reintentó manualmente por alcance, ni en esta pasada ni en
-  la anterior.
+- ~~Muestreo manual R-21 — sigue sin iniciar.~~ **Completado, ver §11 — y encontró un bug
+  crítico de datos en producción que ninguna otra técnica de esta sesión había atrapado.**
 - **`starlette`/`fastapi` con 11 CVEs sin corregir** (`pip-audit` real, ver §3) —
   deliberadamente no tocado. Cerrarlos exige saltar ~24 versiones menores de FastAPI y un
   salto de versión mayor de starlette (0.x→1.x); sin ambiente de staging, ese salto necesita
@@ -341,3 +339,74 @@ pasan de 500 a sus respuestas correctas. `ades-api` reconstruido y desplegado. D
 propio test enviaba `template_id`/`periodo` como JSON body — el endpoint real (y el frontend
 real, `reportes.component.ts#generarPdf`) siempre los esperó como query params; corregido el
 test para reflejar el contrato real, no al revés.
+
+## 11. Cuarta pasada (misma fecha, continuación) — memoria de `ades-api`, R-21, bug crítico de datos
+
+**Memoria de `ades-api` ampliada 256M→512M** (`docker-compose.yml`, `deploy.resources.limits.memory`).
+**[Cierto]** — `docker stats` mostraba ~126 MiB/256 MiB (49%) ya en reposo antes de correr
+ningún test; `test_rate_limit_expediente_read` (101 requests secuenciales en un solo proceso)
+moría por OOM del cgroup con el límite viejo. Servidor tiene 11 GB con ~5.8 GB libres
+(`free -h`, verificado antes de tocar el límite) — margen amplio para 512M.
+
+**Segundo bug real encontrado al verificar la suite completa junta:** incluso con más
+memoria, 2 de 6 tests fallaban con `RuntimeError: Event loop is closed`. **[Cierto]** —
+causa: `app.core.database.engine` (SQLAlchemy async) es un singleton a nivel de módulo, pero
+pytest-asyncio con scope `function` (default) crea un event loop NUEVO por test — el engine
+queda atado al loop del primer test, y el segundo test revienta al reusar una conexión
+pooleada de un loop ya cerrado. Corregido con `backend/pytest.ini`
+(`asyncio_default_fixture_loop_scope = session`, `asyncio_default_test_loop_scope = session`).
+**Resultado: 6/6 tests IDOR pasan juntos, en un solo proceso pytest, reproducido dos veces.**
+Verificado que no rompe `test_boleta.py` (5/7 corren sin regresión, 2 excluidas por ser
+intensivas en memoria — generación real de PDF — no relacionadas con este cambio).
+
+**R-21 — muestreo manual de heurísticas #2/#4/#6/#7/#8, contra `https://ades.setag.mx` real,
+11 pantallas** (Dashboard, Alumnos + diálogo alta, Calificaciones, Reinscripción,
+Certificados, Horarios, Conducta, Reportes, Profesores, Admin). Capturas reales, no solo
+lectura de código — metodología: `.agent/skills/frontend-heuristicas-audit/SKILL.md`.
+
+| # | Heurística | Veredicto | Evidencia |
+|---|---|---|---|
+| 2 | Terminología real | **[Cierto]** Mayormente sólida, con un hallazgo real | SEP/UAEMEX correcto en toda la app (CURP, matrícula, Reinscripción, Boleta Oficial). Pero 2 pantallas muestran enums crudos sin traducir: Admin→columna "ROL" (`ADMIN_GLOBAL` en vez de "Administrador Global"), Certificados→columna "TIPO" (`CERTIFICADO_NIVEL`). No corregido — requiere mapeo de labels, tarea de producto. |
+| 4 | Consistencia | **[Cierto]** Fuerte | Patrón de grid (filtros por columna, paginación, Importar/Exportar/Nuevo-X) idéntico en Alumnos/Profesores/Conducta/Reinscripción. Toolbar global consistente en las 11 pantallas. |
+| 6 | Reconocimiento vs. recuerdo | **[Cierto]** Bueno | Dashboard usa nombres reales de plantel junto al código (Metepec / MET-NVD-001); listas muestran nombre+contexto, no solo IDs. |
+| 7 | Flexibilidad | **[Cierto]** Bueno | 7 `p-autocomplete` en Alumnos; filtros por columna; CSV/Excel import+export en la mayoría de pantallas; opción bulk "Todos los periodos" en Reportes; tabs para modos múltiples. |
+| 8 | Diseño minimalista | **[Cierto]** Bueno | Formularios cortos con ayuda inline (ejemplos, contador de caracteres); estados vacíos con mensaje guía, no solo "sin datos". Certificados es la pantalla más densa (10 columnas), justificado por su función de auditoría. |
+
+**Hallazgo crítico — el más severo de toda la sesión, encontrado fuera del alcance original
+de R-21:** durante la captura de la pantalla de Alumnos apareció un patrón de filas
+duplicadas — cada alumno promovido en la reinscripción masiva del 07-17 aparecía dos veces,
+con grado distinto en cada fila. **[Cierto]**, confirmado con SQL directo antes de tocar
+nada: exactamente **1,612 alumnos** con 2 filas `is_active=TRUE` simultáneas en
+`ades_inscripciones` — coincide EXACTO con el conteo de "promovidos" que la función de
+reinscripción masiva reportó el 07-17. Causa raíz en
+`cerrar_ciclo_sep_conjunto_y_promover()` (mig. 153, escrita en la sesión 4 de este mismo
+día): el `INSERT` de la nueva inscripción (ciclo destino) nunca iba acompañado de un
+`UPDATE ... SET is_active = FALSE` sobre la inscripción de origen.
+
+Corregido con migración 155, en dos partes:
+1. `CREATE OR REPLACE FUNCTION` — agrega el `UPDATE` que faltaba (usando el `id` devuelto
+   por `RETURNING` del `INSERT`, condicionado a que la inserción realmente haya ocurrido —
+   el `ON CONFLICT DO NOTHING` existente podía no insertar nada).
+2. Reparación de datos, con backup real tomado primero
+   (`backups/pre_fix_inscripciones_duplicadas_20260718_174322.dump`, 175 MB, verificado):
+   `UPDATE ades_inscripciones SET is_active = FALSE` sobre las filas huérfanas (ciclo ya no
+   vigente), con una cláusula `EXISTS` de seguridad que exige que el alumno tenga OTRA
+   inscripción activa en un ciclo vigente — nunca deja a nadie con cero inscripciones
+   activas por este UPDATE.
+
+**[Cierto]**, verificado en 3 niveles independientes tras aplicar la migración:
+- SQL: `UPDATE 1612` exacto (coincide con el diagnóstico); 0 alumnos con duplicados
+  restantes; conteo de alumnos activos correcto (2,041).
+- UI real: captura de pantalla antes/después de `https://ades.setag.mx/alumnos` — el
+  alumno de ejemplo ("Cristian Acosta Romero") pasó de aparecer 2 veces (Segundo semestre Y
+  Tercer semestre) a aparecer 1 vez (Tercer semestre, el grado correcto post-promoción); el
+  contador de "alumno(s) registrado(s)" pasó de 3,653 (inflado por duplicados) a 2,041
+  (coincide con el dashboard).
+- Caso puntual verificado con SQL: la fila del ciclo "26B" (nuevo) quedó `is_active=TRUE`,
+  la del ciclo "25B" (viejo) quedó `is_active=FALSE` — exactamente el estado esperado.
+
+Este bug llevaba **desde el 07-17 (fecha de la reinscripción masiva real) hasta el momento
+de este hallazgo hoy** afectando datos reales de producción sin que ninguna prueba
+automatizada ni revisión de código lo detectara — se encontró exclusivamente por mirar la
+pantalla real durante un muestreo de heurísticas cognitivas, no por una auditoría dirigida a
+datos ni a la función de reinscripción.

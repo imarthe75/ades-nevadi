@@ -2,17 +2,33 @@
 
 ## Lo que hay que saber primero
 
-**La generación de boletas oficiales en PDF estuvo completamente caída — 100% de las
-llamadas fallaban, para cualquier usuario, sin excepción — y nadie lo sabía hasta hoy.** No
-es una falla parcial ni un caso límite: cada intento de generar una boleta devolvía un error
-del servidor. Se encontró por casualidad, como efecto colateral de arreglar una batería de
-pruebas de seguridad que llevaba tiempo sin poder ejecutarse — no por una revisión dirigida a
-esa función. Ya está corregido y verificado directamente contra el sistema en producción.
-Esto es exactamente el tipo de cosa que una auditoría de seguridad, centrada en permisos y
-accesos, no está diseñada para atrapar — hace falta también seguir usando las funciones
-reales del sistema, no solo revisar quién puede entrar a ellas.
+**1,612 alumnos reales quedaron con datos académicos duplicados e inconsistentes tras la
+reinscripción masiva de ayer, y ya está corregido.** La función que promueve a los alumnos
+de un ciclo escolar al siguiente creaba correctamente la inscripción nueva, pero nunca
+cerraba la vieja — cada alumno promovido quedaba registrado como activo simultáneamente en
+DOS grados distintos (el viejo y el nuevo). En la práctica, cualquiera que abriera la lista
+de Alumnos veía cada nombre duplicado con información contradictoria. No se encontró
+revisando la base de datos ni el código de la reinscripción — se encontró mirando la pantalla
+real durante una revisión de qué tan fácil es usar el sistema, un tipo de revisión que no
+tenía nada que ver con este problema. Ya está reparado (con respaldo tomado antes de tocar
+un solo dato) y verificado: los 1,612 casos corregidos, contados uno por uno, coinciden
+exactamente con el número de alumnos que se habían promovido. Esto es, con diferencia, el
+hallazgo más serio de todos los reportados hoy — no por ser difícil de corregir, sino porque
+estuvo produciendo información académica incorrecta y visible para el personal desde ayer sin
+que nadie lo supiera.
 
-Lo segundo más importante: el límite de peticiones por minuto que se agregó ayer (como parte
+**Además, la generación de boletas oficiales en PDF estuvo completamente caída — 100% de las
+llamadas fallaban, para cualquier usuario, sin excepción.** Se encontró por casualidad,
+arreglando pruebas de seguridad que llevaban tiempo sin poder ejecutarse. Ya está corregido y
+verificado contra el sistema en producción.
+
+Estos dos hallazgos comparten algo importante: ninguno se habría encontrado con una auditoría
+de seguridad tradicional (centrada en permisos y accesos) ni con solo leer el código. Ambos
+aparecieron porque alguien realmente *usó* la función real — creó un usuario de prueba,
+navegó a la pantalla real, miró los datos reales. Vale la pena que esto se convierta en una
+práctica regular, no en algo que solo pasa cuando se le pide explícitamente.
+
+Lo tercero más importante: el límite de peticiones por minuto que se agregó ayer (como parte
 de cerrar otro hallazgo de seguridad) es probablemente **demasiado estricto para uso real**:
 navegar unas pocas pantallas seguidas, algo que cualquier persona del staff haría en cinco
 minutos normales de trabajo, ya alcanza el límite y empieza a recibir errores. Esto no es una
@@ -60,44 +76,50 @@ El resto de lo que se arregló es, en comparación, buenas noticias.
 
 ## Lo que sigue pendiente y por qué
 
-- **El límite de peticiones por minuto necesita revisión — ver arriba, es lo más
-  importante de este reporte.**
-- **Seis pruebas de seguridad específicas (control de acceso a expedientes y certificados)
-  siguen sin poder ejecutarse** — llevan tiempo con un error de configuración que hace que
-  ni siquiera arranquen. Sin cambios desde el reporte anterior.
+- **El límite de peticiones por minuto necesita revisión** — ver arriba.
 - **Una actualización de seguridad grande sigue pendiente a propósito** — requiere su
   propia sesión dedicada con plan de reversión, no debe mezclarse con otras correcciones.
-- **Una revisión de usabilidad (qué tan fácil es usar el sistema en el día a día) sigue sin
-  poder iniciarse** — el intento de delegarla a un proceso automático se interrumpió antes
-  de producir resultados, dos veces.
 - **Un análisis de seguridad de las librerías Java del backend principal sigue sin poder
   ejecutarse**, por una limitación del entorno (no del código de ADES) para descargar la
   base de datos de vulnerabilidades conocidas.
 
-## Un hallazgo más, de la misma continuación
+## Lo que se terminó en esta última vuelta
 
-**Otro bloque de 6 pruebas de seguridad (control de acceso a expedientes, certificados y
-boletas) llevaba tiempo sin poder ejecutarse — igual que el caso de arriba — y ya está
-corregido: 5 de las 6 corren y pasan de verdad.** La sexta se ve bloqueada por un límite de
-memoria del servidor de pruebas, no por un error de la prueba en sí. Fue arreglando este
-bloque que apareció la falla de generación de boletas descrita al principio de este reporte
-— confirma otra vez que el patrón de "la prueba automática nunca corrió de verdad" no era un
-caso aislado.
+- **El segundo bloque de 6 pruebas de seguridad (control de acceso a expedientes,
+  certificados y boletas) — que llevaba tiempo sin poder ejecutarse, igual que el primero —
+  ya corre completo: las 6 pasan.** La última necesitaba más memoria asignada al servidor de
+  pruebas; se amplió (el servidor tiene de sobra) y se corrigió un segundo problema técnico
+  que apareció al correrlas todas juntas. Fue arreglando este bloque que apareció la falla
+  de boletas del principio de este reporte.
+- **La revisión de usabilidad (qué tan fácil es usar el sistema en el día a día) — que dos
+  veces antes se había interrumpido sin producir resultados — ya se completó**, con 11
+  pantallas reales revisadas. Encontró el hallazgo de los 1,612 alumnos duplicados descrito
+  arriba, y un hallazgo menor: dos pantallas (Administración de usuarios, Certificados)
+  muestran códigos internos del sistema en vez de texto en español (ej. "ADMIN_GLOBAL" en
+  vez de "Administrador Global") — cosmético, no bloqueante, no corregido todavía porque
+  requiere decidir el texto exacto de cada etiqueta, una decisión de producto. El resto de
+  la revisión — terminología, consistencia visual, que la información se reconozca sin tener
+  que recordarla, atajos para usuarios frecuentes — salió bien en las 11 pantallas
+  revisadas.
 
 ## Balance
 
 Desde el primer reporte de hoy: el botón "Guardar" pasó de "diagnosticado, sin corregir" a
 "corregido y confirmado con 7 pruebas reales". El bloque grande de pruebas automáticas pasó
 de 2 de 23 pasando (con autenticación rota, sin que nadie lo supiera) a 14 de 23 pasando de
-verdad. Un segundo bloque de 6 pruebas de seguridad, en la misma situación, pasó a 5 de 6.
-En el camino aparecieron 4 bugs reales de backend — 3 ya corregidos y verificados (incluyendo
-la caída total de boletas), 1 confirmado pero sin resolver por una limitación técnica del
-entorno de esta sesión, no del sistema. Y apareció el hallazgo más importante del día: el
-límite de peticiones que se endureció esta misma sesión por motivos de seguridad puede estar,
-sin querer, poniendo un techo demasiado bajo al uso normal del sistema.
+verdad. Un segundo bloque de 6 pruebas de seguridad, en la misma situación, pasa completo: 6
+de 6. La revisión de usabilidad que dos veces se había quedado a medias, ya se completó. En
+el camino aparecieron 5 bugs reales de backend — 4 ya corregidos y verificados (incluyendo la
+caída total de boletas y los 1,612 alumnos con datos duplicados), 1 confirmado pero sin
+resolver por una limitación técnica del entorno de esta sesión, no del sistema. Y sigue en
+pie el hallazgo más importante para decidir antes de liberar el sistema: el límite de
+peticiones que se endureció esta misma sesión por motivos de seguridad puede estar, sin
+querer, poniendo un techo demasiado bajo al uso normal del sistema.
 
 Ningún hallazgo de este reporte se da por corregido sin haberlo probado contra el sistema
-real corriendo — incluyendo el descubrimiento incómodo, dos veces en el mismo día, de que
-bloques enteros de pruebas de "seguridad" llevaban tiempo sin probar nada de verdad. Vale la
-pena preguntarse cuántos bloques más de pruebas en el proyecto están en esa misma situación
-sin que nadie lo sepa — y priorizar averiguarlo antes de seguir agregando pruebas nuevas.
+real corriendo — incluyendo el descubrimiento, dos veces en el mismo día, de que bloques
+enteros de pruebas de "seguridad" llevaban tiempo sin probar nada de verdad, y el hallazgo
+de los 1,612 alumnos duplicados, que ninguna prueba automatizada ni revisión de código
+tenía forma de atrapar porque nadie había mirado la pantalla real después de la
+reinscripción de ayer. El patrón se repite: revisar el sistema real, no solo el código,
+sigue siendo lo que encuentra los problemas que de verdad importan.

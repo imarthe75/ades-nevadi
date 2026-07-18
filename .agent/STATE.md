@@ -5216,4 +5216,85 @@ efecto colateral de arreglar la cobertura de tests de seguridad — otra confirm
 correr las pruebas de verdad contra el sistema real sigue encontrando fallas que ninguna
 revisión de código habría detectado.
 
+---
+
+## Sesión 2026-07-18 (sesión 6, continuación) — memoria de ades-api, R-21, y bug crítico de datos duplicados
+
+Usuario pidió atacar R-21, corregir el bug de memoria (OOM en `test_rate_limit_expediente_read`)
+ampliando memoria si hace falta, y terminar la documentación faltante.
+
+**Memoria de `ades-api` ampliada 256M→512M** (`docker-compose.yml`) — con 256M el proceso
+moría por OOM del cgroup corriendo `test_rate_limit_expediente_read` (101 requests
+secuenciales) en solitario, y con CUALQUIER otro test en el mismo proceso pytest. Servidor
+tiene 11 GB con ~5.8 GB libres — margen de sobra, verificado con `free -h` antes de tocar el
+límite. **Segundo bug real encontrado al intentar correr los 6 tests IDOR juntos**: incluso
+con más memoria, 2 tests fallaban con `RuntimeError: Event loop is closed` — el engine
+async de SQLAlchemy (singleton a nivel de módulo) quedaba atado al event loop del PRIMER
+test (pytest-asyncio usa scope `function` por defecto, un loop nuevo por test). Corregido
+con `backend/pytest.ini` (`asyncio_default_fixture_loop_scope = session`). **Resultado: los
+6/6 tests IDOR pasan juntos, en un solo proceso, de forma reproducible.**
+
+**R-21 — muestreo manual de heurísticas #2/#4/#6/#7/#8, ejecutado contra `ades.setag.mx`
+real (11 pantallas: Dashboard, Alumnos+diálogo alta, Calificaciones, Reinscripción,
+Certificados, Horarios, Conducta, Reportes, Profesores, Admin).**
+
+- **#2 Terminología real: mayormente sólida, con un patrón real de degradación
+  encontrado.** SEP/UAEMEX se usa correctamente en toda la app (CURP, matrícula, Apellido
+  paterno/materno, Reinscripción, Boleta Oficial, "incidentes disciplinarios/sanciones/
+  planes de mejora" en Conducta). **Pero** se filtran valores de enum crudos del backend a
+  la UI sin traducir, en al menos 2 pantallas: columna "ROL" en Admin muestra
+  `ADMIN_GLOBAL`/`COORDINADOR_ADMINISTRATIVO` en vez de "Administrador Global"/
+  "Coordinador Administrativo"; columna "TIPO" en Certificados muestra
+  `CERTIFICADO_NIVEL` en vez de una etiqueta legible. No corregido en esta pasada (fuera
+  de scope de una auditoría de heurísticas — requiere decidir un mapeo de labels, tarea de
+  producto/UX, no un bug puntual).
+- **#4 Consistencia: fuerte.** El patrón de grid (filtros por columna, paginación,
+  Importar/Exportar/Nuevo-X arriba a la derecha) es idéntico entre Alumnos, Profesores,
+  Conducta, Reinscripción. El toolbar global (Plantel/Nivel/Ciclo/Grado/Grupo) está
+  presente y es consistente en las 11 pantallas muestreadas.
+- **#6 Reconocimiento vs. recuerdo: bueno.** El dashboard muestra nombres reales de
+  planteles, no solo códigos (Metepec/Tenancingo/Ixtapan de la Sal junto a MET-NVD-001
+  etc.); las listas muestran nombre completo + contexto (plantel, nivel, grado), no solo
+  IDs; boletas/certificados muestran el nombre del alumno junto al folio.
+- **#7 Flexibilidad: bueno.** 7 componentes `p-autocomplete` detectados solo en la
+  pantalla de Alumnos; filtros por columna en cada grid; exportación CSV/Excel en casi
+  todas las pantallas; importación masiva CSV/Excel en Alumnos/Profesores/Admin; opción
+  "Todos los periodos" (bulk) en Reportes; tabs para organizar modos múltiples (Reportes:
+  Individual/Grupo/Plantillas/Subir Plantilla).
+- **#8 Diseño minimalista: bueno.** Dashboards no sobrecargados, formularios cortos con
+  ayuda contextual inline (ej. "Ej: Juan Carlos", contador de caracteres, texto de ayuda
+  bajo cada campo en "Nuevo Alumno"), estados vacíos claros ("Sin registros", mensajes guía
+  como "Selecciona un contexto con permisos de coordinación para ejecutar el solver").
+  Certificados es la pantalla más densa (10 columnas) pero es apropiado para su función de
+  auditoría/trazabilidad.
+
+**Hallazgo crítico real, fuera del alcance original de R-21 pero encontrado durante el
+muestreo — el más importante de esta sesión:** la lista de Alumnos mostraba cada alumno
+promovido en la reinscripción masiva del 2026-07-17 **duplicado**, con grado distinto en
+cada fila (ej. "Cristian Acosta Romero" aparecía con "Segundo semestre" Y "Tercer
+semestre" simultáneamente). Confirmado en BD: **exactamente 1,612 alumnos** con 2
+inscripciones activas simultáneas — el mismo número exacto reportado como "promovidos" por
+`cerrar_ciclo_sep_conjunto_y_promover()` (mig. 153, escrita en la sesión 4 de este mismo
+día). Causa raíz: la función insertaba la inscripción del ciclo destino pero **nunca
+desactivaba la inscripción del ciclo origen**. Corregido con migración 155:
+1) `CREATE OR REPLACE` de la función agregando el `UPDATE ... SET is_active = FALSE` que
+faltaba (para la próxima promoción, ciclo 2027-2028); 2) reparación de datos — backup real
+tomado primero (`backups/pre_fix_inscripciones_duplicadas_*.dump`), luego
+`UPDATE ades_inscripciones SET is_active = FALSE` para las 1,612 filas huérfanas, con
+verificación de seguridad (`EXISTS` sub-query) que exige que el alumno tenga otra
+inscripción activa en un ciclo vigente antes de tocar cualquier fila — nunca deja a un
+alumno con cero inscripciones activas. Verificado: `UPDATE 1612` (coincide exactamente),
+0 duplicados restantes, conteo de alumnos activos correcto (2,041, coincide con el
+dashboard), y confirmado visualmente en la UI real (captura antes/después) que el alumno
+de ejemplo ya no aparece duplicado.
+
+**Balance de esta sesión:** memoria ampliada + bug de event-loop corregido (6/6 IDOR
+verdes juntos) + R-21 completo con 5/5 heurísticas evaluadas con evidencia real (1 hallazgo
+menor de terminología, no corregido, documentado) + **1 bug crítico de integridad de datos
+en producción, real y ya reparado, afectando a 1,612 alumnos reales** — encontrado
+únicamente porque el muestreo de heurísticas exige *mirar la aplicación real*, no solo
+revisar código o correr pruebas automatizadas. Tercera vez en el mismo día que este
+patrón (medir contra el sistema real) encuentra algo que ninguna otra técnica había
+atrapado.
+
 
