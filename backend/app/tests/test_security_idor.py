@@ -113,9 +113,12 @@ async def test_carbone_boleta_no_acceso(client, auth_headers):
     """
     otro_estudiante_id = str(uuid4())
 
+    # template_id/periodo son query params, no body — así los envía el frontend real
+    # (reportes.component.ts#generarPdf) y así los declara el endpoint (parámetros
+    # escalares planos sin Body(), FastAPI los trata como query por defecto).
     response = await client.post(
         f"/api/v1/carbone/boleta/{otro_estudiante_id}",
-        json={"template_id": str(uuid4()), "periodo": 1},
+        params={"template_id": str(uuid4()), "periodo": 1},
         headers=auth_headers.get("estudiante_a", {}),
     )
 

@@ -304,3 +304,40 @@ entorno), 1 es `D3` (depende de que `/calificaciones` cargue datos, bloqueado po
 rate-limiting). **566/566 tests Spring verdes** tras los 2 fixes de backend; `ades-bff`
 reconstruido y desplegado dos veces (una por cada fix), ambos verificados en vivo con curl
 antes y después.
+
+## 10. Tercera pasada (misma fecha, continuación) — `conftest.py` de IDOR + bug crítico en producción
+
+`backend/app/tests/conftest.py` creado (no existía en absoluto — ver §1/§3, hallazgo
+heredado de sesiones previas). Fixtures `client` (ASGITransport real contra `app.main.app`),
+`db` (sesión real vía `AsyncSessionLocal`), `auth_headers` (roles fijos vía
+`app.dependency_overrides` sobre `get_ades_user`, mismo criterio ya usado en
+`test_casos_uso.py`). **[Cierto]** — **5/6 tests IDOR ahora ejecutan y pasan de verdad**,
+verificado corriendo cada uno. El 6º (`test_rate_limit_expediente_read`) muere por OOM: el
+contenedor `ades-api` tiene un límite de memoria de 256 MB, insuficiente para 101 requests
+secuenciales dentro de un solo proceso pytest — **[Cierto]** que es un límite de recursos del
+contenedor (confirmado con `docker stats`), no un bug de test.
+
+**Hallazgo crítico, encontrado como efecto colateral de arreglar la cobertura de tests, no
+por auditoría dirigida:** `POST /carbone/boleta/{estudiante_id}` — el endpoint que genera la
+boleta oficial en PDF — **devolvía 500 para el 100% de las llamadas, sin excepción, en
+producción.** **[Cierto]** — confirmado con curl directo contra `https://ades.setag.mx`
+(no solo en el entorno de test), antes y después del fix. Causa raíz:
+`backend/app/api/v1/carbone.py` combina `from __future__ import annotations` (PEP 563,
+anotaciones evaluadas como strings) con un parámetro de ruta `estudiante_id: uuid.UUID` —
+Pydantic v2 nunca lograba resolver ese forward-reference (`TypeAdapter[...] is not fully
+defined`). Se investigó explícitamente si es un patrón sistémico — grep de otros archivos con
+la misma combinación `__future__ annotations` + `@limiter.limit` + tipo `UUID` en rutas (en
+particular `boletas.py`, tocado esta misma sesión al agregar rate limiting por OWASP API6) —
+y **se confirmó en vivo que NO lo es**: `boletas.py` responde 404 correctamente para un
+estudiante inexistente, el problema es específico de `carbone.py`. **[Suponiendo]** la
+causa exacta de por qué específicamente este archivo y no otros con el mismo patrón textual
+falla (probablemente relacionado con el orden de evaluación de forward-refs al registrar la
+ruta bajo el decorador `@limiter.limit`, no confirmado a nivel de bytecode/AST). Corregido
+eliminando `from __future__ import annotations` (Python 3.12 no la necesita para `X | None`,
+y el archivo no tiene tipos auto-referenciados) + `uuid.UUID`→`UUID` vía import directo
+(mismo patrón que `expediente.py`, que nunca tuvo este bug). Verificado en vivo: los 3
+endpoints de `carbone.py` con parámetro de ruta UUID (`/boleta`, `/constancia`, `/kardex`)
+pasan de 500 a sus respuestas correctas. `ades-api` reconstruido y desplegado. De paso: el
+propio test enviaba `template_id`/`periodo` como JSON body — el endpoint real (y el frontend
+real, `reportes.component.ts#generarPdf`) siempre los esperó como query params; corregido el
+test para reflejar el contrato real, no al revés.

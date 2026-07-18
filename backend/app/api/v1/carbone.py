@@ -11,11 +11,9 @@ Endpoints:
   POST /carbone/kardex/{estudiante_id}    — kardex académico completo
 """
 
-from __future__ import annotations
-
-import uuid
 import logging
 from typing import Literal
+from uuid import UUID
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status, Request
@@ -55,7 +53,7 @@ class PlantillaOut(AdesSchema):
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
-async def _check_student_access(db: AsyncSession, ades_user: AdesUser, estudiante_id: uuid.UUID) -> bool:
+async def _check_student_access(db: AsyncSession, ades_user: AdesUser, estudiante_id: UUID) -> bool:
     """
     ✅ IDOR FIX: Validar que ades_user tiene acceso al estudiante.
 
@@ -213,7 +211,7 @@ async def renderizar(
 
 # ── Boleta oficial ────────────────────────────────────────────────────────────
 
-async def _build_boleta_data(estudiante_id: uuid.UUID, periodo: int | None, db: AsyncSession) -> dict:
+async def _build_boleta_data(estudiante_id: UUID, periodo: int | None, db: AsyncSession) -> dict:
     """Construye el payload de datos para la boleta de un estudiante."""
     est = await db.get(
         Estudiante,
@@ -280,7 +278,7 @@ async def _build_boleta_data(estudiante_id: uuid.UUID, periodo: int | None, db: 
 @limiter.limit(LIMITS["write"])
 async def generar_boleta(
     request: Request,
-    estudiante_id: uuid.UUID,
+    estudiante_id: UUID,
     template_id: str,
     periodo: int | None = None,
     db: AsyncSession = Depends(get_db),
@@ -316,7 +314,7 @@ async def generar_boleta(
 @limiter.limit(LIMITS["write"])
 async def generar_constancia(
     request: Request,
-    estudiante_id: uuid.UUID,
+    estudiante_id: UUID,
     template_id: str,
     db: AsyncSession = Depends(get_db),
     ades_user: AdesUser = Depends(get_ades_user),

@@ -5170,8 +5170,50 @@ exacta pendiente), 1 es D3 (depende de que `/calificaciones` cargue datos, bloqu
 mismo rate-limiting). **566/566 tests Spring verdes** tras los 2 fixes de backend;
 `ades-bff` reconstruido y desplegado, ambos fixes verificados en vivo con curl.
 
-**No se llegó a esta sesión:** muestreo manual R-21 (heurísticas #2/#4/#6/#7/#8) y
-`conftest.py` para `test_security_idor.py` (6 tests IDOR nunca ejecutados) — quedan
-exactamente donde estaban, documentados arriba, sin presupuesto de sesión para atacarlos.
+**No se llegó a esta sesión:** muestreo manual R-21 (heurísticas #2/#4/#6/#7/#8) — queda
+exactamente donde estaba.
+
+---
+
+## Sesión 2026-07-17/18 (sesión 5, continuación) — `conftest.py` para IDOR + bug crítico real en producción
+
+Usuario pidió seguir con lo pendiente y comitear. Se atacó `test_security_idor.py` (6 tests
+IDOR/RBAC que nunca habían corrido por falta de `conftest.py`).
+
+**`conftest.py` creado** (`backend/app/tests/conftest.py`) — fixtures `client` (AsyncClient
+real vía ASGITransport contra `app.main.app`), `db` (sesión real vía `AsyncSessionLocal`),
+`auth_headers` (mapea roles de prueba a `AdesUser` fijos vía `app.dependency_overrides` sobre
+`get_ades_user`, mismo criterio que ya usaba `test_casos_uso.py` — sin depender de Authentik).
+**Resultado: 5/6 tests IDOR ahora pasan de verdad.** El 6º
+(`test_rate_limit_expediente_read`, 101 requests secuenciales) muere por OOM — el contenedor
+`ades-api` corre con límite de 256 MB, insuficiente para ese volumen dentro de un solo
+proceso pytest — limitación de recursos del contenedor, no bug de test ni de conftest.
+
+**Bug crítico real encontrado y corregido: `POST /carbone/boleta/{estudiante_id}` — 100%
+roto en producción, para todos los usuarios, sin excepción.** Confirmado con curl directo
+contra `https://ades.setag.mx` (no solo en el test): cualquier llamada a este endpoint
+(genera la boleta oficial en PDF) devolvía 500 —
+`pydantic.errors.PydanticUserError: TypeAdapter[...ForwardRef('uuid.UUID')...] is not fully
+defined`. Causa: `carbone.py` combina `from __future__ import annotations` (anotaciones de
+tipo evaluadas como strings, PEP 563) con un parámetro de ruta `estudiante_id: uuid.UUID` —
+Pydantic nunca lograba resolver esa referencia diferida. Se investigó si es un patrón
+sistémico (grep de otros archivos con la misma combinación `__future__ annotations` +
+`@limiter.limit` + `uuid.UUID` en rutas — ej. `boletas.py`, tocado esta misma sesión al
+agregar rate limiting) — **verificado en vivo que NO lo es**: `boletas.py` responde 404
+correctamente, el problema es específico de `carbone.py`. Corregido eliminando
+`from __future__ import annotations` del archivo (Python 3.12 no lo necesita para la sintaxis
+`X | None`, y el archivo no tiene tipos auto-referenciados que lo requieran) + cambiando
+`uuid.UUID`→`UUID` (import directo, mismo patrón que `expediente.py`, que nunca tuvo este
+bug). Verificado en vivo: `/carbone/boleta`, `/carbone/constancia` y `/carbone/kardex` pasan
+de 500 a sus respuestas correctas (422/403/404 según el caso). `ades-api` reconstruido y
+desplegado. De paso se corrigió el propio test (enviaba `template_id`/`periodo` como JSON
+body; el endpoint real —y el frontend real, `reportes.component.ts#generarPdf`— los espera
+como query params).
+
+**Balance de esta continuación:** `conftest.py` nuevo + 1 bug de producción crítico
+(generación de boletas 100% caída) encontrado y corregido, no por auditoría sino como
+efecto colateral de arreglar la cobertura de tests de seguridad — otra confirmación de que
+correr las pruebas de verdad contra el sistema real sigue encontrando fallas que ninguna
+revisión de código habría detectado.
 
 

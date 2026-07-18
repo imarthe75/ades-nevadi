@@ -2,17 +2,26 @@
 
 ## Lo que hay que saber primero
 
-El límite de peticiones por minuto que se agregó hoy mismo (como parte de cerrar otro
-hallazgo de seguridad) es probablemente **demasiado estricto para uso real**: navegar unas
-pocas pantallas seguidas, algo que cualquier persona del staff haría en cinco minutos
-normales de trabajo, ya alcanza el límite y empieza a recibir errores. Esto no es una
-sospecha — se reprodujo de forma controlada y repetible. No se tocó el número hoy porque
-cambiarlo es una decisión de negocio (qué tanto abuso se tolera a cambio de no molestar a
-usuarios legítimos), no algo que deba decidir unilateralmente quien corrige bugs. Alguien del
-equipo necesita revisar esto con datos reales de tráfico antes de que el sistema se libere a
-usuarios finales.
+**La generación de boletas oficiales en PDF estuvo completamente caída — 100% de las
+llamadas fallaban, para cualquier usuario, sin excepción — y nadie lo sabía hasta hoy.** No
+es una falla parcial ni un caso límite: cada intento de generar una boleta devolvía un error
+del servidor. Se encontró por casualidad, como efecto colateral de arreglar una batería de
+pruebas de seguridad que llevaba tiempo sin poder ejecutarse — no por una revisión dirigida a
+esa función. Ya está corregido y verificado directamente contra el sistema en producción.
+Esto es exactamente el tipo de cosa que una auditoría de seguridad, centrada en permisos y
+accesos, no está diseñada para atrapar — hace falta también seguir usando las funciones
+reales del sistema, no solo revisar quién puede entrar a ellas.
 
-El resto de lo que se arregló hoy es, en comparación, buenas noticias.
+Lo segundo más importante: el límite de peticiones por minuto que se agregó ayer (como parte
+de cerrar otro hallazgo de seguridad) es probablemente **demasiado estricto para uso real**:
+navegar unas pocas pantallas seguidas, algo que cualquier persona del staff haría en cinco
+minutos normales de trabajo, ya alcanza el límite y empieza a recibir errores. Esto no es una
+sospecha — se reprodujo de forma controlada y repetible. No se tocó el número porque cambiarlo
+es una decisión de negocio (qué tanto abuso se tolera a cambio de no molestar a usuarios
+legítimos), no algo que deba decidir unilateralmente quien corrige bugs. Alguien del equipo
+necesita revisar esto con datos reales de tráfico antes de liberar el sistema.
+
+El resto de lo que se arregló es, en comparación, buenas noticias.
 
 ## Qué se corrigió hoy, verificado contra el sistema real (no solo en el código)
 
@@ -65,18 +74,30 @@ El resto de lo que se arregló hoy es, en comparación, buenas noticias.
   ejecutarse**, por una limitación del entorno (no del código de ADES) para descargar la
   base de datos de vulnerabilidades conocidas.
 
+## Un hallazgo más, de la misma continuación
+
+**Otro bloque de 6 pruebas de seguridad (control de acceso a expedientes, certificados y
+boletas) llevaba tiempo sin poder ejecutarse — igual que el caso de arriba — y ya está
+corregido: 5 de las 6 corren y pasan de verdad.** La sexta se ve bloqueada por un límite de
+memoria del servidor de pruebas, no por un error de la prueba en sí. Fue arreglando este
+bloque que apareció la falla de generación de boletas descrita al principio de este reporte
+— confirma otra vez que el patrón de "la prueba automática nunca corrió de verdad" no era un
+caso aislado.
+
 ## Balance
 
 Desde el primer reporte de hoy: el botón "Guardar" pasó de "diagnosticado, sin corregir" a
 "corregido y confirmado con 7 pruebas reales". El bloque grande de pruebas automáticas pasó
 de 2 de 23 pasando (con autenticación rota, sin que nadie lo supiera) a 14 de 23 pasando de
-verdad. En el camino aparecieron 3 bugs reales de backend — 2 ya corregidos y verificados, 1
-confirmado pero sin resolver por una limitación técnica del entorno de esta sesión, no del
-sistema. Y apareció el hallazgo más importante de todo el día: el límite de peticiones que se
-endureció esta misma sesión por motivos de seguridad puede estar, sin querer, poniendo un
-techo demasiado bajo al uso normal del sistema.
+verdad. Un segundo bloque de 6 pruebas de seguridad, en la misma situación, pasó a 5 de 6.
+En el camino aparecieron 4 bugs reales de backend — 3 ya corregidos y verificados (incluyendo
+la caída total de boletas), 1 confirmado pero sin resolver por una limitación técnica del
+entorno de esta sesión, no del sistema. Y apareció el hallazgo más importante del día: el
+límite de peticiones que se endureció esta misma sesión por motivos de seguridad puede estar,
+sin querer, poniendo un techo demasiado bajo al uso normal del sistema.
 
 Ningún hallazgo de este reporte se da por corregido sin haberlo probado contra el sistema
-real corriendo — incluyendo el descubrimiento incómodo de que 23 pruebas de "seguridad"
-llevaban tiempo sin probar nada de verdad. Vale la pena preguntarse qué más podría estar en
-esa misma situación en otras partes del proyecto.
+real corriendo — incluyendo el descubrimiento incómodo, dos veces en el mismo día, de que
+bloques enteros de pruebas de "seguridad" llevaban tiempo sin probar nada de verdad. Vale la
+pena preguntarse cuántos bloques más de pruebas en el proyecto están en esa misma situación
+sin que nadie lo sepa — y priorizar averiguarlo antes de seguir agregando pruebas nuevas.
