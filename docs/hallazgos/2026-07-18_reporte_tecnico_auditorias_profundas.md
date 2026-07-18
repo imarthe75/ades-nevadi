@@ -410,3 +410,62 @@ de este hallazgo hoy** afectando datos reales de producción sin que ninguna pru
 automatizada ni revisión de código lo detectara — se encontró exclusivamente por mirar la
 pantalla real durante un muestreo de heurísticas cognitivas, no por una auditoría dirigida a
 datos ni a la función de reinscripción.
+
+## 12. Quinta pasada — auditoría del patrón, restricción real en BD, cierre de A2
+
+**Auditoría solicitada explícitamente por el usuario tras el hallazgo de §11.** Metodología:
+`grep` de las 11 migraciones que definen funciones PL/pgSQL con `INSERT INTO ades_*`,
+revisadas una por una en busca del mismo patrón (INSERT de fila activa sin desactivar la
+anterior sobre una entidad con invariante "una activa por X").
+
+**[Cierto] Mismo bug encontrado en un segundo lugar, antes de que causara daño real:**
+`cerrar_ciclo_y_promover()` (mig. 009/152 — la función ORIGINAL, usada para UAEMEX
+Preparatoria) tiene el idéntico defecto que la variante SEP ya corregida en mig. 155.
+Verificado que no se había ejecutado aún para el ciclo actual (0 filas duplicadas de
+Preparatoria) — a diferencia de SEP, aquí la corrección llegó antes del daño, no después.
+
+**[Cierto] El resto del código que toca `ades_inscripciones` está escrito correctamente.**
+`MovilidadApplicationService.java` (cambio de grupo, bajas) actualiza la fila existente en
+el sitio o la desactiva explícitamente antes de cualquier operación — el defecto estaba
+aislado a las 2 funciones de promoción masiva, confirmado que no es un patrón sistémico.
+Un tercer candidato (upsert de calificaciones, mig. 007/091) se descartó tras revisión: usa
+`UPDATE` primero + `INSERT ... IF NOT FOUND`, patrón correcto sin riesgo de duplicados.
+
+**Corregido con migración 156:**
+1. Mismo fix de mig. 155 aplicado a `cerrar_ciclo_y_promover()`.
+2. **La restricción real, la parte más importante de esta pasada:**
+   `CREATE UNIQUE INDEX uq_ades_inscripciones_activa_por_estudiante ON ades_inscripciones
+   (estudiante_id) WHERE is_active = TRUE`. Los índices preexistentes sobre
+   `(estudiante_id, is_active)` eran de rendimiento, no `UNIQUE` — no bloqueaban nada,
+   que es exactamente por qué el bug de §11 pudo corromper 1,612 filas reales sin
+   ninguna resistencia. **[Cierto]**, verificado con una prueba directa dentro de un `DO
+   $$` block: un segundo `INSERT` activo para el mismo alumno ahora falla con
+   `unique_violation` de forma inmediata. `mvn test`: 566/566 verdes tras el cambio —
+   ningún código existente dependía de poder tener 2 inscripciones activas.
+
+**`A2` (subida de expediente, 500 sin resolver desde §10) — encontrado y corregido.**
+**[Cierto]** — con los logs de `ades-api` finalmente fluyendo con normalidad (el problema de
+pipe congelado de pasadas anteriores no se repitió esta vez), apareció el error real:
+`SELECT id FROM ades_ciclos_escolares WHERE activo = TRUE LIMIT 1` — esa tabla nunca tuvo
+una columna `activo` (la real es `es_vigente`); el código confundió la convención con las
+tablas de H5P, que SÍ usan `activo` genuinamente (verificado por separado, no se tocaron —
+grep inicial de `activo = TRUE` en todo `backend/app` dio 2 resultados, uno roto y uno
+correcto). Corregido en `backend/app/api/v1/expediente.py`. Verificado en vivo: la misma
+llamada que antes daba 500 ahora responde 200 con un `doc_id`/`task_id` reales (documento de
+prueba eliminado después, solo era para verificación). Los 6/6 tests IDOR siguen verdes.
+
+**Nota honesta pendiente, no atacada en esta pasada:** el fix de `A2` usa
+`ORDER BY fecha_inicio DESC LIMIT 1` sobre `es_vigente = TRUE` sin filtrar por nivel
+educativo del estudiante — dado que ahora pueden coexistir 2-3 ciclos vigentes
+simultáneos (uno por nivel SEP/UAEMEX, confirmado en §11), esta consulta puede devolver
+el ciclo vigente de un nivel distinto al del alumno si hay más de uno. Se dejó así
+deliberadamente porque **replica exactamente el mismo comportamiento que ya tiene el
+equivalente Spring** (`ExpedienteQueryService#cicloActivoId()`, mismo patrón sin
+filtrar por nivel) — corregir esto correctamente implica decidir y aplicar el mismo
+criterio en ambos backends a la vez, un cambio de diseño más amplio que un fix de
+columna puntual, fuera de alcance de esta pasada.
+
+Con este cierre, no quedan bugs confirmados sin resolver de esta sesión — solo
+decisiones de negocio/producto ya documentadas (umbral de rate limit, mapeo de labels de
+2 enums, salto de versión de starlette/fastapi, `mvn dependency-check` bloqueado por el
+entorno).

@@ -108,18 +108,48 @@ Desde el primer reporte de hoy: el botón "Guardar" pasó de "diagnosticado, sin
 "corregido y confirmado con 7 pruebas reales". El bloque grande de pruebas automáticas pasó
 de 2 de 23 pasando (con autenticación rota, sin que nadie lo supiera) a 14 de 23 pasando de
 verdad. Un segundo bloque de 6 pruebas de seguridad, en la misma situación, pasa completo: 6
-de 6. La revisión de usabilidad que dos veces se había quedado a medias, ya se completó. En
-el camino aparecieron 5 bugs reales de backend — 4 ya corregidos y verificados (incluyendo la
-caída total de boletas y los 1,612 alumnos con datos duplicados), 1 confirmado pero sin
-resolver por una limitación técnica del entorno de esta sesión, no del sistema. Y sigue en
-pie el hallazgo más importante para decidir antes de liberar el sistema: el límite de
-peticiones que se endureció esta misma sesión por motivos de seguridad puede estar, sin
-querer, poniendo un techo demasiado bajo al uso normal del sistema.
+de 6. La revisión de usabilidad que dos veces se había quedado a medias, ya se completó.
+
+## Se pidió, además, blindar el sistema contra que esto vuelva a pasar
+
+Después del hallazgo de los 1,612 alumnos duplicados, se hizo una revisión de todo el código
+que pudiera tener el mismo problema — no solo confiar en que fue un caso aislado. Encontró el
+mismo error en un segundo lugar: la función que promueve a los alumnos de Preparatoria de un
+semestre al siguiente tenía exactamente el mismo defecto, simplemente **todavía no se había
+usado este ciclo** — se corrigió antes de que causara ningún daño, no después. El resto del
+código que toca la información de inscripción de alumnos se revisó y está bien escrito.
+
+Más importante: se agregó una regla directamente en la base de datos que hace **imposible**
+que un alumno vuelva a quedar con dos inscripciones activas al mismo tiempo — sin importar si
+el error aparece en esta función, en una nueva que se escriba en el futuro, o en cualquier
+otro lugar. Antes de hoy, nada en el sistema impedía que esto pasara; ahora, cualquier intento
+de crearlo se rechaza automáticamente, de inmediato. Se probó directamente que la regla
+funciona antes de darla por buena.
+
+De paso, con el sistema de registro de eventos del servidor ya funcionando con normalidad
+(el problema técnico que lo había bloqueado en el reporte anterior no volvió a aparecer), se
+encontró y corrigió la causa exacta de la falla de subida de documentos de expediente que
+había quedado pendiente: un nombre de columna equivocado en el código, del mismo tipo de
+error que causó el problema de los 1,612 alumnos, pero en un lugar distinto. Ya no quedan
+bugs confirmados sin corregir de todo lo revisado hoy.
+
+## Balance
+
+En el camino de todo el día aparecieron 6 bugs reales de backend — los 6 ya corregidos y
+verificados contra el sistema real, incluyendo la caída total de boletas, los 1,612 alumnos
+con datos duplicados (más el mismo error cerrado en un segundo lugar antes de que causara
+daño), y la falla de subida de documentos. Sigue en pie un solo punto para decidir antes de
+liberar el sistema, y es una decisión de negocio, no un bug: el límite de peticiones que se
+endureció esta misma sesión por motivos de seguridad puede estar, sin querer, poniendo un
+techo demasiado bajo al uso normal del sistema.
 
 Ningún hallazgo de este reporte se da por corregido sin haberlo probado contra el sistema
 real corriendo — incluyendo el descubrimiento, dos veces en el mismo día, de que bloques
-enteros de pruebas de "seguridad" llevaban tiempo sin probar nada de verdad, y el hallazgo
-de los 1,612 alumnos duplicados, que ninguna prueba automatizada ni revisión de código
-tenía forma de atrapar porque nadie había mirado la pantalla real después de la
-reinscripción de ayer. El patrón se repite: revisar el sistema real, no solo el código,
-sigue siendo lo que encuentra los problemas que de verdad importan.
+enteros de pruebas de "seguridad" llevaban tiempo sin probar nada de verdad, y el hallazgo de
+los 1,612 alumnos duplicados, que ninguna prueba automatizada ni revisión de código tenía
+forma de atrapar porque nadie había mirado la pantalla real después de la reinscripción de
+ayer. Ese último hallazgo ya no puede volver a pasar desapercibido: quedó una regla en la
+base de datos que lo impide estructuralmente, no solo un parche puntual en el código que lo
+causó. El patrón se repite: revisar el sistema real, no solo el código, sigue siendo lo que
+encuentra los problemas que de verdad importan — y cuando se encuentra uno, vale la pena
+preguntar "¿dónde más podría estar pasando esto?" antes de darlo por cerrado.

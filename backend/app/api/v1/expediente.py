@@ -54,7 +54,7 @@ DOCS_REQUERIDOS = [
 async def _get_or_create_expediente(db: AsyncSession, estudiante_id: UUID) -> dict:
     """Devuelve el expediente del alumno en el ciclo activo; lo crea si no existe."""
     ciclo_row = await db.execute(
-        text("SELECT id FROM ades_ciclos_escolares WHERE activo = TRUE LIMIT 1")
+        text("SELECT id FROM ades_ciclos_escolares WHERE es_vigente = TRUE ORDER BY fecha_inicio DESC LIMIT 1")
     )
     ciclo = ciclo_row.fetchone()
     if not ciclo:

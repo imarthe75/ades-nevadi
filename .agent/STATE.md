@@ -5297,4 +5297,70 @@ revisar código o correr pruebas automatizadas. Tercera vez en el mismo día que
 patrón (medir contra el sistema real) encuentra algo que ninguna otra técnica había
 atrapado.
 
+---
+
+## Sesión 2026-07-18 (sesión 7, continuación) — auditoría del patrón de duplicados + restricción real en BD + cierre de A2
+
+Usuario pidió, a raíz del hallazgo de inscripciones duplicadas: auditar la BD y el código
+para el mismo patrón, agregar restricciones reales en BD que lo hagan estructuralmente
+imposible, y continuar con los pendientes.
+
+**Auditoría del patrón "INSERT de fila activa nueva sin desactivar la vieja" — completa.**
+Metodología: `grep` de todas las funciones PL/pgSQL en `db/migrations/*.sql` que hacen
+`INSERT INTO ades_*` (11 archivos), revisadas una por una:
+- **Mismo bug encontrado en un SEGUNDO lugar**: `cerrar_ciclo_y_promover()` (mig. 009,
+  fix de columna en mig. 152) — la función ORIGINAL, usada para UAEMEX Preparatoria
+  (ciclos por semestre) — tenía el idéntico defecto que la variante SEP (mig. 153/155).
+  **No se había ejecutado todavía para el ciclo actual** (verificado: 0 filas duplicadas
+  de Preparatoria antes de tocar nada — a diferencia de SEP, aquí no hizo falta reparar
+  datos, solo corregir la función antes de que alguien la usara por primera vez).
+- Revisado también todo el código Java que toca `ades_inscripciones` fuera de estas 2
+  funciones (movilidad — cambio de grupo, bajas, en
+  `MovilidadApplicationService.java`): está escrito correctamente — `cambio de grupo`
+  actualiza la fila existente en el sitio (`actualizarGrupoInscripcion`), `baja`
+  desactiva explícitamente antes de cualquier otra cosa (`desactivarInscripcion`). El
+  defecto estaba aislado a las 2 funciones SQL de promoción masiva, no es un patrón
+  sistémico en el resto del código.
+- Un tercer candidato descartado tras revisión (falso positivo): el upsert de
+  calificaciones (mig. 007/091, `ades_calificaciones_periodo`) usa `UPDATE` primero y
+  `INSERT ... IF NOT FOUND` — patrón correcto, no crea duplicados.
+
+**Corregido con migración 156:**
+1. `CREATE OR REPLACE FUNCTION cerrar_ciclo_y_promover()` — mismo fix que mig. 155
+   (desactiva la inscripción de origen al insertar la de destino, usando `RETURNING id`
+   del INSERT para solo desactivar si la inserción realmente ocurrió).
+2. **Restricción real a nivel de base de datos** —
+   `CREATE UNIQUE INDEX uq_ades_inscripciones_activa_por_estudiante ON
+   ades_inscripciones (estudiante_id) WHERE is_active = TRUE`. Los índices que ya
+   existían (`idx_inscripciones_activas`, etc.) eran solo de rendimiento, no `UNIQUE` —
+   no bloqueaban nada, por eso el bug pudo corromper 1,612 filas reales sin que nada lo
+   impidiera. Con este índice, **cualquier intento futuro de crear una segunda
+   inscripción activa para el mismo alumno falla de inmediato con una violación de
+   constraint**, sin importar si el bug está en esta función, en una nueva, o en un
+   INSERT manual — defensa en profundidad real, no solo el parche puntual. Verificado
+   con una prueba directa (`DO $$ ... EXCEPTION WHEN unique_violation`): el segundo
+   INSERT activo para el mismo alumno se bloquea correctamente. `mvn test`: 566/566
+   verdes tras el cambio.
+
+**A2 (subida de expediente, 500 sin resolver desde la sesión 5) — encontrado y
+corregido.** Con los logs de `ades-api` finalmente fluyendo con normalidad (el problema
+de pipe congelado de sesiones anteriores no se repitió), se encontró el error real:
+`SELECT id FROM ades_ciclos_escolares WHERE activo = TRUE LIMIT 1` — la columna real es
+`es_vigente`, no `activo` (`ades_ciclos_escolares` nunca tuvo una columna `activo`; el
+código la confundió con la convención `activo` que sí usan las tablas de H5P,
+verificado por separado que esas SÍ son correctas — no se tocaron). Corregido en
+`backend/app/api/v1/expediente.py` (`_get_or_create_expediente`). `ades-api`
+reconstruido y desplegado; verificado en vivo con una subida real
+(`POST /expediente/alumno/{id}/documentos` → 200, documento creado y luego eliminado
+por ser solo de verificación). Los 6/6 tests IDOR siguen verdes tras el cambio.
+
+**Balance de esta sesión:** el hallazgo de 1,612 alumnos duplicados generó una auditoría
+real (no cosmética) que encontró el mismo bug en un segundo lugar antes de que se
+ejecutara nunca en producción, y cerró la brecha estructural (el índice único) que
+permitió que el bug original pasara desapercibido durante casi 24 horas. De paso, con
+los logs por fin funcionando, se cerró el último bug real pendiente de la sesión (A2).
+No quedan bugs confirmados sin resolver de esta sesión — solo decisiones de negocio/
+producto ya documentadas (umbral de rate limit, mapeo de labels de 2 enums,
+starlette/fastapi, `mvn dependency-check` bloqueado por el entorno).
+
 
