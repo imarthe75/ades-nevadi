@@ -168,6 +168,99 @@ public class PlanesEstudioController {
         return ResponseEntity.noContent().build();
     }
 
+    // ── Temario ────────────────────────────────────────────────────────────────
+    // Construido 2026-07-20 — antes no existía ningún endpoint bajo /planes-estudio/
+    // {id}/temas (verificado contra api-types.generated.ts y el código fuente completo:
+    // ades_temas solo se LEÍA desde PlaneacionQueryService/GradebookQueryService, nunca
+    // vía CRUD), dejando el tab "Temario" de planes-estudio.component.ts roto (404) en
+    // sus 4 llamadas (GET/POST/PUT/DELETE). La tabla ades_temas y el modelo Tema del
+    // frontend ya existían — solo faltaba esta capa REST.
+
+    /** Resuelve materia_id/grado_id/ciclo_escolar_id del plan — el temario se filtra/crea con estos, nunca con lo que mande el body. */
+    private Map<String, Object> materiaGradoCicloDePlan(UUID planId) {
+        List<Map<String, Object>> rows = jdbc.queryForList(
+                "SELECT materia_id, grado_id, ciclo_escolar_id FROM ades_materias_plan WHERE id = ?", planId);
+        if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Plan no encontrado");
+        return rows.get(0);
+    }
+
+    @GetMapping("/{id}/temas")
+    public ResponseEntity<List<Map<String, Object>>> listarTemas(
+            @PathVariable("id") UUID planId, @AuthenticationPrincipal Jwt jwt) {
+        AdesUser user = userService.resolveUser(jwt);
+        verificarAccesoGrado(user, gradoDePlan(planId));
+        Map<String, Object> plan = materiaGradoCicloDePlan(planId);
+        return ResponseEntity.ok(jdbc.queryForList(
+                "SELECT id, materia_id, grado_id, ciclo_escolar_id, nombre_tema, descripcion, orden, periodo_sugerido " +
+                "FROM ades_temas WHERE materia_id = ? AND grado_id = ? AND ciclo_escolar_id = ? AND is_active = TRUE " +
+                "ORDER BY orden",
+                plan.get("materia_id"), plan.get("grado_id"), plan.get("ciclo_escolar_id")));
+    }
+
+    @PostMapping("/{id}/temas")
+    @CacheEvict(value = "catalogos", allEntries = true)
+    public ResponseEntity<Map<String, Object>> crearTema(
+            @PathVariable("id") UUID planId, @RequestBody Map<String, Object> body,
+            @AuthenticationPrincipal Jwt jwt) {
+        AdesUser user = userService.resolveUser(jwt);
+        requireNivel(user, NIVEL_ADMIN_PLANTEL);
+        verificarAccesoGrado(user, gradoDePlan(planId));
+        String nombreTema = (String) body.get("nombre_tema");
+        if (nombreTema == null || nombreTema.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "nombre_tema es obligatorio");
+        }
+        Map<String, Object> plan = materiaGradoCicloDePlan(planId);
+        Number orden = body.get("orden") instanceof Number ? (Number) body.get("orden") : 1;
+        Number periodoSugerido = body.get("periodo_sugerido") instanceof Number ? (Number) body.get("periodo_sugerido") : null;
+        UUID nuevoId = jdbc.queryForObject(
+                "INSERT INTO ades_temas (materia_id, grado_id, ciclo_escolar_id, nombre_tema, descripcion, orden, periodo_sugerido) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id",
+                UUID.class, plan.get("materia_id"), plan.get("grado_id"), plan.get("ciclo_escolar_id"),
+                nombreTema, body.get("descripcion"), orden.intValue(),
+                periodoSugerido != null ? periodoSugerido.intValue() : null);
+        return ResponseEntity.status(HttpStatus.CREATED).body(jdbc.queryForMap(
+                "SELECT id, materia_id, grado_id, ciclo_escolar_id, nombre_tema, descripcion, orden, periodo_sugerido " +
+                "FROM ades_temas WHERE id = ?", nuevoId));
+    }
+
+    @PutMapping("/{id}/temas/{tema_id}")
+    @CacheEvict(value = "catalogos", allEntries = true)
+    public ResponseEntity<Map<String, Object>> actualizarTema(
+            @PathVariable("id") UUID planId, @PathVariable("tema_id") UUID temaId,
+            @RequestBody Map<String, Object> body, @AuthenticationPrincipal Jwt jwt) {
+        AdesUser user = userService.resolveUser(jwt);
+        requireNivel(user, NIVEL_ADMIN_PLANTEL);
+        verificarAccesoGrado(user, gradoDePlan(planId));
+        String nombreTema = (String) body.get("nombre_tema");
+        if (nombreTema == null || nombreTema.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "nombre_tema es obligatorio");
+        }
+        Number orden = body.get("orden") instanceof Number ? (Number) body.get("orden") : 1;
+        Number periodoSugerido = body.get("periodo_sugerido") instanceof Number ? (Number) body.get("periodo_sugerido") : null;
+        int rows = jdbc.update(
+                "UPDATE ades_temas SET nombre_tema = ?, descripcion = ?, orden = ?, periodo_sugerido = ?, " +
+                "row_version = row_version + 1 WHERE id = ? AND is_active = TRUE",
+                nombreTema, body.get("descripcion"), orden.intValue(),
+                periodoSugerido != null ? periodoSugerido.intValue() : null, temaId);
+        if (rows == 0) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Tema no encontrado");
+        return ResponseEntity.ok(jdbc.queryForMap(
+                "SELECT id, materia_id, grado_id, ciclo_escolar_id, nombre_tema, descripcion, orden, periodo_sugerido " +
+                "FROM ades_temas WHERE id = ?", temaId));
+    }
+
+    @DeleteMapping("/{id}/temas/{tema_id}")
+    @CacheEvict(value = "catalogos", allEntries = true)
+    public ResponseEntity<Void> eliminarTema(
+            @PathVariable("id") UUID planId, @PathVariable("tema_id") UUID temaId,
+            @AuthenticationPrincipal Jwt jwt) {
+        AdesUser user = userService.resolveUser(jwt);
+        requireNivel(user, NIVEL_ADMIN_PLANTEL);
+        verificarAccesoGrado(user, gradoDePlan(planId));
+        int rows = jdbc.update("UPDATE ades_temas SET is_active = FALSE WHERE id = ?", temaId);
+        if (rows == 0) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Tema no encontrado");
+        return ResponseEntity.noContent().build();
+    }
+
     // ── AC-014: Planes alternativos/reducidos (NEE) ───────────────────────────
 
     /**

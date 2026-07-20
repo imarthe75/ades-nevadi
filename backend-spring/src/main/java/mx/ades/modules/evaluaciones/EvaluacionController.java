@@ -190,6 +190,153 @@ public class EvaluacionController {
     }
 
     /**
+     * GET /evaluaciones/periodos/{periodo_id}/validar-cierre?grupo_id=...
+     * Construida 2026-07-20 — antes no existía ningún endpoint en ningún backend
+     * (Spring ni FastAPI), dejando el wizard "Cierre Formal de Período" del gradebook
+     * (cierre-periodo.component.ts) roto en el 100% de los intentos (404 en el paso 1,
+     * "Validar calificaciones"). Contrato exacto tomado del frontend ya existente (los
+     * 4 pasos del wizard ya definían la forma esperada de la respuesta).
+     * "Esperado" = alumnos con inscripción activa en el grupo × materias vigentes del
+     * plan de estudio del grado+ciclo del grupo (ades_materias_plan). Un par
+     * alumno×materia sin fila en ades_calificaciones_periodo para este periodo cuenta
+     * como faltante — la columna calificacion_final es NOT NULL, así que la ausencia
+     * de la fila es la única señal real de "sin calificar" (no hay estado intermedio).
+     */
+    @GetMapping("/periodos/{periodo_id}/validar-cierre")
+    public ResponseEntity<Map<String, Object>> validarCierre(
+            @PathVariable("periodo_id") UUID periodoId,
+            @RequestParam("grupo_id") UUID grupoId,
+            @AuthenticationPrincipal Jwt jwt) {
+        AdesUser user = userService.resolveUser(jwt);
+        requireNivelCierre(user);
+        requireAccesoGrupoEvaluacion(user, grupoId);
+
+        List<Map<String, Object>> faltantes = jdbc.queryForList("""
+            SELECT (p.nombre || ' ' || p.apellido_paterno) AS alumno, m.nombre_materia AS materia
+            FROM ades_inscripciones i
+            JOIN ades_grupos g ON g.id = i.grupo_id
+            JOIN ades_materias_plan mp ON mp.grado_id = g.grado_id
+                AND mp.ciclo_escolar_id = g.ciclo_escolar_id AND mp.is_active = TRUE
+            JOIN ades_materias m ON m.id = mp.materia_id
+            JOIN ades_estudiantes e ON e.id = i.estudiante_id
+            JOIN ades_personas p ON p.id = e.persona_id
+            WHERE i.grupo_id = ? AND i.is_active = TRUE
+              AND NOT EXISTS (
+                SELECT 1 FROM ades_calificaciones_periodo cp
+                WHERE cp.grupo_id = i.grupo_id AND cp.estudiante_id = i.estudiante_id
+                  AND cp.materia_id = mp.materia_id AND cp.periodo_evaluacion_id = ?
+                  AND cp.is_active = TRUE
+              )
+            ORDER BY alumno, materia
+            """, grupoId, periodoId);
+
+        Integer totalEsperadas = jdbc.queryForObject("""
+            SELECT COUNT(*) FROM ades_inscripciones i
+            JOIN ades_grupos g ON g.id = i.grupo_id
+            JOIN ades_materias_plan mp ON mp.grado_id = g.grado_id
+                AND mp.ciclo_escolar_id = g.ciclo_escolar_id AND mp.is_active = TRUE
+            WHERE i.grupo_id = ? AND i.is_active = TRUE
+            """, Integer.class, grupoId);
+        Integer conCalificacion = jdbc.queryForObject("""
+            SELECT COUNT(*) FROM ades_calificaciones_periodo
+            WHERE grupo_id = ? AND periodo_evaluacion_id = ? AND is_active = TRUE
+            """, Integer.class, grupoId, periodoId);
+        Integer yaCerradas = jdbc.queryForObject("""
+            SELECT COUNT(*) FROM ades_calificaciones_periodo
+            WHERE grupo_id = ? AND periodo_evaluacion_id = ? AND is_active = TRUE AND cerrada = TRUE
+            """, Integer.class, grupoId, periodoId);
+
+        long alumnosFaltantes = faltantes.stream().map(f -> f.get("alumno")).distinct().count();
+        long materiasIncompletas = faltantes.stream().map(f -> f.get("materia")).distinct().count();
+
+        Map<String, Object> detalles = new LinkedHashMap<>();
+        detalles.put("total_esperadas", totalEsperadas);
+        detalles.put("con_calificacion", conCalificacion);
+        detalles.put("ya_cerradas", yaCerradas);
+        detalles.put("faltantes", faltantes.size());
+        detalles.put("alumnos_sin_cal", faltantes.isEmpty() ? null : faltantes);
+
+        Map<String, Object> resp = new LinkedHashMap<>();
+        resp.put("puede_cerrar", faltantes.isEmpty());
+        resp.put("alumnos_faltantes", alumnosFaltantes);
+        resp.put("materias_incompletas", materiasIncompletas);
+        resp.put("detalles", detalles);
+        return ResponseEntity.ok(resp);
+    }
+
+    /**
+     * POST /evaluaciones/periodos/{periodo_id}/cerrar — body {grupo_id, notas?}.
+     * Bloquea permanentemente (cerrada=TRUE) todas las filas de
+     * ades_calificaciones_periodo del grupo+periodo — mismo campo/semántica que
+     * {@code CerrarCalificacionUseCase} (cierre individual ya existente en
+     * GradebookController), aplicado en bloque a todo el grupo. Vuelve a validar en el
+     * servidor antes de cerrar (nunca confiar en que el frontend ya validó en el paso
+     * 1 del wizard — el estado pudo cambiar entre la validación y la confirmación).
+     * "notas" del wizard se acepta pero no se persiste en una columna dedicada (no
+     * existe una columna de "notas de cierre" a nivel grupo+periodo en el esquema
+     * actual, y no se improvisa una migración nueva para esto) — queda igualmente
+     * capturado en el log de auditoría vía AuditHttpFilter, que registra el body
+     * completo de toda mutación.
+     */
+    @PostMapping("/periodos/{periodo_id}/cerrar")
+    public ResponseEntity<Map<String, Object>> cerrarPeriodo(
+            @PathVariable("periodo_id") UUID periodoId,
+            @RequestBody Map<String, Object> body,
+            @AuthenticationPrincipal Jwt jwt) {
+        AdesUser user = userService.resolveUser(jwt);
+        requireNivelCierre(user);
+        Object grupoIdObj = body.get("grupo_id");
+        if (grupoIdObj == null) {
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "grupo_id es obligatorio");
+        }
+        UUID grupoId = UUID.fromString(grupoIdObj.toString());
+        requireAccesoGrupoEvaluacion(user, grupoId);
+
+        Integer pendientes = jdbc.queryForObject("""
+            SELECT COUNT(*) FROM ades_inscripciones i
+            JOIN ades_grupos g ON g.id = i.grupo_id
+            JOIN ades_materias_plan mp ON mp.grado_id = g.grado_id
+                AND mp.ciclo_escolar_id = g.ciclo_escolar_id AND mp.is_active = TRUE
+            WHERE i.grupo_id = ? AND i.is_active = TRUE
+              AND NOT EXISTS (
+                SELECT 1 FROM ades_calificaciones_periodo cp
+                WHERE cp.grupo_id = i.grupo_id AND cp.estudiante_id = i.estudiante_id
+                  AND cp.materia_id = mp.materia_id AND cp.periodo_evaluacion_id = ?
+                  AND cp.is_active = TRUE
+              )
+            """, Integer.class, grupoId, periodoId);
+        if (pendientes != null && pendientes > 0) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "No se puede cerrar: hay " + pendientes + " calificaciones pendientes");
+        }
+
+        int cerradas = jdbc.update("""
+            UPDATE ades_calificaciones_periodo
+            SET cerrada = TRUE, fecha_cierre = CURRENT_TIMESTAMP, cerrado_por = ?,
+                fecha_modificacion = CURRENT_TIMESTAMP, usuario_modificacion = ?,
+                row_version = row_version + 1
+            WHERE grupo_id = ? AND periodo_evaluacion_id = ? AND cerrada = FALSE AND is_active = TRUE
+            """, user.getId(), user.getUsername(), grupoId, periodoId);
+
+        return ResponseEntity.ok(Map.of("calificaciones_cerradas", cerradas));
+    }
+
+    /**
+     * Cierre formal de período: solo nivelAcceso &le;3 (ADMIN_GLOBAL/ADMIN_PLANTEL/
+     * DIRECTOR/COORDINADOR_ACADEMICO) — mismo umbral que
+     * {@code CerrarCalificacionUseCase.ROLES_AUTORIZADOS} usado para el cierre
+     * individual de una calificación; un Docente (nivel 4) puede calificar pero no
+     * bloquear el período completo de un grupo.
+     */
+    private void requireNivelCierre(AdesUser user) {
+        Integer nivel = user.getNivelAcceso();
+        if (nivel == null || nivel > 3) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Solo Coordinador Académico o superior puede cerrar formalmente un período");
+        }
+    }
+
+    /**
      * Crear/editar evaluaciones y calificar (individual o masivo) es operación de
      * personal escolar (nivelAcceso &le;4: admin/director/coordinador/docente).
      * Admin/Director/Coordinador (nivelAcceso &le;3) tienen alcance institucional;

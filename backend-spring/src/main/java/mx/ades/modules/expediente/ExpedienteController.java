@@ -2,18 +2,12 @@ package mx.ades.modules.expediente;
 
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.RestClient;
-import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import mx.ades.modules.expediente.domain.model.CalificacionExtra;
 import mx.ades.modules.expediente.domain.model.TipoBaja;
 import mx.ades.modules.expediente.domain.port.in.*;
@@ -25,31 +19,26 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import java.time.LocalDate;
 import java.util.*;
 
+/**
+ * Adaptador REST para bajas, exámenes extraordinarios y constancias de alumnos.
+ * El sub-recurso /expediente/* (documentos, OCR, análisis IA) vive en FastAPI
+ * ({@code backend/app/api/v1/expediente.py}) — nginx enruta ese prefijo exclusivamente
+ * ahí (ver location ~ ^/api/v1/(...|expediente|...) en infrastructure/nginx/nginx.conf).
+ * Hasta 2026-07-20 este controller tenía 8 métodos duplicados bajo ese mismo prefijo,
+ * inalcanzables en producción — eliminados para no confundir a futuros auditores.
+ */
 @RestController
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
-@Slf4j
 public class ExpedienteController {
 
     private final AdesUserService userService;
-    private final PaperlessService paperlessSvc;
     private final ExpedienteWriteService writeService;
     private final JdbcTemplate jdbc;
     private final RegistrarBajaUseCase registrarBaja;
     private final CalificarExtraordinarioUseCase calificarExtraordinario;
     private final EmitirConstanciaUseCase emitirConstancia;
-    private final VerificarExpedienteUseCase verificarExpediente;
     private final ExpedienteQueryService queryService;
-    private final ObjectMapper objectMapper = new ObjectMapper();
-
-    @Value("${openai.base-url:https://integrate.api.nvidia.com/v1}")
-    private String openaiBaseUrl;
-
-    @Value("${openai.api-key:}")
-    private String openaiApiKey;
-
-    @Value("${openai.model:meta/llama-3-71b-instruct}")
-    private String openaiModel;
 
     @Data
     public static class BajaCreate {
@@ -255,277 +244,6 @@ public class ExpedienteController {
         return ResponseEntity.ok(updated.get(0));
     }
 
-    // ── Expediente documentos ─────────────────────────────────────────────────
-
-    @GetMapping("/expediente/alumno/{estudiante_id}")
-    public ResponseEntity<Map<String, Object>> obtenerExpediente(
-            @PathVariable("estudiante_id") UUID estudianteId,
-            @RequestParam(value = "ciclo_id", required = false) UUID cicloId,
-            @RequestParam(value = "lite", required = false, defaultValue = "false") boolean lite,
-            @AuthenticationPrincipal Jwt jwt) {
-        AdesUser user = userService.resolveUser(jwt);
-        // BOLA fix (asimetría): el detalle completo del expediente (documentos, OCR,
-        // completitud) no tenía scoping por plantel, a diferencia de
-        // buscarDocumentosAlumno() de este mismo controller.
-        verificarAccesoAlumno(user, estudianteId);
-        UUID cicloRef = cicloId != null ? cicloId : queryService.cicloActivoId();
-        return ResponseEntity.ok(lite
-                ? queryService.detalleExpedienteLite(estudianteId, cicloRef)
-                : queryService.detalleExpediente(estudianteId, cicloRef));
-    }
-
-    @PostMapping(value = "/expediente/alumno/{estudiante_id}/documentos", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Map<String, Object>> subirDocumento(
-            @PathVariable("estudiante_id") UUID estudianteId,
-            @RequestParam("archivo") MultipartFile archivo,
-            @RequestParam(value = "tipo_documento", defaultValue = "OTRO") String tipoDocumento,
-            @RequestParam(value = "ciclo_id", required = false) UUID cicloId,
-            @AuthenticationPrincipal Jwt jwt) throws Exception {
-        AdesUser user = userService.resolveUser(jwt);
-        // BOLA fix (asimetría): mismo hallazgo que obtenerExpediente() — sin scoping por
-        // plantel/tutoría, cualquier cuenta autenticada podía subir documentos al expediente
-        // de un alumno ajeno.
-        verificarAccesoAlumno(user, estudianteId);
-
-        mx.ades.modules.expediente.domain.model.TipoDocumentoExpediente.validarArchivo(
-                archivo.getContentType(), archivo.getSize());
-
-        UUID cicloRef = cicloId != null ? cicloId : queryService.cicloActivoId();
-        Map<String, Object> exp = queryService.obtenerOCrearExpediente(estudianteId, cicloRef);
-        UUID expId = (UUID) exp.get("id");
-
-        String paperlessTaskId = null;
-        try {
-            if (paperlessSvc.hasToken()) {
-                String titulo = queryService.labelTipo(tipoDocumento) + " — " + estudianteId;
-                paperlessTaskId = paperlessSvc.subirDocumento(
-                        archivo.getOriginalFilename() != null ? archivo.getOriginalFilename() : "documento.pdf",
-                        archivo.getBytes(), archivo.getContentType(), titulo);
-            }
-        } catch (Exception e) {
-            log.error("Error al subir archivo a Paperless: {}", e.getMessage());
-        }
-
-        UUID nuevoId = writeService.insertDocumentoExpediente(expId, tipoDocumento,
-                archivo.getOriginalFilename(), user.getId().toString());
-
-        String mensaje = paperlessTaskId != null
-                ? "Documento registrado. OCR Paperless en cola (tarea: " + paperlessTaskId + ")."
-                : "Documento registrado. Paperless no configurado; OCR pendiente.";
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
-                "id", nuevoId,
-                "paperless_task_id", paperlessTaskId != null ? paperlessTaskId : "",
-                "mensaje", mensaje));
-    }
-
-    @GetMapping("/expediente/alumno/{estudiante_id}/documentos/{doc_id}/preview")
-    public ResponseEntity<byte[]> previewDocumento(
-            @PathVariable("estudiante_id") UUID estudianteId,
-            @PathVariable("doc_id") UUID docId,
-            @AuthenticationPrincipal Jwt jwt) {
-        AdesUser user = userService.resolveUser(jwt);
-        // BOLA fix (asimetría): mismo hallazgo que obtenerExpediente() — el segmento
-        // {estudiante_id} de esta ruta NO se usaba en la lógica (viola la regla "path params
-        // usados realmente"); además el frontend (expediente-doc.component.ts) en realidad
-        // envía ahí el expediente_id, no el estudiante_id, así que no es confiable para
-        // autorización. Se deriva el estudiante dueño real a partir del doc_id (join
-        // documentos → expediente) y se valida contra ese valor.
-        verificarAccesoAlumno(user, estudianteIdDeDocumento(docId));
-
-        Map<String, Object> doc = queryService.documentoById(docId);
-        Integer paperlessDocId = (Integer) doc.get("paperless_doc_id");
-        if (paperlessDocId == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Documento aún no procesado por Paperless.");
-        }
-
-        byte[] contenido = paperlessSvc.descargarDocumento(paperlessDocId);
-        if (contenido == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "No se pudo obtener el documento de Paperless.");
-        }
-
-        String filename = doc.get("nombre_archivo") != null ? doc.get("nombre_archivo").toString().toLowerCase() : "";
-        String mediaType = filename.endsWith(".jpg") || filename.endsWith(".jpeg") ? "image/jpeg"
-                : filename.endsWith(".png") ? "image/png"
-                : filename.endsWith(".webp") ? "image/webp"
-                : "application/pdf";
-
-        return ResponseEntity.ok().contentType(MediaType.parseMediaType(mediaType)).body(contenido);
-    }
-
-    @DeleteMapping("/expediente/{expediente_id}/documentos/{doc_id}")
-    public ResponseEntity<Void> eliminarDocumento(
-            @PathVariable("expediente_id") UUID expedienteId,
-            @PathVariable("doc_id") UUID docId,
-            @AuthenticationPrincipal Jwt jwt) {
-        AdesUser user = userService.resolveUser(jwt);
-        // BOLA fix (asimetría): mismo hallazgo que obtenerExpediente() — se podía borrar
-        // cualquier documento de expediente conociendo expediente_id/doc_id, sin scoping por
-        // plantel/tutoría.
-        verificarAccesoAlumno(user, estudianteIdDeExpediente(expedienteId));
-
-        List<Map<String, Object>> rows = queryService.fetchDocForDelete(docId, expedienteId);
-        if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Documento no encontrado.");
-
-        Integer paperlessDocId = (Integer) rows.get(0).get("paperless_doc_id");
-        if (paperlessDocId != null) paperlessSvc.eliminarDocumento(paperlessDocId);
-
-        writeService.softDeleteDocumento(docId);
-        return ResponseEntity.noContent().build();
-    }
-
-    @GetMapping("/expediente/buscar")
-    public ResponseEntity<Map<String, Object>> buscarDocumentos(
-            @RequestParam(value = "q", defaultValue = "") String q,
-            @RequestParam(value = "page", defaultValue = "1") int page,
-            @RequestParam(value = "page_size", defaultValue = "25") int pageSize,
-            @AuthenticationPrincipal Jwt jwt) {
-        userService.resolveUser(jwt);
-        if (!paperlessSvc.hasToken()) {
-            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Paperless-ngx no configurado.");
-        }
-        return ResponseEntity.ok(paperlessSvc.buscarDocumentos(q, page, pageSize));
-    }
-
-    /** GET /expediente/alumno/{estudiante_id}/buscar — busca OCR en los docs del alumno */
-    @GetMapping("/expediente/alumno/{estudiante_id}/buscar")
-    public ResponseEntity<Map<String, Object>> buscarDocumentosAlumno(
-            @PathVariable("estudiante_id") UUID estudianteId,
-            @RequestParam(value = "q", defaultValue = "") String q,
-            @RequestParam(value = "page", defaultValue = "1") int page,
-            @RequestParam(value = "page_size", defaultValue = "25") int pageSize,
-            @AuthenticationPrincipal Jwt jwt) {
-        AdesUser user = userService.resolveUser(jwt);
-        // Verificar que el alumno pertenece al plantel del usuario (para no-admins globales)
-        List<UUID> plantelRows = jdbc.queryForList(
-                "SELECT plantel_id FROM ades_estudiantes WHERE id = ?", UUID.class, estudianteId);
-        UUID plantelAlumno = plantelRows.isEmpty() ? null : plantelRows.get(0);
-        userService.verificarPlantel(user, plantelAlumno, "Sin acceso al expediente del alumno solicitado");
-        if (!paperlessSvc.hasToken()) {
-            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Paperless-ngx no configurado.");
-        }
-        // Incluir estudianteId como término de búsqueda adicional para acotar resultados al alumno
-        String scopedQuery = q.isBlank() ? estudianteId.toString() : q + " " + estudianteId;
-        return ResponseEntity.ok(paperlessSvc.buscarDocumentos(scopedQuery, page, pageSize));
-    }
-
-    @PostMapping("/expediente/{expediente_id}/verificar")
-    public ResponseEntity<Map<String, Object>> verificarExpediente(
-            @PathVariable("expediente_id") UUID expedienteId,
-            @RequestParam(value = "observaciones", required = false) String observaciones,
-            @AuthenticationPrincipal Jwt jwt) {
-        AdesUser user = userService.resolveUser(jwt);
-
-        verificarExpediente.ejecutar(new VerificarExpedienteUseCase.Command(
-                expedienteId, observaciones, user.getNivelAcceso(), user.getId()));
-
-        return ResponseEntity.ok(Map.of(
-                "expediente_id", expedienteId,
-                "estado", "VERIFICADO",
-                "mensaje", "Expediente verificado correctamente."));
-    }
-
-    @PostMapping("/expediente/alumno/{estudiante_id}/analizar-ia")
-    @SuppressWarnings("unchecked")
-    public ResponseEntity<Map<String, Object>> analizarExpedienteIa(
-            @PathVariable("estudiante_id") UUID estudianteId,
-            @RequestParam(value = "ciclo_id", required = false) UUID cicloId,
-            @AuthenticationPrincipal Jwt jwt) {
-        AdesUser user = userService.resolveUser(jwt);
-        // BOLA fix (asimetría): mismo hallazgo que obtenerExpediente() — este endpoint expone
-        // PII (CURP, matrícula) y extractos OCR del expediente vía prompt a NVIDIA NIM, y
-        // persiste observaciones en el expediente, sin scoping por plantel/tutoría.
-        verificarAccesoAlumno(user, estudianteId);
-
-        UUID cicloRef = cicloId != null ? cicloId : queryService.cicloActivoId();
-        Map<String, Object> alumno = queryService.alumnoParaAnalisis(estudianteId);
-        Map<String, Object> exp = queryService.obtenerOCrearExpediente(estudianteId, cicloRef);
-        UUID expId = (UUID) exp.get("id");
-        List<Map<String, Object>> docs = queryService.documentosExpediente(expId);
-
-        List<String> tiposPresentes = new ArrayList<>();
-        List<String> ocrResumen = new ArrayList<>();
-        for (Map<String, Object> d : docs) {
-            String tipo = (String) d.get("tipo_documento");
-            tiposPresentes.add(tipo);
-            String ocrText = (String) d.get("ocr_texto");
-            if (ocrText != null && !ocrText.isBlank()) {
-                ocrResumen.add("[" + tipo + "]: " + ocrText.substring(0, Math.min(ocrText.length(), 300)));
-            }
-        }
-
-        List<String> tiposFaltantes = new ArrayList<>(queryService.tiposRequeridos());
-        tiposFaltantes.removeAll(tiposPresentes);
-
-        String nombreCompleto = String.format("%s %s %s",
-                alumno.get("nombre"), alumno.get("apellido_paterno"),
-                alumno.get("apellido_materno") != null ? alumno.get("apellido_materno") : "").trim();
-
-        String prompt = String.format(
-            "Eres asistente administrativo escolar del Instituto Nevadi, Mexico.\n\n" +
-            "ALUMNO: %s | CURP: %s | Matricula: %s | Nivel: %s\n" +
-            "DOCUMENTOS PRESENTES: %s\nDOCUMENTOS FALTANTES: %s\nEXTRACTOS OCR: %s\n\n" +
-            "Responde SOLO con JSON valido:\n{\"analisis\": \"...\", \"recomendaciones\": [\"...\"], \"alertas\": [\"...\"]}",
-            nombreCompleto,
-            alumno.getOrDefault("curp", "N/A"),
-            alumno.getOrDefault("matricula", "N/A"),
-            alumno.getOrDefault("nivel", "N/A"),
-            String.join(", ", tiposPresentes),
-            String.join(", ", tiposFaltantes),
-            String.join("\n", ocrResumen));
-
-        String analisisTexto = "NVIDIA NIM no configurado. Configure OPENAI_API_KEY en Vault.";
-        List<String> recomendaciones = new ArrayList<>();
-        List<String> alertas = new ArrayList<>();
-
-        if (openaiApiKey != null && !openaiApiKey.isBlank()) {
-            try {
-                RestClient client = RestClient.builder().build();
-                ResponseEntity<String> response = client.post()
-                        .uri(openaiBaseUrl + "/chat/completions")
-                        .header("Authorization", "Bearer " + openaiApiKey)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .body(Map.of("model", openaiModel,
-                                "messages", List.of(Map.of("role", "user", "content", prompt)),
-                                "temperature", 0.3, "max_tokens", 600))
-                        .retrieve().toEntity(String.class);
-
-                if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-                    Map<String, Object> outer = objectMapper.readValue(response.getBody(), Map.class);
-                    List<Map<String, Object>> choices = (List<Map<String, Object>>) outer.get("choices");
-                    if (choices != null && !choices.isEmpty()) {
-                        String content = (String) ((Map<String, Object>) choices.get(0).get("message")).get("content");
-                        java.util.regex.Matcher m = java.util.regex.Pattern.compile("\\{.*\\}", java.util.regex.Pattern.DOTALL).matcher(content);
-                        if (m.find()) {
-                            Map<String, Object> ia = objectMapper.readValue(m.group(), Map.class);
-                            analisisTexto = (String) ia.getOrDefault("analisis", content);
-                            recomendaciones = (List<String>) ia.getOrDefault("recomendaciones", new ArrayList<>());
-                            alertas = (List<String>) ia.getOrDefault("alertas", new ArrayList<>());
-                        } else {
-                            analisisTexto = content;
-                        }
-                    }
-                }
-            } catch (Exception e) {
-                log.error("Error al conectar con NVIDIA NIM: {}", e.getMessage());
-                analisisTexto = "Error al conectar con NVIDIA NIM: " + e.getMessage();
-            }
-        }
-
-        writeService.actualizarObservacionesExpediente(expId,
-            analisisTexto.substring(0, Math.min(analisisTexto.length(), 500)));
-
-        Map<String, Object> resp = new HashMap<>();
-        resp.put("expediente_id", expId);
-        resp.put("completitud_pct", exp.get("completitud_pct"));
-        resp.put("documentos_presentes", tiposPresentes);
-        resp.put("documentos_faltantes", tiposFaltantes);
-        resp.put("analisis", analisisTexto);
-        resp.put("recomendaciones", recomendaciones);
-        resp.put("alertas", alertas);
-        return ResponseEntity.ok(resp);
-    }
-
     private void verificarAccesoAlumno(AdesUser user, UUID estudianteId) {
         Integer nivelAcceso = user.getNivelAcceso();
         if (nivelAcceso != null && nivelAcceso <= 4) {
@@ -571,32 +289,4 @@ public class ExpedienteController {
         }
     }
 
-    /** Resuelve el estudiante dueño de un expediente (ades_expedientes_alumno). */
-    private UUID estudianteIdDeExpediente(UUID expedienteId) {
-        try {
-            return jdbc.queryForObject(
-                    "SELECT estudiante_id FROM ades_expedientes_alumno WHERE id = ?",
-                    UUID.class, expedienteId);
-        } catch (Exception e) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Expediente no encontrado");
-        }
-    }
-
-    /**
-     * Resuelve el estudiante dueño de un documento de expediente, haciendo join contra
-     * ades_expedientes_alumno. No confiar en el path param {@code estudiante_id} de rutas
-     * como preview/eliminar: el frontend (expediente-doc.component.ts) coloca ahí el
-     * expediente_id en algún flujo, no el estudiante_id, así que se deriva del doc_id.
-     */
-    private UUID estudianteIdDeDocumento(UUID docId) {
-        try {
-            return jdbc.queryForObject(
-                    "SELECT ea.estudiante_id FROM ades_expediente_documentos d " +
-                    "JOIN ades_expedientes_alumno ea ON ea.id = d.expediente_id " +
-                    "WHERE d.id = ? AND d.is_active = TRUE",
-                    UUID.class, docId);
-        } catch (Exception e) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Documento no encontrado");
-        }
-    }
 }

@@ -1,6 +1,8 @@
 package mx.ades.modules.profesores;
 
 import lombok.RequiredArgsConstructor;
+import mx.ades.common.ValidationUtils;
+import mx.ades.modules.admin.AdminWriteService;
 import mx.ades.modules.profesores.domain.port.in.ActualizarProfesorUseCase;
 import mx.ades.modules.profesores.domain.port.in.CrearProfesorUseCase;
 import mx.ades.modules.profesores.domain.port.out.ProfesorRepositoryPort;
@@ -39,6 +41,7 @@ public class ProfesorController {
     private final CrearProfesorUseCase     crear;
     private final ActualizarProfesorUseCase actualizar;
     private final ProfesorRepositoryPort   repositoryPort;
+    private final AdminWriteService        adminWrite;
 
     @GetMapping
     public ResponseEntity<Map<String, Object>> list(
@@ -68,14 +71,40 @@ public class ProfesorController {
         return ResponseEntity.ok(profesor);
     }
 
+    /**
+     * Alta de profesor desde cero (persona nueva) — construido 2026-07-20. Antes este
+     * endpoint deserializaba el body directo como la entidad JPA {@link Profesor}, que
+     * exige un {@code persona_id} de una persona YA EXISTENTE; el formulario "Nuevo
+     * profesor" del frontend nunca lo enviaba (no ofrece selección de persona, solo
+     * captura nombre/apellidos/CURP inline), así que el alta fallaba el 100% de las
+     * veces con "persona_id es requerido". Corregido con {@link CrearProfesorRequest}
+     * (mismo patrón que {@code CrearAlumnoRequest}): crea la persona primero
+     * ({@link AdminWriteService#insertPersona}) y luego el profesor referenciándola —
+     * simétrico con el alta de alumno, que ya funciona así.
+     */
     @PostMapping
-    public ResponseEntity<Profesor> create(@RequestBody Profesor req, @AuthenticationPrincipal Jwt jwt) {
+    public ResponseEntity<Profesor> create(@RequestBody CrearProfesorRequest req, @AuthenticationPrincipal Jwt jwt) {
         requireStaff(userService.resolveUser(jwt));
+        ValidationUtils.validarNombrePersona(req.nombre(), "El nombre");
+        ValidationUtils.validarNombrePersona(req.apellidoPaterno(), "El apellido paterno");
+        if (req.apellidoMaterno() != null && !req.apellidoMaterno().isBlank()) {
+            ValidationUtils.validarNombrePersona(req.apellidoMaterno(), "El apellido materno");
+        }
+        ValidationUtils.validarCURP(req.curp());
+        if (req.plantel_id() == null) {
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "plantel_id es obligatorio");
+        }
+        UUID personaId = adminWrite.insertPersona(
+                req.nombre().trim(),
+                req.apellidoPaterno().trim(),
+                req.apellidoMaterno() != null ? req.apellidoMaterno().trim() : null,
+                req.curp().toUpperCase().trim(),
+                null, null);
         var cmd = new CrearProfesorUseCase.Command(
-                req.getPersonaId(),
-                req.getPlantelId(),
-                req.getNumeroEmpleado(),
-                req.getTipoContrato());
+                personaId,
+                req.plantel_id(),
+                req.numero_empleado(),
+                req.tipo_contrato());
         return ResponseEntity.status(HttpStatus.CREATED).body(crear.crear(cmd));
     }
 
