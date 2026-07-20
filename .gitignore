@@ -40,6 +40,23 @@ db/migrations/*.bak
 # Backups locales
 backups/
 
+# GitHub Actions self-hosted runner (instalación completa: binarios, credenciales de
+# registro reales, logs de diagnóstico) — hallazgo real 2026-07-20: 13,375 archivos
+# (1.2GB, incluyendo binarios de Node >100MB que GitHub rechaza de plano) habían quedado
+# comiteados, incluidas .github-runner/.credentials y .credentials_rsaparams (secretos
+# reales de registro del runner). Nunca debe rastrearse — vive en este servidor, se
+# reinstala con el token de registro, no es código fuente.
+.github-runner/
+
+# Artefactos de pruebas E2E/cobertura (Regla Mandatoria #22 de CLAUDE.md) — se
+# regeneran solos al correr la herramienta correspondiente; hallazgo real 2026-07-20:
+# ades_testing/test-results/ y playwright-report/ (86 archivos, capturas/videos/traces)
+# ya estaban comiteados pese a esta regla.
+test-results/
+playwright-report/
+blob-report/
+coverage/
+
 # Documentación generada: TODO .md/.txt va en docs/ (excepto CLAUDE.md y README.md)
 /*.md
 /*.txt
