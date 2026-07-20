@@ -8,13 +8,11 @@ import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
 import { TagModule } from 'primeng/tag';
-import { ToastModule } from 'primeng/toast';
 import { TextareaModule } from 'primeng/textarea';
 import { TooltipModule } from 'primeng/tooltip';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { MessageModule } from 'primeng/message';
 import { DatePickerModule } from 'primeng/datepicker';
-import { MessageService } from 'primeng/api';
 import { ApexNotificationService } from 'apex-component-library';
 import { ImportButtonComponent } from '../../shared/components/import-button/import-button.component';
 import { ContextService } from '../../core/services/context.service';
@@ -72,13 +70,11 @@ const NIVELES = [
   imports: [
     AdesFormatDirective,
     CommonModule, FormsModule, ButtonModule, DialogModule,
-    InputTextModule, SelectModule, TagModule, ToastModule, TextareaModule,
+    InputTextModule, SelectModule, TagModule, TextareaModule,
     TooltipModule, InputNumberModule, MessageModule, ImportButtonComponent, DatePickerModule,
     InteractiveGridComponent,
   ],
-  providers: [MessageService],
   template: `
-    <p-toast />
     <div class="apex-page">
       <div class="apex-toolbar">
         <h2 class="apex-title">Admisión de Alumnos</h2>

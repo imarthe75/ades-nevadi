@@ -5,8 +5,6 @@ import { Subject, takeUntil } from 'rxjs';
 import { ApiService } from '../../core/services/api.service';
 import { ButtonModule } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
-import { ToastModule } from 'primeng/toast';
-import { MessageService } from 'primeng/api';
 import { ApexNotificationService } from 'apex-component-library';
 import { ContextService } from '../../core/services/context.service';
 import { ExportService, ExportColumn } from '../../core/services/export.service';
@@ -63,10 +61,8 @@ interface Kardex {
   selector: 'app-kardex',
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
-  imports: [CommonModule, FormsModule, ButtonModule, SelectModule, ToastModule],
-  providers: [MessageService],
+  imports: [CommonModule, FormsModule, ButtonModule, SelectModule],
   template: `
-    <p-toast />
     <div class="apex-page">
       <div class="apex-toolbar">
         <h2 class="apex-title">Kardex / Historial Académico — UAEMEX</h2>

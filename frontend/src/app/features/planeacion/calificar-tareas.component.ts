@@ -8,10 +8,9 @@ import { TableModule } from 'primeng/table';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { TextareaModule } from 'primeng/textarea';
 import { TagModule } from 'primeng/tag';
-import { ToastModule } from 'primeng/toast';
 import { MessageModule } from 'primeng/message';
-import { MessageService } from 'primeng/api';
 import { CardModule } from 'primeng/card';
+import { ApexNotificationService } from 'apex-component-library';
 
 import { ApiService } from '../../core/services/api.service';
 import type { components } from '../../core/models/api-types.generated';
@@ -35,9 +34,8 @@ import type { components } from '../../core/models/api-types.generated';
   imports: [
     CommonModule, FormsModule, ReactiveFormsModule,
     ButtonModule, SelectModule, TableModule, InputNumberModule, TextareaModule,
-    TagModule, ToastModule, MessageModule, CardModule
+    TagModule, MessageModule, CardModule
   ],
-  providers: [MessageService],
   template: `
     <div class="page-header">
       <div>
@@ -45,8 +43,6 @@ import type { components } from '../../core/models/api-types.generated';
         <p class="page-subtitle">Evalúa las entregas de tareas vinculadas a planeación</p>
       </div>
     </div>
-
-    <p-toast />
 
     <!-- PASO 1: Seleccionar Grupo -->
     <div class="card form-section">
@@ -262,7 +258,7 @@ import type { components } from '../../core/models/api-types.generated';
 export class CalificarTareasComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private apiService = inject(ApiService);
-  private messageService = inject(MessageService);
+  private notify = inject(ApexNotificationService);
   private fb = inject(FormBuilder);
 
   // Formulario
@@ -323,18 +319,10 @@ export class CalificarTareasComponent implements OnInit, OnDestroy {
         res => {
           this.tareas.set(res as any[]);
           this.tareasLoaded.set(true);
-          this.messageService.add({
-            severity: 'info',
-            summary: 'Tareas cargadas',
-            detail: `${(res as any[]).length} tareas con entregas pendientes`
-          });
+          this.notify.info('Tareas cargadas', `${(res as any[]).length} tareas con entregas pendientes`);
         },
         err => {
-          this.messageService.add({
-            severity: 'error',
-            summary: 'Error',
-            detail: 'No se pudieron cargar las tareas'
-          });
+          this.notify.error('Error', 'No se pudieron cargar las tareas');
         }
       );
   }
@@ -349,11 +337,7 @@ export class CalificarTareasComponent implements OnInit, OnDestroy {
           this.tareaDetalle.set(res as any);
         },
         err => {
-          this.messageService.add({
-            severity: 'error',
-            summary: 'Error',
-            detail: 'No se pudo cargar los detalles de la tarea'
-          });
+          this.notify.error('Error', 'No se pudo cargar los detalles de la tarea');
         }
       );
   }
@@ -370,11 +354,7 @@ export class CalificarTareasComponent implements OnInit, OnDestroy {
       }));
 
     if (calificaciones.length === 0) {
-      this.messageService.add({
-        severity: 'warn',
-        summary: 'Aviso',
-        detail: 'No hay calificaciones para guardar'
-      });
+      this.notify.warning('Aviso', 'No hay calificaciones para guardar');
       return;
     }
 
@@ -388,21 +368,13 @@ export class CalificarTareasComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe(
         res => {
-          this.messageService.add({
-            severity: 'success',
-            summary: '✅ Calificaciones guardadas',
-            detail: `${(res as any).registros_guardados} de ${(res as any).total_intentos} calificaciones`
-          });
+          this.notify.success('✅ Calificaciones guardadas', `${(res as any).registros_guardados} de ${(res as any).total_intentos} calificaciones`);
           this.guardando.set(false);
           // Recargar tareas
           this.onGrupoChange();
         },
         err => {
-          this.messageService.add({
-            severity: 'error',
-            summary: '❌ Error',
-            detail: err.error?.message || 'No se pudieron guardar las calificaciones'
-          });
+          this.notify.error('❌ Error', err.error?.message || 'No se pudieron guardar las calificaciones');
           this.guardando.set(false);
         }
       );

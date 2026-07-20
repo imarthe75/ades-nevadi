@@ -18,9 +18,9 @@ import { DatePickerModule } from 'primeng/datepicker';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { TextareaModule } from 'primeng/textarea';
 import { TagModule } from 'primeng/tag';
-import { ToastModule } from 'primeng/toast';
-import { MessageService, ConfirmationService } from 'primeng/api';
+import { ConfirmationService } from 'primeng/api';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { ApexNotificationService } from 'apex-component-library';
 import { ApiService } from '../../../core/services/api.service';
 import { AdesFormatDirective } from '../../directives/ades-format.directive';
 import { AdesValidators } from '../../validators/ades-validators';
@@ -64,7 +64,7 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
   standalone: true,
   imports: [
     CommonModule, FormsModule,
-    DrawerModule, ButtonModule, ToastModule, TagModule, TooltipModule,
+    DrawerModule, ButtonModule, TagModule, TooltipModule,
     TabsModule, TabList, Tab, TabPanels, TabPanel,
     InputTextModule, SelectModule, DatePickerModule,
     InputNumberModule, TextareaModule,
@@ -72,9 +72,8 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
     DomicilioComponent,
     ConfirmDialogModule,
   ],
-  providers: [MessageService, ConfirmationService],
+  providers: [ConfirmationService],
   template: `
-    <p-toast />
     <p-confirmDialog />
 
     <p-drawer [(visible)]="visible" position="right"
@@ -584,7 +583,7 @@ const BECAS         = ['PRONABES','BECA_MANUTENCIÓN','SEIEM','BIENESTAR','EXCEL
 })
 export class AlumnoPerfilComponent implements OnInit, OnChanges, OnDestroy {
   private readonly api = inject(ApiService);
-  private readonly msg = inject(MessageService);
+  private readonly notify = inject(ApexNotificationService);
   private readonly confirm = inject(ConfirmationService);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly destroy$ = new Subject<void>();
@@ -658,7 +657,7 @@ export class AlumnoPerfilComponent implements OnInit, OnChanges, OnDestroy {
   });
 
   ngOnInit(): void {
-    this.api.get<{ nacionalidad: string }[]>('/catalogs/nacionalidades')
+    this.api.getCached<{ nacionalidad: string }[]>('/catalogs/nacionalidades')
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: list => this.nacionalidades.set(list.map(n => n.nacionalidad)),
@@ -682,7 +681,7 @@ export class AlumnoPerfilComponent implements OnInit, OnChanges, OnDestroy {
         }))),
         error: () => {},
       });
-    this.api.get<any[]>('/catalogs/estados-mexico')
+    this.api.getCached<any[]>('/catalogs/estados-mexico')
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: list => {
@@ -694,7 +693,7 @@ export class AlumnoPerfilComponent implements OnInit, OnChanges, OnDestroy {
         },
         error: () => {},
       });
-    this.api.get<any[]>('/catalogs/paises')
+    this.api.getCached<any[]>('/catalogs/paises')
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: list => {
@@ -887,7 +886,7 @@ export class AlumnoPerfilComponent implements OnInit, OnChanges, OnDestroy {
       .subscribe({
         next: (r: any) => {
           this.ejecutandoBaja.set(false);
-          this.msg.add({ severity: 'success', summary: 'Baja registrada', detail: r.message });
+          this.notify.success('Baja registrada', r.message);
           this.alumno!.is_active = false;
           this.cargarUltimaBaja();
           this.saved.emit();
@@ -895,7 +894,7 @@ export class AlumnoPerfilComponent implements OnInit, OnChanges, OnDestroy {
         },
         error: e => {
           this.ejecutandoBaja.set(false);
-          this.msg.add({ severity: 'error', summary: 'Error', detail: e.error?.detail ?? 'Error' });
+          this.notify.error('Error', e.error?.detail ?? 'Error');
         }
       });
   }
@@ -903,7 +902,7 @@ export class AlumnoPerfilComponent implements OnInit, OnChanges, OnDestroy {
   ejecutarReactivacion(): void {
     const baja = this.ultimaBaja();
     if (!baja) {
-      this.msg.add({ severity: 'warn', summary: 'No se puede reactivar', detail: 'No hay registro de baja activo' });
+      this.notify.warning('No se puede reactivar', 'No hay registro de baja activo');
       return;
     }
     this.ejecutandoReactivacion.set(true);
@@ -912,7 +911,7 @@ export class AlumnoPerfilComponent implements OnInit, OnChanges, OnDestroy {
       .subscribe({
         next: (r: any) => {
           this.ejecutandoReactivacion.set(false);
-          this.msg.add({ severity: 'success', summary: 'Reactivado', detail: r.message });
+          this.notify.success('Reactivado', r.message);
           this.alumno!.is_active = true;
           this.ultimaBaja.set(null);
           this.saved.emit();
@@ -920,7 +919,7 @@ export class AlumnoPerfilComponent implements OnInit, OnChanges, OnDestroy {
         },
         error: e => {
           this.ejecutandoReactivacion.set(false);
-          this.msg.add({ severity: 'error', summary: 'Error', detail: e.error?.detail ?? 'Error' });
+          this.notify.error('Error', e.error?.detail ?? 'Error');
         }
       });
   }
@@ -928,7 +927,7 @@ export class AlumnoPerfilComponent implements OnInit, OnChanges, OnDestroy {
   guardarExpedienteMedico(): void {
     if (!this.alumno?.id) return;
     if (this.medForm.nss && !AdesValidators.nssValido(this.medForm.nss)) {
-      this.msg.add({ severity: 'warn', summary: 'NSS inválido', detail: 'El NSS debe tener exactamente 11 dígitos' });
+      this.notify.warning('NSS inválido', 'El NSS debe tener exactamente 11 dígitos');
       return;
     }
     this.savingMedico.set(true);
@@ -937,11 +936,11 @@ export class AlumnoPerfilComponent implements OnInit, OnChanges, OnDestroy {
       .subscribe({
         next: (exp) => {
           this.expedienteMedico.set(exp as ExpedienteMedico);
-          this.msg.add({ severity: 'success', summary: 'Guardado', detail: 'Expediente médico actualizado' });
+          this.notify.success('Guardado', 'Expediente médico actualizado');
           this.savingMedico.set(false);
         },
         error: e => {
-          this.msg.add({ severity: 'error', summary: 'Error', detail: e.error?.detail ?? 'Error' });
+          this.notify.error('Error', e.error?.detail ?? 'Error');
           this.savingMedico.set(false);
         },
       });
@@ -954,8 +953,7 @@ export class AlumnoPerfilComponent implements OnInit, OnChanges, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: blob => this._downloadBlob(blob, `credencial_${this.alumno!.matricula}.pdf`),
-        error: () => this.msg.add({ severity: 'error', summary: 'Error',
-          detail: 'No se pudo generar la credencial. Verifica que exista la plantilla "credencial_alumno" en Reportes → Plantillas.' }),
+        error: () => this.notify.error('Error', 'No se pudo generar la credencial. Verifica que exista la plantilla "credencial_alumno" en Reportes → Plantillas.'),
       });
   }
 
@@ -971,7 +969,7 @@ export class AlumnoPerfilComponent implements OnInit, OnChanges, OnDestroy {
   guardar(): void {
     if (!this.alumno) return;
     if (this.form.curp && !AdesValidators.curpValido(this.form.curp)) {
-      this.msg.add({ severity: 'warn', summary: 'CURP inválido', detail: 'Formato esperado: AAAA000000HAAAAA00' });
+      this.notify.warning('CURP inválido', 'Formato esperado: AAAA000000HAAAAA00');
       return;
     }
     this.saving.set(true);
@@ -1013,12 +1011,12 @@ export class AlumnoPerfilComponent implements OnInit, OnChanges, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
-          this.msg.add({ severity: 'success', summary: 'Guardado', detail: 'Perfil actualizado' });
+          this.notify.success('Guardado', 'Perfil actualizado');
           this.saving.set(false);
           this.saved.emit();
         },
         error: e => {
-          this.msg.add({ severity: 'error', summary: 'Error', detail: e.error?.detail ?? 'Error al guardar' });
+          this.notify.error('Error', e.error?.detail ?? 'Error al guardar');
           this.saving.set(false);
         },
       });
@@ -1049,29 +1047,26 @@ export class AlumnoPerfilComponent implements OnInit, OnChanges, OnDestroy {
 
     const email = (this.contactoEdit.email ?? '').trim();
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
-      this.msg.add({ severity: 'warn', summary: 'Email inválido',
-        detail: 'El correo debe contener @ y un dominio válido (ej: nombre@dominio.com)' });
+      this.notify.warning('Email inválido', 'El correo debe contener @ y un dominio válido (ej: nombre@dominio.com)');
       return;
     }
 
     const tel = (this.contactoEdit.telefono_principal ?? '').replace(/[\s\-\(\)\.]/g, '');
     if (tel && !/^\d{10}$/.test(tel)) {
-      this.msg.add({ severity: 'warn', summary: 'Teléfono inválido',
-        detail: 'El teléfono debe tener exactamente 10 dígitos' });
+      this.notify.warning('Teléfono inválido', 'El teléfono debe tener exactamente 10 dígitos');
       return;
     }
     if (tel) this.contactoEdit.telefono_principal = tel;
 
     const telAlt = (this.contactoEdit.telefono_alt ?? '').replace(/[\s\-\(\)\.]/g, '');
     if (telAlt && !/^\d{10}$/.test(telAlt)) {
-      this.msg.add({ severity: 'warn', summary: 'Teléfono alt. inválido',
-        detail: 'El teléfono alternativo debe tener exactamente 10 dígitos' });
+      this.notify.warning('Teléfono alt. inválido', 'El teléfono alternativo debe tener exactamente 10 dígitos');
       return;
     }
     if (telAlt) this.contactoEdit.telefono_alt = telAlt;
 
     if (this.contactoEdit.rfc && !AdesValidators.rfcValido(this.contactoEdit.rfc)) {
-      this.msg.add({ severity: 'warn', summary: 'RFC inválido', detail: 'Formato esperado: AAAA000000AAA' });
+      this.notify.warning('RFC inválido', 'Formato esperado: AAAA000000AAA');
       return;
     }
 
@@ -1095,7 +1090,7 @@ export class AlumnoPerfilComponent implements OnInit, OnChanges, OnDestroy {
         this.cargarContactos();
       },
       error: e => {
-        this.msg.add({ severity: 'error', summary: 'Error', detail: e.error?.detail ?? 'Error' });
+        this.notify.error('Error', e.error?.detail ?? 'Error');
         this.savingContacto.set(false);
       },
     });
@@ -1115,7 +1110,7 @@ export class AlumnoPerfilComponent implements OnInit, OnChanges, OnDestroy {
             next: () => { this.eliminandoContactoId.set(null); this.cargarContactos(); },
             error: e => {
               this.eliminandoContactoId.set(null);
-              this.msg.add({ severity: 'error', summary: 'Error', detail: e.error?.detail ?? 'Error' });
+              this.notify.error('Error', e.error?.detail ?? 'Error');
             },
           });
       },

@@ -10,12 +10,11 @@ import { InputTextModule } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
 import { TextareaModule } from 'primeng/textarea';
 import { TagModule } from 'primeng/tag';
-import { ToastModule } from 'primeng/toast';
 import { DatePickerModule } from 'primeng/datepicker';
 import { CheckboxModule } from 'primeng/checkbox';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { AutoCompleteModule } from 'primeng/autocomplete';
-import { MessageService, ConfirmationService } from 'primeng/api';
+import { ConfirmationService } from 'primeng/api';
 import { ApexNotificationService } from 'apex-component-library';
 import { AdesFormatDirective } from '../../shared/directives/ades-format.directive';
 
@@ -62,13 +61,12 @@ interface Licencia {
     CommonModule, FormsModule, ReactiveFormsModule,
     ButtonModule, DialogModule,
     InputTextModule, SelectModule, TextareaModule,
-    TagModule, ToastModule, DatePickerModule,
+    TagModule, DatePickerModule,
     CheckboxModule, ConfirmDialogModule, AutoCompleteModule,
     InteractiveGridComponent,
   ],
-  providers: [MessageService, ConfirmationService],
+  providers: [ConfirmationService],
   template: `
-    <p-toast />
     <p-confirmDialog />
 
     <div class="apex-page">

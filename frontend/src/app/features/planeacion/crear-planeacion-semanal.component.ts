@@ -11,9 +11,8 @@ import { DatePickerModule } from 'primeng/datepicker';
 import { DialogModule } from 'primeng/dialog';
 import { CardModule } from 'primeng/card';
 import { TagModule } from 'primeng/tag';
-import { ToastModule } from 'primeng/toast';
-import { MessageService } from 'primeng/api';
 import { MessageModule } from 'primeng/message';
+import { ApexNotificationService } from 'apex-component-library';
 
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
@@ -41,9 +40,8 @@ import type { components } from '../../core/models/api-types.generated';
     AdesFormatDirective,
     CommonModule, FormsModule, ReactiveFormsModule,
     ButtonModule, SelectModule, CheckboxModule, InputTextModule, TextareaModule,
-    DatePickerModule, DialogModule, CardModule, TagModule, ToastModule, MessageModule
+    DatePickerModule, DialogModule, CardModule, TagModule, MessageModule
   ],
-  providers: [MessageService],
   template: `
     <div class="page-header">
       <div>
@@ -51,8 +49,6 @@ import type { components } from '../../core/models/api-types.generated';
         <p class="page-subtitle">Vincular temario y aprendizajes esperados</p>
       </div>
     </div>
-
-    <p-toast />
 
     <!-- PASO 1: Seleccionar Contexto (Grupo, Materia, Semana, Modalidad) -->
     <div class="card form-section">
@@ -310,7 +306,7 @@ export class CrearPlaneacionSemanalComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private apiService = inject(ApiService);
   private contextService = inject(ContextService);
-  private messageService = inject(MessageService);
+  private notify = inject(ApexNotificationService);
   private fb = inject(FormBuilder);
 
   // Formulario PASO 1: Contexto
@@ -408,11 +404,7 @@ export class CrearPlaneacionSemanalComponent implements OnInit, OnDestroy {
         this.temas.set(data.temas || []);
         this.aprendizajes.set(data.aprendizajes || []);
         this.temarioLoaded.set(true);
-        this.messageService.add({
-          severity: 'success',
-          summary: 'Temario cargado',
-          detail: `${data.cantidad_temas} temas, ${data.cantidad_aprendizajes} aprendizajes`
-        });
+        this.notify.success('Temario cargado', `${data.cantidad_temas} temas, ${data.cantidad_aprendizajes} aprendizajes`);
       });
     });
   }
@@ -479,11 +471,7 @@ export class CrearPlaneacionSemanalComponent implements OnInit, OnDestroy {
     this.guardando.set(true);
     this.apiService.post<unknown>('/planeacion/semanal-integral', body).pipe(takeUntil(this.destroy$)).subscribe(
       res => {
-        this.messageService.add({
-          severity: 'success',
-          summary: '✅ Planeación guardada',
-          detail: `${(res as any).planeaciones_creadas} planeaciones creadas`
-        });
+        this.notify.success('✅ Planeación guardada', `${(res as any).planeaciones_creadas} planeaciones creadas`);
         this.guardando.set(false);
         // Limpiar form
         this.step1Form.reset();
@@ -492,11 +480,7 @@ export class CrearPlaneacionSemanalComponent implements OnInit, OnDestroy {
         this.aprendizajesSeleccionados().clear();
       },
       err => {
-        this.messageService.add({
-          severity: 'error',
-          summary: '❌ Error',
-          detail: err.error?.message || 'No se pudo guardar'
-        });
+        this.notify.error('❌ Error', err.error?.message || 'No se pudo guardar');
         this.guardando.set(false);
       }
     );

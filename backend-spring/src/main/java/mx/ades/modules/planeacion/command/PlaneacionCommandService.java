@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -289,16 +290,18 @@ public class PlaneacionCommandService {
             planeacionesCreadas.add(planeacionId);
 
             // 2. Vincular aprendizajes esperados a la planeación
+            // Auditoría 2026-07-20 (principio "preferir operaciones Bulk"): un INSERT
+            // por aprendizaje esperado en un loop — batchUpdate() en un solo viaje.
             if (aprendizajesIds != null && !aprendizajesIds.isEmpty()) {
-                for (String aprendizajeIdStr : aprendizajesIds) {
-                    String sqlAprendizaje = """
-                        INSERT INTO ades_planeacion_aprendizajes
-                            (planeacion_clase_id, aprendizaje_esperado_id)
-                        VALUES (?::uuid, ?::uuid)
-                        ON CONFLICT DO NOTHING
-                        """;
-                    jdbc.update(sqlAprendizaje, planeacionId.toString(), aprendizajeIdStr);
-                }
+                List<Object[]> batchArgs = aprendizajesIds.stream()
+                        .map(aid -> new Object[]{planeacionId.toString(), aid})
+                        .toList();
+                jdbc.batchUpdate("""
+                    INSERT INTO ades_planeacion_aprendizajes
+                        (planeacion_clase_id, aprendizaje_esperado_id)
+                    VALUES (?::uuid, ?::uuid)
+                    ON CONFLICT DO NOTHING
+                    """, batchArgs);
             }
         }
 
@@ -391,13 +394,19 @@ public class PlaneacionCommandService {
         java.util.List<UUID> estudiantes = jdbc.queryForList(
                 "SELECT estudiante_id FROM ades_inscripciones WHERE grupo_id = ?::uuid AND is_active = TRUE",
                 UUID.class, grupoId.toString());
+        // Auditoría 2026-07-20 (principio "preferir operaciones Bulk"): mismo patrón que
+        // TareaPersistenceAdapter#crearSlots — batchUpdate en vez de un INSERT por alumno.
         int slots = 0;
-        for (UUID estudianteId : estudiantes) {
-            slots += jdbc.update("""
+        if (!estudiantes.isEmpty()) {
+            List<Object[]> batchArgs = estudiantes.stream()
+                    .map(eid -> new Object[]{tareaId.toString(), eid.toString()})
+                    .toList();
+            int[] rows = jdbc.batchUpdate("""
                 INSERT INTO ades_tareas_entregas (tarea_id, estudiante_id, estatus_entrega)
                 VALUES (?::uuid, ?::uuid, 'PENDIENTE')
                 ON CONFLICT (tarea_id, estudiante_id) DO NOTHING
-                """, tareaId.toString(), estudianteId.toString());
+                """, batchArgs);
+            for (int r : rows) slots += Math.max(r, 0);
         }
 
         return Map.of(

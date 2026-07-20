@@ -9,11 +9,9 @@ import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
 import { TagModule } from 'primeng/tag';
-import { ToastModule } from 'primeng/toast';
 import { DatePickerModule } from 'primeng/datepicker';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { AutoCompleteModule } from 'primeng/autocomplete';
-import { MessageService } from 'primeng/api';
 import { ApexNotificationService } from 'apex-component-library';
 import { AdesFormatDirective } from '../../shared/directives/ades-format.directive';
 import { AdesValidators } from '../../shared/validators/ades-validators';
@@ -67,11 +65,9 @@ interface ProfesorListado {
     AdesFormatDirective,
     CommonModule, FormsModule, TableModule, ButtonModule,
     DialogModule, InputTextModule, SelectModule, TagModule,
-    ToastModule, DatePickerModule, InputNumberModule, AutoCompleteModule,
+    DatePickerModule, InputNumberModule, AutoCompleteModule,
   ],
-  providers: [MessageService],
   template: `
-    <p-toast />
     <div class="apex-page">
       <div class="apex-toolbar">
         <h2 class="apex-title">Expediente Laboral Digital</h2>

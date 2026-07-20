@@ -51,13 +51,20 @@ public class PlanMejoraService {
             WHERE c.evaluacion_id = ? AND c.calificacion <= ?
             """, evaluacionId, UMBRAL_CALIFICACION_BAJA);
 
-        for (Map<String, Object> c : criteriosBajos) {
-            String nombreCriterio = (String) c.get("nombre_criterio");
-            String recomendacion = RECOMENDACIONES.getOrDefault(nombreCriterio, RECOMENDACION_GENERICA);
-            jdbc.update("""
+        if (!criteriosBajos.isEmpty()) {
+            // Auditoría 2026-07-20 (principio "preferir operaciones Bulk"): un INSERT por
+            // criterio bajo — batchUpdate en vez de un loop de escrituras individuales.
+            List<Object[]> batchArgs = criteriosBajos.stream()
+                    .map(c -> {
+                        String nombreCriterio = (String) c.get("nombre_criterio");
+                        String recomendacion = RECOMENDACIONES.getOrDefault(nombreCriterio, RECOMENDACION_GENERICA);
+                        return new Object[]{evaluacionId, nombreCriterio, c.get("calificacion"), recomendacion};
+                    })
+                    .toList();
+            jdbc.batchUpdate("""
                 INSERT INTO ades_planes_mejora_docente (evaluacion_id, criterio_debil, calificacion, recomendacion)
                 VALUES (?, ?, ?, ?)
-                """, evaluacionId, nombreCriterio, c.get("calificacion"), recomendacion);
+                """, batchArgs);
         }
         return listar(evaluacionId);
     }

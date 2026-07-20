@@ -371,10 +371,13 @@ export class RubricasComponent implements OnInit, OnDestroy {
   }
 
   cargarCatalogos(): void {
-    this.api.get<any[]>('/materias').pipe(takeUntil(this.destroy$)).subscribe(list => {
+    // getCached(): catálogos institucionales sin parámetros — se comparten entre
+    // cualquier componente que los pida en la misma sesión (auditoría 2026-07-20,
+    // principio "no consultes dos veces la misma información").
+    this.api.getCached<any[]>('/materias').pipe(takeUntil(this.destroy$)).subscribe(list => {
       this.materias.set(list.map(m => ({ label: m.nombre_materia, value: m.id })));
     });
-    this.api.get<any[]>('/catalogs/niveles').pipe(takeUntil(this.destroy$)).subscribe(list => {
+    this.api.getCached<any[]>('/catalogs/niveles').pipe(takeUntil(this.destroy$)).subscribe(list => {
       this.niveles.set(list.map(n => ({ label: n.nombre_nivel, value: n.id })));
     });
   }

@@ -8,13 +8,12 @@ import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
 import { DrawerModule } from 'primeng/drawer';
 import { ButtonModule } from 'primeng/button';
-import { ToastModule } from 'primeng/toast';
 import { TabsModule } from 'primeng/tabs';
 import { TabList, Tab, TabPanels, TabPanel } from 'primeng/tabs';
 import { InputTextModule } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
 import { DatePickerModule } from 'primeng/datepicker';
-import { MessageService } from 'primeng/api';
+import { ApexNotificationService } from 'apex-component-library';
 import { ApiService } from '../../../core/services/api.service';
 import { DomicilioComponent } from '../domicilio/domicilio.component';
 import { DisponibilidadGridComponent } from '../disponibilidad-grid/disponibilidad-grid.component';
@@ -36,14 +35,12 @@ const BANCOS          = ['BBVA','SANTANDER','BANAMEX','BANORTE','HSBC','SCOTIABA
   imports: [
     AdesFormatDirective,
     CommonModule, FormsModule,
-    DrawerModule, ButtonModule, ToastModule,
+    DrawerModule, ButtonModule,
     TabsModule, TabList, Tab, TabPanels, TabPanel,
     InputTextModule, SelectModule, DatePickerModule,
     DomicilioComponent, DisponibilidadGridComponent
   ],
-  providers: [MessageService],
   template: `
-    <p-toast />
 
     <p-drawer [(visible)]="visible" position="right"
       [style]="{width:'560px'}" [header]="profesor?.persona?.nombre_completo ?? 'Perfil del Profesor'"
@@ -274,7 +271,7 @@ const BANCOS          = ['BBVA','SANTANDER','BANAMEX','BANORTE','HSBC','SCOTIABA
 })
 export class ProfesorPerfilComponent implements OnInit, OnChanges, OnDestroy {
   private readonly api = inject(ApiService);
-  private readonly msg = inject(MessageService);
+  private readonly notify = inject(ApexNotificationService);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly destroy$ = new Subject<void>();
 
@@ -308,13 +305,13 @@ export class ProfesorPerfilComponent implements OnInit, OnChanges, OnDestroy {
   });
 
   ngOnInit(): void {
-    this.api.get<{ nacionalidad: string }[]>('/catalogs/nacionalidades')
+    this.api.getCached<{ nacionalidad: string }[]>('/catalogs/nacionalidades')
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: list => this.nacionalidades.set(list.map(n => n.nacionalidad)),
         error: () => {},
       });
-    this.api.get<any[]>('/catalogs/estados-mexico')
+    this.api.getCached<any[]>('/catalogs/estados-mexico')
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: list => {
@@ -326,7 +323,7 @@ export class ProfesorPerfilComponent implements OnInit, OnChanges, OnDestroy {
         },
         error: () => {},
       });
-    this.api.get<any[]>('/catalogs/paises')
+    this.api.getCached<any[]>('/catalogs/paises')
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: list => {
@@ -440,11 +437,11 @@ export class ProfesorPerfilComponent implements OnInit, OnChanges, OnDestroy {
   guardar(): void {
     if (!this.profesor) return;
     if (this.form.rfc && !AdesValidators.rfcValido(this.form.rfc)) {
-      this.msg.add({ severity: 'warn', summary: 'RFC inválido', detail: 'Formato esperado: AAAA000000AAA' });
+      this.notify.warning('RFC inválido', 'Formato esperado: AAAA000000AAA');
       return;
     }
     if (this.form.nss && !AdesValidators.nssValido(this.form.nss)) {
-      this.msg.add({ severity: 'warn', summary: 'NSS inválido', detail: 'El NSS debe tener exactamente 11 dígitos' });
+      this.notify.warning('NSS inválido', 'El NSS debe tener exactamente 11 dígitos');
       return;
     }
     this.saving.set(true);
@@ -482,12 +479,12 @@ export class ProfesorPerfilComponent implements OnInit, OnChanges, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
-          this.msg.add({ severity: 'success', summary: 'Guardado', detail: 'Perfil actualizado' });
+          this.notify.success('Guardado', 'Perfil actualizado');
           this.saving.set(false);
           this.saved.emit();
         },
         error: e => {
-          this.msg.add({ severity: 'error', summary: 'Error', detail: e.error?.detail ?? 'Error' });
+          this.notify.error('Error', e.error?.detail ?? 'Error');
           this.saving.set(false);
         },
       });

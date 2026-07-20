@@ -60,12 +60,17 @@ public class DireccionesQueryService {
                 term, term, term, limit);
     }
 
+    // Auditoría 2026-07-20: catálogo geográfico estático (nunca cambia en producción)
+    // sin @Cacheable pese a que Cacheable ya estaba importado — candidato real desde
+    // el principio, nunca aplicado.
+    @Cacheable(value = "catalogos", key = "'tipos_asentamiento'", unless = "#result == null")
     public List<Map<String, Object>> tiposAsentamiento() {
         return jdbc.queryForList(
                 "SELECT id, clave_tipo, nombre_tipo FROM ades_tipos_asentamiento " +
                 "WHERE is_active = TRUE ORDER BY nombre_tipo");
     }
 
+    @Cacheable(value = "catalogos", key = "'estados_mexico'", unless = "#result == null")
     public List<Map<String, Object>> estados() {
         return jdbc.queryForList(
                 "SELECT e.id, e.clave_estado, e.nombre_estado, pa.nombre_pais " +

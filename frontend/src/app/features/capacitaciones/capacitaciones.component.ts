@@ -10,12 +10,11 @@ import { InputTextModule } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
 import { TextareaModule } from 'primeng/textarea';
 import { TagModule } from 'primeng/tag';
-import { ToastModule } from 'primeng/toast';
 import { DatePickerModule } from 'primeng/datepicker';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { CardModule } from 'primeng/card';
 import { AutoCompleteModule } from 'primeng/autocomplete';
-import { MessageService, ConfirmationService } from 'primeng/api';
+import { ConfirmationService } from 'primeng/api';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ApexNotificationService } from 'apex-component-library';
 import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
@@ -81,13 +80,12 @@ interface CapacitacionForm {
     CommonModule, FormsModule,
     ButtonModule, DialogModule,
     InputTextModule, SelectModule, TextareaModule,
-    TagModule, ToastModule, DatePickerModule,
+    TagModule, DatePickerModule,
     InputNumberModule, CardModule, AutoCompleteModule,
     InteractiveGridComponent, ConfirmDialogModule,
   ],
-  providers: [MessageService, ConfirmationService],
+  providers: [ConfirmationService],
   template: `
-    <p-toast />
     <p-confirmDialog />
 
     <div class="apex-page">

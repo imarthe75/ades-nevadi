@@ -7,10 +7,9 @@ import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
-import { ToastModule } from 'primeng/toast';
 import { CheckboxModule } from 'primeng/checkbox';
 import { TooltipModule } from 'primeng/tooltip';
-import { MessageService, ConfirmationService } from 'primeng/api';
+import { ConfirmationService } from 'primeng/api';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ApexNotificationService } from 'apex-component-library';
 import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
@@ -76,12 +75,11 @@ const TIPOS = [
   imports: [
     AdesFormatDirective,
     CommonModule, FormsModule, ButtonModule, DialogModule,
-    InputTextModule, SelectModule, ToastModule, CheckboxModule, TooltipModule,
+    InputTextModule, SelectModule, CheckboxModule, TooltipModule,
     InteractiveGridComponent, ConfirmDialogModule,
   ],
-  providers: [MessageService, ConfirmationService],
+  providers: [ConfirmationService],
   template: `
-    <p-toast />
     <p-confirmDialog />
     <div class="apex-page">
       <div class="apex-toolbar">

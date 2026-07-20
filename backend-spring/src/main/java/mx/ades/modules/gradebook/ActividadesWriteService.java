@@ -45,14 +45,19 @@ public class ActividadesWriteService {
                 grupoId
         );
 
-        for (Map<String, Object> a : alumnos) {
-            UUID estudianteId = (UUID) a.get("estudiante_id");
-            jdbc.update(
+        // Auditoría 2026-07-20 (principio "preferir operaciones Bulk"): un INSERT por
+        // alumno al crear una actividad — un grupo típico son 20-40 alumnos, eso eran
+        // 20-40 viajes de red secuenciales. batchUpdate() lo hace en uno solo.
+        if (!alumnos.isEmpty()) {
+            List<Object[]> batchArgs = alumnos.stream()
+                    .map(a -> new Object[]{UUID.randomUUID(), tareaId, a.get("estudiante_id"), usuario, usuario})
+                    .toList();
+            jdbc.batchUpdate(
                     "INSERT INTO ades_tareas_entregas " +
                     "(id, tarea_id, estudiante_id, estatus_entrega, usuario_creacion, usuario_modificacion) " +
                     "VALUES (?, ?, ?, 'PENDIENTE', ?, ?) " +
                     "ON CONFLICT (tarea_id, estudiante_id) DO NOTHING",
-                    UUID.randomUUID(), tareaId, estudianteId, usuario, usuario
+                    batchArgs
             );
         }
 
@@ -61,24 +66,30 @@ public class ActividadesWriteService {
 
     @Transactional
     public int calificarMasivo(UUID actividadId, List<Map<String, Object>> items, UUID calificadoPor, String usuario) {
+        if (items.isEmpty()) return 0;
+        // Auditoría 2026-07-20 (principio "preferir operaciones Bulk"): mismo patrón que
+        // crearActividad() — un UPDATE por alumno calificado en un loop secuencial.
+        List<Object[]> batchArgs = items.stream()
+                .map(item -> new Object[]{
+                        item.get("calificacion"), item.get("comentario"), calificadoPor, usuario,
+                        actividadId, item.get("alumnoId"),
+                })
+                .toList();
+        int[] rows = jdbc.batchUpdate(
+                "UPDATE ades_tareas_entregas " +
+                "SET calificacion_obtenida = ?, " +
+                "    comentario_profesor = ?, " +
+                "    calificado_por = ?, " +
+                "    fecha_calificacion_docente = CURRENT_TIMESTAMP, " +
+                "    estatus_entrega = 'CALIFICADA', " +
+                "    fecha_modificacion = CURRENT_TIMESTAMP, " +
+                "    row_version = row_version + 1, " +
+                "    usuario_modificacion = ? " +
+                "WHERE tarea_id = ? AND estudiante_id = ?",
+                batchArgs
+        );
         int actualizados = 0;
-        for (Map<String, Object> item : items) {
-            int r = jdbc.update(
-                    "UPDATE ades_tareas_entregas " +
-                    "SET calificacion_obtenida = ?, " +
-                    "    comentario_profesor = ?, " +
-                    "    calificado_por = ?, " +
-                    "    fecha_calificacion_docente = CURRENT_TIMESTAMP, " +
-                    "    estatus_entrega = 'CALIFICADA', " +
-                    "    fecha_modificacion = CURRENT_TIMESTAMP, " +
-                    "    row_version = row_version + 1, " +
-                    "    usuario_modificacion = ? " +
-                    "WHERE tarea_id = ? AND estudiante_id = ?",
-                    item.get("calificacion"), item.get("comentario"), calificadoPor, usuario,
-                    actividadId, item.get("alumnoId")
-            );
-            actualizados += r;
-        }
+        for (int r : rows) actualizados += Math.max(r, 0);
         return actualizados;
     }
 }

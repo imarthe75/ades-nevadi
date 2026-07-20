@@ -864,7 +864,7 @@ export class PlanesEstudioComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    this.api.get<NivelOpt[]>('/catalogs/niveles').pipe(takeUntil(this.destroy$)).subscribe(n => {
+    this.api.getCached<NivelOpt[]>('/catalogs/niveles').pipe(takeUntil(this.destroy$)).subscribe(n => {
       const sorted = [...n].sort((a, b) => {
         const ai = NIVEL_ORDER.indexOf(a.nombre_nivel.toUpperCase());
         const bi = NIVEL_ORDER.indexOf(b.nombre_nivel.toUpperCase());

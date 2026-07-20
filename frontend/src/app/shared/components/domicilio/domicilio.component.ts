@@ -16,11 +16,11 @@ import { InputTextModule } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
 import { TextareaModule } from 'primeng/textarea';
 import { TagModule } from 'primeng/tag';
-import { ToastModule } from 'primeng/toast';
 import { DividerModule } from 'primeng/divider';
 import { TooltipModule } from 'primeng/tooltip';
-import { MessageService, ConfirmationService } from 'primeng/api';
+import { ConfirmationService } from 'primeng/api';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { ApexNotificationService } from 'apex-component-library';
 import { ApiService } from '../../../core/services/api.service';
 import { AdesFormatDirective } from '../../directives/ades-format.directive';
 
@@ -83,12 +83,11 @@ interface PersonaContacto {
     AdesFormatDirective,
     CommonModule, FormsModule,
     ButtonModule, InputTextModule, SelectModule, TextareaModule,
-    TagModule, ToastModule, DividerModule, TooltipModule,
+    TagModule, DividerModule, TooltipModule,
     ConfirmDialogModule,
   ],
-  providers: [MessageService, ConfirmationService],
+  providers: [ConfirmationService],
   template: `
-    <p-toast />
     <p-confirmDialog />
 
     @if (!personaId) {
@@ -515,7 +514,7 @@ interface PersonaContacto {
 export class DomicilioComponent implements OnChanges, OnDestroy {
   private readonly api = inject(ApiService);
   private readonly http = inject(HttpClient);
-  private readonly msg = inject(MessageService);
+  private readonly notify = inject(ApexNotificationService);
   private readonly confirm = inject(ConfirmationService);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly destroy$ = new Subject<void>();
@@ -699,12 +698,12 @@ export class DomicilioComponent implements OnChanges, OnDestroy {
 
     req.pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
-        this.msg.add({ severity: 'success', summary: 'Guardado', detail: 'Dirección actualizada' });
+        this.notify.success('Guardado', 'Dirección actualizada');
         this.cancelarDireccion();
         this.cargarDirecciones();
       },
       error: e => {
-        this.msg.add({ severity: 'error', summary: 'Error', detail: e.error?.detail ?? 'Error al guardar' });
+        this.notify.error('Error', e.error?.detail ?? 'Error al guardar');
         this.savingDir.set(false);
       },
     });
@@ -746,8 +745,7 @@ export class DomicilioComponent implements OnChanges, OnDestroy {
       this.dirEdit.nombre_estado, this.dirEdit.nombre_pais || 'México',
     ].filter(Boolean);
     if (parts.length < 2) {
-      this.msg.add({ severity: 'warn', summary: 'Datos insuficientes',
-        detail: 'Ingresa al menos calle y municipio para geocodificar' });
+      this.notify.warning('Datos insuficientes', 'Ingresa al menos calle y municipio para geocodificar');
       return;
     }
     this.geocodificando.set(true);
@@ -761,17 +759,15 @@ export class DomicilioComponent implements OnChanges, OnDestroy {
           this.dirEdit.latitud  = parseFloat(results[0].lat);
           this.dirEdit.longitud = parseFloat(results[0].lon);
           this.dirEdit.precision_gps = 'APROXIMADA';
-          this.msg.add({ severity: 'success', summary: 'Geocodificado',
-            detail: `${results[0].display_name}` });
+          this.notify.success('Geocodificado', `${results[0].display_name}`);
         } else {
-          this.msg.add({ severity: 'warn', summary: 'Sin resultados',
-            detail: 'No se encontraron coordenadas para esta dirección' });
+          this.notify.warning('Sin resultados', 'No se encontraron coordenadas para esta dirección');
         }
         this.geocodificando.set(false);
         this.cdr.markForCheck();
       },
       error: () => {
-        this.msg.add({ severity: 'error', summary: 'Error', detail: 'No se pudo conectar a Nominatim' });
+        this.notify.error('Error', 'No se pudo conectar a Nominatim');
         this.geocodificando.set(false);
       },
     });
@@ -806,21 +802,21 @@ export class DomicilioComponent implements OnChanges, OnDestroy {
     const medio = this.contactoEdit.medio ?? '';
 
     if (!valor) {
-      this.msg.add({ severity: 'warn', summary: 'Campo requerido', detail: 'Ingresa el valor del medio de contacto' });
+      this.notify.warning('Campo requerido', 'Ingresa el valor del medio de contacto');
       return;
     }
 
     if (medio === 'EMAIL') {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
       if (!emailRegex.test(valor)) {
-        this.msg.add({ severity: 'warn', summary: 'Email inválido', detail: 'Ingresa un correo electrónico válido (ej: nombre@dominio.com)' });
+        this.notify.warning('Email inválido', 'Ingresa un correo electrónico válido (ej: nombre@dominio.com)');
         return;
       }
     } else if (['CELULAR', 'FIJO', 'WHATSAPP'].includes(medio)) {
       const digitosRegex = /^\d{10}$/;
       const soloDigitos = valor.replace(/[\s\-\(\)]/g, '');
       if (!digitosRegex.test(soloDigitos)) {
-        this.msg.add({ severity: 'warn', summary: 'Teléfono inválido', detail: 'El número debe tener exactamente 10 dígitos' });
+        this.notify.warning('Teléfono inválido', 'El número debe tener exactamente 10 dígitos');
         return;
       }
       this.contactoEdit.valor = soloDigitos; // normalizar
@@ -839,12 +835,12 @@ export class DomicilioComponent implements OnChanges, OnDestroy {
       : this.api.patch(`/persona-contactos/${this.contactoEdit.id}`, payload);
     req.pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
-        this.msg.add({ severity: 'success', summary: 'Guardado', detail: 'Contacto actualizado' });
+        this.notify.success('Guardado', 'Contacto actualizado');
         this.cancelarContacto();
         this.cargarContactos();
       },
       error: e => {
-        this.msg.add({ severity: 'error', summary: 'Error', detail: e.error?.detail ?? 'Error' });
+        this.notify.error('Error', e.error?.detail ?? 'Error');
         this.savingContacto.set(false);
       },
     });

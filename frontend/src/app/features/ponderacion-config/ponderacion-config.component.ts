@@ -209,7 +209,7 @@ export class PonderacionConfigComponent implements OnInit, OnDestroy {
           es_nee: boolean; items: ItemRow[] } = this.emptyForm();
 
   ngOnInit() {
-    this.api.get<NivelOpt[]>('/catalogs/niveles').pipe(takeUntil(this.destroy$)).subscribe(r => this.niveles.set(r ?? []));
+    this.api.getCached<NivelOpt[]>('/catalogs/niveles').pipe(takeUntil(this.destroy$)).subscribe(r => this.niveles.set(r ?? []));
     this.cargarEsquemas();
   }
 

@@ -5,8 +5,6 @@ import { Subject, takeUntil } from 'rxjs';
 import { ApiService } from '../../core/services/api.service';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
-import { ToastModule } from 'primeng/toast';
-import { MessageService } from 'primeng/api';
 import { ApexNotificationService } from 'apex-component-library';
 import { ExportService, ExportColumn } from '../../core/services/export.service';
 import { AdesFormatDirective } from '../../shared/directives/ades-format.directive';
@@ -70,10 +68,8 @@ const BUCKETS: Record<string, { base: number; tope: number }> = {
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
-    AdesFormatDirective,CommonModule, FormsModule, ButtonModule, InputTextModule, ToastModule],
-  providers: [MessageService],
+    AdesFormatDirective,CommonModule, FormsModule, ButtonModule, InputTextModule],
   template: `
-    <p-toast />
     <div class="apex-page">
       <div class="apex-toolbar">
         <h2 class="apex-title">Formato 911 — Inicio de cursos (SEP)</h2>

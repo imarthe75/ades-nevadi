@@ -24,6 +24,11 @@ public class CatalogsQueryService {
         );
     }
 
+    // Auditoría 2026-07-20: periodos()/lenguasIndigenas()/familiasLinguisticas()/
+    // nivelesIngles() son catálogos que raramente cambian dentro de un ciclo escolar
+    // (roles()/paises()/nacionalidades() de este mismo archivo ya usan @Cacheable —
+    // estos 4 quedaron sin aplicar el mismo patrón).
+    @Cacheable(value = "catalogos", key = "'periodos_' + #cicloId + '_' + #grupoId", unless = "#result == null")
     public List<Map<String, Object>> periodos(UUID cicloId, UUID grupoId) {
         StringBuilder sql = new StringBuilder(
                 "SELECT pe.id, pe.nombre_periodo, pe.numero_periodo, pe.tipo_periodo, " +
@@ -58,6 +63,7 @@ public class CatalogsQueryService {
         );
     }
 
+    @Cacheable(value = "catalogos", key = "'lenguas_' + #familia", unless = "#result == null")
     public List<Map<String, Object>> lenguasIndigenas(String familia) {
         StringBuilder sql = new StringBuilder(
                 "SELECT id, familia_linguistica, agrupacion, autonym " +
@@ -71,6 +77,7 @@ public class CatalogsQueryService {
         return jdbc.queryForList(sql.toString(), params.toArray());
     }
 
+    @Cacheable(value = "catalogos", key = "'familias_linguisticas'", unless = "#result == null")
     public List<Map<String, Object>> familiasLinguisticas() {
         return jdbc.queryForList(
                 "SELECT DISTINCT familia_linguistica, COUNT(*) AS total " +
@@ -79,6 +86,7 @@ public class CatalogsQueryService {
         );
     }
 
+    @Cacheable(value = "catalogos", key = "'niveles_ingles'", unless = "#result == null")
     public List<Map<String, Object>> nivelesIngles() {
         return jdbc.queryForList(
                 "SELECT id, nivel, nombre, descripcion, equivalencia_cambridge, " +

@@ -1883,7 +1883,7 @@ export class AdminComponent implements OnInit, OnDestroy {
   }
 
   cargarNiveles(): void {
-    this.api.get<NivelOpt[]>('/catalogs/niveles').pipe(takeUntil(this.destroy$)).subscribe(n => this.niveles.set(n));
+    this.api.getCached<NivelOpt[]>('/catalogs/niveles').pipe(takeUntil(this.destroy$)).subscribe(n => this.niveles.set(n));
   }
 
   cargarGrados(): void {

@@ -9,13 +9,11 @@ import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
 import { TagModule } from 'primeng/tag';
-import { ToastModule } from 'primeng/toast';
 import { TextareaModule } from 'primeng/textarea';
 import { TooltipModule } from 'primeng/tooltip';
 import { CardModule } from 'primeng/card';
 import { TabsModule } from 'primeng/tabs';
 import { DatePickerModule } from 'primeng/datepicker';
-import { MessageService } from 'primeng/api';
 import { ApexNotificationService } from 'apex-component-library';
 import { ContextService } from '../../core/services/context.service';
 import { AdesFormatDirective } from '../../shared/directives/ades-format.directive';
@@ -80,12 +78,10 @@ interface Anuncio {
   imports: [
     AdesFormatDirective,
     CommonModule, FormsModule, TableModule, ButtonModule, DialogModule,
-    InputTextModule, SelectModule, TagModule, ToastModule, TextareaModule,
+    InputTextModule, SelectModule, TagModule, TextareaModule,
     TooltipModule, CardModule, TabsModule, DatePickerModule,
   ],
-  providers: [MessageService],
   template: `
-    <p-toast />
     <div class="apex-page">
       <div class="apex-toolbar">
         <h2 class="apex-title">Foros y Anuncios</h2>

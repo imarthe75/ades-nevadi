@@ -7,10 +7,9 @@ import { SelectModule } from 'primeng/select';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { CardModule } from 'primeng/card';
-import { ToastModule } from 'primeng/toast';
 import { MessageModule } from 'primeng/message';
-import { MessageService } from 'primeng/api';
 import { ChartModule } from 'primeng/chart';
+import { ApexNotificationService } from 'apex-component-library';
 
 import { ApiService } from '../../core/services/api.service';
 
@@ -29,9 +28,8 @@ import { ApiService } from '../../core/services/api.service';
   imports: [
     CommonModule, FormsModule,
     ButtonModule, SelectModule, TableModule, TagModule, CardModule,
-    ToastModule, MessageModule, ChartModule
+    MessageModule, ChartModule
   ],
-  providers: [MessageService],
   template: `
     <div class="page-header">
       <div>
@@ -39,8 +37,6 @@ import { ApiService } from '../../core/services/api.service';
         <p class="page-subtitle">Visualiza calificaciones y estadísticas de aprendizajes</p>
       </div>
     </div>
-
-    <p-toast />
 
     <!-- SECCIÓN 1: Ver Boleta de un Alumno -->
     <div class="card form-section">
@@ -347,7 +343,7 @@ import { ApiService } from '../../core/services/api.service';
 export class DashboardBolecasYCoberturaComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private apiService = inject(ApiService);
-  private messageService = inject(MessageService);
+  private notify = inject(ApexNotificationService);
 
   // Datos
   grupos = signal<any[]>([]);
@@ -428,18 +424,10 @@ export class DashboardBolecasYCoberturaComponent implements OnInit, OnDestroy {
     ).pipe(takeUntil(this.destroy$)).subscribe(
       res => {
         this.boleta.set(res as any);
-        this.messageService.add({
-          severity: 'success',
-          summary: 'Boleta cargada',
-          detail: `Nota final: ${(res as any).nota_final}`
-        });
+        this.notify.success('Boleta cargada', `Nota final: ${(res as any).nota_final}`);
       },
       err => {
-        this.messageService.add({
-          severity: 'error',
-          summary: 'Error',
-          detail: 'No se pudo cargar la boleta'
-        });
+        this.notify.error('Error', 'No se pudo cargar la boleta');
       }
     );
   }
@@ -454,11 +442,7 @@ export class DashboardBolecasYCoberturaComponent implements OnInit, OnDestroy {
         this.cobertura.set(res as any);
       },
       err => {
-        this.messageService.add({
-          severity: 'error',
-          summary: 'Error',
-          detail: 'No se pudo cargar la cobertura'
-        });
+        this.notify.error('Error', 'No se pudo cargar la cobertura');
       }
     );
 

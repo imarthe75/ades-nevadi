@@ -9,10 +9,9 @@ import { TextareaModule } from 'primeng/textarea';
 import { DatePickerModule } from 'primeng/datepicker';
 import { CardModule } from 'primeng/card';
 import { TagModule } from 'primeng/tag';
-import { ToastModule } from 'primeng/toast';
 import { MessageModule } from 'primeng/message';
-import { MessageService } from 'primeng/api';
 import { TableModule } from 'primeng/table';
+import { ApexNotificationService } from 'apex-component-library';
 
 import { ApiService } from '../../core/services/api.service';
 import { AdesFormatDirective } from '../../shared/directives/ades-format.directive';
@@ -36,9 +35,8 @@ import type { components } from '../../core/models/api-types.generated';
     AdesFormatDirective,
     CommonModule, FormsModule, ReactiveFormsModule,
     ButtonModule, SelectModule, InputTextModule, TextareaModule,
-    DatePickerModule, CardModule, TagModule, ToastModule, MessageModule, TableModule
+    DatePickerModule, CardModule, TagModule, MessageModule, TableModule
   ],
-  providers: [MessageService],
   template: `
     <div class="page-header">
       <div>
@@ -46,8 +44,6 @@ import type { components } from '../../core/models/api-types.generated';
         <p class="page-subtitle">El examen heredará automáticamente los aprendizajes esperados</p>
       </div>
     </div>
-
-    <p-toast />
 
     <!-- PASO 1: Seleccionar Grupo y Planeación -->
     <div class="card form-section">
@@ -265,7 +261,7 @@ import type { components } from '../../core/models/api-types.generated';
 export class CrearExamenDesdeplanneacionComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private apiService = inject(ApiService);
-  private messageService = inject(MessageService);
+  private notify = inject(ApexNotificationService);
   private fb = inject(FormBuilder);
 
   // Formularios
@@ -329,18 +325,10 @@ export class CrearExamenDesdeplanneacionComponent implements OnInit, OnDestroy {
         res => {
           this.planeaciones.set(res as any[]);
           this.planeacionesLoaded.set(true);
-          this.messageService.add({
-            severity: 'info',
-            summary: 'Planeaciones cargadas',
-            detail: `${(res as any[]).length} planeaciones disponibles`
-          });
+          this.notify.info('Planeaciones cargadas', `${(res as any[]).length} planeaciones disponibles`);
         },
         err => {
-          this.messageService.add({
-            severity: 'error',
-            summary: 'Error',
-            detail: 'No se pudieron cargar las planeaciones'
-          });
+          this.notify.error('Error', 'No se pudieron cargar las planeaciones');
         }
       );
   }
@@ -355,11 +343,7 @@ export class CrearExamenDesdeplanneacionComponent implements OnInit, OnDestroy {
           this.planeacionDetalle.set(res as any);
         },
         err => {
-          this.messageService.add({
-            severity: 'error',
-            summary: 'Error',
-            detail: 'No se pudo cargar los detalles de la planeación'
-          });
+          this.notify.error('Error', 'No se pudo cargar los detalles de la planeación');
         }
       );
   }
@@ -393,11 +377,7 @@ export class CrearExamenDesdeplanneacionComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe(
         res => {
-          this.messageService.add({
-            severity: 'success',
-            summary: '✅ Examen guardado',
-            detail: `Aprendizajes esperados heredados automáticamente`
-          });
+          this.notify.success('✅ Examen guardado', 'Aprendizajes esperados heredados automáticamente');
           this.guardando.set(false);
           // Reset forms
           this.examenForm.reset({ puntajeMaximo: 10 });
@@ -405,11 +385,7 @@ export class CrearExamenDesdeplanneacionComponent implements OnInit, OnDestroy {
           this.planeacionDetalle.set(null);
         },
         err => {
-          this.messageService.add({
-            severity: 'error',
-            summary: '❌ Error',
-            detail: err.error?.message || 'No se pudo guardar el examen'
-          });
+          this.notify.error('❌ Error', err.error?.message || 'No se pudo guardar el examen');
           this.guardando.set(false);
         }
       );

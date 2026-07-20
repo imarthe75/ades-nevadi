@@ -168,20 +168,27 @@ public class PortalAdminService {
 
     @Transactional
     public void insertarRequisitos(UUID convId, List<PortalAdminController.RequisitoRequest> reqs, String usuario) {
-        for (PortalAdminController.RequisitoRequest r : reqs) {
-            String mimes = r.getTiposMimePermitidos() != null
-                    ? "{" + String.join(",", r.getTiposMimePermitidos()) + "}"
-                    : "{application/pdf}";
-            jdbc.update("""
-                INSERT INTO portal.requisitos_documentos
-                  (convocatoria_id, nombre, descripcion, es_obligatorio,
-                   tipos_mime_permitidos, tamano_maximo_mb, orden, usuario_creacion)
-                VALUES (?,?,?,?,?::TEXT[],?,?,?)
-                """,
-                    convId, r.getNombre(), r.getDescripcion(), r.isEsObligatorio(),
-                    mimes, r.getTamanoMaximoMb() != null ? r.getTamanoMaximoMb() : 5,
-                    r.getOrden() != null ? r.getOrden() : 0, usuario);
-        }
+        if (reqs.isEmpty()) return;
+        // Auditoría 2026-07-20 (principio "preferir operaciones Bulk"): un INSERT por
+        // requisito documental — batchUpdate en vez de un loop de escrituras individuales.
+        List<Object[]> batchArgs = reqs.stream()
+                .map(r -> {
+                    String mimes = r.getTiposMimePermitidos() != null
+                            ? "{" + String.join(",", r.getTiposMimePermitidos()) + "}"
+                            : "{application/pdf}";
+                    return new Object[]{
+                            convId, r.getNombre(), r.getDescripcion(), r.isEsObligatorio(),
+                            mimes, r.getTamanoMaximoMb() != null ? r.getTamanoMaximoMb() : 5,
+                            r.getOrden() != null ? r.getOrden() : 0, usuario,
+                    };
+                })
+                .toList();
+        jdbc.batchUpdate("""
+            INSERT INTO portal.requisitos_documentos
+              (convocatoria_id, nombre, descripcion, es_obligatorio,
+               tipos_mime_permitidos, tamano_maximo_mb, orden, usuario_creacion)
+            VALUES (?,?,?,?,?::TEXT[],?,?,?)
+            """, batchArgs);
     }
 
     public List<Map<String, Object>> listarPostulaciones(UUID convocatoriaId, String estado,
@@ -381,13 +388,18 @@ public class PortalAdminService {
 
     @Transactional
     public void reordenarSecciones(List<UUID> ids, UUID convId, String usuario) {
+        if (ids.isEmpty()) return;
+        // Auditoría 2026-07-20 (principio "preferir operaciones Bulk"): un UPDATE por
+        // sección al reordenar — batchUpdate en vez de un loop de escrituras individuales.
+        List<Object[]> batchArgs = new java.util.ArrayList<>();
         for (int i = 0; i < ids.size(); i++) {
-            jdbc.update("""
-                UPDATE portal.secciones_convocatoria
-                SET orden = ?, usuario_modificacion = ?
-                WHERE id = ? AND convocatoria_id = ?
-                """, i, usuario, ids.get(i), convId);
+            batchArgs.add(new Object[]{i, usuario, ids.get(i), convId});
         }
+        jdbc.batchUpdate("""
+            UPDATE portal.secciones_convocatoria
+            SET orden = ?, usuario_modificacion = ?
+            WHERE id = ? AND convocatoria_id = ?
+            """, batchArgs);
     }
 
     @Transactional

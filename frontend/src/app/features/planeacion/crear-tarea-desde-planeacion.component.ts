@@ -9,10 +9,9 @@ import { TextareaModule } from 'primeng/textarea';
 import { DatePickerModule } from 'primeng/datepicker';
 import { CardModule } from 'primeng/card';
 import { TagModule } from 'primeng/tag';
-import { ToastModule } from 'primeng/toast';
 import { MessageModule } from 'primeng/message';
-import { MessageService } from 'primeng/api';
 import { TableModule } from 'primeng/table';
+import { ApexNotificationService } from 'apex-component-library';
 
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
@@ -43,9 +42,8 @@ import type { components } from '../../core/models/api-types.generated';
     AdesFormatDirective,
     CommonModule, FormsModule, ReactiveFormsModule,
     ButtonModule, SelectModule, InputTextModule, TextareaModule,
-    DatePickerModule, CardModule, TagModule, ToastModule, MessageModule, TableModule
+    DatePickerModule, CardModule, TagModule, MessageModule, TableModule
   ],
-  providers: [MessageService],
   template: `
     <div class="page-header">
       <div>
@@ -53,8 +51,6 @@ import type { components } from '../../core/models/api-types.generated';
         <p class="page-subtitle">La tarea heredará automáticamente los aprendizajes esperados</p>
       </div>
     </div>
-
-    <p-toast />
 
     <!-- PASO 1: Seleccionar Grupo y Planeación -->
     <div class="card form-section">
@@ -323,7 +319,7 @@ import type { components } from '../../core/models/api-types.generated';
 export class CrearTareaDesdeplanneacionComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private apiService = inject(ApiService);
-  private messageService = inject(MessageService);
+  private notify = inject(ApexNotificationService);
   private fb = inject(FormBuilder);
 
   // Formularios
@@ -390,18 +386,10 @@ export class CrearTareaDesdeplanneacionComponent implements OnInit, OnDestroy {
         res => {
           this.planeaciones.set(res as any[]);
           this.planeacionesLoaded.set(true);
-          this.messageService.add({
-            severity: 'info',
-            summary: 'Planeaciones cargadas',
-            detail: `${(res as any[]).length} planeaciones disponibles`
-          });
+          this.notify.info('Planeaciones cargadas', `${(res as any[]).length} planeaciones disponibles`);
         },
         err => {
-          this.messageService.add({
-            severity: 'error',
-            summary: 'Error',
-            detail: 'No se pudieron cargar las planeaciones'
-          });
+          this.notify.error('Error', 'No se pudieron cargar las planeaciones');
         }
       );
   }
@@ -414,18 +402,10 @@ export class CrearTareaDesdeplanneacionComponent implements OnInit, OnDestroy {
       .subscribe(
         res => {
           this.planeacionDetalle.set(res as any);
-          this.messageService.add({
-            severity: 'success',
-            summary: 'Planeación seleccionada',
-            detail: `${(res as any).cantidad_aprendizajes} aprendizajes esperados`
-          });
+          this.notify.success('Planeación seleccionada', `${(res as any).cantidad_aprendizajes} aprendizajes esperados`);
         },
         err => {
-          this.messageService.add({
-            severity: 'error',
-            summary: 'Error',
-            detail: 'No se pudo cargar los detalles de la planeación'
-          });
+          this.notify.error('Error', 'No se pudo cargar los detalles de la planeación');
         }
       );
   }
@@ -460,11 +440,7 @@ export class CrearTareaDesdeplanneacionComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe(
         res => {
-          this.messageService.add({
-            severity: 'success',
-            summary: '✅ Tarea guardada',
-            detail: `Aprendizajes esperados heredados automáticamente`
-          });
+          this.notify.success('✅ Tarea guardada', 'Aprendizajes esperados heredados automáticamente');
           this.guardando.set(false);
           // Reset forms
           this.tareaForm.reset({ puntajeMaximo: 10, permiteEntregaTarde: false });
@@ -472,11 +448,7 @@ export class CrearTareaDesdeplanneacionComponent implements OnInit, OnDestroy {
           this.planeacionDetalle.set(null);
         },
         err => {
-          this.messageService.add({
-            severity: 'error',
-            summary: '❌ Error',
-            detail: err.error?.message || 'No se pudo guardar la tarea'
-          });
+          this.notify.error('❌ Error', err.error?.message || 'No se pudo guardar la tarea');
           this.guardando.set(false);
         }
       );
