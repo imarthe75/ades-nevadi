@@ -330,7 +330,15 @@ export class CalificacionesComponent implements OnInit, OnDestroy {
     return d?.color ?? 'var(--text-muted)';
   }
 
-  columnas       = computed(() => this.libreta()?.periodos ?? []);
+  // Hallazgo real 2026-07-20: el backend (CalificacionesController#libreta) nunca
+  // devolvió un campo "periodos" (solo "periodos_detalle", objetos {id,
+  // nombre_periodo}) — LibretaGrupo lo declaraba en el modelo TypeScript pero no
+  // existía en el JSON real (confirmado con curl directo contra /calificaciones/
+  // grupo/{id}/libreta). Como resultado, la libreta NUNCA mostró ninguna columna de
+  // período — el grid solo tenía Matrícula/Alumno/Promedio/Acredita, sin ninguna
+  // celda editable, para cualquier grupo, siempre. Se deriva de periodos_detalle,
+  // que sí trae datos reales (mismo campo que ya usa guardarCambios() más abajo).
+  columnas       = computed(() => this.libreta()?.periodos_detalle?.map(p => p.nombre_periodo) ?? []);
   pendingChanges = computed(() => this.editadas.size);
 
   constructor() {
@@ -375,8 +383,16 @@ export class CalificacionesComponent implements OnInit, OnDestroy {
     this.api.get<any[]>('/planes-estudio', planParams).pipe(takeUntil(this.destroy$)).subscribe({
       next: planes => {
         const materiaIds = new Set(planes.map((p: any) => p.materia_id).filter(Boolean));
-        // Cargar todas las materias y filtrar por las que están en el plan del grado
-        this.api.get<Materia[]>('/materias').pipe(takeUntil(this.destroy$)).subscribe({
+        // Bug real (hallazgo 2026-07-19, sin corregir hasta hoy): cuando no hay plan de
+        // estudios para este grado+ciclo, este fallback pedía TODO el catálogo de
+        // materias sin filtrar por nivel — permitía seleccionar materias de otro nivel
+        // educativo (ej. una materia de Preparatoria para un grupo de Primaria) que
+        // nunca producen una libreta real. Se filtra ahora por nivel del grupo, mismo
+        // patrón ya usado en la rama de error de abajo.
+        const nivelNombre = this.selectedGrupo?.nombre_nivel;
+        const materiasParams: Record<string, any> = {};
+        if (materiaIds.size === 0 && nivelNombre) materiasParams['nivel'] = nivelNombre;
+        this.api.get<Materia[]>('/materias', materiasParams).pipe(takeUntil(this.destroy$)).subscribe({
           next: all => {
             const filtradas = materiaIds.size > 0
               ? all.filter(m => materiaIds.has(m.id))
@@ -450,12 +466,21 @@ export class CalificacionesComponent implements OnInit, OnDestroy {
       if (esCual) {
         const nivelLogro = (row as any).niveles_logro?.[periodoNombre];
         if (!nivelLogro) return null;
+        // HALLAZGO REAL (auditoría de tipado 2026-07-19): application.yml fija
+        // spring.jackson.property-naming-strategy: SNAKE_CASE globalmente y ApiService no
+        // convierte el body — CalificacionesController.CualitativaRequest (campos Java
+        // estudianteId/grupoId/materiaId/periodoEvaluacionId) espera por lo tanto
+        // estudiante_id/grupo_id/materia_id/periodo_evaluacion_id/nivel_logro en el JSON
+        // real. El payload anterior mandaba camelCase, así que
+        // body.getGrupoId()==null siempre disparaba 400 "grupoId es obligatorio" — el
+        // guardado de calificación cualitativa (boleta A/B/C/D 1°-2° primaria) estaba
+        // roto en silencio para todo el mundo. Corregido a snake_case real.
         return {
           _endpoint: '/calificaciones/cualitativa',
-          estudianteId, grupoId: this.selectedGrupo!.id,
-          materiaId: this.selectedMateria!.id,
-          periodoEvaluacionId: periodoId,
-          nivelLogro,
+          estudiante_id: estudianteId, grupo_id: this.selectedGrupo!.id,
+          materia_id: this.selectedMateria!.id,
+          periodo_evaluacion_id: periodoId,
+          nivel_logro: nivelLogro,
         };
       } else {
         const valor = row?.calificaciones[periodoNombre];

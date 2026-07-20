@@ -75,6 +75,63 @@ interface Compromiso {
   cumplido: boolean;
 }
 
+/**
+ * Fila de GET /api/v1/conducta (ConductaQueryService#listar) y también forma parcial
+ * de la respuesta de POST /api/v1/conducta (que devuelve la entidad JPA `ReporteConducta`
+ * cruda, sin los JOIN del query service).
+ * `nombre_alumno`/`reportado_por_nombre` son opcionales porque el POST NO los incluye
+ * (hallazgo real: la fila recién creada por guardar() queda sin nombre de alumno hasta
+ * el próximo cargar()). `sancion_id` también es opcional porque el SELECT de listar()
+ * no lo trae (a diferencia de historial(), que sí expone `sd.id AS sancion_id`) — por
+ * eso `sancion_str` en cargar()/exportCols siempre cae a "—" aunque exista una sanción
+ * aplicada (bug real de contrato backend↔frontend, fuera del alcance de este archivo:
+ * requiere agregar la columna en ConductaQueryService#listar).
+ */
+interface ReporteConductaListItem {
+  id: string;
+  estudiante_id: string;
+  grupo_id: string;
+  reportado_por_id: string;
+  fecha_reporte: string;
+  tipo_falta: 'LEVE' | 'GRAVE' | 'MUY_GRAVE';
+  descripcion: string;
+  medida_aplicada: string | null;
+  requiere_seguimiento: boolean;
+  nombre_alumno?: string;
+  reportado_por_nombre?: string;
+  sancion_id?: string;
+}
+
+type ReporteConductaFlat = ReporteConductaListItem & {
+  seguimiento_str: string;
+  sancion_str: string;
+};
+
+/** Fila devuelta por GET /api/v1/portal/buscar (PortalQueryService#buscarAlumnos). */
+interface PortalAlumnoBusqueda {
+  id: string;
+  matricula: string;
+  nombre: string;
+  apellido_paterno: string;
+  apellido_materno: string | null;
+  nombre_grupo: string;
+  nombre_plantel: string;
+  nivel: string;
+}
+
+/**
+ * GET /api/v1/conducta/{id}/detalle-completo (ConductaQueryService#detalleCompleto).
+ * `reporte` viene de `SELECT rc.*, ...` (todas las columnas dinámicas de
+ * ades_reportes_conducta) — no se documenta campo por campo aquí porque el SELECT no
+ * enumera columnas fijas.
+ */
+interface DetalleCompletoConducta {
+  reporte: Record<string, any> | null;
+  sancion: Record<string, any> | null;
+  plan_mejora: Record<string, any> | null;
+  seguimientos: Record<string, any>[];
+}
+
 @Component({
   selector: 'app-conducta',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -502,7 +559,7 @@ export class ConductaComponent implements OnInit, OnDestroy {
   private readonly export = inject(ExportService);
 
   // ── List state ────────────────────────────────────────────────
-  reportes    = signal<any[]>([]);
+  reportes    = signal<ReporteConductaFlat[]>([]);
   busqueda    = signal('');
   readonly reportesFiltrados = computed(() => {
     const q = this.busqueda().toLowerCase();
@@ -515,7 +572,7 @@ export class ConductaComponent implements OnInit, OnDestroy {
   loading     = signal(false);
   saving      = signal(false);
   gruposOpts  = signal<GrupoConLabel[]>([]);
-  alumnosSugg = signal<any[]>([]);
+  alumnosSugg = signal<{ id: string; nombre_completo: string }[]>([]);
   showNuevoDialog = false;
 
   filtroTipo: string | null = null;
@@ -555,13 +612,13 @@ export class ConductaComponent implements OnInit, OnDestroy {
   showDetalleDialog = false;
   detalleTab        = '0';
   loadingDetalle    = signal(false);
-  detalle           = signal<any>(null);
+  detalle           = signal<DetalleCompletoConducta | null>(null);
   selectedReporteId = signal<string | null>(null);
 
   readonly detalleHeader = computed(() => {
     const d = this.detalle();
     if (!d) return 'Detalle';
-    return `Reporte — ${d.reporte?.nombre_alumno ?? ''} — ${d.reporte?.fecha_reporte ?? ''}`;
+    return `Reporte — ${d.reporte?.['nombre_alumno'] ?? ''} — ${d.reporte?.['fecha_reporte'] ?? ''}`;
   });
 
   readonly seguimientosTimeline = computed(() => {
@@ -672,7 +729,7 @@ export class ConductaComponent implements OnInit, OnDestroy {
     const grado   = this.ctx.grado();   if (grado?.id)   params['grado_id']   = grado.id;
     const grupo   = this.ctx.grupo();   if (grupo?.id)   params['grupo_id']   = grupo.id;
 
-    this.api.get<any[]>('/conducta', params).pipe(takeUntil(this.destroy$)).subscribe({
+    this.api.get<ReporteConductaListItem[]>('/conducta', params).pipe(takeUntil(this.destroy$)).subscribe({
       next: r => {
         this.reportes.set(r.map(x => ({
           ...x,
@@ -687,25 +744,25 @@ export class ConductaComponent implements OnInit, OnDestroy {
   }
 
   // ── Detalle ───────────────────────────────────────────────────
-  abrirDetalle(reporte: any): void {
+  abrirDetalle(reporte: ReporteConductaFlat): void {
     this.selectedReporteId.set(reporte.id);
     this.showDetalleDialog = true;
     this.detalleTab = '0';
     this.loadingDetalle.set(true);
     this.detalle.set(null);
-    this.api.get<any>(`/conducta/${reporte.id}/detalle-completo`).pipe(takeUntil(this.destroy$)).subscribe({
+    this.api.get<DetalleCompletoConducta>(`/conducta/${reporte.id}/detalle-completo`).pipe(takeUntil(this.destroy$)).subscribe({
       next: d => {
         this.detalle.set(d);
         // Pre-cargar valores de actualización
         if (d.sancion) {
-          this.sancionUpdate.estado = d.sancion.estado;
-          this.sancionUpdate.notificado_padres = d.sancion.notificado_padres;
+          this.sancionUpdate.estado = d.sancion['estado'] as string | null;
+          this.sancionUpdate.notificado_padres = !!d.sancion['notificado_padres'];
         }
         if (d.plan_mejora) {
-          this.planUpdate.firmado_alumno   = d.plan_mejora.firmado_alumno;
-          this.planUpdate.firmado_padre    = d.plan_mejora.firmado_padre;
-          this.planUpdate.firmado_director = d.plan_mejora.firmado_director;
-          this.planUpdate.estado           = d.plan_mejora.estado;
+          this.planUpdate.firmado_alumno   = !!d.plan_mejora['firmado_alumno'];
+          this.planUpdate.firmado_padre    = !!d.plan_mejora['firmado_padre'];
+          this.planUpdate.firmado_director = !!d.plan_mejora['firmado_director'];
+          this.planUpdate.estado           = d.plan_mejora['estado'] as string | null;
         }
         this.loadingDetalle.set(false);
       },
@@ -735,7 +792,7 @@ export class ConductaComponent implements OnInit, OnDestroy {
     }
     this.savingSancion.set(true);
     const u = this.ctx.usuario();
-    this.api.post(`/conducta/${reporteId}/sancion`, {
+    this.api.post<{ sancion_id: string; ok: boolean }>(`/conducta/${reporteId}/sancion`, {
       tipo_sancion: this.sancionForm.tipo_sancion,
       justificacion: this.sancionForm.justificacion,
       autorizado_por_id: u?.id,
@@ -761,7 +818,7 @@ export class ConductaComponent implements OnInit, OnDestroy {
     if (!d?.sancion) return;
     this.savingSancion.set(true);
     const reporteId = this.selectedReporteId();
-    this.api.patch(`/conducta/${reporteId}/sancion/${d.sancion.id}`, {
+    this.api.patch<{ ok: boolean }>(`/conducta/${reporteId}/sancion/${d.sancion['id']}`, {
       estado: this.sancionUpdate.estado,
       notificado_padres: this.sancionUpdate.notificado_padres,
       medio_notificacion: this.sancionUpdate.notificado_padres ? this.sancionUpdate.medio_notificacion : null,
@@ -800,7 +857,7 @@ export class ConductaComponent implements OnInit, OnDestroy {
     }
     this.savingPlan.set(true);
     const u = this.ctx.usuario();
-    this.api.post(`/conducta/${reporteId}/plan-mejora`, {
+    this.api.post<{ id: string; ok: boolean }>(`/conducta/${reporteId}/plan-mejora`, {
       elaborado_por_id: u?.id,
       objetivo_general: this.planForm.objetivo_general,
       compromisos_alumno:  this.planForm.compromisos_alumno,
@@ -827,7 +884,7 @@ export class ConductaComponent implements OnInit, OnDestroy {
     if (!d?.plan_mejora) return;
     this.savingPlan.set(true);
     const reporteId = this.selectedReporteId();
-    this.api.patch(`/conducta/${reporteId}/plan-mejora/${d.plan_mejora.id}`, {
+    this.api.patch<{ ok: boolean }>(`/conducta/${reporteId}/plan-mejora/${d.plan_mejora['id']}`, {
       firmado_alumno:   this.planUpdate.firmado_alumno,
       firmado_padre:    this.planUpdate.firmado_padre,
       firmado_director: this.planUpdate.firmado_director,
@@ -855,7 +912,7 @@ export class ConductaComponent implements OnInit, OnDestroy {
     this.savingSeg.set(true);
     const reporteId = this.selectedReporteId();
     const u = this.ctx.usuario();
-    this.api.post(`/conducta/${reporteId}/plan-mejora/${d.plan_mejora.id}/seguimiento`, {
+    this.api.post<{ id: string }>(`/conducta/${reporteId}/plan-mejora/${d.plan_mejora['id']}/seguimiento`, {
       registrado_por_id: u?.id,
       avance: this.segForm.avance,
       descripcion: this.segForm.descripcion,
@@ -890,7 +947,7 @@ export class ConductaComponent implements OnInit, OnDestroy {
     }
     this.saving.set(true);
     const { _alumnoObj, _grupoObj, ...payload } = this.form;
-    this.api.post<any>('/conducta', {
+    this.api.post<ReporteConductaListItem>('/conducta', {
       ...payload,
       medida_aplicada: payload.medida_aplicada || null,
     }).pipe(takeUntil(this.destroy$)).subscribe({
@@ -916,9 +973,9 @@ export class ConductaComponent implements OnInit, OnDestroy {
     const params: Record<string, any> = { q: event.query };
     const plantelId = this.ctx.plantel()?.id;
     if (plantelId) params['plantel_id'] = plantelId;
-    this.api.get<any[]>('/portal/buscar', params).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (r: any) => {
-        this.alumnosSugg.set((r ?? []).map((a: any) => ({
+    this.api.get<PortalAlumnoBusqueda[]>('/portal/buscar', params).pipe(takeUntil(this.destroy$)).subscribe({
+      next: (r) => {
+        this.alumnosSugg.set((r ?? []).map((a) => ({
           id: a.id,
           nombre_completo: [a.nombre, a.apellido_paterno, a.apellido_materno]
             .filter(Boolean).join(' ') + (a.matricula ? ` — ${a.matricula}` : ''),
@@ -948,18 +1005,18 @@ export class ConductaComponent implements OnInit, OnDestroy {
   private recargarDetalle(): void {
     const reporteId = this.selectedReporteId();
     if (!reporteId) return;
-    this.api.get<any>(`/conducta/${reporteId}/detalle-completo`).pipe(takeUntil(this.destroy$)).subscribe({
+    this.api.get<DetalleCompletoConducta>(`/conducta/${reporteId}/detalle-completo`).pipe(takeUntil(this.destroy$)).subscribe({
       next: d => {
         this.detalle.set(d);
         if (d.sancion) {
-          this.sancionUpdate.estado = d.sancion.estado;
-          this.sancionUpdate.notificado_padres = d.sancion.notificado_padres;
+          this.sancionUpdate.estado = d.sancion['estado'] as string | null;
+          this.sancionUpdate.notificado_padres = !!d.sancion['notificado_padres'];
         }
         if (d.plan_mejora) {
-          this.planUpdate.firmado_alumno   = d.plan_mejora.firmado_alumno;
-          this.planUpdate.firmado_padre    = d.plan_mejora.firmado_padre;
-          this.planUpdate.firmado_director = d.plan_mejora.firmado_director;
-          this.planUpdate.estado           = d.plan_mejora.estado;
+          this.planUpdate.firmado_alumno   = !!d.plan_mejora['firmado_alumno'];
+          this.planUpdate.firmado_padre    = !!d.plan_mejora['firmado_padre'];
+          this.planUpdate.firmado_director = !!d.plan_mejora['firmado_director'];
+          this.planUpdate.estado           = d.plan_mejora['estado'] as string | null;
         }
       },
       error: () => {},

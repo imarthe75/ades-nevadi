@@ -18,6 +18,7 @@ import { ContextService } from '../../core/services/context.service';
 import { grupoLabel } from '../../core/models';
 import { AdesFormatDirective } from '../../shared/directives/ades-format.directive';
 import { ApexNotificationService } from 'apex-component-library';
+import type { components } from '../../core/models/api-types.generated';
 
 type TagSeverity = 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' | undefined;
 
@@ -401,14 +402,14 @@ export class PlaneacionComponent implements OnInit, OnDestroy {
 
   confirmarPlanear(): void {
     if (!this.temaPlanear || !this.planForm.fecha_planeada) return;
-    const body = {
+    const body: components['schemas']['PlaneacionCreateRequest'] = {
       grupo_id: this.selGrupoId,
       tema_id:  this.temaPlanear.tema_id,
       ...this.planForm,
       fecha_planeada: this.planForm.fecha_planeada!.toISOString().substring(0, 10),
     };
     this.savingPlanear.set(true);
-    this.api.post('/planeacion/clases', body).pipe(takeUntil(this.destroy$)).subscribe({
+    this.api.post<unknown>('/planeacion/clases', body).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.savingPlanear.set(false);
         this.showPlanear = false;
@@ -420,9 +421,11 @@ export class PlaneacionComponent implements OnInit, OnDestroy {
 
   marcarImpartido(t: Tema): void {
     if (!t.planeacion_id) return;
-    const body = { fecha_ejecucion: new Date().toISOString().split('T')[0] };
+    // NOTA: CompletarAvanceRequest también admite clase_id/comentarios_profesor
+    // (ambos opcionales) — este flujo de "marcar impartido" solo maneja fecha_ejecucion.
+    const body: components['schemas']['CompletarAvanceRequest'] = { fecha_ejecucion: new Date().toISOString().split('T')[0] };
     this.marcandoImpartidoId.set(t.tema_id);
-    this.api.post(`/planeacion/clases/${t.planeacion_id}/completar`, body).pipe(takeUntil(this.destroy$)).subscribe({
+    this.api.post<unknown>(`/planeacion/clases/${t.planeacion_id}/completar`, body).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.marcandoImpartidoId.set(null);
         this.cargarTemas();

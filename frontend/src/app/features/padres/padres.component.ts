@@ -44,6 +44,17 @@ interface CalificacionResumen {
   es_acreditado: boolean;
 }
 
+/** Shape real de GET /portal/{estudiante_id}/resumen (ver PortalController.java / AlumnoResumen en portal.component.ts) */
+interface PortalResumenDTO {
+  kpis?: {
+    promedio_general?: number | null;
+    pct_asistencia?: number | null;
+    tareas_pendientes?: number;
+    badges_count?: number;
+  };
+  alertas?: any[];
+}
+
 /**
  * Portal de padres/tutores para seguimiento académico de sus hijos (nivelAcceso 2).
  * Muestra calificaciones, asistencias, avisos y comunicados del plantel.
@@ -70,8 +81,9 @@ interface CalificacionResumen {
     <!-- Selector de alumno para administradores (vista de padre) -->
     @if (isAdmin()) {
       <div class="admin-sim-bar">
-        <div class="sim-label"><i class="pi pi-shield"></i> Vista de administrador — Seleccionar alumno:</div>
+        <label class="sim-label" for="padres-sim-alumno"><i class="pi pi-shield"></i> Vista de administrador — Seleccionar alumno:</label>
         <p-autoComplete
+          inputId="padres-sim-alumno"
           [(ngModel)]="simulatedAlumnoObj"
           [suggestions]="estudiantesSugg()"
           (completeMethod)="buscarEstudiantes($event)"
@@ -103,7 +115,12 @@ interface CalificacionResumen {
           @for (alumno of alumnos(); track alumno.estudiante_id) {
             <div class="alumno-card"
               [class.selected]="alumnoActivo()?.estudiante_id === alumno.estudiante_id"
-              (click)="seleccionarAlumno(alumno)">
+              role="button" tabindex="0"
+              [attr.aria-pressed]="alumnoActivo()?.estudiante_id === alumno.estudiante_id"
+              [attr.aria-label]="'Ver detalle de ' + alumno.nombre_completo"
+              (click)="seleccionarAlumno(alumno)"
+              (keydown.enter)="seleccionarAlumno(alumno)"
+              (keydown.space)="$event.preventDefault(); seleccionarAlumno(alumno)">
               <div class="alumno-avatar" [class.femenino]="alumno.nombre_completo.includes('a')">
                 {{ alumno.nombre_completo.split(' ')[0][0] }}{{ alumno.nombre_completo.split(' ')[1]?.[0] || '' }}
               </div>
@@ -433,8 +450,12 @@ export class PadresComponent implements OnInit, OnDestroy {
     this.tareasAlumno.set([]);
     this.conductaAlumno.set([]);
 
-    // Cargar resumen del portal (reutiliza el endpoint existente)
-    this.api.get<any>(`/portal/alumno/${alumno.estudiante_id}`).pipe(takeUntil(this.destroy$)).subscribe({
+    // HALLAZGO CORREGIDO (auditoría de tipado 2026-07-19): esta llamada apuntaba a
+    // `/portal/alumno/{id}`, una ruta que NO existe en ningún controller (Spring ni
+    // FastAPI) — 404 real en producción. El endpoint correcto, verificado en
+    // PortalController.java y ya usado con éxito por portal.component.ts (mismo shape
+    // kpis/alertas, ver `AlumnoResumen` ahí), es `/portal/{estudiante_id}/resumen`.
+    this.api.get<PortalResumenDTO>(`/portal/${alumno.estudiante_id}/resumen`).pipe(takeUntil(this.destroy$)).subscribe({
       next: data => {
         this.resumen.set({
           promedio_general: data.kpis?.promedio_general ?? null,

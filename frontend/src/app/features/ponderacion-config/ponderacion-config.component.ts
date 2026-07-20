@@ -209,7 +209,7 @@ export class PonderacionConfigComponent implements OnInit, OnDestroy {
           es_nee: boolean; items: ItemRow[] } = this.emptyForm();
 
   ngOnInit() {
-    this.api.get('/catalogs/niveles').pipe(takeUntil(this.destroy$)).subscribe((r: any) => this.niveles.set(r ?? []));
+    this.api.get<NivelOpt[]>('/catalogs/niveles').pipe(takeUntil(this.destroy$)).subscribe(r => this.niveles.set(r ?? []));
     this.cargarEsquemas();
   }
 
@@ -217,7 +217,7 @@ export class PonderacionConfigComponent implements OnInit, OnDestroy {
     this.cargando.set(true);
     let url = '/esquemas-ponderacion';
     if (this.nivelFiltro) url += `?nivel_educativo_id=${this.nivelFiltro}`;
-    this.api.get(url).pipe(takeUntil(this.destroy$)).subscribe({ next: (r: any) => { this.esquemas.set(r); this.cargando.set(false); },
+    this.api.get<EsquemaRow[]>(url).pipe(takeUntil(this.destroy$)).subscribe({ next: r => { this.esquemas.set(r); this.cargando.set(false); },
       error: () => this.cargando.set(false) });
   }
 
@@ -239,8 +239,13 @@ export class PonderacionConfigComponent implements OnInit, OnDestroy {
       es_nee: original.es_nee ?? false,
       items: original.items.map(i => ({ ...i })),
     };
-    // Obtener el nivel_educativo_id del esquema
-    this.api.get(`/esquemas-ponderacion?nivel_educativo_id=*`).pipe(takeUntil(this.destroy$)).subscribe(); // noop — usamos lo que ya tenemos
+    // HALLAZGO CORREGIDO (auditoría de tipado 2026-07-19): esta línea disparaba un GET
+    // real a '/esquemas-ponderacion?nivel_educativo_id=*' cuyo resultado el propio
+    // comentario decía descartar ("noop — usamos lo que ya tenemos"). Además "*" no es
+    // un UUID válido: EsquemasPonderacionController#listarEsquemas espera
+    // @RequestParam UUID nivel_educativo_id, así que la petición fallaba con 400 en
+    // cada clic de "editar" (sin manejador de error en el .subscribe(), ruido en
+    // consola/network sin ningún beneficio). Se elimina la llamada — no aporta nada.
     this.dialogVisible = true;
   }
 
@@ -264,6 +269,15 @@ export class PonderacionConfigComponent implements OnInit, OnDestroy {
   sumaItems(esc: EsquemaRow): number { return (esc.items ?? []).reduce((acc, i) => acc + Number(i.peso_porcentaje), 0); }
 
   guardar() {
+    // NOTA (auditoría de tipado 2026-07-19): EsquemasPonderacionController.EsquemaIn/
+    // ItemIn (backend-spring) son @Data de Lombok con campos Java camelCase
+    // (nivelEducativoId, vigenteDesde, esNee, tipoItem, pesoPorcentaje, ordenDisplay),
+    // pero igual que el resto del BFF usan
+    // spring.jackson.property-naming-strategy=SNAKE_CASE — el JSON real en la red es
+    // snake_case (confirmado: así es como este payload ya funcionaba). Por eso NO se usa
+    // components['schemas']['EsquemaIn'] aquí (ese schema, generado por reflexión de
+    // campos Java, saldría en camelCase y rompería el guardado en silencio) — se
+    // mantiene el payload local en snake_case.
     const payload = {
       nombre: this.form.nombre,
       nivel_educativo_id: this.form.nivel_educativo_id,
@@ -272,8 +286,8 @@ export class PonderacionConfigComponent implements OnInit, OnDestroy {
       items: this.form.items.map((it, idx) => ({ ...it, orden_display: idx + 1 })),
     };
     const obs = this.editandoId
-      ? this.api.put(`/esquemas-ponderacion/${this.editandoId}`, payload)
-      : this.api.post('/esquemas-ponderacion', payload);
+      ? this.api.put<EsquemaRow>(`/esquemas-ponderacion/${this.editandoId}`, payload)
+      : this.api.post<EsquemaRow>('/esquemas-ponderacion', payload);
     this.guardando.set(true);
     obs.pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
@@ -294,7 +308,7 @@ export class PonderacionConfigComponent implements OnInit, OnDestroy {
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
         this.cargando.set(true);
-        this.api.delete(`/esquemas-ponderacion/${id}`).pipe(takeUntil(this.destroy$)).subscribe({
+        this.api.delete<void>(`/esquemas-ponderacion/${id}`).pipe(takeUntil(this.destroy$)).subscribe({
           next: () => {
             this.notify.info('Desactivado');
             this.cargarEsquemas();

@@ -40,6 +40,20 @@ interface ExpedienteLab {
   fecha_creacion: string;
 }
 
+/** Sub-objeto `persona` embebido en cada fila de GET /api/v1/profesores (ProfesorQueryService#listar). */
+interface PersonaResumen {
+  nombre: string;
+  apellido_paterno: string;
+  apellido_materno: string | null;
+}
+
+/** Fila de `data` en GET /api/v1/profesores (ProfesorQueryService#listar devuelve { data, total }). */
+interface ProfesorListado {
+  id: string;
+  persona_id: string;
+  persona: PersonaResumen;
+}
+
 /**
  * Módulo de expediente laboral del personal docente y administrativo.
  * Permite consultar y gestionar documentos del historial laboral de cada empleado.
@@ -293,11 +307,11 @@ export class ExpedienteLaboralComponent implements OnInit, OnDestroy {
 
   buscarPersona(event: { query: string }) {
     if (!event.query || event.query.length < 2) { this.personaSugerencias.set([]); return; }
-    this.api.get<any>('/profesores', { buscar: event.query }).pipe(takeUntil(this.destroy$)).subscribe({
+    this.api.get<{ data: ProfesorListado[]; total: number }>('/profesores', { buscar: event.query }).pipe(takeUntil(this.destroy$)).subscribe({
       next: res => {
-        const data = res?.data ?? res ?? [];
-        this.personaSugerencias.set(data.map((p: any) => ({
-          label: [p.nombre ?? p.persona?.nombre, p.apellido_paterno ?? p.persona?.apellido_paterno, p.apellido_materno ?? p.persona?.apellido_materno].filter(Boolean).join(' '),
+        const data = res?.data ?? [];
+        this.personaSugerencias.set(data.map((p) => ({
+          label: [p.persona?.nombre, p.persona?.apellido_paterno, p.persona?.apellido_materno].filter(Boolean).join(' '),
           value: p.persona_id ?? p.id,
         })));
       },

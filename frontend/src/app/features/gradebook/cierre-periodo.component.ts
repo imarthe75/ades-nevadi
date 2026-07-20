@@ -290,13 +290,19 @@ export class CierrePeriodoComponent implements OnChanges, OnDestroy {
     this.confirmText = '';
   }
 
+  // Corregido 2026-07-20: EvaluacionController ahora expone
+  // GET /evaluaciones/periodos/{id}/validar-cierre y POST .../cerrar. "Esperado" se
+  // calcula como alumnos con inscripción activa en el grupo × materias vigentes del
+  // plan de estudio del grado+ciclo; el cierre bloquea (cerrada=TRUE) todas las filas
+  // de ades_calificaciones_periodo del grupo+periodo, solo Coordinador Académico o
+  // superior (mismo umbral que el cierre individual ya existente en Gradebook).
   irPaso2() {
     if (!this.periodoId || !this.grupoId) return;
     this.validando.set(true);
-    this.api.get(
+    this.api.get<ValidacionResult>(
       `/evaluaciones/periodos/${this.periodoId}/validar-cierre?grupo_id=${this.grupoId}`
     ).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (r: any) => {
+      next: (r) => {
         this.validacion.set(r);
         this.faltantes.set(r.detalles?.alumnos_sin_cal ?? []);
         this.validando.set(false);
@@ -312,11 +318,11 @@ export class CierrePeriodoComponent implements OnChanges, OnDestroy {
   ejecutarCierre() {
     if (!this.periodoId || !this.grupoId || this.confirmText !== 'CERRAR') return;
     this.cerrando.set(true);
-    this.api.post(`/evaluaciones/periodos/${this.periodoId}/cerrar`, {
+    this.api.post<{ calificaciones_cerradas: number }>(`/evaluaciones/periodos/${this.periodoId}/cerrar`, {
       grupo_id: this.grupoId,
       notas: this.notas || null,
     }).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (r: any) => {
+      next: (r) => {
         this.cerrando.set(false);
         this.notify.success(
           'Período cerrado',

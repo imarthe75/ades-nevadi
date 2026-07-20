@@ -35,6 +35,24 @@ import { SkeletonModule } from 'primeng/skeleton';
 import { MessageModule } from 'primeng/message';
 import { AdesFormatDirective } from '../../shared/directives/ades-format.directive';
 import { AdesValidators } from '../../shared/validators/ades-validators';
+import type { components } from '../../core/models/api-types.generated';
+
+/**
+ * NOTA DE CONTRATO (ver reporte de auditoría de tipado 2026-07-19): la mayoría de los
+ * `components["schemas"]` de api-types.generated.ts para entidades JPA/DTOs camelCase
+ * (Plantel, Grupo, NivelEducativo, VariableSistema, Catalogo, UsuarioUpdateRequest, etc.)
+ * NO reflejan el JSON real en tiempo de ejecución: springdoc no aplica
+ * `spring.jackson.property-naming-strategy: SNAKE_CASE` (application.yml) al generar el
+ * spec, así que el spec queda en camelCase mientras el body HTTP real es snake_case
+ * (confirmado contra el código fuente de Estudiante.java, GradoDto, PlantelAdminUpdate,
+ * HorarioFranja, etc. y contra los payloads reales que este componente ya envía/consume
+ * más abajo). Por eso este componente sigue usando sus interfaces locales snake_case
+ * (UsuarioAdmin, CicloAdmin, PlantelAdmin, GrupoAdmin, VariableSistema, Catalogo,
+ * CatalogoItem) en vez de los tipos generados — son las que reflejan la realidad. Solo se
+ * usan tipos generados donde el schema es case-seguro (una sola palabra o ya snake_case en
+ * el Java fuente), ej. EscalaUpdateRequest más abajo.
+ */
+type EscalaUpdateRequest = components['schemas']['EscalaUpdateRequest'];
 
 interface UsuarioAdmin {
   id: string; nombre_usuario: string; email_institucional: string;
@@ -1698,7 +1716,7 @@ export class AdminComponent implements OnInit, OnDestroy {
 
   guardarEscala(escala: any): void {
     this.guardandoCual.set(true);
-    const payload = {
+    const payload: EscalaUpdateRequest = {
       nombre: escala.nombre,
       descripcion: escala.descripcion,
       is_active: escala.is_active,

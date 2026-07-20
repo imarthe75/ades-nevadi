@@ -272,7 +272,7 @@ export class BibliotecaComponent implements OnInit, OnDestroy {
   readonly librosColumns: ColumnConfig[] = [
     { field: 'titulo',        header: 'Título' },
     { field: 'autor_str',     header: 'Autor',      width: '170px' },
-    { field: 'categoria',     header: 'Categoría',  width: '120px' },
+    { field: 'categoria_label', header: 'Categoría',  width: '120px' },
     { field: 'ubicacion_str', header: 'Ubicación',  width: '130px' },
     { field: 'disp_str',      header: 'Disponibles', width: '110px', align: 'center' },
   ];
@@ -297,6 +297,7 @@ export class BibliotecaComponent implements OnInit, OnDestroy {
       autor_str:     l.autor ?? '—',
       ubicacion_str: l.ubicacion ?? '—',
       disp_str:      `${l.ejemplares_disponibles} / ${l.ejemplares_total}`,
+      categoria_label: CATEGORIAS.find(c => c.value === l.categoria)?.label ?? l.categoria,
     }))
   );
 

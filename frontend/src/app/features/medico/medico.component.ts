@@ -340,6 +340,20 @@ interface Medicamento {
     .tab-header-row h4 { margin: 0; font-family: 'Jost', sans-serif; }
   `],
 })
+/**
+ * NOTA DE CONTRATO (auditoría de tipado 2026-07-19): `ExpedienteMedico`,
+ * `IncidenteMedico`, `MedicamentoPayload` y `ActaIncidentePayload` en
+ * api-types.generated.ts están en camelCase (reflejan los campos Java de las entidades
+ * JPA / `@Data` DTOs de MedicoController y SaludAvanzadaController), pero el JSON real en
+ * tiempo de ejecución es snake_case (`spring.jackson.property-naming-strategy:
+ * SNAKE_CASE` global, ver application.yml + HexagonalConfig.java) — springdoc no lo
+ * refleja al generar el spec. Las interfaces locales de este archivo (`ExpedienteMedico`,
+ * `IncidenteMedico`, `Medicamento`) y los payloads de `guardarExpediente()`/
+ * `guardarIncidente()`/`guardarMedicamento()` ya están correctos en snake_case — NO
+ * tipar esas respuestas/bodies contra `components['schemas']` de ese archivo ni
+ * "corregir" los nombres a camelCase, o se rompe el expediente médico en producción.
+ * Mismo hallazgo confirmado en admin.component.ts.
+ */
 export class MedicoComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private readonly api = inject(ApiService);
@@ -401,13 +415,16 @@ export class MedicoComponent implements OnInit, OnDestroy {
       this.alumnoSeleccionado.set(null);
       if (!grupo?.id) return;
 
-      const params: Record<string, any> = { grupo_id: grupo.id };
+      // Bug real 2026-07-20: sin pagina/por_pagina explícitos, /alumnos caía al default
+      // de 20 filas — algunos grupos reales ya tienen 26 alumnos, así que el selector de
+      // alumno para expediente médico omitía en silencio a los últimos del grupo.
+      const params: Record<string, any> = { grupo_id: grupo.id, pagina: 1, por_pagina: 500 };
       const plantelId = this.ctx.plantel()?.id;
       if (plantelId) params['plantel_id'] = plantelId;
 
-      this.api.get<any>('/alumnos', params).pipe(takeUntil(this.destroy$)).subscribe({
+      this.api.get<{ data: Estudiante[]; total: number }>('/alumnos', params).pipe(takeUntil(this.destroy$)).subscribe({
         next: resp => {
-          const list = resp.data ?? resp;
+          const list = resp.data ?? [];
           this.alumnosOpts.set(list.map((a: any) => ({
             ...a,
             _label: `${a.persona?.apellido_paterno ?? ''} ${a.persona?.nombre ?? ''}`.trim() || a.matricula

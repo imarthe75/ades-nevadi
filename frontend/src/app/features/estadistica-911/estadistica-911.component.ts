@@ -25,6 +25,20 @@ interface DiscapacidadRow {
   tipo_discapacidad: string; sexo: string; alumnos: number;
 }
 
+/**
+ * GET /api/v1/reportes/911 (Reporte911Controller). El OpenAPI generado no aporta un
+ * schema útil para este endpoint (`ReporteQueryService` arma el JSON a mano con
+ * `Map<String,Object>`, así que springdoc solo documenta `{[key:string]:unknown}`) —
+ * se tipa localmente con los mismos nombres de clave reales verificados en el código
+ * fuente (`matricula_por_grado_sexo_ingreso_edad`, `grupos_por_grado`,
+ * `discapacidad_por_grado_sexo`) en vez de dejarlo en `any`.
+ */
+interface Reporte911Response {
+  matricula_por_grado_sexo_ingreso_edad: MatrizRow[];
+  grupos_por_grado: GrupoRow[];
+  discapacidad_por_grado_sexo: DiscapacidadRow[];
+}
+
 interface Celda { hNI: number; hRep: number; mNI: number; mRep: number; }
 interface FilaEdad { edad: string; celdas: Celda[]; total: number; }
 interface NivelMatriz {
@@ -220,7 +234,7 @@ export class Estadistica911Component implements OnInit, OnDestroy {
       params.ciclo_id = this.cicloId.trim();
     }
 
-    this.api.get<any>('/reportes/911', params).pipe(takeUntil(this.destroy$)).subscribe({
+    this.api.get<Reporte911Response>('/reportes/911', params).pipe(takeUntil(this.destroy$)).subscribe({
       next: d => {
         const matriz = d.matricula_por_grado_sexo_ingreso_edad ?? [];
 

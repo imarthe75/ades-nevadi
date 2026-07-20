@@ -19,6 +19,19 @@ import { MessageService, ConfirmationService } from 'primeng/api';
 import { ApexNotificationService } from 'apex-component-library';
 import { AdesFormatDirective } from '../../shared/directives/ades-format.directive';
 
+/**
+ * Fila cruda de GET /profesores?buscar=. El backend (ProfesorQueryService#listar)
+ * devuelve Map<String,Object> — sin schema reutilizable en api-types.generated.ts
+ * (queda como `{[key:string]:unknown}`) — se documenta aquí solo lo consumido,
+ * verificado contra el SELECT real (envuelve cada fila en un objeto `persona`
+ * anidado con nombre/apellidos; no hay `nombre`/`apellido_paterno` a nivel raíz).
+ */
+interface ProfesorBusquedaRow {
+  id: string;
+  persona: { nombre: string; apellido_paterno: string; apellido_materno: string | null };
+}
+interface ProfesorBusquedaResponse { data: ProfesorBusquedaRow[]; total: number }
+
 interface Licencia {
   id: string;
   personal_id: string;
@@ -183,6 +196,18 @@ interface Licencia {
     .apex-toolbar-actions { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
   `],
 })
+/**
+ * NOTA DE CONTRATO (auditoría de tipado 2026-07-19): `LicenciaCreateRequest` en
+ * api-types.generated.ts está en camelCase (`personalId`, `tipoLicencia`, `fechaInicio`,
+ * `fechaFin`, `conGoceSueldo` — refleja los campos Java del `@Data` inline en
+ * LicenciaPersonalController), pero el JSON real en tiempo de ejecución es snake_case
+ * (`spring.jackson.property-naming-strategy: SNAKE_CASE` global, ver application.yml +
+ * HexagonalConfig.java) — springdoc no lo refleja al generar el spec. El payload de
+ * `guardar()` de abajo (`personal_id`, `tipo_licencia`, `fecha_inicio`, `fecha_fin`,
+ * `con_goce_sueldo`) ya está correcto en snake_case — NO tipar ese body contra
+ * `components['schemas']['LicenciaCreateRequest']` ni "corregir" los nombres a camelCase,
+ * o se rompe el alta de licencias en producción. Mismo hallazgo en admin.component.ts.
+ */
 export class LicenciasComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private api = inject(ApiService);
@@ -270,9 +295,9 @@ export class LicenciasComponent implements OnInit, OnDestroy {
 
   buscarPersonal(event: { query: string }) {
     if (!event.query || event.query.length < 2) { this.personalSugerencias.set([]); return; }
-    this.api.get<any>('/profesores', { buscar: event.query }).pipe(takeUntil(this.destroy$)).subscribe({
+    this.api.get<ProfesorBusquedaResponse>('/profesores', { buscar: event.query }).pipe(takeUntil(this.destroy$)).subscribe({
       next: res => {
-        const data = res?.data ?? res ?? [];
+        const data = res?.data ?? [];
         this.personalSugerencias.set(data.map((p: any) => ({
           label: [p.nombre ?? p.persona?.nombre, p.apellido_paterno ?? p.persona?.apellido_paterno, p.apellido_materno ?? p.persona?.apellido_materno].filter(Boolean).join(' '),
           value: p.id,

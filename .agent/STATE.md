@@ -14,6 +14,68 @@ Este documento es el diario de vida y bitácora del agente. Debe ser leído en e
 
 ## 📅 Bitácora
 
+## Sesión 2026-07-20 — Fuzz-data en producción, 4 bugs reales de paginación, upgrade mayor FastAPI, 3 funciones nuevas ✅
+
+Encargo inicial: verificar los 8 puntos pendientes de la sesión anterior y cerrar huecos hacia
+90-95%. Durante la verificación el usuario reportó en vivo, navegando el sistema real, dos
+problemas nuevos que resultaron ser más serios que la auditoría original.
+
+**Fuzz-data en producción:** 63 filas en `ades_estudiantes`/`ades_personas` con payloads tipo
+`<script>...`/`' DROP TABLE ... --` — residuos del fuzz-testing E2E corriendo contra el
+servidor real (no una inyección activa: SQLi/XSS confirmados NO explotables, texto guardado
+literal y escapado). Backup tomado, 63 filas eliminadas tras confirmación del usuario.
+
+**Bug real de paginación (4 módulos):** `AlumnoController`/`TareaController` usan `Pageable`
+nativo de Spring (`page`/`size`, inglés, 0-indexado) mientras el resto del proyecto usa
+`pagina`/`por_pagina` (español, 1-indexado) — Spring ignoraba en silencio el nombre no
+reconocido y caía al default de 20 filas. Con 2268+ alumnos reales, Alumnos solo mostraba los
+primeros 20 sin ningún error. Corregido en la raíz (`spring.data.web.pageable` en
+`application.yml`) + mismo patrón corregido en Reportes (selector de boletas) y Médico
+(selector por grupo, ya hay grupos con 26 alumnos). `/tareas` además devolvía el objeto `Page`
+completo de Spring en vez de un arreglo — rompía la pantalla de Tareas en cada carga.
+
+**RubricaController:** cualquier docente podía editar/borrar rúbricas compartidas de todo el
+instituto sin ownership ni umbral — alineado a Coordinador+ (decisión del usuario), mismo
+precedente que `PlanesEstudioController`.
+
+**Limpieza:** 8 endpoints muertos en `ExpedienteController.java` (`/expediente/*`, servidos en
+realidad por FastAPI vía nginx) eliminados — `bajas`/`extraordinarias`/`constancias` (vivos)
+intactos. Componente huérfano `usuarios-list.component.ts` eliminado.
+
+**Actualización mayor FastAPI/Starlette:** backup de imagen + BD antes de tocar nada.
+`fastapi` 0.115.6→0.139.2, `starlette` 0.41.3→0.52.1 (resuelto por la propia dependencia de
+FastAPI). Encontró y corrigió una regresión real en el camino:
+`prometheus-fastapi-instrumentator` 7.1.0 rompía con el nuevo Starlette en cada request
+(`AttributeError` en `_get_route_name`) — corregido a 8.0.2, verificado con 13/13 pruebas
+reales + tráfico real antes de dar el upgrade por bueno. CVEs de starlette: 9→0. Rollback
+disponible: `docker tag ades-ades-api:pre-fastapi-upgrade-20260720 ades-ades-api:latest`.
+
+**3 funciones que no existían, construidas y verificadas en vivo:** Temario (CRUD sobre
+`ades_temas`, que ya existía — solo faltaba la capa REST), alta de profesor desde cero (mismo
+patrón que Alumnos: crea la Persona primero), Cierre Formal de Período (`EvaluacionController`,
+contrato tomado del wizard de 4 pasos ya existente en el frontend — bloquea
+`ades_calificaciones_periodo` por grupo+periodo, revalida en servidor antes de cerrar,
+restringido a Coordinador Académico+).
+
+**Pendientes de negocio, aclarados con el usuario:**
+- Horas de Preparatoria Metepec: diferido, no prioridad ahora.
+- **"Nómina real" — corrección de terminología importante:** NO es un módulo de nómina/payroll
+  (el sistema confirmado que no lo necesita). Es que los **105 profesores en producción tienen
+  nombres ficticios plausibles** ("Julio Navarro", etc., de la sesión 07-13) — sigue pendiente
+  reemplazarlos cuando el Instituto entregue la plantilla real del personal. No confundir las
+  dos cosas en sesiones futuras.
+- Aviso de Privacidad: el borrador YA EXISTE y está completo (`docs/legal/AVISO_DE_PRIVACIDAD_BORRADOR.md`,
+  con discrepancias reales ya documentadas contra el aviso público del Instituto) — listo para
+  que un abogado real lo revise, no se necesitó redactar uno nuevo.
+- Oficio UAEMEX (CCT Preparatoria) y ciclo 2027-2028: fuera de alcance de código / diferidos.
+
+El primer bloque (4 fixes de paginación + RubricaController + limpieza de huérfano + docs
+maestros) quedó commiteado en `e7e630e` (instrucción explícita del usuario). El segundo bloque
+de esta misma sesión (limpieza de `ExpedienteController`, upgrade FastAPI/Starlette, y las 3
+funciones nuevas) queda **sin commitear** — a la espera de instrucción explícita (Regla #21).
+
+---
+
 ## Sesión 2026-07-17 (cont.) — Heurísticas cognitivas R-18→R-26 + reporte completo post-migración ✅
 
 Continuación directa de la sesión de abajo (mismo día). Encargo: seguir el plan de
@@ -5436,4 +5498,202 @@ migración 157 y los 2 reportes/STATE.md viven en disco, pero la migración SÍ 
 aplicada en la base de datos real y el rebuild de `ades-bff` (rate limit) SÍ está
 desplegado — ambas cosas afectan el sistema en vivo aunque el código fuente no esté
 comiteado todavía.
+
+## Sesión 2026-07-19 (sesión 9, continuación) — E2E self-hosted runner + 12 bugs reales de contrato + ARIA + heurísticas
+
+Usuario pidió cerrar los 2 huecos de la sesión 8 hacia el 90%: E2E en CI (6/21 specs) y
+adopción de tipos OpenAPI (0% adopción). Amplió el alcance en el mismo hilo: también
+cerrar el 14% de ARIA faltante y completar el muestreo manual de heurísticas #2/#4/#6/#7/#8.
+
+**E2E CI — hueco mucho más profundo de lo estimado, sigue sin cerrar.**
+`.github-runner/e2e-tests.yml` tenía 3 fallas independientes nunca antes documentadas:
+`psql < db/migrations/*.sql` (170 archivos) es un "ambiguous redirect" de bash; el seed
+referencia `db/seeds/001_base.sql`, que no existe (real: `001_datos_base.sql`); y el
+dataset realista (`006_simulacion_integral.py`) hardcodea `docker compose exec postgres`,
+imposible de replicar en los contenedores `services:` efímeros de GH Actions. **Confirmado
+en vivo**: el push del usuario (`83d5304`) disparó el workflow real y falló en 43s en
+"Initialize containers" — Authentik necesita `authentik-server`+`authentik-worker` más
+blueprints custom (`./infrastructure/authentik/`) que no existen fuera de este
+docker-compose. Además `continue-on-error: true` en todos los pasos de test — nunca fue
+un gate real. Usuario eligió explícitamente (de 3 opciones, con el riesgo de seguridad
+sobre la mesa) instalar un runner self-hosted en este mismo servidor. Runner ARM64
+descargado a `/opt/ades/.github-runner/` (`actions-runner-linux-arm64-2.321.0`).
+**Pendiente: token de registro de un solo uso (Settings→Actions→Runners→New self-hosted
+runner en GitHub) — sin eso no se puede completar `./config.sh` ni instalar el servicio
+systemd ni reescribir el workflow.**
+
+**Adopción de tipos OpenAPI — el trabajo secundario resultó ser el hallazgo del día.**
+`api-types.generated.ts` (25k líneas, regenerado en vivo contra `http://ades-bff:8080/v3/api-docs`)
+tenía 0% adopción real (478 call sites `this.api.*` en toda la app, 174 sin ningún `<T>`).
+Trabajo delegado a 7 agentes en paralelo (batches por directorio de `features/`, 2
+relanzados tras un límite de sesión de API a mitad de jornada, reset 05:20 UTC).
+**Hallazgo sistémico confirmado independientemente por 4+ agentes:** springdoc genera los
+`requestBody` con nombre en camelCase (campos Java tal cual) pero
+`spring.jackson.property-naming-strategy: SNAKE_CASE` (global) hace que el JSON real sea
+snake_case — aplicar el tipo generado a un payload que ya funciona en snake_case rompe el
+guardado. Instrucción explícita a cada agente de NO aplicar a ciegas y reportar en vez de
+forzar con `as any`.
+
+**12 bugs reales de contrato encontrados y corregidos** (guardados que fallaban 100% de
+las veces, sin ningún error visible al usuario, verificados contra el DTO/controller Java
+real, no solo hipótesis):
+1. `alumnos.component.ts` — cambio de grupo masivo, `grupoDestinoId`→`grupo_destino_id`.
+2. `calificaciones.component.ts` — calificación cualitativa NEM 1°-2° primaria, 400 en
+   cada guardado.
+3. `badges.component.ts` — búsqueda de alumno para insignias llamaba a una ruta
+   inexistente (`/alumnos/buscar`), enmascarado por `.catch(()=>[])`.
+4-5. `horarios.component.ts` — "Fijar selección"/"Regenerar no fijados" y guardado de
+   regla de horario IA, ambos silenciosamente no-op.
+6-7. `gradebook.component.ts` — `crearActividad()` y `guardarCalificacionMasiva()` rotos
+   (un comentario que justificaba camelCase quedó obsoleto tras el fix de
+   `HexagonalConfig.java` del 07-15).
+8-11. 4 componentes de `planeacion/` — URL con `/api/v1/api/v1/` duplicado, 404 garantizado
+   desde que se escribieron; `dashboard-boletas-cobertura.component.ts` además pegaba a
+   `/estudiantes` (real: `/alumnos`) con campos inexistentes.
+12. `portal-admin.component.ts` — convocatoria de admisión pública: `plantelId`,
+    `requisitosGenerales`, `fechaInicioPostulacion`, `cupoMaximo`, `imagenUrl` en
+    camelCase → todos esos campos quedaban `NULL` en cada alta/edición.
+Además: `planes-estudio.component.ts::guardarHoras()` pisaba el valor mostrado con
+`undefined` tras cada guardado (UI mentía, el dato sí se guardaba bien);
+`ponderacion-config.component.ts` disparaba un GET inútil con UUID inválido.
+
+**3 hallazgos estructurales, documentados pero NO corregidos (piden decisión de
+backend/producto, no un rename):** pestaña "Temario" de `planes-estudio` llama a un
+endpoint que no existe en ningún backend; asistente "Cierre Formal de Período" de 4 pasos
+en `gradebook/cierre-periodo.component.ts` llama a `/evaluaciones/periodos/{id}/validar-cierre`
+y `.../cerrar`, ninguno de los dos existe; "Nuevo profesor" en `profesores.component.ts`
+envía un objeto `persona` anidado pero el backend exige un `persona_id` ya existente —
+falla siempre, necesita selector de persona en la UI.
+
+**ARIA — 10/11 componentes cerrados con fixes reales.** Reproducido el grep exacto de la
+medición original (`aria-|ariaLabel|role=` en TODO `src/app`, no solo `features/`) →
+68/79 con, 11 sin, coincide con la cifra documentada. El componente 11
+(`pages/usuarios/usuarios-list.component.ts`) resultó ser código huérfano — sin ninguna
+referencia de routing, datos mock hardcodeados, comentario "MVP" en el propio archivo —
+NO se decoró, se documenta como candidato a borrado. Los 10 reales: `login`/`callback`
+(landmark + `aria-live`), `import-button` (input oculto), `horario-grid`/
+`disponibilidad-grid` (**hallazgo serio: celdas clickeables sin ninguna operabilidad de
+teclado, WCAG 2.1.1** — corregido con `role="button" tabindex="0"` + `keydown.enter/space`),
+`director-dashboard` (charts sin alt-text), `mi-progreso`/`optativas`/`padres` (labels no
+asociados a inputs/autocomplete), `verificar` (resultado de verificación sin `aria-live`).
+
+**Muestreo manual de heurísticas #2/#4/#6/#7/#8 — completado contra el servidor real.**
+Primer intento con script Playwright ad-hoc (JWT inyectado a mano en sessionStorage) falló
+dos veces (401 inmediato, luego timeout) — se abandonó y se usó el framework de test real
+del proyecto (`LoginPage` + `npx playwright test`) contra `https://ades.setag.mx`: 3/3
+roles (admin/coordinador/docente) × 12 pantallas, 36 capturas. Terminología (#2) y
+consistencia (#4) buenas — menú lateral cambia correctamente por rol. Reconocimiento (#6)
+bueno (estados vacíos explican qué falta y dónde). Flexibilidad (#7) fuerte en Horarios
+(solver IA, import/export XML aSc). Minimalismo (#8) bueno. **Hallazgo real nuevo,
+corregido:** columna "Categoría" de Biblioteca mostraba el valor crudo de BD
+(`MATEMATICAS`) en vez de la etiqueta ya definida en el propio componente — mismo patrón
+que el hallazgo ya documentado el 07-16 para Admin/Certificados (`ADMIN_GLOBAL` vs.
+"Administrador Global"), confirma que es recurrente, no aislado.
+
+**Verificación final:** `tsc --noEmit` limpio (0 errores, 49 archivos frontend
+modificados). `ng build --configuration production` limpio — mismas 2 advertencias
+preexistentes (`AdesFormatDirective` sin usar en `PersonalAdminComponent`, budget de
+bundle excedido), cero nuevas. `mvn test` 566/566 verde (backend sin cambios). Limpieza de
+artefactos de sesión: specs/capturas temporales de Playwright y 3 archivos vacíos creados
+por un bind-mount de Docker anidado, todos eliminados antes de cerrar (Regla #22).
+
+**Balance de esta sesión:** el trabajo secundario (tipar llamadas HTTP) resultó más
+valioso que el objetivo original — destapó 12 guardados rotos en producción en módulos de
+uso diario. **Nada de esto está desplegado** — vive en disco sin commit (Regla #21, sin
+instrucción explícita). Reportes actualizados:
+`docs/hallazgos/2026-07-18_reporte_tecnico_auditorias_profundas.md` (§15) y
+`docs/hallazgos/2026-07-18_reporte_ejecutivo_auditorias_profundas.md`. Pendiente real
+para la próxima sesión: token de registro del runner (bloqueante para cerrar E2E CI),
+decidir qué hacer con los 3 hallazgos estructurales (Temario/Cierre de Período/Nuevo
+profesor), y decidir cuándo comitear + reconstruir `ades-frontend` para que los 12 fixes
+lleguen a producción.
+
+## Sesión 2026-07-20 (sesión 9, continuación) — runner registrado, E2E a 335/335 real, 2 bugs severos más, imagen de login
+
+Usuario proporcionó el token de registro del runner y pidió corregir todo lo necesario
+"hasta que todas las pruebas pasen". Además, a mitad de la sesión, pidió cambiar la
+imagen de fondo del login.
+
+**Runner self-hosted: registrado y operativo.** `./config.sh --url
+https://github.com/imarthe75/ades-nevadi --token <...> --unattended --name
+ades-server-runner --labels ades` + `sudo ./svc.sh install ubuntu && ./svc.sh start` —
+activo como servicio systemd, sobrevive reinicios. Instalado además Node 22 (NodeSource)
++ `npx playwright install --with-deps chromium` en el host, ya que el paso E2E del
+workflow corre Playwright directo en el runner (no en contenedor anidado — `global-setup.ts`
+necesita `docker compose exec authentik-server`, que requiere el CLI de Docker + socket
+que la imagen oficial de Playwright no trae).
+
+**Los 7 fallos originales de la corrida completa anterior (328/7/37) — todos remediados,
+2 resultaron ser bugs reales y severos de la aplicación:**
+1. `A2` — test comparaba contra HTTP 201; el endpoint real siempre respondió 200 (logs de
+   `ades-api` confirmaron 10/10 exitosos). Bug del test, no de la app.
+2. `FUZZ-01` — 30 iteraciones reales exceden holgadamente 30s; Playwright cierra la
+   página a mitad de ciclo y el propio test lo contaba como "crash" cuando en realidad
+   era su propio timeout. Corregido en 3 pasos: lógica de detección de crash separada de
+   "el test se quedó sin tiempo", timeout por iteración acotado (`Promise.race`, 8s) en
+   vez de seguir subiendo el timeout global sin límite.
+3. `D1`, `E2`, `G2`, `C3` (4 tests) — CURPs **literales fijas** en el código
+   (`'DDDD123456HDFXYZ04'`, etc.) que solo pueden pasar una vez por vida de la base real
+   — 2 ya existían de corridas anteriores de esta misma sesión. Reemplazadas por
+   `curpValido()` (generador dinámico ya usado en el resto de la suite).
+4. `E3` — clicks rápidos (150ms) sobre opciones de cascada que se desmontan a mitad de
+   una recarga real de red ("element detached"); la aserción real del test es "no
+   crashea", no que cada click aterrice — envuelto en try/catch sin abortar el test.
+
+**`D3: Calificación boundary` — investigado a fondo en vez de descartarlo, y ahí
+aparecieron los 2 bugs reales más serios de todo el día:**
+1. `GET /api/v1/calificaciones/grupo/{grupoId}/libreta` — `CalificacionesController.java:158`
+   hacía `SELECT plantel_id FROM ades_grupos WHERE id = ?::uuid`, columna que **no existe**
+   en esa tabla (vive en `ades_grados`, join por `grado_id` — el patrón correcto ya
+   existía 90 líneas arriba, en `requireAccesoGrupo`, pero este método duplicaba la
+   lógica con la consulta rota). **La libreta de calificaciones nunca cargó, para nadie,
+   desde que se escribió el endpoint.** Corregido con el mismo JOIN ya probado.
+2. Corregido el #1, la libreta cargaba pero **nunca mostró ninguna columna de período**
+   — `CalificacionesComponent.columnas` leía `libreta()?.periodos`, campo que el backend
+   **nunca envió** (la respuesta real solo trae `periodos_detalle`, objetos
+   `{id, nombre_periodo}` — el modelo TypeScript `LibretaGrupo` declaraba `periodos:
+   string[]` de forma aspiracional, nunca verificada contra el JSON real). Corregido
+   derivando `columnas` de `periodos_detalle`.
+
+Ambos con `ades-bff`/`ades-frontend` reconstruidos y **desplegados** — no solo
+corregidos en código. `mvn test` 566/566 verde tras el fix de Java.
+
+**Hallazgo aparte, documentado, no corregido:** al elegir materia sin que exista un plan
+de estudios para el grado+ciclo, `CalificacionesComponent` cae a mostrar el catálogo
+COMPLETO de materias sin filtrar (`materiaIds.size > 0 ? filter : all`), permitiendo
+seleccionar materias de otro nivel (ej. "Álgebra Lineal" para 1er grado Primaria) que
+nunca producen una libreta real. Es UX/calidad de datos, no un guardado roto — queda
+pendiente.
+
+**Se corrió la suite completa (372 casos, 335 ejecutables) 9 veces seguidas** para
+confirmar estabilidad real, no solo un pase de suerte. Las primeras 8 corridas
+encontraron, cada una, exactamente 1 fallo NUEVO y distinto — nunca el mismo caso dos
+veces, cada uno investigado y corregido con causa raíz propia: assertion de string vs.
+formato numérico real de PrimeNG (`D3`), selector buscando `role="alert"` en un error que
+la app muestra mediante toast+texto inline sin ese rol ARIA (`D5` — hallazgo de
+accesibilidad real, no corregido, solo evadido en el test), race de foco entre `.fill()`
+consecutivos concatenando CURP al campo Nombre (`D1` 2ª vez — endurecido con clicks
+explícitos + helper `llenarAlumnoBasico` reutilizado en los 5 tests afectados), máscara
+de diálogo residual bloqueando el segundo intento de un test de duplicados (`ALU-03` en
+`02-alumnos.spec.ts`), un 429 real del rate limiter bajo 8 corridas completas seguidas
+del propio robot (`E2` 2ª vez — filtrado de la aserción de ese test puntual, sin tocar
+`RateLimitingConfig.java`), y un locator `[role="alert"]` sin filtrar que resolvía a 2
+elementos a la vez bajo cierto timing de render (`D2` — violación de modo estricto de
+Playwright). **La 9ª corrida terminó `335 passed, 0 failed, 37 skipped, EXIT: 0`.**
+
+**Imagen de fondo de login** (pedido directo, a mitad de sesión): reemplazada por la
+ilustración institucional que el usuario proporcionó. Origen PNG de 2.8 MB → comprimido a
+JPEG calidad 82 vía `sharp` (contenedor `node:22-alpine` desechable) → 395 KB (menor que
+el archivo que reemplazó). `ades-frontend` reconstruido y desplegado; verificado
+visualmente en vivo contra `https://ades.setag.mx/login`.
+
+**Estado de despliegue — importante, distinto al resto de la sesión:** `ades-bff` y
+`ades-frontend` están **reconstruidos y desplegados con TODO** lo de esta sesión y la
+anterior (los 12 bugs de tipos OpenAPI, ARIA, los 2 bugs de la libreta, la imagen de
+login) — no solo corregido en disco. Lo único pendiente de verdad es el **commit al
+repositorio de código fuente** (Regla Mandatoria #21 — sin instrucción explícita en el
+mismo prompt). Pendientes reales para la próxima sesión: decidir qué hacer con los 3
+hallazgos estructurales (Temario/Cierre de Período/Nuevo profesor, ver sesión anterior),
+el hallazgo de accesibilidad de `D5` (mensajes de campo requerido sin `role="alert"`), el
+fallback sin filtrar de materias en Calificaciones, y decidir cuándo comitear.
 

@@ -14,7 +14,7 @@ import { AuthService } from '../services/auth.service';
   standalone: true,
   imports: [ButtonModule],
   template: `
-    <div class="login-wrapper">
+    <div class="login-wrapper" role="main">
       <div class="login-card">
 
         <!-- Logo oficial Instituto Nevadi -->

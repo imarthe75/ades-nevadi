@@ -376,7 +376,14 @@ export class DashboardBolecasYCoberturaComponent implements OnInit, OnDestroy {
   }
 
   loadGrupos() {
-    this.apiService.get('/api/v1/grupos').pipe(takeUntil(this.destroy$)).subscribe(res => {
+    // HALLAZGO CORREGIDO (auditoría de tipado 2026-07-19): las 5 llamadas GET de este
+    // archivo usaban this.apiService.get('/api/v1/...'), pero ApiService.base ya
+    // incluye '/api/v1' (core/services/api.service.ts) — el path resultante era
+    // '.../api/v1/api/v1/grupos', que no coincide con ningún @RequestMapping real
+    // (mismo patrón encontrado y corregido en los otros componentes "*-planeacion").
+    // Todo este componente estaba efectivamente roto (404 en cada llamada). Se corrige
+    // quitando el prefijo '/api/v1' duplicado en cada ruta.
+    this.apiService.get<any[]>('/grupos').pipe(takeUntil(this.destroy$)).subscribe(res => {
       this.grupos.set((res as any[]).map(g => ({
         label: g.nombre_grupo,
         value: g.ref
@@ -388,12 +395,22 @@ export class DashboardBolecasYCoberturaComponent implements OnInit, OnDestroy {
     const grupoId = this.selGrupoId;
     if (!grupoId) return;
 
-    this.apiService.get(`/api/v1/grupos/${grupoId}`).pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.apiService.get<any>(`/grupos/${grupoId}`).pipe(takeUntil(this.destroy$)).subscribe(res => {
       const grupo = res as any;
-      this.apiService.get(`/api/v1/estudiantes?grupo_id=${grupoId}`).pipe(takeUntil(this.destroy$)).subscribe(alumnos => {
-        this.alumnos.set((alumnos as any[]).map(a => ({
-          label: a.nombre_alumno,
-          value: a.ref
+      // HALLAZGO CORREGIDO (auditoría de tipado 2026-07-19): además del prefijo
+      // '/api/v1' duplicado, esta llamada apuntaba a '/estudiantes' — endpoint que NO
+      // EXISTE en el backend (AlumnoController expone '/api/v1/alumnos', no
+      // '/api/v1/estudiantes'; confirmado contra api-types.generated.ts y
+      // AlumnoController.java). Además el .map() leía `a.nombre_alumno`/`a.ref`, campos
+      // que tampoco existen en la respuesta real (AlumnoQueryService.listar() devuelve
+      // `{data:[...], total, page, size}` con cada fila `{id, persona:{nombre,
+      // apellido_paterno,...}, grupo:{...}, ...}` — nunca `nombre_alumno` ni `ref`).
+      // El selector de alumno quedaba siempre vacío/roto en silencio. Se corrige
+      // apuntando a '/alumnos?grupo_id=...' y leyendo la forma real de la respuesta.
+      this.apiService.get<{ data: any[] }>(`/alumnos?grupo_id=${grupoId}`).pipe(takeUntil(this.destroy$)).subscribe(alumnos => {
+        this.alumnos.set((alumnos.data ?? []).map(a => ({
+          label: `${a.persona?.nombre ?? ''} ${a.persona?.apellido_paterno ?? ''}`.trim(),
+          value: a.id
         })));
       });
     });
@@ -406,8 +423,8 @@ export class DashboardBolecasYCoberturaComponent implements OnInit, OnDestroy {
   cargarBoleta() {
     if (!this.selGrupoId || !this.selAlumnoId || !this.selTrimestre) return;
 
-    this.apiService.get(
-      `/api/v1/planeacion/boleta/${this.selAlumnoId}/${this.selGrupoId}/${this.selTrimestre}`
+    this.apiService.get<any>(
+      `/planeacion/boleta/${this.selAlumnoId}/${this.selGrupoId}/${this.selTrimestre}`
     ).pipe(takeUntil(this.destroy$)).subscribe(
       res => {
         this.boleta.set(res as any);
@@ -430,8 +447,8 @@ export class DashboardBolecasYCoberturaComponent implements OnInit, OnDestroy {
   cargarCobertura() {
     if (!this.selGrupoCobertura || !this.selTrimestreCobertura) return;
 
-    this.apiService.get(
-      `/api/v1/planeacion/cobertura/${this.selGrupoCobertura}/${this.selTrimestreCobertura}`
+    this.apiService.get<any>(
+      `/planeacion/cobertura/${this.selGrupoCobertura}/${this.selTrimestreCobertura}`
     ).pipe(takeUntil(this.destroy$)).subscribe(
       res => {
         this.cobertura.set(res as any);
@@ -445,8 +462,8 @@ export class DashboardBolecasYCoberturaComponent implements OnInit, OnDestroy {
       }
     );
 
-    this.apiService.get(
-      `/api/v1/planeacion/cobertura-por-competencia/${this.selGrupoCobertura}/${this.selTrimestreCobertura}`
+    this.apiService.get<any[]>(
+      `/planeacion/cobertura-por-competencia/${this.selGrupoCobertura}/${this.selTrimestreCobertura}`
     ).pipe(takeUntil(this.destroy$)).subscribe(
       res => {
         this.coberturaCompetencia.set(res as any[]);

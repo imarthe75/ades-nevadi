@@ -85,6 +85,28 @@ interface Telemetria {
   actualizacion: string;
 }
 
+/**
+ * Forma mínima común de las respuestas de los distintos endpoints de
+ * status/health chequeados por `_checkService` (mezcla de endpoints Spring
+ * documentados en api-types.generated.ts con respuesta opaca —
+ * `operations["health"]`, `operations["listAvailableDashboards"]` — y
+ * endpoints de otros servicios proxeados que no aparecen en ese spec, ej.
+ * Carbone/Flowise/ntfy/Stirling/n8n). No hay un DTO concreto reutilizable
+ * para ninguno de los dos casos, así que solo se tipan los campos que este
+ * componente realmente lee.
+ */
+interface ServicioCheckResponse {
+  disponible?: boolean;
+  status?: string;
+}
+
+/** Respuesta de GET /automations/workflows — endpoint no encontrado en
+ * api-types.generated.ts (probable proxy a n8n, fuera del OpenAPI de Spring). */
+interface WorkflowsResponse {
+  data?: Workflow[];
+  workflows?: Workflow[];
+}
+
 @Component({
   selector: 'app-monitor',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -361,7 +383,7 @@ export class MonitorComponent implements OnInit, OnDestroy {
   private async _checkService(
     nombre: string, endpoint: string, icono: string, fase: number, admin_url?: string,
   ): Promise<void> {
-    this.api.get<any>(endpoint).pipe(takeUntil(this.destroy$)).subscribe({
+    this.api.get<ServicioCheckResponse>(endpoint).pipe(takeUntil(this.destroy$)).subscribe({
       next: data => {
         const disponible = data?.disponible !== undefined ? data.disponible : (data?.status === 'ok');
         this._upsertServicio({ nombre, url: endpoint, disponible, icono, fase, admin_url });
@@ -382,7 +404,7 @@ export class MonitorComponent implements OnInit, OnDestroy {
 
   private _loadWorkflows(): void {
     this.loadingWorkflows.set(true);
-    this.api.get<any>('/automations/workflows').pipe(takeUntil(this.destroy$)).subscribe({
+    this.api.get<WorkflowsResponse>('/automations/workflows').pipe(takeUntil(this.destroy$)).subscribe({
       next: data => {
         const items: Workflow[] = data?.data ?? data?.workflows ?? [];
         this.workflows.set(items);

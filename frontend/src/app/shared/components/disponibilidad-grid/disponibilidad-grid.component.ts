@@ -84,7 +84,11 @@ export interface Indisponibilidad {
                   @for (d of diasSemana; track d.num) {
                     <td class="celda-estado"
                         [ngClass]="getClaseEstado(d.num, h)"
-                        (click)="toggleEstado(d.num, h)">
+                        role="button" tabindex="0"
+                        [attr.aria-label]="d.label + ' ' + h + ': ' + getEtiquetaEstado(d.num, h) + '. Clic para cambiar de estado.'"
+                        (click)="toggleEstado(d.num, h)"
+                        (keydown.enter)="toggleEstado(d.num, h)"
+                        (keydown.space)="$event.preventDefault(); toggleEstado(d.num, h)">
                       {{ getEtiquetaEstado(d.num, h) }}
                     </td>
                   }

@@ -331,7 +331,7 @@ export class ComunicadosComponent implements OnInit, OnDestroy {
       fecha_vencimiento: this.form.fecha_vencimiento
         ? `${this.form.fecha_vencimiento.toISOString().substring(0, 10)}T23:59:59` : null,
     };
-    this.api.post('/comunicados', payload).pipe(takeUntil(this.destroy$)).subscribe({
+    this.api.post<{ id: string }>('/comunicados', payload).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => { this.showDialog.set(false); this.saving.set(false); this.cargar(); },
       error: () => this.saving.set(false),
     });

@@ -18,6 +18,7 @@ import { MessageModule } from 'primeng/message';
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
 import { AdesFormatDirective } from '../../shared/directives/ades-format.directive';
+import type { components } from '../../core/models/api-types.generated';
 
 /**
  * Crear Planeación Semanal Integral
@@ -358,7 +359,15 @@ export class CrearPlaneacionSemanalComponent implements OnInit, OnDestroy {
   }
 
   loadGrupos() {
-    this.apiService.get('/api/v1/grupos').pipe(takeUntil(this.destroy$)).subscribe(res => {
+    // HALLAZGO CORREGIDO (auditoría de tipado 2026-07-19): las 6 llamadas de este
+    // archivo usaban this.apiService.get/post('/api/v1/...'), pero ApiService.base ya
+    // incluye '/api/v1' (core/services/api.service.ts) — el path resultante era
+    // '.../api/v1/api/v1/grupos', que no coincide con ningún @RequestMapping real
+    // (mismo patrón encontrado y corregido en calificar-tareas.component.ts y los
+    // otros 2 componentes "crear-*-desde-planeacion"). Todo este componente estaba
+    // efectivamente roto (404 en cada llamada). Se corrige quitando el prefijo
+    // '/api/v1' duplicado en cada ruta.
+    this.apiService.get<any[]>('/grupos').pipe(takeUntil(this.destroy$)).subscribe(res => {
       this.grupos.set((res as any[]).map(g => ({
         label: g.nombre_grupo,
         value: g.ref
@@ -370,9 +379,9 @@ export class CrearPlaneacionSemanalComponent implements OnInit, OnDestroy {
     const grupoId = this.step1Form.get('grupoId')?.value;
     if (!grupoId) return;
 
-    this.apiService.get(`/api/v1/grupos/${grupoId}`).pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.apiService.get<any>(`/grupos/${grupoId}`).pipe(takeUntil(this.destroy$)).subscribe(res => {
       const grupo = res as any;
-      this.apiService.get(`/api/v1/materias?grado_id=${grupo.grado_id}`).pipe(takeUntil(this.destroy$)).subscribe(materias => {
+      this.apiService.get<any[]>(`/materias?grado_id=${grupo.grado_id}`).pipe(takeUntil(this.destroy$)).subscribe(materias => {
         this.materias.set((materias as any[]).map(m => ({
           label: m.nombre_materia,
           value: m.ref
@@ -390,10 +399,10 @@ export class CrearPlaneacionSemanalComponent implements OnInit, OnDestroy {
     if (!grupoId || !materiaId) return;
 
     // Obtener grado del grupo
-    this.apiService.get(`/api/v1/grupos/${grupoId}`).pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.apiService.get<any>(`/grupos/${grupoId}`).pipe(takeUntil(this.destroy$)).subscribe(res => {
       const grupo = res as any;
-      this.apiService.get(
-        `/api/v1/planeacion/temario-aprendizajes?materia_id=${materiaId}&grado_id=${grupo.grado_id}`
+      this.apiService.get<any>(
+        `/planeacion/temario-aprendizajes?materia_id=${materiaId}&grado_id=${grupo.grado_id}`
       ).pipe(takeUntil(this.destroy$)).subscribe(res => {
         const data = res as any;
         this.temas.set(data.temas || []);
@@ -453,7 +462,10 @@ export class CrearPlaneacionSemanalComponent implements OnInit, OnDestroy {
       aprendizajes_ids: t.aprendizajes_ids || []
     }));
 
-    const body = {
+    // CrearPlaneacionSemanalIntegralRequest es un record Java con campos ya declarados
+    // snake_case (grupo_id, materia_id, fecha_inicio, temas_seleccionados, etc.) — el
+    // schema generado SÍ coincide con el JSON real (ver PlaneacionController.java).
+    const body: components['schemas']['CrearPlaneacionSemanalIntegralRequest'] = {
       grupo_id: grupoId,
       materia_id: materiaId,
       trimestre,
@@ -465,7 +477,7 @@ export class CrearPlaneacionSemanalComponent implements OnInit, OnDestroy {
     };
 
     this.guardando.set(true);
-    this.apiService.post('/api/v1/planeacion/semanal-integral', body).pipe(takeUntil(this.destroy$)).subscribe(
+    this.apiService.post<unknown>('/planeacion/semanal-integral', body).pipe(takeUntil(this.destroy$)).subscribe(
       res => {
         this.messageService.add({
           severity: 'success',

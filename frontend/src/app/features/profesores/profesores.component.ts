@@ -263,6 +263,11 @@ export class ProfesoresComponent implements OnInit, OnDestroy {
       return;
     }
     this.loading.set(true);
+    // Corregido 2026-07-20: ProfesorController#create ahora acepta CrearProfesorRequest
+    // (persona anidada → crea la Persona nueva y luego el Profesor referenciándola),
+    // mismo patrón que el alta de alumno. Antes fallaba el 100% de las veces porque el
+    // backend esperaba un persona_id de una persona ya existente que este formulario
+    // nunca enviaba.
     const payload = {
       numero_empleado: this.form.numero_empleado,
       tipo_contrato: this.form.tipo_contrato || 'TIEMPO_COMPLETO',

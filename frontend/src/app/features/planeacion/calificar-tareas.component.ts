@@ -14,6 +14,7 @@ import { MessageService } from 'primeng/api';
 import { CardModule } from 'primeng/card';
 
 import { ApiService } from '../../core/services/api.service';
+import type { components } from '../../core/models/api-types.generated';
 
 /**
  * Calificar Tareas desde Planeación
@@ -293,7 +294,14 @@ export class CalificarTareasComponent implements OnInit, OnDestroy {
   }
 
   loadGrupos() {
-    this.apiService.get('/api/v1/grupos').pipe(takeUntil(this.destroy$)).subscribe(res => {
+    // HALLAZGO CORREGIDO (auditoría de tipado 2026-07-19): esta llamada (y todas las de
+    // este archivo) usaban this.apiService.get('/api/v1/...'), pero ApiService.base ya
+    // incluye '/api/v1' (ver core/services/api.service.ts) — el path resultante era
+    // '.../api/v1/api/v1/grupos', que no coincide con ningún @RequestMapping real
+    // (confirmado contra api-types.generated.ts y el spec /v3/api-docs en vivo). Todo
+    // este componente estaba efectivamente roto (404 en cada llamada). Se corrige
+    // quitando el prefijo '/api/v1' duplicado en cada ruta de este archivo.
+    this.apiService.get<any[]>('/grupos').pipe(takeUntil(this.destroy$)).subscribe(res => {
       this.grupos.set((res as any[]).map(g => ({
         label: g.nombre_grupo,
         value: g.ref
@@ -309,7 +317,7 @@ export class CalificarTareasComponent implements OnInit, OnDestroy {
     this.tareaSeleccionada = null;
     this.tareaDetalle.set(null);
 
-    this.apiService.get(`/api/v1/planeacion/grupo/${grupoId}/tareas-pendientes-calificar`)
+    this.apiService.get<any[]>(`/planeacion/grupo/${grupoId}/tareas-pendientes-calificar`)
       .pipe(takeUntil(this.destroy$))
       .subscribe(
         res => {
@@ -334,7 +342,7 @@ export class CalificarTareasComponent implements OnInit, OnDestroy {
   onTareaSelect(tarea: any) {
     this.tareaSeleccionada = tarea.tarea_id;
 
-    this.apiService.get(`/api/v1/planeacion/tareas/${tarea.tarea_id}/detalles`)
+    this.apiService.get<any>(`/planeacion/tareas/${tarea.tarea_id}/detalles`)
       .pipe(takeUntil(this.destroy$))
       .subscribe(
         res => {
@@ -370,13 +378,13 @@ export class CalificarTareasComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const body = {
+    const body: components['schemas']['GuardarCalificacionesTareaBatchRequest'] = {
       tarea_id: this.tareaSeleccionada,
       calificaciones
     };
 
     this.guardando.set(true);
-    this.apiService.post('/api/v1/planeacion/calificaciones/tarea-batch', body)
+    this.apiService.post<unknown>('/planeacion/calificaciones/tarea-batch', body)
       .pipe(takeUntil(this.destroy$))
       .subscribe(
         res => {

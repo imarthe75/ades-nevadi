@@ -74,6 +74,44 @@ interface Resultados {
   preguntas: ResultadoPregunta[];
 }
 
+/**
+ * Entidad JPA `Encuesta` cruda tal como la devuelven POST /encuestas y
+ * PATCH /encuestas/{id}/toggle-activa. A diferencia de la interfaz `Encuesta` de
+ * arriba (fila enriquecida de GET /encuestas, con nombre_plantel/total_preguntas/
+ * total_respuestas calculados por EncuestaQueryService#listar), esta NO trae esos
+ * tres campos — son columnas propias de la entidad, no del JOIN del query service.
+ */
+interface EncuestaEntity {
+  id: string;
+  titulo: string;
+  descripcion: string | null;
+  tipo: string;
+  audiencia: string;
+  plantel_id: string | null;
+  nivel_educativo_id: string | null;
+  grupo_id: string | null;
+  fecha_inicio: string | null;
+  fecha_fin: string | null;
+  anonima: boolean;
+  activa: boolean;
+}
+
+/** GET /api/v1/encuestas/{id} (EncuestaQueryService#detalle). */
+interface EncuestaDetalle {
+  id: string;
+  titulo: string;
+  descripcion: string | null;
+  tipo: string;
+  audiencia: string;
+  plantel_id: string | null;
+  fecha_inicio: string | null;
+  fecha_fin: string | null;
+  anonima: boolean;
+  activa: boolean;
+  total_respuestas: number;
+  preguntas: Pregunta[];
+}
+
 const TIPO_SEV: Record<string, TagSeverity> = {
   SATISFACCION:       'success',
   DIAGNOSTICO:        'info',
@@ -701,7 +739,7 @@ export class EncuestasComponent implements OnInit, OnDestroy {
 
   cargarPreguntas(): void {
     if (!this.selEncuesta) return;
-    this.api.get<any>(`/encuestas/${this.selEncuesta.id}`).pipe(takeUntil(this.destroy$)).subscribe(d => {
+    this.api.get<EncuestaDetalle>(`/encuestas/${this.selEncuesta.id}`).pipe(takeUntil(this.destroy$)).subscribe(d => {
       this.preguntas.set(d.preguntas ?? []);
       this.initRespuestas();
     });
@@ -734,7 +772,7 @@ export class EncuestasComponent implements OnInit, OnDestroy {
     if (!this.formNueva.titulo) return;
     this.saving.set(true);
     const plantel = this.ctx.plantel();
-    this.api.post<Encuesta>('/encuestas', {
+    this.api.post<EncuestaEntity>('/encuestas', {
       ...this.formNueva,
       plantel_id: plantel?.id ?? null,
       fecha_inicio: this.formNueva.fecha_inicio ? this.formNueva.fecha_inicio.toISOString().substring(0, 10) : null,
@@ -754,7 +792,7 @@ export class EncuestasComponent implements OnInit, OnDestroy {
 
   toggleActiva(): void {
     if (!this.selEncuesta) return;
-    this.api.patch(`/encuestas/${this.selEncuesta.id}/toggle-activa`, {}).pipe(takeUntil(this.destroy$)).subscribe({
+    this.api.patch<EncuestaEntity>(`/encuestas/${this.selEncuesta.id}/toggle-activa`, {}).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => this.cargar(),
       error: (e: any) => this.notify.error('Error al cambiar estado de la encuesta', e?.error?.detail ?? e?.message ?? ''),
     });
@@ -769,7 +807,7 @@ export class EncuestasComponent implements OnInit, OnDestroy {
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
         this.eliminandoEncuesta.set(true);
-        this.api.delete(`/encuestas/${encuesta.id}`).pipe(takeUntil(this.destroy$)).subscribe({
+        this.api.delete<void>(`/encuestas/${encuesta.id}`).pipe(takeUntil(this.destroy$)).subscribe({
           next: () => {
             this.eliminandoEncuesta.set(false);
             this.selEncuesta = null;
@@ -802,7 +840,7 @@ export class EncuestasComponent implements OnInit, OnDestroy {
       ? this.formPreg.opcionesTexto.split('\n').map(s => s.trim()).filter(Boolean)
       : null;
 
-    this.api.post(`/encuestas/${this.selEncuesta.id}/preguntas`, {
+    this.api.post<Pregunta>(`/encuestas/${this.selEncuesta.id}/preguntas`, {
       texto:         this.formPreg.texto,
       tipo_pregunta: this.formPreg.tipo_pregunta,
       opciones,
@@ -826,7 +864,7 @@ export class EncuestasComponent implements OnInit, OnDestroy {
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
         this.eliminandoPreguntaId.set(p.id);
-        this.api.delete(`/encuestas/${encuestaId}/preguntas/${p.id}`).pipe(takeUntil(this.destroy$)).subscribe({
+        this.api.delete<void>(`/encuestas/${encuestaId}/preguntas/${p.id}`).pipe(takeUntil(this.destroy$)).subscribe({
           next: () => { this.eliminandoPreguntaId.set(null); this.cargarPreguntas(); },
           error: (e: any) => { this.eliminandoPreguntaId.set(null); this.notify.error('Error al eliminar pregunta', e?.error?.detail ?? e?.message ?? ''); },
         });
@@ -857,7 +895,7 @@ export class EncuestasComponent implements OnInit, OnDestroy {
       };
     }).filter(r => r.valor_numerico != null || r.opcion_seleccionada || r.texto_respuesta);
 
-    this.api.post(`/encuestas/${this.selEncuesta.id}/responder`, { respuestas }).pipe(takeUntil(this.destroy$)).subscribe({
+    this.api.post<{ ok: boolean; sesion_id: string; guardadas: number }>(`/encuestas/${this.selEncuesta.id}/responder`, { respuestas }).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => { this.saving.set(false); this.respuestaEnviada.set(true); this.resultados.set(null); },
       error: () => this.saving.set(false),
     });

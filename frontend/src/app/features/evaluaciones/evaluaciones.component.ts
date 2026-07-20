@@ -21,6 +21,7 @@ import { ContextService } from '../../core/services/context.service';
 import { ExportService, ExportColumn } from '../../core/services/export.service';
 import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
 import { grupoLabel } from '../../core/models';
+import type { NivelEducativo, Grado, Grupo, Materia, PeriodoEvaluacion } from '../../core/models';
 import { AdesFormatDirective } from '../../shared/directives/ades-format.directive';
 import { ApexNotificationService } from 'apex-component-library';
 
@@ -286,8 +287,8 @@ export class EvaluacionesComponent implements OnInit, OnDestroy {
   private readonly notify   = inject(ApexNotificationService);
 
   // ── Cascada Nivel → Grado → Grupo (en el diálogo de nueva evaluación) ──
-  nivelesOpts = signal<any[]>([]);
-  gradosOpts  = signal<any[]>([]);
+  nivelesOpts = signal<NivelEducativo[]>([]);
+  gradosOpts  = signal<Grado[]>([]);
 
   evaluaciones   = signal<Evaluacion[]>([]);
   evaluacionesDatos = signal<any[]>([]);
@@ -338,11 +339,11 @@ export class EvaluacionesComponent implements OnInit, OnDestroy {
   private _initNiveles(): void {
     const plantel = this.ctx.plantel();
     if (!plantel) return;
-    this.api.get<any[]>(`/planteles/${plantel.id}/niveles`).pipe(takeUntil(this.destroy$)).subscribe({
+    this.api.get<NivelEducativo[]>(`/planteles/${plantel.id}/niveles`).pipe(takeUntil(this.destroy$)).subscribe({
       next: list => {
         this.nivelesOpts.set(list);
         const ctxNivel = this.ctx.nivel();
-        if (ctxNivel && list.some((n: any) => n.id === ctxNivel.id)) {
+        if (ctxNivel && list.some((n) => n.id === ctxNivel.id)) {
           this.form._nivelId = ctxNivel.id;
           this._loadGrados(ctxNivel.id);
         }
@@ -352,7 +353,7 @@ export class EvaluacionesComponent implements OnInit, OnDestroy {
 
   private _loadGrados(nivelId: string): void {
     const plantelId = this.ctx.plantel()?.id;
-    this.api.get<any[]>('/catalogs/grados', { nivel_id: nivelId, plantel_id: plantelId || undefined }).pipe(takeUntil(this.destroy$)).subscribe({
+    this.api.get<Grado[]>('/catalogs/grados', { nivel_id: nivelId, plantel_id: plantelId || undefined }).pipe(takeUntil(this.destroy$)).subscribe({
       next: list => this.gradosOpts.set(list),
     });
   }
@@ -371,8 +372,8 @@ export class EvaluacionesComponent implements OnInit, OnDestroy {
     this.grupos.set([]); this.materias.set([]);
     const plantel = this.ctx.plantel();
     if (plantel && this.form._gradoId) {
-      this.api.get<any[]>('/grupos', { plantel_id: plantel.id, grado_id: this.form._gradoId }).pipe(takeUntil(this.destroy$)).subscribe({
-        next: list => this.grupos.set(list.map((g: any) => ({
+      this.api.get<Grupo[]>('/grupos', { plantel_id: plantel.id, grado_id: this.form._gradoId }).pipe(takeUntil(this.destroy$)).subscribe({
+        next: list => this.grupos.set(list.map((g) => ({
           label: grupoLabel(g) || `${g.nombre_grupo} — ${g.nombre_grado ?? ''}`,
           value: g.id,
         }))),
@@ -408,12 +409,12 @@ export class EvaluacionesComponent implements OnInit, OnDestroy {
 
   onGrupoChange(): void {
     if (!this.form.grupo_id) return;
-    this.api.get<any[]>('/materias', { grupo_id: this.form.grupo_id }).pipe(takeUntil(this.destroy$)).subscribe(list => {
+    this.api.get<Materia[]>('/materias', { grupo_id: this.form.grupo_id }).pipe(takeUntil(this.destroy$)).subscribe(list => {
       this.materias.set(list.map(m => ({ label: m.nombre_materia, value: m.id })));
     });
     const ciclo = this.ctx.ciclo();
     if (ciclo) {
-      this.api.get<any[]>('/calificaciones/periodos', { ciclo_id: ciclo.id }).pipe(takeUntil(this.destroy$)).subscribe(list => {
+      this.api.get<PeriodoEvaluacion[]>('/calificaciones/periodos', { ciclo_id: ciclo.id }).pipe(takeUntil(this.destroy$)).subscribe(list => {
         this.periodos.set(list.map(p => ({ label: p.nombre_periodo, value: p.id })));
       });
     }

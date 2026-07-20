@@ -376,7 +376,10 @@ export class ReportesComponent implements OnInit, OnDestroy {
   }
 
   cargarAlumnos(): void {
-    const params: Record<string,any> = { pagina: 1, por_pagina: 500 };
+    // Mismo bug que alumnos.component.ts (2026-07-20): con el mapeo de "pagina"/"por_pagina"
+    // ya corregido en application.yml, este límite ahora sí se respeta — 500 truncaba el
+    // selector de alumnos para generar reportes/boletas con 2200+ alumnos reales.
+    const params: Record<string,any> = { pagina: 1, por_pagina: 5000 };
     const plantelId = this.ctx.plantel()?.id;
     if (plantelId) params['plantel_id'] = plantelId;
     this.api.get<{data:Alumno[];total:number}>('/alumnos', params).pipe(takeUntil(this.destroy$)).subscribe({
@@ -481,7 +484,7 @@ export class ReportesComponent implements OnInit, OnDestroy {
       header: 'Confirmar eliminación',
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
-        this.api.delete(`/carbone/templates/${id}`).pipe(takeUntil(this.destroy$)).subscribe({
+        this.api.delete<void>(`/carbone/templates/${id}`).pipe(takeUntil(this.destroy$)).subscribe({
           next: () => {
             this.plantillas.update(p => p.filter(x => x.id !== id));
             this.notify.success('Eliminada');

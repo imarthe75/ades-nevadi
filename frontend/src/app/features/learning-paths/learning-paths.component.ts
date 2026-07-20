@@ -73,6 +73,20 @@ interface IaRecomendacion {
   mensaje_motivacional: string;
 }
 
+/**
+ * Fila cruda de GET /portal/buscar. El backend (PortalQueryService#buscarAlumnos)
+ * devuelve List<Map<String,Object>> — sin schema reutilizable en
+ * api-types.generated.ts (queda como `{[key:string]:unknown}[]`) — documentado
+ * aquí solo lo consumido, verificado contra el SELECT real.
+ */
+interface AlumnoBusquedaRow {
+  id: string;
+  matricula: string;
+  nombre: string;
+  apellido_paterno: string;
+  apellido_materno: string | null;
+}
+
 interface AlertaResumen {
   tipo_alerta: string;
   nivel_riesgo: string;
@@ -484,6 +498,18 @@ const TIPO_ICON: Record<string, string> = {
     h5 { margin: .5rem 0; font-size: .9rem; display: flex; align-items: center; gap: .4rem; }
   `],
 })
+/**
+ * NOTA DE CONTRATO (auditoría de tipado 2026-07-19): `PathRequest`/`AsignacionRequest`/
+ * `RecursoRequest`/`ProgresoRequest` en api-types.generated.ts están en camelCase
+ * (reflejan los campos Java de los `@Data` inline en LearningPathsController), pero el
+ * JSON real en tiempo de ejecución es snake_case — `spring.jackson.property-naming-
+ * strategy: SNAKE_CASE` (application.yml) + ObjectMapper explícito en HexagonalConfig.java
+ * aplica a TODO el BFF, y springdoc no lo refleja al generar el spec. Los payloads de
+ * `crearPath()`/`confirmarAsignar()` de abajo (`criterio_activacion`, `umbral_activacion`,
+ * `estudiante_id`) ya están correctos en snake_case — NO tipar esos bodies contra
+ * `components['schemas']` de ese archivo ni "corregir" los nombres a camelCase, o se
+ * rompe el contrato real. Mismo hallazgo confirmado en admin.component.ts.
+ */
 export class LearningPathsComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private readonly api    = inject(ApiService);
@@ -620,9 +646,9 @@ export class LearningPathsComponent implements OnInit, OnDestroy {
     const params: Record<string, any> = { q: event.query };
     const plantelId = this.ctx.plantel()?.id;
     if (plantelId) params['plantel_id'] = plantelId;
-    this.api.get<any[]>('/portal/buscar', params).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (r: any) => {
-        this.alumnosSuggAsig.set((r ?? []).map((a: any) => ({
+    this.api.get<AlumnoBusquedaRow[]>('/portal/buscar', params).pipe(takeUntil(this.destroy$)).subscribe({
+      next: r => {
+        this.alumnosSuggAsig.set((r ?? []).map((a: AlumnoBusquedaRow) => ({
           id: a.id,
           nombre_completo: [a.nombre, a.apellido_paterno, a.apellido_materno]
             .filter(Boolean).join(' ') + (a.matricula ? ` — ${a.matricula}` : ''),

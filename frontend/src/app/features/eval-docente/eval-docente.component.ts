@@ -457,10 +457,10 @@ export class EvalDocenteComponent implements OnInit, OnDestroy {
           calificacion: it.calificacion,
           observacion: it.observacion || null,
         }));
-        this.api.post<any>(`/eval-docente/${ev.id}/criterios`, criterios).pipe(takeUntil(this.destroy$)).subscribe({
+        this.api.post<{ ok: boolean; eval_id: string }>(`/eval-docente/${ev.id}/criterios`, criterios).pipe(takeUntil(this.destroy$)).subscribe({
           next: () => {
             if (enviar) {
-              this.api.patch<any>(`/eval-docente/${ev.id}/enviar`, {}).pipe(takeUntil(this.destroy$)).subscribe({
+              this.api.patch<{ ok: boolean }>(`/eval-docente/${ev.id}/enviar`, {}).pipe(takeUntil(this.destroy$)).subscribe({
                 next: () => { this._doneSaving('Evaluación enviada exitosamente'); },
                 error: () => { this._doneSaving('Evaluación guardada (error al enviar)'); },
               });
@@ -476,7 +476,7 @@ export class EvalDocenteComponent implements OnInit, OnDestroy {
   }
 
   enviarEval(evalId: string): void {
-    this.api.patch<any>(`/eval-docente/${evalId}/enviar`, {}).pipe(takeUntil(this.destroy$)).subscribe({
+    this.api.patch<{ ok: boolean }>(`/eval-docente/${evalId}/enviar`, {}).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.notify.success('Evaluación enviada');
         this.cargarResumen();

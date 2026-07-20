@@ -53,6 +53,11 @@ interface RespuestaForo {
   usuario_creacion: string;
 }
 
+interface MateriaOpt {
+  id: string;
+  nombre_materia: string;
+}
+
 interface Anuncio {
   id: string;
   titulo: string;
@@ -369,7 +374,7 @@ export class ForosComponent implements OnInit, OnDestroy {
   anuncios = signal<Anuncio[]>([]);
   mensajes = signal<MensajeForo[]>([]);
   respuestas = signal<RespuestaForo[]>([]);
-  materias = signal<any[]>([]);
+  materias = signal<MateriaOpt[]>([]);
   
   foroActivo = signal<Foro | null>(null);
   mensajeActivo = signal<MensajeForo | null>(null);
@@ -440,7 +445,7 @@ export class ForosComponent implements OnInit, OnDestroy {
   cargarMaterias() {
     const pl = this.ctx.plantel();
     if (pl) {
-      this.http.get<any[]>('/materias', { plantel_id: pl.id }).pipe(takeUntil(this.destroy$)).subscribe(m => this.materias.set(m));
+      this.http.get<MateriaOpt[]>('/materias', { plantel_id: pl.id }).pipe(takeUntil(this.destroy$)).subscribe(m => this.materias.set(m));
     }
   }
 

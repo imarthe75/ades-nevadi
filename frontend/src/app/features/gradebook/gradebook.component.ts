@@ -619,9 +619,9 @@ export class GradebookComponent implements OnInit, OnDestroy {
     this.actividades.set([]);
     this.concentrado.set([]);
     if (!this.grupoSel) return;
-    this.api.get(`/materias?grupo_id=${this.grupoSel}`).pipe(takeUntil(this.destroy$)).subscribe((r: any) =>
-      this.materias.set(r.data ?? r));
-    this.api.get(`/catalogs/periodos?grupo_id=${this.grupoSel}`).pipe(takeUntil(this.destroy$)).subscribe((r: any) =>
+    this.api.get<MateriaOpt[] | { data: MateriaOpt[] }>(`/materias?grupo_id=${this.grupoSel}`).pipe(takeUntil(this.destroy$)).subscribe((r) =>
+      this.materias.set(Array.isArray(r) ? r : (r.data ?? [])));
+    this.api.get<PeriodoOpt[]>(`/catalogs/periodos?grupo_id=${this.grupoSel}`).pipe(takeUntil(this.destroy$)).subscribe((r) =>
       this.periodos.set(r ?? []));
     this.cargarActividades();
     this.cargarCobertura();
@@ -634,7 +634,7 @@ export class GradebookComponent implements OnInit, OnDestroy {
     if (this.materiaSel) url += `materia_id=${this.materiaSel}&`;
     if (this.periodoSel) url += `periodo_id=${this.periodoSel}&`;
     this.cargando.set(true);
-    this.api.get(url).pipe(takeUntil(this.destroy$)).subscribe({ next: (r: any) => { this.actividades.set(r); this.cargando.set(false); },
+    this.api.get<Actividad[]>(url).pipe(takeUntil(this.destroy$)).subscribe({ next: (r) => { this.actividades.set(r); this.cargando.set(false); },
       error: () => this.cargando.set(false) });
   }
 
@@ -642,8 +642,8 @@ export class GradebookComponent implements OnInit, OnDestroy {
     if (!this.grupoSel || !this.periodoSel) return;
     this.cargandoConc.set(true);
     const url = `/gradebook/grupo/${this.grupoSel}/concentrado?periodo_id=${this.periodoSel}`;
-    this.api.get(url).pipe(takeUntil(this.destroy$)).subscribe({ next: (r: any) => {
-      const rows = (r.detalle ?? []).map((row: any) => ({
+    this.api.get<{ detalle?: CalPeriodo[] }>(url).pipe(takeUntil(this.destroy$)).subscribe({ next: (r) => {
+      const rows = (r.detalle ?? []).map((row) => ({
         ...row,
         en_riesgo: row.calificacion_final !== null && row.calificacion_final < row.minimo_aprobatorio,
       }));
@@ -656,14 +656,17 @@ export class GradebookComponent implements OnInit, OnDestroy {
     if (!this.grupoSel) return;
     let url = `/gradebook/grupo/${this.grupoSel}/cobertura-curricular`;
     if (this.materiaSel) url += `?materia_id=${this.materiaSel}`;
+    // Respuesta de CoberturaQueryService (Map<String,Object> vía JdbcTemplate) — sin
+    // schema con nombre en el OpenAPI (springdoc solo tipa DTOs de clase, no mapas
+    // dinámicos). `cobertura` queda como `signal<any>` deliberadamente por eso.
     this.api.get(url).pipe(takeUntil(this.destroy$)).subscribe((r: any) => this.cobertura.set(r));
   }
 
   cargarInsights() {
     if (!this.grupoSel) return;
     this.cargandoInsights.set(true);
-    this.api.get(`/planeacion/insights/${this.grupoSel}`).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (r: any) => { this.insights.set(r); this.cargandoInsights.set(false); },
+    this.api.get<Insights>(`/planeacion/insights/${this.grupoSel}`).pipe(takeUntil(this.destroy$)).subscribe({
+      next: (r) => { this.insights.set(r); this.cargandoInsights.set(false); },
       error: () => this.cargandoInsights.set(false),
     });
   }
@@ -672,8 +675,8 @@ export class GradebookComponent implements OnInit, OnDestroy {
     this.actividadSeleccionada.set(act);
     this.cargandoEntregas.set(true);
     this.drawerCalifVisible = true;
-    this.api.get(`/actividades/${act.id}/entregas`).pipe(takeUntil(this.destroy$)).subscribe({ next: (r: any) => {
-      const entregas = r.map((e: any) => ({ ...e, _cal: e.calificacion_obtenida ?? null }));
+    this.api.get<Entrega[]>(`/actividades/${act.id}/entregas`).pipe(takeUntil(this.destroy$)).subscribe({ next: (r) => {
+      const entregas = r.map((e) => ({ ...e, _cal: e.calificacion_obtenida ?? null }));
       this.entregasActiva.set(entregas);
       this.cargandoEntregas.set(false);
     }, error: () => this.cargandoEntregas.set(false) });
@@ -682,9 +685,14 @@ export class GradebookComponent implements OnInit, OnDestroy {
   guardarCalificacionMasiva() {
     const act = this.actividadSeleccionada();
     if (!act) return;
+    // BUG REAL corregido (2026-07-19): mismo hallazgo que crearActividad() arriba —
+    // CalificarMasivoItem (ActividadesController.java) es otro @Data sin @JsonProperty,
+    // así que el ObjectMapper global SNAKE_CASE también lo alcanza. "alumnoId" nunca
+    // deserializaba (esperaba "alumno_id"), dejando el campo en null y rompiendo el
+    // guardado masivo de calificaciones.
     const items = this.entregasActiva()
       .filter(e => e._cal !== null && e._cal !== undefined)
-      .map(e => ({ alumnoId: e.estudiante_id, calificacion: e._cal!, comentario: e.comentario_profesor }));
+      .map(e => ({ alumno_id: e.estudiante_id, calificacion: e._cal!, comentario: e.comentario_profesor }));
     if (!items.length) return;
     this.guardandoCalifMasiva.set(true);
     this.api.patch(`/actividades/${act.id}/calificar-masivo`, items).pipe(takeUntil(this.destroy$)).subscribe({
@@ -767,18 +775,29 @@ export class GradebookComponent implements OnInit, OnDestroy {
       this.notify.warning('Fecha inválida', 'La fecha de entrega no puede ser anterior a la de asignación');
       return;
     }
-    // ActividadesController.ActividadIn espera camelCase estricto (clase @Data sin @JsonProperty).
+    // BUG REAL corregido (2026-07-19): el comentario previo decía que
+    // ActividadesController.ActividadIn (clase @Data sin @JsonProperty) esperaba
+    // camelCase estricto — cierto solo hasta el 2026-07-14. Desde el fix del
+    // 2026-07-15 en HexagonalConfig.java (bean ObjectMapper global con
+    // PropertyNamingStrategies.SNAKE_CASE, ver comentario ahí) esa estrategia aplica
+    // a TODOS los @RequestBody, incluido ActividadIn — Jackson deriva el nombre
+    // externo de cada campo Java (grupoId → grupo_id) para AMBAS direcciones
+    // (serialización y deserialización). Verificado empíricamente con el
+    // ObjectMapper real (mismo jackson-databind 2.21.4 del jar desplegado): un
+    // payload camelCase deja grupoId/materiaId/etc. en null y dispara 400
+    // ("grupoId es obligatorio") o peor. El payload debe ir en snake_case, igual
+    // que el resto del contrato del BFF.
     this.creandoActividad.set(true);
     this.api.post('/actividades', {
       titulo: this.nuevaAct.titulo,
       descripcion: this.nuevaAct.descripcion,
-      tipoItem: this.nuevaAct.tipo_item,
-      fechaAsignacion: this._toIso(fechaAsignacion),
-      fechaEntrega: this._toIso(this.nuevaAct.fecha_entrega),
-      puntajeMaximo: this.nuevaAct.puntaje_maximo,
-      grupoId: this.grupoSel,
-      materiaId: this.materiaSel,
-      periodoEvaluacionId: this.periodoSel,
+      tipo_item: this.nuevaAct.tipo_item,
+      fecha_asignacion: this._toIso(fechaAsignacion),
+      fecha_entrega: this._toIso(this.nuevaAct.fecha_entrega),
+      puntaje_maximo: this.nuevaAct.puntaje_maximo,
+      grupo_id: this.grupoSel,
+      materia_id: this.materiaSel,
+      periodo_evaluacion_id: this.periodoSel,
     }).pipe(takeUntil(this.destroy$)).subscribe({
       next: (r: any) => {
         this.creandoActividad.set(false);

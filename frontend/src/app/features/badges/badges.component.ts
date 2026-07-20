@@ -493,16 +493,30 @@ export class BadgesComponent implements OnInit, OnDestroy {
   }
 
   // ── búsqueda alumnos ────────────────────────────────────────────────────────
+  /**
+   * HALLAZGO REAL (auditoría de tipado 2026-07-19): este typeahead llamaba a
+   * `/api/v1/alumnos/buscar`, una ruta que nunca existió en AlumnoController (solo
+   * expone GET /, GET /{id}, POST /, GET /{id}/credencial — verificado contra
+   * AlumnoController.java y contra api-types.generated.ts). Esa URL en realidad
+   * coincidía con GET /api/v1/alumnos/{id} con id="buscar", que Spring no puede resolver
+   * como UUID, así que la búsqueda fallaba en cada tecleo (silenciada por el
+   * `.catch(() => [])`) y el combo de "buscar alumno" para otorgar una insignia nunca
+   * mostraba resultados. El endpoint real y compartido para este typeahead de personal
+   * escolar (mismo patrón que movilidad/optativas/padres-admin, ver
+   * PortalController#buscarAlumnos) es `/portal/buscar`; también corrige
+   * `a.ap_paterno`/`a.ap_materno` (no existen) por `a.apellido_paterno`/`a.apellido_materno`,
+   * los nombres reales que devuelve PortalQueryService#buscarAlumnos.
+   */
   async buscarAlumno(event: any) {
     const q = event.query;
     const plantelId = this.ctx.plantel()?.id;
     const params = new URLSearchParams({ q });
     if (plantelId) params.set('plantel_id', plantelId);
-    const data = await this.api.get<any[]>(`/alumnos/buscar?${params}`).toPromise().catch(() => []);
+    const data = await this.api.get<any[]>(`/portal/buscar?${params}`).toPromise().catch(() => []);
     this.alumnosSugerencias.set(
       (data ?? []).map((a: any) => ({
         id:      a.id,
-        nombre:  `${a.nombre} ${a.ap_paterno} ${a.ap_materno ?? ''}`.trim(),
+        nombre:  `${a.nombre} ${a.apellido_paterno} ${a.apellido_materno ?? ''}`.trim(),
         matricula: a.matricula,
         grupo:   a.nombre_grupo ?? '',
       }))

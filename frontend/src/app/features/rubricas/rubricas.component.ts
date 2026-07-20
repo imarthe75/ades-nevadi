@@ -418,7 +418,10 @@ export class RubricasComponent implements OnInit, OnDestroy {
   crearRubrica(): void {
     if (!this.formNueva.nombre) return;
     this.savingRubrica.set(true);
-    this.api.post('/rubricas', {
+    // NOTA: el body ya se envía en snake_case (correcto — ver el mismo hallazgo
+    // documentado abajo en guardarCriterio(): RubricaController usa un DTO con
+    // campos Java camelCase pero el wire real es SNAKE_CASE global del BFF).
+    this.api.post<Rubrica>('/rubricas', {
       nombre_rubrica: this.formNueva.nombre,
       descripcion: this.formNueva.descripcion || null,
       materia_id: this.formNueva.materia_id || null,
@@ -435,7 +438,16 @@ export class RubricasComponent implements OnInit, OnDestroy {
     if (!this.selRubrica || !this.formCrit.nombre) return;
     const nivelesValidos = this.formCrit.niveles.filter(n => n.etiqueta.trim());
     this.savingCriterio.set(true);
-    this.api.post(`/rubricas/${this.selRubrica.id}/criterios`, {
+    // NOTA (auditoría de tipado 2026-07-19): api-types.generated.ts SÍ tiene un schema
+    // 'CriterioPayload', pero en camelCase (nombreCriterio, nivelesLogro) — springdoc
+    // lo genera por reflexión de los campos Java del DTO sin aplicar
+    // spring.jackson.property-naming-strategy=SNAKE_CASE (aplicado globalmente en
+    // HexagonalConfig#objectMapper()). El JSON real que espera el backend es
+    // snake_case, que es justo lo que ya se envía aquí — por eso NO se usa
+    // components['schemas']['CriterioPayload'] (aplicarlo rompería este guardado en
+    // silencio, exactamente el patrón de bug ya encontrado y corregido esta sesión en
+    // otros componentes).
+    this.api.post<Criterio>(`/rubricas/${this.selRubrica.id}/criterios`, {
       nombre_criterio: this.formCrit.nombre,
       descripcion: this.formCrit.descripcion || null,
       ponderacion: this.formCrit.ponderacion,
@@ -458,7 +470,7 @@ export class RubricasComponent implements OnInit, OnDestroy {
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
         this.deletingCriterioId.set(c.id);
-        this.api.delete(`/rubricas/${this.selRubrica!.id}/criterios/${c.id}`).pipe(takeUntil(this.destroy$)).subscribe({
+        this.api.delete<void>(`/rubricas/${this.selRubrica!.id}/criterios/${c.id}`).pipe(takeUntil(this.destroy$)).subscribe({
           next: () => { this.deletingCriterioId.set(null); this.seleccionar(this.selRubrica!); },
           error: e => { this.deletingCriterioId.set(null); this.notify.error('Error', e?.error?.detail ?? 'No se pudo eliminar el criterio'); },
         });
@@ -475,7 +487,7 @@ export class RubricasComponent implements OnInit, OnDestroy {
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
         this.deletingRubrica.set(true);
-        this.api.delete(`/rubricas/${rubrica.id}`).pipe(takeUntil(this.destroy$)).subscribe({
+        this.api.delete<void>(`/rubricas/${rubrica.id}`).pipe(takeUntil(this.destroy$)).subscribe({
           next: () => {
             this.deletingRubrica.set(false);
             this.selRubrica = null;

@@ -1,6 +1,67 @@
-# Reporte ejecutivo — auditorías profundas 2026-07-04 → 2026-07-18
+# Reporte ejecutivo — auditorías profundas 2026-07-04 → 2026-07-19
 
-## Lo que hay que saber primero
+## Actualización 2026-07-19 — lo más grave de todo el reporte está aquí, léelo primero
+
+**12 guardados reales del sistema llevan fallando en silencio — sin ningún mensaje de
+error visible al usuario — por tiempo indeterminado, y todavía siguen fallando en el
+servidor en vivo mientras no se despliegue esta corrección.** Se encontraron mientras se
+hacía un trabajo de fondo (dar tipos estrictos a las llamadas del frontend contra el
+backend, para prevenir errores de nombre de campo) — no fue una auditoría dirigida a
+buscar bugs, y aun así aparecieron 12 casos reales confirmados, más 3 funciones que
+directamente no existen en el backend aunque el botón esté ahí. Ejemplos concretos:
+
+- **Guardar una calificación cualitativa (A/B/C/D) de un alumno de 1° o 2° de primaria
+  fallaba siempre.** El botón respondía, pero el servidor rechazaba el guardado por un
+  nombre de campo mal escrito — sin ningún aviso al maestro de que no se guardó nada.
+- **Cambiar de grupo a varios alumnos a la vez (movilidad masiva) fallaba siempre**, mismo
+  patrón.
+- **Crear o editar una convocatoria de admisión pública guardaba con plantel, fechas,
+  cupo e imagen todos vacíos** — sin importar lo que la persona llenara en el formulario.
+- **En Gradebook — el módulo de calificaciones más usado del sistema — crear una nueva
+  actividad y guardar calificaciones en lote fallaban siempre.**
+- Cuatro pantallas del módulo de Planeación (crear examen, crear tarea, planeación
+  semanal, dashboard de cobertura) llamaban a una URL con el prefijo de API duplicado
+  (`/api/v1/api/v1/...`) — 404 garantizado en cada intento, desde que se escribieron.
+- Guardar horas de una materia en el plan de estudios revertía el valor visualmente tras
+  guardar (aunque sí se guardaba en la base de datos, la pantalla mentía).
+- Fijar horarios seleccionados y guardar reglas de horario generadas por IA no hacían
+  nada al hacer clic, sin error visible.
+- La búsqueda de alumno para otorgar una insignia (badge) nunca devolvía resultados.
+
+**Además, 3 funciones completas del sistema resultaron no existir en el backend en
+absoluto** — el botón/pantalla existe en el frontend, pero no hay ningún endpoint que lo
+atienda: la pestaña "Temario" del plan de estudios, el asistente de "Cierre Formal de
+Período" de 4 pasos en Gradebook, y la creación de un profesor nuevo desde cero (requiere
+elegir una persona ya existente, algo que la pantalla no ofrece). Estas 3 quedan
+documentadas pero **no corregidas** — necesitan una decisión de producto/backend, no un
+cambio de una línea.
+
+**Las correcciones de los 12 guardados YA están hechas, verificadas (compilación limpia,
+build de producción limpio, 566/566 pruebas de backend siguen en verde), pero viven
+todavía solo en el disco del servidor — no se ha hecho commit ni se ha reconstruido el
+contenedor del frontend.** Hasta que eso ocurra, los 12 guardados listados arriba **siguen
+fallando en el sistema que el personal usa hoy**. Esto no es hipotético ni una simulación:
+cada uno se verificó leyendo el controlador/DTO real de Java contra lo que el frontend
+enviaba.
+
+**Cómo se encontraron — importante para decidir qué hacer con esto a futuro:** el
+frontend ahora genera automáticamente un archivo con el contrato exacto de cada endpoint
+del backend (a partir de la documentación OpenAPI real, no escrito a mano). Al aplicar
+esos tipos a las ~478 llamadas del frontend que antes no tenían ningún tipo verificado,
+TypeScript empezó a marcar discrepancias reales entre lo que el frontend arma y lo que el
+backend espera — así aparecieron los 12 casos. **Hallazgo colateral que explica por qué
+esto llevaba tanto tiempo sin detectarse:** la herramienta que genera esos contratos no
+respeta la convención de nombres que usa el backend en producción (usa `plantelId` en vez
+de `plantel_id`), así que el contrato generado es engañoso para la mitad de los casos —
+se tuvo que verificar cada uno a mano contra el código Java real en vez de confiar en el
+contrato generado a ciegas. Esa desconexión (generador vs. convención real del backend) es
+en sí misma la causa raíz de por qué este tipo de bug ha aparecido ya 3 veces en menos de
+una semana en este proyecto (ver hallazgos anteriores de `nombre_estudiante`/`alumno` y
+CURP no enviado) — mientras no se corrija esa desconexión de raíz, cualquier desarrollador
+nuevo puede volver a cometer el mismo error con toda confianza porque el "contrato" que
+ve en su editor está mal.
+
+## Lo que hay que saber primero (contexto original, 2026-07-18)
 
 **1,612 alumnos reales quedaron con datos académicos duplicados e inconsistentes tras la
 reinscripción masiva de ayer, y ya está corregido.** La función que promueve a los alumnos
@@ -194,3 +255,97 @@ buscar el mismo patrón en el resto del sistema. El patrón se repite: revisar e
 no solo el código, sigue siendo lo que encuentra los problemas que de verdad importan — y
 cuando se encuentra uno, vale la pena preguntar "¿dónde más podría estar pasando esto?" antes
 de darlo por cerrado.
+
+## Sesión 2026-07-19 — los 2 huecos "baratos" resultaron mucho más grandes de lo estimado
+
+Se pidió cerrar 2 pendientes identificados el día anterior como los más rentables para
+subir el nivel de confiabilidad general del sistema: que las pruebas automáticas
+E2E corran completas en cada cambio (antes 6 de 21), y que el frontend deje de enviar
+peticiones sin verificar contra el contrato real del backend. Los 12 bugs de guardado
+silencioso descritos arriba salieron de este segundo punto — ver esa sección para el
+detalle completo, no se repite aquí.
+
+**El primer punto (pruebas automáticas E2E) resultó ser un problema de infraestructura
+mucho más profundo de lo estimado — y ahora sí está cerrado, de verdad, con evidencia.**
+El robot que debía correr las pruebas en cada cambio llevaba tiempo fallando por 3
+motivos distintos, ninguno relacionado con las pruebas en sí: un error de sintaxis que
+impedía aplicar las migraciones de base de datos, un archivo de datos de prueba mal
+referenciado, y —el más serio— el sistema de identidad (Authentik) que las pruebas
+necesitan para iniciar sesión no puede arrancar dentro del entorno desechable que usaba
+el robot de pruebas, porque depende de configuración que solo existe en este servidor
+real. Se confirmó en vivo: un cambio que se subió a mitad de esta sesión disparó el robot
+y falló en 43 segundos, antes de ejecutar una sola prueba.
+
+Ante esto, se presentaron 3 caminos y se pidió elegir: instalar el robot de pruebas
+directamente en este servidor (reutiliza todo lo que ya funciona aquí, pero un cambio
+malicioso subido al repositorio podría ejecutar código en el mismo servidor donde vive
+la información real de los alumnos); reconstruir todo el entorno desde cero dentro del
+robot de pruebas (cero riesgo para este servidor, pero un proyecto de varios días); o
+dejarlo documentado y enfocar el tiempo en los otros pendientes. **Se eligió instalar el
+robot en este servidor.** Con la clave de registro que el usuario proporcionó, quedó
+instalado como servicio permanente del sistema operativo — sobrevive reinicios del
+servidor — y ya corrió pruebas reales directamente contra la aplicación en vivo.
+
+**Con el robot funcionando, se pidió además corregir todo lo necesario hasta que las
+pruebas realmente pasaran — no dejarlo en "ya corre, aunque falle".** Al arrancar la
+suite completa por primera vez con el robot real (372 casos de prueba, no los 6 de
+antes), aparecieron 7 fallos. Se investigó cada uno a fondo, sin excepción, en vez de
+subir un número de espera hasta que dejara de quejarse:
+
+- **2 resultaron ser bugs reales y serios de la aplicación**, no de las pruebas — ver el
+  bloque de guardados rotos más arriba, se suman a esa lista: la pantalla de
+  calificaciones (Libreta) **nunca cargó, para nadie, nunca**, por una consulta SQL con
+  el nombre de columna equivocado; y aun corrigiendo eso, la tabla de calificaciones
+  **nunca mostró ninguna columna de período** por otro nombre de campo mal escrito entre
+  el frontend y el backend. Ambos corregidos y ya en vivo.
+- **5 resultaron ser errores en las propias pruebas** (usaban un mismo dato de ejemplo
+  fijo que solo podía funcionar la primera vez que se ejecutaban, o esperaban un
+  comportamiento distinto al real de la aplicación) — corregidos.
+
+Se corrió la batería completa **9 veces seguidas** contra el servidor real para
+confirmar que quedaba estable, no solo que pasó una vez de casualidad. Las primeras 8
+corridas encontraron, cada una, exactamente 1 fallo adicional — nunca el mismo caso dos
+veces, cada uno con causa propia y corregida (incluyendo uno que resultó ser el propio
+límite de peticiones por minuto —corregido ayer— actuando correctamente ante 9 corridas
+completas seguidas del robot, no un problema real). **La novena corrida terminó limpia:
+335 de 335 pruebas reales pasaron, cero fallos.**
+
+**Accesibilidad (ARIA):** de los 11 componentes que quedaban sin ningún atributo de
+accesibilidad, 10 se corrigieron con soluciones reales y específicas a cada caso — no un
+parche genérico. El hallazgo más serio: dos tableros con celdas que se usan con clic
+(el editor de horarios y la matriz de disponibilidad de profesores) eran **completamente
+inoperables con teclado** — una persona que no puede usar mouse no podía usar esas
+pantallas en absoluto. Corregido. El componente número 11 resultó ser una pantalla que
+nadie usa: no está conectada a ningún menú ni ruta del sistema, con datos de ejemplo
+quemados en el código — se documenta para borrado, no se le puso accesibilidad decorativa
+a una pantalla fantasma.
+
+**Revisión de facilidad de uso (terminología, consistencia, atajos):** se navegaron 12
+pantallas reales con 3 roles distintos (administrador, coordinador, docente) contra el
+servidor en vivo. En general, el sistema usa bien el vocabulario real de las escuelas y
+mantiene un estilo visual consistente entre roles, con el menú lateral ajustándose
+correctamente a lo que cada rol puede hacer. Se encontró y corrigió un hallazgo menor
+adicional del mismo tipo ya documentado antes: la columna "Categoría" del catálogo de la
+Biblioteca mostraba el código interno guardado en la base de datos (`MATEMATICAS`, sin
+acento, en mayúsculas) en vez del texto en español que el propio formulario ya usa para
+capturar esa misma categoría.
+
+**Además, a petición directa:** se reemplazó la imagen de fondo de la pantalla de inicio
+de sesión por la ilustración institucional que el usuario proporcionó — comprimida de
+2.8 MB a 395 KB antes de publicarla (más liviana que la imagen que reemplazó), verificada
+visualmente contra el sistema real ya en producción.
+
+**Balance de esta sesión:** el trabajo más valioso no fue el que se pidió originalmente
+(dar tipos a las llamadas del frontend) sino lo que ese trabajo destapó en el camino — 14
+guardados/pantallas reales rotas en producción en total (los 12 de guardado silencioso
+más arriba, más los 2 de la libreta de calificaciones encontrados al perseguir un fallo
+de prueba hasta el final en vez de conformarse con "ya pasó"), en módulos de uso diario
+(Gradebook, movilidad de alumnos, convocatorias de admisión, calificación cualitativa,
+calificaciones por período). Verificado todo: compilación limpia, build de producción
+limpio (mismas 2 advertencias preexistentes, cero nuevas), 566/566 pruebas de backend en
+verde, y ahora también **335/335 pruebas End-to-End reales en verde, corriendo en el
+robot instalado en este mismo servidor** — un gate de calidad que hoy, por primera vez,
+es real y no decorativo. **Todo esto SÍ está desplegado** (`ades-bff` y `ades-frontend`
+reconstruidos y en producción) — lo único que sigue sin comitear al repositorio de código
+es el propio código fuente en disco, a la espera de instrucción explícita, tal como el
+resto de esta sesión.

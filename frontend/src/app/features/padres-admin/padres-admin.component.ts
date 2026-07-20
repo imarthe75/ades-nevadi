@@ -20,6 +20,40 @@ import { ApexNotificationService } from 'apex-component-library';
 import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
 import { DomicilioComponent } from '../../shared/components/domicilio/domicilio.component';
 import { AdesFormatDirective } from '../../shared/directives/ades-format.directive';
+import type { components } from '../../core/models/api-types.generated';
+
+// NOTA (auditoría de tipado 2026-07-19): los DTOs de request body del backend Spring
+// (TutorIn, RestriccionTutorIn, CrearUsuarioPadreIn) aparecen en
+// api-types.generated.ts con nombres de campo camelCase (ej. "personaId"), pero
+// springdoc-openapi genera el spec por reflexión de campos Java SIN aplicar el
+// PropertyNamingStrategies.SNAKE_CASE global configurado en
+// HexagonalConfig#objectMapper() (verificado contra /v3/api-docs en vivo). El
+// contrato real de la red es snake_case (igual que el resto de la app). Por eso NO
+// se usa components['schemas']['TutorIn'] directamente aquí — se declaran variantes
+// corregidas localmente para no encubrir el bug de generación con un tipo incorrecto.
+interface TutorInBody {
+  persona_id: string;
+  relacion?: string;
+  es_responsable_economico?: boolean;
+  es_contacto_emergencia?: boolean;
+  prioridad?: number;
+  puede_recoger?: boolean;
+  nivel_acceso_portal?: string;
+}
+interface RestriccionTutorInBody {
+  puede_ver_calificaciones?: boolean;
+  puede_ver_asistencias?: boolean;
+  puede_ver_conducta?: boolean;
+  puede_ver_tareas?: boolean;
+  puede_descargar_documentos?: boolean;
+  puede_comunicarse_docentes?: boolean;
+  razon_restriccion?: string | null;
+}
+interface CrearUsuarioPadreInBody {
+  tutor_alumno_id: string;
+  email: string;
+  nombre_completo: string;
+}
 
 interface EstudianteOpt { id: string; nombre_completo: string; matricula?: string; }
 
@@ -605,7 +639,7 @@ export class PadresAdminComponent implements OnInit, OnDestroy {
 
   // ─────────────────────────────────────────────────────────────
   ngOnInit(): void {
-    this.api.get<any[]>('/catalogos').pipe(takeUntil(this.destroy$)).subscribe({
+    this.api.get<components['schemas']['Catalogo'][]>('/catalogos').pipe(takeUntil(this.destroy$)).subscribe({
       next: cats => {
         const ocup = cats.find(c => c.codigo === 'CAT_OCUPACIONES');
         if (ocup) this.ocupacionesOpts.set(ocup.items ?? []);
@@ -723,6 +757,16 @@ export class PadresAdminComponent implements OnInit, OnDestroy {
   guardarContacto(): void {
     if (!this.form.valid) { this.mostrarErrores.set(true); return; }
     this.guardando.set(true);
+    // HALLAZGO (auditoría de tipado 2026-07-19, sin corregir aquí — requiere cambio de
+    // backend fuera de este directorio): este payload SÍ envía toma_decision_conjunta y
+    // grado_responsabilidad (controles reales del form, ver arriba), pero
+    // ContactosController.ContactoPayload (backend-spring) NO declara esos dos campos.
+    // Con FAIL_ON_UNKNOWN_PROPERTIES=false, Jackson los descarta en silencio: el toggle
+    // "Decisión Conjunta" y el select "Grado de Responsabilidad" nunca se persisten en
+    // POST/PATCH, aunque sí se leen correctamente en el GET (ContactosQueryService sí
+    // los consulta). Se deja `payload`/`<any>` sin tipar deliberadamente: tipar contra el
+    // contrato real de ContactoPayload haría que TS marcara estos 2 campos como
+    // "no existen en el tipo", que es justamente el bug — no un falso positivo de casing.
     const payload = { estudiante_id: this.estudianteSeleccionado!, ...this.form.value };
     const endpoint = this.contactoEditado ? `/contactos/${this.contactoEditado.id}` : '/contactos';
     const req = this.contactoEditado
@@ -749,7 +793,7 @@ export class PadresAdminComponent implements OnInit, OnDestroy {
       header: 'Confirmar eliminación',
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
-        this.api.delete(`/contactos/${row.id}`).pipe(takeUntil(this.destroy$)).subscribe({
+        this.api.delete<void>(`/contactos/${row.id}`).pipe(takeUntil(this.destroy$)).subscribe({
           next: () => { this.notify.success('Eliminado', 'Contacto eliminado correctamente'); this.cargarContactos(); },
           error: () => { this.notify.error('Error', 'No se pudo eliminar el contacto'); },
         });
@@ -777,7 +821,7 @@ export class PadresAdminComponent implements OnInit, OnDestroy {
       return;
     }
     this.guardandoTutor.set(true);
-    const body = {
+    const body: TutorInBody = {
       persona_id: this.agregarTutorForm.personaId,
       relacion: this.agregarTutorForm.relacion,
       es_responsable_economico: this.agregarTutorForm.esResponsableEconomico,
@@ -786,7 +830,7 @@ export class PadresAdminComponent implements OnInit, OnDestroy {
       puede_recoger: this.agregarTutorForm.puedeRecoger,
       nivel_acceso_portal: this.agregarTutorForm.nivelAccesoPortal,
     };
-    this.api.post(`/portal-familias/tutores/${this.estudianteSeleccionado}`, body).pipe(takeUntil(this.destroy$)).subscribe({
+    this.api.post<unknown>(`/portal-familias/tutores/${this.estudianteSeleccionado}`, body).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.guardandoTutor.set(false);
         this.dlgAgregarTutor = false;
@@ -810,7 +854,7 @@ export class PadresAdminComponent implements OnInit, OnDestroy {
       header: 'Confirmar eliminación',
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
-        this.api.delete(`/portal-familias/tutores/${row.id}`).pipe(takeUntil(this.destroy$)).subscribe({
+        this.api.delete<unknown>(`/portal-familias/tutores/${row.id}`).pipe(takeUntil(this.destroy$)).subscribe({
           next: () => {
             this.notify.success('Eliminado', 'Vínculo de tutor eliminado');
             if (this.tutorSeleccionado()?.id === row.id) this.tutorSeleccionado.set(null);
@@ -841,12 +885,12 @@ export class PadresAdminComponent implements OnInit, OnDestroy {
     }
     const tutor = this.tutorSeleccionado()!;
     this.guardandoTutor.set(true);
-    const body = {
+    const body: CrearUsuarioPadreInBody = {
       tutor_alumno_id: tutor.id,
       email: this.crearCuentaForm.email,
       nombre_completo: this.crearCuentaForm.nombreCompleto,
     };
-    this.api.post('/portal-familias/crear-usuario', body).pipe(takeUntil(this.destroy$)).subscribe({
+    this.api.post<unknown>('/portal-familias/crear-usuario', body).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.guardandoTutor.set(false);
         this.dlgCrearCuenta = false;
@@ -873,7 +917,7 @@ export class PadresAdminComponent implements OnInit, OnDestroy {
   guardarAccesos(): void {
     const tutor = this.tutorSeleccionado()!;
     this.guardandoTutor.set(true);
-    const body = {
+    const body: RestriccionTutorInBody = {
       puede_ver_calificaciones: this.accesoForm.puedeVerCalificaciones,
       puede_ver_asistencias: this.accesoForm.puedeVerAsistencias,
       puede_ver_conducta: this.accesoForm.puedeVerConducta,
@@ -882,7 +926,7 @@ export class PadresAdminComponent implements OnInit, OnDestroy {
       puede_comunicarse_docentes: this.accesoForm.puedeComunicarseDocentes,
       razon_restriccion: this.accesoForm.razonRestriccion || null,
     };
-    this.api.post(`/portal-familias/restriccion/${tutor.id}`, body).pipe(takeUntil(this.destroy$)).subscribe({
+    this.api.post<unknown>(`/portal-familias/restriccion/${tutor.id}`, body).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.guardandoTutor.set(false);
         this.dlgConfigurarAccesos = false;

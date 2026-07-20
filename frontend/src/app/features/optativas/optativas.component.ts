@@ -69,8 +69,9 @@ const TIPO_LABELS: Record<string, string> = {
 
       <!-- Selector de alumno -->
       <div class="student-bar">
-        <label class="student-label">Alumno:</label>
+        <label class="student-label" for="optativas-alumno">Alumno:</label>
         <p-autoComplete
+          inputId="optativas-alumno"
           [(ngModel)]="alumnoSeleccionadoObj"
           [suggestions]="estudiantesSugg()"
           (completeMethod)="buscarEstudiantes($event)"
@@ -319,7 +320,7 @@ export class OptativasComponent implements OnInit, OnDestroy {
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
         this.cargandoInscritas.set(true);
-        this.api.delete(`/procesos/optativas/${row.id}`).pipe(takeUntil(this.destroy$)).subscribe({
+        this.api.delete<void>(`/procesos/optativas/${row.id}`).pipe(takeUntil(this.destroy$)).subscribe({
           next: () => {
             this.notify.success('Baja registrada', `${row.nombre_materia} eliminada de las optativas`);
             this.cargarInscritas();

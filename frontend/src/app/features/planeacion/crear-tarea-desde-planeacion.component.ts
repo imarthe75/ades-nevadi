@@ -17,6 +17,7 @@ import { TableModule } from 'primeng/table';
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
 import { AdesFormatDirective } from '../../shared/directives/ades-format.directive';
+import type { components } from '../../core/models/api-types.generated';
 
 /**
  * Crear Tarea Vinculada a Planeación Semanal
@@ -359,7 +360,15 @@ export class CrearTareaDesdeplanneacionComponent implements OnInit, OnDestroy {
   }
 
   loadGrupos() {
-    this.apiService.get('/api/v1/grupos').pipe(takeUntil(this.destroy$)).subscribe(res => {
+    // HALLAZGO CORREGIDO (auditoría de tipado 2026-07-19): este archivo usaba
+    // this.apiService.get('/api/v1/...') en las 4 llamadas de abajo, pero
+    // ApiService.base ya incluye '/api/v1' (core/services/api.service.ts) — el path
+    // resultante era '.../api/v1/api/v1/grupos', que no coincide con ningún
+    // @RequestMapping real (mismo patrón encontrado y corregido en
+    // calificar-tareas.component.ts y crear-examen-desde-planeacion.component.ts).
+    // Todo este componente estaba efectivamente roto (404 en cada llamada). Se corrige
+    // quitando el prefijo '/api/v1' duplicado.
+    this.apiService.get<any[]>('/grupos').pipe(takeUntil(this.destroy$)).subscribe(res => {
       this.grupos.set((res as any[]).map(g => ({
         label: g.nombre_grupo,
         value: g.ref
@@ -375,7 +384,7 @@ export class CrearTareaDesdeplanneacionComponent implements OnInit, OnDestroy {
     this.planeacionSeleccionada = null;
     this.planeacionDetalle.set(null);
 
-    this.apiService.get(`/api/v1/planeacion/grupo/${grupoId}/planeaciones-activas`)
+    this.apiService.get<any[]>(`/planeacion/grupo/${grupoId}/planeaciones-activas`)
       .pipe(takeUntil(this.destroy$))
       .subscribe(
         res => {
@@ -400,7 +409,7 @@ export class CrearTareaDesdeplanneacionComponent implements OnInit, OnDestroy {
   onPlaneacionSelect(planeacion: any) {
     this.planeacionSeleccionada = planeacion.planeacion_id;
 
-    this.apiService.get(`/api/v1/planeacion/${planeacion.planeacion_id}/detalles`)
+    this.apiService.get<any>(`/planeacion/${planeacion.planeacion_id}/detalles`)
       .pipe(takeUntil(this.destroy$))
       .subscribe(
         res => {
@@ -433,7 +442,10 @@ export class CrearTareaDesdeplanneacionComponent implements OnInit, OnDestroy {
   guardarTarea() {
     if (!this.tareaForm.valid || !this.planeacionSeleccionada) return;
 
-    const body = {
+    // CrearTareaDesdeplanneacionRequest es un record Java con campos ya declarados
+    // snake_case (planeacion_clase_id, fecha_entrega, puntaje_maximo, etc.) — el schema
+    // generado SÍ coincide con el JSON real (ver PlaneacionController.java).
+    const body: components['schemas']['CrearTareaDesdeplanneacionRequest'] = {
       planeacion_clase_id: this.planeacionSeleccionada,
       titulo: this.tareaForm.get('titulo')!.value,
       descripcion: this.tareaForm.get('descripcion')!.value,
@@ -444,7 +456,7 @@ export class CrearTareaDesdeplanneacionComponent implements OnInit, OnDestroy {
     };
 
     this.guardando.set(true);
-    this.apiService.post('/api/v1/planeacion/tareas/desde-planeacion', body)
+    this.apiService.post<unknown>('/planeacion/tareas/desde-planeacion', body)
       .pipe(takeUntil(this.destroy$))
       .subscribe(
         res => {

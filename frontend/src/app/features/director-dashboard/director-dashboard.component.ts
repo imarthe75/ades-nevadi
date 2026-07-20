@@ -9,6 +9,31 @@ import { TagModule } from 'primeng/tag';
 import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
 
+/** GET /api/v1/stats/director/kpis (StatsQueryService#directorKPIs). */
+interface DirectorKpis {
+  total_alumnos?: number;
+  total_grupos?: number;
+  promedio_general?: number;
+  pct_riesgo_alto?: number;
+  pct_asistencia?: number;
+  pct_cobertura?: number;
+  error?: string;
+}
+
+/** GET /api/v1/stats/director/avance-grado (StatsQueryService#directorAvanceGrado). */
+interface DirectorAvanceGrado {
+  grado: string;
+  promedio_grado: number;
+  pct_aprobacion: number;
+}
+
+/** GET /api/v1/stats/director/avance-asignatura (StatsQueryService#directorAvanceAsignatura). */
+interface DirectorAvanceAsignatura {
+  asignatura: string;
+  promedio_asignatura: number;
+  pct_aprobacion: number;
+}
+
 /**
  * Dashboard de KPIs operativos para directores de plantel (nivelAcceso ≥ 4).
  * Presenta métricas clave del ciclo activo: asistencia, calificaciones,
@@ -90,7 +115,7 @@ import { ContextService } from '../../core/services/context.service';
       <div class="chart-header">
         <span class="chart-title"><i class="pi pi-sliders-h"></i> Calificación Promedio por Grado</span>
       </div>
-      <div class="chart-body">
+      <div class="chart-body" role="img" aria-label="Gráfica de barras: calificación promedio por grado">
         <p-chart type="bar" [data]="gradoChartData" [options]="chartOptions"></p-chart>
       </div>
     </div>
@@ -100,7 +125,7 @@ import { ContextService } from '../../core/services/context.service';
       <div class="chart-header">
         <span class="chart-title"><i class="pi pi-bookmark"></i> Desempeño por Asignatura</span>
       </div>
-      <div class="chart-body">
+      <div class="chart-body" role="img" aria-label="Gráfica de barras: desempeño promedio por asignatura">
         <p-chart type="bar" [data]="materiaChartData" [options]="chartOptions"></p-chart>
       </div>
     </div>
@@ -198,7 +223,7 @@ export class DirectorDashboardComponent implements OnInit, OnDestroy {
   private readonly ctx = inject(ContextService);
 
   loading = signal(false);
-  kpis = signal<any>({});
+  kpis = signal<DirectorKpis>({});
   
   gradoChartData: any;
   materiaChartData: any;
@@ -239,16 +264,16 @@ export class DirectorDashboardComponent implements OnInit, OnDestroy {
     }
 
     // Parallel fetch KPIs, Grados, Materias
-    this.api.get<any>('/stats/director/kpis', params).pipe(takeUntil(this.destroy$)).subscribe({
+    this.api.get<DirectorKpis>('/stats/director/kpis', params).pipe(takeUntil(this.destroy$)).subscribe({
       next: (kpis) => {
         this.kpis.set(kpis);
-        
+
         // Avance por grado
-        this.api.get<any[]>('/stats/director/avance-grado', params).pipe(takeUntil(this.destroy$)).subscribe(grados => {
+        this.api.get<DirectorAvanceGrado[]>('/stats/director/avance-grado', params).pipe(takeUntil(this.destroy$)).subscribe(grados => {
           this.buildGradoChart(grados);
-          
+
           // Avance por materia
-          this.api.get<any[]>('/stats/director/avance-asignatura', params).pipe(takeUntil(this.destroy$)).subscribe(materias => {
+          this.api.get<DirectorAvanceAsignatura[]>('/stats/director/avance-asignatura', params).pipe(takeUntil(this.destroy$)).subscribe(materias => {
             this.buildMateriaChart(materias);
             this.loading.set(false);
           });
@@ -258,7 +283,7 @@ export class DirectorDashboardComponent implements OnInit, OnDestroy {
     });
   }
 
-  buildGradoChart(grados: any[]) {
+  buildGradoChart(grados: DirectorAvanceGrado[]) {
     const labels = (grados ?? []).map(g => g.grado);
     const data = (grados ?? []).map(g => g.promedio_grado);
 
@@ -275,7 +300,7 @@ export class DirectorDashboardComponent implements OnInit, OnDestroy {
     };
   }
 
-  buildMateriaChart(materias: any[]) {
+  buildMateriaChart(materias: DirectorAvanceAsignatura[]) {
     const labels = (materias ?? []).map(m => m.asignatura);
     const data = (materias ?? []).map(m => m.promedio_asignatura);
 

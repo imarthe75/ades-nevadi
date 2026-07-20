@@ -39,6 +39,19 @@ interface ResumenDisponibilidad {
   horas_frente_grupo: number;
 }
 
+/** Sub-objeto `persona` embebido en cada fila de GET /api/v1/profesores (ProfesorQueryService#listar). */
+interface PersonaResumen {
+  nombre: string;
+  apellido_paterno: string;
+  apellido_materno: string | null;
+}
+
+/** Fila de `data` en GET /api/v1/profesores (ProfesorQueryService#listar devuelve { data, total }). */
+interface ProfesorListado {
+  id: string;
+  persona: PersonaResumen;
+}
+
 /**
  * Gestión de la disponibilidad horaria semanal de docentes para la asignación
  * de horarios y la herramienta de importación aSc TimeTables.
@@ -253,11 +266,11 @@ export class DisponibilidadComponent implements OnInit, OnDestroy {
 
   buscarDocente(event: { query: string }) {
     if (!event.query || event.query.length < 2) { this.docenteSugerencias.set([]); return; }
-    this.api.get<any>('/profesores', { buscar: event.query }).pipe(takeUntil(this.destroy$)).subscribe({
+    this.api.get<{ data: ProfesorListado[]; total: number }>('/profesores', { buscar: event.query }).pipe(takeUntil(this.destroy$)).subscribe({
       next: res => {
-        const data = res?.data ?? res ?? [];
-        this.docenteSugerencias.set(data.map((p: any) => ({
-          label: [p.nombre ?? p.persona?.nombre, p.apellido_paterno ?? p.persona?.apellido_paterno, p.apellido_materno ?? p.persona?.apellido_materno].filter(Boolean).join(' '),
+        const data = res?.data ?? [];
+        this.docenteSugerencias.set(data.map(p => ({
+          label: [p.persona?.nombre, p.persona?.apellido_paterno, p.persona?.apellido_materno].filter(Boolean).join(' '),
           value: p.id,
         })));
       },
@@ -337,7 +350,7 @@ export class DisponibilidadComponent implements OnInit, OnDestroy {
       horas_frente_grupo: this.configHrsFG,
       ciclo_escolar_id:   this.ctx.ciclo()?.id ?? null,
     };
-    this.api.put(`/disponibilidad/docente/${this.profesorId}`, payload).pipe(takeUntil(this.destroy$)).subscribe({
+    this.api.put<{ detail: string }>(`/disponibilidad/docente/${this.profesorId}`, payload).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.guardando.set(false); this.dialogConfig = false;
         this.notify.success('Disponibilidad guardada');

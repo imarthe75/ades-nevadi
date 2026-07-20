@@ -53,12 +53,12 @@ interface VerificacionResult {
         </div>
 
         @if (cargando()) {
-          <div class="verif-loading">
+          <div class="verif-loading" role="status" aria-live="polite">
             <p-progressSpinner strokeWidth="4" />
             <p>Verificando certificado…</p>
           </div>
         } @else if (error()) {
-          <div class="verif-error">
+          <div class="verif-error" role="alert">
             <i class="pi pi-times-circle verif-icon verif-icon-error"></i>
             <h3>Certificado no encontrado</h3>
             <p>El folio <strong>{{ folioParam }}</strong> no corresponde a ningún certificado
@@ -66,7 +66,7 @@ interface VerificacionResult {
           </div>
         } @else if (result()) {
           <!-- Badge de autenticidad -->
-          <div class="verif-badge-row">
+          <div class="verif-badge-row" role="status" aria-live="polite">
             @switch (result()!.autenticidad) {
               @case ('VERIFICADO') {
                 <div class="verif-badge verif-ok">

@@ -822,7 +822,9 @@ export class PlanesEstudioComponent implements OnInit, OnDestroy {
       return;
     }
     this.savingPlanNee.set(true);
-    this.api.post('/planes-estudio/alternativos', {
+    // Backend: PlanesEstudioController#crearAlternativo recibe Map<String,Object> (sin
+    // DTO con nombre) y responde solo `{id}` (Map.of("id", id.toString())).
+    this.api.post<{ id: string }>('/planes-estudio/alternativos', {
       grupo_id: grupoId,
       motivo: this.planNeeForm.motivo.trim(),
       materias: this.planNeeForm.materiaIds.map(id => ({ materia_id: id })),
@@ -848,7 +850,7 @@ export class PlanesEstudioComponent implements OnInit, OnDestroy {
       accept: () => {
         const grupoId = this.ctx.grupo()?.id;
         this.eliminandoPlanNeeId.set(id);
-        this.api.delete(`/planes-estudio/alternativos/${id}`).pipe(takeUntil(this.destroy$)).subscribe({
+        this.api.delete<void>(`/planes-estudio/alternativos/${id}`).pipe(takeUntil(this.destroy$)).subscribe({
           next: () => { this.eliminandoPlanNeeId.set(null); if (grupoId) this.cargarPlanesNee(grupoId); },
           error: e => { this.eliminandoPlanNeeId.set(null); this.notify.error('Error', e.error?.detail); },
         });
@@ -971,8 +973,17 @@ export class PlanesEstudioComponent implements OnInit, OnDestroy {
     const val = +(event.target as HTMLInputElement).value;
     this.editCellKey.set('');
     if (!val || val < 1) return;
-    this.api.patch<MateriaPlan>(`/planes-estudio/${planId}`, { horas_semana: val }).pipe(takeUntil(this.destroy$)).subscribe({
-      next: updated => this.plan.update(l => l.map(p => p.id === planId ? { ...p, horas_semana: updated.horas_semana } : p)),
+    // HALLAZGO CORREGIDO (auditoría de tipado 2026-07-19): esta llamada estaba tipada
+    // como <MateriaPlan> y leía `updated.horas_semana` de la respuesta, pero
+    // PlanesEstudioController#patch (backend-spring) responde
+    // `Map.of("id", id.toString(), "updated", true)` — NUNCA incluye horas_semana. En
+    // runtime `updated.horas_semana` era `undefined`, así que tras editar las horas de
+    // una celda el mapa curricular local quedaba con `horas_semana: undefined` (se
+    // renderizaba "?h" hasta recargar la página) aunque el guardado en BD sí funcionaba
+    // correctamente. Se corrige tipando la respuesta real y usando el valor `val` que
+    // ya se envió (conocido localmente) en vez de un campo que el backend no devuelve.
+    this.api.patch<{ id: string; updated: boolean }>(`/planes-estudio/${planId}`, { horas_semana: val }).pipe(takeUntil(this.destroy$)).subscribe({
+      next: () => this.plan.update(l => l.map(p => p.id === planId ? { ...p, horas_semana: val } : p)),
       error: () => this.notify.error('Error al guardar horas'),
     });
   }
@@ -985,7 +996,7 @@ export class PlanesEstudioComponent implements OnInit, OnDestroy {
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
         this.procesandoPlanId.set(planId);
-        this.api.delete(`/planes-estudio/${planId}`).pipe(takeUntil(this.destroy$)).subscribe({
+        this.api.delete<void>(`/planes-estudio/${planId}`).pipe(takeUntil(this.destroy$)).subscribe({
           next: () => { this.procesandoPlanId.set(null); this.plan.update(l => l.filter(p => p.id !== planId)); },
           error: e => { this.procesandoPlanId.set(null); this.notify.error('Error', e.error?.detail); },
         });
@@ -996,7 +1007,7 @@ export class PlanesEstudioComponent implements OnInit, OnDestroy {
   /** AC-015: publicar/archivar una versión del plan de estudio (materia+grado+ciclo). */
   publicarPlan(planId: string): void {
     this.procesandoPlanId.set(planId);
-    this.api.patch(`/planes-estudio/${planId}/publicar`, {}).pipe(takeUntil(this.destroy$)).subscribe({
+    this.api.patch<{ id: string; estado_publicacion: string }>(`/planes-estudio/${planId}/publicar`, {}).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.procesandoPlanId.set(null);
         this.plan.update(l => l.map(p => p.id === planId ? { ...p, estado_publicacion: 'PUBLICADO' } : p));
@@ -1008,7 +1019,7 @@ export class PlanesEstudioComponent implements OnInit, OnDestroy {
 
   archivarPlan(planId: string): void {
     this.procesandoPlanId.set(planId);
-    this.api.patch(`/planes-estudio/${planId}/archivar`, {}).pipe(takeUntil(this.destroy$)).subscribe({
+    this.api.patch<{ id: string; estado_publicacion: string }>(`/planes-estudio/${planId}/archivar`, {}).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.procesandoPlanId.set(null);
         this.plan.update(l => l.map(p => p.id === planId ? { ...p, estado_publicacion: 'ARCHIVADO' } : p));
@@ -1038,12 +1049,14 @@ export class PlanesEstudioComponent implements OnInit, OnDestroy {
       return;
     }
     this.saving.set(true);
+    // MateriaController#create/update responden el registro completo de la materia
+    // (crearUseCase.crear()/actualizarUseCase.actualizar()) — misma forma que Materia.
     const req = this.materiaEdit.id
-      ? this.api.patch(`/materias/${this.materiaEdit.id}`, this.materiaEdit)
-      : this.api.post('/materias', this.materiaEdit);
+      ? this.api.patch<Materia>(`/materias/${this.materiaEdit.id}`, this.materiaEdit)
+      : this.api.post<Materia>('/materias', this.materiaEdit);
 
     req.pipe(takeUntil(this.destroy$)).subscribe({
-      next: (m: any) => {
+      next: (m: Materia) => {
         this.materias.update(list =>
           this.materiaEdit.id ? list.map(x => x.id === m.id ? m : x) : [...list, m]
         );
@@ -1056,7 +1069,7 @@ export class PlanesEstudioComponent implements OnInit, OnDestroy {
   }
 
   desactivarMateria(m: Materia): void {
-    this.api.patch(`/materias/${m.id}`, { is_active: false }).pipe(takeUntil(this.destroy$)).subscribe({
+    this.api.patch<Materia>(`/materias/${m.id}`, { is_active: false }).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.materias.update(l => l.map(x => x.id === m.id ? { ...x, is_active: false } : x));
         this.notify.success('Materia desactivada');
@@ -1118,6 +1131,10 @@ export class PlanesEstudioComponent implements OnInit, OnDestroy {
     }
     this.temarioPlanId.set(p.id);
     this.loadingTemas.set(true);
+    // Corregido 2026-07-20: PlanesEstudioController ahora expone el CRUD de temario
+    // bajo /planes-estudio/{id}/temas (la tabla ades_temas y el tipo Tema del frontend
+    // ya existían — solo faltaba esta capa REST). materia_id/grado_id/ciclo_escolar_id
+    // se derivan server-side del plan, nunca del body.
     this.api.get<Tema[]>(`/planes-estudio/${p.id}/temas`).pipe(takeUntil(this.destroy$)).subscribe({
       next: t => { this.temas.set(t); this.loadingTemas.set(false); },
       error: () => this.loadingTemas.set(false),

@@ -441,18 +441,38 @@ export class PortalAdminComponent implements OnInit, OnDestroy {
     if (!f.titulo || !f.tipo) return;
     this.guardando.set(true);
 
+    // HALLAZGO CORREGIDO (auditoría de tipado 2026-07-19): este payload se armaba en
+    // camelCase (plantelId, requisitosGenerales, fechaInicioPostulacion,
+    // fechaCierrePostulacion, cupoMaximo, imagenUrl, esObligatorio,
+    // tiposMimePermitidos, tamanoMaximoMb), pero PortalAdminController.ConvocatoriaRequest/
+    // RequisitoRequest (backend-spring) son @Data de Lombok con esos mismos nombres de
+    // campo Java — y el BFF usa spring.jackson.property-naming-strategy=SNAKE_CASE
+    // globalmente (application.yml + HexagonalConfig#objectMapper()), así que el JSON
+    // real esperado es snake_case (plantel_id, requisitos_generales, ...). Con
+    // FAIL_ON_UNKNOWN_PROPERTIES=false, Jackson descartaba en silencio TODAS las claves
+    // camelCase salvo las de una sola palabra (titulo, tipo, descripcion, requisitos) —
+    // cada convocatoria creada/editada quedaba con plantel_id/fechas/cupo/imagen NULL y
+    // cada requisito con es_obligatorio/tipos_mime_permitidos/tamano_maximo_mb NULL,
+    // mientras el usuario recibía éxito silencioso. Se corrige enviando snake_case real.
     const body = {
-      titulo: f.titulo, tipo: f.tipo, plantelId: f.plantelId || null,
-      descripcion: f.descripcion, requisitosGenerales: f.requisitosGenerales,
-      fechaInicioPostulacion: f.fechaInicio || null,
-      fechaCierrePostulacion: f.fechaCierre || null,
-      cupoMaximo: f.cupoMaximo || null, imagenUrl: f.imagenUrl,
-      requisitos: f.requisitos
+      titulo: f.titulo, tipo: f.tipo, plantel_id: f.plantelId || null,
+      descripcion: f.descripcion, requisitos_generales: f.requisitosGenerales,
+      fecha_inicio_postulacion: f.fechaInicio || null,
+      fecha_cierre_postulacion: f.fechaCierre || null,
+      cupo_maximo: f.cupoMaximo || null, imagen_url: f.imagenUrl,
+      requisitos: (f.requisitos ?? []).map((r: any) => ({
+        nombre: r.nombre,
+        descripcion: r.descripcion,
+        es_obligatorio: r.esObligatorio,
+        tipos_mime_permitidos: r.tiposMimePermitidos,
+        tamano_maximo_mb: r.tamanoMaximoMb,
+        orden: r.orden,
+      })),
     };
 
     const id = this.editando()?.id;
     const req = id
-      ? this.api.put(`/portal/admin/convocatorias/${id}`, body)
+      ? this.api.put<void>(`/portal/admin/convocatorias/${id}`, body)
       : this.api.post<any>('/portal/admin/convocatorias', body);
 
     req.pipe(takeUntil(this.destroy$)).subscribe({
@@ -509,7 +529,7 @@ export class PortalAdminComponent implements OnInit, OnDestroy {
       message: `¿Archivar "${c.titulo}"? Dejará de estar disponible.`,
       header: 'Confirmar archivo', icon: 'pi pi-archive',
       accept: () => {
-        this.api.delete(`/portal/admin/convocatorias/${c.id}`)
+        this.api.delete<void>(`/portal/admin/convocatorias/${c.id}`)
           .pipe(takeUntil(this.destroy$))
           .subscribe({
             next: () => { this.cargar(); this.cargarEstadisticas(); },

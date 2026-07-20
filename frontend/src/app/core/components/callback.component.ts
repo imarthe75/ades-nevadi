@@ -15,12 +15,12 @@ import { ProgressSpinnerModule } from 'primeng/progressspinner';
   standalone: true,
   imports: [ProgressSpinnerModule],
   template: `
-    <div class="cb-wrapper">
+    <div class="cb-wrapper" role="status" aria-live="polite">
       @if (!error()) {
         <p-progressSpinner strokeWidth="3" styleClass="cb-spinner" />
         <span class="cb-label">Iniciando sesión…</span>
       } @else {
-        <div class="cb-error">
+        <div class="cb-error" role="alert">
           <i class="pi pi-times-circle" style="font-size:2rem;color:var(--nevadi-red)"></i>
           <p>{{ error() }}</p>
           <a href="/login">Volver al inicio de sesión</a>

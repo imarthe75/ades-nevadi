@@ -27,6 +27,10 @@ import { ContextService } from '../../core/services/context.service';
 import type { Grupo, Profesor } from '../../core/models';
 import { grupoLabel } from '../../core/models';
 import { ApexNotificationService } from 'apex-component-library';
+import type { components } from '../../core/models/api-types.generated';
+
+/** Regla de horario tal como la persiste HorarioReglaController (POST /api/v1/horarios/reglas). */
+type HorarioReglaDTO = components['schemas']['HorarioRegla'];
 
 type GrupoConLabel = Grupo & { _label: string };
 
@@ -909,7 +913,7 @@ export class HorariosComponent implements OnInit, OnDestroy {
       return;
     }
     this.cargandoReporte.set(true);
-    this.api.get<any[]>('/horarios', { plantel_id: plantelId, ciclo_id: cicloId }).pipe(takeUntil(this.destroy$)).subscribe({
+    this.api.get<HorarioEntry[]>('/horarios', { plantel_id: plantelId, ciclo_id: cicloId }).pipe(takeUntil(this.destroy$)).subscribe({
       next: horarios => {
         const payload = this.construirPayloadSolver(horarios ?? [], plantelId, cicloId);
         this.api.post<any>('/horarios/solver/verificar', payload).pipe(takeUntil(this.destroy$)).subscribe({
@@ -968,19 +972,25 @@ export class HorariosComponent implements OnInit, OnDestroy {
     const cicloId = this.ctx.ciclo()?.id;
     if (!parsed || !plantelId || !cicloId) return;
     
+    // HorarioReglaController#crear deserializa contra un ObjectMapper con
+    // spring.jackson.property-naming-strategy=SNAKE_CASE (ver HexagonalConfig.java) — los
+    // campos Java plantelId/cicloEscolarId llegan como JSON plantel_id/ciclo_escolar_id.
+    // Bug real encontrado y corregido aquí: el payload enviaba las claves en camelCase
+    // (plantelId/cicloEscolarId), por lo que el backend recibía ciclo_escolar_id=null y
+    // el guardado SIEMPRE fallaba con 400 "ciclo_escolar_id es requerido".
     const payload = {
-      plantelId,
-      cicloEscolarId: cicloId,
+      plantel_id: plantelId,
+      ciclo_escolar_id: cicloId,
       tipo: parsed.tipo,
       params: parsed.params,
       peso: parsed.peso === 'HARD' ? 100 : 10,
       dura: parsed.peso === 'HARD',
       activa: true
     };
-    
+
     this.guardandoRegla.set(true);
     // Nota: Llama al API de Spring Boot (/api/v1/horarios/reglas)
-    this.api.post<any>('/horarios/reglas', payload).pipe(takeUntil(this.destroy$)).subscribe({
+    this.api.post<HorarioReglaDTO>('/horarios/reglas', payload).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.guardandoRegla.set(false);
         this.mostrarReglasIA.set(false);
@@ -1003,7 +1013,7 @@ export class HorariosComponent implements OnInit, OnDestroy {
       return;
     }
     this.ejecutandoSolver.set(true);
-    this.api.get<any[]>('/horarios', { plantel_id: plantelId, ciclo_id: cicloId }).pipe(takeUntil(this.destroy$)).subscribe({
+    this.api.get<HorarioEntry[]>('/horarios', { plantel_id: plantelId, ciclo_id: cicloId }).pipe(takeUntil(this.destroy$)).subscribe({
       next: horarios => {
         const payload = this.construirPayloadSolver(horarios ?? [], plantelId, cicloId);
         this.api.post<SolverCorrida>('/horarios/solver/corridas', payload).pipe(takeUntil(this.destroy$)).subscribe({
@@ -1054,7 +1064,11 @@ export class HorariosComponent implements OnInit, OnDestroy {
     const corridaId = this.corridaDetalle()?.id;
     if (!corridaId || this.horariosSeleccionados.size === 0) return;
     this.mutandoCorrida.set(true);
-    this.api.post<SolverDetail>(`/horarios/solver/corridas/${corridaId}/lock`, { horarioIds: Array.from(this.horariosSeleccionados) }).pipe(takeUntil(this.destroy$)).subscribe({
+    // LockPayload (Java: horarioIds) se deserializa contra el ObjectMapper SNAKE_CASE
+    // global (HexagonalConfig.java) -> la clave JSON real es horario_ids. Bug real
+    // corregido aquí: se enviaba "horarioIds" (camelCase), así que el backend siempre
+    // recibía una lista vacía y "Fijar selección" nunca fijaba nada.
+    this.api.post<SolverDetail>(`/horarios/solver/corridas/${corridaId}/lock`, { horario_ids: Array.from(this.horariosSeleccionados) }).pipe(takeUntil(this.destroy$)).subscribe({
       next: corrida => {
         this.mutandoCorrida.set(false);
         this.notify.success('Solver', 'Horarios fijados correctamente.');
@@ -1073,7 +1087,9 @@ export class HorariosComponent implements OnInit, OnDestroy {
     const corridaId = this.corridaDetalle()?.id;
     if (!corridaId) return;
     this.mutandoCorrida.set(true);
-    this.api.post<SolverCorrida>(`/horarios/solver/corridas/${corridaId}/regenerar`, { horarioIds: Array.from(this.horariosSeleccionados) }).pipe(takeUntil(this.destroy$)).subscribe({
+    // RegeneratePayload (Java: horarioIds) -> misma corrección que fijarSeleccionados():
+    // la clave JSON real bajo el ObjectMapper SNAKE_CASE global es horario_ids.
+    this.api.post<SolverCorrida>(`/horarios/solver/corridas/${corridaId}/regenerar`, { horario_ids: Array.from(this.horariosSeleccionados) }).pipe(takeUntil(this.destroy$)).subscribe({
       next: corrida => {
         this.mutandoCorrida.set(false);
         this.notify.success('Solver', `Nueva corrida ${corrida.id} generada.`);
@@ -1124,22 +1140,24 @@ export class HorariosComponent implements OnInit, OnDestroy {
   cargar(): void {
     const cicloId = this.ctx.ciclo()?.id;
     if (this.modo === 'grupo' && this.selectedGrupoId) {
-      this.api.get<any>(`/horarios/grupo/${this.selectedGrupoId}`, cicloId ? { ciclo_id: cicloId } : undefined)
-        .pipe(takeUntil(this.destroy$)).subscribe(r => this.entradas.set(r.entradas || r || []));
+      // porGrupo (HorarioController) siempre responde un array plano — nunca {entradas:[...]}
+      // (verificado contra las 3 operaciones porGrupo/porProfesor/miHorario del spec real).
+      this.api.get<HorarioEntry[]>(`/horarios/grupo/${this.selectedGrupoId}`, cicloId ? { ciclo_id: cicloId } : undefined)
+        .pipe(takeUntil(this.destroy$)).subscribe(r => this.entradas.set(r || []));
     } else if (this.modo === 'profesor' && this.esDocenteSelf()) {
       this.cargarMiHorario();
     } else if (this.modo === 'profesor' && this.selectedProfesor) {
-      this.api.get<any>(`/horarios/profesor/${this.selectedProfesor.id}`, cicloId ? { ciclo_id: cicloId } : undefined)
-        .pipe(takeUntil(this.destroy$)).subscribe(r => this.entradas.set(r.entradas || r || []));
+      this.api.get<HorarioEntry[]>(`/horarios/profesor/${this.selectedProfesor.id}`, cicloId ? { ciclo_id: cicloId } : undefined)
+        .pipe(takeUntil(this.destroy$)).subscribe(r => this.entradas.set(r || []));
     }
   }
 
   /** Self-service: carga el horario del docente autenticado, sin selector de profesor. */
   cargarMiHorario(): void {
     const cicloId = this.ctx.ciclo()?.id;
-    this.api.get<any>('/horarios/mi-horario', cicloId ? { ciclo_id: cicloId } : undefined)
+    this.api.get<HorarioEntry[]>('/horarios/mi-horario', cicloId ? { ciclo_id: cicloId } : undefined)
       .pipe(takeUntil(this.destroy$)).subscribe({
-        next: r => this.entradas.set(r.entradas || r || []),
+        next: r => this.entradas.set(r || []),
         error: () => this.notify.error('Mi Horario', 'No se encontró un registro de profesor asociado a tu cuenta'),
       });
   }

@@ -63,6 +63,7 @@ export interface ImportResult {
       type="file"
       [accept]="accept"
       style="display:none"
+      aria-label="Seleccionar archivo para importar"
       (change)="onFileSelected($event)"
     />
 

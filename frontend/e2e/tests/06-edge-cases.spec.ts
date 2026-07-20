@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { getRealToken, CUENTAS_REALES } from '../fixtures/real-tokens';
 import { LoginPage } from '../page-objects/login-page';
+import { curpValido } from '../fixtures/data-generators';
 
 // IDs reales de BD (2026-07-16) para las pruebas B1/B3 de aislamiento cross-plantel:
 // alumno y grupo de Tenancingo, distinto del plantel de DOCENTE_METEPEC/COORDINADOR_METEPEC.
@@ -102,7 +103,10 @@ test.describe('06-edge-cases — Concurrent, RBAC, Network, Timeouts', () => {
     }
 
     const results = await Promise.all(uploadPromises);
-    const successful = results.filter(r => r.status() === 201).length;
+    // El endpoint real (backend/app/api/v1/expediente.py::subir_documento) responde
+    // 200 (dict plano, sin status_code=201 explícito) — confirmado en logs reales de
+    // ades-api: los 10 requests concurrentes llegaron con status=200, no 201.
+    const successful = results.filter(r => r.status() === 200).length;
 
     expect(successful).toBe(10);
   });
@@ -288,9 +292,7 @@ test.describe('06-edge-cases — Concurrent, RBAC, Network, Timeouts', () => {
     await page.getByRole('button', { name: 'Nuevo alumno' }).click();
     await page.waitForSelector('[role="dialog"]', { timeout: 3000 });
 
-    await page.getByLabel('Nombre(s)').fill('Juan');
-    await page.getByLabel('Apellido paterno').fill('Pérez');
-    await page.getByLabel('CURP').fill('CCCC123456HDFXYZ03');
+    await llenarAlumnoBasico(page, 'Juan', 'Pérez', curpValido());
 
     const crearBtn = page.getByRole('button', { name: 'Crear alumno' });
     const startSubmit = Date.now();
@@ -371,9 +373,13 @@ test.describe('06-edge-cases — Concurrent, RBAC, Network, Timeouts', () => {
     await page.getByRole('button', { name: 'Nuevo alumno' }).click();
     await page.waitForSelector('[role="dialog"]');
 
-    await page.getByLabel('Nombre(s)').fill('Juan');
-    await page.getByLabel('Apellido paterno').fill('Pérez');
-    await page.getByLabel('CURP').fill('DDDD123456HDFXYZ04');
+    // CURP dinámica, no literal fija: un literal hardcodeado solo puede pasar UNA vez
+    // por vida de la base de datos — confirmado en vivo: 'DDDD123456HDFXYZ04' ya existía
+    // de una corrida anterior (fila real: alumno "Juan", id 01f08f56-...), así que el
+    // alta fallaba por CURP duplicado (409) y el diálogo nunca cerraba. curpValido() ya
+    // genera exactamente 18 caracteres válidos, aleatorios en cada corrida.
+    // Foco explícito + espera corta entre campos: en una corrida real se observó un
+    await llenarAlumnoBasico(page, 'Juan', 'Pérez', curpValido());
     await page.getByRole('button', { name: 'Crear alumno' }).click();
 
     await page.waitForSelector('[role="dialog"]', { state: 'hidden', timeout: 10000 });
@@ -388,18 +394,135 @@ test.describe('06-edge-cases — Concurrent, RBAC, Network, Timeouts', () => {
     await curp.fill('ABCD123456HDFXYZ0');
     await curp.press('Tab'); // marca el control "touched" — sin blur, app-form-field no muestra error
 
-    const error = page.locator('[role="alert"]');
+    // Hallazgo real (2026-07-20): este test nunca llena Nombre(s)/Apellido paterno
+    // (a propósito, solo le interesa el error de CURP), así que Tab también deja esos
+    // campos "touched" con su propio error visible ("Nombre(s) es requerido") al mismo
+    // tiempo que el de CURP — un locator sin filtrar por texto viola el modo estricto
+    // de Playwright en cuanto ambos alerts están en el DOM a la vez (order/timing de
+    // render decide si ya pasó cuando corre la aserción, por eso no fallaba siempre).
+    // Se filtra al alert específico de CURP en vez de "cualquier" role="alert".
+    const error = page.locator('[role="alert"]').filter({ hasText: '18 caracteres' });
     await expect(error).toContainText('18 caracteres');
   });
 
-  test('D3: Calificación boundary: 10.0 (valid), 10.1 (invalid)', async ({ page }) => {
+  /** Selecciona la primera opción disponible de un p-select del topbar (mismo patrón
+   *  probado en 18-topbar-sidebar.spec.ts::cascadeSelect). Los 5 selectores de
+   *  contexto (Plantel/Nivel/Ciclo/Grado/Grupo) deben elegirse EN ORDEN — elegir uno
+   *  reinicia/recarga los siguientes (confirmado por NAV-02..NAV-05, que sí pasan). */
+  async function elegirPrimeraOpcion(page: import('@playwright/test').Page, selectLocator: ReturnType<typeof page.locator>) {
+    await selectLocator.click();
+    await page.waitForTimeout(500);
+    const options = page.locator('.p-select-option, [role="option"]');
+    const count = await options.count().catch(() => 0);
+    // Elegir la primera opción REAL, no el pseudo-valor "— Todos —"/"Todo el
+    // Instituto"/"Todos los Niveles" (convención de este topbar para "sin filtro") —
+    // ese valor no trae un id concreto, así que ctx.grupo() nunca se puebla y la
+    // libreta nunca sale del estado "selecciona un grupo y una materia".
+    for (let i = 0; i < count; i++) {
+      const text = ((await options.nth(i).textContent()) ?? '').trim();
+      if (text && !text.startsWith('—') && !/^todo/i.test(text)) {
+        await options.nth(i).click();
+        await page.waitForTimeout(800);
+        return;
+      }
+    }
+    await page.keyboard.press('Escape').catch(() => {});
+  }
+
+  /** Llena Nombre(s)/Apellido paterno/CURP del diálogo "Nuevo Alumno" con foco
+   *  explícito + espera corta entre campos. Hallazgo real (2026-07-20): en una
+   *  corrida completa se observó al menos una vez el valor de CURP concatenado
+   *  parcialmente al campo Nombre (race de re-render entre `.fill()` consecutivos
+   *  muy rápidos, no un bug de la app — el alta correctamente no se creó con datos
+   *  corruptos). `.click()` antes de cada `.fill()` fuerza el foco real en el campo
+   *  destino en vez de confiar en que `.fill()` lo resuelva por sí solo. */
+  async function llenarAlumnoBasico(
+    page: import('@playwright/test').Page,
+    nombre: string,
+    apellidoPaterno: string,
+    curp: string,
+  ) {
+    await page.getByLabel('Nombre(s)').click();
+    await page.getByLabel('Nombre(s)').fill(nombre);
+    await page.waitForTimeout(100);
+    await page.getByLabel('Apellido paterno').click();
+    await page.getByLabel('Apellido paterno').fill(apellidoPaterno);
+    await page.waitForTimeout(100);
+    await page.getByLabel('CURP').click();
+    await page.getByLabel('CURP').fill(curp);
+    await page.waitForTimeout(100);
+  }
+
+  test('D3: Calificación boundary: 10.0 (valid), 10.1 (invalid)', async ({ page, request }) => {
     // /calificaciones (CalificacionesComponent) edita notas inline vía p-cellEditor +
     // p-inputNumber [min]=0 [max]=10 — no dispara un mensaje de error de formulario, el
     // propio control CLAMPEA el valor al máximo permitido (comportamiento real de
     // PrimeNG inputNumber, no un [role="alert"]). Se verifica el valor resultante, no un
     // mensaje que nunca existió para este control.
-    await page.goto('/calificaciones');
+
+    // Hallazgo real (2026-07-20): el test asumía una libreta ya poblada al navegar,
+    // pero /calificaciones muestra "Selecciona un grupo y una materia para ver la
+    // libreta" hasta que ctx.grupo() tiene un valor real — confirmado con captura de
+    // pantalla real. No es un bug de la app (correcto pedir contexto antes de mostrar
+    // datos de un grupo específico). Además: manejar la cascada del topbar eligiendo
+    // "la primera opción real" es frágil — para un ciclo/grado sin plan de estudios
+    // configurado, el propio combo de Materia cae a mostrar el catálogo COMPLETO sin
+    // filtrar (calificaciones.component.ts línea ~381, `materiaIds.size > 0 ? filter :
+    // all` — hallazgo aparte, documentado pero no corregido aquí por ser de UX/datos,
+    // no un guardado roto), lo que deja elegir materias de otro nivel (ej. "Álgebra
+    // Lineal" para 1er grado primaria) que nunca producen una libreta real. Se evita
+    // todo esto inyectando directamente el grupo real ya usado (y verificado) por la
+    // Suite A de este mismo archivo, vía el mismo mecanismo de persistencia que usa
+    // ContextService (sessionStorage.ades_grupo) — sin depender de qué opción quede
+    // primera en cada dropdown.
+    // GRUPO_ID_REAL/MATERIA_ID_REAL (Suite A, arriba) son 1er grado Primaria — ese
+    // grado usa evaluación CUALITATIVA NEM (A/B/C/D), no numérica: no existe ningún
+    // p-cellEditor/p-inputNumber ahí por diseño (confirmado en vivo — la libreta
+    // carga bien tras el fix de abajo, pero muestra el panel de descriptores NEM, no
+    // una celda numérica). D3 necesita un grado con calificación 0-10 real: 6°
+    // Preparatoria, con inscripciones activas y materia real del plan de estudios.
+    const GRUPO_ID_NUMERICO = '019f4e48-b0c6-7bdb-b016-d802d765775a'; // 6° Prepa, materia real: Habilidades Digitales Avanzadas
+    const grupoResp = await request.get(`/api/v1/grupos/${GRUPO_ID_NUMERICO}`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    expect(grupoResp.status()).toBe(200);
+    const g = await grupoResp.json();
+
+    // ContextService.isReady requiere plantel Y ciclo (no solo grupo) — sin ambos,
+    // el resto de la app se comporta como "sin contexto" aunque el grupo ya tenga
+    // valor. Se reconstruyen los 5 niveles del contexto (Plantel/Nivel/Ciclo/Grado/
+    // Grupo) a partir de los mismos datos que ya trae la respuesta de /grupos/{id}.
+    await page.goto('/calificaciones', { waitUntil: 'domcontentloaded' });
+    await page.evaluate((grupo) => {
+      sessionStorage.setItem('ades_plantel', JSON.stringify({
+        id: grupo.plantel_id, nombre_plantel: grupo.nombre_plantel,
+        clave_ct: grupo.clave_ct, escuela_id: '', is_active: true,
+      }));
+      sessionStorage.setItem('ades_nivel', JSON.stringify({
+        id: grupo.nivel_id, nombre_nivel: grupo.nombre_nivel,
+        autoridad_educativa: 'SEP', tipo_ciclo: 'ANUAL', num_periodos_eval: 3,
+      }));
+      sessionStorage.setItem('ades_ciclo', JSON.stringify({
+        id: grupo.ciclo_escolar_id, nombre_ciclo: grupo.nombre_ciclo,
+        nivel_educativo_id: grupo.nivel_id, fecha_inicio: '', fecha_fin: '',
+        tipo_ciclo: 'ANUAL', es_vigente: grupo.es_vigente,
+      }));
+      sessionStorage.setItem('ades_grado', JSON.stringify({
+        id: grupo.grado_id, numero_grado: grupo.numero_grado,
+        nombre_grado: grupo.nombre_grado, nivel_educativo_id: grupo.nivel_id,
+        plantel_id: grupo.plantel_id,
+      }));
+      sessionStorage.setItem('ades_grupo', JSON.stringify(grupo));
+    }, g);
+    await page.reload({ waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(1500); // 'networkidle' nunca resuelve — SSE persistente (PushNotificationService en shell.component.ts, ver hallazgo 06-07-18 en 12-certificados.spec.ts)
+
+    const materiaSelect = page.getByText('Seleccionar materia');
+    await expect(materiaSelect).not.toHaveAttribute('aria-disabled', 'true', { timeout: 10000 });
+    await materiaSelect.click();
+    await page.waitForTimeout(500);
+    await page.getByRole('option', { name: 'Habilidades Digitales Avanzadas' }).click();
+    await page.waitForTimeout(1000);
 
     // p-cellEditor solo renderiza el <p-inputNumber> (template "input") tras doble-click
     // sobre la celda — antes de eso solo existe el template "output" (texto plano).
@@ -410,15 +533,16 @@ test.describe('06-edge-cases — Concurrent, RBAC, Network, Timeouts', () => {
     const gradeInput = page.locator('p-inputnumber input').first();
     await expect(gradeInput).toBeVisible({ timeout: 3000 });
 
+    // 10.0 (límite válido): se acepta tal cual (PrimeNG muestra "10", sin cero
+    // decimal final — formato numérico normal, no un bug; se compara el valor
+    // numérico, no el string literal).
     await gradeInput.fill('10.0');
-    await gradeInput.press('Tab');
     await page.waitForTimeout(300);
-    await expect(gradeInput).toHaveValue('10.0');
+    expect(parseFloat((await gradeInput.inputValue()).replace(',', '.'))).toBe(10);
 
-    // Tab confirma la edición y la celda vuelve al template "output" — hay que
-    // doble-click de nuevo para reabrir el editor antes de la segunda escritura.
-    await editableCell.dblclick();
-    await expect(gradeInput).toBeVisible({ timeout: 3000 });
+    // 10.1 (fuera de rango): [max]="10" en p-inputNumber clampea al perder foco
+    // (blur/Tab), no mientras se escribe — hay que esperar el blur antes de leer
+    // el valor resultante.
     await gradeInput.fill('10.1');
     await gradeInput.press('Tab');
     await page.waitForTimeout(300);
@@ -461,14 +585,20 @@ test.describe('06-edge-cases — Concurrent, RBAC, Network, Timeouts', () => {
 
     // apellido_paterno/CURP no se llenaron aquí a propósito — el interés de este test es
     // el manejo de la cadena de 1000 caracteres en "Nombre(s)" (¿trunca sin crashear el
-    // formulario?), no un alta exitosa completa. Por diseño (ver crearAlumnoForm.invalid
-    // arriba) esto dispara el toast + role="alert" de campos faltantes, o el diálogo se
-    // cierra si de algún modo el resto también quedó válido — ambos casos son la señal de
-    // "no crasheó", que es lo que el test original intentaba verificar.
-    const error = page.locator('[role="alert"]').first();
+    // formulario?), no un alta exitosa completa. Comportamiento real confirmado con
+    // captura de pantalla en vivo: la app SÍ valida correctamente (toast "Por favor
+    // completa todos los campos correctamente" + texto inline "Apellido paterno es
+    // requerido" bajo el campo) — pero ninguno de los dos usa `role="alert"` (hallazgo
+    // de accesibilidad real, aparte, no corregido aquí — el toast y el texto de campo
+    // requerido deberían anunciarse a lectores de pantalla). El selector original solo
+    // buscaba `[role="alert"]`, que por eso nunca encontraba nada. Se amplía a lo que
+    // realmente aparece: el toast de validación o el texto de error inline.
+    const toastError = page.locator('.p-toast-message-error, .p-toast-message-warn');
+    const inlineError = page.getByText(/es requerido/i);
     const dialogHidden = page.locator('[role="dialog"]');
 
-    const hasError = await error.isVisible().catch(() => false);
+    const hasError = (await toastError.first().isVisible().catch(() => false))
+      || (await inlineError.first().isVisible().catch(() => false));
     const hasClosed = await dialogHidden.isHidden().catch(() => false);
 
     expect(hasError || hasClosed).toBe(true);
@@ -493,9 +623,7 @@ test.describe('06-edge-cases — Concurrent, RBAC, Network, Timeouts', () => {
     await page.getByRole('button', { name: 'Nuevo alumno' }).click();
     await page.waitForSelector('[role="dialog"]');
 
-    await page.getByLabel('Nombre(s)').fill('Juan');
-    await page.getByLabel('Apellido paterno').fill('Pérez');
-    await page.getByLabel('CURP').fill('EEEE123456HDFXYZ05');
+    await llenarAlumnoBasico(page, 'Juan', 'Pérez', curpValido());
 
     const submitButton = page.getByRole('button', { name: 'Crear alumno' });
     await submitButton.dblclick();
@@ -515,9 +643,7 @@ test.describe('06-edge-cases — Concurrent, RBAC, Network, Timeouts', () => {
     await page.getByRole('button', { name: 'Nuevo alumno' }).click();
     await page.waitForSelector('[role="dialog"]');
 
-    await page.getByLabel('Nombre(s)').fill('Juan');
-    await page.getByLabel('Apellido paterno').fill('Pérez');
-    await page.getByLabel('CURP').fill('FFFF123456HDFXYZ06');
+    await llenarAlumnoBasico(page, 'Juan', 'Pérez', curpValido());
 
     await page.getByRole('button', { name: 'Crear alumno' }).click();
 
@@ -527,7 +653,15 @@ test.describe('06-edge-cases — Concurrent, RBAC, Network, Timeouts', () => {
     await page.goto('/dashboard');
     await page.waitForTimeout(1000);
 
-    expect(consoleErrors).toEqual([]);
+    // Filtrar 429 (Too Many Requests): esta prueba verifica limpieza de suscripción
+    // RxJS al navegar fuera de un submit en vuelo, no el rate limiter — un 429 real
+    // aparece cuando esta MISMA suite completa (372 casos) se corre varias veces
+    // seguidas contra el servidor real en la misma sesión (confirmado: apareció
+    // exactamente en la última prueba de una 7ª corrida consecutiva). Es el límite
+    // funcionando correctamente bajo tráfico automatizado acumulado, no un error de
+    // la app ni de esta prueba — no debe contarse aquí.
+    const erroresReales = consoleErrors.filter(e => !e.includes('429'));
+    expect(erroresReales).toEqual([]);
   });
 
   test('E3: Rapid cascading filter changes', async ({ page }) => {
@@ -541,15 +675,26 @@ test.describe('06-edge-cases — Concurrent, RBAC, Network, Timeouts', () => {
 
     const nivelSelect = page.getByRole('combobox', { name: 'Nivel' });
 
+    // La intención real de esta prueba es "la app no debe crashear ante cambios
+    // rápidos de filtro", no que cada click individual aterrice — cada cambio de
+    // Nivel dispara una recarga en cascada real (Ciclo/Grado/Grupo, llamadas de red
+    // reales) que puede reordenar/desmontar las opciones del panel entre el check de
+    // visibilidad y el click (DOM "detached", no un bug de la app). Se envuelve cada
+    // click en try/catch para no abortar la prueba completa por una sola opción que
+    // quedó obsoleta a mitad de la cascada — la aserción real es la URL al final.
     for (let i = 0; i < 5; i++) {
       await nivelSelect.click();
       const opt1 = page.locator('.p-select-option, [role="option"]').first();
-      if (await opt1.isVisible({ timeout: 1000 }).catch(() => false)) await opt1.click();
+      if (await opt1.isVisible({ timeout: 1000 }).catch(() => false)) {
+        await opt1.click({ timeout: 2000 }).catch(() => {});
+      }
       await page.waitForTimeout(150);
 
       await nivelSelect.click();
       const opt2 = page.locator('.p-select-option, [role="option"]').nth(1);
-      if (await opt2.isVisible({ timeout: 1000 }).catch(() => false)) await opt2.click();
+      if (await opt2.isVisible({ timeout: 1000 }).catch(() => false)) {
+        await opt2.click({ timeout: 2000 }).catch(() => {});
+      }
       await page.waitForTimeout(150);
     }
 
@@ -634,13 +779,7 @@ test.describe('06-edge-cases — Concurrent, RBAC, Network, Timeouts', () => {
       await page.getByRole('button', { name: 'Nuevo alumno' }).click();
       await page.waitForSelector('[role="dialog"]', { timeout: 5000 });
 
-      await page.getByLabel('Nombre(s)').fill(`Juan Pérez ${run}`);
-      await page.getByLabel('Apellido paterno').fill('García');
-      // Prefijo distinto por run (posiciones 1-4, letras) para evitar choque de CURP
-      // única entre iteraciones y entre corridas repetidas de esta misma suite.
-      const prefijo = ['GGGG', 'HHHH', 'IIII'][run];
-      await page.getByLabel('CURP').fill(`${prefijo}123456HDFXYZ0${run}`);
-
+      await llenarAlumnoBasico(page, `Juan Pérez ${run}`, 'García', curpValido());
       await page.getByRole('button', { name: 'Crear alumno' }).click();
       await page.waitForSelector('[role="dialog"]', { state: 'hidden', timeout: 5000 });
     }

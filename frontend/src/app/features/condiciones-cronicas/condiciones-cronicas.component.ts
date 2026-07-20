@@ -1,7 +1,7 @@
 import { Component, OnDestroy, OnInit, signal, computed, inject, ChangeDetectionStrategy} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject, takeUntil } from 'rxjs';
+import { Subject, takeUntil, Observable } from 'rxjs';
 import { ApiService } from '../../core/services/api.service';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
@@ -297,9 +297,9 @@ export class CondicionesCronicasComponent implements OnInit, OnDestroy {
       return;
     }
     this.guardando.set(true);
-    const req$ = this.editandoId
-      ? this.api.patch(`/condiciones-cronicas/${this.editandoId}`, this.form)
-      : this.api.post('/condiciones-cronicas', this.form);
+    const req$: Observable<{ ok?: boolean; id?: string }> = this.editandoId
+      ? this.api.patch<{ ok: boolean }>(`/condiciones-cronicas/${this.editandoId}`, this.form)
+      : this.api.post<{ id: string }>('/condiciones-cronicas', this.form);
     req$.pipe(takeUntil(this.destroy$)).subscribe({
       next: () => { this.guardando.set(false); this.dialogForm = false; this.notify.success('Condición guardada'); this.cargar(); },
       error: e => { this.guardando.set(false); this.notify.error(e.error?.detail ?? 'Error al guardar'); },
@@ -313,7 +313,7 @@ export class CondicionesCronicasComponent implements OnInit, OnDestroy {
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
         this.cargando.set(true);
-        this.api.delete(`/condiciones-cronicas/${c.id}`).pipe(takeUntil(this.destroy$)).subscribe({
+        this.api.delete<void>(`/condiciones-cronicas/${c.id}`).pipe(takeUntil(this.destroy$)).subscribe({
           next: () => { this.notify.success('Condición eliminada'); this.cargar(); },
           error: e => { this.cargando.set(false); this.notify.error(e.error?.detail ?? 'Error'); },
         });

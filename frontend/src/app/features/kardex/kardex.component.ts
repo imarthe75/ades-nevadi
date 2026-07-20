@@ -17,6 +17,14 @@ interface GrupoRaw {
   nivel: string; plantel: string; plantel_id: string; ciclo: string;
 }
 interface AlumnoOpt { value: string; label: string; }
+/**
+ * Fila cruda de GET /reportes/kardex/grupos/{grupo_id}/alumnos.
+ * El backend (KardexQueryService#alumnosGrupo) devuelve Map<String,Object> —
+ * no hay schema reutilizable en api-types.generated.ts (queda como
+ * `{[key:string]:unknown}[]`) — se documenta aquí solo lo que este componente
+ * consume, verificado contra el SELECT real (id, nombre, matricula).
+ */
+interface AlumnoGrupoRaw { id: string; nombre: string; matricula: string | null; }
 interface MateriaKardex {
   materia: string; clave: string | null;
   ordinario: number | null; extraordinario: number | null;
@@ -40,6 +48,16 @@ interface Kardex {
  * Muestra historial de calificaciones con escala 0-10, mínimo aprobatorio 6.0,
  * y distingue entre calificación ordinaria, extraordinaria y definitiva según RGEMS.
  * Incluye botón para descargar la boleta PDF generada por FastAPI vía proxy BFF.
+ *
+ * NOTA DE CONTRATO (auditoría de tipado 2026-07-19): los 3 endpoints de
+ * KardexController (`/reportes/kardex/grupos`, `/grupos/{id}/alumnos`, `/{estudiante_id}`)
+ * devuelven `Map<String,Object>`/`List<Map<...>>` construidos a mano vía JdbcTemplate —
+ * en api-types.generated.ts quedan como `{[key:string]:unknown}` sin schema reutilizable
+ * (no hay problema de casing camelCase/snake_case aquí, a diferencia de otros módulos con
+ * entidades JPA/DTOs `@Data`: un Map serializado no pasa por bean-property naming). Las
+ * interfaces locales de este archivo (`GrupoRaw`, `Kardex`, `MateriaKardex`,
+ * `AlumnoGrupoRaw`) documentan los alias SQL reales verificados contra
+ * `KardexQueryService` — se mantienen en vez de intentar tipar contra el spec generado.
  */
 @Component({
   selector: 'app-kardex',
@@ -245,9 +263,9 @@ export class KardexComponent implements OnInit, OnDestroy {
   onGrupoChange(grupoId: string) {
     this.alumnoSel = ''; this._alumnos.set([]); this.data.set(null);
     if (!grupoId) return;
-    this.api.get<any[]>(`/reportes/kardex/grupos/${grupoId}/alumnos`).pipe(takeUntil(this.destroy$)).subscribe({
+    this.api.get<AlumnoGrupoRaw[]>(`/reportes/kardex/grupos/${grupoId}/alumnos`).pipe(takeUntil(this.destroy$)).subscribe({
       next: list => this._alumnos.set(list.map(a => ({
-        value: a['id'], label: `${a['nombre']} (${a['matricula'] ?? '—'})`,
+        value: a.id, label: `${a.nombre} (${a.matricula ?? '—'})`,
       }))),
       error: () => this.notify.error('No se pudieron cargar los alumnos del grupo'),
     });

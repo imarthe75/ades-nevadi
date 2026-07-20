@@ -45,10 +45,14 @@ export interface HorarioGridEntry {
           <div class="grid-row">
             <div class="hora-col">{{ franja }}</div>
             @for (dia of dias; track dia.num) {
-              <div class="dia-cell" cdkDropList [cdkDropListData]="{dia: dia.num, franja: franja}" (cdkDropListDropped)="onDrop($event)">
+              <div class="dia-cell" cdkDropList [cdkDropListData]="{dia: dia.num, franja: franja}" (cdkDropListDropped)="onDrop($event)"
+                   [attr.aria-label]="dia.label + ' ' + franja">
                 @for (e of entradasPor(dia.num, franja); track e.id) {
                   <div class="clase-chip" cdkDrag [cdkDragData]="e" [style.background]="colorMateria(e.nombre_materia)"
-                       (click)="claseClick.emit(e)" pTooltip="Click para editar" style="cursor:pointer">
+                       (click)="claseClick.emit(e)" pTooltip="Click para editar" style="cursor:pointer"
+                       role="button" tabindex="0"
+                       [attr.aria-label]="'Editar clase ' + e.nombre_materia + (modo === 'grupo' ? ', profesor ' + e.nombre_profesor : ', grupo ' + e.nombre_grupo) + ', ' + (e.hora_inicio | slice:0:5) + ' a ' + (e.hora_fin | slice:0:5)"
+                       (keydown.enter)="claseClick.emit(e)" (keydown.space)="$event.preventDefault(); claseClick.emit(e)">
                     <strong>{{ e.nombre_materia }}</strong>
                     @if (modo === 'grupo') {
                       <span>{{ e.nombre_profesor }}</span>

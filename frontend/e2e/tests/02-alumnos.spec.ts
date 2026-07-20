@@ -83,6 +83,14 @@ test.describe('B. Errores de validación', () => {
     await ap.save();
     await page.locator('.p-toast-message').first().waitFor({ timeout: 8_000 });
     await page.keyboard.press('Escape');
+    // Hallazgo real (2026-07-20): Escape + una espera fija no garantizaba que la
+    // máscara del diálogo (`.p-dialog-mask`) ni el toast anterior ya hubieran
+    // desaparecido — el segundo intento de "Nuevo alumno" chocaba con el overlay
+    // residual ("intercepts pointer events") y el test tronaba por timeout, no por
+    // ningún fallo real de la app. Se espera explícitamente a que ambos elementos
+    // dejen de estar presentes antes de intentar la segunda alta.
+    await page.locator('.p-dialog-mask').waitFor({ state: 'hidden', timeout: 5_000 }).catch(() => {});
+    await page.locator('.p-toast-message').first().waitFor({ state: 'hidden', timeout: 5_000 }).catch(() => {});
     await page.waitForTimeout(300);
     // Intentar crear otro con la misma CURP → debe dar error
     await ap.openNewForm();

@@ -479,7 +479,7 @@ export class MovilidadComponent implements OnInit, OnDestroy {
   }
 
   cargarCatalogos(): void {
-    this.api.get<any[]>('/grupos').pipe(takeUntil(this.destroy$)).subscribe({
+    this.api.get<Grupo[]>('/grupos').pipe(takeUntil(this.destroy$)).subscribe({
       next: g => this.grupos.set(g ?? []),
       error: () => {},
     });

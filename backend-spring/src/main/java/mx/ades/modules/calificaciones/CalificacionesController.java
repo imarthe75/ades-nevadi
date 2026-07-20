@@ -154,9 +154,16 @@ public class CalificacionesController {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                 "Sin permisos para acceder a la libreta del grupo");
         }
-        // Para no-admin: verificar que el grupo pertenece al plantel del usuario
+        // Para no-admin: verificar que el grupo pertenece al plantel del usuario.
+        // Hallazgo real 2026-07-20: esta consulta hacía SELECT plantel_id directo de
+        // ades_grupos, columna que no existe ahí (plantel_id vive en ades_grados,
+        // ver requireAccesoGrupo arriba) — BadSqlGrammarException en CADA llamada a
+        // este endpoint, para cualquier usuario, siempre 500. La libreta de
+        // calificaciones nunca cargó desde que se escribió este método.
         List<UUID> grupoPlantelRows = jdbc.queryForList(
-                "SELECT plantel_id FROM ades_grupos WHERE id = ?::uuid", UUID.class, grupoId);
+                "SELECT gr.plantel_id FROM ades_grupos g " +
+                "JOIN ades_grados gr ON gr.id = g.grado_id " +
+                "WHERE g.id = ?::uuid", UUID.class, grupoId);
         UUID grupoPlantelId = grupoPlantelRows.isEmpty() ? null : grupoPlantelRows.get(0);
         userService.verificarPlantel(user, grupoPlantelId, "Sin acceso al grupo solicitado");
 

@@ -283,7 +283,7 @@ export class ReinscripcionComponent implements OnInit, OnDestroy {
   }
 
   cargarCiclos() {
-    this.api.get('/catalogs/ciclos').pipe(takeUntil(this.destroy$)).subscribe((r: any) =>
+    this.api.get<CicloOpt[]>('/catalogs/ciclos').pipe(takeUntil(this.destroy$)).subscribe(r =>
       this.ciclos.set(r ?? []));
   }
 
@@ -300,8 +300,8 @@ export class ReinscripcionComponent implements OnInit, OnDestroy {
     let url = `/reinscripcion/${this.cicloDestinoId}/estado?por_pagina=500`;
     if (this.estadoFiltro)  url += `&estado=${this.estadoFiltro}`;
     if (this.plantelFiltro) url += `&plantel_id=${this.plantelFiltro}`;
-    this.api.get(url).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (r: any) => {
+    this.api.get<{ data: any[] }>(url).pipe(takeUntil(this.destroy$)).subscribe({
+      next: r => {
         const flat = (r.data ?? []).map((x: any) => ({
           ...x,
           adeudo_str:   x.tiene_adeudos ? `$${Number(x.monto_adeudado).toFixed(2)}` : '—',
@@ -316,19 +316,19 @@ export class ReinscripcionComponent implements OnInit, OnDestroy {
 
   cargarReporte() {
     if (!this.cicloDestinoId) return;
-    this.api.get(`/reinscripcion/${this.cicloDestinoId}/reporte`).pipe(takeUntil(this.destroy$)).subscribe(
-      (r: any) => this.reporte.set(r)
+    this.api.get<any>(`/reinscripcion/${this.cicloDestinoId}/reporte`).pipe(takeUntil(this.destroy$)).subscribe(
+      r => this.reporte.set(r)
     );
   }
 
   validarMasivo() {
     if (!this.cicloOrigenId || !this.cicloDestinoId) return;
     this.validando.set(true);
-    this.api.post(
+    this.api.post<any>(
       `/reinscripcion/${this.cicloDestinoId}/validar-masivo?ciclo_origen_id=${this.cicloOrigenId}`,
       {}
     ).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (r: any) => {
+      next: r => {
         this.validando.set(false);
         const res = r.resumen;
         this.notify.success(
@@ -350,11 +350,11 @@ export class ReinscripcionComponent implements OnInit, OnDestroy {
     if (!this.cicloOrigenId || !this.cicloDestinoId) return;
     this.aprobando.set(true);
     this.confirmAprobarVisible = false;
-    this.api.post(
+    this.api.post<any>(
       `/reinscripcion/${this.cicloDestinoId}/aprobar-masivo?ciclo_origen_id=${this.cicloOrigenId}`,
       {}
     ).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (r: any) => {
+      next: r => {
         this.aprobando.set(false);
         const promo = r.resultado_promocion;
         this.notify.success(
@@ -384,7 +384,10 @@ export class ReinscripcionComponent implements OnInit, OnDestroy {
     if (!reg) return;
     if (accion === 'RECHAZAR' && !this.razonRechazo.trim()) return;
     this.procesandoIndividual.set(true);
-    this.api.patch(`/reinscripcion/${reg.id}`, {
+    // ReinscripcionController.AccionIndividualPayload (backend-spring) es @Data de
+    // Lombok con campo Java `razonRechazo`, pero el BFF usa SNAKE_CASE global — el
+    // wire real es `razon_rechazo`, que es justo lo que ya se envía aquí.
+    this.api.patch<{ id: string; estado: string }>(`/reinscripcion/${reg.id}`, {
       accion,
       razon_rechazo: accion === 'RECHAZAR' ? this.razonRechazo : null,
     }).pipe(takeUntil(this.destroy$)).subscribe({

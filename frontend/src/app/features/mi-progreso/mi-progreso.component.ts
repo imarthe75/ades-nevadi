@@ -41,6 +41,16 @@ interface EntregaHistorial extends EntregaPendiente {
 }
 
 /**
+ * Respuesta de GET /usuarios/mi-perfil. El OpenAPI generado (api-types.generated.ts)
+ * no declara un DTO concreto para este endpoint (el controller Spring devuelve un
+ * Map<String,Object> genérico, documentado como `{ [key: string]: unknown }`), así
+ * que se declara aquí solo el campo que este componente realmente consume.
+ */
+interface MiPerfilResponse {
+  estudiante_id?: string | null;
+}
+
+/**
  * Panel de progreso académico personal del alumno (nivelAcceso 1).
  * Muestra calificaciones, asistencias, actividades pendientes y metas del período
  * usando datos del contexto activo (plantel + ciclo escolar).
@@ -71,7 +81,8 @@ interface EntregaHistorial extends EntregaPendiente {
             {{ m.calificacion_final ?? '—' }}
           </div>
           <p-progressBar [value]="pctCal(m)" [style]="{'height':'6px','margin':'8px 0'}"
-                         [color]="progressColor(m)" [showValue]="false" />
+                         [color]="progressColor(m)" [showValue]="false"
+                         [attr.aria-label]="'Avance en ' + m.nombre_materia + ': ' + pctCal(m) + '%'" />
           @if (m.score_por_item) {
             <div class="score-desglose">
               @for (item of itemsScore(m); track item.label) {
@@ -117,8 +128,8 @@ interface EntregaHistorial extends EntregaPendiente {
       <p><strong>{{ entregaActiva.titulo }}</strong></p>
       <p><small>{{ entregaActiva.nombre_materia }}</small></p>
       <div class="field mt-3">
-        <label>Archivo</label>
-        <input type="file" (change)="onFileChange($event)"
+        <label for="mp-archivo">Archivo</label>
+        <input id="mp-archivo" type="file" (change)="onFileChange($event)"
                class="w-full" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:4px" />
       </div>
       <div class="field mt-2">
@@ -200,7 +211,7 @@ export class MiProgresoComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     // Para demo, se obtiene de ContextService o del perfil del usuario
-    this.api.get('/usuarios/mi-perfil').pipe(takeUntil(this.destroy$)).subscribe((u: any) => {
+    this.api.get<MiPerfilResponse>('/usuarios/mi-perfil').pipe(takeUntil(this.destroy$)).subscribe(u => {
       if (u.estudiante_id) {
         this.alumnoId = u.estudiante_id;
         this.cargarDatos();
@@ -212,16 +223,16 @@ export class MiProgresoComponent implements OnInit, OnDestroy {
     if (!this.alumnoId) return;
     this.cargando.set(true);
 
-    this.api.get(`/gradebook/alumno/${this.alumnoId}/boleta`).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (r: any) => { this.materias.set(r); this.cargando.set(false); },
+    this.api.get<MateriaSummary[]>(`/gradebook/alumno/${this.alumnoId}/boleta`).pipe(takeUntil(this.destroy$)).subscribe({
+      next: r => { this.materias.set(r); this.cargando.set(false); },
       error: () => this.cargando.set(false),
     });
 
-    this.api.get(`/entregas/alumno/${this.alumnoId}?solo_pendientes=true`).pipe(takeUntil(this.destroy$)).subscribe(
-      (r: any) => this.pendientes.set(r));
+    this.api.get<EntregaPendiente[]>(`/entregas/alumno/${this.alumnoId}?solo_pendientes=true`).pipe(takeUntil(this.destroy$)).subscribe(
+      r => this.pendientes.set(r));
 
-    this.api.get(`/entregas/alumno/${this.alumnoId}`).pipe(takeUntil(this.destroy$)).subscribe(
-      (r: any) => this.historial.set(r.filter((e: any) => e.estatus_entrega === 'CALIFICADA')));
+    this.api.get<EntregaHistorial[]>(`/entregas/alumno/${this.alumnoId}`).pipe(takeUntil(this.destroy$)).subscribe(
+      r => this.historial.set(r.filter(e => e.estatus_entrega === 'CALIFICADA')));
   }
 
   abrirSubirEntrega(t: EntregaPendiente) {

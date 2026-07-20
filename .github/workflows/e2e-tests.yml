@@ -1,216 +1,97 @@
 name: E2E Tests CI/CD
 
+# ── Por qué este workflow se reescribió (2026-07-19) ──────────────────────────
+# La versión anterior intentaba reconstruir todo el stack (Postgres, Valkey,
+# Authentik) desde cero en runners efímeros de GitHub. Nunca funcionó de
+# verdad: `psql < db/migrations/*.sql` (170 archivos) es un "ambiguous
+# redirect" de bash y falla siempre; el seed referenciaba un archivo que no
+# existe (`db/seeds/001_base.sql`, el real es `001_datos_base.sql`); y
+# Authentik (server + worker + blueprints custom en
+# ./infrastructure/authentik/, que crean el OAuth2Provider `ades-frontend`
+# que `e2e/global-setup.ts` necesita) no puede arrancar en un bloque
+# `services:` de GitHub Actions — confirmado en vivo el 2026-07-19 (push
+# 83d5304: el job falló en 43s en "Initialize containers", antes de correr
+# un solo paso). Además `continue-on-error: true` en todos los pasos de
+# test hacía que ni siquiera los specs que sí corrían pudieran fallar el
+# job — nunca fue un gate real.
+#
+# Este workflow corre en un runner self-hosted instalado directamente en
+# ades.setag.mx (`/opt/ades/.github-runner/`), el mismo host donde el stack
+# real (Vault, Authentik ya inicializado con sus blueprints, Postgres con
+# datos reales) ya vive y funciona. Por eso ya NO reconstruye nada: usa la
+# app YA desplegada y corriendo, tal como se verificó manualmente durante
+# la sesión que diagnosticó este problema (E2E real contra
+# https://ades.setag.mx, framework `LoginPage`/`global-setup.ts` del propio
+# proyecto).
+#
+# ── Riesgo de seguridad, explícito (decisión del dueño del proyecto) ──────────
+# Un runner self-hosted con acceso a Docker en el mismo host que la base de
+# datos real de producción equivale a ejecución de código con privilegios
+# de root en ese host, para cualquiera que pueda pushear a `main`. Por eso:
+#   - SIN trigger `pull_request` — un PR desde un fork de cualquier usuario
+#     (repo público) no debe poder ejecutar código en este runner.
+#   - Solo `push` a `main`/`develop` (ramas que solo el propio equipo puede
+#     escribir) + una corrida diaria programada.
+#
+# ── Qué NO hace este workflow (a propósito) ────────────────────────────────
+#   - NO reconstruye ni reinicia ades-bff/ades-api/ades-frontend (evita
+#     downtime en el único servidor).
+#   - NO corre migraciones (se aplican manualmente, una por una, verificadas
+#     contra datos reales — igual que el resto de este proyecto).
+#   - NO corre el seed realista `006_simulacion_integral.py` — es
+#     DESTRUCTIVO ("cada corrida re-vacía lo operativo y regenera"). Jamás
+#     debe dispararse automáticamente contra la base de datos real.
+#
+# ── Trade-off aceptado, documentado — no oculto ────────────────────────────
+# Los specs (02-alumnos, 06-chaos, 09-concurrency, ...) SÍ crean registros de
+# prueba reales vía la UI (alumnos con nombres generados por faker) y no los
+# limpian después. Con el tiempo esto acumula datos de prueba reconocibles
+# en la base real. Es un trade-off aceptado dado que este proyecto no tiene
+# un entorno separado por diseño (ver CLAUDE.md) — no una omisión.
+#
+# El paso de contratos API corre en un contenedor node desechable (no
+# necesita acceso a Docker). El paso de E2E corre Playwright DIRECTO en el
+# runner (no en un contenedor anidado): `global-setup.ts` necesita invocar
+# `docker compose exec authentik-server ...` contra el daemon de Docker
+# real del host para emitir un JWT de prueba — eso requiere el CLI de
+# docker + el socket, que la imagen oficial de Playwright no trae, y montar
+# el socket a mano dentro de un contenedor anidado es frágil. Requisito de
+# una sola vez en el runner (parte de su instalación, no de cada corrida):
+# Node 22 + `npx playwright install --with-deps chromium`.
+
 on:
   push:
     branches: [main, develop]
-  pull_request:
-    branches: [main]
   schedule:
-    - cron: '0 9 * * *'  # Daily at 9 AM UTC
+    - cron: '0 9 * * *'  # diario 9am UTC
 
 jobs:
   e2e:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, ades]
     timeout-minutes: 60
-
-    services:
-      postgres:
-        image: postgres:18-alpine
-        env:
-          POSTGRES_DB: ades
-          POSTGRES_USER: ades_admin
-          POSTGRES_PASSWORD: ${{ secrets.DB_PASSWORD || 'test_password' }}
-          POSTGRES_HOST_AUTH_METHOD: trust
-        options: >-
-          --health-cmd "pg_isready -U ades_admin -d ades"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-
-      valkey:
-        image: eqalpha/keydb:latest
-        options: >-
-          --health-cmd "keydb-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 6379:6379
-
-      authentik:
-        image: ghcr.io/goauthentik/server:2026.5.2
-        env:
-          AUTHENTIK_SECRET_KEY: ${{ secrets.AUTHENTIK_SECRET_KEY || 'default_secret_key_for_testing_12345' }}
-          AUTHENTIK_SECRET__KEY: ${{ secrets.AUTHENTIK_SECRET_KEY || 'default_secret_key_for_testing_12345' }}
-          AUTHENTIK_BOOTSTRAP_PASSWORD: ${{ secrets.AUTHENTIK_PASSWORD || 'default_bootstrap_password' }}
-          AUTHENTIK_REDIS__HOST: valkey
-          AUTHENTIK_POSTGRESQL__HOST: postgres
-          AUTHENTIK_POSTGRESQL__USER: ades_admin
-          AUTHENTIK_POSTGRESQL__NAME: ades
-          AUTHENTIK_POSTGRESQL__PASSWORD: ${{ secrets.DB_PASSWORD || 'test_password' }}
-        options: >-
-          --health-cmd "ak healthcheck"
-          --health-interval 15s
-          --health-timeout 10s
-          --health-retries 10
-        ports:
-          - 9010:9000
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
-
       - name: Check API Contracts
-        run: node scripts/check-api-contracts.js --strict
-
-      - name: Setup Java 21
-        uses: actions/setup-java@v4
-        with:
-          java-version: '21'
-          distribution: 'temurin'
-          cache: maven
-
-      - name: Setup Python 3.12
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-          cache: 'pip'
-          cache-dependency-path: backend/requirements.txt
-
-      - name: Run migrations
         run: |
-          PGPASSWORD=${{ secrets.DB_PASSWORD }} psql -h localhost -U ades_admin -d ades < db/migrations/*.sql
-        env:
-          POSTGRES_DB: ades
-          POSTGRES_USER: ades_admin
-          POSTGRES_PASSWORD: ${{ secrets.DB_PASSWORD }}
-
-      - name: Seed test data
-        run: |
-          PGPASSWORD=${{ secrets.DB_PASSWORD }} psql -h localhost -U ades_admin -d ades < db/seeds/001_base.sql
-        env:
-          POSTGRES_DB: ades
-          POSTGRES_USER: ades_admin
-          POSTGRES_PASSWORD: ${{ secrets.DB_PASSWORD }}
-
-      - name: Build backend-spring
-        run: |
-          cd backend-spring
-          ./mvnw -B -q clean package -DskipTests -DskipITs
-        timeout-minutes: 20
-
-      - name: Start backend-spring
-        run: |
-          cd backend-spring
-          timeout 30 ./mvnw spring-boot:run &
-          sleep 15
-        env:
-          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/ades
-          SPRING_DATASOURCE_USERNAME: ades_admin
-          SPRING_DATASOURCE_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          SPRING_REDIS_HOST: localhost
-          SPRING_REDIS_PORT: 6379
-
-      - name: Build backend-fastapi
-        run: |
-          cd backend
-          pip install -q -r requirements.txt
-          uvicorn app.main:app --reload &
-          sleep 10
-        env:
-          DATABASE_URL: postgresql://ades_admin:${{ secrets.DB_PASSWORD }}@localhost/ades
-          REDIS_URL: redis://localhost:6379
+          docker run --rm -v "$(pwd)":/work -w /work node:22-alpine \
+            node scripts/check-api-contracts.js --strict
 
       - name: Install frontend dependencies
-        run: |
-          cd frontend
-          npm install --legacy-peer-deps
+        working-directory: frontend
+        run: npm ci --legacy-peer-deps
 
-      - name: Build frontend
-        run: |
-          cd frontend
-          npm run build
+      - name: Run E2E suite (21 specs) against the live app
+        working-directory: frontend
+        env:
+          BASE_URL: https://ades.setag.mx
+        run: npx playwright test --reporter=list,html
 
-      - name: Start frontend dev server
-        run: |
-          cd frontend
-          npm start &
-          sleep 10
-
-      - name: Install Playwright
-        run: |
-          cd frontend
-          npx playwright install --with-deps chromium
-
-      - name: Run auth E2E tests
-        run: |
-          cd frontend
-          npx playwright test e2e/tests/01-auth.spec.ts --reporter=json > auth-results.json
-        continue-on-error: true
-
-      - name: Run CRUD E2E tests
-        run: |
-          cd frontend
-          npx playwright test e2e/tests/02-alumnos.spec.ts e2e/tests/03-asistencias.spec.ts e2e/tests/04-calificaciones.spec.ts e2e/tests/05-certificados.spec.ts --reporter=json > crud-results.json
-        continue-on-error: true
-
-      - name: Run RBAC E2E tests
-        run: |
-          cd frontend
-          npx playwright test e2e/tests/10-rbac.spec.ts --reporter=json > rbac-results.json
-        continue-on-error: true
-
-      - name: Parse test results
-        run: |
-          cd frontend
-          node << 'EOF'
-          const fs = require('fs');
-          const authResults = JSON.parse(fs.readFileSync('auth-results.json', 'utf8'));
-          const crudResults = JSON.parse(fs.readFileSync('crud-results.json', 'utf8'));
-          const rbacResults = JSON.parse(fs.readFileSync('rbac-results.json', 'utf8'));
-
-          const authPassed = authResults.stats?.expected || 0;
-          const authTotal = authResults.stats?.total || 0;
-          const crudPassed = crudResults.stats?.expected || 0;
-          const crudTotal = crudResults.stats?.total || 0;
-          const rbacPassed = rbacResults.stats?.expected || 0;
-          const rbacTotal = rbacResults.stats?.total || 0;
-
-          console.log(`::notice title=Auth Tests::${authPassed}/${authTotal} passed`);
-          console.log(`::notice title=CRUD Tests::${crudPassed}/${crudTotal} passed`);
-          console.log(`::notice title=RBAC Tests::${rbacPassed}/${rbacTotal} passed`);
-
-          if (authPassed + crudPassed + rbacPassed >= 35) {
-            console.log(`::notice title=✅ Target Reached::35+ specs passing`);
-          }
-          EOF
-        continue-on-error: true
-
-      - name: Upload test results
+      - name: Upload Playwright report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-results
-          path: frontend/test-results/
-          retention-days: 7
-
-      - name: Comment PR with results
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: '### E2E Test Results\n\n✅ Auth: 15+ specs\n✅ CRUD: 20+ specs\n✅ RBAC: cross-plantel + scoping\n\nSee artifacts for details.'
-            })
-        continue-on-error: true
+          name: playwright-report
+          path: frontend/playwright-report/
+          retention-days: 14

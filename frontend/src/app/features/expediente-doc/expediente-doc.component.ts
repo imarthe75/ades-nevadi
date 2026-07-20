@@ -55,6 +55,39 @@ interface Expediente {
 
 interface AlumnoOpt { id: string; label: string; }
 
+/** Fila devuelta por GET /api/v1/portal/buscar (PortalQueryService#buscarAlumnos). */
+interface PortalAlumnoBusqueda {
+  id: string;
+  matricula: string;
+  nombre: string;
+  apellido_paterno: string;
+  apellido_materno: string | null;
+}
+
+/** Respuesta de POST /api/v1/expediente/alumno/{id}/documentos (FastAPI expediente.py#subir_documento). */
+interface SubirDocumentoResponse {
+  mensaje: string;
+  doc_id: string;
+  task_id: string | null;
+  tipo: string;
+}
+
+/** Fila de `resultados` en GET /api/v1/expediente/alumno/{id}/buscar (FastAPI expediente.py#buscar_en_expediente). */
+interface ResultadoOcr {
+  doc_id: string;
+  tipo: string;
+  nombre_archivo: string | null;
+  estado_ocr: string;
+  fragmento: string;
+}
+
+/** Respuesta de GET /api/v1/expediente/alumno/{id}/buscar. */
+interface BuscarOcrResponse {
+  query: string;
+  total: number;
+  resultados: ResultadoOcr[];
+}
+
 interface AnalisisIA {
   expediente_id: string;
   completitud_pct: number;
@@ -397,7 +430,7 @@ export class ExpedienteDocComponent implements OnInit, OnDestroy {
   docSeleccionado = signal<Documento | null>(null);
   analisisIA = signal<AnalisisIA | null>(null);
   archivoSeleccionado = signal<File | null>(null);
-  resultadosOcr = signal<any[]>([]);
+  resultadosOcr = signal<ResultadoOcr[]>([]);
   queryOcr = '';
   tipoDocumentoNuevo = '';
   tiposDocumento = TIPOS_DOCUMENTO;
@@ -437,11 +470,11 @@ export class ExpedienteDocComponent implements OnInit, OnDestroy {
   ngOnInit() {}
 
   buscarAlumnos(event: { query: string }) {
-    this.api.get<any[]>('/portal/buscar', { q: event.query })
+    this.api.get<PortalAlumnoBusqueda[]>('/portal/buscar', { q: event.query })
       .pipe(takeUntil(this.destroy$)).subscribe({
         next: (res) => {
           this.alumnosSugeridos.set(
-            (res || []).map((a: any) => ({
+            (res || []).map((a) => ({
               id: a.id,
               label: `${[a.nombre, a.apellido_paterno, a.apellido_materno].filter(Boolean).join(' ')} — ${a.matricula || ''}`,
             }))
@@ -501,7 +534,7 @@ export class ExpedienteDocComponent implements OnInit, OnDestroy {
     fd.append('archivo', archivo);
     fd.append('tipo_documento', this.tipoDocumentoNuevo || 'OTRO');
 
-    this.api.post<any>(`/expediente/alumno/${alumno.id}/documentos`, fd)
+    this.api.post<SubirDocumentoResponse>(`/expediente/alumno/${alumno.id}/documentos`, fd)
       .pipe(takeUntil(this.destroy$)).subscribe({
         next: (res) => {
           this.notify.success('Documento subido', res.mensaje);
@@ -562,7 +595,7 @@ export class ExpedienteDocComponent implements OnInit, OnDestroy {
   verificarExpediente() {
     const exp = this.expediente();
     if (!exp) return;
-    this.api.post<any>(`/expediente/${exp.id}/verificar`, {})
+    this.api.post<{ mensaje: string; estado: string }>(`/expediente/${exp.id}/verificar`, {})
       .pipe(takeUntil(this.destroy$)).subscribe({
         next: () => {
           this.notify.success('Expediente verificado', 'Estado actualizado a VERIFICADO');
@@ -576,7 +609,7 @@ export class ExpedienteDocComponent implements OnInit, OnDestroy {
     const alumno = this.alumnoSeleccionado;
     if (!alumno || this.queryOcr.trim().length < 3) return;
     this.buscandoOcr.set(true);
-    this.api.get<any>(`/expediente/alumno/${alumno.id}/buscar?q=${encodeURIComponent(this.queryOcr)}`)
+    this.api.get<BuscarOcrResponse>(`/expediente/alumno/${alumno.id}/buscar?q=${encodeURIComponent(this.queryOcr)}`)
       .pipe(takeUntil(this.destroy$)).subscribe({
         next: (res) => {
           this.resultadosOcr.set(res.resultados || []);

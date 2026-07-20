@@ -16,6 +16,7 @@ import { TableModule } from 'primeng/table';
 
 import { ApiService } from '../../core/services/api.service';
 import { AdesFormatDirective } from '../../shared/directives/ades-format.directive';
+import type { components } from '../../core/models/api-types.generated';
 
 /**
  * Crear Examen Vinculado a Planeación Semanal
@@ -299,7 +300,14 @@ export class CrearExamenDesdeplanneacionComponent implements OnInit, OnDestroy {
   }
 
   loadGrupos() {
-    this.apiService.get('/api/v1/grupos').pipe(takeUntil(this.destroy$)).subscribe(res => {
+    // HALLAZGO CORREGIDO (auditoría de tipado 2026-07-19): este archivo usaba
+    // this.apiService.get('/api/v1/...') en las 4 llamadas de abajo, pero
+    // ApiService.base ya incluye '/api/v1' (core/services/api.service.ts) — el path
+    // resultante era '.../api/v1/api/v1/grupos', que no coincide con ningún
+    // @RequestMapping real (mismo patrón encontrado y corregido en
+    // calificar-tareas.component.ts). Todo este componente estaba efectivamente roto
+    // (404 en cada llamada). Se corrige quitando el prefijo '/api/v1' duplicado.
+    this.apiService.get<any[]>('/grupos').pipe(takeUntil(this.destroy$)).subscribe(res => {
       this.grupos.set((res as any[]).map(g => ({
         label: g.nombre_grupo,
         value: g.ref
@@ -315,7 +323,7 @@ export class CrearExamenDesdeplanneacionComponent implements OnInit, OnDestroy {
     this.planeacionSeleccionada = null;
     this.planeacionDetalle.set(null);
 
-    this.apiService.get(`/api/v1/planeacion/grupo/${grupoId}/planeaciones-activas`)
+    this.apiService.get<any[]>(`/planeacion/grupo/${grupoId}/planeaciones-activas`)
       .pipe(takeUntil(this.destroy$))
       .subscribe(
         res => {
@@ -340,7 +348,7 @@ export class CrearExamenDesdeplanneacionComponent implements OnInit, OnDestroy {
   onPlaneacionSelect(planeacion: any) {
     this.planeacionSeleccionada = planeacion.planeacion_id;
 
-    this.apiService.get(`/api/v1/planeacion/${planeacion.planeacion_id}/detalles`)
+    this.apiService.get<any>(`/planeacion/${planeacion.planeacion_id}/detalles`)
       .pipe(takeUntil(this.destroy$))
       .subscribe(
         res => {
@@ -368,7 +376,11 @@ export class CrearExamenDesdeplanneacionComponent implements OnInit, OnDestroy {
   guardarExamen() {
     if (!this.examenForm.valid || !this.planeacionSeleccionada) return;
 
-    const body = {
+    // CrearExamenDesdeplanneacionRequest es un record Java con campos ya declarados
+    // snake_case (planeacion_clase_id, nombre_evaluacion, puntaje_maximo) — el schema
+    // generado SÍ coincide con el JSON real (no aplica el hallazgo camelCase/snake_case
+    // de otros DTOs de este módulo, ver PlaneacionController.java).
+    const body: components['schemas']['CrearExamenDesdeplanneacionRequest'] = {
       planeacion_clase_id: this.planeacionSeleccionada,
       nombre_evaluacion: this.examenForm.get('nombreEvaluacion')!.value,
       descripcion: this.examenForm.get('descripcion')!.value,
@@ -377,7 +389,7 @@ export class CrearExamenDesdeplanneacionComponent implements OnInit, OnDestroy {
     };
 
     this.guardando.set(true);
-    this.apiService.post('/api/v1/planeacion/examenes/desde-planeacion', body)
+    this.apiService.post<unknown>('/planeacion/examenes/desde-planeacion', body)
       .pipe(takeUntil(this.destroy$))
       .subscribe(
         res => {

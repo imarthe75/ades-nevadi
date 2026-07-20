@@ -336,8 +336,16 @@ export class AlumnosComponent implements OnInit, OnDestroy {
 
   cargarAlumnos(): void {
     const params: Record<string, any> = {
+      // Bug real 2026-07-20: el backend (Pageable nativo de Spring) ignoraba estos
+      // nombres de parámetro en silencio y caía siempre al default (page=0,size=20) —
+      // con 2268+ alumnos reales, la pantalla solo mostraba los primeros 20 sin ningún
+      // error ni indicación, y "siguiente página" aparecía deshabilitado porque, desde
+      // este grid (paginación 100% client-side sobre [data]), esos 20 eran todo el
+      // dataset recibido. Corregido en application.yml (spring.data.web.pageable) para
+      // que el backend reconozca esta convención. por_pagina se sube de 500 a 5000
+      // (con margen para años de crecimiento de matrícula) ya que ahora sí se respeta.
       pagina: 1,
-      por_pagina: 500,
+      por_pagina: 5000,
     };
     const plantel = this.ctx.plantel(); if (plantel?.id) params['plantel_id'] = plantel.id;
     const nivel = this.ctx.nivel();     if (nivel?.id)   params['nivel_id']   = nivel.id;
@@ -445,11 +453,19 @@ export class AlumnosComponent implements OnInit, OnDestroy {
     }
 
     this.asignandoMasivo.set(true);
+    // HALLAZGO REAL (auditoría de tipado 2026-07-19): application.yml fija
+    // spring.jackson.property-naming-strategy: SNAKE_CASE globalmente y ApiService no
+    // convierte el body — MovilidadController#cambioGrupoMasivo espera
+    // estudiante_ids/grupo_destino_id/ciclo_escolar_id. El payload anterior mandaba
+    // camelCase (estudianteIds/grupoDestinoId/cicloEscolarId), así que
+    // CambioGrupoMasivoRequest.grupoDestinoId (@NotNull) siempre deserializaba a null y
+    // el endpoint devolvía 400 en cada intento de asignación masiva — la función estaba
+    // rota en silencio. Corregido a snake_case real.
     const payload = {
-      estudianteIds: this.masivoSeleccionIds,
-      grupoDestinoId: this.masivoForm.grupoDestinoId,
+      estudiante_ids: this.masivoSeleccionIds,
+      grupo_destino_id: this.masivoForm.grupoDestinoId,
       motivo: this.masivoForm.motivo.trim(),
-      cicloEscolarId: this.ctx.ciclo()?.id ?? null,
+      ciclo_escolar_id: this.ctx.ciclo()?.id ?? null,
     };
     this.api.post<{ total: number; exitosos: number; fallidos: { estudianteId: string; error: string }[] }>(
       '/movilidad/cambio-grupo-masivo', payload

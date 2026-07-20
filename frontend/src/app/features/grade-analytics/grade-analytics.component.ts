@@ -15,6 +15,7 @@ import { ApiService } from '../../core/services/api.service';
 import { ContextService } from '../../core/services/context.service';
 import { ExportService, ExportColumn } from '../../core/services/export.service';
 import { InteractiveGridComponent, ColumnConfig } from '../../shared/components/interactive-grid/interactive-grid.component';
+import type { Grupo } from '../../core/models';
 
 type TagSeverity = 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' | undefined;
 
@@ -408,7 +409,7 @@ export class GradeAnalyticsComponent implements OnInit, OnDestroy {
     if (plantel) params['plantel_id'] = plantel.id;
     if (ciclo)   params['ciclo_id']   = ciclo.id;
 
-    this.api.get<any[]>('/grupos', params).pipe(takeUntil(this.destroy$)).subscribe(list => {
+    this.api.get<Grupo[]>('/grupos', params).pipe(takeUntil(this.destroy$)).subscribe(list => {
       this.grupos.set(list.map(g => ({
         label: `${g.nombre_grupo} — ${g.nombre_grado ?? ''}`,
         value: g.id,

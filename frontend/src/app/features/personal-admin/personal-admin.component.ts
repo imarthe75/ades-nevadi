@@ -641,7 +641,7 @@ export class PersonalAdminComponent implements OnInit, OnDestroy {
       accept: () => {
         const endpoint = this.modoSalud() ? `/personal-salud/${sel.id}` : `/personal-admin/${sel.id}`;
         this.guardando.set(true);
-        this.api.delete(endpoint).pipe(takeUntil(this.destroy$)).subscribe({
+        this.api.delete<void>(endpoint).pipe(takeUntil(this.destroy$)).subscribe({
           next: () => {
             this.notify.success('Dado de baja', 'Registro desactivado (soft delete)');
             this.perfilVisible.set(false);
