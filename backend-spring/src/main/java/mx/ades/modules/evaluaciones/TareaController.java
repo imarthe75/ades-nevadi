@@ -60,14 +60,24 @@ public class TareaController {
         return ResponseEntity.ok(query.actividadesDeGrupoPaginado(grupoId, materiaId, periodoId, tipoItem, pageable));
     }
 
-    /** GET /tareas?grupo_id=...&materia_id=... — alias con query params (formato usado por el frontend) */
+    /**
+     * GET /tareas?grupo_id=...&materia_id=... — alias con query params (formato usado por
+     * el frontend). Devuelve el arreglo plano de tareas (no el objeto Page de Spring):
+     * tareas.component.ts::loadTareas() tipa la respuesta como Tarea[] y hace
+     * this.tareas().length / lo pasa directo a app-interactive-grid, que a su vez hace
+     * [...this.data] — un objeto Page (no iterable) rompía ese spread en tiempo de
+     * ejecución. Bug real confirmado en vivo 2026-07-20 (curl directo devolvía
+     * {"content":[...],"pageable":{...},...} en vez de un arreglo). tsc --noEmit no lo
+     * detecta porque el tipo genérico de this.api.get<Tarea[]>(...) es solo una aserción
+     * de compilación, no una validación en tiempo de ejecución.
+     */
     @GetMapping
-    public ResponseEntity<Page<Map<String, Object>>> listar(
+    public ResponseEntity<List<Map<String, Object>>> listar(
             @RequestParam(value = "grupo_id", required = false) UUID grupoId,
             @RequestParam(value = "materia_id", required = false) UUID materiaId,
             @RequestParam(value = "periodo_id", required = false) UUID periodoId,
             @RequestParam(value = "tipo_item", required = false) String tipoItem,
-            @PageableDefault(size = 20, sort = "fecha_creacion", direction = org.springframework.data.domain.Sort.Direction.DESC) Pageable pageable,
+            @PageableDefault(size = 500, sort = "fecha_creacion", direction = org.springframework.data.domain.Sort.Direction.DESC) Pageable pageable,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         // Para no-admins (DOCENTE, ALUMNO, PADRE) requerir grupo_id para evitar volcado cross-plantel
@@ -83,7 +93,8 @@ public class TareaController {
         if (grupoId != null) {
             requireAccesoGrupoTarea(user, grupoId);
         }
-        return ResponseEntity.ok(query.actividadesDeGrupoPaginado(grupoId, materiaId, periodoId, tipoItem, pageable));
+        Page<Map<String, Object>> page = query.actividadesDeGrupoPaginado(grupoId, materiaId, periodoId, tipoItem, pageable);
+        return ResponseEntity.ok(page.getContent());
     }
 
     /** PATCH /tareas/{id} — actualiza campos editables de la tarea */

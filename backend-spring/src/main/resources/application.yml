@@ -78,6 +78,24 @@ spring:
   flyway:
     enabled: false
   data:
+    web:
+      pageable:
+        # Bug real 2026-07-20: AlumnoController/TareaController usan Pageable nativo de
+        # Spring (parámetros "page"/"size", 0-indexado) mientras el resto del proyecto usa
+        # la convención "pagina"/"por_pagina" (1-indexado, ver AuditoriaController y otros
+        # con @RequestParam manual). El frontend llama con "pagina"/"por_pagina" — Spring
+        # ignoraba en silencio esos nombres no reconocidos y caía siempre al default
+        # (page=0,size=20), sin error visible. Confirmado en vivo: /api/v1/alumnos con
+        # pagina=1&por_pagina=500 devolvía solo 20 de 2268 alumnos reales (paginación
+        # "siguiente" deshabilitada porque, desde el grid, esos 20 eran todo el dataset
+        # recibido). Alineado aquí con la convención real del resto del proyecto en vez de
+        # tocar cada controller/frontend por separado — corrige la raíz para cualquier
+        # endpoint presente o futuro que use Pageable nativo.
+        page-parameter: pagina
+        size-parameter: por_pagina
+        one-indexed-parameters: true
+        default-page-size: 20
+        max-page-size: 5000
     redis:
       host: ${SPRING_DATA_REDIS_HOST:localhost}
       port: ${SPRING_DATA_REDIS_PORT:6379}

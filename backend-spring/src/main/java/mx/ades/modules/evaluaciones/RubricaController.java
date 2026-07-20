@@ -218,15 +218,23 @@ public class RubricaController {
     }
 
     /**
-     * Crear/editar/eliminar rúbricas y criterios (usados para calificar) es operación
-     * de personal escolar (nivelAcceso &le;4: admin/director/coordinador/docente).
+     * Crear/editar/eliminar rúbricas y criterios (usados para calificar) requiere
+     * Coordinador o superior (nivelAcceso &le;3: admin/director/coordinador).
      * Hallazgo de auditoría Fase 5: antes solo se llamaba resolveUser sin verificar
      * nivelAcceso, permitiendo a cualquier usuario autenticado (incluido alumno/padre,
      * nivelAcceso &ge;5) crear o borrar rúbricas de evaluación — previene BFLA (OWASP API5).
+     * Hallazgo real 2026-07-20: el umbral quedó en nivelAcceso &le;4 (docente incluido),
+     * pero las rúbricas son un recurso curricular COMPARTIDO por todo el instituto (por
+     * materia + nivel educativo, no por plantel/grupo) — cualquier docente de cualquiera
+     * de los 3 planteles podía editar o borrar (soft-delete) una rúbrica en uso por
+     * docentes de OTROS planteles, sin ownership ni umbral más estricto, a diferencia de
+     * PlanesEstudioController (mismo tipo de recurso curricular compartido), que exige
+     * NIVEL_ADMIN_PLANTEL. Alineado aquí con ese mismo precedente: docentes pueden usar
+     * rúbricas para calificar, pero editarlas/borrarlas requiere Coordinador o superior.
      */
     private void requireStaff(AdesUser user) {
         Integer nivelAcceso = user.getNivelAcceso();
-        if (nivelAcceso == null || nivelAcceso > 4) {
+        if (nivelAcceso == null || nivelAcceso > 3) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Nivel de acceso insuficiente para esta operación");
         }
     }
