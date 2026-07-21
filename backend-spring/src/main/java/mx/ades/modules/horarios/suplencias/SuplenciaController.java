@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
-import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.UUID;
 
@@ -45,12 +44,7 @@ public class SuplenciaController {
         if (body.getFecha() == null || body.getFecha().isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "fecha es requerida");
         }
-        LocalDate fecha;
-        try {
-            fecha = LocalDate.parse(body.getFecha());
-        } catch (DateTimeParseException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "fecha con formato inválido (esperado YYYY-MM-DD)");
-        }
+        LocalDate fecha = mx.ades.common.ValidationUtils.parseFechaFlexible(body.getFecha(), "fecha");
 
         Suplencia suplencia = new Suplencia();
         suplencia.setProfesorAusenteId(body.getProfesorAusenteId());
@@ -79,12 +73,7 @@ public class SuplenciaController {
         AdesUser user = userService.resolveUser(jwt);
         requireStaff(user);
         UUID plantelFiltro = userService.getEffectivePlantelId(user, null);
-        LocalDate fecha;
-        try {
-            fecha = LocalDate.parse(fechaStr);
-        } catch (DateTimeParseException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "fecha con formato inválido (esperado YYYY-MM-DD)");
-        }
+        LocalDate fecha = mx.ades.common.ValidationUtils.parseFechaFlexible(fechaStr, "fecha");
         if (plantelFiltro != null) {
             return ResponseEntity.ok(suplenciaRepository.findByFechaAndIsActiveTrueAndPlantel(fecha, plantelFiltro));
         }

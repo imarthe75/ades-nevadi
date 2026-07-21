@@ -614,9 +614,15 @@ export class TareasComponent implements OnInit, OnDestroy {
       calificacion: this.calificarForm.calificacion,
       comentario:   this.calificarForm.comentario,
     }).pipe(takeUntil(this.destroy$)).subscribe({
-      next: () => {
+      next: (res: any) => {
         this.calificando.set(false); this.calificarVisible = false;
-        this.notify.success('Calificación guardada', e.alumno_nombre);
+        // H-3 (auditoría 2026-07-20): el backend distingue explícitamente cuando se
+        // calificó una entrega que el alumno nunca subió.
+        if (res?.sinEntrega) {
+          this.notify.warning('Guardado con aviso', `${e.alumno_nombre} nunca entregó — se registró la nota como "no entregado"`);
+        } else {
+          this.notify.success('Calificación guardada', e.alumno_nombre);
+        }
         this._loadEntregasPendientes();
       },
       error: (err: any) => {

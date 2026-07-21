@@ -84,8 +84,15 @@ public class EntregaPersistenceAdapter implements EntregaRepositoryPort {
     }
 
     @Override
-    public int calificar(CalificarEntregaUseCase.Command cmd) {
-        return jdbc.update(
+    public EntregaRepositoryPort.CalificarResult calificar(CalificarEntregaUseCase.Command cmd) {
+        // H-3: detectar ANTES de calificar si esta entrega seguía en PENDIENTE (el alumno
+        // nunca subió nada) para poder distinguirlo de una entrega real revisada.
+        List<String> estatusActual = jdbc.queryForList(
+                "SELECT estatus_entrega FROM ades_tareas_entregas WHERE id = ? AND is_active = TRUE",
+                String.class, cmd.entregaId());
+        boolean sinEntrega = !estatusActual.isEmpty() && "PENDIENTE".equals(estatusActual.get(0));
+
+        int rows = jdbc.update(
             "UPDATE ades_tareas_entregas " +
             "SET calificacion_obtenida = ?, comentario_profesor = ?, calificado_por = ?, " +
             "    fecha_calificacion_docente = CURRENT_TIMESTAMP, estatus_entrega = 'CALIFICADA', " +
@@ -93,6 +100,7 @@ public class EntregaPersistenceAdapter implements EntregaRepositoryPort {
             "    usuario_modificacion = ? " +
             "WHERE id = ? AND is_active = TRUE",
             cmd.calificacion(), cmd.comentario(), cmd.calificadoPor(), cmd.usuario(), cmd.entregaId());
+        return new EntregaRepositoryPort.CalificarResult(rows, sinEntrega);
     }
 
     @Override

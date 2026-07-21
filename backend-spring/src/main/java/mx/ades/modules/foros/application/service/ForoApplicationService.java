@@ -14,7 +14,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
-import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -108,19 +107,10 @@ public class ForoApplicationService
         a.setContenido(cmd.contenido());
         a.setPlantelId(cmd.plantelId());
         a.setNivelEducativo(cmd.nivelEducativo());
-        if (cmd.fechaInicio() != null) a.setFechaInicio(parseFecha(cmd.fechaInicio()));
-        if (cmd.fechaFin() != null) a.setFechaFin(parseFecha(cmd.fechaFin()));
+        if (cmd.fechaInicio() != null) a.setFechaInicio(mx.ades.common.ValidationUtils.parseFechaFlexible(cmd.fechaInicio(), "fechaInicio"));
+        if (cmd.fechaFin() != null) a.setFechaFin(mx.ades.common.ValidationUtils.parseFechaFlexible(cmd.fechaFin(), "fechaFin"));
         a.setEsUrgente(Boolean.TRUE.equals(cmd.esUrgente()));
         Anuncio saved = port.saveAnuncio(a);
         return Map.of("id", saved.getId(), "message", "Anuncio publicado");
-    }
-
-    /** ISO-8601 estricto (YYYY-MM-DD); 400 claro en vez de 500 ante un formato inválido. */
-    private LocalDate parseFecha(String raw) {
-        try {
-            return LocalDate.parse(raw);
-        } catch (DateTimeParseException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Fecha con formato inválido (esperado YYYY-MM-DD): " + raw);
-        }
     }
 }

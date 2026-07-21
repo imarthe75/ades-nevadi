@@ -17,7 +17,15 @@ public interface EntregaRepositoryPort {
     List<Map<String, Object>> listByAlumno(UUID alumnoId, UUID periodoId, UUID materiaId, boolean soloPendientes);
     List<Map<String, Object>> pendientesByGrupo(UUID grupoId, UUID materiaId);
     void upsertEntrega(SubirEntregaUseCase.Command cmd);
-    int calificar(CalificarEntregaUseCase.Command cmd);
+
+    /**
+     * H-3 (auditoría 2026-07-20, mismo hallazgo que la ruta de calificación masiva):
+     * calificar una entrega en PENDIENTE (nunca subida por el alumno) está permitido,
+     * pero debe quedar distinguible de una entrega real revisada.
+     */
+    record CalificarResult(int rows, boolean sinEntrega) {}
+
+    CalificarResult calificar(CalificarEntregaUseCase.Command cmd);
     int registrarExcusa(UUID entregaId, String motivo, String usuario);
 
     /** OA-020: reabre una entrega calificada/excusada para permitir una nueva entrega. */

@@ -13,12 +13,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
 import mx.ades.security.AdesUser;
 import mx.ades.security.AdesUserService;
 
 import java.time.LocalDate;
-import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -126,8 +124,8 @@ public class ComplianceController {
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         int nivel = user.getNivelAcceso() != null ? user.getNivelAcceso() : 5;
-        LocalDate fi = data.getFechaVigenciaInicio() != null ? parseFecha(data.getFechaVigenciaInicio()) : LocalDate.now();
-        LocalDate ff = data.getFechaVigenciaFin() != null ? parseFecha(data.getFechaVigenciaFin()) : null;
+        LocalDate fi = data.getFechaVigenciaInicio() != null ? mx.ades.common.ValidationUtils.parseFechaFlexible(data.getFechaVigenciaInicio(), "fechaVigenciaInicio") : LocalDate.now();
+        LocalDate ff = data.getFechaVigenciaFin() != null ? mx.ades.common.ValidationUtils.parseFechaFlexible(data.getFechaVigenciaFin(), "fechaVigenciaFin") : null;
         var cmd = new RegistrarNormativaUseCase.Command(
                 data.getNombre(), data.getTipo(), data.getDescripcion(), fi, ff,
                 data.getUrlDocumento(),
@@ -160,8 +158,8 @@ public class ComplianceController {
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
         int nivel = user.getNivelAcceso() != null ? user.getNivelAcceso() : 5;
-        LocalDate fi = data.getFechaInicio() != null ? parseFecha(data.getFechaInicio()) : LocalDate.now();
-        LocalDate ff = data.getFechaFin() != null ? parseFecha(data.getFechaFin()) : null;
+        LocalDate fi = data.getFechaInicio() != null ? mx.ades.common.ValidationUtils.parseFechaFlexible(data.getFechaInicio(), "fechaInicio") : LocalDate.now();
+        LocalDate ff = data.getFechaFin() != null ? mx.ades.common.ValidationUtils.parseFechaFlexible(data.getFechaFin(), "fechaFin") : null;
         var cmd = new RegistrarRetencionUseCase.Command(
                 data.getAlumnoId(), data.getTipoRetencion(), data.getMotivo(), fi, ff,
                 data.getAccionesRequeridas(), user.getPersonaId(), user.getUsername(), nivel);
@@ -207,14 +205,5 @@ public class ComplianceController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         return ResponseEntity.ok(dashboardService.resumen());
-    }
-
-    /** ISO-8601 estricto (YYYY-MM-DD); 400 claro en vez de 500 ante un formato inválido. */
-    private LocalDate parseFecha(String raw) {
-        try {
-            return LocalDate.parse(raw);
-        } catch (DateTimeParseException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Fecha con formato inválido (esperado YYYY-MM-DD): " + raw);
-        }
     }
 }

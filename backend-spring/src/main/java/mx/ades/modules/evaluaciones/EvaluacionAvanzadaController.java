@@ -216,7 +216,7 @@ public class EvaluacionAvanzadaController {
         nee.setTipoNee(data.getTipoNee());
         nee.setDescripcion(data.getDescripcion());
         nee.setApoyosRequeridos(data.getApoyosRequeridos());
-        nee.setFechaDeteccion(data.getFechaDeteccion() != null ? parseFecha(data.getFechaDeteccion()) : null);
+        nee.setFechaDeteccion(data.getFechaDeteccion() != null ? mx.ades.common.ValidationUtils.parseFechaFlexible(data.getFechaDeteccion(), "fechaDeteccion") : null);
         nee.setProfesionalDetecta(data.getProfesionalDetecta());
         nee.setActiva(data.getActiva());
         nee.setUsuarioCreacion(user.getUsername());
@@ -249,7 +249,7 @@ public class EvaluacionAvanzadaController {
         if (data.getFecha() == null || data.getFecha().isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "fecha es requerida");
         }
-        LocalDate fecha = parseFecha(data.getFecha());
+        LocalDate fecha = mx.ades.common.ValidationUtils.parseFechaFlexible(data.getFecha(), "fecha");
 
         UUID asignacionId = asignarAulaHora.ejecutar(new AsignarAulaHoraUseCase.Command(
                 data.getClaseId(), data.getAulaId(),
@@ -267,7 +267,7 @@ public class EvaluacionAvanzadaController {
             @RequestParam(value = "fecha", required = false) String fechaStr,
             @AuthenticationPrincipal Jwt jwt) {
         AdesUser user = userService.resolveUser(jwt);
-        LocalDate fecha = fechaStr != null && !fechaStr.isBlank() ? parseFecha(fechaStr) : null;
+        LocalDate fecha = fechaStr != null && !fechaStr.isBlank() ? mx.ades.common.ValidationUtils.parseFechaFlexible(fechaStr, "fecha") : null;
         // BOLA fix (asimetría): mismo criterio que listarNee() — solo ADMIN_GLOBAL
         // (nivelAcceso 0) mantiene alcance institucional real.
         UUID plantel = (user.getNivelAcceso() != null && user.getNivelAcceso() > 0 && user.getPlantelId() != null)
@@ -283,12 +283,4 @@ public class EvaluacionAvanzadaController {
         }
     }
 
-    /** ISO-8601 estricto (YYYY-MM-DD); 400 claro en vez de 500 ante un formato inválido. */
-    private LocalDate parseFecha(String raw) {
-        try {
-            return LocalDate.parse(raw);
-        } catch (java.time.format.DateTimeParseException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Fecha con formato inválido (esperado YYYY-MM-DD): " + raw);
-        }
-    }
 }

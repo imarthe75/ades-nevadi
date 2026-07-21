@@ -97,6 +97,26 @@ verificados `UP` post-deploy. Migraciones 158/159/160 aplicadas en la BD real. L
 periodos abiertos recalculados con la fórmula corregida. **Sin commit** (Regla Mandatoria
 #21 — pendiente instrucción explícita del usuario).
 
+**Ronda 2 (mismo día, tras compartir el usuario el reporte completo de la auditoría
+externa):** 2 gaps propios corregidos + 1 corrección real encontrada al leer el reporte
+completo:
+- `EntregaPersistenceAdapter.calificar()` (ruta de calificación individual, no masiva)
+  tenía el mismo hueco que H-3 — ahora también detecta y devuelve `sinEntrega` (nuevo
+  `EntregaRepositoryPort.CalificarResult`), propagado hasta `tareas.component.ts`.
+- `ProcesosPersistenceAdapter.guardar()` (conversión preinscripción→alumno inscrito, 4
+  INSERT/UPDATE encadenados) no tenía `@Transactional` — riesgo de fila huérfana en
+  `ades_personas` ante fallo parcial. Agregado.
+- **Corrección real, no solo gap-filling:** mi fix de H-9 (sesión anterior, mismo día)
+  usaba `LocalDate.parse()` estricto ISO envuelto en try/catch propio — rechazaba
+  formato México (dd/MM/yyyy) con 400 en vez de aceptarlo. El reporte completo del
+  usuario reveló que YA existe `ValidationUtils.parseFechaFlexible()` (acepta ambos
+  formatos) y que `TareaController`/`ActividadesController` ya lo usaban — patrón
+  establecido que mi fix original no siguió. Unificados los 6 puntos (Compliance ×2,
+  Suplencias ×1, Foros ×1, EvaluacionAvanzada ×2) a este helper compartido, eliminando
+  los 3 helpers privados duplicados que había creado.
+- `mvn test`/`tsc --noEmit` limpios, imágenes reconstruidas, `ades-bff`/`ades-frontend`
+  redesplegados y verificados `UP`. Sin commit (Regla #21).
+
 ## Sesión 2026-07-20 — Fuzz-data en producción, 4 bugs reales de paginación, upgrade mayor FastAPI, 3 funciones nuevas ✅
 
 Encargo inicial: verificar los 8 puntos pendientes de la sesión anterior y cerrar huecos hacia

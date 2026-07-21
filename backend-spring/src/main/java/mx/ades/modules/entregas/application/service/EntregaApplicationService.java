@@ -37,9 +37,12 @@ public class EntregaApplicationService
     @Override
     @Transactional
     public Map<String, Object> calificar(CalificarEntregaUseCase.Command cmd) {
-        int updated = repository.calificar(cmd);
-        if (updated == 0) throw new IllegalArgumentException("Entrega no encontrada: " + cmd.entregaId());
-        return Map.of("message", "Calificación registrada");
+        var resultado = repository.calificar(cmd);
+        if (resultado.rows() == 0) throw new IllegalArgumentException("Entrega no encontrada: " + cmd.entregaId());
+        // H-3: avisar explícitamente si se calificó una entrega que el alumno nunca subió.
+        return resultado.sinEntrega()
+                ? Map.of("message", "Calificación registrada", "sinEntrega", true)
+                : Map.of("message", "Calificación registrada");
     }
 
     @Override

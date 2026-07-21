@@ -4,6 +4,7 @@ import mx.ades.modules.procesos.domain.port.in.ProcesarPreinscripcionUseCase;
 import mx.ades.modules.procesos.domain.port.out.PreinscripcionRepositoryPort;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 
@@ -44,6 +45,10 @@ public class ProcesosPersistenceAdapter implements PreinscripcionRepositoryPort 
     }
 
     @Override
+    @Transactional
+    // 4 INSERT/UPDATE encadenados (persona, estudiante, inscripción, solicitud) sin
+    // @Transactional: si el 2° o 3° fallaba, la persona ya insertada quedaba huérfana
+    // sin alumno asociado. Hallazgo colateral al corregir la matrícula racy (H-5, 2026-07-21).
     public ProcesarPreinscripcionUseCase.PreinscripcionResult guardar(
             ProcesarPreinscripcionUseCase.Command command, AdmisionData admision) {
 
