@@ -215,10 +215,15 @@ public class TareaController {
         // nivelAcceso ni asignación docente↔grupo — activo más sensible del sistema.
         requireAccesoGrupoTarea(user, grupoIdDeTarea(actividadId));
 
-        int actualizados = calificarMasivo.ejecutar(
+        CalificarMasivoUseCase.Result resultado = calificarMasivo.ejecutar(
                 new CalificarMasivoUseCase.Command(actividadId, request.items(), user.getPersonaId()));
 
-        return ResponseEntity.ok(Map.of("actualizados", actualizados));
+        // H-3: sinEntrega lista los alumnos que se calificaron sin haber entregado
+        // nada (estaban en PENDIENTE) — el frontend debe mostrarlo como confirmación
+        // explícita de "no entregado", no dejarlo pasar como una entrega revisada más.
+        return ResponseEntity.ok(Map.of(
+                "actualizados", resultado.actualizados(),
+                "sinEntrega", resultado.sinEntrega()));
     }
 
     private UUID grupoIdDeTarea(UUID actividadId) {

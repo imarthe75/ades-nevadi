@@ -43,5 +43,7 @@ public interface TareaRepositoryPort {
 
     Optional<BigDecimal> findPuntajeMaximo(UUID tareaId);
 
-    int calificarItems(UUID tareaId, List<ItemCalificacion> items, UUID calificadorId);
+    /** sinEntrega: estudianteId cuya entrega estaba en PENDIENTE antes de calificar (H-3). */
+    mx.ades.modules.evaluaciones.domain.port.in.CalificarMasivoUseCase.Result calificarItems(
+            UUID tareaId, List<ItemCalificacion> items, UUID calificadorId);
 }

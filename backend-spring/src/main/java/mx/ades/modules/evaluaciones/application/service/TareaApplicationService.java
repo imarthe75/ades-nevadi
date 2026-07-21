@@ -51,7 +51,7 @@ public class TareaApplicationService implements CrearActividadUseCase, Calificar
     }
 
     @Override
-    public int ejecutar(CalificarMasivoUseCase.Command cmd) {
+    public CalificarMasivoUseCase.Result ejecutar(CalificarMasivoUseCase.Command cmd) {
         BigDecimal puntajeMaximo = repository.findPuntajeMaximo(cmd.tareaId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Actividad no encontrada"));
 

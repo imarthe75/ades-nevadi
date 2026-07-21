@@ -93,9 +93,14 @@ public class ImportsWriteService {
         }
     }
 
-    public long countEstudiantes() {
-        Long count = jdbc.queryForObject("SELECT COUNT(*) FROM ades_estudiantes", Long.class);
-        return count != null ? count : 0L;
+    /**
+     * Matrícula atómica vía secuencia de Postgres — reemplaza el contador local
+     * en memoria (H-5, auditoría 2026-07-20): un contador por request no protegía
+     * contra dos imports concurrentes generando la misma matrícula.
+     */
+    public String siguienteMatricula() {
+        Long seq = jdbc.queryForObject("SELECT nextval('ades_estudiantes_matricula_seq')", Long.class);
+        return String.format("MAT-%06d", seq);
     }
 
     // ── Dup checks ────────────────────────────────────────────────────────────

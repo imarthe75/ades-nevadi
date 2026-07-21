@@ -28,6 +28,11 @@ public class PlanAltWriteService {
             VALUES (?, ?, ?, ?)
             """, id, estudianteId, grupoId, motivo);
 
+        // Auditoría 2026-07-20 (principio "preferir operaciones Bulk"): un INSERT por
+        // materia del plan alternativo — se valida todo primero (mismo comportamiento de
+        // "falla antes de persistir nada", ya que el método es @Transactional) y se
+        // inserta en un solo batchUpdate.
+        List<Object[]> batchArgs = new java.util.ArrayList<>();
         for (Map<String, Object> m : materias) {
             // materia_id es NOT NULL en ades_planes_estudio_alt_materias; sin esta validación,
             // UUID.fromString(null) lanza NullPointerException y cae en el 500 genérico
@@ -37,10 +42,13 @@ public class PlanAltWriteService {
                 throw new IllegalArgumentException("materia_id es obligatorio para cada materia del plan alternativo");
             UUID materiaId = UUID.fromString(materiaIdRaw.toString());
             Double horas = m.get("horas_semana") != null ? ((Number) m.get("horas_semana")).doubleValue() : null;
-            jdbc.update("""
+            batchArgs.add(new Object[]{id, materiaId, horas});
+        }
+        if (!batchArgs.isEmpty()) {
+            jdbc.batchUpdate("""
                 INSERT INTO ades_planes_estudio_alt_materias (plan_alt_id, materia_id, horas_semana)
                 VALUES (?, ?, ?)
-                """, id, materiaId, horas);
+                """, batchArgs);
         }
         return id;
     }

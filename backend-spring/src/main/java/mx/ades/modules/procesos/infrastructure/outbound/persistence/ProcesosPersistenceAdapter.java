@@ -61,7 +61,10 @@ public class ProcesosPersistenceAdapter implements PreinscripcionRepositoryPort 
                 UUID.class, command.grupoId());
 
         UUID estudianteId = UUID.randomUUID();
-        String matricula = "MAT-" + (100000 + new Random().nextInt(900000));
+        // H-5 (auditoría 2026-07-20): Random().nextInt() sin verificación de colisión
+        // reemplazado por la secuencia atómica compartida (ver AlumnoPersistenceAdapter).
+        Long matSeq = jdbc.queryForObject("SELECT nextval('ades_estudiantes_matricula_seq')", Long.class);
+        String matricula = String.format("MAT-%06d", matSeq);
         jdbc.update(
                 "INSERT INTO ades_estudiantes (id, persona_id, matricula, plantel_id, usuario_creacion, usuario_modificacion) " +
                 "VALUES (?, ?, ?, ?, ?, ?)",

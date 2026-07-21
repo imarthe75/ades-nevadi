@@ -696,9 +696,17 @@ export class GradebookComponent implements OnInit, OnDestroy {
     if (!items.length) return;
     this.guardandoCalifMasiva.set(true);
     this.api.patch(`/actividades/${act.id}/calificar-masivo`, items).pipe(takeUntil(this.destroy$)).subscribe({
-      next: () => {
+      next: (r: any) => {
         this.guardandoCalifMasiva.set(false);
-        this.notify.success('Guardado', `${items.length} calificaciones guardadas`);
+        const sinEntrega = r?.sinEntrega ?? [];
+        // H-3 (auditoría 2026-07-20): distinguir "calificado sin haber entregado nada"
+        // de una entrega real revisada — el backend ya no lo mezcla en silencio.
+        if (sinEntrega.length > 0) {
+          this.notify.warning('Guardado con avisos',
+            `${items.length} calificaciones guardadas — ${sinEntrega.length} de ellas eran alumnos que nunca entregaron (se registró la nota indicada como "no entregado").`);
+        } else {
+          this.notify.success('Guardado', `${items.length} calificaciones guardadas`);
+        }
         this.drawerCalifVisible = false;
         this.cargarActividades();
         this.cargarConcentrado();

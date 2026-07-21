@@ -19,7 +19,8 @@ import java.util.UUID;
 public interface DisponibilidadRepositoryPort {
     List<Map<String, Object>> list(UUID profesorId, UUID cicloEscolarId, String q, UUID plantelId);
     void softDeleteByProfesor(UUID profesorId, UUID cicloEscolarId);
-    void createSlot(UUID profesorId, UUID cicloEscolarId, GuardarDisponibilidadUseCase.Slot slot, String usuario);
+    /** Bulk: crea todos los slots de una sola vez (batchUpdate) — una disponibilidad semanal típica son 40-50 slots. */
+    void createSlots(UUID profesorId, UUID cicloEscolarId, List<GuardarDisponibilidadUseCase.Slot> slots, String usuario);
     void updateProfesorHoras(UUID profesorId, Double horasSemanaMax, Double horasFrenteGrupo, String usuario);
     Optional<DisponibilidadDocente> findById(UUID id);
     DisponibilidadDocente save(DisponibilidadDocente slot);

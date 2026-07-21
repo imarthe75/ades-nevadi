@@ -96,12 +96,14 @@ class TareaApplicationServiceTest {
         List<ItemCalificacion> items = List.of(
                 new ItemCalificacion(UUID.randomUUID(), new BigDecimal("8"), "ok"),
                 new ItemCalificacion(UUID.randomUUID(), new BigDecimal("9.5"), "bien"));
-        when(repository.calificarItems(eq(tareaId), eq(items), eq(calificadorId))).thenReturn(2);
+        when(repository.calificarItems(eq(tareaId), eq(items), eq(calificadorId)))
+                .thenReturn(new CalificarMasivoUseCase.Result(2, List.of()));
 
-        int actualizados = service.ejecutar(
+        CalificarMasivoUseCase.Result resultado = service.ejecutar(
                 new CalificarMasivoUseCase.Command(tareaId, items, calificadorId));
 
-        assertEquals(2, actualizados);
+        assertEquals(2, resultado.actualizados());
+        assertEquals(List.of(), resultado.sinEntrega());
     }
 
     @Test

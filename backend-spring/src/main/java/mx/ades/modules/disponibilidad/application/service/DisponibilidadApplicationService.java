@@ -33,9 +33,7 @@ public class DisponibilidadApplicationService
     @Override
     public void guardar(GuardarDisponibilidadUseCase.Command cmd) {
         repo.softDeleteByProfesor(cmd.profesorId(), cmd.cicloEscolarId());
-        for (GuardarDisponibilidadUseCase.Slot slot : cmd.slots()) {
-            repo.createSlot(cmd.profesorId(), cmd.cicloEscolarId(), slot, cmd.usuario());
-        }
+        repo.createSlots(cmd.profesorId(), cmd.cicloEscolarId(), cmd.slots(), cmd.usuario());
         if (cmd.horasSemanaMax() != null || cmd.horasFrenteGrupo() != null) {
             repo.updateProfesorHoras(cmd.profesorId(), cmd.horasSemanaMax(), cmd.horasFrenteGrupo(), cmd.usuario());
         }

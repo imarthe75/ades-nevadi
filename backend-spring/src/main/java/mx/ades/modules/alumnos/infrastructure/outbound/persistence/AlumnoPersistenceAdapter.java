@@ -51,10 +51,10 @@ public class AlumnoPersistenceAdapter implements AlumnoRepositoryPort {
 
     @Override
     public String generarSiguienteMatricula() {
-        Integer seq = jdbc.queryForObject(
-                "SELECT COALESCE(MAX(CAST(REGEXP_REPLACE(matricula,'[^0-9]','','g') AS BIGINT)),0)::int + 1 " +
-                "FROM ades_estudiantes WHERE matricula ~ '^MAT-[0-9]+$'",
-                Integer.class);
-        return String.format("MAT-%06d", seq == null ? 1 : seq);
+        // H-5 (auditoría 2026-07-20): MAX(...)+1 no es atómico — dos altas concurrentes
+        // pueden leer el mismo MAX y generar la misma matrícula. nextval() de una
+        // secuencia de Postgres sí lo es, sin importar la concurrencia.
+        Long seq = jdbc.queryForObject("SELECT nextval('ades_estudiantes_matricula_seq')", Long.class);
+        return String.format("MAT-%06d", seq);
     }
 }

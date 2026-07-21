@@ -90,8 +90,19 @@ public class TareaPersistenceAdapter implements TareaRepositoryPort {
 
     @Override
     @Transactional
-    public int calificarItems(UUID tareaId, List<ItemCalificacion> items, UUID calificadorId) {
-        if (items.isEmpty()) return 0;
+    public mx.ades.modules.evaluaciones.domain.port.in.CalificarMasivoUseCase.Result calificarItems(
+            UUID tareaId, List<ItemCalificacion> items, UUID calificadorId) {
+        if (items.isEmpty())
+            return new mx.ades.modules.evaluaciones.domain.port.in.CalificarMasivoUseCase.Result(0, List.of());
+
+        // H-3 (auditoría 2026-07-20): detectar ANTES de calificar cuáles ya estaban en
+        // PENDIENTE (nunca entregadas) para devolverlo como confirmación explícita.
+        List<UUID> estudianteIds = items.stream().map(ItemCalificacion::estudianteId).toList();
+        List<UUID> sinEntrega = jdbc.queryForList(
+                "SELECT estudiante_id FROM ades_tareas_entregas " +
+                "WHERE tarea_id = ?::uuid AND estudiante_id = ANY(?) AND estatus_entrega = 'PENDIENTE'",
+                UUID.class, tareaId.toString(), (Object) estudianteIds.toArray(new UUID[0]));
+
         // Auditoría 2026-07-20 (principio "preferir operaciones Bulk"): calificar un
         // grupo completo (20-40 alumnos) hacía un UPDATE individual por alumno —
         // convertido a batchUpdate, un solo viaje de red para toda la calificación
@@ -118,6 +129,6 @@ public class TareaPersistenceAdapter implements TareaRepositoryPort {
             """, batchArgs);
         int actualizados = 0;
         for (int r : rows) actualizados += Math.max(r, 0);
-        return actualizados;
+        return new mx.ades.modules.evaluaciones.domain.port.in.CalificarMasivoUseCase.Result(actualizados, sinEntrega);
     }
 }

@@ -180,8 +180,14 @@ public class ActividadesController {
                 })
                 .toList();
 
-        int actualizados = writeService.calificarMasivo(actividadId, itemMaps, user.getId(), user.getUsername());
-        return ResponseEntity.ok(Map.of("actualizados", actualizados));
+        ActividadesWriteService.CalificarMasivoResult resultado =
+                writeService.calificarMasivo(actividadId, itemMaps, user.getId(), user.getUsername());
+        // H-3: sinEntrega lista los alumnoId que se calificaron sin haber entregado
+        // nada (estaban en PENDIENTE) — el frontend debe mostrarlo como confirmación
+        // explícita de "no entregado", no dejarlo pasar como una entrega revisada más.
+        return ResponseEntity.ok(Map.of(
+                "actualizados", resultado.actualizados(),
+                "sinEntrega", resultado.sinEntrega()));
     }
 
     private UUID grupoIdDeActividad(UUID actividadId) {

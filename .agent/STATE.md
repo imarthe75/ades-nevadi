@@ -14,6 +14,89 @@ Este documento es el diario de vida y bitácora del agente. Debe ser leído en e
 
 ## 📅 Bitácora
 
+## Sesión 2026-07-21 — Verificación de auditoría externa del motor de calificaciones (H-1 a H-10) ✅
+
+Encargo: continuar el trabajo de bulk operations de la sesión anterior y verificar una
+auditoría de análisis estático realizada de forma independiente sobre el motor de
+calificaciones/entregas, aplicando correcciones donde se confirmara real. Metodología:
+lectura de código real + migraciones + datos en vivo para cada hallazgo, nunca aceptar el
+reporte externo por su palabra — ya encontró un falso positivo (H-4) que el análisis
+estático no podía ver.
+
+**H-1 (CRÍTICO, confirmado y corregido):** `calcular_calificacion_periodo()` (mig. 115)
+calculaba el score de tarea/proyecto/laboratorio/participación/otro como tasa de
+cumplimiento de entregas — nunca leía `calificacion_obtenida`. Dos alumnos con 100% de
+entregas pero 2/10 vs 10/10 en cada una obtenían el mismo score de periodo. Decisión de
+negocio del usuario: promedio real de `calificacion_obtenida` sobre entregas CALIFICADA.
+Corregido en mig. 160 (`CREATE OR REPLACE FUNCTION`). **Efecto retroactivo**: se
+recalcularon en vivo los 48 registros con `cerrada = FALSE` en
+`ades_calificaciones_periodo` (los cerrados no se tocan).
+
+**H-2 (confirmado y corregido):** el CHECK 0-10 de mig. 133 protegía
+`ades_calificaciones_tareas` — tabla confirmada sin ninguna escritura real (grep de todo
+el código Java: cero INSERT/UPDATE). La columna que sí escriben TODOS los flujos de
+calificación (`ades_tareas_entregas.calificacion_obtenida`) no tenía protección de rango
+a nivel BD. Corregido en mig. 158.
+
+**H-3 (CRÍTICO, confirmado y corregido):** `calificarMasivo` (2 implementaciones —
+gradebook y evaluaciones) no filtraba por `estatus_entrega`, permitiendo calificar
+entregas PENDIENTE (nunca subidas) sin distinguirlo de una entrega real revisada.
+Decisión del usuario: permitirlo (un docente puede necesitar registrar 0 por no entrega)
+pero de forma explícita. El esquema ya soporta la distinción sin columnas nuevas
+(`fecha_entrega IS NULL` = nunca se subió nada); ambos métodos ahora detectan estos casos
+ANTES de calificar y devuelven `sinEntrega` en la respuesta — `gradebook.component.ts` ya
+lo muestra como aviso al docente.
+
+**H-4 (REFUTADO):** la auditoría afirmaba que la alta de alumno solo valida longitud de
+CURP (18 caracteres), no formato. Falso — `AlumnoApplicationService.crear()` sí llama
+`ValidationUtils.validarCURP()` con regex real; el análisis estático del auditor no vio
+esa capa. Confirmado con curl real contra el servidor: CURP con formato inválido →
+422 real, no 201.
+
+**H-5 (confirmado y AMPLIADO):** la auditoría solo señalaba el contador local en memoria
+de `ImportsController` (race condition entre imports CSV concurrentes). Al revisar el
+patrón en el resto del código encontré el MISMO bug en otros 2 generadores de matrícula
+independientes: `AlumnoPersistenceAdapter` (`MAX(...)+1`, no atómico) y
+`ProcesosPersistenceAdapter` (`Random().nextInt()`, sin verificación). El UNIQUE
+constraint en `matricula` evita duplicados silenciosos, pero bajo concurrencia real
+causaría fallos crudos de constraint violation. Los 3 unificados sobre una secuencia
+atómica de Postgres nueva (mig. 159, `ades_estudiantes_matricula_seq`) — no se cambió el
+formato `MAT-NNNNNN` (decisión de formato fuera de alcance). Hallazgo colateral: los
+2,205 "alumnos" actuales en BD son TODOS seed/demo (matrícula formato
+`MAT-{clavePlantel}{clave Nivel}-NNNNN` del script `006_simulacion_integral.py`) —
+ninguno de los 3 generadores Java ha sido ejercido nunca con datos reales, consistente
+con que el sistema sigue en pre-liberación.
+
+**H-6 (confirmado y corregido):** el seed usaba `'RETARDO'`, valor inexistente en
+`chk_estatus_asistencia` (solo PRESENTE/AUSENTE/TARDE/JUSTIFICADO) — el insert habría
+fallado. Corregido a `'TARDE'`.
+
+**H-7 (STALE, no requiere acción):** las migraciones 003/066 sí contenían `'TARDANZA'`
+(valor imposible dado el CHECK), pero una migración posterior (132,
+`mv_asistencia_diaria`) ya redefinió esas vistas sin ese bug. Verificado en vivo: ninguna
+vista/matview actual en el esquema contiene `'TARDANZA'`.
+
+**H-8 (ya resuelto en sustancia, no requiere acción):** las 2 clases `EstatusEntrega`
+duplicadas (entregas/evaluaciones) ya fueron armonizadas en semántica por una auditoría
+previa (2026-07-15, ver comentario Javadoc en el propio código) — mismos valores,
+separación intencional por límite hexagonal, sin bug funcional.
+
+**H-9 (confirmado, latente, corregido preventivamente):** 6 llamadas a `LocalDate.parse()`
+sin try/catch en 4 archivos (`ComplianceController` ×2, `ForoApplicationService`,
+`SuplenciaController`, `EvaluacionAvanzadaController` ×2) causarían 500 crudo ante
+formato de fecha inválido. Verificado que ninguno de esos endpoints tiene caller real
+desde el frontend hoy (backend-only por ahora) — sin riesgo activo, pero corregido como
+blindaje: 400 claro con mensaje explícito.
+
+**H-10:** conteo real de hex hardcodeados 208 (no 399 como reportó el auditor — posible
+diferencia de patrón grep). El propio reporte externo lo marca no bloqueante; no se tocó.
+
+**Estado de despliegue:** `mvn test` y `tsc --noEmit` limpios antes de construir.
+`ades-bff`/`ades-frontend` reconstruidos y desplegados en vivo (`--force-recreate`),
+verificados `UP` post-deploy. Migraciones 158/159/160 aplicadas en la BD real. Los 48
+periodos abiertos recalculados con la fórmula corregida. **Sin commit** (Regla Mandatoria
+#21 — pendiente instrucción explícita del usuario).
+
 ## Sesión 2026-07-20 — Fuzz-data en producción, 4 bugs reales de paginación, upgrade mayor FastAPI, 3 funciones nuevas ✅
 
 Encargo inicial: verificar los 8 puntos pendientes de la sesión anterior y cerrar huecos hacia

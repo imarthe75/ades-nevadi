@@ -64,9 +64,30 @@ public class ActividadesWriteService {
         return new CrearActividadResult(tareaId, alumnos.size());
     }
 
+    public record CalificarMasivoResult(int actualizados, List<UUID> sinEntrega) {}
+
+    /**
+     * H-3 (auditoría 2026-07-20, decisión de negocio confirmada 2026-07-21): se
+     * permite calificar una entrega en PENDIENTE (el alumno nunca la subió) — un
+     * docente puede necesitar registrar un 0 explícito por no entrega. Pero esa
+     * calificación debe ser distinguible de una entrega real revisada. El esquema
+     * ya lo permite sin columnas nuevas: {@code fecha_entrega} solo se llena cuando
+     * el alumno sube algo, así que {@code fecha_entrega IS NULL AND estatus_entrega
+     * = 'CALIFICADA'} identifica de forma inequívoca "calificado sin entrega real".
+     * Este método detecta esos casos ANTES de calificar y los devuelve en
+     * {@code sinEntrega} para que el controller/frontend se lo muestre al docente
+     * como una confirmación explícita, no como un efecto secundario silencioso.
+     */
     @Transactional
-    public int calificarMasivo(UUID actividadId, List<Map<String, Object>> items, UUID calificadoPor, String usuario) {
-        if (items.isEmpty()) return 0;
+    public CalificarMasivoResult calificarMasivo(UUID actividadId, List<Map<String, Object>> items, UUID calificadoPor, String usuario) {
+        if (items.isEmpty()) return new CalificarMasivoResult(0, List.of());
+
+        List<UUID> alumnoIds = items.stream().map(i -> (UUID) i.get("alumnoId")).toList();
+        List<UUID> sinEntrega = jdbc.queryForList(
+                "SELECT estudiante_id FROM ades_tareas_entregas " +
+                "WHERE tarea_id = ? AND estudiante_id = ANY(?) AND estatus_entrega = 'PENDIENTE'",
+                UUID.class, actividadId, (Object) alumnoIds.toArray(new UUID[0]));
+
         // Auditoría 2026-07-20 (principio "preferir operaciones Bulk"): mismo patrón que
         // crearActividad() — un UPDATE por alumno calificado en un loop secuencial.
         List<Object[]> batchArgs = items.stream()
@@ -90,6 +111,6 @@ public class ActividadesWriteService {
         );
         int actualizados = 0;
         for (int r : rows) actualizados += Math.max(r, 0);
-        return actualizados;
+        return new CalificarMasivoResult(actualizados, sinEntrega);
     }
 }

@@ -74,13 +74,21 @@ public class DisponibilidadPersistenceAdapter implements DisponibilidadRepositor
     }
 
     @Override
-    public void createSlot(UUID profesorId, UUID cicloEscolarId, GuardarDisponibilidadUseCase.Slot slot, String usuario) {
-        jdbc.update("INSERT INTO ades_disponibilidad_docente " +
+    public void createSlots(UUID profesorId, UUID cicloEscolarId, List<GuardarDisponibilidadUseCase.Slot> slots, String usuario) {
+        if (slots.isEmpty()) return;
+        // Auditoría 2026-07-20 (principio "preferir operaciones Bulk"): guardar la
+        // disponibilidad semanal completa de un docente (40-50 slots típicos) hacía un
+        // INSERT por slot — batchUpdate en un solo viaje de red.
+        List<Object[]> batchArgs = slots.stream()
+                .map(slot -> new Object[]{
+                        UUID.randomUUID(), profesorId, slot.diaSemana(), slot.horaInicio(), slot.horaFin(),
+                        slot.disponible() != null ? slot.disponible() : Boolean.TRUE,
+                        slot.motivoNoDisponible(), cicloEscolarId, usuario, usuario,
+                })
+                .toList();
+        jdbc.batchUpdate("INSERT INTO ades_disponibilidad_docente " +
                 "(id, profesor_id, dia_semana, hora_inicio, hora_fin, disponible, motivo_no_disponible, ciclo_escolar_id, usuario_creacion, usuario_modificacion) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                UUID.randomUUID(), profesorId, slot.diaSemana(), slot.horaInicio(), slot.horaFin(),
-                slot.disponible() != null ? slot.disponible() : Boolean.TRUE,
-                slot.motivoNoDisponible(), cicloEscolarId, usuario, usuario);
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", batchArgs);
     }
 
     @Override

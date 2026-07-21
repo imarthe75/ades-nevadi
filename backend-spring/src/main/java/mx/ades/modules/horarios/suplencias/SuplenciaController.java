@@ -79,7 +79,12 @@ public class SuplenciaController {
         AdesUser user = userService.resolveUser(jwt);
         requireStaff(user);
         UUID plantelFiltro = userService.getEffectivePlantelId(user, null);
-        LocalDate fecha = LocalDate.parse(fechaStr);
+        LocalDate fecha;
+        try {
+            fecha = LocalDate.parse(fechaStr);
+        } catch (DateTimeParseException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "fecha con formato inválido (esperado YYYY-MM-DD)");
+        }
         if (plantelFiltro != null) {
             return ResponseEntity.ok(suplenciaRepository.findByFechaAndIsActiveTrueAndPlantel(fecha, plantelFiltro));
         }

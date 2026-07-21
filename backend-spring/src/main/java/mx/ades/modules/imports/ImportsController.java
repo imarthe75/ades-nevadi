@@ -182,7 +182,6 @@ public class ImportsController {
         Map<String, UUID> plantelesClave = importWrite.loadPlantelesByClave();
         Map<String, UUID> plantelesNombre = importWrite.loadPlantelesByNombre();
         UUID estatusId = importWrite.loadEstatusId("ESTUDIANTE", "INSCRITO");
-        long seq = importWrite.countEstudiantes();
 
         List<ErrorFila> errores = new ArrayList<>();
         int exitosos = 0;
@@ -220,8 +219,7 @@ public class ImportsController {
                 continue;
             }
 
-            seq++;
-            String matricula = String.format("MAT-%06d", seq);
+            String matricula = importWrite.siguienteMatricula();
 
             try {
                 ImportsWriteService.AlumnoData data = ImportsWriteService.AlumnoData.builder()
@@ -286,7 +284,6 @@ public class ImportsController {
             } catch (Exception e) {
                 log.error("Error inserting alumno row {}", rowNum, e);
                 errores.add(new ErrorFila(rowNum, curp, e.getMessage()));
-                seq--;
             }
         }
 

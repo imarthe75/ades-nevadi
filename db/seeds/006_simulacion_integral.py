@@ -388,7 +388,7 @@ print(f"   {len(plan_r)} planeaciones · {len(clase_r)} clases")
 # FASE 9 — Asistencias + justificaciones
 # ══════════════════════════════════════════════════════════════════════════════
 print("── FASE 9: Asistencias + justificaciones ────────────")
-EST_A=['PRESENTE']*18+['AUSENTE','RETARDO']; asis_r=[]; just_r=[]; tot=0
+EST_A=['PRESENTE']*18+['AUSENTE','TARDE']; asis_r=[]; just_r=[]; tot=0
 for cid,grp in clase_idx:
     for eid in grupo_al.get(grp,[]):
         e=rng.choice(EST_A); aid=uid(); asis_r.append((aid,cid,eid,e,SEED_TAG,SEED_TAG))

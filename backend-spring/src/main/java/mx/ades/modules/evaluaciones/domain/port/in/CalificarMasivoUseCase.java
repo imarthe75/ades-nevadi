@@ -17,6 +17,15 @@ public interface CalificarMasivoUseCase {
         }
     }
 
-    /** Returns total number of updated rows. */
-    int ejecutar(Command command);
+    /**
+     * H-3 (auditoría 2026-07-20, decisión de negocio confirmada 2026-07-21): calificar
+     * una entrega en PENDIENTE (nunca subida por el alumno) está permitido — un docente
+     * puede necesitar registrar un 0 explícito por no entrega — pero debe quedar
+     * distinguible de una entrega real revisada. {@code sinEntrega} lista los
+     * estudianteId que estaban en PENDIENTE antes de esta llamada, para que el
+     * frontend lo muestre como confirmación explícita en vez de un efecto silencioso.
+     */
+    record Result(int actualizados, List<UUID> sinEntrega) {}
+
+    Result ejecutar(Command command);
 }

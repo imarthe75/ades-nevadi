@@ -87,14 +87,20 @@ public class EsquemaPersistenceAdapter implements EsquemaRepositoryPort {
 
     @Override
     public void insertItems(UUID esquemaId, CrearEsquemaUseCase.Command cmd) {
-        for (ItemPonderacion i : cmd.items()) {
-            jdbc.update(
+        if (cmd.items().isEmpty()) return;
+        // Auditoría 2026-07-20 (principio "preferir operaciones Bulk"): un INSERT por
+        // item de ponderación — batchUpdate en vez de un loop de escrituras individuales.
+        List<Object[]> batchArgs = cmd.items().stream()
+                .map(i -> new Object[]{
+                        UUID.randomUUID(), esquemaId, i.tipoItem(), i.nombrePersonalizado(),
+                        BigDecimal.valueOf(i.pesoPorcentaje()), i.ordenDisplay(), cmd.usuario(), cmd.usuario(),
+                })
+                .toList();
+        jdbc.batchUpdate(
                 "INSERT INTO ades_items_ponderacion " +
                 "(id, esquema_id, tipo_item, nombre_personalizado, peso_porcentaje, orden_display, usuario_creacion, usuario_modificacion) " +
                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                UUID.randomUUID(), esquemaId, i.tipoItem(), i.nombrePersonalizado(),
-                BigDecimal.valueOf(i.pesoPorcentaje()), i.ordenDisplay(), cmd.usuario(), cmd.usuario());
-        }
+                batchArgs);
     }
 
     @Override
@@ -117,14 +123,18 @@ public class EsquemaPersistenceAdapter implements EsquemaRepositoryPort {
 
     @Override
     public void insertItems(UUID esquemaId, ActualizarEsquemaUseCase.Command cmd) {
-        for (ItemPonderacion i : cmd.items()) {
-            jdbc.update(
+        if (cmd.items().isEmpty()) return;
+        List<Object[]> batchArgs = cmd.items().stream()
+                .map(i -> new Object[]{
+                        UUID.randomUUID(), esquemaId, i.tipoItem(), i.nombrePersonalizado(),
+                        BigDecimal.valueOf(i.pesoPorcentaje()), i.ordenDisplay(), cmd.usuario(), cmd.usuario(),
+                })
+                .toList();
+        jdbc.batchUpdate(
                 "INSERT INTO ades_items_ponderacion " +
                 "(id, esquema_id, tipo_item, nombre_personalizado, peso_porcentaje, orden_display, usuario_creacion, usuario_modificacion) " +
                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                UUID.randomUUID(), esquemaId, i.tipoItem(), i.nombrePersonalizado(),
-                BigDecimal.valueOf(i.pesoPorcentaje()), i.ordenDisplay(), cmd.usuario(), cmd.usuario());
-        }
+                batchArgs);
     }
 
     @Override
