@@ -117,6 +117,25 @@ completo:
 - `mvn test`/`tsc --noEmit` limpios, imágenes reconstruidas, `ades-bff`/`ades-frontend`
   redesplegados y verificados `UP`. Sin commit (Regla #21).
 
+**Ronda 3 (mismo día) — D-3/D-6/D-7 del reporte completo, sin cambios de código:**
+- **D-3** (examen: ¿tipo de tarea o módulo nuevo?): confirmado como intencional — dos
+  caminos válidos coexisten (tipo_item genérico en Gradebook + flujo dedicado
+  "crear examen desde planeación" sobre `ades_evaluaciones`), ambos alimentan el mismo
+  `calcular_calificacion_periodo`. Sin cambios.
+- **D-6** (regla de redondeo): confirmado mantener el `ROUND` estándar actual de la
+  función (1 decimal en escala 0-10, entero en escala 100). Sin cambios.
+- **D-7** (bimestral/trimestral): **autocorrección importante** — planteé la pregunta
+  original asumiendo que "1er/2do Parcial" + "1er/2do/3er Trimestre" en
+  `ades_periodos_evaluacion` era una inconsistencia de seed data. Antes de ejecutar la
+  respuesta del usuario (que habría implicado borrar/renombrar los "Parcial"), verifiqué
+  contra `ades_ciclos_escolares` y confirmé que **no es un error**: cada periodo
+  pertenece a un ciclo con su propio `sistema_educativo` — SEP (Primaria/Secundaria) usa
+  Trimestres, UAEMEX (Preparatoria, ciclo 25B) usa Parcial/Ordinario Final/Extraordinario,
+  el patrón RGEMS oficial ya documentado en Kardex UAEMEX. Se lo hice notar al usuario
+  antes de tocar nada — confirmó dejarlo como está. **Lección: verificar contra datos
+  reales antes de ejecutar una decisión, incluso una ya confirmada por el usuario, si el
+  framing de la pregunta pudo haber sido incorrecto.**
+
 ## Sesión 2026-07-20 — Fuzz-data en producción, 4 bugs reales de paginación, upgrade mayor FastAPI, 3 funciones nuevas ✅
 
 Encargo inicial: verificar los 8 puntos pendientes de la sesión anterior y cerrar huecos hacia
