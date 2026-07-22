@@ -798,6 +798,13 @@ interface Catalogo {
                   placeholder="Selecciona un turno" ariaLabel="Turno"></p-select>
               </div>
               <div class="field">
+                <label>Plantel</label>
+                <p-select [options]="planteles()" optionLabel="nombre_plantel" optionValue="id"
+                  [(ngModel)]="franjaForm.plantel_id" appendTo="body" styleClass="w-full"
+                  [showClear]="true" [filter]="true" filterPlaceholder="Buscar..."
+                  placeholder="Todos los planteles" ariaLabel="Plantel" ></p-select>
+              </div>
+              <div class="field">
                 <label>Nivel Educativo</label>
                 <p-select [options]="niveles()" optionLabel="nombre_nivel" optionValue="id"
                   [(ngModel)]="franjaForm.nivel_educativo_id" appendTo="body" styleClass="w-full"

@@ -1377,6 +1377,12 @@ export class HorariosComponent implements OnInit, OnDestroy {
     const params: Record<string, string> = { cicloId };
     const nivelId = this.ctx.nivel()?.id;
     if (nivelId) params['nivelEducativoId'] = nivelId;
+    // Franjas ahora son POR PLANTEL (mig 169); pasar plantelId para que el controller
+    // use findFranjasAplicables(plantel, ciclo, nivel) y no traiga las de todos los
+    // planteles. Con el catálogo por-plantel + ciclo vigente, el grid muestra exactamente
+    // la estructura horaria del plantel activo.
+    const plantelId = this.ctx.plantel()?.id;
+    if (plantelId) params['plantelId'] = plantelId;
     this.api.get<any[]>('/horario-franjas', params).pipe(takeUntil(this.destroy$)).subscribe({
       next: f => this.franjasCatalogo.set(f ?? []),
       error: () => this.franjasCatalogo.set([]),

@@ -32,6 +32,7 @@ Rito de Inicio y Cierre ejecutado a solicitud del usuario.
 
 - **Actualización de Reglas y Documentación**:
   - Se actualizaron las reglas en `.agents/AGENTS.md` para incorporar explícitamente los mandatos de **Heurísticas Cognitivas de UX/UI (Nielsen)** (feedback de carga `[loading]`, confirmaciones con `ConfirmationService` y validaciones estructurales de datos sensibles con `AdesValidators`).
+  - Se integró de forma obligatoria la consulta y cumplimiento del **Estándar Maestro de Auditoría Universal** (`docs/security/ESTANDAR_MAESTRO_AUDITORIA_UNIVERSAL.md`) dentro de las reglas operativas del agente (`.agents/AGENTS.md`), exigiendo verificación empírica [Cierto] en cada módulo o refactorización.
 
 - **Despliegue y Limpieza (Prune)**:
   - Se construyeron y desplegaron nuevamente las imágenes de `ades-bff` y `ades-frontend`.
@@ -148,6 +149,23 @@ swap de contenedores.
 - Migraciones nuevas: 163 (reglas sec/prepa), 164 (matrícula 26B), 165 (catálogo turnos),
   166 (historia 25B), 167 (cohorte + borrado físico), 168 (grupos basura). Backups:
   `pre-matricula-prepa-*`, `pre-cohorte-prepa-20260721_2037.sql`.
+
+### Continuación 2026-07-22 (4) — Franjas por-plantel + limpieza de huérfanos
+
+- **Franjas por plantel + ciclo vigente (mig 169):** eran 131 globales (`plantel_id=NULL`)
+  ligadas a ciclos VIEJOS (25B/2025-2026); el grid solo servía porque su query caía a "por
+  nivel" ignorando ciclo. Ahora 358 franjas POR PLANTEL en el ciclo vigente (Prepa 35×2,
+  Prim 48×3, Sec 48×3). Frontend: `horarios.cargarFranjasCatalogo` y disponibilidad-grid
+  pasan `plantelId` (usan `findFranjasAplicables`), y el diálogo de Admin→Franjas tiene
+  selector de plantel. 0 refs de indisponibilidad a las viejas → borrado seguro.
+- **Limpieza de 645 alumnos huérfanos (mig 170):** alumnos activos sin NINGUNA inscripción
+  (Metepec 385 + Tenancingo 260), ruido del generador demo. Borrado físico vía
+  `session_replication_role=replica` (loop dinámico sobre estudiante/persona/usuario).
+  Verificado: 0 huérfanos restantes, 0 refs colgantes. Total alumnos activos 2205→1508
+  (Ixtapan 468, Metepec 520, Tenancingo 520 — todos matriculados). Backup:
+  `pre-limpieza-huerfanos-20260722_0615.sql`.
+- **Deploy:** solo frontend (franjas; BFF sin cambios, el endpoint ya soportaba plantel).
+  Imagen nueva verificada en vivo (200). Sin commit (Regla #21).
 
 ## Sesión 2026-07-21 (tarde) — Módulo de Horarios intuitivo + vista de Grupos por ciclo/plantel ✅
 

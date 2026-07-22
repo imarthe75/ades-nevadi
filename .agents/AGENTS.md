@@ -13,4 +13,8 @@
   - *Feedback visual inmediato*: Toda mutación de datos (`POST`, `PUT`, `PATCH`, `DELETE`) debe reflejar un estado de carga claro (`[loading]`, spinner o botón deshabilitado temporalmente).
   - *Confirmación en acciones destructivas*: Toda acción de eliminación o baja de registros debe requerir confirmación explícita con `ConfirmationService` de PrimeNG.
   - *Validación de datos sensibles*: Todo formulario debe validar la estructura de campos como CURP, RFC, NSS, teléfonos y coherencia de rangos numéricos/fechas antes de procesar el guardado.
+- **Estándar Maestro de Auditoría Universal (`docs/security/ESTANDAR_MAESTRO_AUDITORIA_UNIVERSAL.md`)**:
+  - *Cumplimiento Obligatorio*: En todo desarrollo, refactorización o auditoría, se DEBE consultar y aplicar el catálogo de seguridad, calidad de código y errores probables definido en [docs/security/ESTANDAR_MAESTRO_AUDITORIA_UNIVERSAL.md](file:///opt/ades/docs/security/ESTANDAR_MAESTRO_AUDITORIA_UNIVERSAL.md).
+  - *Verificación de Autorización (BOLA/BFLA/OWASP/STRIDE)*: Todo endpoint o servicio expuesto debe validar la identidad criptográficamente, forzar el aislamiento por tenant (plantel) y denegar el acceso a recursos ajenos sin importar el nivel de rol.
+  - *Evidencia Empírica de Verificación*: Ninguna tarea se considerará finalizada o "100% correcta" sin contar con evidencia empírica runtime ([Cierto]), habiendo ejecutado los comandos reales de compilación y pruebas (`tsc --noEmit`, `ng build`, `mvn test` o `docker compose build`).
 
