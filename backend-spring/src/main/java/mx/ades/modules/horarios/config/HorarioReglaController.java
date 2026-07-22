@@ -17,31 +17,50 @@ import java.util.UUID;
 public class HorarioReglaController {
 
     private final HorarioReglaRepository reglaRepository;
+    private final HorarioTipoReglaRepository tipoReglaRepository;
     private final AdesUserService userService;
 
-    public HorarioReglaController(HorarioReglaRepository reglaRepository, AdesUserService userService) {
+    public HorarioReglaController(HorarioReglaRepository reglaRepository,
+                                  HorarioTipoReglaRepository tipoReglaRepository,
+                                  AdesUserService userService) {
         this.reglaRepository = reglaRepository;
+        this.tipoReglaRepository = tipoReglaRepository;
         this.userService = userService;
     }
 
     @GetMapping
     public ResponseEntity<List<HorarioRegla>> listar(
             @RequestParam(required = false) UUID cicloId,
+            @RequestParam(required = false) UUID plantelId,
             @AuthenticationPrincipal Jwt jwt) {
         var user = userService.resolveUser(jwt);
-        if (cicloId == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "cicloId es requerido");
-        }
-        UUID reqCiclo = cicloId;
-        UUID plantelId = user.getPlantelId();
+        // BOLA / RBAC: Si el usuario no es Admin Global (nivelAcceso != 0), forzar su plantel asignado.
+        // Si el usuario es Admin Global (nivelAcceso == 0), usar el plantelId pasado por parámetro si está presente.
+        UUID targetPlantelId = (user.getNivelAcceso() != 0) ? user.getPlantelId() : (plantelId != null ? plantelId : user.getPlantelId());
 
         List<HorarioRegla> reglas;
-        if (plantelId != null) {
-            reglas = reglaRepository.findByPlantelIdAndCicloEscolarIdAndActivaTrueAndIsActiveTrue(plantelId, reqCiclo);
+        if (targetPlantelId != null && cicloId != null) {
+            reglas = reglaRepository.findByPlantelIdAndCicloEscolarIdAndActivaTrueAndIsActiveTrue(targetPlantelId, cicloId);
+        } else if (targetPlantelId != null) {
+            reglas = reglaRepository.findByPlantelIdAndActivaTrueAndIsActiveTrue(targetPlantelId);
+        } else if (cicloId != null) {
+            reglas = reglaRepository.findByCicloEscolarIdAndActivaTrueAndIsActiveTrue(cicloId);
         } else {
-            reglas = reglaRepository.findAll();
+            reglas = reglaRepository.findByActivaTrueAndIsActiveTrue();
         }
         return ResponseEntity.ok(reglas);
+    }
+
+    /**
+     * Catálogo de tipos de regla que el motor realmente interpreta (tabla
+     * ades_horario_tipo_regla). Lo consume el frontend para marcar cada regla como
+     * "soportada por el motor" y para guiar al asistente IA (evita que proponga
+     * tipos inexistentes). Lectura abierta a cualquier usuario autenticado.
+     */
+    @GetMapping("/tipos")
+    public ResponseEntity<List<HorarioTipoRegla>> tipos(@AuthenticationPrincipal Jwt jwt) {
+        userService.resolveUser(jwt);
+        return ResponseEntity.ok(tipoReglaRepository.findByIsActiveTrueOrderByOrdenAsc());
     }
 
     @PostMapping
@@ -69,6 +88,16 @@ public class HorarioReglaController {
         }
         if (payload.getTipo() == null || payload.getTipo().isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "tipo es requerido");
+        }
+        // El motor solo interpreta los tipos del catálogo ades_horario_tipo_regla;
+        // cualquier otro se guardaría pero el solver lo ignoraría en silencio (regla
+        // "fantasma" que el coordinador cree activa). Rechazar con un mensaje claro.
+        if (!tipoReglaRepository.existsByCodigoAndIsActiveTrue(payload.getTipo())) {
+            String soportados = tipoReglaRepository.findByIsActiveTrueOrderByOrdenAsc()
+                    .stream().map(HorarioTipoRegla::getCodigo).collect(java.util.stream.Collectors.joining(", "));
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
+                "El tipo de regla '" + payload.getTipo() + "' no está implementado en el motor de horarios. "
+                + "Tipos soportados: " + soportados);
         }
         // params es NOT NULL en BD (ades_horario_regla, con default '{}'::jsonb, pero Hibernate
         // envía NULL explícito si el campo llega vacío en el JSON, lo que ignora el default y

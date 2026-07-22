@@ -80,6 +80,7 @@ interface GrupoAdmin {
   id: string; nombre_grupo: string; nombre_nivel: string | null;
   nombre_grado: string | null; grado_id: string; ciclo_escolar_id: string;
   capacidad_maxima: number; inscritos: number; turno: string; is_active: boolean;
+  nombre_ciclo?: string | null; es_vigente?: boolean; nombre_plantel?: string | null;
 }
 interface VariableSistema {
   id: string;
@@ -499,6 +500,12 @@ interface Catalogo {
               placeholder="Filtrar por ciclo" [showClear]="true"
               [filter]="true" filterPlaceholder="Buscar..."
               (onChange)="cargarGrupos()" styleClass="ctx-selector" ariaLabel="Ciclo" />
+            <label class="solo-vigentes-toggle">
+              <p-toggleswitch [ngModel]="soloVigentes()"
+                (ngModelChange)="soloVigentes.set($event); cargarGrupos()"
+                ariaLabel="Solo ciclo vigente" />
+              <span>Solo vigentes</span>
+            </label>
             <p-button label="Nuevo grupo" icon="pi pi-plus"
               severity="primary" (onClick)="abrirNuevoGrupo()"
               data-testid="btn-nuevo-grupo" />
@@ -786,7 +793,9 @@ interface Catalogo {
               </div>
               <div class="field">
                 <label for="adm-franja-turno">Turno</label>
-                <input pInputText id="adm-franja-turno" type="text" [(ngModel)]="franjaForm.turno" class="w-full"/>
+                <p-select id="adm-franja-turno" [options]="turnos()" optionLabel="nombre" optionValue="codigo"
+                  [(ngModel)]="franjaForm.turno" appendTo="body" styleClass="w-full"
+                  placeholder="Selecciona un turno" ariaLabel="Turno"></p-select>
               </div>
               <div class="field">
                 <label>Nivel Educativo</label>
@@ -1348,6 +1357,8 @@ interface Catalogo {
     .scope-scoped { background:var(--primary-100);color:var(--primary-700) }
     .scope-global  { background:var(--surface-200);color:var(--text-secondary) }
     .tab-toolbar { display:flex; gap:.5rem; align-items:center; margin-bottom:1rem; justify-content:space-between; }
+    .solo-vigentes-toggle { display:inline-flex; align-items:center; gap:.4rem; font-size:.85rem;
+      color:var(--text-color-secondary); margin-right:auto; white-space:nowrap; cursor:pointer; }
     .ctx-selector { width:200px; }
     .nivel-chip { background:var(--primary-100); color:var(--primary-700); padding:.1rem .35rem;
       border-radius:3px; font-size:.75rem; font-weight:600; margin-right:.3rem; }
@@ -1426,6 +1437,8 @@ export class AdminComponent implements OnInit, OnDestroy {
   grupos         = signal<GrupoAdmin[]>([]);
   roles          = signal<RolOpt[]>([]);
   niveles        = signal<NivelOpt[]>([]);
+  /** Catálogo de turnos (ades_horario_turno) para el select del diálogo de franjas. */
+  turnos         = signal<{ codigo: string; nombre: string }[]>([]);
   ciclosFiltro   = signal<CicloAdmin[]>([]);
 
   // ── Signals para dialogs de Ciclo / Plantel / Grupo ─────────────────────────
@@ -1499,6 +1512,7 @@ export class AdminComponent implements OnInit, OnDestroy {
 
   tabActivo       = signal('usuarios');
   cicloFiltroId   = '';
+  soloVigentes    = signal(true);
 
   // ── Roles ───────────────────────────────────────────────────────────────────
   loadingRoles     = signal(false);
@@ -1583,6 +1597,8 @@ export class AdminComponent implements OnInit, OnDestroy {
   columnasGrupos: ColumnConfig[] = [
     { field: 'nivel_grado',    header: 'Nivel / Grado', sortable: true, filterable: true,  width: '180px' },
     { field: 'nombre_grupo',   header: 'Grupo',         sortable: true, filterable: true,  width: '80px' },
+    { field: 'nombre_plantel', header: 'Plantel',       sortable: true, filterable: true,  width: '140px' },
+    { field: 'ciclo_str',      header: 'Ciclo',         sortable: true, filterable: true,  width: '140px' },
     { field: 'ocupacion_str',  header: 'Ocupación',     sortable: false, filterable: false, width: '110px' },
     { field: 'turno',          header: 'Turno',         sortable: true, filterable: true,  width: '120px' },
     { field: 'estado_str',     header: 'Estado',        sortable: true, filterable: true,  width: '100px' },
@@ -1859,9 +1875,11 @@ export class AdminComponent implements OnInit, OnDestroy {
     if (this.cicloFiltroId) params['ciclo_id'] = this.cicloFiltroId;
     this.api.get<GrupoAdmin[]>('/admin/grupos', params).pipe(takeUntil(this.destroy$)).subscribe({
       next: (g) => {
-        const flat = g.map(x => ({
+        const fuente = this.soloVigentes() ? g.filter(x => (x as any).es_vigente !== false) : g;
+        const flat = fuente.map(x => ({
           ...x,
           nivel_grado:   `${(x as any).nombre_nivel ?? ''} ${(x as any).nombre_grado ?? ''}`.trim(),
+          ciclo_str:     `${(x as any).nombre_ciclo ?? '—'}${(x as any).es_vigente === false ? ' (histórico)' : ''}`,
           ocupacion_str: `${(x as any).inscritos ?? 0} / ${(x as any).capacidad_maxima ?? '—'}`,
           estado_str:    (x as any).is_active ? 'Activo' : 'Inactivo',
         }));
@@ -1884,6 +1902,12 @@ export class AdminComponent implements OnInit, OnDestroy {
 
   cargarNiveles(): void {
     this.api.getCached<NivelOpt[]>('/catalogs/niveles').pipe(takeUntil(this.destroy$)).subscribe(n => this.niveles.set(n));
+  }
+
+  /** Carga el catálogo de turnos (cacheado; catálogo de referencia estático, Regla #31). */
+  cargarTurnos(): void {
+    this.api.getCached<{ codigo: string; nombre: string }[]>('/horario-franjas/turnos')
+      .pipe(takeUntil(this.destroy$)).subscribe(t => this.turnos.set(t ?? []));
   }
 
   cargarGrados(): void {
@@ -2635,6 +2659,9 @@ export class AdminComponent implements OnInit, OnDestroy {
     if (this.niveles().length === 0) {
       this.cargarNiveles();
     }
+    if (this.turnos().length === 0) {
+      this.cargarTurnos();
+    }
 
     this.api.get<any[]>('/horario-franjas').pipe(takeUntil(this.destroy$)).subscribe({
       next: res => {
@@ -2659,6 +2686,13 @@ export class AdminComponent implements OnInit, OnDestroy {
   guardarFranja(): void {
     if (!this.franjaForm.dia_semana || !this.franjaForm.hora_inicio || !this.franjaForm.hora_fin) {
       this.notify.warning('Faltan datos', 'Completa día y horas.');
+      return;
+    }
+    // Correctitud: una franja con hora_fin <= hora_inicio (invertida o de duración cero)
+    // no la rechazaba ni el form ni el backend, y el motor la interpretaría como un bloque
+    // vacío/negativo. Comparación lexicográfica válida porque ambos son "HH:mm" del input time.
+    if (this.franjaForm.hora_fin <= this.franjaForm.hora_inicio) {
+      this.notify.warning('Horario inválido', 'La hora de fin debe ser posterior a la hora de inicio.');
       return;
     }
     const cicloId = this.franjaForm.ciclo_escolar_id ?? this.ctx.ciclo()?.id;

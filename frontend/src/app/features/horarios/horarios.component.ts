@@ -228,29 +228,84 @@ const HORARIO_GOLDEN_REQUERIDO: Record<string, Record<string, number>> = {
     </p-dialog>
 
 
-    <!-- ── Diálogo Asistente IA de Reglas ── -->
+    <!-- ── Diálogo Reglas de Horario (listado + asistente IA) ── -->
     <p-dialog
       [visible]="mostrarReglasIA()"
       (visibleChange)="mostrarReglasIA.set($event)"
-      header="Asistente IA para Reglas de Horario"
-      [modal]="true" [style]="{width:'600px'}" [draggable]="false">
-      <div style="display:flex; flex-direction:column; gap: 1rem; margin-top: 1rem;">
-        <p>Escribe la regla en lenguaje natural y la IA se encargará de traducirla.</p>
-        <textarea pTextarea [(ngModel)]="reglaFraseIA" rows="3" placeholder="Ej: Educación Física no se imparte los viernes para el grupo 2B" aria-label="Regla en lenguaje natural" style="width:100%"></textarea>
-        <div style="display:flex; justify-content:flex-end;">
-          <p-button label="Interpretar regla" icon="pi pi-sparkles" (onClick)="parsearReglaIA()" [loading]="parseandoRegla()" [disabled]="!reglaFraseIA()"></p-button>
+      header="Reglas de Horario"
+      [modal]="true" [style]="{width:'640px'}" [draggable]="false">
+
+      <!-- Listado de reglas activas -->
+      <div class="reglas-lista">
+        <div class="reglas-lista-head">
+          <strong>Reglas activas</strong>
+          <span class="reglas-count">{{ reglas().length }}</span>
         </div>
-        
+        @if (cargandoReglas()) {
+          <div class="reglas-empty">Cargando reglas…</div>
+        } @else if (reglas().length === 0) {
+          <div class="reglas-empty">Aún no hay reglas para este plantel y ciclo. Agrega una con el asistente de abajo.</div>
+        } @else {
+          @for (r of reglas(); track r.id) {
+            <div class="regla-item">
+              <div class="regla-item-main">
+                <div class="regla-item-top">
+                  <code class="regla-tipo">{{ r.tipo }}</code>
+                  <p-tag [severity]="r.dura ? 'danger' : 'info'" [value]="r.dura ? 'Obligatoria' : 'Preferencia'" />
+                  @if (esTipoSoportado(r.tipo)) {
+                    <p-tag severity="success" value="✓ Activa en el motor"
+                      pTooltip="El generador de horarios aplica esta regla" tooltipPosition="top" />
+                  } @else {
+                    <p-tag severity="warn" value="⚠ Sin efecto"
+                      pTooltip="Este tipo de regla no está implementado en el motor; no afecta el horario generado" tooltipPosition="top" />
+                  }
+                </div>
+                @if (r.descripcion) {
+                  <div class="regla-desc">{{ r.descripcion }}</div>
+                }
+                <div class="regla-params">{{ resumenParams(r) }}</div>
+              </div>
+              <p-button icon="pi pi-trash" severity="danger" [text]="true" [rounded]="true"
+                (onClick)="eliminarRegla(r)" [loading]="eliminandoReglaId() === r.id"
+                pTooltip="Eliminar regla" ariaLabel="Eliminar regla" />
+            </div>
+          }
+        }
+      </div>
+
+      <!-- Asistente IA para agregar -->
+      <div class="reglas-asistente">
+        <strong style="display:block; margin-bottom:.5rem;">
+          <i class="pi pi-sparkles" style="margin-right:.35rem; color:var(--primary-color)"></i>
+          Agregar regla con IA
+        </strong>
+        <p style="margin:.25rem 0 .75rem; font-size:.85rem; color:var(--text-color-secondary)">
+          Escribe la regla en lenguaje natural y la IA la traducirá al motor.
+        </p>
+        <textarea pTextarea [(ngModel)]="reglaFraseIA" rows="2" placeholder="Ej: Educación Física solo de lunes a jueves" aria-label="Regla en lenguaje natural" style="width:100%"></textarea>
+        <div style="display:flex; justify-content:flex-end; margin-top:.5rem;">
+          <p-button label="Interpretar regla" icon="pi pi-sparkles" size="small" (onClick)="parsearReglaIA()" [loading]="parseandoRegla()" [disabled]="!reglaFraseIA()"></p-button>
+        </div>
+
         @if (reglaInterpretada()) {
-          <div style="background: var(--surface-ground); padding: 1rem; border-radius: 6px; border: 1px solid var(--surface-border);">
-            <strong style="display:block; margin-bottom: 0.5rem; color: var(--primary-color);">Previsualización de regla:</strong>
-            <pre style="margin:0; white-space: pre-wrap; font-size: 0.9rem;">{{ reglaInterpretada() | json }}</pre>
+          <div class="regla-preview" [class.regla-preview-warn]="!esTipoSoportado(reglaInterpretada().tipo)">
+            <strong style="display:block; margin-bottom:.5rem; color:var(--primary-color);">Previsualización:</strong>
+            @if (!esTipoSoportado(reglaInterpretada().tipo)) {
+              <div class="regla-preview-alert">
+                <i class="pi pi-exclamation-triangle"></i>
+                La IA no encontró un tipo de regla soportado para esa frase. Reformúlala o revisa el catálogo del motor.
+              </div>
+            }
+            <pre style="margin:0; white-space:pre-wrap; font-size:.85rem;">{{ reglaInterpretada() | json }}</pre>
           </div>
         }
       </div>
+
       <ng-template pTemplate="footer">
-        <p-button label="Cancelar" severity="secondary" [text]="true" (onClick)="mostrarReglasIA.set(false)" />
-        <p-button label="Guardar Regla" icon="pi pi-check" (onClick)="guardarReglaIA()" [loading]="guardandoRegla()" [disabled]="!reglaInterpretada()" />
+        <p-button label="Cerrar" severity="secondary" [text]="true" (onClick)="mostrarReglasIA.set(false)" />
+        <p-button label="Guardar Regla" icon="pi pi-check" (onClick)="guardarReglaIA()"
+          [loading]="guardandoRegla()"
+          [disabled]="!reglaInterpretada() || !esTipoSoportado(reglaInterpretada().tipo)" />
       </ng-template>
     </p-dialog>
 
@@ -318,10 +373,10 @@ const HORARIO_GOLDEN_REQUERIDO: Record<string, Record<string, number>> = {
             [disabled]="!puedeUsarSolver()"
           />
           <p-button
-            label="Reglas IA"
-            icon="pi pi-sparkles"
+            label="Reglas"
+            icon="pi pi-list-check"
             severity="info"
-            (onClick)="mostrarReglasIA.set(true)"
+            (onClick)="abrirReglas()"
           />
           <p-button
             label="Ejecutar solver"
@@ -562,16 +617,35 @@ const HORARIO_GOLDEN_REQUERIDO: Record<string, Record<string, number>> = {
         <i class="pi pi-calendar" style="font-size:2.5rem;color:#CBD5E1"></i>
         <p>Selecciona un {{ modo === 'grupo' ? 'grupo' : 'docente' }} para ver el horario.</p>
       </div>
-    } @else if (entradas().length === 0) {
-      <div class="empty-state">
-        <i class="pi pi-calendar-plus" style="font-size:2.5rem;color:#CBD5E1"></i>
-        <p>No hay entradas de horario. Usa "Nueva entrada" para comenzar.</p>
-      </div>
+    } @else {
+      @if (entradas().length === 0) {
+        <div class="grid-hint">
+          <i class="pi pi-info-circle"></i>
+          Sin clases asignadas todavía. La cuadrícula muestra las franjas horarias configuradas; usa "Nueva entrada" o el generador automático.
+        </div>
+      }
+      @if (modo === 'profesor' && tieneOverlayDisponibilidad()) {
+        <div class="disp-legend">
+          <span class="disp-chip"><span class="disp-swatch sw-nodisp"></span> No disponible</span>
+          <span class="disp-chip"><span class="disp-swatch sw-cond"></span> Condicional</span>
+        </div>
+      }
+      <!-- Las franjas (filas de horas de la cuadrícula) no se editan aquí: viven en el
+           catálogo del motor y se administran en Administración → Franjas Horarias. Se
+           indica solo a staff (nivelAcceso ≤ 3), único perfil que puede modificarlas. -->
+      @if (ctx.nivelAcceso() <= 3) {
+        <div class="franjas-config-nota">
+          <i class="pi pi-clock"></i>
+          Las franjas horarias (filas de horas de la cuadrícula) se definen en
+          <strong>Administración → Franjas Horarias</strong>.
+        </div>
+      }
       <app-horario-grid
         [dias]="dias"
         [franjas]="franjas()"
         [entradas]="entradas()"
         [modo]="modo"
+        [disponibilidad]="disponibilidadOverlay()"
         (claseDrop)="onClaseDrop($event)"
         (claseClick)="abrirEditar($event)">
       </app-horario-grid>
@@ -584,6 +658,31 @@ const HORARIO_GOLDEN_REQUERIDO: Record<string, Record<string, number>> = {
     .page-header h2 { margin:0; }
     .subtitle { margin:0; font-size:.82rem; color:var(--p-text-color-secondary); }
     .empty-state { display: flex; flex-direction: column; align-items: center; gap: 0.75rem; padding: 4rem; color: var(--text-muted); }
+    .grid-hint { display:flex; align-items:center; gap:.5rem; margin-bottom:.75rem; padding:.6rem .85rem;
+      border-radius:8px; background:var(--p-primary-50); color:var(--p-primary-700); font-size:.85rem; }
+    .franjas-config-nota { display:flex; align-items:center; gap:.5rem; margin-bottom:.6rem; font-size:.78rem;
+      color:var(--p-text-color-secondary); font-style:italic; }
+    .franjas-config-nota strong { font-style:normal; color:var(--p-text-color); }
+    .disp-legend { display:flex; gap:1rem; margin-bottom:.6rem; font-size:.8rem; color:var(--p-text-color-secondary); }
+    .disp-chip { display:inline-flex; align-items:center; gap:.4rem; }
+    .disp-swatch { width:16px; height:16px; border-radius:3px; display:inline-block; border:1px solid var(--surface-border); }
+    .sw-nodisp { background: repeating-linear-gradient(45deg, #fee2e2, #fee2e2 4px, #fecaca 4px, #fecaca 8px); }
+    .sw-cond { background:#fef9c3; }
+
+    /* Panel de reglas */
+    .reglas-lista-head { display:flex; align-items:center; gap:.5rem; margin:.25rem 0 .6rem; }
+    .reglas-count { background:var(--p-primary-100); color:var(--p-primary-700); border-radius:10px; padding:0 .5rem; font-size:.75rem; font-weight:700; }
+    .reglas-empty { color:var(--p-text-color-secondary); padding:.75rem; border:1px dashed var(--surface-border); border-radius:8px; background:var(--surface-hover); font-size:.85rem; }
+    .regla-item { display:flex; align-items:flex-start; justify-content:space-between; gap:.5rem; padding:.6rem .75rem; border:1px solid var(--surface-border); border-radius:8px; margin-bottom:.5rem; background:var(--surface-card); }
+    .regla-item-main { display:flex; flex-direction:column; gap:.3rem; min-width:0; }
+    .regla-item-top { display:flex; align-items:center; gap:.4rem; flex-wrap:wrap; }
+    .regla-tipo { font-size:.8rem; font-weight:700; background:var(--surface-ground); padding:.1rem .4rem; border-radius:4px; }
+    .regla-desc { font-size:.82rem; color:var(--p-text-color); }
+    .regla-params { font-size:.78rem; color:var(--p-text-color-secondary); word-break:break-word; }
+    .reglas-asistente { margin-top:1.25rem; padding-top:1rem; border-top:1px solid var(--surface-border); }
+    .regla-preview { margin-top:.75rem; background:var(--surface-ground); padding:.85rem; border-radius:6px; border:1px solid var(--surface-border); }
+    .regla-preview-warn { border-color:var(--p-yellow-400); }
+    .regla-preview-alert { display:flex; align-items:center; gap:.4rem; font-size:.82rem; color:var(--p-yellow-700); margin-bottom:.5rem; }
 
     /* Diálogo */
     .dlg-grid { display:flex; flex-direction:column; gap:.75rem; padding:.5rem 0; }
@@ -692,6 +791,15 @@ export class HorariosComponent implements OnInit, OnDestroy {
   reglaInterpretada = signal<any>(null);
   parseandoRegla = signal(false);
   guardandoRegla = signal(false);
+  reglas = signal<HorarioReglaDTO[]>([]);
+  cargandoReglas = signal(false);
+  eliminandoReglaId = signal<string | null>(null);
+  tiposSoportados = signal<string[]>([]);
+  /** Franjas reales del catálogo (/horario-franjas) para dibujar la cuadrícula
+   *  aunque el grupo/docente aún no tenga clases asignadas. */
+  franjasCatalogo = signal<any[]>([]);
+  /** Overlay de disponibilidad docente: `${dia}-${HH:mm}` → NO_DISPONIBLE | CONDICIONAL. */
+  disponibilidadOverlay = signal<Record<string, string>>({});
   private corridasPollHandle: ReturnType<typeof setInterval> | null = null;
   private horariosSeleccionados = new Set<string>();
 
@@ -728,7 +836,13 @@ export class HorariosComponent implements OnInit, OnDestroy {
   readonly esDocenteSelf = computed(() => this.ctx.usuario()?.rol === 'DOCENTE');
 
   readonly franjas = computed(() => {
-    const horas = [...new Set(this.entradas().map(e => e.hora_inicio))];
+    // Preferir el catálogo real de franjas (muestra la estructura horaria completa,
+    // incluso sin clases asignadas); caer a las horas de las entradas si no cargó.
+    const cat = this.franjasCatalogo();
+    const fuente = cat.length > 0
+      ? cat.map(f => String(f.hora_inicio))
+      : this.entradas().map(e => String(e.hora_inicio));
+    const horas = [...new Set(fuente.map(h => h.slice(0, 5)))];
     return horas.sort();
   });
 
@@ -763,6 +877,14 @@ export class HorariosComponent implements OnInit, OnDestroy {
       if (this.modo === 'grupo' && grupo?.id) {
         this.onGrupoChange();
       }
+    });
+
+    // Cargar el catálogo real de franjas cuando cambia ciclo/nivel (dibuja la
+    // cuadrícula completa aunque no haya clases asignadas).
+    effect(() => {
+      this.ctx.ciclo();
+      this.ctx.nivel();
+      this.cargarFranjasCatalogo();
     });
   }
 
@@ -993,14 +1115,89 @@ export class HorariosComponent implements OnInit, OnDestroy {
     this.api.post<HorarioReglaDTO>('/horarios/reglas', payload).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.guardandoRegla.set(false);
-        this.mostrarReglasIA.set(false);
         this.reglaFraseIA.set('');
         this.reglaInterpretada.set(null);
-        this.notify.success('Reglas', 'Regla guardada en la base de datos.');
+        this.notify.success('Reglas', 'Regla guardada. El motor ya la considerará en la próxima corrida.');
+        this.cargarReglas();
       },
-      error: () => {
+      error: (err) => {
         this.guardandoRegla.set(false);
-        this.notify.error('Error', 'No se pudo guardar la regla.');
+        // 422: tipo no soportado por el motor (validación server-side de TipoReglaHorario)
+        const detalle = err?.error?.message ?? err?.error?.detail;
+        this.notify.error('No se guardó', detalle ?? 'No se pudo guardar la regla.');
+      }
+    });
+  }
+
+  /** Abre el panel de reglas y (re)carga listado + catálogo de tipos soportados. */
+  abrirReglas(): void {
+    this.mostrarReglasIA.set(true);
+    this.reglaFraseIA.set('');
+    this.reglaInterpretada.set(null);
+    this.cargarReglas();
+    if (this.tiposSoportados().length === 0) this.cargarTiposSoportados();
+  }
+
+  cargarReglas(): void {
+    const cicloId = this.ctx.ciclo()?.id;
+    const plantelId = this.ctx.plantel()?.id;
+    const params: Record<string, string> = {};
+    if (cicloId) params['cicloId'] = cicloId;
+    if (plantelId) params['plantelId'] = plantelId;
+
+    this.cargandoReglas.set(true);
+    this.api.get<HorarioReglaDTO[]>('/horarios/reglas', params).pipe(takeUntil(this.destroy$)).subscribe({
+      next: (rs) => { this.reglas.set(rs ?? []); this.cargandoReglas.set(false); },
+      error: () => { this.reglas.set([]); this.cargandoReglas.set(false); },
+    });
+  }
+
+  cargarTiposSoportados(): void {
+    this.api.get<any[]>('/horarios/reglas/tipos').pipe(takeUntil(this.destroy$)).subscribe({
+      // El catálogo (ades_horario_tipo_regla / entidad HorarioTipoRegla) expone el
+      // identificador del tipo en la columna `codigo`, NO `tipo`. Leer `c.tipo` dejaba
+      // `tiposSoportados` lleno de undefined y marcaba TODAS las reglas como "⚠ Sin efecto".
+      next: (cat) => this.tiposSoportados.set((cat ?? []).map(c => c.codigo)),
+      error: () => {},
+    });
+  }
+
+  esTipoSoportado(tipo: string | undefined | null): boolean {
+    if (!tipo) return false;
+    // Si aún no cargó el catálogo, no marcar como "sin efecto" prematuramente.
+    if (this.tiposSoportados().length === 0) return true;
+    return this.tiposSoportados().includes(tipo);
+  }
+
+  /** Resumen legible de los params de una regla para la lista. */
+  resumenParams(r: HorarioReglaDTO): string {
+    const p = (r.params ?? {}) as Record<string, unknown>;
+    const partes = Object.entries(p)
+      .filter(([, v]) => v !== null && v !== undefined && v !== '')
+      .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`);
+    return partes.length ? partes.join(' · ') : 'sin parámetros';
+  }
+
+  eliminarRegla(r: HorarioReglaDTO): void {
+    if (!r.id) return;
+    this.confirm.confirm({
+      message: `¿Eliminar la regla "${r.tipo}"? El motor dejará de aplicarla.`,
+      header: 'Eliminar regla',
+      icon: 'pi pi-exclamation-triangle',
+      acceptLabel: 'Eliminar', rejectLabel: 'Cancelar',
+      accept: () => {
+        this.eliminandoReglaId.set(r.id!);
+        this.api.delete(`/horarios/reglas/${r.id}`).pipe(takeUntil(this.destroy$)).subscribe({
+          next: () => {
+            this.eliminandoReglaId.set(null);
+            this.notify.success('Reglas', 'Regla eliminada.');
+            this.cargarReglas();
+          },
+          error: () => {
+            this.eliminandoReglaId.set(null);
+            this.notify.error('Error', 'No se pudo eliminar la regla.');
+          }
+        });
       }
     });
   }
@@ -1144,11 +1341,18 @@ export class HorariosComponent implements OnInit, OnDestroy {
       // (verificado contra las 3 operaciones porGrupo/porProfesor/miHorario del spec real).
       this.api.get<HorarioEntry[]>(`/horarios/grupo/${this.selectedGrupoId}`, cicloId ? { ciclo_id: cicloId } : undefined)
         .pipe(takeUntil(this.destroy$)).subscribe(r => this.entradas.set(r || []));
+      // En modo grupo no hay un docente único: sin overlay de disponibilidad.
+      this.disponibilidadOverlay.set({});
     } else if (this.modo === 'profesor' && this.esDocenteSelf()) {
       this.cargarMiHorario();
+      // El endpoint /me (UsuarioMe) no expone el profesor_id y mi-horario lo resuelve
+      // server-side desde el JWT; sin ese id no se puede pedir la indisponibilidad, así
+      // que el overlay queda para el caso coordinador (que sí tiene selectedProfesor.id).
+      this.disponibilidadOverlay.set({});
     } else if (this.modo === 'profesor' && this.selectedProfesor) {
       this.api.get<HorarioEntry[]>(`/horarios/profesor/${this.selectedProfesor.id}`, cicloId ? { ciclo_id: cicloId } : undefined)
         .pipe(takeUntil(this.destroy$)).subscribe(r => this.entradas.set(r || []));
+      this.cargarDisponibilidadOverlay(this.selectedProfesor.id);
     }
   }
 
@@ -1162,8 +1366,60 @@ export class HorariosComponent implements OnInit, OnDestroy {
       });
   }
 
+  /**
+   * Carga el catálogo real de franjas horarias del contexto (ciclo + nivel) para
+   * dibujar la cuadrícula completa aunque no haya clases. Los params van en camelCase
+   * como espera HorarioFranjaController (mismo contrato que disponibilidad-grid).
+   */
+  cargarFranjasCatalogo(): void {
+    const cicloId = this.ctx.ciclo()?.id;
+    if (!cicloId) { this.franjasCatalogo.set([]); return; }
+    const params: Record<string, string> = { cicloId };
+    const nivelId = this.ctx.nivel()?.id;
+    if (nivelId) params['nivelEducativoId'] = nivelId;
+    this.api.get<any[]>('/horario-franjas', params).pipe(takeUntil(this.destroy$)).subscribe({
+      next: f => this.franjasCatalogo.set(f ?? []),
+      error: () => this.franjasCatalogo.set([]),
+    });
+  }
+
+  /**
+   * Construye el overlay de disponibilidad de un docente sobre la cuadrícula: cruza
+   * su indisponibilidad (por franja_id) con el catálogo de franjas (franja_id →
+   * día+hora) para sombrear las celdas NO_DISPONIBLE / CONDICIONAL directamente en
+   * el grid, sin salir a la pantalla de disponibilidad.
+   */
+  cargarDisponibilidadOverlay(profesorId: string | null): void {
+    const cicloId = this.ctx.ciclo()?.id;
+    if (!profesorId || !cicloId) { this.disponibilidadOverlay.set({}); return; }
+    this.api.get<any[]>('/horario-indisponibilidad', { profesorId, cicloEscolarId: cicloId })
+      .pipe(takeUntil(this.destroy$)).subscribe({
+        next: indisp => {
+          const porFranja = new Map<string, { dia: number; hora: string }>();
+          for (const f of this.franjasCatalogo()) {
+            porFranja.set(String(f.id), { dia: Number(f.dia_semana), hora: String(f.hora_inicio).slice(0, 5) });
+          }
+          const overlay: Record<string, string> = {};
+          for (const i of (indisp ?? [])) {
+            const ref = porFranja.get(String(i.franja_id));
+            const tipo = String(i.tipo ?? '');
+            if (ref && (tipo === 'NO_DISPONIBLE' || tipo === 'CONDICIONAL')) {
+              overlay[`${ref.dia}-${ref.hora}`] = tipo;
+            }
+          }
+          this.disponibilidadOverlay.set(overlay);
+        },
+        error: () => this.disponibilidadOverlay.set({}),
+      });
+  }
+
   entradasPor(dia: number, hora: string): HorarioEntry[] {
     return this.entradas().filter(e => e.dia_semana === dia && e.hora_inicio === hora);
+  }
+
+  /** ¿Hay al menos una celda con indisponibilidad para el docente seleccionado? */
+  tieneOverlayDisponibilidad(): boolean {
+    return Object.keys(this.disponibilidadOverlay()).length > 0;
   }
 
   colorMateria(nombre: string | null): string {

@@ -25,6 +25,10 @@ public class HorarioConstraintProvider implements ConstraintProvider {
                 ventanaHorariaDocente(factory),
                 diasNoPermitidosDocente(factory),
                 materiaFraccionada30Min(factory),
+                distribucionMinima(factory),
+                leccionesDiaDocente(factory),
+                diasLaborablesDocente(factory),
+                preferenciaHorariaDocente(factory),
                 indisponibilidadRojo(factory),
                 indisponibilidadAmarillo(factory)
         };
@@ -315,6 +319,112 @@ public class HorarioConstraintProvider implements ConstraintProvider {
                 })
                 .penalize(HardSoftScore.ONE_HARD, (grupoId, materia, regla, list) -> regla.getPeso())
                 .asConstraint("Avanzado - Materia fraccionada debe tener un bloque de 50m y uno de 30m");
+    }
+
+    /**
+     * distribucion_minima (SUAVE): una materia debe repartirse en al menos `min_dias`
+     * días distintos de la semana para el grupo (evita concentrarla en pocos días).
+     * params: { materia, min_dias }.
+     */
+    private Constraint distribucionMinima(ConstraintFactory factory) {
+        return factory.forEach(HorarioLeccion.class)
+                .filter(lesson -> lesson.getTimeslot() != null)
+                .join(mx.ades.modules.horarios.config.HorarioRegla.class,
+                        Joiners.filtering((lesson, regla) -> {
+                            if (!"distribucion_minima".equals(regla.getTipo()) || !regla.getActiva()) return false;
+                            Object mat = regla.getParams().get("materia");
+                            return mat != null && mat.equals(lesson.getMateriaNombre());
+                        }))
+                .groupBy((lesson, regla) -> lesson.getGrupoId(),
+                         (lesson, regla) -> lesson.getMateriaNombre(),
+                         (lesson, regla) -> regla,
+                         ai.timefold.solver.core.api.score.stream.ConstraintCollectors.countDistinct(
+                                 (lesson, regla) -> lesson.getTimeslot().diaSemana()))
+                .filter((grupoId, materia, regla, diasDistintos) -> {
+                    Object minObj = regla.getParams().get("min_dias");
+                    return minObj instanceof Integer && diasDistintos < (Integer) minObj;
+                })
+                .penalize(HardSoftScore.ONE_SOFT, (grupoId, materia, regla, diasDistintos) ->
+                        regla.getPeso() * ((Integer) regla.getParams().get("min_dias") - diasDistintos))
+                .asConstraint("Dinamica - Distribucion minima");
+    }
+
+    /**
+     * lecciones_dia_docente (DURA): en los días que el docente trabaja, su número de
+     * clases debe quedar dentro de [min, max]. params: { profesor_id, min, max }.
+     */
+    private Constraint leccionesDiaDocente(ConstraintFactory factory) {
+        return factory.forEach(HorarioLeccion.class)
+                .filter(lesson -> lesson.getTimeslot() != null && lesson.getProfesorId() != null)
+                .join(mx.ades.modules.horarios.config.HorarioRegla.class,
+                        Joiners.filtering((lesson, regla) -> {
+                            if (!"lecciones_dia_docente".equals(regla.getTipo()) || !regla.getActiva()) return false;
+                            Object prof = regla.getParams().get("profesor_id");
+                            return prof != null && prof.toString().equals(lesson.getProfesorId().toString());
+                        }))
+                .groupBy((lesson, regla) -> lesson.getProfesorId(),
+                         (lesson, regla) -> lesson.getTimeslot().diaSemana(),
+                         (lesson, regla) -> regla,
+                         ai.timefold.solver.core.api.score.stream.ConstraintCollectors.countBi())
+                .filter((profId, dia, regla, count) -> {
+                    Object minObj = regla.getParams().get("min");
+                    Object maxObj = regla.getParams().get("max");
+                    boolean bajoMin = minObj instanceof Integer && count < (Integer) minObj;
+                    boolean sobreMax = maxObj instanceof Integer && count > (Integer) maxObj;
+                    return bajoMin || sobreMax;
+                })
+                .penalize(HardSoftScore.ONE_HARD, (profId, dia, regla, count) -> regla.getPeso())
+                .asConstraint("Dinamica - Lecciones por dia docente");
+    }
+
+    /**
+     * dias_laborables_docente (DURA): un docente trabaja a lo más `max_dias` días por
+     * semana (ej. docente que solo asiste 2 días). params: { profesor_id, max_dias }.
+     */
+    private Constraint diasLaborablesDocente(ConstraintFactory factory) {
+        return factory.forEach(HorarioLeccion.class)
+                .filter(lesson -> lesson.getTimeslot() != null && lesson.getProfesorId() != null)
+                .join(mx.ades.modules.horarios.config.HorarioRegla.class,
+                        Joiners.filtering((lesson, regla) -> {
+                            if (!"dias_laborables_docente".equals(regla.getTipo()) || !regla.getActiva()) return false;
+                            Object prof = regla.getParams().get("profesor_id");
+                            return prof != null && prof.toString().equals(lesson.getProfesorId().toString());
+                        }))
+                .groupBy((lesson, regla) -> lesson.getProfesorId(),
+                         (lesson, regla) -> regla,
+                         ai.timefold.solver.core.api.score.stream.ConstraintCollectors.countDistinct(
+                                 (lesson, regla) -> lesson.getTimeslot().diaSemana()))
+                .filter((profId, regla, diasDistintos) -> {
+                    Object maxObj = regla.getParams().get("max_dias");
+                    return maxObj instanceof Integer && diasDistintos > (Integer) maxObj;
+                })
+                .penalize(HardSoftScore.ONE_HARD, (profId, regla, diasDistintos) ->
+                        regla.getPeso() * (diasDistintos - (Integer) regla.getParams().get("max_dias")))
+                .asConstraint("Dinamica - Dias laborables docente");
+    }
+
+    /**
+     * preferencia_horaria_docente (SUAVE): días que el docente prefiere evitar. No es
+     * prohibición (para eso está dias_no_permitidos_docente, dura); solo penaliza suave
+     * para que el optimizador los evite si puede. params: { profesor_id, evita_dias }.
+     */
+    private Constraint preferenciaHorariaDocente(ConstraintFactory factory) {
+        return factory.forEach(HorarioLeccion.class)
+                .filter(lesson -> lesson.getTimeslot() != null && lesson.getProfesorId() != null)
+                .join(mx.ades.modules.horarios.config.HorarioRegla.class,
+                        Joiners.filtering((lesson, regla) -> {
+                            if (!"preferencia_horaria_docente".equals(regla.getTipo()) || !regla.getActiva()) return false;
+                            Object prof = regla.getParams().get("profesor_id");
+                            if (prof == null || !prof.toString().equals(lesson.getProfesorId().toString())) return false;
+                            Object diasObj = regla.getParams().get("evita_dias");
+                            if (diasObj instanceof java.util.List diasList) {
+                                return diasList.contains(lesson.getTimeslot().diaSemana())
+                                    || diasList.contains(String.valueOf(lesson.getTimeslot().diaSemana()));
+                            }
+                            return false;
+                        }))
+                .penalize(HardSoftScore.ONE_SOFT, (lesson, regla) -> regla.getPeso())
+                .asConstraint("Calidad - Preferencia horaria docente");
     }
 
     private Constraint indisponibilidadRojo(ConstraintFactory factory) {

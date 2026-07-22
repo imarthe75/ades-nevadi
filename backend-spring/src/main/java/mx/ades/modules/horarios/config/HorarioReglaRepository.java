@@ -9,4 +9,8 @@ import java.util.UUID;
 @Repository
 public interface HorarioReglaRepository extends JpaRepository<HorarioRegla, UUID> {
     List<HorarioRegla> findByPlantelIdAndCicloEscolarIdAndActivaTrueAndIsActiveTrue(UUID plantelId, UUID cicloEscolarId);
+    List<HorarioRegla> findByCicloEscolarIdAndActivaTrueAndIsActiveTrue(UUID cicloEscolarId);
+    List<HorarioRegla> findByPlantelIdAndActivaTrueAndIsActiveTrue(UUID plantelId);
+    List<HorarioRegla> findByActivaTrueAndIsActiveTrue();
 }
+

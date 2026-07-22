@@ -9,4 +9,8 @@
 - **Análisis Exploratorios**: Realizar análisis exploratorios profundos antes y durante el diseño o la implementación de cualquier cambio o componente nuevo para identificar posibles fallas, vulnerabilidades o inconsistencias lógicas de manera proactiva.
 - **Documentación Completa del Código**: Todo el código desarrollado o modificado debe estar plenamente documentado (incluyendo comentarios en funciones críticas, clases, modelos, parámetros y cabeceras si aplica), asegurando su legibilidad y mantenibilidad a futuro.
 - **Estandarización de Mensajes de Error**: Todo componente o servicio desarrollado/modificado debe asegurar que las excepciones del sistema, base de datos o de validación no se muestren de forma cruda ni técnica al usuario (evitando stacktraces de lenguajes o frameworks). Deben capturarse centralizadamente y transformarse en mensajes comprensibles, amigables y localizados.
+- **Heurísticas Cognitivas de UX/UI (Nielsen)**: En todos los componentes Angular desarrollados o modificados, es obligatorio aplicar y validar el cumplimiento de las heurísticas cognitivas de Nielsen:
+  - *Feedback visual inmediato*: Toda mutación de datos (`POST`, `PUT`, `PATCH`, `DELETE`) debe reflejar un estado de carga claro (`[loading]`, spinner o botón deshabilitado temporalmente).
+  - *Confirmación en acciones destructivas*: Toda acción de eliminación o baja de registros debe requerir confirmación explícita con `ConfirmationService` de PrimeNG.
+  - *Validación de datos sensibles*: Todo formulario debe validar la estructura de campos como CURP, RFC, NSS, teléfonos y coherencia de rangos numéricos/fechas antes de procesar el guardado.
 

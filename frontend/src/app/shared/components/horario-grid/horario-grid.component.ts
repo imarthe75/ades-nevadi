@@ -25,10 +25,10 @@ export interface HorarioGridEntry {
   standalone: true,
   imports: [CommonModule, DragDropModule, TooltipModule],
   template: `
-    @if (entradas.length === 0) {
+    @if (franjas.length === 0) {
       <div class="empty-state">
         <i class="pi pi-calendar-plus" style="font-size: 3rem"></i>
-        <p>No hay entradas de horario para mostrar.</p>
+        <p>No hay franjas horarias configuradas para este contexto.</p>
       </div>
     } @else {
       <div class="horario-grid" cdkDropListGroup>
@@ -46,7 +46,10 @@ export interface HorarioGridEntry {
             <div class="hora-col">{{ franja }}</div>
             @for (dia of dias; track dia.num) {
               <div class="dia-cell" cdkDropList [cdkDropListData]="{dia: dia.num, franja: franja}" (cdkDropListDropped)="onDrop($event)"
-                   [attr.aria-label]="dia.label + ' ' + franja">
+                   [class.cell-nodisp]="estadoDisp(dia.num, franja) === 'NO_DISPONIBLE'"
+                   [class.cell-cond]="estadoDisp(dia.num, franja) === 'CONDICIONAL'"
+                   [pTooltip]="estadoDisp(dia.num, franja) === 'NO_DISPONIBLE' ? 'Docente no disponible' : (estadoDisp(dia.num, franja) === 'CONDICIONAL' ? 'Docente disponible con condiciones' : '')"
+                   [attr.aria-label]="dia.label + ' ' + franja + (estadoDisp(dia.num, franja) === 'NO_DISPONIBLE' ? ', docente no disponible' : (estadoDisp(dia.num, franja) === 'CONDICIONAL' ? ', docente condicional' : ''))">
                 @for (e of entradasPor(dia.num, franja); track e.id) {
                   <div class="clase-chip" cdkDrag [cdkDragData]="e" [style.background]="colorMateria(e.nombre_materia)"
                        (click)="claseClick.emit(e)" pTooltip="Click para editar" style="cursor:pointer"
@@ -111,6 +114,11 @@ export interface HorarioGridEntry {
       flex-direction: column;
       gap: 2px;
     }
+    /* Overlay de disponibilidad docente: rojo rayado = no disponible, amarillo = condicional */
+    .dia-cell.cell-nodisp {
+      background: repeating-linear-gradient(45deg, #fee2e2, #fee2e2 6px, #fecaca 6px, #fecaca 12px);
+    }
+    .dia-cell.cell-cond { background: #fef9c3; }
     .clase-chip {
       border-radius: 4px;
       padding: 0.3rem 0.5rem;
@@ -145,12 +153,24 @@ export class HorarioGridComponent implements OnDestroy {
   @Input() franjas: string[] = [];
   @Input() entradas: HorarioGridEntry[] = [];
   @Input() modo: 'grupo' | 'profesor' = 'grupo';
-  
+  /**
+   * Overlay de disponibilidad docente. Clave `${dia}-${franja}` (franja = "HH:mm")
+   * → 'NO_DISPONIBLE' | 'CONDICIONAL'. Cuando se muestra el horario de un docente,
+   * sombrea las celdas donde el docente marcó indisponibilidad, para verlo de un
+   * vistazo sin salir a otra pantalla.
+   */
+  @Input() disponibilidad: Record<string, string> = {};
+
   @Output() claseDrop = new EventEmitter<CdkDragDrop<any>>();
   @Output() claseClick = new EventEmitter<HorarioGridEntry>();
 
   entradasPor(dia: number, franja: string): HorarioGridEntry[] {
     return this.entradas.filter(e => e.dia_semana === dia && e.hora_inicio.startsWith(franja));
+  }
+
+  /** Estado de disponibilidad del docente en una celda (día × franja). */
+  estadoDisp(dia: number, franja: string): string {
+    return this.disponibilidad[`${dia}-${franja}`] ?? '';
   }
 
   colorMateria(nombre: string | null): string {

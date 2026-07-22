@@ -80,10 +80,13 @@ public class AdminQueryService {
     public List<Map<String, Object>> listarGrupos(UUID plantelId, UUID nivelEducativoId, UUID cicloId) {
         StringBuilder sql = new StringBuilder(
             "SELECT g.id, g.nombre_grupo, g.capacidad_maxima, g.turno, g.ciclo_escolar_id, g.is_active, " +
-            "gr.nombre_grado, gr.numero_grado, n.nombre_nivel " +
+            "gr.nombre_grado, gr.numero_grado, n.nombre_nivel, " +
+            "c.nombre_ciclo, c.es_vigente, pl.nombre_plantel " +
             "FROM ades_grupos g " +
             "JOIN ades_grados gr ON gr.id = g.grado_id " +
             "JOIN ades_niveles_educativos n ON n.id = gr.nivel_educativo_id " +
+            "JOIN ades_ciclos_escolares c ON c.id = g.ciclo_escolar_id " +
+            "JOIN ades_planteles pl ON pl.id = gr.plantel_id " +
             "WHERE 1=1 ");
         List<Object> params = new ArrayList<>();
         if (plantelId != null) {

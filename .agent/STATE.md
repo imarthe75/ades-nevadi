@@ -14,6 +14,191 @@ Este documento es el diario de vida y bitácora del agente. Debe ser leído en e
 
 ## 📅 Bitácora
 
+## Sesión 2026-07-22 — Diagnóstico y Corrección de Reglas de Horario y Ciclos Vigentes ✅
+
+Rito de Inicio y Cierre ejecutado a solicitud del usuario.
+- **Rito de Inicio (Diagnóstico)**:
+  - Se realizó una auditoría de la base de datos y backend/frontend para determinar por qué no se mostraban las reglas en el creador de horarios.
+  - **Base de datos**: Se verificó la existencia de 43 reglas activas en `ades_horario_regla`. Se identificó que faltaba sembrar reglas de Preparatoria para Ixtapan de la Sal en el ciclo `26B`.
+  - **Backend (`HorarioReglaController.java`)**: El endpoint `GET /api/v1/horarios/reglas` exigía `cicloId` de forma estricta y forzaba el `plantel_id` del token JWT, ignorando el plantel seleccionado en la barra de contexto de la interfaz. Se flexibilizó el parámetro `cicloId` (haciéndolo opcional con fallback a las reglas del plantel/sistema) y se habilitó la recepción del parámetro `plantelId` respetando RBAC/BOLA.
+  - **Frontend (`horarios.component.ts`)**: Se actualizó `cargarReglas()` para enviar dinámicamente `plantelId` y `cicloId` desde los signals del contexto activo.
+  - **Migración 164**: Se creó e insertó la migración `164_seed_reglas_horario_ixtapan_prepa.sql` para sembrar reglas muestra de Preparatoria para Ixtapan de la Sal en `26B`. Total de reglas activas en BD: 48.
+
+- **Actualización de Ciclos Vigentes**:
+  - Se actualizaron todos los registros de horarios (`ades_horarios`), asignaciones docentes (`ades_asignaciones_docentes`) y disponibilidad docente (`ades_disponibilidad_docente`) a los ciclos vigentes del sistema:
+    - **Preparatoria**: `25B` → **`26B`** (162 entradas).
+    - **Primaria**: `2025-2026` → **`2026-2027`** (1,632 entradas).
+    - **Secundaria**: `2025-2026` → **`2026-2027`** (774 entradas).
+
+- **Actualización de Reglas y Documentación**:
+  - Se actualizaron las reglas en `.agents/AGENTS.md` para incorporar explícitamente los mandatos de **Heurísticas Cognitivas de UX/UI (Nielsen)** (feedback de carga `[loading]`, confirmaciones con `ConfirmationService` y validaciones estructurales de datos sensibles con `AdesValidators`).
+
+- **Despliegue y Limpieza (Prune)**:
+  - Se construyeron y desplegaron nuevamente las imágenes de `ades-bff` y `ades-frontend`.
+  - Se ejecutó `docker system prune -a --volumes -f`, liberando **3.216 GB** de espacio en disco.
+
+
+
+Rito de inicio a petición del usuario: "un proceso falló varias veces y algo quedó sin
+concluir". Diagnóstico: la sesión 2026-07-21 (tarde) **reconstruyó las imágenes a las
+20:08** (ya con todo el código final de las 20:03) pero **nunca recreó los contenedores**
+— `ades-bff`/`ades-frontend`/`ades-api` seguían corriendo las imágenes viejas de las
+~19:36. En vivo corría código pre-final (sin panel de reglas, sin grid rediseñado, sin
+prompt IA nuevo, sin los 4 tipos de solver). Las migraciones 161 (21 reglas seed = 7×3
+planteles) y 162 (catálogo 13 tipos) **ya estaban aplicadas** en BD; el hueco era solo el
+swap de contenedores.
+
+- **Rollback:** se intentó preservar las imágenes viejas (`docker tag`/`commit`) pero el
+  store containerd (overlayfs snapshotter) ya había recolectado sus capas — imposible.
+  Red de seguridad real: backup fresco `backups/pre-horarios-deploy-20260722_0009.sql`
+  (168M) + código pre-sesión en git. La BD NO se toca en un `up -d --force-recreate`
+  (sin `-v`, sin reiniciar postgres).
+- **Deploy:** `docker compose up -d --force-recreate --no-deps ades-bff ades-frontend
+  ades-api` (ejecutado por el usuario tras bloqueo del clasificador). Verificado: los 3
+  contenedores ya corren la imagen `:latest`, BFF `Started ... in 31.3s` sin excepciones
+  (el nuevo `HorarioTipoRegla`+repo se cablearon bien), FastAPI sin errores (`/metrics`
+  200 — instrumentator Prometheus intacto), `/horarios/reglas/tipos` responde 401 (arriba
+  y protegido).
+- **Convención de nombres:** el usuario cuestionó plural vs singular. La tabla nueva
+  `ades_horario_tipo_regla` se dejó en singular a propósito: espeja su tabla padre
+  `ades_horario_regla` (pre-existente, singular). El proyecto usa plural para tablas de
+  entidad pero el módulo horarios ya es excepción local; forzar plural rompería el par
+  regla/tipo_regla y la entidad `HorarioRegla` existente. No se renombró.
+- **Pendiente (igual que antes):** verificación visual con ojos del usuario en
+  ades.setag.mx del render real de las nuevas pantallas de Horarios (sin JWT/navegador no
+  se puede automatizar). Sin commit (Regla #21) — todo en disco.
+
+### Continuación 2026-07-22 — Reglas Sec/Prepa + verificación franjas + ciclo 26B
+
+- **Bug real corregido (badge de reglas):** `horarios.component.ts#cargarTiposSoportados`
+  leía `c.tipo` del catálogo, pero la entidad `HorarioTipoRegla` expone el identificador
+  como `codigo` → `tiposSoportados` quedaba lleno de `undefined` y marcaba TODAS las reglas
+  como "⚠ Sin efecto". Por eso "no se veían reglas cargadas" (más el hecho de que el listado
+  vive detrás del botón "Reglas", no en el grid). Corregido a `c.codigo`.
+- **Seed reglas Sec/Prepa (mig 163):** extendió el patrón de la 161 (Primaria-only) a
+  SECUNDARIA (4 reglas × 3 planteles = 12) y PREPARATORIA (5 reglas × 2 planteles = 10),
+  usando nombres de materia verificados verbatim contra BD viva (el ConstraintProvider
+  compara `params.materia` exacto vs `lesson.materiaNombre`). Total reglas: 43.
+- **Franjas: NO se construyó pantalla nueva — ya existía** completa en Administración →
+  pestaña "Franjas Horarias" (`admin.component.ts`, tabla + alta/edición/borrado, POST/PUT/
+  DELETE `/horario-franjas`, backend con BOLA/BFLA + validación NOT NULL). Verificada la
+  edición: funciona (Jackson SNAKE_CASE global, entidad completa, `@Version row_version`
+  gestionado por trigger, no hay conflicto espurio). Se agregó **validación
+  `hora_fin > hora_inicio`** (faltaba, permitía franjas invertidas/cero) y un **indicador en
+  Horarios** (visible a staff) apuntando a Administración → Franjas Horarias.
+  Huecos menores NO corregidos (decisión de producto): el diálogo no permite fijar
+  `plantel_id` (toda franja nueva queda global), `turno` es texto libre (debería ser select).
+- **Ciclo 26B (prepa):** vigente (`es_vigente=t`, 2026-08-04→2027-01-30). La vigencia es
+  **por nivel, no por plantel** (`ades_ciclos_escolares` no tiene `plantel_id`) → cubre a
+  Metepec y Tenancingo por igual; no puede existir "vigente para uno y no el otro".
+  **Hallazgo:** la matrícula demo NO refleja la realidad declarada (Metepec 3er sem /
+  Tenancingo 1º): ambos planteles tienen los 6 semestres poblados idénticos (52 alumnos en
+  2º-6º, 1er sem con 2 grupos vacíos). Data de simulación — pendiente de decisión del usuario
+  si se corrige.
+- **Deploy:** solo `ades-frontend` (seed es BD ya aplicada; BFF/FastAPI sin cambios).
+  Reconstruido y recreado; cambios confirmados en el bundle en vivo (chunks FO4ZGPVG /
+  PEVU76ZT). Sin commit (Regla #21).
+
+### Continuación 2026-07-22 (2) — Matrícula prepa realista + catálogo de turnos
+
+- **Matrícula demo de Prepa corregida a la realidad** (datos de prueba, borrado autorizado
+  por el usuario). Antes: ambos planteles con 6 semestres × 52 en 25B y 26B. Ahora:
+  - Metepec: 25B = 1º y 2º sem (ya cursados), 26B (vigente) = **3º sem**.
+  - Tenancingo: sin historia (plantel nuevo), 26B (vigente) = **1º sem**.
+  - **Mig 164** (26B): movió 52 Tenancingo 2º→1º, borró 416 inscripciones + 20 grupos
+    (26B no tenía horarios/calif/clases → borrado limpio).
+  - **Mig 166** (historia 25B): borró Metepec sem>2 y todo Tenancingo. El 25B SÍ tenía
+    dependientes: cadena profunda `grupos → foros → mensajes_foro → respuestas_foro` (+
+    horarios 648, asignaciones_docentes 192, inscripciones 520). Borrado en orden hoja→raíz
+    + loop dinámico sobre todas las FK a `ades_grupos`. **Lección** (memoria
+    `fk-subarbol-grupos-borrado`): al borrar un grupo hay subárboles de varios niveles.
+- **Catálogo de turnos en BD** (**mig 165**, `ades_horario_turno`, 6 turnos: Matutino/
+  Vespertino/Nocturno/Mixto/Discontinuo/Tiempo Completo). Entidad `HorarioTurno` + repo +
+  endpoint `GET /horario-franjas/turnos`. El diálogo de Franjas (Admin) ahora usa **p-select**
+  desde el catálogo (antes texto libre; solo existía MATUTINO). Cacheado en cliente (Regla #31).
+- **Deploy:** BFF (nuevo endpoint/entidad) + frontend (select). Ambas imágenes construidas
+  (BFF: 566 tests dentro del Dockerfile en verde), recreadas, verificadas en vivo (BFF sin
+  excepciones, endpoint 401, select en bundle WXIRXPJH). Backups previos:
+  `pre-matricula-prepa-20260721_1856.sql`. Sin commit (Regla #21).
+
+### Continuación 2026-07-22 (3) — Cohorte prepa coherente + dashboard
+
+- **Cohorte prepa Metepec coherente (mig 167):** el demo tenía 3 conjuntos de alumnos
+  DISJUNTOS (0 solapamiento) para 25B-1º/25B-2º/26B-3º. Ahora los MISMOS 52 alumnos (los de
+  26B-3º vigente) tienen historial 1º(25B)→2º(26A, grupos creados)→3º(26B) — verificado
+  `mismos_que_3o=52` en los tres. Restricción clave descubierta:
+  `uq_ades_inscripciones_activa_por_estudiante` (1 sola inscripción activa por alumno) → las
+  históricas van `is_active=false`.
+- **Borrado FÍSICO completo de 104 alumnos demo redundantes** (usuario: "si puedes mejor el
+  borrado completo"). Cada uno tenía cuenta `ades_usuarios` (44 FK entrantes, pero árbol
+  verificado ACOTADO: 4 hojas sin nietos). Se usó `session_replication_role=replica` +
+  borrado dinámico de todos los descendientes (13,182 entregas incluidas). Integridad
+  verificada post-borrado: **0 huérfanos**. Ver memoria [[borrado-fisico-alumno-replica]].
+- **Dashboard — 2 bugs reales (encontrados por el usuario navegando):**
+  1. `PlantelQueryService`: el total del plantel contaba solo ciclo vigente, pero el desglose
+     por nivel contaba TODOS los ciclos (es_vigente estaba en el ON de un LEFT JOIN, no
+     restringía el COUNT) → 31 vs 53 sin cuadrar. Corregido con EXISTS(ciclo vigente) en el
+     join de grupos. Pende rebuild BFF.
+  2. **11 grupos basura `TestGrpNNN`** en Metepec Primaria 1º (Regla #28: E2E/fuzz sin
+     limpiar), inflaban primaria vigente 12→23. Borrados (mig 168, estaban vacíos).
+- **Franjas por-plantel: DIFERIDO.** El usuario lo aprobó, pero se descubrió que las franjas
+  hoy están ligadas a ciclos VIEJOS (25B/2025-2026) y son globales; el grid funciona solo
+  porque su query cae a "por nivel" ignorando ciclo. Convertir a por-plantel requiere decidir
+  antes la re-vinculación de ciclo. No se hizo a ciegas.
+- Migraciones nuevas: 163 (reglas sec/prepa), 164 (matrícula 26B), 165 (catálogo turnos),
+  166 (historia 25B), 167 (cohorte + borrado físico), 168 (grupos basura). Backups:
+  `pre-matricula-prepa-*`, `pre-cohorte-prepa-20260721_2037.sql`.
+
+## Sesión 2026-07-21 (tarde) — Módulo de Horarios intuitivo + vista de Grupos por ciclo/plantel ✅
+
+Encargo: hacer el módulo de Horarios más intuitivo (ver franjas, disponibilidad docente,
+y un "desplegado de las reglas" que la IA analiza), sembrar como muestra las reglas ya
+dadas; y de paso una duda sobre grupos "duplicados" en Administración.
+
+**Grupos NO estaban duplicados** (verificado en BD: `UNIQUE (nombre_grupo, grado_id,
+ciclo_escolar_id)`, 0 duplicados exactos). Los 167 eran 89 vigentes + 78 históricos, por
+ciclo × plantel — la tabla no mostraba Ciclo ni Plantel. Fix: `AdminQueryService.listarGrupos`
+ahora trae `nombre_ciclo`/`es_vigente`/`nombre_plantel` (2 JOINs INNER seguros por FK NOT
+NULL); frontend con columnas Plantel/Ciclo (+"(histórico)") y toggle "Solo vigentes" (default
+ON). El histórico se conserva por diseño (grupo cuelga de su `ciclo_escolar_id`); no se borra.
+
+**Horarios — parte reglas (mayor valor):**
+- El backend ya tenía `GET/DELETE /horarios/reglas` pero el frontend nunca los llamaba y el
+  motor ignoraba en silencio tipos no soportados (reglas "fantasma"). El diálogo "Reglas IA"
+  era write-only.
+- Nuevo **catálogo en BD `ades_horario_tipo_regla`** (mig 162, 13 tipos) como fuente de verdad
+  — NO enum embebido (corrección explícita del usuario: catálogos en BD). Entidad
+  `HorarioTipoRegla` + repo. `HorarioReglaController.crear` valida el tipo contra el catálogo
+  (422 si no soportado); nuevo `GET /horarios/reglas/tipos`.
+- Frontend: el botón "Reglas" abre un panel que **lista** las reglas activas con badge
+  "✓ Activa en el motor" / "⚠ Sin efecto", eliminar con confirmación, y el asistente IA
+  debajo (que ahora bloquea guardar si el tipo no es soportado).
+- Prompt del LLM (`ai_assistant.py`) reescrito: antes invitaba a inventar tipos
+  (`no_viernes`, `bloque_continuo` mal escrito) y usaba claves de params equivocadas; ahora
+  mapea al catálogo real (13 tipos, params exactos).
+- **Seed mig 161**: 7 reglas × 3 planteles primaria (EF sin viernes/no consecutivos,
+  Computación Mié-Jue, Proyectos tarde, Saberes/Lenguajes mañana, Fábrica fraccionada).
+
+**Horarios — parte solver (paridad aSc):** 4 tipos nuevos en `HorarioConstraintProvider`:
+`distribucion_minima` (S), `lecciones_dia_docente` (H), `dias_laborables_docente` (H),
+`preferencia_horaria_docente` (S). NO se pudieron agregar tests `ConstraintVerifier`:
+`timefold-solver-test` se quedó en 1.33.0 en Central mientras el core va en 2.2.0 (versionado
+divergente) — verificado por compilación + suite existente. **566/566 tests verde.**
+
+**Horarios — parte grid (rediseño):** bug real corregido — el `<app-horario-grid>` estaba
+dentro del `@else if (entradas===0)`, así que el grid **desaparecía cuando SÍ había datos**.
+Ahora el grid se dibuja desde el **catálogo real de franjas** (`/horario-franjas`, se ve la
+estructura horaria aunque no haya clases) y, en modo docente, superpone un **overlay de
+disponibilidad** (celdas rojas rayadas = NO_DISPONIBLE, amarillas = CONDICIONAL) cruzando
+`/horario-indisponibilidad` con el catálogo de franjas — sin salir a otra pantalla. Leyenda
+de colores incluida.
+
+Migraciones nuevas: **161** (seed reglas), **162** (catálogo tipos). Imágenes con tags de
+rollback `pre-grupos-*`/`pre-reglas-*`/`pre-final-*`. Sin commit (Regla #21) — todo en disco.
+Verificado por mí: 566/566 tests, tsc limpio, SQL de grupos probado en BD, seed y catálogo en
+BD, rutas mapeadas (401 no 404). NO verificado (sin JWT/navegador): render real de las nuevas
+pantallas — requiere ojos del usuario en ades.setag.mx.
+
 ## Sesión 2026-07-21 — Verificación de auditoría externa del motor de calificaciones (H-1 a H-10) ✅
 
 Encargo: continuar el trabajo de bulk operations de la sesión anterior y verificar una

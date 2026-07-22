@@ -38,8 +38,13 @@ public class PlantelQueryService {
                 "COUNT(DISTINCT gr.id) AS grados, COUNT(DISTINCT g.id) AS grupos_activos " +
                 "FROM ades_niveles_educativos n " +
                 "JOIN ades_grados gr ON gr.nivel_educativo_id = n.id " +
+                // El conteo de grupos por nivel DEBE restringirse al ciclo vigente igual que
+                // total_grupos (arriba); antes la condición es_vigente vivía solo en el ON del
+                // LEFT JOIN de c, así que COUNT(g.id) sumaba grupos de TODOS los ciclos
+                // (histórico incluido) y el desglose no cuadraba con el total del plantel.
                 "LEFT JOIN ades_grupos g ON g.grado_id = gr.id AND g.is_active = true " +
-                "LEFT JOIN ades_ciclos_escolares c ON c.id = g.ciclo_escolar_id AND c.es_vigente = true " +
+                "  AND EXISTS (SELECT 1 FROM ades_ciclos_escolares c " +
+                "              WHERE c.id = g.ciclo_escolar_id AND c.es_vigente = true) " +
                 "WHERE gr.plantel_id = ? AND n.is_active = true " +
                 "GROUP BY n.id, n.nombre_nivel ORDER BY n.nombre_nivel",
                 pid);

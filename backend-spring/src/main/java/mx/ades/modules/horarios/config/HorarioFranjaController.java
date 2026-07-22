@@ -19,7 +19,20 @@ import java.util.UUID;
 public class HorarioFranjaController {
 
     private final HorarioFranjaRepository repository;
+    private final HorarioTurnoRepository turnoRepository;
     private final AdesUserService userService;
+
+    /**
+     * Catálogo de turnos escolares posibles (tabla ades_horario_turno). Lo consume el
+     * diálogo de Franjas Horarias (Administración) para poblar el select de turno en vez
+     * de un input de texto libre. Lectura abierta a cualquier usuario autenticado (mismo
+     * criterio que listAll: catálogo institucional consultable por staff/UI).
+     */
+    @GetMapping("/turnos")
+    public ResponseEntity<List<HorarioTurno>> turnos(@AuthenticationPrincipal Jwt jwt) {
+        userService.resolveUser(jwt);
+        return ResponseEntity.ok(turnoRepository.findByIsActiveTrueOrderByOrdenAsc());
+    }
 
     @GetMapping
     public ResponseEntity<List<HorarioFranja>> listAll(
