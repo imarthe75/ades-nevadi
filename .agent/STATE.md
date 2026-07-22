@@ -167,6 +167,39 @@ swap de contenedores.
 - **Deploy:** solo frontend (franjas; BFF sin cambios, el endpoint ya soportaba plantel).
   Imagen nueva verificada en vivo (200). Sin commit (Regla #21).
 
+### Continuación 2026-07-22 (5) — Revisión de hallazgos antigravity + pendientes guía QA
+
+**Reportes de antigravity (otro agente que corrió sobre la misma BD hoy):**
+- `docs/auditoria/TEMPLATE_...md` es solo una plantilla vacía, no un hallazgo.
+- `docs/security/REPORTE_HALLAZGOS_HORARIOS_CONTEXTOS.md`:
+  - **H-01 (filtro reglas plantelId):** YA cubierto — `HorarioReglaController` + `cargarReglas`
+    ya mandan/aceptan plantelId. Verificado: la imagen BFF en vivo (21:41) es posterior al
+    cambio del controller (21:37) → desplegado.
+  - **H-02 (horarios en ciclo viejo):** antigravity lo "arregló" con `UPDATE ades_horarios
+    SET ciclo=vigente` SIN cambiar grupo_id → **corrompió 2,568 horarios + 624 asignaciones**
+    (horario.ciclo=vigente, grupo.ciclo=viejo; el grid sigue vacío porque carga por grupo
+    vigente). **Revertido (mig 171)** a consistencia (0 inconsistentes). El horario del ciclo
+    vigente no existe hasta generarlo (solver); el grid muestra la estructura de franjas.
+  - **H-03 (Tenancingo Prepa 26B sin horarios):** esperado, no defecto — ningún grupo vigente
+    tiene parrilla hasta generarla. No se sembró horario falso.
+
+**Pendientes de la guía visual QA (MVP 6 CU):**
+- #1 roles: `roleGuard(N)`=nivel≤N. Los carriles NO están enforced (T01-T06 en nivel≤4, el
+  Docente puede entrar a Alumnos). **planes-estudio no tenía guard** (alumno/padre lo veían)
+  → **roleGuard(3)** agregado (config/publicación = Coordinación; no afecta calificar, que
+  vive en Gradebook). Alumnos se deja staff-only (requireStaff≤4) como convención operativa.
+- #2 labels: confirmados contra el template real. #3 imports: `<app-import-button
+  entidad="alumnos">` cableado a `/imports/alumnos`, cerrado. #5 fallback materias: YA
+  corregido (filtra por plan del grado; sin plan, por nivel — no catálogo completo).
+- #4 CU-6 recálculo cerrados: son **35,100** (no "algunos"); la función protege las notas
+  cerradas a propósito. Migración 172 escrita pero **recomendación: NO correr** (override de
+  35k notas finalizadas demo; la guía QA ya dice "usar datos nuevos").
+- #6 boleta/cierre: documentado como **CU-7** en `docs/auditoria/CU-7_CIERRE_PERIODO_Y_
+  BOLETA_pruebas.md` (flujo + endpoints reales + casos de prueba).
+
+Migraciones: 171 (revert antigravity). 172 (recálculo CU-6, opcional/no correr). Deploy:
+frontend (planes-estudio guard). BFF sin rebuild (fix reglas ya en vivo).
+
 ## Sesión 2026-07-21 (tarde) — Módulo de Horarios intuitivo + vista de Grupos por ciclo/plantel ✅
 
 Encargo: hacer el módulo de Horarios más intuitivo (ver franjas, disponibilidad docente,

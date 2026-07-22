@@ -56,7 +56,7 @@ export const routes: Routes = [
       { path: 'portal',          loadComponent: () => import('./features/portal/portal.component').then(m => m.PortalComponent) },
       { path: 'portal-admin',   canActivate: [roleGuard(2)], loadComponent: () => import('./features/portal-admin/portal-admin.component').then(m => m.PortalAdminComponent) },
       { path: 'padres',          loadComponent: () => import('./features/padres/padres.component').then(m => m.PadresComponent) },
-      { path: 'planes-estudio',  loadComponent: () => import('./features/planes-estudio/planes-estudio.component').then(m => m.PlanesEstudioComponent) },
+      { path: 'planes-estudio',  canActivate: [roleGuard(3)], loadComponent: () => import('./features/planes-estudio/planes-estudio.component').then(m => m.PlanesEstudioComponent) },
       // ── FASE 10 — Gradebook Curricular ──────────────────────────────────
       { path: 'gradebook',        canActivate: [roleGuard(4)], loadComponent: () => import('./features/gradebook/gradebook.component').then(m => m.GradebookComponent) },
       { path: 'mi-progreso',      loadComponent: () => import('./features/mi-progreso/mi-progreso.component').then(m => m.MiProgresoComponent) },
